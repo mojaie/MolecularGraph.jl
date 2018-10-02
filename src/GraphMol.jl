@@ -1,15 +1,29 @@
 
 module GraphMol
+    export GraphModel, MolecularModel
 
-export
-    Atom,
-    add_atom,
-    MolecularGraph
+    module GraphModel
+
+        export
+            UndirectedGraph
+
+        include("undirectedgraph.jl")
+
+    end
+
+    module MolecularModel
+
+        export
+            Atom,
+            add_atom,
+            MolecularGraph
+
+        include("atom.jl")
+        include("moleculargraph.jl")
+
+    end
 
 
-include("./model/atom.jl")
-include("./model/moleculargraph.jl")
-include("./model/undirectedgraph.jl")
 
 
-end # module
+end

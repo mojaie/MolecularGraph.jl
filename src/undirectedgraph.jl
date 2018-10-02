@@ -1,12 +1,11 @@
-module UndirectedGraph
 
-export UndirectedGraph, node, edge, updatenode!, updateedge!
+abstract type Graph end
 
 
-struct Graph
+struct UndirectedGraph <: Graph
     adjacency::Dict
-    nodes::List
-    function Graph(nodes::List, edges::List)
+    nodes::Array
+    function UndirectedGraph(nodes::Array, edges::Array)
         new(adjacency, nodes)
     end
 end
@@ -31,6 +30,3 @@ function updateedge!(graph::Graph, u::Int32, v::Int32, attr::Dict)
     graph.adjacency[u][v] = attr
     graph.adjacency[v][u] = attr
 end
-
-
-end  # module

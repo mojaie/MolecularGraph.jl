@@ -1,11 +1,10 @@
 
-
-using UndirectedGraph
-using Atom
+using GraphMol.GraphModel
+using GraphMol.MolecularModel
 
 struct MolecularGraph
-    graph::Graph
-    function MolecularGraph(graph::Graph)
+    graph::UndirectedGraph
+    function MolecularGraph(graph::UndirectedGraph)
         new(graph)
     end
 end
