@@ -1,0 +1,340 @@
+---
+
+Dummy:
+  number: 999
+  name: Dummy
+  std_weight: 0
+
+H:
+  number: 1
+  name: Hydrogen
+  std_weight: 1.008
+  color: [0, 0, 0]
+
+D:
+  number: 1
+  name: Deuterium
+  std_weight: 2.014
+  color: [0, 0, 0]
+
+He:
+  number: 2
+  name: Helium
+  std_weight: 4.003
+
+Li:
+  number: 3
+  name: Lithium
+  std_weight: 6.941
+
+Be:
+  number: 4
+  name: Beryllium
+  std_weight: 9.012
+
+B:
+  number: 5
+  name: Boron
+  std_weight: 11.811
+  valence: [3, ]
+  color: [128, 0, 0]
+
+C:
+  number: 6
+  name: Carbon
+  std_weight: 12.011
+  valence: [4, ]
+  color: [0, 0, 0]
+
+N:
+  number: 7
+  name: Nitrogen
+  std_weight: 14.007
+  valence: [3, 5]
+  color: [0, 0, 255]
+
+O:
+  number: 8
+  name: Oxygen
+  std_weight: 15.999
+  valence: [2, ]
+  color: [255, 0, 0]
+
+F:
+  number: 9
+  name: Fluorine
+  std_weight: 18.998
+  valence: [1, ]
+  color: [0, 255, 0]
+
+Ne:
+  number: 10
+  name: Neon
+  std_weight: 20.180
+
+Na:
+  number: 11
+  name: Sodium
+  std_weight: 22.990
+
+Mg:
+  number: 12
+  name: Magnesium
+  std_weight: 24.305
+
+Al:
+  number: 13
+  name: Aluminium
+  std_weight: 26.982
+
+Si:
+  number: 14
+  name: Silicon
+  std_weight: 28.085
+  valence: [4, ]
+  color: [128, 64, 192]
+
+P:
+  number: 15
+  name: Phosphorus
+  std_weight: 30.974
+  valence: [3, 5]
+  color: [192, 0, 192]
+
+S:
+  number: 16
+  name: Sulfur
+  std_weight: 32.061
+  valence: [2, 4, 6]
+  color: [192, 192, 0]
+
+Cl:
+  number: 17
+  name: Chlorine
+  std_weight: 35.451
+  valence: [1, ]
+  color: [64, 192, 64]
+
+K:
+  number: 19
+  name: Potassium
+  std_weight: 39.098
+
+Ca:
+  number: 20
+  name: Calcium
+  std_weight: 40.078
+
+Ti:
+  number: 22
+  name: Titanium
+  std_weight: 47.867
+
+V:
+  number: 23
+  name: Vanadium
+  std_weight: 50.942
+
+Cr:
+  number: 24
+  name: Chromium
+  std_weight: 51.996
+
+Mn:
+  number: 25
+  name: Manganese
+  std_weight: 54.938
+
+Fe:
+  number: 26
+  name: Iron
+  std_weight: 55.845
+
+Co:
+  number: 27
+  name: Cobalt
+  std_weight: 58.933
+
+Ni:
+  number: 28
+  name: Nickel
+  std_weight: 58.693
+
+Cu:
+  number: 29
+  name: Copper
+  std_weight: 63.546
+
+Zn:
+  number: 30
+  name: Zinc
+  std_weight: 65.382
+
+Ga:
+  number: 31
+  name: Gallium
+  std_weight: 69.723
+
+As:
+  number: 33
+  name: Arsenic
+  std_weight: 74.922
+
+Se:
+  number: 34
+  name: Selenium
+  std_weight: 78.972
+
+Br:
+  number: 35
+  name: Bromine
+  std_weight: 79.904
+  valence: [1, ]
+  color: [0, 192, 0]
+
+Rb:
+  number: 37
+  name: Rubidium
+  std_weight: 85.468
+
+Sr:
+  number: 38
+  name: Strontium
+  std_weight: 87.62
+
+Y:
+  number: 39
+  name: Yttrium
+  std_weight: 88.906
+
+Mo:
+  number: 42
+  name: Molybdenum
+  std_weight: 95.96
+
+Tc:
+  number: 43
+  name: Technetium
+  std_weight: 98
+
+Ru:
+  number: 44
+  name: Ruthenium
+  std_weight: 101.07
+
+Ag:
+  number: 47
+  name: Silver
+  std_weight: 107.87
+
+In:
+  number: 49
+  name: Indium
+  std_weight: 114.82
+
+Sn:
+  number: 50
+  name: Tin
+  std_weight: 118.71
+
+Sb:
+  number: 51
+  name: Antimony
+  std_weight: 121.76
+
+Te:
+  number: 52
+  name: Tellurium
+  std_weight: 127.60
+
+I:
+  number: 53
+  name: Iodine
+  std_weight: 126.90
+  valence: [1, ]
+  color: [0, 128, 0]
+
+Xe:
+  number: 54
+  name: Xenon
+  std_weight: 131.29
+
+Cs:
+  number: 55
+  name: Caesium
+  std_weight: 132.91
+
+Ba:
+  number: 56
+  name: Barium
+  std_weight: 137.33
+
+La:
+  number: 57
+  name: Lanthanum
+  std_weight: 138.91
+
+Sm:
+  number: 62
+  name: Samarium
+  std_weight: 150.36
+
+Gd:
+  number: 64
+  name: Gadolinium
+  std_weight: 157.25
+
+Lu:
+  number: 71
+  name: Lutetium
+  std_weight: 175.00
+
+Ta:
+  number: 73
+  name: Tantalum
+  std_weight: 180.95
+
+W:
+  number: 74
+  name: Tungsten
+  std_weight: 183.84
+
+Re:
+  number: 75
+  name: Rhenium
+  std_weight: 186.21
+
+Os:
+  number: 76
+  name: Osmium
+  std_weight: 190.23
+
+Pt:
+  number: 78
+  name: Platinum
+  std_weight: 195.08
+
+Au:
+  number: 79
+  name: Gold
+  std_weight: 196.97
+
+Hg:
+  number: 80
+  name: Mercury
+  std_weight: 200.59
+
+Tl:
+  number: 81
+  name: Thallium
+  std_weight: 204.38
+
+Bi:
+  number: 83
+  name: Bismuth
+  std_weight: 208.98
+
+Ra:
+  number: 88
+  name: Radium
+  std_weight: 226

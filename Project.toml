@@ -1,0 +1,7 @@
+name = "GraphMol"
+uuid = "7d54bc1e-c61b-11e8-18e7-2164fc5fa400"
+authors = ["Seiji Matsuoka <mojaie@aol.com>"]
+version = "0.1.0"
+
+[deps]
+YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"

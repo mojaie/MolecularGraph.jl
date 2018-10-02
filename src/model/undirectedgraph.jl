@@ -1,6 +1,6 @@
 module UndirectedGraph
 
-export Graph, node, edge, updatenode!, updateedge!
+export UndirectedGraph, node, edge, updatenode!, updateedge!
 
 
 struct Graph
