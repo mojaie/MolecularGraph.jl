@@ -1,12 +1,22 @@
 
 using GraphMol.GraphModel
-using GraphMol.MolecularModel
 
-struct MolecularGraph
+
+mutable struct MolecularGraph
     graph::UndirectedGraph
     function MolecularGraph(graph::UndirectedGraph)
-        new(graph)
+        initialize!(new(), graph)
     end
+end
+
+
+MolecularGraph() = MolecularGraph(UndirectedGraph())
+
+
+function initialize!(mol::MolecularGraph,
+                     graph::UndirectedGraph)
+    mol.graph = graph
+    mol
 end
 
 

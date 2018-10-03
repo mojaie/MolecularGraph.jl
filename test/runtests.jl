@@ -4,7 +4,7 @@ using GraphMol.GraphModel
 using GraphMol.MolecularModel
 
 const tests = [
-    "atom", "moleculegraph", "undirectedgraph"
+    "./model/atom", "./model/moleculargraph", "./model/undirectedgraph"
 ]
 
 for test in tests

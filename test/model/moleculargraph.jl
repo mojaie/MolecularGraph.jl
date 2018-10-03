@@ -1,5 +1,5 @@
 @testset "moleculargraph" begin
-    mol = MoleculeGraph()
+    mol = MolecularGraph()
 
     @test mol.atom[3].symbol == "C"
     @test mol.mw == 12.011
