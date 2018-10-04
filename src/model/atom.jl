@@ -1,4 +1,7 @@
-
+#
+# This file is a part of graphmol.jl
+# Licensed under the MIT License http://opensource.org/licenses/MIT
+#
 
 import YAML
 
@@ -66,7 +69,7 @@ function weight(atom::Atom)
 end
 
 
-function addH!(atom::Atom, Hs::Int)
+function addhydrogen!(atom::Atom, Hs::Int)
     atom.Hcount = Hs
     atom.Hdonor = Hs > 0 && atom.symbol in ("N", "O")
 end

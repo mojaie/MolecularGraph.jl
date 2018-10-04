@@ -1,9 +1,24 @@
+#
+# This file is a part of graphmol.jl
+# Licensed under the MIT License http://opensource.org/licenses/MIT
+#
 
 module GraphMol
 
     export
         GraphModel,
-        MolecularModel,
+        Atom,
+        MolecularGraph,
+        weight,
+        number,
+        name,
+        color,
+        addhydrogen!,
+        getatom,
+        getbond,
+        updateatom!,
+        updatebond!,
+        required_descriptor,
         loadsdfiter,
         loadsdfmol
 
@@ -21,28 +36,8 @@ module GraphMol
 
     end
 
-
-    module MolecularModel
-
-        export
-            Atom,
-            MolecularGraph,
-            weight,
-            number,
-            name,
-            color,
-            addH!,
-            getatom,
-            getbond,
-            updateatom!,
-            updatebond!
-
-        include("./model/atom.jl")
-        include("./model/moleculargraph.jl")
-
-    end
-
-
+    include("./model/atom.jl")
+    include("./model/moleculargraph.jl")
     include("sdfilereader.jl")
 
 end

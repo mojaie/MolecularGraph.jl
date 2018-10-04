@@ -1,9 +1,14 @@
+#
+# This file is a part of graphmol.jl
+# Licensed under the MIT License http://opensource.org/licenses/MIT
+#
 
 using GraphMol.GraphModel
 
 
 mutable struct MolecularGraph
     graph::UndirectedGraph
+    descriptors::set
     function MolecularGraph(graph::UndirectedGraph)
         initialize!(new(), graph)
     end
@@ -27,4 +32,11 @@ end
 
 function updateAtom!(mol::MolecularGraph, idx::Int32, atom::Atom)
     mol.graph.nodes[idx]["atom"] = atom
+end
+
+
+function required_descriptor(mol::MolecularGraph, desc::AbstractString)
+    if desc ∉ mol.descriptors
+        throw(ErrorException("$() is not assigned"))
+    end
 end
