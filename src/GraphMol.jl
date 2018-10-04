@@ -4,17 +4,18 @@ module GraphMol
     export
         GraphModel,
         MolecularModel,
-        v2000reader
+        loadsdfiter,
+        loadsdfmol
 
 
     module GraphModel
 
         export
             UndirectedGraph,
-            node,
-            edge,
-            addnode!,
-            addedge!
+            getnode,
+            getedge,
+            updatenode!,
+            updateedge!
 
         include("./model/undirectedgraph.jl")
 
@@ -31,10 +32,10 @@ module GraphMol
             name,
             color,
             addH!,
-            atom,
-            bond,
-            addatom!,
-            addbond!
+            getatom,
+            getbond,
+            updateatom!,
+            updatebond!
 
         include("./model/atom.jl")
         include("./model/moleculargraph.jl")
@@ -42,6 +43,6 @@ module GraphMol
     end
 
 
-    include("v2000reader.jl")
+    include("sdfilereader.jl")
 
 end

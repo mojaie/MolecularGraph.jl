@@ -20,7 +20,7 @@ function initialize!(mol::MolecularGraph,
 end
 
 
-function atom(mol::MolecularGraph, idx::Int32)
+function getatom(mol::MolecularGraph, idx::Int32)
     mol.graph.nodes[idx]["atom"]
 end
 

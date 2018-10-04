@@ -26,12 +26,12 @@ function initialize!(graph::UndirectedGraph,
 end
 
 
-function node(graph::UndirectedGraph, idx)
+function getnode(graph::UndirectedGraph, idx)
     graph.nodes[idx]
 end
 
 
-function edge(graph::UndirectedGraph, u, v)
+function getedge(graph::UndirectedGraph, u, v)
     graph.adjacency[u][v]
 end
 

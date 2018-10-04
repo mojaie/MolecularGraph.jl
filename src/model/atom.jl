@@ -3,7 +3,7 @@
 import YAML
 
 const PERIODIC_TABLE = YAML.load(open(
-    joinpath(dirname(@__FILE__), "..", "..", "const", "periodictable.yaml")
+    joinpath(dirname(@__FILE__), "..", "..", "assets", "const", "periodictable.yaml")
 ))
 const H_WEIGHT = PERIODIC_TABLE["H"]["std_weight"]
 
@@ -27,7 +27,7 @@ mutable struct Atom
     visible::Bool
 
 
-    function Atom(symbol::String)
+    function Atom(symbol::AbstractString)
         initialize!(new(), symbol)
     end
 end
