@@ -1,8 +1,13 @@
+#
+# This file is a part of graphmol.jl
+# Licensed under the MIT License http://opensource.org/licenses/MIT
+#
 
 using Test
+using GraphMol
+using GraphMol.Geometry
 using GraphMol.GraphModel
 using GraphMol.MolecularModel
-import GraphMol
 
 const tests = [
     "sdfilereader",

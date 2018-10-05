@@ -6,6 +6,7 @@
 module GraphMol
 
     export
+        Geometry,
         GraphModel,
         Atom,
         MolecularGraph,
@@ -22,18 +23,12 @@ module GraphMol
         loadsdfiter,
         loadsdfmol
 
+    module Geometry
+        include("geometry.jl")
+    end
 
     module GraphModel
-
-        export
-            UndirectedGraph,
-            getnode,
-            getedge,
-            updatenode!,
-            updateedge!
-
         include("./model/undirectedgraph.jl")
-
     end
 
     include("./model/atom.jl")
