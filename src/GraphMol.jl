@@ -8,18 +8,6 @@ module GraphMol
     export
         Geometry,
         GraphModel,
-        Atom,
-        MolecularGraph,
-        weight,
-        number,
-        name,
-        color,
-        addhydrogen!,
-        getatom,
-        getbond,
-        updateatom!,
-        updatebond!,
-        required_descriptor,
         loadsdfiter,
         loadsdfmol
 

@@ -5,10 +5,18 @@
 
 using GraphMol.GraphModel
 
+export
+    MolecularGraph,
+    getatom,
+    getbond,
+    updateatom!,
+    updatebond!,
+    required_descriptor
+
 
 mutable struct MolecularGraph
     graph::UndirectedGraph
-    descriptors::set
+    descriptors::Set
     function MolecularGraph(graph::UndirectedGraph)
         initialize!(new(), graph)
     end
@@ -37,6 +45,6 @@ end
 
 function required_descriptor(mol::MolecularGraph, desc::AbstractString)
     if desc ∉ mol.descriptors
-        throw(ErrorException("$() is not assigned"))
+        throw(ErrorException("$(desc) is not assigned"))
     end
 end

@@ -3,6 +3,15 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+export
+    Atom,
+    number,
+    name,
+    color,
+    weight,
+    addhydrogen!
+
+
 import YAML
 
 const PERIODIC_TABLE = YAML.load(open(

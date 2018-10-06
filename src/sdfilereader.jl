@@ -1,5 +1,9 @@
+#
+# This file is a part of graphmol.jl
+# Licensed under the MIT License http://opensource.org/licenses/MIT
+#
 
-using GraphMol.MolecularModel
+export loadsdfiter, loadsdfmol
 
 
 function loadsdfiter(file::IO, no_halt=true, precalc=true)

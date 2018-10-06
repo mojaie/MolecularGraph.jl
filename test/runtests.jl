@@ -3,17 +3,33 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using Test
-using GraphMol
-using GraphMol.Geometry
-using GraphMol.GraphModel
-using GraphMol.MolecularModel
+module GeometryTest
 
-const tests = [
-    "sdfilereader",
-    "./model/atom", "./model/moleculargraph", "./model/undirectedgraph"
-]
+    using Test
+    using GraphMol.Geometry
 
-for test in tests
-    include("$(test).jl")
+    include("geometry.jl")
+
+end
+
+
+module GraphModelTest
+
+    using Test
+    using GraphMol.GraphModel
+
+    include("./model/undirectedgraph.jl")
+
+end
+
+
+module GraphMolTest
+
+    using Test
+    using GraphMol
+
+    include("./model/atom.jl")
+    include("./model/moleculargraph.jl")
+    include("sdfilereader.jl")
+
 end
