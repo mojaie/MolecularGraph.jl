@@ -1,6 +1,6 @@
 @testset "atom" begin
-    atom = Atom("C")
+    atom = GraphMol.Atom("C")
 
     @test atom.symbol == "C"
-    @test weight(atom) == 12.011
+    @test !atom.visible
 end

@@ -20,39 +20,35 @@ const PERIODIC_TABLE = YAML.load(open(
 const H_WEIGHT = PERIODIC_TABLE["H"]["std_weight"]
 
 
-mutable struct Atom
+mutable struct Atom <: Node
+    index::UInt16
     symbol::String
-    charge::Int
-    multiplicity::Int
-    mass::Union{Int, Nothing}
-    Hcount::Int
-    pi::Int
+    charge::Int8
+    multiplicity::UInt8
+    mass::Union{UInt8, Nothing}
+    Hcount::UInt8
+    pi::UInt8
     aromatic::Bool
     Hdonor::Bool
     Hacceptor::Bool
     carbonylC::Bool
     lonepair::Bool
-    wctype::Int
-    patty::Int
-    stereo::Int
+    wctype::UInt8
+    patty::UInt8
+    stereo::UInt8
     coords::Tuple
     visible::Bool
 
-
     function Atom(symbol::AbstractString)
-        initialize!(new(), symbol)
+        atom = new()
+        atom.symbol = symbol
+        atom.charge = 0
+        atom.multiplicity = 1
+        atom.mass = nothing
+        atom.Hacceptor = symbol in ("N", "O", "F")
+        atom.visible = symbol != "C"
+        atom
     end
-end
-
-
-function initialize!(atom::Atom, symbol)
-    atom.symbol = symbol
-    atom.charge = 0
-    atom.multiplicity = 1
-    atom.mass = nothing
-    atom.Hacceptor = symbol in ("N", "O", "F")
-    atom.visible = symbol != "C"
-    atom
 end
 
 
@@ -78,7 +74,7 @@ function weight(atom::Atom)
 end
 
 
-function addhydrogen!(atom::Atom, Hs::Int)
+function addhydrogen!(atom::Atom, Hs::Integer)
     atom.Hcount = Hs
     atom.Hdonor = Hs > 0 && atom.symbol in ("N", "O")
 end

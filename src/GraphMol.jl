@@ -19,7 +19,10 @@ module GraphMol
         include("./model/undirectedgraph.jl")
     end
 
+    using GraphMol.GraphModel
+
     include("./model/atom.jl")
+    include("./model/bond.jl")
     include("./model/moleculargraph.jl")
     include("sdfilereader.jl")
 

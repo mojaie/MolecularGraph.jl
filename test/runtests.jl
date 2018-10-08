@@ -26,7 +26,7 @@ end
 module GraphMolTest
 
     using Test
-    using GraphMol
+    import GraphMol
 
     include("./model/atom.jl")
     include("./model/moleculargraph.jl")

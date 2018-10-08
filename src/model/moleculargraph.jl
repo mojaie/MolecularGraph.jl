@@ -3,13 +3,11 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using GraphMol.GraphModel
-
 export
     MolecularGraph,
     getatom,
     getbond,
-    updateatom!,
+    newatom!,
     updatebond!,
     required_descriptor
 
@@ -17,29 +15,39 @@ export
 mutable struct MolecularGraph
     graph::UndirectedGraph
     descriptors::Set
-    function MolecularGraph(graph::UndirectedGraph)
-        initialize!(new(), graph)
-    end
+end
+
+MolecularGraph() = MolecularGraph(UndirectedGraph{UInt16}(), Set())
+
+
+function getatom(mol::MolecularGraph, idx)
+    getnode(mol.graph, idx)
 end
 
 
-MolecularGraph() = MolecularGraph(UndirectedGraph())
-
-
-function initialize!(mol::MolecularGraph,
-                     graph::UndirectedGraph)
-    mol.graph = graph
-    mol
+function getbond(mol::MolecularGraph, u, v)
+    getedge(mol.graph, u, v)
 end
 
 
-function getatom(mol::MolecularGraph, idx::Int32)
-    mol.graph.nodes[idx]["atom"]
+function newatom!(mol::MolecularGraph, atom::Atom)
+    newnode!(mol.graph, atom)
+end
+
+function newatom!(mol::MolecularGraph, idx::Integer, atom::Atom)
+    atom.index = idx
+    newatom!(mol, atom)
 end
 
 
-function updateAtom!(mol::MolecularGraph, idx::Int32, atom::Atom)
-    mol.graph.nodes[idx]["atom"] = atom
+function updatebond!(mol::MolecularGraph, bond::Bond)
+    updateedge!(mol.graph, bond)
+end
+
+function updatebond!(mol::MolecularGraph, u::Integer, v::Integer, bond::Bond)
+    bond.u = u
+    bond.v = v
+    updatebond!(mol, bond)
 end
 
 
