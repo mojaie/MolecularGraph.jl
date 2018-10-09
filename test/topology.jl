@@ -35,4 +35,6 @@ end
 
 
 @testset "topology.topology" begin
+    RESOURCE_DIR = joinpath(dirname(@__FILE__), "..", "_resources", "DrugBank")
+    phe = GraphMol.loadsdfmol(open(joinpath(RESOURCE_DIR, "Phe.mol")))
 end

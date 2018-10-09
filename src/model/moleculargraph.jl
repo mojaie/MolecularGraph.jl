@@ -19,9 +19,16 @@ export
 mutable struct MolecularGraph
     graph::UndirectedGraph
     descriptors::Set
+    rings
+    scaffolds
+    isolated
+    function MolecularGraph()
+        mol = new()
+        mol.graph = UndirectedGraph{UInt16}()
+        mol.descriptors = Set()
+        mol
+    end
 end
-
-MolecularGraph() = MolecularGraph(UndirectedGraph{UInt16}(), Set())
 
 
 function getatom(mol::MolecularGraph, idx)

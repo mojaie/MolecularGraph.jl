@@ -21,10 +21,12 @@ module GraphMol
 
     using GraphMol.GraphModel
 
+    include("exception.jl")
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/moleculargraph.jl")
     include("topology.jl")
+    include("basedescriptor.jl")
     include("sdfilereader.jl")
 
 end

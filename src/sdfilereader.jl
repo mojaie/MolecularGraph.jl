@@ -29,8 +29,8 @@ end
 
 function parseblock(lines, nohalt, precalc)
     sdfblock = Channel(ctype=Tuple, csize=0) do channel::Channel{Tuple}
-        mol = []
-        opt = []
+        mol = String[]
+        opt = String[]
         ismol = true
         for line in lines
             if startswith(line, raw"$$$$")
@@ -46,7 +46,7 @@ function parseblock(lines, nohalt, precalc)
                 push!(opt, rstrip(line))
             end
         end
-        if mol
+        if !isempty(mol)
             put!(channel, (mol, opt))
         end
     end
@@ -59,30 +59,17 @@ function parseblock(lines, nohalt, precalc)
                     assign_descriptors!(c)
                 end
             catch e
-                if isa(e, ErrorException)
-                    if nohalt
-                        print("Unsupported symbol: $(e) (#$(i+1) in sdfilereader)")
-                        c = nullmol(precalc)
-                    else
-                        throw(ErrorException(e, "Unsupported symbol: $(e)"))
-                    end
-                elseif isa(e, ErrorException)
-                    if nohalt
-                        print("Failed to minimize ring: $(e) (#$(i+1) in sdfilereader)")
-                    else
-                        throw(ErrorException(e, "Failed to minimize ring: $(e)"))
-                    end
+                if !nohalt
+                    # TODO: stacktrace
+                    throw(e)
+                elseif isa(e, DescriptorError)
+                    print("Unsupported symbol: $(e) (#$(i+1) in sdfilereader)")
+                    c = nullmol(precalc)
+                elseif isa(e, OperationError)
+                    print("Failed to minimize ring: $(e) (#$(i+1) in sdfilereader)")
                 else
-                    if nohalt
-                        print("Unexpected error: (#$(i+1) in sdfilereader)")
-                        c = nullmol(precalc)
-                        c.data = parseoption(opt)
-                        put!(channel, c)
-                        continue
-                    else
-                        # stacktrace
-                        error("Unsupported Error")
-                    end
+                    print("Unexpected error: (#$(i+1) in sdfilereader)")
+                    c = nullmol(precalc)
                 end
                 c.data = parseoption(opt)
                 put!(channel, c)
@@ -138,13 +125,7 @@ function parseatoms(lines::AbstractArray{String})
     for (i, line) in enumerate(lines)
         sym = line[32:34]
         symbol = rstrip(sym)
-        atom = try
-            Atom(symbol)
-        catch e
-            if isa(e, KeyError)
-                throw(ErrorException(e, symbol))
-            end
-        end
+        atom = Atom(symbol)
         atom.index = i
         xpos = parse(Float32, line[1:10])
         ypos = parse(Float32, line[11:20])
@@ -173,8 +154,8 @@ function parsebonds(lines::AbstractArray{String})
         bond = Bond()
         first = parse(UInt16, line[1:3])
         second = parse(UInt16, line[4:6])
-        bond.u = first <= second ? first : second
-        bond.v = first <= second ? second : first
+        bond.u = first < second ? first : second
+        bond.v = first < second ? second : first
         bond.order = parse(UInt8, line[7:9])
         bond.notation = conv_stereo_table[parse(UInt8, line[10:12])]
         push!(results, bond)

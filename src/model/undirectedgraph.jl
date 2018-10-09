@@ -89,8 +89,8 @@ function updateedge!(graph::UndirectedGraph, edge::Edge)
     Old Edge object should be removed by clean!
     """
     push!(graph.edges, edge)
-    graph.adjmap[edge.u][edge.v] = edge
-    graph.adjmap[edge.v][edge.u] = edge
+    graph.adjacency[edge.u][edge.v] = edge
+    graph.adjacency[edge.v][edge.u] = edge
     return
 end
 

@@ -41,6 +41,9 @@ mutable struct Atom <: Node
 
     function Atom(symbol::AbstractString)
         atom = new()
+        if symbol ∉ keys(PERIODIC_TABLE)
+            throw(DescriptorError("Atom '$(symbol)' not supported"))
+        end
         atom.symbol = symbol
         atom.charge = 0
         atom.multiplicity = 1

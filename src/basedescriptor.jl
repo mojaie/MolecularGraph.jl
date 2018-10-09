@@ -3,15 +3,28 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-function assign_valence(mol::MolecularGraph)
-    for bond in mol.graph.bonds
+export
+    assign_descriptors!,
+    assign_valence!
+
+
+function assign_descriptors!(mol::MolecularGraph)
+    assign_valence!(mol)
+    topology!(mol)
+    minifyring!(mol)
+    return
+end
+
+
+function assign_valence!(mol::MolecularGraph)
+    for bond in bondvector(mol)
         u = getatom(mol, bond.u)
         v = getatom(mol, bond.v)
         if bond.order == 2
             u.pi = 1
             v.pi = 1
-            v.carbonylC = u.symbol == "O" && !u.charge
-            u.carbonylC = v.symbol == "O" && !v.charge
+            v.carbonylC = u.symbol == "O" && u.charge == 0
+            u.carbonylC = v.symbol == "O" && v.charge == 0
         elseif bond.order == 3
             u.pi = v.pi = 2
         end
@@ -20,17 +33,18 @@ function assign_valence(mol::MolecularGraph)
         ("C", 4), ("Si", 4), ("N", 3), ("P", 3), ("As", 3),
         ("O", 2), ("S", 2), ("Se", 2), ("F", 1), ("Cl", 1), ("Br", 1), ("I", 1)
     ])
-    for (i, nbrs) in mol.graph.adjmap
-        atom = getatom(mol, i)
+    for (i, nbrs) in enumerate(adjvector(mol))
+        atom = mol.graph.nodes[i]
         if length(nbrs) == 2 && all(b.order == 2 for b in values(nbrs))
             atom.pi = 2 # sp (allene, ketene)
         end
-        if atom.symbol in maxnbrs
+        if atom.symbol in keys(maxnbrs)
             Hs = maxnbrs[atom.symbol] - length(nbrs) - atom.pi + atom.charge
             if Hs > 0
                 addhydrogen!(atom, Hs)
             end
         end
     end
-    add(mol.descriptors, "Valence")
+    push!(mol.descriptors, "Valence")
+    return
 end
