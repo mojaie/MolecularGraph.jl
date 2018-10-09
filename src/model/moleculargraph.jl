@@ -7,6 +7,10 @@ export
     MolecularGraph,
     getatom,
     getbond,
+    neighbors,
+    atomvector,
+    bondvector,
+    adjvector,
     newatom!,
     updatebond!,
     required_descriptor
@@ -27,6 +31,26 @@ end
 
 function getbond(mol::MolecularGraph, u, v)
     getedge(mol.graph, u, v)
+end
+
+
+function neighbors(mol::MolecularGraph, idx)
+    getneighbors(mol.graph, idx)
+end
+
+
+function atomvector(mol::MolecularGraph)
+    mol.graph.nodes
+end
+
+
+function bondvector(mol::MolecularGraph)
+    mol.graph.edges
+end
+
+
+function adjvector(mol::MolecularGraph)
+    mol.graph.adjacency
 end
 
 

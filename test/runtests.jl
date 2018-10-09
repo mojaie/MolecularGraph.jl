@@ -30,6 +30,7 @@ module GraphMolTest
 
     include("./model/atom.jl")
     include("./model/moleculargraph.jl")
+    include("topology.jl")
     include("sdfilereader.jl")
 
 end

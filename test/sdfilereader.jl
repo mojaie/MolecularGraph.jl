@@ -28,5 +28,9 @@
     @test bonds[3].v == 5
     @test bonds[3].notation == 2
 
-    # loadsdfmol()
+    demomol = joinpath(dirname(@__FILE__), "..", "assets", "test", "demo.mol")
+    mol = GraphMol.parsemol(readlines(demomol))
+    @test length(mol.graph.nodes) == 37
+    @test length(mol.graph.edges) == 37
+    @test length(mol.graph.adjacency) == 37
 end

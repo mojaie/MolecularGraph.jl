@@ -94,8 +94,8 @@ end
 
 function parsemol(lines::AbstractArray{String})
     countline = lines[4]
-    atomcount = countline[1:3]
-    bondcount = countline[4:6]
+    atomcount = parse(UInt16, countline[1:3])
+    bondcount = parse(UInt16, countline[4:6])
     # chiralflag = countline[12:15] Not used
     # propcount = countline[30:33] No longer supported
     mol = MolecularGraph()
@@ -109,7 +109,7 @@ function parsemol(lines::AbstractArray{String})
     end
     propblock = @view lines[ atomcount + bondcount + 5 : end ]
     props = parseprops(propblock)
-    if length(props)
+    if length(props) > 0
         # props supersedes all charge and radical values in the atom block
         for atom in mol.atoms
             atom.charge = 0

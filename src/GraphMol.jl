@@ -24,6 +24,7 @@ module GraphMol
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/moleculargraph.jl")
+    include("topology.jl")
     include("sdfilereader.jl")
 
 end
