@@ -47,7 +47,7 @@ function topology!(mol::MolecularGraph)
         while !isempty(stack)
             tail = pop!(stack)
             for nbr in keys(neighbors(mol, tail))
-                if nbr ∉ used # New node
+                if nbr ∉ keys(used) # New node
                     pred[nbr] = tail
                     push!(stack, nbr)
                     used[nbr] = Set(tail)
@@ -61,17 +61,17 @@ function topology!(mol::MolecularGraph)
                     while p ∉ pn # Backtrack
                         push!(cyc, p)
                         root[p] = root[ed]
-                        if p in biconnected # Append scaffold to new cycle
-                            if root[ed] ∉ biconnected
+                        if p in keys(biconnected) # Append scaffold to new cycle
+                            if root[ed] ∉ keys(biconnected)
                                 biconnected[root[ed]] = []
                             end
                             append!(biconnected[root[ed]], biconnected[p])
-                            deleteat!(biconnected, p)
+                            delete!(biconnected, p)
                         end
                         p = pred[p]
                     end
                     push!(cyc, p)
-                    if root[ed] ∉ biconnected # Append new cycle to scaffold
+                    if root[ed] ∉ keys(biconnected) # Append new cycle to scaffold
                         biconnected[root[ed]] = []
                     end
                     push!(biconnected[root[ed]], cyc)
@@ -83,20 +83,20 @@ function topology!(mol::MolecularGraph)
         # print(pred)
         setdiff!(nodeset, keys(pred))
     end
-    mol.rings = []
-    mol.scaffolds = []
+    mol.rings = Vector{Ring}()
+    mol.scaffolds = Vector{Vector{UInt16}}()
     for cycles in values(biconnected)
         rcnt = length(mol.rings)
-        append!(mol.rings, Ring(cycles))
-        push!(mol.scaffolds, collect(rcnt : rcnt + length(cycles)))
+        append!(mol.rings, [Ring(c) for c in cycles])
+        push!(mol.scaffolds, collect(rcnt + 1 : rcnt + length(cycles)))
     end
-    mol.isolated = sort(isolated, by=(x -> -length(x)))[2:end]
+    mol.isolated = Vector{Vector{UInt16}}(sort(isolated, by=(x -> -length(x)))[2:end])
     push!(mol.descriptors, "Topology")
     return
 end
 
 
-function minifyring!(mol::MolecularGraph, verbose::Bool=false)
+function minifyring!(mol::MolecularGraph; verbose=false)
     required_descriptor(mol, "Topology")
     for cyc_idx in mol.scaffolds
         rings = sort([mol.rings[c] for c in cyc_idx], by=length)
@@ -106,30 +106,30 @@ function minifyring!(mol::MolecularGraph, verbose::Bool=false)
             cnt += 1
             if cnt > 100
                 push!(mol.descriptors, "MinifiedRing")
-                throw(ErrorException("Ring minimization failed"))
+                throw(OperationError("Ring minimization failed"))
             end
             r = popfirst!(rings)
             init_r = r
             if verbose
-                print("$(length(r)) Ring:$(r)")
+                print("$(length(r)) Ring:$(r)\n")
             end
             for m in minified
                 if verbose
-                    print("$(length(m)) Minified:$(m)")
+                    print("$(length(m)) Minified:$(m)\n")
                 end
                 resolved = resolve_inclusion(r, m)
                 if resolved != nothing
                     if verbose
                         print(
                             "$(length(resolved[1])), $(length(resolved[2]))",
-                            " Resolved:$(resolved[1]) $(resolved[2])"
+                            " Resolved:$(resolved[1]) $(resolved[2])\n"
                         )
                     end
                     r = resolved[1]
                 end
             end
             if verbose
-                print("$(length(r)) New ring:$(r)")
+                print("$(length(r)) New ring:$(r)\n")
             end
             if length(r) == length(init_r) # no further minimization
                 push!(minified, r)

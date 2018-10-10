@@ -6,10 +6,16 @@
 module GraphMol
 
     export
+        GraphMolError,
         Geometry,
         GraphModel,
-        loadsdfiter,
-        loadsdfmol
+        MolecularModel,
+        Descriptor,
+        GraphMolIO
+
+    module GraphMolError
+        include("exception.jl")
+    end
 
     module Geometry
         include("geometry.jl")
@@ -19,14 +25,23 @@ module GraphMol
         include("./model/undirectedgraph.jl")
     end
 
-    using GraphMol.GraphModel
+    module MolecularModel
+        using ..GraphModel
+        include("./model/atom.jl")
+        include("./model/bond.jl")
+        include("./model/moleculargraph.jl")
+    end
 
-    include("exception.jl")
-    include("./model/atom.jl")
-    include("./model/bond.jl")
-    include("./model/moleculargraph.jl")
-    include("topology.jl")
-    include("basedescriptor.jl")
-    include("sdfilereader.jl")
+    module Descriptor
+        using ..MolecularModel
+        include("topology.jl")
+        include("basedescriptor.jl")
+    end
+
+    module GraphMolIO
+        using ..MolecularModel
+        using ..Descriptor
+        include("sdfilereader.jl")
+    end
 
 end

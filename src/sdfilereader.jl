@@ -6,24 +6,24 @@
 export loadsdfiter, loadsdfmol
 
 
-function loadsdfiter(file::IO, no_halt=true, precalc=true)
-    loadsdfiter(eachline(file), false, precalc)
+function loadsdfiter(file::IO; nohalt=true, precalc=true)
+    loadsdfiter(eachline(file), nohalt=false, precalc=precalc)
 end
 
 
-function loadsdfiter(data, no_halt=true, precalc=true)
+function loadsdfiter(data; nohalt=true, precalc=true)
     parseblock(data, false, precalc)
 end
 
 
-function loadsdfmol(file::IO, precalc=true)
-    loadsdfmol(eachline(file), precalc)
+function loadsdfmol(file::IO; precalc=true)
+    loadsdfmol(eachline(file), precalc=precalc)
 end
 
 
-function loadsdfmol(data, precalc=true)
-    moliter = loadsdfiter(data, false, precalc)
-    iterate(moliter)[0]
+function loadsdfmol(data; precalc=true)
+    moliter = loadsdfiter(data, nohalt=false, precalc=precalc)
+    iterate(moliter)[1]
 end
 
 
@@ -53,27 +53,29 @@ function parseblock(lines, nohalt, precalc)
 
     Channel(ctype=MolecularGraph, csize=0) do channel::Channel{MolecularGraph}
         for (i, (mol, opt)) in enumerate(sdfblock)
-            try
-                c = parsemol(mol)
+            molobj = try
+                m = parsemol(mol)
                 if precalc
-                    assign_descriptors!(c)
+                    assign_descriptors!(m)
                 end
+                m
             catch e
                 if !nohalt
                     # TODO: stacktrace
                     throw(e)
                 elseif isa(e, DescriptorError)
                     print("Unsupported symbol: $(e) (#$(i+1) in sdfilereader)")
-                    c = nullmol(precalc)
+                    m = nullmol(precalc)
                 elseif isa(e, OperationError)
                     print("Failed to minimize ring: $(e) (#$(i+1) in sdfilereader)")
                 else
                     print("Unexpected error: (#$(i+1) in sdfilereader)")
-                    c = nullmol(precalc)
+                    m = nullmol(precalc)
                 end
-                c.data = parseoption(opt)
-                put!(channel, c)
+                m
             end
+            molobj.data = parseoptions(opt)
+            put!(channel, molobj)
         end
     end
 end
@@ -98,7 +100,7 @@ function parsemol(lines::AbstractArray{String})
     props = parseprops(propblock)
     if length(props) > 0
         # props supersedes all charge and radical values in the atom block
-        for atom in mol.atoms
+        for atom in atomvector(mol)
             atom.charge = 0
             atom.multiplicity = 1
             atom.mass = nothing
@@ -172,11 +174,23 @@ function parseprops(lines::AbstractArray{String})
             continue # Other properties are not supported yet
         end
         count = parse(UInt8, line[7:9])
-        for i in 1:count
-            idx = parse(UInt16, line[8i + 11: 8i + 13])
-            val = parse(Int16, line[8i + 15: 8i + 17])
+        for i in 0 : count - 1
+            idx = parse(UInt16, line[8i + 11 : 8i + 13])
+            val = parse(Int16, line[8i + 15 : 8i + 17])
             push!(results, (idx, proptype, val))
         end
     end
     results
+end
+
+
+function parseoptions(lines::AbstractArray{String})
+    data = Dict()
+    for (i, line) in enumerate(lines)
+        m = match(r">.*?<([\w ]+)>", line) # Space should be accepted
+        if m !== nothing
+            data[m[1]] = lines[i + 1]
+        end
+    end
+    data
 end

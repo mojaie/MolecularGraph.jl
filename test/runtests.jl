@@ -3,34 +3,47 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+"""
 module GeometryTest
-
     using Test
+    using GraphMol.GraphMolError
     using GraphMol.Geometry
-
-    # include("geometry.jl")
-
+    include("geometry.jl")
 end
 
 
 module GraphModelTest
-
     using Test
+    using GraphMol.GraphMolError
     using GraphMol.GraphModel
-
-    # include("./model/undirectedgraph.jl")
-
+    include("./model/undirectedgraph.jl")
 end
 
 
-module GraphMolTest
-
+module MolecularModelTest
     using Test
-    import GraphMol
+    using GraphMol.GraphMolError
+    using GraphMol.MolecularModel
+    include("./model/atom.jl")
+    include("./model/moleculargraph.jl")
+end
+"""
 
-    # include("./model/atom.jl")
-    # include("./model/moleculargraph.jl")
+
+module DescriptorTest
+    using Test
+    using GraphMol.GraphMolError
+    using GraphMol.Descriptor
+    using GraphMol.GraphMolIO
+    using GraphMol.Descriptor: resolve_inclusion
     include("topology.jl")
-    # include("sdfilereader.jl")
+end
 
+
+module GraphMolIOTest
+    using Test
+    using GraphMol.GraphMolError
+    using GraphMol.GraphMolIO
+    using GraphMol.GraphMolIO: parseatoms, parsebonds, parsemol
+    include("sdfilereader.jl")
 end

@@ -77,7 +77,7 @@ function weight(atom::Atom)
 end
 
 
-function addhydrogen!(atom::Atom, Hs::Integer)
+function addhydrogen!(atom::Atom, Hs::UInt8)
     atom.Hcount = Hs
     atom.Hdonor = Hs > 0 && atom.symbol in ("N", "O")
 end

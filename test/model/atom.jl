@@ -1,5 +1,6 @@
+
 @testset "atom" begin
-    atom = GraphMol.Atom("C")
+    atom = Atom("C")
 
     @test atom.symbol == "C"
     @test !atom.visible

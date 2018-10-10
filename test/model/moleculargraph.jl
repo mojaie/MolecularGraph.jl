@@ -1,3 +1,4 @@
+
 @testset "moleculargraph" begin
-    mol = GraphMol.MolecularGraph()
+    mol = MolecularGraph()
 end

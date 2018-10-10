@@ -15,6 +15,8 @@ export
     updatebond!,
     required_descriptor
 
+import ..GraphModel: neighbors
+
 
 mutable struct MolecularGraph
     graph::UndirectedGraph
@@ -22,6 +24,7 @@ mutable struct MolecularGraph
     rings
     scaffolds
     isolated
+    data
     function MolecularGraph()
         mol = new()
         mol.graph = UndirectedGraph{UInt16}()
@@ -42,7 +45,7 @@ end
 
 
 function neighbors(mol::MolecularGraph, idx)
-    getneighbors(mol.graph, idx)
+    neighbors(mol.graph, idx)
 end
 
 

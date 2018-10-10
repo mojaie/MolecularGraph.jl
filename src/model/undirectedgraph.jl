@@ -9,7 +9,7 @@ export
     UndirectedGraph,
     getnode,
     getedge,
-    getneighbors,
+    neighbors,
     newnode!,
     updateedge!,
     unlinknode!,
@@ -65,19 +65,19 @@ function getedge(graph::UndirectedGraph, u, v)
 end
 
 
-function getneighbors(graph::UndirectedGraph, idx)
+function neighbors(graph::UndirectedGraph, idx)
     graph.adjmap[idx]
 end
 
 
-function newnode!(graph::UndirectedGraph, node::Node)
+function newnode!(graph::UndirectedGraph{T}, node::Node) where T <: Unsigned
     """Add or init a node
     Adjacency of the node is initialized
     Old Node and adjacency object should be removed by clean!
     """
     push!(graph.nodes, node)
     graph.nodemap[node.index] = node
-    adj = Dict()
+    adj = Dict{T, Edge}()
     push!(graph.adjacency, adj)
     graph.adjmap[node.index] = adj
     return
@@ -89,8 +89,8 @@ function updateedge!(graph::UndirectedGraph, edge::Edge)
     Old Edge object should be removed by clean!
     """
     push!(graph.edges, edge)
-    graph.adjacency[edge.u][edge.v] = edge
-    graph.adjacency[edge.v][edge.u] = edge
+    graph.adjmap[edge.u][edge.v] = edge
+    graph.adjmap[edge.v][edge.u] = edge
     return
 end
 
