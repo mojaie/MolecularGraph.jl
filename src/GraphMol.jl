@@ -32,6 +32,11 @@ module GraphMol
         include("./model/moleculargraph.jl")
     end
 
+    module Drawing
+        using ..MolecularModel
+        using ..Geometry
+    end
+
     module Descriptor
         using ..MolecularModel
         include("topology.jl")
