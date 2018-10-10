@@ -8,3 +8,10 @@ export
     Canvas
 
 abstract type Canvas end
+
+CANVAS = Dict(:svg => SvgCanvas)
+
+function draw(format::Symbol, mol::MolecularGraph)
+    canvas = CANVAS[format]()
+    draw!(canvas, mol)
+    show(canvas)
