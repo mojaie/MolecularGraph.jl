@@ -3,7 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-BOND_TRIM = 0.3
 
 BOND_DRAWER = {
     1: {
@@ -47,16 +46,12 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
         if upos == vpos
             continue # avoid zero division
         end
-        if uatom.visible
-            upos = paralleltrim(upos, vpos, BOND_TRIM, 2)[1]
-        end
-        if vatom.visible
-            vpos = paralleltrim(upos, vpos, BOND_TRIM, 1)[2]
-        end
-        color = uatom.color
-        vcolor = vatom.color
+        u = uatom.visible
+            ? trim_u(Segment(upos, vpos), canvas.trimoverlapf)[1] : upos
+        v = vatom.visible
+            ? trim_v(Segment(upos, vpos), canvas.trimoverlapf)[2] : vpos
         drawer = BOND_DRAWER[bond.order][bond.notation]
-        drawer(canvas, p1, p2, color, vcolor=vcolor, mlb)
+        drawer(canvas, u, v, uatom.color, vcolor=vatom.color)
     end
 
     """ Draw atoms """
@@ -132,19 +127,44 @@ function scaleandcenter(mol::MolecularGraph)
 end
 
 
-function singlebond!(canvas::Canvas, p1, p2, color, vcolor, unit)
+function singlebond!(canvas::Canvas, u, v, color, vcolor)
     drawline!(canvas, u, v, color, vcolor)
     return
 end
 
 
-function wedgedsingle!(canvas::Canvas, p1, p2, color, vcolor, unit)
+function wedgedsingle!(canvas::Canvas, u, v, color, vcolor)
     drawwedge!(canvas, u, v, color)
     return
 end
 
 
-function dashedwedgedsingle!(canvas::Canvas, p1, p2, color, vcolor, mlb)
+function dashedwedgedsingle!(canvas::Canvas, u, v, color, vcolor)
     drawdashedwedge!(canvas, u, v, color)
+    return
+end
+
+
+function wavesingle!(canvas::Canvas, u, v, color, vcolor)
+    drawwave!(canvas, u, v, color)
+    return
+end
+
+
+function doublebond!(canvas::Canvas, u, v, color, vcolor)
+    dist = canvas.mbwidthf / 2 * canvas.unit
+    (u1, v1) = trim_uv_move(Segment(u, v), true, dist, 1)
+    (u2, v2) = trim_uv_move(Segment(u, v), false, dist, 1)
+    drawline!(canvas, u1, v1, color, vcolor)
+    drawline!(canvas, u2, v2, color, vcolor)
+    return
+end
+
+
+function clockwisedouble!(canvas::Canvas, u, v, color, vcolor)
+    dist = canvas.mbwidthf * canvas.unit
+    (u1, v1) = trim_uv_move(Segment(u, v), true, dist, canvas.mbtrimf)
+    drawline!(canvas, u, v, color, vcolor)
+    drawline!(canvas, u1, v1, color, vcolor)
     return
 end

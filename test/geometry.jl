@@ -31,22 +31,23 @@ end
     ])
 end
 
-@testset "parallelmove" begin
-    pm1 = parallelmove((1, 1), (2, 2), -pi / 2, sqrt(2) / 2)
-    @test pm1[1] ≈ Point2D(1.5, 0.5)
-    @test pm1[2] ≈ Point2D(2.5, 1.5)
+@testset "translate" begin
+    seg = segment((1, 1), (2, 2))
+    pm1 = translate(seg, -pi / 2, sqrt(2) / 2)
+    @test pm1.u ≈ Point2D(1.5, 0.5)
+    @test pm1.v ≈ Point2D(2.5, 1.5)
 end
 
-@testset "paralleltrim" begin
-    pt1 = paralleltrim((1, 1), (5, 5), 1 / 4, 1)
-    @test pt1[1] ≈ Point2D(1, 1)
-    @test pt1[2] ≈ Point2D(4, 4)
-    pt2 = paralleltrim((1, 1), (5, 5), 1 / 4, 2)
-    @test pt2[1] ≈ Point2D(2, 2)
-    @test pt2[2] ≈ Point2D(5, 5)
-    pt3 = paralleltrim((1, 1), (5, 5), 1 / 4)
-    @test pt3[1] ≈ Point2D(1.5, 1.5)
-    @test pt3[2] ≈ Point2D(4.5, 4.5)
+@testset "trim" begin
+    pt1 = trim_v(segment((1, 1), (5, 5)), 1 / 4)
+    @test pt1.u ≈ Point2D(1, 1)
+    @test pt1.v ≈ Point2D(4, 4)
+    pt2 = trim_u(segment((1, 1), (5, 5)), 1 / 4)
+    @test pt2.u ≈ Point2D(2, 2)
+    @test pt2.v ≈ Point2D(5, 5)
+    pt3 = trim_uv(segment((1, 1), (5, 5)), 1 / 4)
+    @test pt3.u ≈ Point2D(1.5, 1.5)
+    @test pt3.v ≈ Point2D(4.5, 4.5)
 end
 
 end # geometry

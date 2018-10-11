@@ -22,6 +22,11 @@ mutable struct SvgCanvas <: Canvas
         canvas.fontfamily = "Helvetica"
         canvas.bgcolor = Color("#ffffff")
         canvas.opacity = 0
+
+        canvas.mbwidthf = 0.15
+        canvas.triminnerf = 0.2
+        canvas.trimoverlapf = 0.3
+
         canvas.header = [
             '<svg xmlns="http://www.w3.org/2000/svg"',
             ' xmlns:xlink="http://www.w3.org/1999/xlink"',

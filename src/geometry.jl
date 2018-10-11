@@ -4,19 +4,21 @@
 #
 
 using LinearAlgebra
-import Base: +, -, *, /, ≈
+import Base: +, -, *, /, ≈, length
 
 export
     Point2D,
     distance,
-    unitvector,
     rotate,
     dot,
     cross2d,
     interiorangle,
-    parallelmove,
-    paralleltrim,
-    pmoveandtrim,
+    Segment,
+    segment,
+    translate,
+    trim_u,
+    trim_v,
+    trim_uv,
     isclockwise,
     radiantophase
 
@@ -26,29 +28,24 @@ mutable struct Point2D
     y::Float64
 end
 
+point2d(pos) = Point2D(pos[1], pos[2])
+
 +(p::Point2D, q::Point2D) = Point2D(p.x + q.x, p.y + q.y)
 -(p::Point2D, q::Point2D) = Point2D(p.x - q.x, p.y - q.y)
 *(p::Point2D, k::Real) = Point2D(p.x * k, p.y * k)
 /(p::Point2D, k::Real) = Point2D(p.x / k, p.y / k)
 ≈(p::Point2D, q::Point2D) = p.x ≈ q.x && p.y ≈ q.y
 
+length(p::Point2D) = hypot(p.x, p.y)
+
 dot(u::Point2D, v::Point2D) = u.x * v.x + u.y * v.y
-dot(u, v) = cross2d(Point2D(u...), Point2D(v...))
+dot(u, v) = cross2d(point2d(u), point2d(v))
+
 cross2d(u::Point2D, v::Point2D) = u.x * v.y - u.y * v.x
-cross2d(u, v) = cross2d(Point2D(u...), Point2D(v...))
+cross2d(u, v) = cross2d(point2d(u), point2d(v))
 
-
-function distance(p::Point2D, q::Point2D)
-    diff = q - p
-    hypot(diff.x, diff.y)
-end
-
-distance(p, q) = distance(Point2D(p...), Point2D(q...))
-
-
-function unitvector(v::Point2D)
-    v / hypot(v.x, v.y)
-end
+distance(p::Point2D, q::Point2D) = length(q - p)
+distance(p, q) = distance(point2d(p), point2d(q))
 
 
 function rotate(v::Point2D, rad::Real)
@@ -58,46 +55,46 @@ function rotate(v::Point2D, rad::Real)
     )
 end
 
-rotate(p, rad::Real) = rotate(Point2D(p...), rad)
+rotate(p, rad::Real) = rotate(point2d(p), rad)
 
 
 function interiorangle(u::Point2D, v::Point2D)
-    acos(dot(u, v) / (hypot(u.x, u.y) * hypot(v.x, v.y)))
+    acos(dot(u, v) / (length(u) * length(v)))
 end
 
-interiorangle(u, v) = interiorangle(Point2D(u...), Point2D(v...))
+interiorangle(u, v) = interiorangle(point2d(u), point2d(v))
 
 
-function parallelmove(p::Point2D, q::Point2D, rad::Real, dist::Real)
-    v = q - p
-    move = rotate(v, rad) / hypot(v.x, v.y) * dist
-    [p + move, q + move]
+mutable struct Segment
+    u::Point2D
+    v::Point2D
 end
 
-parallelmove(p, q, rad::Real, dist::Real) = parallelmove(
-    Point2D(p...), Point2D(q...), rad, dist)
+segment(u, v) = Segment(point2d(u), point2d(v))
 
 
-function paralleltrim(p::Point2D, q::Point2D, scale::Real, align::Int=0)
-    v = q - p
-    if align == 1
-        [p, q + v * -scale]
-    elseif align == 2
-        [p + v * scale, q]
-    elseif align == 0
-        [p + v * scale / 2, q + v * -scale / 2]
-    end
+translate(seg::Segment, move::Point2D) = Segment(seg.u + move, seg.v + move)
+
+function translate(seg::Segment, rad::Real, dist::Real)
+    vec = seg.v - seg.u
+    move = rotate(vec, rad) / length(vec) * dist
+    translate(seg, move)
 end
 
-paralleltrim(p, q, scale::Real, align::Int=0) = paralleltrim(
-    Point2D(p...), Point2D(q...), scale, align)
+translate(u::Point2D, v::Point2D, rad::Real, dist::Real) = translate(
+    Segment(u, v), rad, dist)
 
 
-function pmoveandtrim(p::Point2D, q::Point2D,
-                      clockwise::Bool, interval::Real,
-                      trimscale::Real, trimalign::Int)
-    (pm, qm) = parallelmove(p, q, !clockwise * pi / 2, interval)
-    paralleltrim(pm, qm, trimscale, trimalign)
+trim_u(seg::Segment, k::Real) = Segment(seg.u + (seg.v - seg.u) * k, seg.v)
+trim_v(seg::Segment, k::Real) = Segment(seg.u, seg.v - (seg.v - seg.u) * k)
+trim_uv(seg::Segment, k::Real) = Segment(
+    seg.u + (seg.v - seg.u) * k / 2, seg.v - (seg.v - seg.u) * k / 2
+)
+
+
+function trim_uv_move(seg::Segment, clockwise::Bool, dist::Real, k::Real)
+    moved = translate(seg, !clockwise * pi / 2, dist)
+    trim_uv(moved, k)
 end
 
 
@@ -128,7 +125,7 @@ function isclockwise(vertices::AbstractArray{Point2D})
 end
 
 function isclockwise(vertices::AbstractArray)
-    isclockwise([Point2D(v...) for v in vertices])
+    isclockwise([point2d(v) for v in vertices])
 end
 
 
