@@ -6,6 +6,7 @@
 export
     MolecularGraph,
     getatom,
+    atompos,
     getbond,
     neighbors,
     atomvector,
@@ -38,6 +39,9 @@ function getatom(mol::MolecularGraph, idx)
     getnode(mol.graph, idx)
 end
 
+function atompos(mol::MolecularGraph, idx)
+    nodepos(mol.graph, idx)
+end
 
 function getbond(mol::MolecularGraph, u, v)
     getedge(mol.graph, u, v)

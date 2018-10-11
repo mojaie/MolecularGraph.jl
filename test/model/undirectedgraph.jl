@@ -9,6 +9,7 @@
     node = getnode(graph, 1)
     @test typeof(node) <: Node
     @test node.index == 1
+    @test nodepos(graph, 3) == 3
     edge = getedge(graph, 3, 4)
     @test typeof(edge) <: Edge
     @test edge.u == 3

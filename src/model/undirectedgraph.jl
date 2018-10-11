@@ -8,6 +8,7 @@ export
     Edge,
     UndirectedGraph,
     getnode,
+    nodepos,
     getedge,
     neighbors,
     newnode!,
@@ -57,6 +58,11 @@ end
 
 function getnode(graph::UndirectedGraph, idx)
     graph.nodemap[idx]
+end
+
+
+function nodepos(graph::UndirectedGraph, idx)
+    findnext(n -> n.index == idx, graph.nodes, 1)
 end
 
 

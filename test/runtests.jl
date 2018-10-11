@@ -27,7 +27,6 @@ module MolecularModelTest
     include("./model/atom.jl")
     include("./model/moleculargraph.jl")
 end
-"""
 
 
 module DescriptorTest
@@ -47,3 +46,4 @@ module GraphMolIOTest
     using GraphMol.GraphMolIO: parseatoms, parsebonds, parsemol
     include("sdfilereader.jl")
 end
+"""
