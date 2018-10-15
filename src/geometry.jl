@@ -73,6 +73,8 @@ end
 segment(u, v) = Segment(point2d(u), point2d(v))
 
 
+length(seg::Segment) = distance(seg.u, seg.v)
+
 translate(seg::Segment, move::Point2D) = Segment(seg.u + move, seg.v + move)
 
 function translate(seg::Segment, rad::Real, dist::Real)

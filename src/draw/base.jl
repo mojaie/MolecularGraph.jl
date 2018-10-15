@@ -6,22 +6,18 @@
 
 export
     Canvas,
-    draw!
+    readytodraw!
 
 
 abstract type Canvas end
 
-CANVAS = Dict(:svg => SvgCanvas)
 
-function draw!(mol::MolecularGraph, format::Symbol)
+function readytodraw!(mol::MolecularGraph)
     required_descriptor(mol, "Valence")
     required_descriptor(mol, "Topology")
     # display_terminal_carbon!(mol)
     equalize_terminal_double_bond!(mol)
     double_bond_along_ring!(mol)
-    canvas = CANVAS[format]()
-    draw!(canvas, mol)
-    show(canvas)
 end
 
 

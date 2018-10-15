@@ -47,3 +47,10 @@ module GraphMolIOTest
     include("sdfilereader.jl")
 end
 """
+
+module DrawingTest
+    using Test
+    using GraphMol.GraphMolIO
+    using GraphMol.Drawing
+    include("./draw/svg.jl")
+end

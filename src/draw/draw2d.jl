@@ -161,10 +161,37 @@ function doublebond!(canvas::Canvas, u, v, color, vcolor)
 end
 
 
-function clockwisedouble!(canvas::Canvas, u, v, color, vcolor)
+function crossdouble!(canvas::Canvas, u, v, color, vcolor)
+    dist = canvas.mbwidthf / 2 * canvas.unit
+    (u1, v1) = trim_uv_move(Segment(u, v), true, dist, 1)
+    (u2, v2) = trim_uv_move(Segment(u, v), false, dist, 1)
+    drawline!(canvas, u1, v2, color, vcolor)
+    drawline!(canvas, u2, v1, color, vcolor)
+    return
+end
+
+
+function ringdouble!(canvas::Canvas, u, v, color, vcolor, direction)
     dist = canvas.mbwidthf * canvas.unit
-    (u1, v1) = trim_uv_move(Segment(u, v), true, dist, canvas.mbtrimf)
+    (u1, v1) = trim_uv_move(Segment(u, v), direction, dist, canvas.triminnerf)
     drawline!(canvas, u, v, color, vcolor)
     drawline!(canvas, u1, v1, color, vcolor)
+    return
+end
+
+clockwisedouble!(canvas, u, v, color, vcolor) = ringdouble(
+    canvas, u, v, color, vcolor, true)
+
+counterdouble!(canvas, u, v, color, vcolor) = ringdouble(
+    canvas, u, v, color, vcolor, false)
+
+
+function triplebond!(canvas::Canvas, u, v, color, vcolor)
+    dist = canvas.mbwidthf * canvas.unit
+    (u1, v1) = trim_uv_move(Segment(u, v), true, dist, 1)
+    (u2, v2) = trim_uv_move(Segment(u, v), false, dist, 1)
+    drawline!(canvas, u, v, color, vcolor)
+    drawline!(canvas, u1, v1, color, vcolor)
+    drawline!(canvas, u2, v2, color, vcolor)
     return
 end

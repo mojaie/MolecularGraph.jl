@@ -35,6 +35,9 @@ module GraphMol
     module Drawing
         using ..MolecularModel
         using ..Geometry
+        include("./draw/base.jl")
+        include("./draw/draw2d.jl")
+        include("./draw/svg.jl")
     end
 
     module Descriptor
