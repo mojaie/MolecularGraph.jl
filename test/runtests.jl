@@ -3,6 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
 """
 module GeometryTest
     using Test
@@ -48,9 +49,12 @@ module GraphMolIOTest
 end
 """
 
+
 module DrawingTest
     using Test
     using GraphMol.GraphMolIO
+    using GraphMol.MolecularModel
     using GraphMol.Drawing
+    include("./draw/base.jl")
     include("./draw/svg.jl")
 end

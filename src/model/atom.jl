@@ -5,10 +5,10 @@
 
 export
     Atom,
-    number,
-    name,
-    color,
-    weight,
+    getnumber,
+    getname,
+    getcolor,
+    getweight,
     addhydrogen!
 
 
@@ -55,23 +55,23 @@ mutable struct Atom <: Node
 end
 
 
-function number(atom::Atom)
+function getnumber(atom::Atom)
     PERIODIC_TABLE[atom.symbol]["number"]
 end
 
 
-function name(atom::Atom)
+function getname(atom::Atom)
     PERIODIC_TABLE[atom.symbol]["name"]
 end
 
 
-function color(atom::Atom)
+function getcolor(atom::Atom)
     attr = PERIODIC_TABLE[atom.symbol]
     tuple(get(attr, "color", [0, 192, 192]))
 end
 
 
-function weight(atom::Atom)
+function getweight(atom::Atom)
     m = PERIODIC_TABLE[atom.symbol]["std_weight"]
     m + H_WEIGHT * atom.Hcount
 end

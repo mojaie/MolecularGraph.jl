@@ -8,17 +8,20 @@ import Base: +, -, *, /, ≈, length
 
 export
     Point2D,
+    point2d,
     distance,
     rotate,
     dot,
     cross2d,
     interiorangle,
+    transformmatrix,
     Segment,
     segment,
     translate,
     trim_u,
     trim_v,
     trim_uv,
+    trim_uv_move,
     isclockwise,
     radiantophase
 
@@ -133,4 +136,15 @@ end
 
 function radiantophase(radian::Real)
     mod((radian + 2pi) / 2pi)
+end
+
+
+function transformmatrix(scaleX::Real, scaleY::Real,
+                         rotcos::Real, rotsin::Real,
+                         transrateX::Real, transrateY::Real)
+    scale = [scaleX 0 0; 0 scaleY 0; 0 0 1]
+    rot = [rotcos rotsin 0; -rotsin rotcos 0; 0 0 1]
+    tl = [1 0 translateX; 0 1 translateY; 0 0 1]
+    tf = tl * rot * scale
+    tf[1:2, :]
 end

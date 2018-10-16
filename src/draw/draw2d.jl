@@ -3,36 +3,105 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+export
+    draw!
 
-BOND_DRAWER = {
-    1: {
-        1: singlebond,
-        2: wedgedsingle,
-        3: dashedwedgedsingle,
-        4: wavesingle,
-    },
-    2: {
-        1: clockwisedouble,
-        2: counterdouble,
-        3: doublebond,
-        4: crossdouble
-    },
-    3: {
-        1: triplebond
-    }
-}
+
+function singlebond!(canvas::Canvas, segment, color, vcolor)
+    drawline!(canvas, segment, color, vcolor)
+    return
+end
+
+
+function wedgedsingle!(canvas::Canvas, seg, color, vcolor)
+    drawwedge!(canvas, seg, color)
+    return
+end
+
+
+function dashedwedgedsingle!(canvas::Canvas, seg, color, vcolor)
+    drawdashedwedge!(canvas, seg, color)
+    return
+end
+
+
+function wavesingle!(canvas::Canvas, seg, color, vcolor)
+    drawwave!(canvas, seg, color)
+    return
+end
+
+
+function doublebond!(canvas::Canvas, seg, color, vcolor)
+    dist = canvas.mbwidthf / 2 * length(seg)
+    seg1 = trim_uv_move(seg, true, dist, 1)
+    seg2 = trim_uv_move(seg, false, dist, 1)
+    drawline!(canvas, seg1, color, vcolor)
+    drawline!(canvas, seg2, color, vcolor)
+    return
+end
+
+
+function crossdouble!(canvas::Canvas, seg, color, vcolor)
+    dist = canvas.mbwidthf / 2 * length(seg)
+    seg1 = trim_uv_move(seg, true, dist, 1)
+    seg2 = trim_uv_move(seg, false, dist, 1)
+    drawline!(canvas, Segment(seg1.u, seg2.v), color, vcolor)
+    drawline!(canvas, Segment(seg2.u, seg1.v), color, vcolor)
+    return
+end
+
+
+function ringdouble!(canvas::Canvas, seg, color, vcolor, direction)
+    dist = canvas.mbwidthf * length(seg)
+    segin = trim_uv_move(seg, direction, dist, canvas.triminnerf)
+    drawline!(canvas, seg, color, vcolor)
+    drawline!(canvas, segin, color, vcolor)
+    return
+end
+
+clockwisedouble!(canvas, seg, color, vcolor) = ringdouble!(
+    canvas, seg, color, vcolor, true)
+
+counterdouble!(canvas, seg, color, vcolor) = ringdouble!(
+    canvas, seg, color, vcolor, false)
+
+
+function triplebond!(canvas::Canvas, seg, color, vcolor)
+    dist = canvas.mbwidthf * length(seg)
+    seg1 = trim_uv_move(seg, true, dist, 1)
+    seg2 = trim_uv_move(seg, false, dist, 1)
+    drawline!(canvas, seg, color, vcolor)
+    drawline!(canvas, seg1, color, vcolor)
+    drawline!(canvas, seg2, color, vcolor)
+    return
+end
+
+
+BOND_DRAWER = Dict(
+    1 => Dict(
+        1 => singlebond!,
+        2 => wedgedsingle!,
+        3 => dashedwedgedsingle!,
+        4 => wavesingle!
+    ),
+    2 => Dict(
+        1 => clockwisedouble!,
+        2 => counterdouble!,
+        3 => doublebond!,
+        4 => crossdouble!
+    ),
+    3 => Dict(
+        1 => triplebond!
+    )
+)
 
 
 function draw!(canvas::Canvas, mol::MolecularGraph)
     if length(atomvector(mol)) == 0
-        finalize!(canvas)
         return
     end
-    # Scale and center
-    (coords, width, height, unit) = scaleandcenter(mol)
-    canvas.width = width
-    canvas.height = height
-    canvas.unit = unit
+    initialize!(canvas, mol)
+    coords = canvas.coords
 
     """ Draw bonds """
     for bond in bondvector(mol)
@@ -41,17 +110,15 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
         end
         uatom = getatom(mol, bond.u)
         vatom = getatom(mol, bond.v)
-        upos = coords[atompos(mol, bond.u), :]
-        vpos = coords[atompos(mol, bond.v), :]
+        upos = point2d(coords[atompos(mol, bond.u), :])
+        vpos = point2d(coords[atompos(mol, bond.v), :])
         if upos == vpos
             continue # avoid zero division
         end
-        u = uatom.visible
-            ? trim_u(Segment(upos, vpos), canvas.trimoverlapf)[1] : upos
-        v = vatom.visible
-            ? trim_v(Segment(upos, vpos), canvas.trimoverlapf)[2] : vpos
+        u = uatom.visible ? trim_u(Segment(upos, vpos), canvas.trimoverlapf)[1] : upos
+        v = vatom.visible ? trim_v(Segment(upos, vpos), canvas.trimoverlapf)[2] : vpos
         drawer = BOND_DRAWER[bond.order][bond.notation]
-        drawer(canvas, u, v, uatom.color, vcolor=vatom.color)
+        drawer(canvas, Segment(u, v), getcolor(uatom), getcolor(vatom))
     end
 
     """ Draw atoms """
@@ -59,14 +126,14 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
         if !atom.visible
             continue
         end
-        pos = coords[i, :]
-        color = atom.color
+        pos = point2d(coords[i, :])
+        color = getcolor(atom)
         # Determine text direction
         if atom.Hcount > 0
             cosnbrs = []
             hrzn = (pos[1] + 1, pos[2])
             for nbr in keys(neighbors(mol, atom.index))
-                posnbr = coords[atompos(mol, nbr), :]
+                posnbr = point2d(coords[atompos(mol, nbr), :])
                 dist = distance(pos, posnbr)
                 if dist > 0
                     dp = dot(hrzn, posnbr, pos)
@@ -76,7 +143,7 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
             if isempty(cosnbrs) || minimum(cosnbrs) > 0
                 # [atom]< or isolated node(ex. H2O, HCl)
                 text = atom.htmlformula(:right)
-                drawtext! (canvas, pos, text, color, :right)
+                drawtext!(canvas, pos, text, color, :right)
                 continue
             elseif maximum(cosnbrs) < 0
                 # >[atom]
@@ -89,109 +156,4 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
         text = atom.htmlformula(:left)
         drawtext!(canvas, pos, text, color, :center)
     end
-    finalize!(canvas)
-end
-
-
-function scaleandcenter(mol::MolecularGraph)
-    atomcount = length(atomvector(mol))
-    coords = zeros(Float32, atomcount, 2)
-    if atomcount == 1
-        return (coords, 0, 0, 1)
-    end
-    for (i, atom) in enumerate(atomvector(mol))
-        coords[i, :] = collect(atom.coords[1:2])
-    end
-    (xmin, xmax) = extrema(coords[:, 1])
-    (ymin, ymax) = extrema(coords[:, 2])
-    width = xmax - xmin
-    height = ymax - ymin
-    xoffset = width / 2 + xmin
-    yoffset = height / 2 + ymin
-    dists = []
-    for bond in bondvector(mol)
-        upos = Point2D(coords[atompos(mol, bond.u), :])
-        vpos = Point2D(coords[atompos(mol, bond.v), :])
-        d = distance(upos, vpos)
-        if d > 0  # Remove overlapped
-            push!(dists, d)
-        end
-    end
-    # Median bond length (as a drawing size unit)
-    medianbondlength = isempty(dists)
-        ? sqrt(max(width, height) / atomcount) : median(dists)
-    # Centering
-    centered = broadcast(-, coords, [xoffset yoffset])
-
-    return (centered, width, height, medianbondlength)
-end
-
-
-function singlebond!(canvas::Canvas, u, v, color, vcolor)
-    drawline!(canvas, u, v, color, vcolor)
-    return
-end
-
-
-function wedgedsingle!(canvas::Canvas, u, v, color, vcolor)
-    drawwedge!(canvas, u, v, color)
-    return
-end
-
-
-function dashedwedgedsingle!(canvas::Canvas, u, v, color, vcolor)
-    drawdashedwedge!(canvas, u, v, color)
-    return
-end
-
-
-function wavesingle!(canvas::Canvas, u, v, color, vcolor)
-    drawwave!(canvas, u, v, color)
-    return
-end
-
-
-function doublebond!(canvas::Canvas, u, v, color, vcolor)
-    dist = canvas.mbwidthf / 2 * canvas.unit
-    (u1, v1) = trim_uv_move(Segment(u, v), true, dist, 1)
-    (u2, v2) = trim_uv_move(Segment(u, v), false, dist, 1)
-    drawline!(canvas, u1, v1, color, vcolor)
-    drawline!(canvas, u2, v2, color, vcolor)
-    return
-end
-
-
-function crossdouble!(canvas::Canvas, u, v, color, vcolor)
-    dist = canvas.mbwidthf / 2 * canvas.unit
-    (u1, v1) = trim_uv_move(Segment(u, v), true, dist, 1)
-    (u2, v2) = trim_uv_move(Segment(u, v), false, dist, 1)
-    drawline!(canvas, u1, v2, color, vcolor)
-    drawline!(canvas, u2, v1, color, vcolor)
-    return
-end
-
-
-function ringdouble!(canvas::Canvas, u, v, color, vcolor, direction)
-    dist = canvas.mbwidthf * canvas.unit
-    (u1, v1) = trim_uv_move(Segment(u, v), direction, dist, canvas.triminnerf)
-    drawline!(canvas, u, v, color, vcolor)
-    drawline!(canvas, u1, v1, color, vcolor)
-    return
-end
-
-clockwisedouble!(canvas, u, v, color, vcolor) = ringdouble(
-    canvas, u, v, color, vcolor, true)
-
-counterdouble!(canvas, u, v, color, vcolor) = ringdouble(
-    canvas, u, v, color, vcolor, false)
-
-
-function triplebond!(canvas::Canvas, u, v, color, vcolor)
-    dist = canvas.mbwidthf * canvas.unit
-    (u1, v1) = trim_uv_move(Segment(u, v), true, dist, 1)
-    (u2, v2) = trim_uv_move(Segment(u, v), false, dist, 1)
-    drawline!(canvas, u, v, color, vcolor)
-    drawline!(canvas, u1, v1, color, vcolor)
-    drawline!(canvas, u2, v2, color, vcolor)
-    return
 end
