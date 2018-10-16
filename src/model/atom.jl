@@ -9,7 +9,10 @@ export
     getname,
     getcolor,
     getweight,
-    addhydrogen!
+    addhydrogen!,
+    chargesign,
+    htmlchargesign,
+    htmlformula
 
 
 import YAML
@@ -67,7 +70,7 @@ end
 
 function getcolor(atom::Atom)
     attr = PERIODIC_TABLE[atom.symbol]
-    tuple(get(attr, "color", [0, 192, 192]))
+    tuple(get(attr, "color", [0, 192, 192])...)
 end
 
 
@@ -80,4 +83,35 @@ end
 function addhydrogen!(atom::Atom, Hs::UInt8)
     atom.Hcount = Hs
     atom.Hdonor = Hs > 0 && atom.symbol in ("N", "O")
+end
+
+
+function chargesign(atom::Atom)
+    if atom.charge == 0
+        return ""
+    end
+    sign = atom.charge > 0 ? "+" : "–" # en dash, not hyphen-minus
+    num = abs(atom.charge)
+    num > 1 ? "$(num)$(sign)" : sign
+end
+
+
+function htmlchargesign(atom::Atom)
+    atom.charge == 0 ? "" : "<sup>$(chargesign(atom))</sup>"
+end
+
+
+function htmlformula(atom::Atom, direction::Symbol)
+    if atom.Hcount == 1
+        text = "H"
+    elseif atom.Hcount > 1
+        text = "H<sub>$(atom.Hcount)</sub>"
+    else
+        text = ""
+    end
+    seq = [atom.symbol, text, htmlchargesign(atom)]
+    if direction == :left
+        seq = reverse(seq)
+    end
+    join(seq, "")
 end

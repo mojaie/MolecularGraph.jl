@@ -20,6 +20,7 @@ export
 mutable struct SvgCanvas <: Canvas
     fontweight::String
     fontfamily::String
+    fontsize::UInt8
     bgcolor::Color
     opacity::UInt8
 
@@ -39,6 +40,7 @@ mutable struct SvgCanvas <: Canvas
         canvas = new()
         canvas.fontweight = "normal"
         canvas.fontfamily = "Helvetica"
+        canvas.fontsize = 14
         canvas.bgcolor = Color(255, 255, 255)
         canvas.opacity = 0
 
@@ -74,11 +76,11 @@ function tosvg(canvas::Canvas, width::Real, height::Real)
 end
 
 
-function drawsvg!(mol::MolecularGraph)
+function drawsvg!(mol::MolecularGraph, width::Real, height::Real)
     readytodraw!(mol)
     canvas = SvgCanvas()
     draw!(canvas, mol)
-    tosvg(canvas)
+    tosvg(canvas, width, height)
 end
 
 
@@ -95,46 +97,55 @@ function initialize!(canvas::Canvas, mol::MolecularGraph)
 end
 
 
-function drawline!(canvas::Canvas, seg::Segment, color::Color;
-                  vcolor=nothing, dashed=false)
+function drawline!(canvas::Canvas, seg::Segment, color::Color, dashed::Bool)
     option = dashed ? """ stroke-dasharray="10,10" """ : " "
     u, v = (seg.u, seg.v)
-    res = []
-    if vcolor !== nothing && color != vcolor
-        mid = (u + v) / 2
-        push!(canvas.elements,
-        """<line x1="$(u.x)" y1="$(u.y)" x2="$(mid.x)" y2="$(mid.y)"
-         stroke="$(color)"$(option)/>\n
-        <line x1="$(mid.x)" y1="$(mid.y)" x2="$(v.x)" y2="$(v.y)"
-         stroke="$(vcolor)"$(option)/>\n""")
-    else
-        push!(canvas.elements,
-        """<line x1="$(u.x)" y1="$(u.y)" x2="$(v.x)" y2="$(v.y)"
-         stroke="$(color)"$(option)/>\n""")
-    end
+    elem = """<line x1="$(u.x)" y1="$(u.y)" x2="$(v.x)" y2="$(v.y)"
+     stroke="$(color)"$(option)/>\n
+    """
+    push!(canvas.elements, elem)
     return
 end
 
-drawline!(canvas, seg, color, vcolor) = drawline!(
-    canvas, seg, color, vcolor=vcolor, dashed=false)
+function drawline!(canvas::Canvas, seg::Segment, ucolor::Color,
+                   vcolor::Color, dashed::Bool)
+    option = dashed ? """ stroke-dasharray="10,10" """ : " "
+    u, v = (seg.u, seg.v)
+    res = []
+    if ucolor == vcolor
+        drawline!(canvas, seg, ucolor, dashed)
+        return
+    end
+    mid = (u + v) / 2
+    elem = """<line x1="$(u.x)" y1="$(u.y)" x2="$(mid.x)" y2="$(mid.y)"
+     stroke="$(ucolor)"$(option)/>\n
+    <line x1="$(mid.x)" y1="$(mid.y)" x2="$(v.x)" y2="$(v.y)"
+     stroke="$(vcolor)"$(option)/>\n
+    """
+    push!(canvas.elements, elem)
+    return
+end
 
-drawdashedline!(canvas, seg, color, vcolor) = drawline!(
-    canvas, seg, color, vcolor=vcolor, dashed=true)
+drawline!(canvas, seg, ucolor, vcolor) = drawline!(
+    canvas, seg, ucolor, vcolor, false)
+drawdashedline!(canvas, seg, ucolor, vcolor) = drawline!(
+    canvas, seg, ucolor, vcolor, true)
 
 
 function drawwedge!(canvas::Canvas, seg::Segment, color::Color)
     """ u ▶ v """
     seglen = length(seg)
     tf = transformmatrix(
-        seglen, seglen / 2 * scale.mbwidthf,
+        seglen, seglen / 2 * canvas.mbwidthf,
         (seg.v.x - seg.u.x) / seglen, (seg.v.y - seg.u.y) / seglen,
         seg.u.x, seg.v.y
     )
     tfarr = reshape(tf, (1, 6))
     tftxt = join([@sprintf("%.2f", v) for v in tfarr], " ")
-    push!(canvas.elements,
-    """<polygon points="0,1 0,-1, 1,0" fill="$(color)"
-     transform="matrix($(tftxt))"/>\n""")
+    elem = """<polygon points="0,1 0,-1, 1,0" fill="$(color)"
+     transform="matrix($(tftxt))"/>\n
+    """
+    push!(canvas.elements, elem)
     return
 end
 
@@ -143,14 +154,13 @@ function drawdashedwedge!(canvas::Canvas, seg::Segment, color::Color)
     """ u ▶ v """
     seglen = length(seg)
     tf = transformmatrix(
-        seglen / 7, seglen / 7 * scale.wavewidthf,
+        seglen / 7, seglen / 7 * canvas.wavewidthf,
         (seg.v.x - seg.u.x) / seglen, (seg.v.y - seg.u.y) / seglen,
         seg.u.x, seg.v.y
     )
     tfarr = reshape(tf, (1, 6))
     tftxt = join([@sprintf("%.2f", v) for v in tfarr], " ")
-    push!(canvas.elements,
-    """<g stroke="$(color)" transform="matrix($(tftxt))">\n
+    elem = """<g stroke="$(color)" transform="matrix($(tftxt))">\n
      <line x1="0" y1="7" x2="0" y2="-7" />\n
      <line x1="1" y1="6" x2="0" y2="-6" />\n
      <line x1="2" y1="5" x2="0" y2="-5" />\n
@@ -159,7 +169,8 @@ function drawdashedwedge!(canvas::Canvas, seg::Segment, color::Color)
      <line x1="5" y1="2" x2="0" y2="-2" />\n
      <line x1="6" y1="1" x2="0" y2="-1" />\n
     </g>
-    """)
+    """
+    push!(canvas.elements, elem)
     return
 end
 
@@ -167,15 +178,16 @@ end
 function drawwave!(canvas::Canvas, seg::Segment, color::Color)
     seglen = length(seg)
     tf = transformmatrix(
-        seglen / 7, seglen / 2 * scale.wavewidthf,
+        seglen / 7, seglen / 2 * canvas.wavewidthf,
         (seg.v.x - seg.u.x) / seglen, (seg.v.y - seg.u.y) / seglen,
         seg.u.x, seg.v.y
     )
     tfarr = reshape(tf, (1, 6))
     tftxt = join([@sprintf("%.2f", v) for v in tfarr], " ")
-    push!(canvas.elements,
-    """<polyline points="0,0 1,1, 2,-1 3,1 4,-1 5,1 6,-1 7,0"
-     stroke="$(color)" fill="none" transform="matrix($(tftxt))"/>\n""")
+    elem = """<polyline points="0,0 1,1, 2,-1 3,1 4,-1 5,1 6,-1 7,0"
+     stroke="$(color)" fill="none" transform="matrix($(tftxt))"/>\n
+    """
+    push!(canvas.elements, elem)
     return
 end
 
@@ -183,7 +195,7 @@ end
 function drawtext!(canvas::Canvas, pos::Point2D, text::String, color::Color,
                    align=:center)
     small = canvas.fontsize * 0.7
-    svgtxt = copy(text)
+    svgtxt = text[:]
     replace(svgtxt,
         r"<sub>" => """<tspan baseline-shift="-25%" font-size="$(small)">""")
     replace(svgtxt,
@@ -200,8 +212,9 @@ function drawtext!(canvas::Canvas, pos::Point2D, text::String, color::Color,
     )
     px = pos.x + xoffset[align]
     py = pos.y + canvas.fontsize / 2
-    push!(canvas.elements,
-    """<text x="$(px)" y="$(py)" font-size="$(canvas.fontsize)"
-     fill="$(color)"$(option)>$(svgtxt)</text>\n""")
+    elem = """<text x="$(px)" y="$(py)" font-size="$(canvas.fontsize)"
+     fill="$(color)"$(option)>$(svgtxt)</text>\n
+    """
+    push!(canvas.elements, elem)
     return
 end

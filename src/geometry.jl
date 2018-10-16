@@ -141,7 +141,7 @@ end
 
 function transformmatrix(scaleX::Real, scaleY::Real,
                          rotcos::Real, rotsin::Real,
-                         transrateX::Real, transrateY::Real)
+                         translateX::Real, translateY::Real)
     scale = [scaleX 0 0; 0 scaleY 0; 0 0 1]
     rot = [rotcos rotsin 0; -rotsin rotcos 0; 0 0 1]
     tl = [1 0 translateX; 0 1 translateY; 0 0 1]

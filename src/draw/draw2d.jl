@@ -7,91 +7,91 @@ export
     draw!
 
 
-function singlebond!(canvas::Canvas, segment, color, vcolor)
-    drawline!(canvas, segment, color, vcolor)
+function singlebond!(canvas, seg, ucolor, vcolor)
+    drawline!(canvas, seg, ucolor, vcolor)
     return
 end
 
 
-function wedgedsingle!(canvas::Canvas, seg, color, vcolor)
-    drawwedge!(canvas, seg, color)
+function wedgedsingle!(canvas, seg, ucolor, vcolor)
+    drawwedge!(canvas, seg, ucolor)
     return
 end
 
 
-function dashedwedgedsingle!(canvas::Canvas, seg, color, vcolor)
-    drawdashedwedge!(canvas, seg, color)
+function dashedwedgedsingle!(canvas, seg, ucolor, vcolor)
+    drawdashedwedge!(canvas, seg, ucolor)
     return
 end
 
 
-function wavesingle!(canvas::Canvas, seg, color, vcolor)
-    drawwave!(canvas, seg, color)
+function wavesingle!(canvas, seg, ucolor, vcolor)
+    drawwave!(canvas, seg, ucolor)
     return
 end
 
 
-function doublebond!(canvas::Canvas, seg, color, vcolor)
+function doublebond!(canvas, seg, ucolor, vcolor)
     dist = canvas.mbwidthf / 2 * length(seg)
     seg1 = trim_uv_move(seg, true, dist, 1)
     seg2 = trim_uv_move(seg, false, dist, 1)
-    drawline!(canvas, seg1, color, vcolor)
-    drawline!(canvas, seg2, color, vcolor)
+    drawline!(canvas, seg1, ucolor, vcolor)
+    drawline!(canvas, seg2, ucolor, vcolor)
     return
 end
 
 
-function crossdouble!(canvas::Canvas, seg, color, vcolor)
+function crossdouble!(canvas, seg, ucolor, vcolor)
     dist = canvas.mbwidthf / 2 * length(seg)
     seg1 = trim_uv_move(seg, true, dist, 1)
     seg2 = trim_uv_move(seg, false, dist, 1)
-    drawline!(canvas, Segment(seg1.u, seg2.v), color, vcolor)
-    drawline!(canvas, Segment(seg2.u, seg1.v), color, vcolor)
+    drawline!(canvas, Segment(seg1.u, seg2.v), ucolor, vcolor)
+    drawline!(canvas, Segment(seg2.u, seg1.v), ucolor, vcolor)
     return
 end
 
 
-function ringdouble!(canvas::Canvas, seg, color, vcolor, direction)
+function ringdouble!(canvas::Canvas, seg, ucolor, vcolor, direction)
     dist = canvas.mbwidthf * length(seg)
     segin = trim_uv_move(seg, direction, dist, canvas.triminnerf)
-    drawline!(canvas, seg, color, vcolor)
-    drawline!(canvas, segin, color, vcolor)
+    drawline!(canvas, seg, ucolor, vcolor)
+    drawline!(canvas, segin, ucolor, vcolor)
     return
 end
 
-clockwisedouble!(canvas, seg, color, vcolor) = ringdouble!(
-    canvas, seg, color, vcolor, true)
+clockwisedouble!(canvas, seg, ucolor, vcolor) = ringdouble!(
+    canvas, seg, ucolor, vcolor, true)
 
-counterdouble!(canvas, seg, color, vcolor) = ringdouble!(
-    canvas, seg, color, vcolor, false)
+counterdouble!(canvas, seg, ucolor, vcolor) = ringdouble!(
+    canvas, seg, ucolor, vcolor, false)
 
 
-function triplebond!(canvas::Canvas, seg, color, vcolor)
+function triplebond!(canvas::Canvas, seg, ucolor, vcolor)
     dist = canvas.mbwidthf * length(seg)
     seg1 = trim_uv_move(seg, true, dist, 1)
     seg2 = trim_uv_move(seg, false, dist, 1)
-    drawline!(canvas, seg, color, vcolor)
-    drawline!(canvas, seg1, color, vcolor)
-    drawline!(canvas, seg2, color, vcolor)
+    drawline!(canvas, seg, ucolor, vcolor)
+    drawline!(canvas, seg1, ucolor, vcolor)
+    drawline!(canvas, seg2, ucolor, vcolor)
     return
 end
 
 
 BOND_DRAWER = Dict(
     1 => Dict(
-        1 => singlebond!,
-        2 => wedgedsingle!,
-        3 => dashedwedgedsingle!,
-        4 => wavesingle!
+        0 => singlebond!,
+        1 => wedgedsingle!,
+        2 => dashedwedgedsingle!,
+        3 => wavesingle!
     ),
     2 => Dict(
-        1 => clockwisedouble!,
-        2 => counterdouble!,
-        3 => doublebond!,
-        4 => crossdouble!
+        0 => clockwisedouble!,
+        1 => counterdouble!,
+        2 => doublebond!,
+        3 => crossdouble!
     ),
     3 => Dict(
-        1 => triplebond!
+        0 => triplebond!
     )
 )
 
@@ -115,10 +115,11 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
         if upos == vpos
             continue # avoid zero division
         end
-        u = uatom.visible ? trim_u(Segment(upos, vpos), canvas.trimoverlapf)[1] : upos
-        v = vatom.visible ? trim_v(Segment(upos, vpos), canvas.trimoverlapf)[2] : vpos
+        u = uatom.visible ? trim_u(Segment(upos, vpos), canvas.trimoverlapf).u : upos
+        v = vatom.visible ? trim_v(Segment(upos, vpos), canvas.trimoverlapf).v : vpos
         drawer = BOND_DRAWER[bond.order][bond.notation]
-        drawer(canvas, Segment(u, v), getcolor(uatom), getcolor(vatom))
+        drawer(canvas, Segment(u, v),
+               Color(getcolor(uatom)...), Color(getcolor(vatom)...))
     end
 
     """ Draw atoms """
@@ -127,33 +128,33 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
             continue
         end
         pos = point2d(coords[i, :])
-        color = getcolor(atom)
+        color = Color(getcolor(atom)...)
         # Determine text direction
         if atom.Hcount > 0
             cosnbrs = []
-            hrzn = (pos[1] + 1, pos[2])
+            hrzn = Point2D(pos.x + 1, pos.y)
             for nbr in keys(neighbors(mol, atom.index))
                 posnbr = point2d(coords[atompos(mol, nbr), :])
                 dist = distance(pos, posnbr)
                 if dist > 0
-                    dp = dot(hrzn, posnbr, pos)
+                    dp = dot(hrzn - pos, posnbr - pos)
                     push!(cosnbrs, dp / dist)
                 end
             end
             if isempty(cosnbrs) || minimum(cosnbrs) > 0
                 # [atom]< or isolated node(ex. H2O, HCl)
-                text = atom.htmlformula(:right)
+                text = htmlformula(atom, :right)
                 drawtext!(canvas, pos, text, color, :right)
                 continue
             elseif maximum(cosnbrs) < 0
                 # >[atom]
-                text = atom.htmlformula(:left)
+                text = htmlformula(atom, :left)
                 drawtext!(canvas, pos, text, color, :left)
                 continue
             end
         end
         # -[atom]- or no hydrogens
-        text = atom.htmlformula(:left)
+        text = htmlformula(atom, :left)
         drawtext!(canvas, pos, text, color, :center)
     end
 end
