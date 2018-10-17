@@ -149,17 +149,25 @@ end
 
 function parsebonds(lines::AbstractArray{String})
     conv_stereo_table = Dict([
-        (0, 0), (1, 1), (3, 3), (4, 3), (6, 2)
+        (0, 0), (1, 1), (3, 3), (4, 5), (6, 3)
     ])
     results = []
     for line in lines
         bond = Bond()
         first = parse(UInt16, line[1:3])
         second = parse(UInt16, line[4:6])
-        bond.u = first < second ? first : second
-        bond.v = first < second ? second : first
+        ordered = first < second
+        bond.u = ordered ? first : second
+        bond.v = ordered ? second : first
         bond.order = parse(UInt8, line[7:9])
         bond.notation = conv_stereo_table[parse(UInt8, line[10:12])]
+        if !ordered && bond.order == 1
+            if bond.notation == 1
+                bond.notation = 2
+            elseif bond.notation == 3
+                bond.notation = 4
+            end
+        end
         push!(results, bond)
     end
     results

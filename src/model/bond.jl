@@ -13,8 +13,10 @@ mutable struct Bond <: Edge
         * Single bond
             * 0: u - v
             * 1: u ◀ v (Up-arrow)
-            * 2: u ◁ v (Down-arrow)
-            * 3: u ~ v (Chiral)
+            * 2: u ▶ v
+            * 3: u ◁ v (Down-arrow)
+            * 4: u ▷ v
+            * 5: u ~ v (Chiral)
         * Double bond
             * 0: v ニ u (clockwise, default)
             * 1: u ニ v (counter-clockwise)

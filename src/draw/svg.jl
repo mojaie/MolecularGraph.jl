@@ -52,7 +52,7 @@ mutable struct SvgCanvas <: Canvas
         canvas.opacity = 0
 
         canvas.mbwidthf = 0.15
-        canvas.wedgewidthf = 0.2
+        canvas.wedgewidthf = 0.3
         canvas.wavewidthf = 0.2
         canvas.triminnerf = 0.2
         canvas.trimoverlapf = 0.3
@@ -146,13 +146,13 @@ function drawwedge!(canvas::Canvas, seg::Segment, color::Color)
     """ u ▶ v """
     seglen = length(seg)
     tf = transformmatrix(
-        seglen, seglen / 2 * canvas.mbwidthf,
-        (seg.v.x - seg.u.x) / seglen, (seg.v.y - seg.u.y) / seglen,
-        seg.u.x, seg.v.y
+        seglen, seglen / 2 * canvas.wedgewidthf,
+        (seg.v.x - seg.u.x) / seglen, (seg.u.y - seg.v.y) / seglen,
+        seg.u.x, seg.u.y
     )
     tfarr = reshape(tf, (1, 6))
     tftxt = join([crdf(v) for v in tfarr], " ")
-    elem = """<polygon points="0,1 0,-1, 1,0" fill="$(rgbf(color))"
+    elem = """<polygon points="0,1 0,-1 1,0" fill="$(rgbf(color))"
      transform="matrix($(tftxt))"/>
     """
     push!(canvas.elements, elem)
@@ -164,20 +164,21 @@ function drawdashedwedge!(canvas::Canvas, seg::Segment, color::Color)
     """ u ▶ v """
     seglen = length(seg)
     tf = transformmatrix(
-        seglen / 7, seglen / 7 * canvas.wavewidthf,
-        (seg.v.x - seg.u.x) / seglen, (seg.v.y - seg.u.y) / seglen,
-        seg.u.x, seg.v.y
+        seglen / 7, seglen / 14 * canvas.wedgewidthf,
+        (seg.v.x - seg.u.x) / seglen, (seg.u.y - seg.v.y) / seglen,
+        seg.u.x, seg.u.y
     )
     tfarr = reshape(tf, (1, 6))
     tftxt = join([crdf(v) for v in tfarr], " ")
     elem = """<g stroke="$(rgbf(color))" stroke-width="0.3" transform="matrix($(tftxt))">
-     <line x1="0" y1="7" x2="0" y2="-7" />
-     <line x1="1" y1="6" x2="1" y2="-6" />
-     <line x1="2" y1="5" x2="2" y2="-5" />
-     <line x1="3" y1="4" x2="3" y2="-4" />
-     <line x1="4" y1="3" x2="4" y2="-3" />
-     <line x1="5" y1="2" x2="5" y2="-2" />
-     <line x1="6" y1="1" x2="6" y2="-1" />
+     <line x1="0" y1="8" x2="0" y2="-8" />
+     <line x1="1" y1="7" x2="1" y2="-7" />
+     <line x1="2" y1="6" x2="2" y2="-6" />
+     <line x1="3" y1="5" x2="3" y2="-5" />
+     <line x1="4" y1="4" x2="4" y2="-4" />
+     <line x1="5" y1="3" x2="5" y2="-3" />
+     <line x1="6" y1="2" x2="6" y2="-2" />
+     <line x1="7" y1="1" x2="7" y2="-1" />
     </g>
     """
     push!(canvas.elements, elem)
@@ -188,13 +189,13 @@ end
 function drawwave!(canvas::Canvas, seg::Segment, color::Color)
     seglen = length(seg)
     tf = transformmatrix(
-        seglen / 6, seglen / 2 * canvas.wavewidthf,
-        (seg.v.x - seg.u.x) / seglen, (seg.v.y - seg.u.y) / seglen,
-        seg.u.x, seg.v.y
+        seglen / 7, seglen / 2 * canvas.wavewidthf,
+        (seg.v.x - seg.u.x) / seglen, (seg.u.y - seg.v.y) / seglen,
+        seg.u.x, seg.u.y
     )
     tfarr = reshape(tf, (1, 6))
     tftxt = join([crdf(v) for v in tfarr], " ")
-    elem = """<polyline points="0,0 0.5,1 1.5,-1 2.5,1 3.5,-1 4.5,1 5.5,-1 6,0"
+    elem = """<polyline points="0,0 0.5,0 1,1 2,-1 3,1 4,-1 5,1 6,-1 6.5,0 7,0"
      stroke="$(rgbf(color))" stroke-width="0.2"
      fill="none" transform="matrix($(tftxt))"/>
     """

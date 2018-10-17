@@ -13,13 +13,25 @@ function singlebond!(canvas, seg, ucolor, vcolor)
 end
 
 
-function wedgedsingle!(canvas, seg, ucolor, vcolor)
+function wedgeduv!(canvas, seg, ucolor, vcolor)
+    drawwedge!(canvas, Segment(seg.v, seg.u), ucolor)
+    return
+end
+
+
+function wedgedvu!(canvas, seg, ucolor, vcolor)
     drawwedge!(canvas, seg, ucolor)
     return
 end
 
 
-function dashedwedgedsingle!(canvas, seg, ucolor, vcolor)
+function dashedwedgeduv!(canvas, seg, ucolor, vcolor)
+    drawdashedwedge!(canvas, Segment(seg.v, seg.u), ucolor)
+    return
+end
+
+
+function dashedwedgedvu!(canvas, seg, ucolor, vcolor)
     drawdashedwedge!(canvas, seg, ucolor)
     return
 end
@@ -81,9 +93,11 @@ end
 BOND_DRAWER = Dict(
     1 => Dict(
         0 => singlebond!,
-        1 => wedgedsingle!,
-        2 => dashedwedgedsingle!,
-        3 => wavesingle!
+        1 => wedgeduv!,
+        2 => wedgedvu!,
+        3 => dashedwedgeduv!,
+        4 => dashedwedgedvu!,
+        5 => wavesingle!
     ),
     2 => Dict(
         0 => clockwisedouble!,
