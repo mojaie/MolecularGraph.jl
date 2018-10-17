@@ -21,7 +21,6 @@ export
     trim_u,
     trim_v,
     trim_uv,
-    trim_uv_move,
     isclockwise,
     radiantophase
 
@@ -95,12 +94,6 @@ trim_v(seg::Segment, k::Real) = Segment(seg.u, seg.v - (seg.v - seg.u) * k)
 trim_uv(seg::Segment, k::Real) = Segment(
     seg.u + (seg.v - seg.u) * k / 2, seg.v - (seg.v - seg.u) * k / 2
 )
-
-
-function trim_uv_move(seg::Segment, clockwise::Bool, dist::Real, k::Real)
-    moved = translate(seg, !clockwise * pi / 2, dist)
-    trim_uv(moved, k)
-end
 
 
 function isclockwise(vertices::AbstractArray{Point2D})

@@ -9,10 +9,10 @@ export
     getname,
     getcolor,
     getweight,
-    addhydrogen!,
+    sethydrogen!,
     chargesign,
-    htmlchargesign,
-    htmlformula
+    markup,
+    html
 
 
 import YAML
@@ -25,10 +25,12 @@ const H_WEIGHT = PERIODIC_TABLE["H"]["std_weight"]
 
 mutable struct Atom <: Node
     index::UInt16
+
     symbol::String
     charge::Int8
     multiplicity::UInt8
     mass::Union{UInt8, Nothing}
+
     Hcount::UInt8
     pi::UInt8
     aromatic::Bool
@@ -36,6 +38,7 @@ mutable struct Atom <: Node
     Hacceptor::Bool
     carbonylC::Bool
     lonepair::Bool
+
     wctype::UInt8
     patty::UInt8
     stereo::UInt8
@@ -51,7 +54,15 @@ mutable struct Atom <: Node
         atom.charge = 0
         atom.multiplicity = 1
         atom.mass = nothing
+
+        atom.Hcount = 0
+        atom.pi = 0
+        atom.aromatic = false
+        atom.Hdonor = false
         atom.Hacceptor = symbol in ("N", "O", "F")
+        atom.carbonylC = false
+        atom.lonepair = false
+
         atom.visible = symbol != "C"
         atom
     end
@@ -80,7 +91,7 @@ function getweight(atom::Atom)
 end
 
 
-function addhydrogen!(atom::Atom, Hs::UInt8)
+function sethydrogen!(atom::Atom, Hs::UInt8)
     atom.Hcount = Hs
     atom.Hdonor = Hs > 0 && atom.symbol in ("N", "O")
 end
@@ -96,22 +107,25 @@ function chargesign(atom::Atom)
 end
 
 
-function htmlchargesign(atom::Atom)
-    atom.charge == 0 ? "" : "<sup>$(chargesign(atom))</sup>"
-end
-
-
-function htmlformula(atom::Atom, direction::Symbol)
+function markup(atom::Atom, direction::Symbol,
+                substart::String, subend::String,
+                supstart::String, supend::String)
     if atom.Hcount == 1
         text = "H"
     elseif atom.Hcount > 1
-        text = "H<sub>$(atom.Hcount)</sub>"
+        text = string("H", substart, atom.Hcount, subend)
     else
         text = ""
     end
-    seq = [atom.symbol, text, htmlchargesign(atom)]
+    chg = atom.charge == 0 ? "" : string(supstart, chargesign(atom), supend)
+    seq = [atom.symbol, text, chg]
     if direction == :left
         seq = reverse(seq)
     end
     join(seq, "")
+end
+
+
+function html(atom::Atom, direction::Symbol)
+    markup(atom, direction, "<sub>", "</sub>", "<sup>", "</sup>")
 end

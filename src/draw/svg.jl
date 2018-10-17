@@ -17,6 +17,10 @@ export
     drawtext!
 
 
+rgbf(c::Color) = @sprintf "rgb(%d, %d, %d)" c.r c.g c.b
+crdf(c::Real) = @sprintf "%.2f" c
+
+
 mutable struct SvgCanvas <: Canvas
     fontweight::String
     fontfamily::String
@@ -29,6 +33,9 @@ mutable struct SvgCanvas <: Canvas
     wavewidthf::Float32
     triminnerf::Float32
     trimoverlapf::Float32
+    scalef::Float32
+    paddingX::Float32
+    paddingY::Float32
 
     coords::Matrix{Float32}
     viewboxW::Float32
@@ -49,6 +56,9 @@ mutable struct SvgCanvas <: Canvas
         canvas.wavewidthf = 0.2
         canvas.triminnerf = 0.2
         canvas.trimoverlapf = 0.3
+        canvas.scalef = 30 # suitable for fontsize=14 and default line width
+        canvas.paddingX = 30
+        canvas.paddingY = 30
 
         canvas.elements = []
         canvas
@@ -57,6 +67,8 @@ end
 
 
 function tosvg(canvas::Canvas, width::Real, height::Real)
+    vbWf = crdf(canvas.viewboxW)
+    vbHf = crdf(canvas.viewboxH)
     header = """<svg xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
      version="1.2" baseProfile="tiny"
@@ -65,13 +77,12 @@ function tosvg(canvas::Canvas, width::Real, height::Real)
      font-weight="$(canvas.fontweight)"
      font-family="$(canvas.fontfamily)"
      width="$(width)" height="$(height)"
-     viewBox="0 0 $(canvas.viewboxW) $(canvas.viewboxH)">\n
+     viewBox="0 0 $(vbWf) $(vbHf)">
     """
-    bg = """<rect x="0", y="0"
-     width="$(canvas.viewboxW)" height="$(canvas.viewboxH)"
-     fill="$(canvas.bgcolor)" opacity="$(canvas.opacity)"/>\n
+    bg = """<rect x="0" y="0" width="$(vbWf)" height="$(vbHf)"
+     fill="$(rgbf(canvas.bgcolor))" opacity="$(canvas.opacity)"/>
     """
-    endsvg = "</svg>"
+    endsvg = "</svg>\n"
     join([header, bg, canvas.elements..., endsvg], "")
 end
 
@@ -87,12 +98,11 @@ end
 function initialize!(canvas::Canvas, mol::MolecularGraph)
     coords = coordsvector(mol)
     (top, left, width, height) = boundary(coords)
-    # suitable for fontsize=14 and default line width
-    sizefactor = 30 / sizeunit(mol, coords)
-    bottom = top - height
-    canvas.coords = coords .- [left bottom] .* [1 -1] .* sizefactor
-    canvas.viewboxW = width * sizefactor
-    canvas.viewboxH = height * sizefactor
+    sf = canvas.scalef / sizeunit(mol, coords)
+    coords = (coords .- [left top]) .* [1 -1] .* sf
+    canvas.coords = coords .+ [canvas.paddingX canvas.paddingY]
+    canvas.viewboxW = width * sf + canvas.paddingX * 2
+    canvas.viewboxH = height * sf + canvas.paddingY * 2
     return
 end
 
@@ -100,8 +110,8 @@ end
 function drawline!(canvas::Canvas, seg::Segment, color::Color, dashed::Bool)
     option = dashed ? """ stroke-dasharray="10,10" """ : " "
     u, v = (seg.u, seg.v)
-    elem = """<line x1="$(u.x)" y1="$(u.y)" x2="$(v.x)" y2="$(v.y)"
-     stroke="$(color)"$(option)/>\n
+    elem = """<line x1="$(crdf(u.x))" y1="$(crdf(u.y))"
+     x2="$(crdf(v.x))" y2="$(crdf(v.y))" stroke="$(rgbf(color))"$(option)/>
     """
     push!(canvas.elements, elem)
     return
@@ -117,10 +127,10 @@ function drawline!(canvas::Canvas, seg::Segment, ucolor::Color,
         return
     end
     mid = (u + v) / 2
-    elem = """<line x1="$(u.x)" y1="$(u.y)" x2="$(mid.x)" y2="$(mid.y)"
-     stroke="$(ucolor)"$(option)/>\n
-    <line x1="$(mid.x)" y1="$(mid.y)" x2="$(v.x)" y2="$(v.y)"
-     stroke="$(vcolor)"$(option)/>\n
+    elem = """<line x1="$(crdf(u.x))" y1="$(crdf(u.y))"
+     x2="$(crdf(mid.x))" y2="$(crdf(mid.y))" stroke="$(rgbf(ucolor))"$(option)/>
+    <line x1="$(crdf(mid.x))" y1="$(crdf(mid.y))"
+     x2="$(crdf(v.x))" y2="$(crdf(v.y))" stroke="$(rgbf(vcolor))"$(option)/>
     """
     push!(canvas.elements, elem)
     return
@@ -141,9 +151,9 @@ function drawwedge!(canvas::Canvas, seg::Segment, color::Color)
         seg.u.x, seg.v.y
     )
     tfarr = reshape(tf, (1, 6))
-    tftxt = join([@sprintf("%.2f", v) for v in tfarr], " ")
-    elem = """<polygon points="0,1 0,-1, 1,0" fill="$(color)"
-     transform="matrix($(tftxt))"/>\n
+    tftxt = join([crdf(v) for v in tfarr], " ")
+    elem = """<polygon points="0,1 0,-1, 1,0" fill="$(rgbf(color))"
+     transform="matrix($(tftxt))"/>
     """
     push!(canvas.elements, elem)
     return
@@ -159,15 +169,15 @@ function drawdashedwedge!(canvas::Canvas, seg::Segment, color::Color)
         seg.u.x, seg.v.y
     )
     tfarr = reshape(tf, (1, 6))
-    tftxt = join([@sprintf("%.2f", v) for v in tfarr], " ")
-    elem = """<g stroke="$(color)" transform="matrix($(tftxt))">\n
-     <line x1="0" y1="7" x2="0" y2="-7" />\n
-     <line x1="1" y1="6" x2="0" y2="-6" />\n
-     <line x1="2" y1="5" x2="0" y2="-5" />\n
-     <line x1="3" y1="4" x2="0" y2="-4" />\n
-     <line x1="4" y1="3" x2="0" y2="-3" />\n
-     <line x1="5" y1="2" x2="0" y2="-2" />\n
-     <line x1="6" y1="1" x2="0" y2="-1" />\n
+    tftxt = join([crdf(v) for v in tfarr], " ")
+    elem = """<g stroke="$(rgbf(color))" stroke-width="0.3" transform="matrix($(tftxt))">
+     <line x1="0" y1="7" x2="0" y2="-7" />
+     <line x1="1" y1="6" x2="1" y2="-6" />
+     <line x1="2" y1="5" x2="2" y2="-5" />
+     <line x1="3" y1="4" x2="3" y2="-4" />
+     <line x1="4" y1="3" x2="4" y2="-3" />
+     <line x1="5" y1="2" x2="5" y2="-2" />
+     <line x1="6" y1="1" x2="6" y2="-1" />
     </g>
     """
     push!(canvas.elements, elem)
@@ -178,42 +188,42 @@ end
 function drawwave!(canvas::Canvas, seg::Segment, color::Color)
     seglen = length(seg)
     tf = transformmatrix(
-        seglen / 7, seglen / 2 * canvas.wavewidthf,
+        seglen / 6, seglen / 2 * canvas.wavewidthf,
         (seg.v.x - seg.u.x) / seglen, (seg.v.y - seg.u.y) / seglen,
         seg.u.x, seg.v.y
     )
     tfarr = reshape(tf, (1, 6))
-    tftxt = join([@sprintf("%.2f", v) for v in tfarr], " ")
-    elem = """<polyline points="0,0 1,1, 2,-1 3,1 4,-1 5,1 6,-1 7,0"
-     stroke="$(color)" fill="none" transform="matrix($(tftxt))"/>\n
+    tftxt = join([crdf(v) for v in tfarr], " ")
+    elem = """<polyline points="0,0 0.5,1 1.5,-1 2.5,1 3.5,-1 4.5,1 5.5,-1 6,0"
+     stroke="$(rgbf(color))" stroke-width="0.2"
+     fill="none" transform="matrix($(tftxt))"/>
     """
     push!(canvas.elements, elem)
     return
 end
 
 
-function drawtext!(canvas::Canvas, pos::Point2D, text::String, color::Color,
-                   align=:center)
-    small = canvas.fontsize * 0.7
-    svgtxt = text[:]
-    replace(svgtxt,
-        r"<sub>" => """<tspan baseline-shift="-25%" font-size="$(small)">""")
-    replace(svgtxt,
-        r"<sup>" => """<tspan baseline-shift="50%" font-size="$(small)">""")
-    replace(svgtxt, r"</sub>" => "</tspan>")
-    replace(svgtxt, r"</sup>" => "</tspan>")
+function drawtext!(canvas::Canvas, pos::Point2D, atom::Atom, align=:center)
+    small = round(Int, canvas.fontsize * 0.7)
+    direction = Dict(:center => :right, :right => :left, :left => :right)
     option = Dict(
         :center => """ text-anchor="middle" """,
         :right => """ text-anchor="end" """, :left => " ",
     )
     xoffset = Dict(
         :center => 0, :right => canvas.fontsize / 2,
-        :left => -canvas.fontsize / 2
+        :left => canvas.fontsize / -2
     )
     px = pos.x + xoffset[align]
     py = pos.y + canvas.fontsize / 2
-    elem = """<text x="$(px)" y="$(py)" font-size="$(canvas.fontsize)"
-     fill="$(color)"$(option)>$(svgtxt)</text>\n
+    color = Color(getcolor(atom)...)
+    svgtext = markup(
+        atom, direction[align],
+        """<tspan baseline-shift="-25%" font-size="$(small)">""", "</tspan>",
+        """<tspan baseline-shift="50%" font-size="$(small)">""", "</tspan>"
+    )
+    elem = """<text x="$(crdf(px))" y="$(crdf(py))" font-size="$(canvas.fontsize)"
+     fill="$(rgbf(color))"$(option[align])>$(svgtext)</text>
     """
     push!(canvas.elements, elem)
     return

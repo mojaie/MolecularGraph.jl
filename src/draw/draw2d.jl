@@ -32,9 +32,9 @@ end
 
 
 function doublebond!(canvas, seg, ucolor, vcolor)
-    dist = canvas.mbwidthf / 2 * length(seg)
-    seg1 = trim_uv_move(seg, true, dist, 1)
-    seg2 = trim_uv_move(seg, false, dist, 1)
+    dist = canvas.scalef * canvas.mbwidthf / 2
+    seg1 = translate(seg, pi / 2, dist)
+    seg2 = translate(seg, -pi / 2, dist)
     drawline!(canvas, seg1, ucolor, vcolor)
     drawline!(canvas, seg2, ucolor, vcolor)
     return
@@ -42,34 +42,35 @@ end
 
 
 function crossdouble!(canvas, seg, ucolor, vcolor)
-    dist = canvas.mbwidthf / 2 * length(seg)
-    seg1 = trim_uv_move(seg, true, dist, 1)
-    seg2 = trim_uv_move(seg, false, dist, 1)
+    dist = canvas.scalef * canvas.mbwidthf / 2
+    seg1 = translate(seg, pi / 2, dist)
+    seg2 = translate(seg, -pi / 2, dist)
     drawline!(canvas, Segment(seg1.u, seg2.v), ucolor, vcolor)
     drawline!(canvas, Segment(seg2.u, seg1.v), ucolor, vcolor)
     return
 end
 
 
-function ringdouble!(canvas::Canvas, seg, ucolor, vcolor, direction)
-    dist = canvas.mbwidthf * length(seg)
-    segin = trim_uv_move(seg, direction, dist, canvas.triminnerf)
+function ringdouble!(canvas::Canvas, seg, ucolor, vcolor, rad)
+    dist = canvas.scalef * canvas.mbwidthf
+    segin = translate(seg, rad, dist)
+    segtr = trim_uv(segin, canvas.triminnerf)
     drawline!(canvas, seg, ucolor, vcolor)
-    drawline!(canvas, segin, ucolor, vcolor)
+    drawline!(canvas, segtr, ucolor, vcolor)
     return
 end
 
 clockwisedouble!(canvas, seg, ucolor, vcolor) = ringdouble!(
-    canvas, seg, ucolor, vcolor, true)
+    canvas, seg, ucolor, vcolor, -pi / 2)
 
 counterdouble!(canvas, seg, ucolor, vcolor) = ringdouble!(
-    canvas, seg, ucolor, vcolor, false)
+    canvas, seg, ucolor, vcolor, pi / 2)
 
 
 function triplebond!(canvas::Canvas, seg, ucolor, vcolor)
-    dist = canvas.mbwidthf * length(seg)
-    seg1 = trim_uv_move(seg, true, dist, 1)
-    seg2 = trim_uv_move(seg, false, dist, 1)
+    dist = canvas.scalef * canvas.mbwidthf
+    seg1 = translate(seg, pi / 2, dist)
+    seg2 = translate(seg, -pi / 2, dist)
     drawline!(canvas, seg, ucolor, vcolor)
     drawline!(canvas, seg1, ucolor, vcolor)
     drawline!(canvas, seg2, ucolor, vcolor)
@@ -121,14 +122,12 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
         drawer(canvas, Segment(u, v),
                Color(getcolor(uatom)...), Color(getcolor(vatom)...))
     end
-
     """ Draw atoms """
     for (i, atom) in enumerate(atomvector(mol))
         if !atom.visible
             continue
         end
         pos = point2d(coords[i, :])
-        color = Color(getcolor(atom)...)
         # Determine text direction
         if atom.Hcount > 0
             cosnbrs = []
@@ -143,18 +142,15 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
             end
             if isempty(cosnbrs) || minimum(cosnbrs) > 0
                 # [atom]< or isolated node(ex. H2O, HCl)
-                text = htmlformula(atom, :right)
-                drawtext!(canvas, pos, text, color, :right)
+                drawtext!(canvas, pos, atom, :right)
                 continue
             elseif maximum(cosnbrs) < 0
                 # >[atom]
-                text = htmlformula(atom, :left)
-                drawtext!(canvas, pos, text, color, :left)
+                drawtext!(canvas, pos, atom, :left)
                 continue
             end
         end
         # -[atom]- or no hydrogens
-        text = htmlformula(atom, :left)
-        drawtext!(canvas, pos, text, color, :center)
+        drawtext!(canvas, pos, atom, :center)
     end
 end

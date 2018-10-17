@@ -41,7 +41,7 @@ function assign_valence!(mol::MolecularGraph)
         if atom.symbol in keys(maxnbrs)
             Hs = maxnbrs[atom.symbol] - length(nbrs) - atom.pi + atom.charge
             if Hs > 0
-                addhydrogen!(atom, convert(UInt8, Hs))
+                sethydrogen!(atom, convert(UInt8, Hs))
             end
         end
     end

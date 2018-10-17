@@ -4,6 +4,7 @@
 #
 
 using Statistics
+using Printf
 
 export
     Canvas,
