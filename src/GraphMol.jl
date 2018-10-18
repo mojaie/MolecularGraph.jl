@@ -49,6 +49,7 @@ module GraphMol
     module GraphMolIO
         using ..MolecularModel
         using ..Descriptor
+        include("download.jl")
         include("sdfilereader.jl")
     end
 
