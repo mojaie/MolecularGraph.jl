@@ -41,7 +41,8 @@ mutable struct Atom <: Node
 
     wctype::UInt8
     patty::UInt8
-    stereo::UInt8
+    smiles_aromatic::Bool
+    smiles_stereo::String
     coords::Tuple
     visible::Bool
 
@@ -63,10 +64,14 @@ mutable struct Atom <: Node
         atom.carbonylC = false
         atom.lonepair = false
 
+        atom.smiles_aromatic = false
+        atom.smiles_stereo = ""
         atom.visible = symbol != "C"
         atom
     end
 end
+
+Atom() = Atom("C")
 
 
 function getnumber(atom::Atom)

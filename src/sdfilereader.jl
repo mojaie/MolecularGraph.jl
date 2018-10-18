@@ -195,7 +195,8 @@ end
 function parseoptions(lines::AbstractArray{String})
     data = Dict()
     for (i, line) in enumerate(lines)
-        m = match(r">.*?<([\w ]+)>", line) # Space should be accepted
+        # Some inappropriate signs are accepted for practical use
+        m = match(r">.*?<([\w -.%=]+)>", line)
         if m !== nothing
             data[m[1]] = lines[i + 1]
         end

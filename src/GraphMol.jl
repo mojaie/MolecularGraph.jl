@@ -47,10 +47,12 @@ module GraphMol
     end
 
     module GraphMolIO
+        using ..GraphMolError
         using ..MolecularModel
         using ..Descriptor
         include("download.jl")
         include("sdfilereader.jl")
+        include("smilesreader.jl")
     end
 
 end

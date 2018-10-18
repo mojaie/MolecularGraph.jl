@@ -26,14 +26,20 @@ mutable struct Bond <: Edge
     u::UInt16
     v::UInt16
     order::UInt8
-    notation::UInt8
+
     rotatable::Bool
     aromatic::Bool
-    smiles_cis_trans::Bool
+    notation::UInt8
+    smiles_cis_trans::UInt8
     visible::Bool
 
     function Bond()
         bond = new()
+        bond.order = 1
+        bond.rotatable = false
+        bond.aromatic = false
+        bond.notation = 0
+        bond.smiles_cis_trans = 0
         bond.visible = true
         bond
     end

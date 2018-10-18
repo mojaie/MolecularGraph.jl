@@ -44,7 +44,10 @@ module GraphMolIOTest
     using GraphMol.GraphMolError
     using GraphMol.GraphMolIO
     using GraphMol.GraphMolIO: parseatoms, parsebonds, parsemol
+    using GraphMol.GraphMolIO: tokenize, parsetoken, parseatom!, parsebond!
+    using GraphMol.MolecularModel
     include("sdfilereader.jl")
+    include("smilesreader.jl")
 end
 
 
