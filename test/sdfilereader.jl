@@ -29,7 +29,7 @@ end
     @test bonds[1].order == 2
     @test bonds[3].u == 4
     @test bonds[3].v == 5
-    @test bonds[3].notation == 2
+    @test bonds[3].notation == 4
 end
 
 @testset "parsemol" begin

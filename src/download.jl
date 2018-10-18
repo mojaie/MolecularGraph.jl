@@ -4,7 +4,6 @@ export
     pubchemsdf,
     molsfortest
 
-import HTTP
 
 const RESOURCE_DIR = joinpath(dirname(@__FILE__), "..", "_resources")
 

@@ -35,7 +35,7 @@ end
     @test resolve_inclusion(a, b)[1].arr == [1, 2, 3, 4, 5, 6, 7, 8, 12, 11]
 end
 
-
+"""
 @testset "topology" begin
     RESOURCE_DIR = joinpath(dirname(@__FILE__), "..", "_resources", "DrugBank")
     phe = loadsdfmol(open(joinpath(RESOURCE_DIR, "Phe.mol")))
@@ -46,6 +46,6 @@ end
     @test prem.scaffolds == [[1, 2, 3, 4]]
     @test prem.isolated == [[28]]
 end
-
+"""
 
 end # topology
