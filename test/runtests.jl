@@ -4,7 +4,6 @@
 #
 
 
-"""
 module GeometryTest
     using Test
     using GraphMol.GraphMolError
@@ -47,7 +46,6 @@ module GraphMolIOTest
     using GraphMol.GraphMolIO: parseatoms, parsebonds, parsemol
     include("sdfilereader.jl")
 end
-"""
 
 
 module DrawingTest

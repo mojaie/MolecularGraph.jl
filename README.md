@@ -2,12 +2,22 @@
 Graphmol.jl
 ===================================================
 
-**Graphmol.jl** is a graph-based molecule modeling and cheminformatics analysis toolkit written in Julia. Graphmol.jl is a re-implementation of [Chorus](https://github.com/mojaie/chorus).
+**Graphmol.jl** is a graph-based molecule modeling library written in Julia. Graphmol.jl is a re-implementation of [Chorus](https://github.com/mojaie/chorus).
 
 
 Installation
 -------------
 
+```
+ (v1.0) pkg> add GraphMol
+```
+
+
+
+Usage
+-------------
+
+Try examples in the [notebook directory](./notebook)
 
 
 

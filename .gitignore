@@ -1,2 +1,5 @@
 
+.ipynb_checkpoints
+
+notebook/*.jl
 _resources
