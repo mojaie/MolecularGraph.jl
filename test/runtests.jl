@@ -3,7 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
 module GeometryTest
     using Test
     using GraphMol.GraphMolError
@@ -57,5 +56,6 @@ module DrawingTest
     using GraphMol.MolecularModel
     using GraphMol.Drawing
     include("./draw/base.jl")
+    include("./draw/coords2d.jl")
     include("./draw/svg.jl")
 end

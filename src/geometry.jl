@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using LinearAlgebra
+import LinearAlgebra: dot
 import Base: +, -, *, /, ≈, length
 
 export
@@ -11,7 +11,6 @@ export
     point2d,
     distance,
     rotate,
-    dot,
     cross2d,
     interiorangle,
     transformmatrix,
@@ -22,7 +21,8 @@ export
     trim_v,
     trim_uv,
     isclockwise,
-    radiantophase
+    radiantophase,
+    rotationmatrix
 
 
 mutable struct Point2D
@@ -41,7 +41,6 @@ point2d(pos) = Point2D(pos[1], pos[2])
 length(p::Point2D) = hypot(p.x, p.y)
 
 dot(u::Point2D, v::Point2D) = u.x * v.x + u.y * v.y
-dot(u, v) = cross2d(point2d(u), point2d(v))
 
 cross2d(u::Point2D, v::Point2D) = u.x * v.y - u.y * v.x
 cross2d(u, v) = cross2d(point2d(u), point2d(v))
@@ -135,9 +134,26 @@ end
 function transformmatrix(scaleX::Real, scaleY::Real,
                          rotcos::Real, rotsin::Real,
                          translateX::Real, translateY::Real)
+    # TODO: to counter clockwise
+    # TODO: return full matrix
     scale = [scaleX 0 0; 0 scaleY 0; 0 0 1]
     rot = [rotcos rotsin 0; -rotsin rotcos 0; 0 0 1]
     tl = [1 0 translateX; 0 1 translateY; 0 0 1]
     tf = tl * rot * scale
     tf[1:2, :]
+end
+
+
+function rotationmatrix(axis::AbstractArray, angle::Real)
+    (x, y, z) = axis
+    c = cos(angle)
+    s = sin(angle)
+    a12 = x * y * (1 - c)
+    a13 = x * z * (1 - c)
+    a23 = y * z * (1 - c)
+    [
+        (c + x^2 * (1 - c)) (a12 - z * s) (a13 + y * s);
+        (a12 + z * s) (c + y^2 * (1 - c)) (a23 - x * s);
+        (a13 - y * s) (a23 + x * s) (c + z^2 * (1 - c))
+    ]
 end

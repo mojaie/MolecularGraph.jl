@@ -7,14 +7,16 @@ export
     smilestomol
 
 
-function smilestomol(smiles::AbstractString)
+function smilestomol(smiles::AbstractString; precalc=true)
     mol = MolecularGraph()
     tokens = tokenize(smiles)
     ringclose = Dict()
     parsegroup!(mol, ringclose, tokens)
-
     # println(Int64[a.index for a in atomvector(mol)])
     # println(Tuple{Int64, Int64}[(b.u, b.v) for b in bondvector(mol)])
+    if precalc
+        assign_descriptors!(mol)
+    end
     mol
 end
 
@@ -130,6 +132,9 @@ function parseatom!(atom::Atom, token::AbstractString)
     mass = m.captures[1]
     atom.mass = mass == "" ? nothing : parse(UInt8, mass)
     atom.smiles_stereo = m.captures[3]
+    # TODO: atom initialization
+    atom.visible = atom.symbol != "C" || atom.mass !== nothing
+    atom.Hacceptor = atom.symbol in ("N", "O", "F")
     return
 end
 

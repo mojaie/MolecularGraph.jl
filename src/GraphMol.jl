@@ -36,6 +36,7 @@ module GraphMol
         using ..MolecularModel
         using ..Geometry
         include("./draw/base.jl")
+        include("./draw/coords2d.jl")
         include("./draw/draw2d.jl")
         include("./draw/svg.jl")
     end
