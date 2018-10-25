@@ -3,11 +3,11 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-import Base: showerror
-
 export
     DescriptorError,
     OperationError
+
+import Base: showerror
 
 
 struct DescriptorError <: Exception

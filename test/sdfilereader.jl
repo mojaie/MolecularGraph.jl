@@ -13,7 +13,7 @@
     @test length(atoms) == 5
     @test atoms[1].index == 1
     @test atoms[2].symbol == "Br"
-    @test atoms[3].coords == (1.6514f0, 2.7627f0, 0.0f0)
+    @test atoms[3].coords == [1.6514f0, 2.7627f0, 0.0f0]
 end
 
 @testset "parsebonds" begin

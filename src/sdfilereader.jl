@@ -132,7 +132,7 @@ function parseatoms(lines::AbstractArray{String})
         xpos = parse(Float32, line[1:10])
         ypos = parse(Float32, line[11:20])
         zpos = parse(Float32, line[21:30])
-        atom.coords = (xpos, ypos, zpos)
+        atom.coords = [xpos, ypos, zpos]
         # atom.mass_diff = parse(Int, line[35:37]) use ISO property
         old_sdf_charge = parse(Int8, line[38:40])
         atom.charge = conv_charge_table[old_sdf_charge]

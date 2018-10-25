@@ -3,10 +3,10 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+
+
 module GeometryTest
-    using Test
-    using GraphMol.GraphMolError
-    using GraphMol.Geometry
     include("geometry.jl")
 end
 

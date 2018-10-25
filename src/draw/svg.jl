@@ -3,8 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using Printf
-
 export
     SvgCanvas,
     tosvg,
@@ -107,51 +105,50 @@ function initialize!(canvas::Canvas, mol::MolecularGraph)
 end
 
 
-function drawline!(canvas::Canvas, seg::Segment, color::Color, dashed::Bool)
+function drawline!(canvas::Canvas, uv::SMatrix{2,2}, color::Color, dashed::Bool)
     option = dashed ? """ stroke-dasharray="10,10" """ : " "
-    u, v = (seg.u, seg.v)
-    elem = """<line x1="$(crdf(u.x))" y1="$(crdf(u.y))"
-     x2="$(crdf(v.x))" y2="$(crdf(v.y))" stroke="$(rgbf(color))"$(option)/>
+    uvf = crdf.(uv)
+    elem = """<line x1="$(uvf[1])" y1="$(uvf[3])"
+     x2="$(uvf[2])" y2="$(uvf[4])" stroke="$(rgbf(color))"$(option)/>
     """
     push!(canvas.elements, elem)
     return
 end
 
-function drawline!(canvas::Canvas, seg::Segment, ucolor::Color,
+function drawline!(canvas::Canvas, uv::SMatrix{2,2}, ucolor::Color,
                    vcolor::Color, dashed::Bool)
     option = dashed ? """ stroke-dasharray="10,10" """ : " "
-    u, v = (seg.u, seg.v)
     res = []
     if ucolor == vcolor
-        drawline!(canvas, seg, ucolor, dashed)
+        drawline!(canvas, uv, ucolor, dashed)
         return
     end
-    mid = (u + v) / 2
-    elem = """<line x1="$(crdf(u.x))" y1="$(crdf(u.y))"
-     x2="$(crdf(mid.x))" y2="$(crdf(mid.y))" stroke="$(rgbf(ucolor))"$(option)/>
-    <line x1="$(crdf(mid.x))" y1="$(crdf(mid.y))"
-     x2="$(crdf(v.x))" y2="$(crdf(v.y))" stroke="$(rgbf(vcolor))"$(option)/>
+    uvf = crdf.(uv)
+    midf = crdf.((vecU(uv) + vecV(uv)) / 2)
+    elem = """<line x1="$(uvf[1])" y1="$(uvf[3])"
+     x2="$(midf[1])" y2="$(midf[2])" stroke="$(rgbf(ucolor))"$(option)/>
+    <line x1="$(midf[1])" y1="$(midf[2])"
+     x2="$(uvf[2])" y2="$(uvf[4])" stroke="$(rgbf(vcolor))"$(option)/>
     """
     push!(canvas.elements, elem)
     return
 end
 
-drawline!(canvas, seg, ucolor, vcolor) = drawline!(
-    canvas, seg, ucolor, vcolor, false)
-drawdashedline!(canvas, seg, ucolor, vcolor) = drawline!(
-    canvas, seg, ucolor, vcolor, true)
+drawline!(canvas, uv, ucolor, vcolor) = drawline!(
+    canvas, uv, ucolor, vcolor, false)
+drawdashedline!(canvas, uv, ucolor, vcolor) = drawline!(
+    canvas, uv, ucolor, vcolor, true)
 
 
-function drawwedge!(canvas::Canvas, seg::Segment, color::Color)
+function drawwedge!(canvas::Canvas, uv::SMatrix{2,2}, color::Color)
     """ u ▶ v """
-    seglen = length(seg)
+    uvlen = norm(utov(uv))
     tf = transformmatrix(
-        seglen, seglen / 2 * canvas.wedgewidthf,
-        (seg.v.x - seg.u.x) / seglen, (seg.u.y - seg.v.y) / seglen,
-        seg.u.x, seg.u.y
+        SVector{2}(uvlen, uvlen / 2 * canvas.wedgewidthf),
+        normalize(utov(uv)), vecU(uv)
     )
-    tfarr = reshape(tf, (1, 6))
-    tftxt = join([crdf(v) for v in tfarr], " ")
+    tfarr = reshape(tf[1:2, :], (1, 6))
+    tftxt = join(crdf.(tfarr), " ")
     elem = """<polygon points="0,1 0,-1 1,0" fill="$(rgbf(color))"
      transform="matrix($(tftxt))"/>
     """
@@ -160,16 +157,15 @@ function drawwedge!(canvas::Canvas, seg::Segment, color::Color)
 end
 
 
-function drawdashedwedge!(canvas::Canvas, seg::Segment, color::Color)
+function drawdashedwedge!(canvas::Canvas, uv::SMatrix{2,2}, color::Color)
     """ u ▶ v """
-    seglen = length(seg)
+    uvlen = norm(utov(uv))
     tf = transformmatrix(
-        seglen / 7, seglen / 14 * canvas.wedgewidthf,
-        (seg.v.x - seg.u.x) / seglen, (seg.u.y - seg.v.y) / seglen,
-        seg.u.x, seg.u.y
+        SVector{2}(uvlen / 7, uvlen / 14 * canvas.wedgewidthf),
+        normalize(utov(uv)), vecU(uv)
     )
-    tfarr = reshape(tf, (1, 6))
-    tftxt = join([crdf(v) for v in tfarr], " ")
+    tfarr = reshape(tf[1:2, :], (1, 6))
+    tftxt = join(crdf.(tfarr), " ")
     elem = """<g stroke="$(rgbf(color))" stroke-width="0.3" transform="matrix($(tftxt))">
      <line x1="0" y1="8" x2="0" y2="-8" />
      <line x1="1" y1="7" x2="1" y2="-7" />
@@ -186,15 +182,14 @@ function drawdashedwedge!(canvas::Canvas, seg::Segment, color::Color)
 end
 
 
-function drawwave!(canvas::Canvas, seg::Segment, color::Color)
-    seglen = length(seg)
+function drawwave!(canvas::Canvas, uv::SMatrix{2,2}, color::Color)
+    uvlen = norm(utov(uv))
     tf = transformmatrix(
-        seglen / 7, seglen / 2 * canvas.wavewidthf,
-        (seg.v.x - seg.u.x) / seglen, (seg.u.y - seg.v.y) / seglen,
-        seg.u.x, seg.u.y
+        SVector{2}(uvlen / 7, uvlen / 2 * canvas.wavewidthf),
+        normalize(utov(uv)), vecU(uv)
     )
-    tfarr = reshape(tf, (1, 6))
-    tftxt = join([crdf(v) for v in tfarr], " ")
+    tfarr = reshape(tf[1:2, :], (1, 6))
+    tftxt = join(crdf.(tfarr), " ")
     elem = """<polyline points="0,0 0.5,0 1,1 2,-1 3,1 4,-1 5,1 6,-1 6.5,0 7,0"
      stroke="$(rgbf(color))" stroke-width="0.2"
      fill="none" transform="matrix($(tftxt))"/>
@@ -204,7 +199,7 @@ function drawwave!(canvas::Canvas, seg::Segment, color::Color)
 end
 
 
-function drawtext!(canvas::Canvas, pos::Point2D, atom::Atom, align=:center)
+function drawtext!(canvas::Canvas, pos::SVector{2}, atom::Atom, align=:center)
     small = round(Int, canvas.fontsize * 0.7)
     direction = Dict(:center => :right, :right => :left, :left => :right)
     option = Dict(
@@ -215,15 +210,15 @@ function drawtext!(canvas::Canvas, pos::Point2D, atom::Atom, align=:center)
         :center => 0, :right => canvas.fontsize / 2,
         :left => canvas.fontsize / -2
     )
-    px = pos.x + xoffset[align]
-    py = pos.y + canvas.fontsize / 2
+    alg = pos + [xoffset[align], canvas.fontsize / 2]
+    algf = crdf.(alg)
     color = Color(getcolor(atom)...)
     svgtext = markup(
         atom, direction[align],
         """<tspan baseline-shift="-25%" font-size="$(small)">""", "</tspan>",
         """<tspan baseline-shift="50%" font-size="$(small)">""", "</tspan>"
     )
-    elem = """<text x="$(crdf(px))" y="$(crdf(py))" font-size="$(canvas.fontsize)"
+    elem = """<text x="$(algf[1])" y="$(algf[2])" font-size="$(canvas.fontsize)"
      fill="$(rgbf(color))"$(option[align])>$(svgtext)</text>
     """
     push!(canvas.elements, elem)

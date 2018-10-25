@@ -18,6 +18,8 @@ module GraphMol
     end
 
     module Geometry
+        using LinearAlgebra
+        using StaticArrays
         include("geometry.jl")
     end
 
@@ -26,6 +28,8 @@ module GraphMol
     end
 
     module MolecularModel
+        using StaticArrays
+        using YAML
         using ..GraphModel
         include("./model/atom.jl")
         include("./model/bond.jl")
@@ -33,6 +37,10 @@ module GraphMol
     end
 
     module Drawing
+        using LinearAlgebra
+        using Printf
+        using StaticArrays
+        using Statistics
         using ..MolecularModel
         using ..Geometry
         include("./draw/base.jl")

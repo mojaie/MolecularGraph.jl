@@ -7,85 +7,85 @@ export
     draw!
 
 
-function singlebond!(canvas, seg, ucolor, vcolor)
-    drawline!(canvas, seg, ucolor, vcolor)
+function singlebond!(canvas, uv, ucolor, vcolor)
+    drawline!(canvas, uv, ucolor, vcolor)
     return
 end
 
 
-function wedgeduv!(canvas, seg, ucolor, vcolor)
-    drawwedge!(canvas, Segment(seg.v, seg.u), ucolor)
+function wedgeduv!(canvas, uv, ucolor, vcolor)
+    drawwedge!(canvas, swap(uv), ucolor)
     return
 end
 
 
-function wedgedvu!(canvas, seg, ucolor, vcolor)
-    drawwedge!(canvas, seg, ucolor)
+function wedgedvu!(canvas, uv, ucolor, vcolor)
+    drawwedge!(canvas, uv, ucolor)
     return
 end
 
 
-function dashedwedgeduv!(canvas, seg, ucolor, vcolor)
-    drawdashedwedge!(canvas, Segment(seg.v, seg.u), ucolor)
+function dashedwedgeduv!(canvas, uv, ucolor, vcolor)
+    drawdashedwedge!(canvas, swap(uv), ucolor)
     return
 end
 
 
-function dashedwedgedvu!(canvas, seg, ucolor, vcolor)
-    drawdashedwedge!(canvas, seg, ucolor)
+function dashedwedgedvu!(canvas, uv, ucolor, vcolor)
+    drawdashedwedge!(canvas, uv, ucolor)
     return
 end
 
 
-function wavesingle!(canvas, seg, ucolor, vcolor)
-    drawwave!(canvas, seg, ucolor)
+function wavesingle!(canvas, uv, ucolor, vcolor)
+    drawwave!(canvas, uv, ucolor)
     return
 end
 
 
-function doublebond!(canvas, seg, ucolor, vcolor)
+function doublebond!(canvas, uv, ucolor, vcolor)
     dist = canvas.scalef * canvas.mbwidthf / 2
-    seg1 = translate(seg, pi / 2, dist)
-    seg2 = translate(seg, -pi / 2, dist)
-    drawline!(canvas, seg1, ucolor, vcolor)
-    drawline!(canvas, seg2, ucolor, vcolor)
+    uv1 = translate(uv, pi / 2, dist)
+    uv2 = translate(uv, -pi / 2, dist)
+    drawline!(canvas, uv1, ucolor, vcolor)
+    drawline!(canvas, uv2, ucolor, vcolor)
     return
 end
 
 
-function crossdouble!(canvas, seg, ucolor, vcolor)
+function crossdouble!(canvas, uv, ucolor, vcolor)
     dist = canvas.scalef * canvas.mbwidthf / 2
-    seg1 = translate(seg, pi / 2, dist)
-    seg2 = translate(seg, -pi / 2, dist)
-    drawline!(canvas, Segment(seg1.u, seg2.v), ucolor, vcolor)
-    drawline!(canvas, Segment(seg2.u, seg1.v), ucolor, vcolor)
+    uv1 = translate(uv, pi / 2, dist)
+    uv2 = translate(uv, -pi / 2, dist)
+    drawline!(canvas, vecpair(vecU(uv1), vecV(uv2)), ucolor, vcolor)
+    drawline!(canvas, vecpair(vecU(uv2), vecV(uv1)), ucolor, vcolor)
     return
 end
 
 
-function ringdouble!(canvas::Canvas, seg, ucolor, vcolor, rad)
+function ringdouble!(canvas::Canvas, uv, ucolor, vcolor, rad)
     dist = canvas.scalef * canvas.mbwidthf
-    segin = translate(seg, rad, dist)
-    segtr = trim_uv(segin, canvas.triminnerf)
-    drawline!(canvas, seg, ucolor, vcolor)
-    drawline!(canvas, segtr, ucolor, vcolor)
+    uvin = translate(uv, rad, dist)
+    uvtr = trimUV(uvin, canvas.triminnerf)
+    drawline!(canvas, uv, ucolor, vcolor)
+    drawline!(canvas, uvtr, ucolor, vcolor)
     return
 end
 
-clockwisedouble!(canvas, seg, ucolor, vcolor) = ringdouble!(
-    canvas, seg, ucolor, vcolor, -pi / 2)
+clockwisedouble!(canvas, uv, ucolor, vcolor) = ringdouble!(
+    canvas, uv, ucolor, vcolor, -pi / 2)
 
-counterdouble!(canvas, seg, ucolor, vcolor) = ringdouble!(
-    canvas, seg, ucolor, vcolor, pi / 2)
+counterdouble!(canvas, uv, ucolor, vcolor) = ringdouble!(
+    canvas, uv, ucolor, vcolor, pi / 2)
 
 
-function triplebond!(canvas::Canvas, seg, ucolor, vcolor)
+function triplebond!(canvas::Canvas, uv, ucolor, vcolor)
     dist = canvas.scalef * canvas.mbwidthf
-    seg1 = translate(seg, pi / 2, dist)
-    seg2 = translate(seg, -pi / 2, dist)
-    drawline!(canvas, seg, ucolor, vcolor)
-    drawline!(canvas, seg1, ucolor, vcolor)
-    drawline!(canvas, seg2, ucolor, vcolor)
+    uv1 = translate(uv, pi / 2, dist)
+    uv2 = translate(uv, -pi / 2, dist)
+    drawline!(canvas, uv, ucolor, vcolor)
+    drawline!(canvas, uv1, ucolor, vcolor)
+    drawline!(canvas, uv2, ucolor, vcolor)
     return
 end
 
@@ -125,15 +125,16 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
         end
         uatom = getatom(mol, bond.u)
         vatom = getatom(mol, bond.v)
-        upos = point2d(coords[atompos(mol, bond.u), :])
-        vpos = point2d(coords[atompos(mol, bond.v), :])
+        upos = vec2d(coords[atompos(mol, bond.u), :])
+        vpos = vec2d(coords[atompos(mol, bond.v), :])
+        uv = vecpair(upos, vpos)
         if upos == vpos
             continue # avoid zero division
         end
-        u = uatom.visible ? trim_u(Segment(upos, vpos), canvas.trimoverlapf).u : upos
-        v = vatom.visible ? trim_v(Segment(upos, vpos), canvas.trimoverlapf).v : vpos
+        u = uatom.visible ? vecU(trimU(uv, canvas.trimoverlapf)) : upos
+        v = vatom.visible ? vecV(trimV(uv, canvas.trimoverlapf)) : vpos
         drawer = BOND_DRAWER[bond.order][bond.notation]
-        drawer(canvas, Segment(u, v),
+        drawer(canvas, vecpair(u, v),
                Color(getcolor(uatom)...), Color(getcolor(vatom)...))
     end
     """ Draw atoms """
@@ -141,14 +142,14 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
         if !atom.visible
             continue
         end
-        pos = point2d(coords[i, :])
+        pos = vec2d(coords[i, :])
         # Determine text direction
         if atom.Hcount > 0
             cosnbrs = []
-            hrzn = Point2D(pos.x + 1, pos.y)
+            hrzn = vec2d(posX(pos) + 1, posY(pos))
             for nbr in keys(neighbors(mol, atom.index))
-                posnbr = point2d(coords[atompos(mol, nbr), :])
-                dist = distance(pos, posnbr)
+                posnbr = vec2d(coords[atompos(mol, nbr), :])
+                dist = norm(posnbr - pos)
                 if dist > 0
                     dp = dot(hrzn - pos, posnbr - pos)
                     push!(cosnbrs, dp / dist)

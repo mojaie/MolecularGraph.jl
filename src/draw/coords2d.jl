@@ -8,8 +8,6 @@ export
     coords2d!,
     cartesian
 
-using LinearAlgebra
-
 
 function coords2d(mol::MolecularGraph, root::Integer)
     required_descriptor(mol, "Valence")
@@ -85,7 +83,7 @@ function coords2d!(mol::MolecularGraph)
     zmatrix = coords2d(mol)
     coords3d = cartesian(zmatrix)
     for (i, atom) in enumerate(atomvector(mol))
-        atom.coords = tuple(coords3d[i, 1:2]...)
+        atom.coords = coords3d[i, :]
     end
 end
 
@@ -96,23 +94,22 @@ function cartesian(zmatrix::AbstractArray)
     coords[1, :] = [0, 0, 0]
     coords[2, :] = [zmatrix[2, 3], 0, 0]
     ang0 = (1 - zmatrix[3, 5]) * pi
-    coords[3, :] = vec([sin(ang0) cos(ang0) 0] .* zmatrix[3, 3]) .+ coords[2, :]
+    coords[3, :] = vec([sin(ang0) cos(ang0) 0] * zmatrix[3, 3]) + coords[2, :]
     idxmap = Dict(idx => row for (row, idx) in enumerate(zmatrix[:, 1]))
     for i in 4:zmatlen
-        p1 = coords[idxmap[zmatrix[i, 2]], :]
-        p2 = coords[idxmap[zmatrix[i, 4]], :]
-        p3 = coords[idxmap[zmatrix[i, 6]], :]
-        v1 = p1 .- p2
-        v2 = p3 .- p2
-        v1u = v1 / hypot(v1...)
-        normal = cross(v1, v2)
-        normalu = normal / hypot(normal...)
+        p1 = vec3d(coords[idxmap[zmatrix[i, 2]], :])
+        p2 = vec3d(coords[idxmap[zmatrix[i, 4]], :])
+        p3 = vec3d(coords[idxmap[zmatrix[i, 6]], :])
+        v1 = p1 - p2
+        v2 = p3 - p2
+        v1u = normalize(v1)
+        normalv = normalize(cross(v1, v2))
         ang1 = (1 - zmatrix[i, 5]) * pi
-        rot1 = rotationmatrix(normalu, ang1)
+        rot1 = rotation(normalv, ang1)
         ang2 = zmatrix[i, 7] * pi
-        rot2 = rotationmatrix(v1u, ang2)
+        rot2 = rotation(v1u, ang2)
         len = zmatrix[i, 3]
-        coords[i, :] = vec(rot2 * rot1 * reshape(v1u, (3, 1))) .* len .+ p1
+        coords[i, :] = vec(rot2 * rot1 * v1u) * len + p1
     end
     indexed = hcat(coords, zmatrix[:, 1])
     sorted = sortslices(indexed, dims=1, by=r->r[4])
