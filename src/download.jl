@@ -1,38 +1,43 @@
+#
+# This file is a part of graphmol.jl
+# Licensed under the MIT License http://opensource.org/licenses/MIT
+#
 
 export
     clear,
     pubchemsdf,
-    molsfortest
+    molsfortest,
+    resource_dir,
+    pubchem_dir
 
 
-const RESOURCE_DIR = joinpath(dirname(@__FILE__), "..", "_resources")
-
+resource_dir = joinpath(dirname(@__FILE__), "..", "_resources")
+pubchem_dir = joinpath(resource_dir, "PubChem")
 
 function initialize()
-    if !isdir(RESOURCE_DIR)
-        mkdir(RESOURCE_DIR)
-        println("Resource directory created: $(RESOURCE_DIR)")
+    if !isdir(resource_dir)
+        mkdir(resource_dir)
+        println("Resource directory created: $(resource_dir)")
     end
 end
 
 
 function clear()
     initialize()
-    for p in readdir(RESOURCE_DIR)
+    for p in readdir(resource_dir)
         rm(p, recursive=true)
     end
-    println("Resource directory is now empty: $(RESOURCE_DIR)")
+    println("Resource directory is now empty: $(resource_dir)")
 end
 
 
 function pubchemsdf(cid::AbstractString, name::AbstractString)
-    pubchemdir = joinpath(RESOURCE_DIR, "PubChem")
-    if !isdir(pubchemdir)
+    if !isdir(pubchem_dir)
         initialize()
-        mkdir(pubchemdir)
-        println("PubChem data directory created: $(pubchemdir)")
+        mkdir(pubchem_dir)
+        println("PubChem data directory created: $(pubchem_dir)")
     end
-    dest = joinpath(RESOURCE_DIR, "PubChem", "$(name).mol")
+    dest = joinpath(resource_dir, "PubChem", "$(name).mol")
     if isfile(dest)
         println("file: $(name).mol already exists")
         return
@@ -47,7 +52,7 @@ function molsfortest()
     pubchemfilelist = [
         ("Buckminsterfullerene", 123591)
     ]
-    testdir = joinpath(RESOURCE_DIR, "testmols")
+    testdir = joinpath(resource_dir, "testmols")
     if !isdir(testdir)
         initialize()
         mkdir(testdir)
