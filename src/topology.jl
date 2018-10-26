@@ -4,40 +4,23 @@
 #
 
 export
-    Ring,
-    topology!,
-    minifyring!
-
-import Base: ==, getindex, size
+    MolGraphTopology,
+    molgraph_topology,
+    molgraph_topology!
 
 
-mutable struct Ring <: AbstractVector{UInt16}
-    arr::AbstractVector{UInt16}
-    function Ring(nodes::AbstractVector)
-        # Canonicalize
-        (fst, fstidx) = findmin(nodes)
-        succidx = fstidx == lastindex(nodes) ? 1 : fstidx + 1
-        succ = nodes[succidx]
-        predidx = fstidx == 1 ? lastindex(nodes) : fstidx - 1
-        pred = nodes[predidx]
-        cp = succ < pred ? copy(nodes) : reverse(copy(nodes))
-        while cp[1] != fst
-            pushfirst!(cp, pop!(cp))
-        end
-        new(cp)
-    end
-    Ring() = new()
+mutable struct MolGraphTopology <: Descriptor
+    cycles::Vector
+    bicomps::Vector
+    connectivity::Vector
+    cyclemap::Dict
 end
 
-size(r::Ring) = length(r.arr)
-getindex(r::Ring, i::Int) = r.arr[i]
-==(r::Ring, s::Ring) = r.arr == s.arr
 
-
-function topology!(mol::MolecularGraph)
+function molgraph_topology(mol::MolecularGraph)
     nodeset = Set(a.index for a in atomvector(mol))
-    biconnected = Dict()
-    isolated = []
+    candidates = Dict()
+    connectivity = []
     while !isempty(nodeset)
         start = pop!(nodeset)
         stack = [start]
@@ -47,107 +30,125 @@ function topology!(mol::MolecularGraph)
         while !isempty(stack)
             tail = pop!(stack)
             for nbr in keys(neighbors(mol, tail))
-                if nbr ∉ keys(used) # New node
+                if !(nbr in keys(used))
+                    # New node
                     pred[nbr] = tail
                     push!(stack, nbr)
                     used[nbr] = Set(tail)
                     root[nbr] = nbr
-                elseif nbr in stack # Cycle found
+                elseif nbr in stack
+                    # Cycle found
                     pn = used[nbr]
                     cyc = [nbr, tail]
                     p = pred[tail]
                     ed = pred[nbr]
                     root[nbr] = root[tail] = root[ed]
-                    while p ∉ pn # Backtrack
+                    while !(p in pn)
+                        # Backtrack
                         push!(cyc, p)
                         root[p] = root[ed]
-                        if p in keys(biconnected) # Append scaffold to new cycle
-                            if root[ed] ∉ keys(biconnected)
-                                biconnected[root[ed]] = []
+                        if p in keys(candidates)
+                            # Append bicomp to new cycle
+                            if !(root[ed] in keys(candidates))
+                                candidates[root[ed]] = []
                             end
-                            append!(biconnected[root[ed]], biconnected[p])
-                            delete!(biconnected, p)
+                            append!(candidates[root[ed]], candidates[p])
+                            delete!(candidates, p)
                         end
                         p = pred[p]
                     end
                     push!(cyc, p)
-                    if root[ed] ∉ keys(biconnected) # Append new cycle to scaffold
-                        biconnected[root[ed]] = []
+                    if !(root[ed] in keys(candidates))
+                        # Append new cycle to bicomp
+                        candidates[root[ed]] = []
                     end
-                    push!(biconnected[root[ed]], cyc)
+                    push!(candidates[root[ed]], cyc)
                     push!(used[nbr], tail)
                 end
             end
         end
-        push!(isolated, collect(keys(pred)))
+        push!(connectivity, Set(keys(pred)))
         # print(pred)
         setdiff!(nodeset, keys(pred))
     end
-    mol.rings = Vector{Ring}()
-    mol.scaffolds = Vector{Vector{UInt16}}()
-    for cycles in values(biconnected)
-        rcnt = length(mol.rings)
-        append!(mol.rings, [Ring(c) for c in cycles])
-        push!(mol.scaffolds, collect(rcnt + 1 : rcnt + length(cycles)))
+    cycles = []
+    bicomps = []
+    cyclemap = Dict(a.index => Set() for a in atomvector(mol))
+    for bcmp in sort(collect(values(candidates)), by=length, rev=true)
+        cycs = canonicalize_cycle.(minify_cycle(bcmp))
+        cnt = length(cycles)
+        for (i, c) in enumerate(cycs)
+            for j in c
+                push!(cyclemap[j], i + cnt)
+            end
+        end
+        append!(cycles, cycs)
+        push!(bicomps, collect(cnt + 1 : cnt + length(cycs)))
     end
-    mol.isolated = Vector{Vector{UInt16}}(sort(isolated, by=(x -> -length(x)))[2:end])
-    push!(mol.descriptors, "Topology")
+    sort!(connectivity, by=length, rev=true)
+    # TODO:cyclemap
+    MolGraphTopology(cycles, bicomps, connectivity, cyclemap)
+end
+
+function molgraph_topology!(mol::MolecularGraph)
+    mol.descriptor[:Topology] = molgraph_topology(mol)
     return
 end
 
 
-function minifyring!(mol::MolecularGraph; verbose=false)
-    required_descriptor(mol, "Topology")
-    for cyc_idx in mol.scaffolds
-        rings = sort([mol.rings[c] for c in cyc_idx], by=length)
-        minified = []
-        cnt = 0
-        while !isempty(rings)
-            cnt += 1
-            if cnt > 100
-                push!(mol.descriptors, "MinifiedRing")
-                throw(OperationError("Ring minimization failed"))
-            end
-            r = popfirst!(rings)
-            init_r = r
-            if verbose
-                print("$(length(r)) Ring:$(r)\n")
-            end
-            for m in minified
-                if verbose
-                    print("$(length(m)) Minified:$(m)\n")
-                end
-                resolved = resolve_inclusion(r, m)
-                if resolved != nothing
-                    if verbose
-                        print(
-                            "$(length(resolved[1])), $(length(resolved[2]))",
-                            " Resolved:$(resolved[1]) $(resolved[2])\n"
-                        )
-                    end
-                    r = resolved[1]
-                end
-            end
-            if verbose
-                print("$(length(r)) New ring:$(r)\n")
-            end
-            if length(r) == length(init_r) # no further minimization
-                push!(minified, r)
-            else
-                push!(rings, r)
-            end
-        end
-        for c in cyc_idx
-            mol.rings[c] = pop!(minified)
-        end
+function canonicalize_cycle(nodes)
+    """Re-order ring labels by index"""
+    (fst, fstidx) = findmin(nodes)
+    succidx = fstidx == lastindex(nodes) ? 1 : fstidx + 1
+    succ = nodes[succidx]
+    predidx = fstidx == 1 ? lastindex(nodes) : fstidx - 1
+    pred = nodes[predidx]
+    cp = succ < pred ? copy(nodes) : reverse(copy(nodes))
+    while cp[1] != fst
+        pushfirst!(cp, pop!(cp))
     end
-    push!(mol.descriptors, "MinifiedRing")
+    cp
 end
 
 
-function resolve_inclusion(a::Ring, b::Ring)
-    rev = length(a.arr) > length(b.arr)
-    (lt, bg) = rev ? (copy(b.arr), copy(a.arr)) : (copy(a.arr), copy(b.arr))
+function minify_cycle(bicomp; verbose=false)
+    minified = []
+    cnt = 0
+    while !isempty(bicomp)
+        cnt += 1
+        if cnt > 100
+            throw(OperationError("Cycle minimization failed"))
+        end
+        c = popfirst!(bicomp)
+        init_c = c
+        verbose ? print("$(length(c)) Cycle:$(c)\n") : nothing
+        for m in minified
+            verbose ? print("$(length(m)) Minified:$(m)\n") : nothing
+            resolved = resolve_inclusion(c, m)
+            if resolved != nothing
+                if verbose
+                    print(
+                        "$(length(resolved[1])), $(length(resolved[2]))",
+                        " Resolved:$(resolved[1]) $(resolved[2])\n"
+                    )
+                end
+                c = resolved[1]
+            end
+        end
+        verbose ? print("$(length(c)) New ring:$(c)\n") : nothing
+        if length(c) == length(init_c) # no further minimization
+            push!(minified, c)
+        else
+            push!(bicomp, c)
+        end
+    end
+    minified
+end
+
+
+function resolve_inclusion(a, b)
+    rev = length(a) > length(b)
+    (lt, bg) = rev ? (copy(b), copy(a)) : (copy(a), copy(b))
     isec = intersect(lt, bg)
     isize = length(isec)
     if isize == 3 && length(lt) == 4
@@ -155,7 +156,7 @@ function resolve_inclusion(a::Ring, b::Ring)
     elseif isize != length(lt) && isize <= length(lt) / 2 + 1
         return nothing # Already minimum
     end
-    while bg[1] ∉ isec || bg[end] in isec
+    while !(bg[1] in isec) || bg[end] in isec
         pushfirst!(bg, pop!(bg))
     end
     while lt[1] != bg[1]
@@ -169,7 +170,6 @@ function resolve_inclusion(a::Ring, b::Ring)
     end
     bx = bg[isize:end]
     lx = lt[isize + 1 : end]
-    ca = cat(bx, bg[1], reverse(lx), dims=1)
-    new_bg = Ring(ca)
-    rev ? (new_bg, Ring(lt)) : (Ring(lt), new_bg)
+    new_bg = cat(bx, bg[1], reverse(lx), dims=1)
+    rev ? (new_bg, lt) : (lt, new_bg)
 end

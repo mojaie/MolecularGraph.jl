@@ -1,14 +1,5 @@
 
-using LinearAlgebra
-using StaticArrays
-using Test
-
-using GraphMol.GraphMolError
-using GraphMol.Geometry
-
-
 @testset "geometry" begin
-
 
 @testset "cross" begin
     @test cross(SVector(3.0, 0), SVector(0, 4.0)) ≈ 12

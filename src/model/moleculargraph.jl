@@ -4,6 +4,7 @@
 #
 
 export
+    Descriptor,
     MolecularGraph,
     getatom,
     atompos,
@@ -19,17 +20,19 @@ export
 import ..GraphModel: neighbors
 
 
+abstract type Descriptor end
+
+
 mutable struct MolecularGraph
     graph::UndirectedGraph
-    descriptors::Set
-    rings
-    scaffolds
-    isolated
-    data
+    descriptor::Dict{Symbol, Descriptor}
+    attribute::Dict{String, Any}
+
     function MolecularGraph()
         mol = new()
         mol.graph = UndirectedGraph{UInt16}()
-        mol.descriptors = Set()
+        mol.descriptor = Dict()
+        mol.attribute = Dict()
         mol
     end
 end
@@ -89,8 +92,8 @@ function updatebond!(mol::MolecularGraph, u::Integer, v::Integer, bond::Bond)
 end
 
 
-function required_descriptor(mol::MolecularGraph, desc::AbstractString)
-    if desc ∉ mol.descriptors
-        throw(ErrorException("$(desc) is not assigned"))
+function required_descriptor(mol::MolecularGraph, desc::Symbol)
+    if !(desc in keys(mol.descriptor))
+        throw(ErrorException("$(desc) is not available"))
     end
 end

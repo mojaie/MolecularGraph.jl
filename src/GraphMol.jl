@@ -49,7 +49,7 @@ module GraphMol
         include("./draw/svg.jl")
     end
 
-    module Descriptor
+    module BaseDescriptor
         using ..MolecularModel
         include("topology.jl")
         include("basedescriptor.jl")
@@ -58,7 +58,7 @@ module GraphMol
     module GraphMolIO
         using ..GraphMolError
         using ..MolecularModel
-        using ..Descriptor
+        using ..BaseDescriptor
         include("download.jl")
         include("sdfilereader.jl")
         include("smilesreader.jl")

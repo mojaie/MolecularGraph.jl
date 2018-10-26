@@ -10,10 +10,12 @@ export
 
 function assign_descriptors!(mol::MolecularGraph)
     assign_valence!(mol)
-    topology!(mol)
-    minifyring!(mol)
+    molgraph_topology!(mol)
     return
 end
+
+
+struct Valence <: Descriptor end
 
 
 function assign_valence!(mol::MolecularGraph)
@@ -45,6 +47,6 @@ function assign_valence!(mol::MolecularGraph)
             end
         end
     end
-    push!(mol.descriptors, "Valence")
+    mol.descriptor[:Valence] = Valence()
     return
 end

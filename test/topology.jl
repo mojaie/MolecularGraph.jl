@@ -1,38 +1,24 @@
 
 @testset "topology" begin
 
-@testset "Ring" begin
-    a = Ring([1, 2, 3, 4, 5])
-    @test typeof(a) == Ring
-    b = Ring([5, 1, 2, 3, 4])
-    @test a == b
-    b = Ring([1, 2, 3, 4, 5, 6])
-    @test a != b
-    b = Ring([1, 2, 3, 5, 4])
-    @test a != b
-    r = Ring([5, 3, 4, 2, 1])
-    @test r.arr == UInt16[1, 2, 4, 3, 5]
-    a = Ring([5, 6, 7, 8, 9, 1])
-    @test a.arr == UInt16[1, 5, 6, 7, 8, 9]
-end
-
-
 @testset "resolve_inclusion" begin
-    a = Ring([1, 2, 3, 4, 5])
-    b = Ring([1, 2, 3, 4, 5, 6, 7, 8, 9])
-    @test resolve_inclusion(a, b)[2].arr == UInt16[1, 5, 6, 7, 8, 9]
-    b = Ring([1, 6, 7, 8, 9])
-    @test resolve_inclusion(a, b) == nothing
-    b = Ring([3, 4, 5, 6, 7, 8, 9])
-    @test resolve_inclusion(a, b) == nothing
-    b = Ring([2, 3, 4, 5, 6, 7, 8])
-    @test resolve_inclusion(a, b)[2].arr == UInt16[1, 2, 8, 7, 6, 5]
-    a = Ring([3, 4, 5, 6, 7, 8, 9, 10])
-    b = Ring([1, 2, 8, 7, 6, 5, 4])
-    @test resolve_inclusion(a, b)[1].arr == UInt16[1, 2, 8, 9, 10, 3, 4]
-    a = Ring([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-    b = Ring([8, 9, 10, 11, 12])
-    @test resolve_inclusion(a, b)[1].arr == [1, 2, 3, 4, 5, 6, 7, 8, 12, 11]
+    R = resolve_inclusion
+    C = canonicalize_cycle
+    a = [1, 2, 3, 4, 5]
+    b = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    @test C(R(a, b)[2]) == [1, 5, 6, 7, 8, 9]
+    b = [1, 6, 7, 8, 9]
+    @test R(a, b) == nothing
+    b = [3, 4, 5, 6, 7, 8, 9]
+    @test R(a, b) == nothing
+    b = [2, 3, 4, 5, 6, 7, 8]
+    @test C(R(a, b)[2]) == [1, 2, 8, 7, 6, 5]
+    a = [3, 4, 5, 6, 7, 8, 9, 10]
+    b = [1, 2, 8, 7, 6, 5, 4]
+    @test C(R(a, b)[1]) == [1, 2, 8, 9, 10, 3, 4]
+    a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    b = [8, 9, 10, 11, 12]
+    @test C(R(a, b)[1]) == [1, 2, 3, 4, 5, 6, 7, 8, 12, 11]
 end
 
 """

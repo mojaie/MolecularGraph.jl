@@ -3,18 +3,20 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
-
-
 module GeometryTest
+    using Test
+    using LinearAlgebra
+    using StaticArrays
+    using GraphMol.Geometry
+    using GraphMol.GraphMolError
     include("geometry.jl")
 end
 
 
 module GraphModelTest
     using Test
-    using GraphMol.GraphMolError
     using GraphMol.GraphModel
+    using GraphMol.GraphMolError
     include("./model/undirectedgraph.jl")
 end
 
@@ -28,12 +30,12 @@ module MolecularModelTest
 end
 
 
-module DescriptorTest
+module BaseDescriptorTest
     using Test
     using GraphMol.GraphMolError
-    using GraphMol.Descriptor
+    using GraphMol.BaseDescriptor
     using GraphMol.GraphMolIO
-    using GraphMol.Descriptor: resolve_inclusion
+    using GraphMol.BaseDescriptor: resolve_inclusion, canonicalize_cycle
     include("topology.jl")
 end
 

@@ -10,8 +10,8 @@ export
 
 
 function coords2d(mol::MolecularGraph, root::Integer)
-    required_descriptor(mol, "Valence")
-    required_descriptor(mol, "Topology")
+    required_descriptor(mol, :Valence)
+    required_descriptor(mol, :Topology)
     zmatrix = [
         -2 nothing nothing nothing nothing nothing nothing;
         -1 -2 1.0 nothing nothing nothing nothing;
@@ -20,13 +20,9 @@ function coords2d(mol::MolecularGraph, root::Integer)
     stack = [root]
     done = []
     pred = Dict(root => 0, 0 => -1, -1 => -2)
-    ringmap = Dict{Int64, Array}(a.index => Int64[] for a in atomvector(mol))
-    merge!(ringmap, Dict(0 => Int64[], -1 => Int64[], -2 => Int64[]))
-    for (i, ring) in enumerate(mol.rings)
-        for r in ring.arr
-            push!(ringmap[r], i)
-        end
-    end
+    ringmap = Dict(0 => Set(), -1 => Set(), -2 => Set())
+    merge!(ringmap, mol.descriptor[:Topology].cyclemap)
+    rings = mol.descriptor[:Topology].cycles
     backtracked = false
     while length(stack) > 0
         c = pop!(stack)
@@ -37,17 +33,15 @@ function coords2d(mol::MolecularGraph, root::Integer)
         p2 = pred[p1]
         p3 = pred[p2]
 
-        isec3 = intersect(ringmap[c], ringmap[p3])
-        isec2 = intersect(ringmap[c], ringmap[p2])
+        isec3 = collect(intersect(ringmap[c], ringmap[p3]))
+        isec2 = collect(intersect(ringmap[c], ringmap[p2]))
         if !isempty(isec3)
             # elongate ring
-            ringsize = length(mol.rings[isec3[1]])
-            angle = (ringsize - 2) / ringsize
+            angle = 1 - 2 / length(rings[isec3[1]])
             zmatrix = vcat(zmatrix, [c p1 1.0 p2 angle p3 0.0])
         elseif !isempty(isec2)
             # branch ring
-            ringsize = length(mol.rings[isec2[1]])
-            angle = (ringsize - 2) / ringsize
+            angle = 1 - 2 / length(rings[isec2[1]])
             zmatrix = vcat(zmatrix, [c p1 1.0 p2 angle p3 1.0])
         elseif backtracked
             # branch chain

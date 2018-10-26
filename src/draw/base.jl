@@ -26,8 +26,8 @@ end
 
 
 function readytodraw!(mol::MolecularGraph)
-    required_descriptor(mol, "Valence")
-    required_descriptor(mol, "Topology")
+    required_descriptor(mol, :Valence)
+    required_descriptor(mol, :Topology)
     # display_terminal_carbon!(mol)
     equalize_terminal_double_bond!(mol)
     double_bond_along_ring!(mol)
@@ -59,13 +59,14 @@ end
 
 
 function double_bond_along_ring!(mol::MolecularGraph)
-    for ring in sort(mol.rings, by=length, rev=true)
-        vtcs = SVector{2}[getatom(mol, n).coords[1:2] for n in ring.arr]
+    rings = mol.descriptor[:Topology].cycles
+    for ring in sort(rings, by=length, rev=true)
+        vtcs = SVector{2}[getatom(mol, n).coords[1:2] for n in ring]
         cw = isclockwise(vtcs)
         if cw === nothing
             continue
         end
-        directed = cw ? ring.arr : reverse(ring.arr)
+        directed = cw ? ring : reverse(ring)
         push!(directed, directed[1])
         for i in 1: length(directed) - 1
             u = directed[i]

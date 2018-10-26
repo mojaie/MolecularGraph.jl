@@ -74,7 +74,7 @@ function parseblock(lines, nohalt, precalc)
                 end
                 m
             end
-            molobj.data = parseoptions(opt)
+            molobj.attribute = parseoptions(opt)
             put!(channel, molobj)
         end
     end
