@@ -32,11 +32,13 @@ end
 
 module BaseDescriptorTest
     using Test
-    using GraphMol.GraphMolError
     using GraphMol.BaseDescriptor
-    using GraphMol.GraphMolIO
     using GraphMol.BaseDescriptor: resolve_inclusion, canonicalize_cycle
+    using GraphMol.GraphMolError
+    using GraphMol.GraphMolIO
+    using GraphMol.MolecularModel
     include("topology.jl")
+    include("basedescriptor.jl")
 end
 
 

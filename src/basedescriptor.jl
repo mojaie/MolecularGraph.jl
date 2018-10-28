@@ -5,17 +5,21 @@
 
 export
     assign_descriptors!,
-    assign_valence!
+    assign_valence!,
+    assign_rotatable!,
+    rotatable_count
 
 
 function assign_descriptors!(mol::MolecularGraph)
-    assign_valence!(mol)
     molgraph_topology!(mol)
+    assign_valence!(mol)
+    assign_rotatable!(mol)
     return
 end
 
 
 struct Valence <: Descriptor end
+struct Rotatable <: Descriptor end
 
 
 function assign_valence!(mol::MolecularGraph)
@@ -49,4 +53,25 @@ function assign_valence!(mol::MolecularGraph)
     end
     mol.descriptor[:Valence] = Valence()
     return
+end
+
+
+function assign_rotatable!(mol::MolecularGraph)
+    required_descriptor(mol, :Valence)
+    required_descriptor(mol, :Topology)
+    ringmap = mol.descriptor[:Topology].cyclemap
+    for b in bondvector(mol)
+        isec = length(intersect(ringmap[b.u], ringmap[b.v]))
+        ulen = length(neighbors(mol, b.u))
+        vlen = length(neighbors(mol, b.v))
+        if b.order == 1 && isec == 0 && ulen > 1 && vlen > 1
+            b.rotatable = true
+        end
+    end
+    mol.descriptor[:Rotatable] = Rotatable()
+end
+
+
+function rotatable_count(mol::MolecularGraph)
+    reduce(+, 1 for b in bondvector(mol) if b.rotatable; init=0)
 end
