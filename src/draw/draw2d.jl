@@ -13,26 +13,14 @@ function singlebond!(canvas, uv, ucolor, vcolor)
 end
 
 
-function wedgeduv!(canvas, uv, ucolor, vcolor)
+function wedged!(canvas, uv, ucolor, vcolor)
     drawwedge!(canvas, swap(uv), ucolor)
     return
 end
 
 
-function wedgedvu!(canvas, uv, ucolor, vcolor)
-    drawwedge!(canvas, uv, ucolor)
-    return
-end
-
-
-function dashedwedgeduv!(canvas, uv, ucolor, vcolor)
+function dashedwedged!(canvas, uv, ucolor, vcolor)
     drawdashedwedge!(canvas, swap(uv), ucolor)
-    return
-end
-
-
-function dashedwedgedvu!(canvas, uv, ucolor, vcolor)
-    drawdashedwedge!(canvas, uv, ucolor)
     return
 end
 
@@ -63,7 +51,7 @@ function crossdouble!(canvas, uv, ucolor, vcolor)
 end
 
 
-function ringdouble!(canvas::Canvas, uv, ucolor, vcolor, rad)
+function ringdouble!(canvas, uv, ucolor, vcolor, rad)
     dist = canvas.scalef * canvas.mbwidthf
     uvin = translate(uv, rad, dist)
     uvtr = trimUV(uvin, canvas.triminnerf)
@@ -79,7 +67,7 @@ counterdouble!(canvas, uv, ucolor, vcolor) = ringdouble!(
     canvas, uv, ucolor, vcolor, pi / 2)
 
 
-function triplebond!(canvas::Canvas, uv, ucolor, vcolor)
+function triplebond!(canvas, uv, ucolor, vcolor)
     dist = canvas.scalef * canvas.mbwidthf
     uv1 = translate(uv, pi / 2, dist)
     uv2 = translate(uv, -pi / 2, dist)
@@ -93,11 +81,9 @@ end
 BOND_DRAWER = Dict(
     1 => Dict(
         0 => singlebond!,
-        1 => wedgeduv!,
-        2 => wedgedvu!,
-        3 => dashedwedgeduv!,
-        4 => dashedwedgedvu!,
-        5 => wavesingle!
+        1 => wedged!,
+        6 => dashedwedged!,
+        4 => wavesingle!
     ),
     2 => Dict(
         0 => clockwisedouble!,
@@ -111,44 +97,39 @@ BOND_DRAWER = Dict(
 )
 
 
-function draw!(canvas::Canvas, mol::MolecularGraph)
-    if length(atomvector(mol)) == 0
+function draw!(canvas::Canvas, mol::Molecule)
+    if atomcount(mol) == 0
         return
     end
     initialize!(canvas, mol)
     coords = canvas.coords
 
     """ Draw bonds """
-    for bond in bondvector(mol)
-        if !bond.visible
-            continue
-        end
-        uatom = getatom(mol, bond.u)
-        vatom = getatom(mol, bond.v)
-        upos = vec2d(coords[atompos(mol, bond.u), :])
-        vpos = vec2d(coords[atompos(mol, bond.v), :])
+    for (i, bond) in enumerate(mol.graph.edges)
+        upos = vec2d(coords[bond.u, :])
+        vpos = vec2d(coords[bond.v, :])
         uv = vecpair(upos, vpos)
         if upos == vpos
-            continue # avoid zero division
+            continue # Overlapped: avoid zero division
         end
-        u = uatom.visible ? vecU(trimU(uv, canvas.trimoverlapf)) : upos
-        v = vatom.visible ? vecV(trimV(uv, canvas.trimoverlapf)) : vpos
-        drawer = BOND_DRAWER[bond.order][bond.notation]
+        u = mol.v[:AtomVisible][bond.u] ? vecU(trimU(uv, canvas.trimoverlapf)) : upos
+        v = mol.v[:AtomVisible][bond.v] ? vecV(trimV(uv, canvas.trimoverlapf)) : vpos
+        drawer = BOND_DRAWER[mol.v[:BondOrder][i]][mol.v[:BondNotation][i]]
         drawer(canvas, vecpair(u, v),
-               Color(getcolor(uatom)...), Color(getcolor(vatom)...))
+               mol.v[:AtomColor][bond.u], mol.v[:AtomColor][bond.v])
     end
     """ Draw atoms """
-    for (i, atom) in enumerate(atomvector(mol))
-        if !atom.visible
+    for i in 1:atomcount(mol)
+        if !mol.v[:AtomVisible][i]
             continue
         end
         pos = vec2d(coords[i, :])
         # Determine text direction
-        if atom.Hcount > 0
+        if mol.v[:H_Count][i] > 0
             cosnbrs = []
             hrzn = vec2d(posX(pos) + 1, posY(pos))
-            for nbr in keys(neighbors(mol, atom.index))
-                posnbr = vec2d(coords[atompos(mol, nbr), :])
+            for nbr in keys(neighbors(mol, i))
+                posnbr = vec2d(coords[nbr, :])
                 dist = norm(posnbr - pos)
                 if dist > 0
                     dp = dot(hrzn - pos, posnbr - pos)
@@ -157,15 +138,24 @@ function draw!(canvas::Canvas, mol::MolecularGraph)
             end
             if isempty(cosnbrs) || minimum(cosnbrs) > 0
                 # [atom]< or isolated node(ex. H2O, HCl)
-                drawtext!(canvas, pos, atom, :right)
+                drawrighttext!(
+                    canvas, pos, mol.v[:Symbol][i], mol.v[:Charge][i],
+                    mol.v[:H_Count][i], mol.v[:AtomColor][i]
+                )
                 continue
             elseif maximum(cosnbrs) < 0
                 # >[atom]
-                drawtext!(canvas, pos, atom, :left)
+                drawlefttext!(
+                    canvas, pos, mol.v[:Symbol][i], mol.v[:Charge][i],
+                    mol.v[:H_Count][i], mol.v[:AtomColor][i]
+                )
                 continue
             end
         end
         # -[atom]- or no hydrogens
-        drawtext!(canvas, pos, atom, :center)
+        drawcentertext!(
+            canvas, pos, mol.v[:Symbol][i], mol.v[:Charge][i],
+            mol.v[:H_Count][i], mol.v[:AtomColor][i]
+        )
     end
 end

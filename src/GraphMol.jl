@@ -24,7 +24,9 @@ module GraphMol
     end
 
     module GraphModel
-        include("./model/undirectedgraph.jl")
+        using StaticArrays
+        using ..GraphMolError
+        include("./model/udgraph.jl")
     end
 
     module MolecularModel
@@ -33,7 +35,7 @@ module GraphMol
         using ..GraphModel
         include("./model/atom.jl")
         include("./model/bond.jl")
-        include("./model/moleculargraph.jl")
+        include("./model/molgraph.jl")
     end
 
     module Drawing
@@ -49,16 +51,17 @@ module GraphMol
         include("./draw/svg.jl")
     end
 
-    module BaseDescriptor
-        using ..MolecularModel
+    module BaseAnnotation
+        using ...MolecularModel
         include("topology.jl")
-        include("basedescriptor.jl")
+        include("annotation.jl")
     end
 
     module GraphMolIO
+        using StaticArrays
         using ..GraphMolError
         using ..MolecularModel
-        using ..BaseDescriptor
+        using ..BaseAnnotation
         include("download.jl")
         include("sdfilereader.jl")
         include("smilesreader.jl")

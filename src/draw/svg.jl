@@ -12,7 +12,10 @@ export
     drawwedge!,
     drawdashedwedge!,
     drawwave!,
-    drawtext!
+    drawtext!,
+    drawrighttext!,
+    drawcentertext!,
+    drawlefttext!
 
 
 rgbf(c::Color) = @sprintf "rgb(%d, %d, %d)" c.r c.g c.b
@@ -22,22 +25,22 @@ crdf(c::Real) = @sprintf "%.2f" c
 mutable struct SvgCanvas <: Canvas
     fontweight::String
     fontfamily::String
-    fontsize::UInt8
+    fontsize::Float64
     bgcolor::Color
-    opacity::UInt8
+    opacity::Float64
 
-    mbwidthf::Float32
-    wedgewidthf::Float32
-    wavewidthf::Float32
-    triminnerf::Float32
-    trimoverlapf::Float32
-    scalef::Float32
-    paddingX::Float32
-    paddingY::Float32
+    mbwidthf::Float64
+    wedgewidthf::Float64
+    wavewidthf::Float64
+    triminnerf::Float64
+    trimoverlapf::Float64
+    scalef::Float64
+    paddingX::Float64
+    paddingY::Float64
 
-    coords::Matrix{Float32}
-    viewboxW::Float32
-    viewboxH::Float32
+    coords::Matrix{Float64}
+    viewboxW::Float64
+    viewboxH::Float64
 
     elements::Vector{String}
 
@@ -45,18 +48,18 @@ mutable struct SvgCanvas <: Canvas
         canvas = new()
         canvas.fontweight = "normal"
         canvas.fontfamily = "Helvetica"
-        canvas.fontsize = 14
-        canvas.bgcolor = Color(255, 255, 255)
-        canvas.opacity = 0
+        canvas.fontsize = 14.0
+        canvas.bgcolor = Color(255.0, 255.0, 255.0)
+        canvas.opacity = 0.0
 
         canvas.mbwidthf = 0.15
         canvas.wedgewidthf = 0.3
         canvas.wavewidthf = 0.2
         canvas.triminnerf = 0.2
         canvas.trimoverlapf = 0.3
-        canvas.scalef = 30 # suitable for fontsize=14 and default line width
-        canvas.paddingX = 30
-        canvas.paddingY = 30
+        canvas.scalef = 30.0 # suitable for fontsize=14 and default line width
+        canvas.paddingX = 30.0
+        canvas.paddingY = 30.0
 
         canvas.elements = []
         canvas
@@ -64,7 +67,7 @@ mutable struct SvgCanvas <: Canvas
 end
 
 
-function tosvg(canvas::Canvas, width::Real, height::Real)
+function tosvg(canvas::Canvas, width, height)
     vbWf = crdf(canvas.viewboxW)
     vbHf = crdf(canvas.viewboxH)
     header = """<svg xmlns="http://www.w3.org/2000/svg"
@@ -85,16 +88,16 @@ function tosvg(canvas::Canvas, width::Real, height::Real)
 end
 
 
-function drawsvg!(mol::MolecularGraph, width::Real, height::Real)
-    readytodraw!(mol)
+function drawsvg!(mol::Molecule, width, height)
+    draw2d_annot!(mol)
     canvas = SvgCanvas()
     draw!(canvas, mol)
     tosvg(canvas, width, height)
 end
 
 
-function initialize!(canvas::Canvas, mol::MolecularGraph)
-    coords = coordsvector(mol)
+function initialize!(canvas::Canvas, mol::Molecule)
+    coords = mol.v[:Coords2D]
     (top, left, width, height) = boundary(coords)
     sf = canvas.scalef / sizeunit(mol, coords)
     coords = (coords .- [left top]) .* [1 -1] .* sf
@@ -105,8 +108,8 @@ function initialize!(canvas::Canvas, mol::MolecularGraph)
 end
 
 
-function drawline!(canvas::Canvas, uv::SMatrix{2,2}, color::Color, dashed::Bool)
-    option = dashed ? """ stroke-dasharray="10,10" """ : " "
+function drawline!(canvas, uv, color::Color, isdashed::Bool)
+    option = isdashed ? """ stroke-dasharray="10,10" """ : " "
     uvf = crdf.(uv)
     elem = """<line x1="$(uvf[1])" y1="$(uvf[3])"
      x2="$(uvf[2])" y2="$(uvf[4])" stroke="$(rgbf(color))"$(option)/>
@@ -115,12 +118,11 @@ function drawline!(canvas::Canvas, uv::SMatrix{2,2}, color::Color, dashed::Bool)
     return
 end
 
-function drawline!(canvas::Canvas, uv::SMatrix{2,2}, ucolor::Color,
-                   vcolor::Color, dashed::Bool)
-    option = dashed ? """ stroke-dasharray="10,10" """ : " "
+function drawline!(canvas, uv, ucolor, vcolor, isdashed)
+    option = isdashed ? """ stroke-dasharray="10,10" """ : " "
     res = []
     if ucolor == vcolor
-        drawline!(canvas, uv, ucolor, dashed)
+        drawline!(canvas, uv, ucolor, isdashed)
         return
     end
     uvf = crdf.(uv)
@@ -134,13 +136,13 @@ function drawline!(canvas::Canvas, uv::SMatrix{2,2}, ucolor::Color,
     return
 end
 
-drawline!(canvas, uv, ucolor, vcolor) = drawline!(
+drawline!(canvas, uv, ucolor::Color, vcolor::Color) = drawline!(
     canvas, uv, ucolor, vcolor, false)
 drawdashedline!(canvas, uv, ucolor, vcolor) = drawline!(
     canvas, uv, ucolor, vcolor, true)
 
 
-function drawwedge!(canvas::Canvas, uv::SMatrix{2,2}, color::Color)
+function drawwedge!(canvas, uv, color)
     """ u ▶ v """
     uvlen = norm(utov(uv))
     tf = transformmatrix(
@@ -157,7 +159,7 @@ function drawwedge!(canvas::Canvas, uv::SMatrix{2,2}, color::Color)
 end
 
 
-function drawdashedwedge!(canvas::Canvas, uv::SMatrix{2,2}, color::Color)
+function drawdashedwedge!(canvas, uv, color)
     """ u ▶ v """
     uvlen = norm(utov(uv))
     tf = transformmatrix(
@@ -182,7 +184,7 @@ function drawdashedwedge!(canvas::Canvas, uv::SMatrix{2,2}, color::Color)
 end
 
 
-function drawwave!(canvas::Canvas, uv::SMatrix{2,2}, color::Color)
+function drawwave!(canvas, uv, color)
     uvlen = norm(utov(uv))
     tf = transformmatrix(
         SVector{2}(uvlen / 7, uvlen / 2 * canvas.wavewidthf),
@@ -199,28 +201,38 @@ function drawwave!(canvas::Canvas, uv::SMatrix{2,2}, color::Color)
 end
 
 
-function drawtext!(canvas::Canvas, pos::SVector{2}, atom::Atom, align=:center)
+function drawtext!(canvas, pos, symbol, charge, hcount, color,
+                   direction, option, xoffset)
+    tpos = crdf.(pos + [xoffset, canvas.fontsize / 2])
     small = round(Int, canvas.fontsize * 0.7)
-    direction = Dict(:center => :right, :right => :left, :left => :right)
-    option = Dict(
-        :center => """ text-anchor="middle" """,
-        :right => """ text-anchor="end" """, :left => " ",
-    )
-    xoffset = Dict(
-        :center => 0, :right => canvas.fontsize / 2,
-        :left => canvas.fontsize / -2
-    )
-    alg = pos + [xoffset[align], canvas.fontsize / 2]
-    algf = crdf.(alg)
-    color = Color(getcolor(atom)...)
-    svgtext = markup(
-        atom, direction[align],
-        """<tspan baseline-shift="-25%" font-size="$(small)">""", "</tspan>",
-        """<tspan baseline-shift="50%" font-size="$(small)">""", "</tspan>"
-    )
-    elem = """<text x="$(algf[1])" y="$(algf[2])" font-size="$(canvas.fontsize)"
-     fill="$(rgbf(color))"$(option[align])>$(svgtext)</text>
+    atom = atomsvg(symbol, charge, hcount, direction, small)
+    elem = """<text x="$(tpos[1])" y="$(tpos[2])" font-size="$(canvas.fontsize)"
+     fill="$(rgbf(color))"$(option)>$(atom)</text>
     """
     push!(canvas.elements, elem)
     return
+end
+
+function drawrighttext!(canvas, pos, symbol, charge, hcount, color)
+    drawtext!(canvas, pos, symbol, charge, hcount, color,
+              :left, """ text-anchor="end" """, canvas.fontsize / 2)
+end
+
+function drawcentertext!(canvas, pos, symbol, charge, hcount, color)
+    drawtext!(canvas, pos, symbol, charge, hcount, color,
+              :right, """ text-anchor="middle" """, 0)
+end
+
+function drawlefttext!(canvas, pos, symbol, charge, hcount, color)
+    drawtext!(canvas, pos, symbol, charge, hcount, color,
+              :right, " ", canvas.fontsize / -2)
+end
+
+
+function atomsvg(symbol, charge, hcount, direction, small)
+    atommarkup(
+        symbol, charge, hcount, direction,
+        """<tspan baseline-shift="-25%" font-size="$(small)">""", "</tspan>",
+        """<tspan baseline-shift="50%" font-size="$(small)">""", "</tspan>"
+    )
 end

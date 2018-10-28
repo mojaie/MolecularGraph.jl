@@ -3,10 +3,13 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export Bond
+export
+    Bond,
+    sdfbond,
+    smilesbond
 
 
-mutable struct Bond <: Edge
+struct Bond <: AbstractEdge
     """Bond
 
     * Notation
@@ -23,24 +26,25 @@ mutable struct Bond <: Edge
             * 2: u ＝ v (equal length, for terminal bond by default)
             * 3: u × v (Cis-Trans Unknown)
     """
-    u::UInt16
-    v::UInt16
-    order::UInt8
+    u::Int
+    v::Int
+    order::Int
+    sdf_notation::Union{Int, Nothing}
+    smiles_aromatic::Union{Bool, Nothing}
+    smiles_cistrans::Union{Int, Nothing}
+end
 
-    rotatable::Bool
-    aromatic::Bool
-    notation::UInt8
-    smiles_cis_trans::UInt8
-    visible::Bool
+Bond(b::Bond, u::Integer, v::Integer) = Bond(
+    u, v, b.order,
+    b.sdf_notation, b.smiles_aromatic, b.smiles_cistrans
+)
 
-    function Bond()
-        bond = new()
-        bond.order = 1
-        bond.rotatable = false
-        bond.aromatic = false
-        bond.notation = 0
-        bond.smiles_cis_trans = 0
-        bond.visible = true
-        bond
-    end
+
+function sdfbond(u, v, order, notation)
+    Bond(u, v, order, notation, nothing, nothing)
+end
+
+
+function smilesbond(u, v, order, aromatic, cistrans)
+    Bond(u, v, order, nothing, aromatic, cistrans)
 end

@@ -48,16 +48,16 @@ vecU(uv::SMatrix{2,2}) = SVector{2}(uv[1, :])
 vecV(uv::SMatrix{2,2}) = SVector{2}(uv[2, :])
 
 
-function translate(uv::SMatrix{2,2}, angle::Real, dist::Real)
+function translate(uv::SMatrix{2,2}, angle, dist)
     rot = rotation(angle)
     move = rot * normalize(utov(uv)) * dist
     uv .+ transpose(move)
 end
 
 
-trimU(uv::SMatrix{2,2}, k::Real) = uv + [transpose(utov(uv) * k); 0 0]
-trimV(uv::SMatrix{2,2}, k::Real) = uv + [0 0; transpose(utov(uv) * -k)]
-trimUV(uv::SMatrix{2,2}, k::Real) = uv + [
+trimU(uv::SMatrix{2,2}, k) = uv + [transpose(utov(uv) * k); 0 0]
+trimV(uv::SMatrix{2,2}, k) = uv + [0 0; transpose(utov(uv) * -k)]
+trimUV(uv::SMatrix{2,2}, k) = uv + [
     transpose(utov(uv) * k / 2); transpose(utov(uv) * -k / 2)]
 
 
@@ -75,9 +75,9 @@ posZ(v::SVector{3}) = v[3]
 
 # Rotation matrix
 
-rotation(a::Real) = SMatrix{2,2}([cos(a) -sin(a); sin(a) cos(a)])
+rotation(a) = SMatrix{2,2}([cos(a) -sin(a); sin(a) cos(a)])
 
-function rotation(axis::SVector{3}, angle::Real)
+function rotation(axis::SVector{3}, angle)
     (x, y, z) = axis
     c = cos(angle)
     s = sin(angle)
@@ -95,7 +95,7 @@ end
 
 # Convenient methods
 
-function isclockwise(vertices::AbstractArray{SVector{2}})
+function isclockwise(vertices)
     vlen = length(vertices)
     clockwise = 0
     counter = 0
@@ -122,7 +122,7 @@ function isclockwise(vertices::AbstractArray{SVector{2}})
 end
 
 
-function radiantophase(angle::Real)
+function radiantophase(angle)
     mod((angle + 2pi) / 2pi)
 end
 

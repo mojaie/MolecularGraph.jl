@@ -5,20 +5,18 @@
 
 export
     MolGraphTopology,
-    molgraph_topology,
     molgraph_topology!
 
 
-mutable struct MolGraphTopology <: Descriptor
-    cycles::Vector
-    bicomps::Vector
-    connectivity::Vector
-    cyclemap::Dict
+struct MolGraphTopology <: Annotation
+    cycles::Vector{Vector{Int}}
+    bicomps::Vector{Vector{Int}}
+    connectivity::Vector{Set{Int}}
 end
 
 
-function molgraph_topology(mol::MolecularGraph)
-    nodeset = Set(a.index for a in atomvector(mol))
+function molgraph_topology!(mol::Molecule)
+    nodeset = Set(1:atomcount(mol))
     candidates = Dict()
     connectivity = []
     while !isempty(nodeset)
@@ -73,26 +71,35 @@ function molgraph_topology(mol::MolecularGraph)
     end
     cycles = []
     bicomps = []
-    cyclemap = Dict(a.index => Set() for a in atomvector(mol))
+    cyclevec = [Set() for a in mol.graph.nodes]
     for bcmp in sort(collect(values(candidates)), by=length, rev=true)
         cycs = canonicalize_cycle.(minify_cycle(bcmp))
         cnt = length(cycles)
         for (i, c) in enumerate(cycs)
             for j in c
-                push!(cyclemap[j], i + cnt)
+                push!(cyclevec[j], i + cnt)
             end
         end
         append!(cycles, cycs)
         push!(bicomps, collect(cnt + 1 : cnt + length(cycs)))
     end
     sort!(connectivity, by=length, rev=true)
-    # TODO:cyclemap
-    MolGraphTopology(cycles, bicomps, connectivity, cyclemap)
-end
-
-function molgraph_topology!(mol::MolecularGraph)
-    mol.descriptor[:Topology] = molgraph_topology(mol)
-    return
+    mol.annotation[:Topology] = MolGraphTopology(cycles, bicomps, connectivity)
+    mol.v[:Cycle] = cyclevec
+    bicompvec = [0 for a in mol.graph.nodes]
+    for (i, b) in enumerate(bicomps)
+        for n in union(b)
+            bicompvec[n] = i
+        end
+    end
+    mol.v[:Bicomp] = bicompvec
+    connectedvec = [0 for a in mol.graph.nodes]
+    for (i, c) in enumerate(connectivity)
+        for n in c
+            connectedvec[n] = i
+        end
+    end
+    mol.v[:Connected] = connectedvec
 end
 
 

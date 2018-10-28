@@ -4,17 +4,17 @@
 #
 
 export
-    DescriptorError,
+    AnnotationError,
     OperationError
 
 import Base: showerror
 
 
-struct DescriptorError <: Exception
+struct AnnotationError <: Exception
     msg::String
 end
 
-showerror(io::IO, e::DescriptorError) = print(io, e.msg)
+showerror(io::IO, e::AnnotationError) = print(io, e.msg)
 
 
 struct OperationError <: Exception

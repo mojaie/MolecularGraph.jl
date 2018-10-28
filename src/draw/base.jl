@@ -6,62 +6,108 @@
 export
     Canvas,
     Color,
-    readytodraw!,
-    display_terminal_carbon!,
-    equalize_terminal_double_bond!,
+    DRAW_SETTING,
+    draw2d_annot!,
+    atomcolor,
+    atomvisible,
+    bondnotation,
+    terminal_double_bond!,
     double_bond_along_ring!,
-    coordsvector,
     booundary,
-    sizeunit
+    sizeunit,
+    chargesign,
+    atommarkup,
+    atomhtml
 
 
 abstract type Canvas end
 
 
 struct Color
-    r::UInt8
-    g::UInt8
-    b::UInt8
+    r::Int
+    g::Int
+    b::Int
 end
 
 
-function readytodraw!(mol::MolecularGraph)
-    required_descriptor(mol, :Valence)
-    required_descriptor(mol, :Topology)
-    # display_terminal_carbon!(mol)
-    equalize_terminal_double_bond!(mol)
-    double_bond_along_ring!(mol)
-end
+const DRAW_SETTING = Dict(
+    :display_terminal_carbon => false,
+    :atomcolor => Dict(
+        :H => Color(0, 0, 0),
+        :B => Color(128, 0, 0),
+        :C => Color(0, 0, 0),
+        :N => Color(0, 0, 255),
+        :O => Color(255, 0, 0),
+        :F => Color(0, 255, 0),
+        :Si => Color(128, 64, 192),
+        :P => Color(192, 0, 192),
+        :S => Color(192, 192, 0),
+        :Cl => Color(64, 192, 64),
+        :As => Color(128, 0, 128),
+        :Se => Color(128, 128, 0),
+        :Br => Color(0, 192, 0),
+        :I => Color(0, 128, 0)
+    ),
+    :defaultatomcolor => Color(0, 192, 192)
+)
 
 
-function display_terminal_carbon!(mol::MolecularGraph)
-    for atom in atomvector(mol)
-        if length(neighbors(mol, atom.index)) == 1
-            atom.visible = true
+function draw2d_annot!(mol::Molecule, setting)
+    required_annotation(mol, :Topology)
+    required_annotation(mol, :Valence)
+    if mol.attribute[:sourcetype] == :sdfile
+        mol.v[:Coords2D] = zeros(Float64, atomcount(mol), 2)
+        for (i, a) in enumerate(mol.graph.nodes)
+            mol.v[:Coords2D][i, :] = a.sdf_coords[1:2]
         end
+    else
+        mol.v[:Coords2D] = coords2d(mol)
+    end
+    mol.v[:AtomColor] = atomcolor(setting).(mol.v[:Symbol])
+    mol.v[:AtomVisible] = atomvisible(
+        setting[:display_terminal_carbon]).(mol.v[:Symbol], mol.v[:NumBonds])
+    mol.v[:BondNotation] = bondnotation(mol)
+    return
+end
+
+draw2d_annot!(mol::Molecule) = draw2d_annot!(mol, DRAW_SETTING)
+
+
+function atomcolor(setting)
+    symbol -> get(setting[:atomcolor], symbol, setting[:defaultatomcolor])
+end
+
+function atomvisible(termc)
+    (symbol, numb) -> numb == 0 || symbol != :C || (termc && numb == 1)
+end
+
+
+function bondnotation(mol::Molecule)
+    if mol.attribute[:sourcetype] == :sdfile
+        notation = [b.sdf_notation for b in mol.graph.edges]
+    else
+        notation = zeros(Int, bondcount(mol))
+    end
+    terminal_double_bond!(notation, mol.graph.adjacency,
+                          mol.v[:NumBonds], mol.v[:Valence])
+    double_bond_along_ring!(notation, mol.graph.adjacency,
+                            mol.annotation[:Topology].cycles,
+                            mol.v[:Coords2D], mol.v[:BondOrder])
+    notation
+end
+
+
+function terminal_double_bond!(vec, adj, numb, valence)
+    for nbrs in adj[(numb .== 1) .* (valence .== 2)]
+        vec[collect(values(nbrs))[1]] = 2
     end
     return
 end
 
 
-function equalize_terminal_double_bond!(mol::MolecularGraph)
-    for atom in atomvector(mol)
-        nbrs = neighbors(mol, atom.index)
-        if length(nbrs) == 1
-            nbr = collect(values(nbrs))[1]
-            if nbr.order == 2
-                nbr.notation = 2
-            end
-        end
-    end
-    return
-end
-
-
-function double_bond_along_ring!(mol::MolecularGraph)
-    rings = mol.descriptor[:Topology].cycles
+function double_bond_along_ring!(vec, adj, rings, coords, order)
     for ring in sort(rings, by=length, rev=true)
-        vtcs = SVector{2}[getatom(mol, n).coords[1:2] for n in ring]
+        vtcs = [vec2d(coords[n, :]) for n in ring]
         cw = isclockwise(vtcs)
         if cw === nothing
             continue
@@ -71,9 +117,9 @@ function double_bond_along_ring!(mol::MolecularGraph)
         for i in 1: length(directed) - 1
             u = directed[i]
             v = directed[i + 1]
-            bond = getbond(mol, u, v)
-            if bond.order == 2
-                bond.notation = u > v ? 0 : 1
+            b = adj[u][v]
+            if order[b] == 2 && u < v
+                vec[b] = 1
             end
         end
     end
@@ -81,17 +127,7 @@ function double_bond_along_ring!(mol::MolecularGraph)
 end
 
 
-function coordsvector(mol::MolecularGraph)
-    atoms = atomvector(mol)
-    coords = zeros(Float32, length(atoms), 2)
-    for (i, atom) in enumerate(atoms)
-        coords[i, :] = atom.coords[1:2]
-    end
-    coords
-end
-
-
-function boundary(coords::Matrix{Float32})
+function boundary(coords)
     (left, right) = extrema(coords[:, 1])
     (bottom, top) = extrema(coords[:, 2])
     width = right - left
@@ -100,11 +136,11 @@ function boundary(coords::Matrix{Float32})
 end
 
 
-function sizeunit(mol::MolecularGraph, coords::Matrix{Float32})
+function sizeunit(mol::Molecule, coords)
     dists = []
-    for bond in bondvector(mol)
-        u = vec2d(coords[atompos(mol, bond.u), :])
-        v = vec2d(coords[atompos(mol, bond.v), :])
+    for bond in mol.graph.edges
+        u = vec2d(coords[bond.u, :])
+        v = vec2d(coords[bond.v, :])
         d = norm(v - u)
         if d > 0  # Remove overlapped
             push!(dists, d)
@@ -112,4 +148,35 @@ function sizeunit(mol::MolecularGraph, coords::Matrix{Float32})
     end
     # Median bond length
     isempty(dists) ? nothing : median(dists)
+end
+
+
+function chargesign(charge)
+    if charge == 0
+        return ""
+    end
+    sign = charge > 0 ? "+" : "–" # en dash, not hyphen-minus
+    num = abs(charge)
+    num > 1 ? string(num, sign) : sign
+end
+
+
+function atommarkup(symbol, charge, hcount, direction,
+                    substart, subend, supstart, supend)
+    if hcount == 1
+        hs = "H"
+    elseif hcount > 1
+        hs = string("H", substart, hcount, subend)
+    else
+        hs = ""
+    end
+    chg = charge == 0 ? "" : string(supstart, chargesign(charge), supend)
+    txt = direction == :left ? [chg, hs, symbol] : [symbol, hs, chg]
+    string(txt...)
+end
+
+
+function atomhtml(symbol, charge, hcount, direction)
+    atommarkup(symbol, charge, hcount, direction,
+               "<sub>", "</sub>", "<sup>", "</sup>")
 end

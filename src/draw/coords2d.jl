@@ -9,9 +9,9 @@ export
     cartesian
 
 
-function coords2d(mol::MolecularGraph, root::Integer)
-    required_descriptor(mol, :Valence)
-    required_descriptor(mol, :Topology)
+function coords2d(mol::Molecule, root)
+    required_annotation(mol, :Valence)
+    required_annotation(mol, :Topology)
     zmatrix = [
         -2 nothing nothing nothing nothing nothing nothing;
         -1 -2 1.0 nothing nothing nothing nothing;
@@ -21,8 +21,9 @@ function coords2d(mol::MolecularGraph, root::Integer)
     done = []
     pred = Dict(root => 0, 0 => -1, -1 => -2)
     ringmap = Dict(0 => Set(), -1 => Set(), -2 => Set())
-    merge!(ringmap, mol.descriptor[:Topology].cyclemap)
-    rings = mol.descriptor[:Topology].cycles
+    cyclemap = Dict(i => c for (i, c) in enumerate(mol.v[:Cycle]))
+    merge!(ringmap, cyclemap)
+    rings = mol.annotation[:Topology].cycles
     backtracked = false
     while length(stack) > 0
         c = pop!(stack)
@@ -67,24 +68,16 @@ function coords2d(mol::MolecularGraph, root::Integer)
         append!(stack, nextlevels)
         push!(done, c)
     end
-    zmatrix
+    coords3d = cartesian(zmatrix)
+    coords3d[:, 1:2]
 end
 
 coords2d(mol) = coords2d(mol, 1)
 
 
-function coords2d!(mol::MolecularGraph)
-    zmatrix = coords2d(mol)
-    coords3d = cartesian(zmatrix)
-    for (i, atom) in enumerate(atomvector(mol))
-        atom.coords = coords3d[i, :]
-    end
-end
-
-
-function cartesian(zmatrix::AbstractArray)
+function cartesian(zmatrix)
     zmatlen = size(zmatrix, 1)
-    coords = zeros(Float32, zmatlen, 3)
+    coords = zeros(Float64, zmatlen, 3)
     coords[1, :] = [0, 0, 0]
     coords[2, :] = [zmatrix[2, 3], 0, 0]
     ang0 = (1 - zmatrix[3, 5]) * pi

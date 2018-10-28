@@ -7,26 +7,28 @@ export
     smilestomol
 
 
-function smilestomol(smiles::AbstractString; precalc=true)
-    mol = MolecularGraph()
+function smilestomol(smiles; precalc=true)
+    mmol = MutableMolecule()
     tokens = tokenize(smiles)
     ringclose = Dict()
-    parsegroup!(mol, ringclose, tokens)
+    parsesmiles!(mmol, ringclose, tokens, 0) # Recursive
     # println(Int64[a.index for a in atomvector(mol)])
     # println(Tuple{Int64, Int64}[(b.u, b.v) for b in bondvector(mol)])
+    mol = Molecule(mmol)
+    mol.attribute[:sourcetype] = :smiles
     if precalc
-        assign_descriptors!(mol)
+        default_annotation!(mol)
     end
     mol
 end
 
 
-function tokenize(smiles::AbstractString)
+function tokenize(smiles)
     tokens = []
     i = 1
     while i != lastindex(smiles) + 1
         m = match(
-            r"^[\.\(\)]|^([=#:/\\]?(\[.+?\]|Br|Cl|[BCcNnOoPpSsFI])([=#:/\\]?[1-9])?)",
+            r"^[\.\(\)]|^([=#:/\\]?(\[.+?\]|Br|Cl|[BCcNnOoPpSsFI])([=#:/\\]?[1-9]+)*)",
             smiles[i:end]
         )
         if m === nothing
@@ -39,13 +41,13 @@ function tokenize(smiles::AbstractString)
 end
 
 
-function parsegroup!(mol, ringclose, tokens, base)
+function parsesmiles!(mol, ringclose, tokens, base)
     pos = base
     nobond = base == 0
     while length(tokens) > 0
         token = popfirst!(tokens)
         if token == "("
-            parsegroup!(mol, ringclose, tokens, pos)
+            parsesmiles!(mol, ringclose, tokens, pos)
             continue
         elseif token == ")"
             break
@@ -54,30 +56,34 @@ function parsegroup!(mol, ringclose, tokens, base)
             continue
         end
 
-        newpos = length(atomvector(mol)) + 1
+        newpos = length(mol.graph.nodes) + 1
         # Atom
         # println(objectid(mol), " ", pos, " ", newpos, " ", token)
-        (atok, btok, ringc) = parsetoken(token)
-        atom = Atom()
-        atom.index = newpos
-        parseatom!(atom, atok)
-        newatom!(mol, atom)
+        (atok, btok, ringc) = parsesmilestoken(token)
+        atom = smilesatom(parsesmilesatom(atok)...)
+        updateatom!(mol, atom, newpos)
 
         # Ring bond
         if ringc !== nothing
-            num = ringc[end]
-            bondtype = length(ringc) == 2 ? SubString(ringc, 1, 1) : nothing
-            if num in keys(ringclose)
-                (upos, ubd) = ringclose[num]
-                rbond = Bond()
-                rbond.u = upos
-                rbond.v = newpos
-                rtype = ubd === nothing ? bondtype : ubd
-                parsebond!(rbond, rtype)
-                updatebond!(mol, rbond)
-                delete!(ringclose, num)
-            else
-                ringclose[num] = (newpos, bondtype)
+            rtoks = []
+            i = 1
+            while i != lastindex(ringc) + 1
+                m = match(r"^[=#:/\\]?[1-9]", ringc[i:end])
+                i += length(m.match)
+                push!(rtoks, m.match)
+            end
+            for rtok in rtoks
+                num = rtok[end]
+                bondtype = length(rtok) == 2 ? SubString(rtok, 1, 1) : nothing
+                if num in keys(ringclose)
+                    (upos, ubd) = ringclose[num]
+                    rtype = ubd === nothing ? bondtype : ubd
+                    bond = smilesbond(upos, newpos, parsesmilesbond(rtype)...)
+                    updatebond!(mol, bond, length(mol.graph.edges) + 1)
+                    delete!(ringclose, num)
+                else
+                    ringclose[num] = (newpos, bondtype)
+                end
             end
         end
 
@@ -85,71 +91,65 @@ function parsegroup!(mol, ringclose, tokens, base)
         if nobond
             nobond = false
         else
-            bond = Bond()
-            bond.u = pos
-            bond.v = newpos
-            parsebond!(bond, btok)
-            updatebond!(mol, bond)
+            bond = smilesbond(pos, newpos, parsesmilesbond(btok)...)
+            updatebond!(mol, bond, length(mol.graph.edges) + 1)
         end
         pos = newpos
     end
     return
 end
 
-parsegroup!(mol, ringclose, tokens) = parsegroup!(mol, ringclose, tokens, 0)
 
-
-function parsetoken(token::AbstractString)
+function parsesmilestoken(token)
     m = match(
-        r"^([=#:/\\])?(\[.+?\]|Br|Cl|[BCcNnOoPpSsFI])([=#:/\\]?[1-9])?",
+        r"^([=#:/\\])?(\[.+?\]|Br|Cl|[BCcNnOoPpSsFI])([1-9=#:/\\]*)",
         token
     )
     bond = m.captures[1]
     atom = replace(m.captures[2], r"\[(.+?)\]" => s"\1")
-    ringc = m.captures[3]
+    ringc = m.captures[3] == "" ? nothing : m.captures[3]
     (atom, bond, ringc)
 end
 
 
-function parseatom!(atom::Atom, token::AbstractString)
+const SMILES_CHARGE_TABLE = Dict(
+    nothing => 0, "+" => 1, "++" => 2, "+++" => 3, "++++" => 4,
+    "-" => -1, "--" => -2, "---" => -3, "----" => -4,
+    "+" => 1, "+2" => 2, "+3" => 3, "+4" => 4,
+    "-" => -1, "-2" => -2, "-3" => -3, "-4" => -4
+)
+const SMILES_H_COUNT_TABLE = Dict(
+    nothing => 0, "H" => 1, "H2" => 2, "H3" => 3, "H4" => 4)
+
+const SMILES_STEREO_TABLE = Dict("" => 0, "@" => 1, "@@" => 2)
+
+
+function parsesmilesatom(token)
     m = match(
         r"^([0-9]*)([cnposA-Z][a-z]*)(@*)(H[2-4]?)?([\+\-]+[1-4]?)?",
         token
     )
-    atom.symbol = uppercasefirst(m.captures[2])
-    if islowercase(m.captures[2][1])
-        atom.smiles_aromatic = true
-    end
-    chgconv = Dict(
-        nothing => 0, "+" => 1, "++" => 2, "+++" => 3, "++++" => 4,
-        "-" => -1, "--" => -2, "---" => -3, "----" => -4,
-        "+" => 1, "+2" => 2, "+3" => 3, "+4" => 4,
-        "-" => -1, "-2" => -2, "-3" => -3, "-4" => -4
-    )
-    atom.charge = chgconv[m.captures[5]]
-    hcconv = Dict{Any, UInt8}(nothing => 0, "H" => 1, "H2" => 2, "H3" => 3, "H4" => 4)
-    sethydrogen!(atom, hcconv[m.captures[4]])
-    mass = m.captures[1]
-    atom.mass = mass == "" ? nothing : parse(UInt8, mass)
-    atom.smiles_stereo = m.captures[3]
-    # TODO: atom initialization
-    atom.visible = atom.symbol != "C" || atom.mass !== nothing
-    atom.Hacceptor = atom.symbol in ("N", "O", "F")
-    return
+    sym = Symbol(uppercasefirst(m.captures[2]))
+    charge = SMILES_CHARGE_TABLE[m.captures[5]]
+    multi = 1 # TODO: OpenBabel radical notation
+    mass = m.captures[1] == "" ? nothing : parse(UInt8, m.captures[1])
+    stereo = SMILES_STEREO_TABLE[m.captures[3]]
+    aromatic = islowercase(m.captures[2][1])
+    # h_count will be annotated later
+    # hcount = SMILES_H_COUNT_TABLE[m.captures[4]])
+    [sym, charge, multi, mass, aromatic, stereo]
 end
 
 
-function parsebond!(bond::Bond, token::Union{AbstractString, Nothing})
-    orderconv = Dict(
-        nothing => 1, "=" => 2, "#" => 3, ":" => 1, "/" => 1, "\\" => 1
-    )
-    bond.order = orderconv[token]
-    if token == ":"
-        bond.aromatic = true
-    elseif token == "/"
-        bond.smiles_cis_trans = 1
-    elseif token == "\\"
-        bond.smiles_cis_trans = 2
-    end
-    return
+const SMILES_ORDER_TABLE = Dict(
+    nothing => 1, "=" => 2, "#" => 3, ":" => 1, "/" => 1, "\\" => 1
+)
+const SMILES_CISTRANS_TABLE = Dict("/" => 1, "\\" => 2)
+
+
+function parsesmilesbond(token)
+    order = SMILES_ORDER_TABLE[token]
+    aromatic = token == ":"
+    cistrans = get(SMILES_CISTRANS_TABLE, token, 0)
+    [order, aromatic, cistrans]
 end
