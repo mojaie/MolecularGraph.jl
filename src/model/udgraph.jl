@@ -27,15 +27,22 @@ abstract type AbstractNode end
 abstract type AbstractEdge end
 abstract type AbstractUDGraph end
 
-mutable struct Node <: AbstractNode end
 
-
-mutable struct Edge <: AbstractEdge
-    u::Int
-    v::Int
+struct Node <: AbstractNode
+    attr::Dict
 end
 
-Edge(e::Edge, u, v) = Edge(u, v)
+Node() = Node(Dict())
+
+
+struct Edge <: AbstractEdge
+    u::Int
+    v::Int
+    attr::Dict
+end
+
+Edge(u, v) = Edge(u, v, Dict())
+Edge(e::Edge, u, v) = Edge(u, v, e.attr)
 
 
 struct MutableUDGraph{N<:AbstractNode,E<:AbstractEdge} <: AbstractUDGraph

@@ -44,7 +44,7 @@ end
     @test fedge.u == 1
     @test fedge.v == 2
     @test objectid(m.nodes[5]) == objectid(frozen.nodes[5])
-    @test objectid(m.edges[3]) != objectid(frozen.edges[3])
+    @test objectid(m.edges[3]) == objectid(frozen.edges[3])
 end
 
 end # graphmodel

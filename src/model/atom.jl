@@ -23,7 +23,7 @@ struct Atom <: AbstractNode
     symbol::Symbol
     charge::Int
     multiplicity::Int
-    mass::Union{Int, Nothing}
+    mass::Union{Float64, Nothing}
     sdf_coords::Union{SVector{3}, Nothing}
     smiles_aromatic::Union{Bool, Nothing}
     smiles_stereo::Union{Int, Nothing}
@@ -46,15 +46,15 @@ function smilesatom(symbol, charge, multi, mass, aromatic, stereo)
 end
 
 
-function atomnumber(atom::Atom)
-    PERIODIC_TABLE[string(atom.symbol)]["number"]
+atomnumber(symbol::Symbol) = PERIODIC_TABLE[string(symbol)]["number"]
+atomnumber(atom::Atom) = PERIODIC_TABLE[string(atom.symbol)]["number"]
+
+
+atomname(symbol::Symbol) = PERIODIC_TABLE[string(symbol)]["name"]
+atomname(atom::Atom) = PERIODIC_TABLE[string(atom.symbol)]["name"]
+
+
+function atomweight(atom::Atom)
+    stdweight = PERIODIC_TABLE[string(atom.symbol)]["std_weight"]
+    atom.mass === nothing ? stdweight : atom.mass
 end
-
-
-function atomname(atom::Atom)
-    PERIODIC_TABLE[string(atom.symbol)]["name"]
-end
-
-
-atomweight(atom::Atom) = PERIODIC_TABLE[string(atom.symbol)]["std_weight"]
-atomweight(sym::Symbol) = PERIODIC_TABLE[string(sym)]["std_weight"]

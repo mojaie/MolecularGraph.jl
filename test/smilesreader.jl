@@ -27,7 +27,7 @@ end
     @test br[1] == :Br
     iso = parsesmilesatom("14cH2")
     @test iso[1] == :C
-    @test iso[4] == 14
+    @test iso[4] == 14.0
     @test iso[5]
     zn = parsesmilesatom("Zn++")
     @test zn[1] == :Zn

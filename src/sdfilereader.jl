@@ -184,13 +184,13 @@ function sdfatomprops!(atoms, lines)
         count = parse(Int, line[7:9])
         for i in 0 : count - 1
             idx = parse(Int, line[8i + 11 : 8i + 13])
-            val = parse(Int, line[8i + 15 : 8i + 17])
+            val = line[8i + 15 : 8i + 17]
             if proptype == "CHG"
-                atoms[idx][2] = val
+                atoms[idx][2] = parse(Int, val)
             elseif proptype == "RAD"
-                atoms[idx][3] = val
+                atoms[idx][3] = parse(Int, val)
             elseif proptype == "ISO"
-                atoms[idx][4] = val
+                atoms[idx][4] = parse(Float64, val)
             end
         end
     end

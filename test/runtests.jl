@@ -23,9 +23,10 @@ end
 
 module MolecularModelTest
     using Test
+    using StaticArrays
     using GraphMol.GraphMolError
     using GraphMol.MolecularModel
-    # include("./model/atom.jl")
+    include("./model/atom.jl")
     include("./model/molgraph.jl")
 end
 

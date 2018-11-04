@@ -36,8 +36,6 @@ function intrinsic_annot!(mol::Molecule)
     mol.v[:Charge] = [atom.charge for atom in mol.graph.nodes]
     # Radical
     mol.v[:Multiplicity] = [atom.multiplicity for atom in mol.graph.nodes]
-    # Mass
-    mol.v[:Mass] = [atom.mass for atom in mol.graph.nodes]
     # Bond order
     mol.v[:BondOrder] = [bond.order for bond in mol.graph.edges]
     mol.annotation[:Intrinsic] = IntrinsicAnnot()
@@ -67,7 +65,7 @@ function valence_annot!(mol::Molecule)
     # Hydrogen bond acceptor count
     mol.v[:H_Acceptor] = h_acceptor.(mol.v[:Symbol], mol.v[:LonePair])
     # Molecular weight including neighbor hydrogens
-    mol.v[:MolWeight] = molweight.(mol.v[:Symbol], mol.v[:H_Count])
+    mol.v[:MolWeight] = molweight.(mol.graph.nodes, mol.v[:H_Count])
     mol.annotation[:Valence] = ValenceAnnot()
     return
 end
@@ -99,8 +97,8 @@ function h_acceptor(symbol, lonepair)
 end
 
 
-function molweight(symbol, h_count)
-    atomweight(symbol) + H_WEIGHT * h_count
+function molweight(atom, h_count)
+    atomweight(atom) + H_WEIGHT * h_count
 end
 
 

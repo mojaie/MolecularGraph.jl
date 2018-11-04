@@ -31,6 +31,11 @@
         @test vec == [2, 0, 0, 0]
     end
 
+    @testset "atomhtml" begin
+        @test atomhtml(:C, 0, 3, :right) == "CH<sub>3</sub>"
+        @test atomhtml(:N, 1, 4, :left) == "<sup>+</sup>H<sub>4</sub>N"
+    end
+
     @testset "draw2d" begin
         ASSET_DIR = joinpath(dirname(@__FILE__), "..", "..", "assets", "test")
         demomol = loadsdfmol(open(joinpath(ASSET_DIR, "demo.mol")))

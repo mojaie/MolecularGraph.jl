@@ -132,7 +132,7 @@ function parsesmilesatom(token)
     sym = Symbol(uppercasefirst(m.captures[2]))
     charge = SMILES_CHARGE_TABLE[m.captures[5]]
     multi = 1 # TODO: OpenBabel radical notation
-    mass = m.captures[1] == "" ? nothing : parse(UInt8, m.captures[1])
+    mass = m.captures[1] == "" ? nothing : parse(Float64, m.captures[1])
     stereo = SMILES_STEREO_TABLE[m.captures[3]]
     aromatic = islowercase(m.captures[2][1])
     # h_count will be annotated later
