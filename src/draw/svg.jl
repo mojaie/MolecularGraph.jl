@@ -12,10 +12,11 @@ export
     drawwedge!,
     drawdashedwedge!,
     drawwave!,
-    drawtext!,
-    drawrighttext!,
-    drawcentertext!,
-    drawlefttext!
+    drawsymbol!,
+    drawsymbolright!,
+    drawsymbolcenter!,
+    drawsymbolleft!,
+    drawtext!
 
 
 rgbf(c::Color) = @sprintf "rgb(%d, %d, %d)" c.r c.g c.b
@@ -201,8 +202,8 @@ function drawwave!(canvas, uv, color)
 end
 
 
-function drawtext!(canvas, pos, symbol, charge, hcount, color,
-                   direction, option, xoffset)
+function drawsymbol!(canvas, pos, symbol, charge, hcount, color,
+                     direction, option, xoffset)
     tpos = crdf.(pos + [xoffset, canvas.fontsize / 2])
     small = round(Int, canvas.fontsize * 0.7)
     atom = atomsvg(symbol, charge, hcount, direction, small)
@@ -213,21 +214,36 @@ function drawtext!(canvas, pos, symbol, charge, hcount, color,
     return
 end
 
-function drawrighttext!(canvas, pos, symbol, charge, hcount, color)
-    drawtext!(canvas, pos, symbol, charge, hcount, color,
-              :left, """ text-anchor="end" """, canvas.fontsize / 2)
+function drawsymbolright!(canvas, pos, symbol, charge, hcount, color)
+    drawsymbol!(canvas, pos, symbol, charge, hcount, color,
+                :left, """ text-anchor="end" """, canvas.fontsize / 2)
 end
 
-function drawcentertext!(canvas, pos, symbol, charge, hcount, color)
-    drawtext!(canvas, pos, symbol, charge, hcount, color,
-              :right, """ text-anchor="middle" """, 0)
+function drawsymbolcenter!(canvas, pos, symbol, charge, hcount, color)
+    drawsymbol!(canvas, pos, symbol, charge, hcount, color,
+                :right, """ text-anchor="middle" """, 0)
 end
 
-function drawlefttext!(canvas, pos, symbol, charge, hcount, color)
-    drawtext!(canvas, pos, symbol, charge, hcount, color,
-              :right, " ", canvas.fontsize / -2)
+function drawsymbolleft!(canvas, pos, symbol, charge, hcount, color)
+    drawsymbol!(canvas, pos, symbol, charge, hcount, color,
+                :right, " ", canvas.fontsize / -2)
 end
 
+
+function drawtext!(canvas, pos, text, fontsizef, color, bgcolor)
+    size = round(Int, canvas.fontsize * fontsizef)
+    rpos = crdf.(pos)
+    tpos = crdf.(pos + [0, size])
+    elem = """<g>
+        <rect x="$(rpos[1])" y="$(rpos[2])" width="$(size)" height="$(size)"
+         rx="$(size/2)" ry="$(size/2)" fill="$(rgbf(bgcolor))" />
+        <text x="$(tpos[1])" y="$(tpos[2])" font-size="$(size)"
+         fill="$(rgbf(color))">$(text)</text>
+    </g>
+    """
+    push!(canvas.elements, elem)
+    return
+end
 
 function atomsvg(symbol, charge, hcount, direction, small)
     atommarkup(

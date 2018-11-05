@@ -4,7 +4,8 @@
 #
 
 export
-    draw!
+    draw!,
+    drawatomindex!
 
 
 function singlebond!(canvas, uv, ucolor, vcolor)
@@ -138,14 +139,14 @@ function draw!(canvas::Canvas, mol::Molecule)
             end
             if isempty(cosnbrs) || minimum(cosnbrs) > 0
                 # [atom]< or isolated node(ex. H2O, HCl)
-                drawrighttext!(
+                drawsymbolright!(
                     canvas, pos, mol.v[:Symbol][i], mol.v[:Charge][i],
                     mol.v[:H_Count][i], mol.v[:AtomColor][i]
                 )
                 continue
             elseif maximum(cosnbrs) < 0
                 # >[atom]
-                drawlefttext!(
+                drawsymbolleft!(
                     canvas, pos, mol.v[:Symbol][i], mol.v[:Charge][i],
                     mol.v[:H_Count][i], mol.v[:AtomColor][i]
                 )
@@ -153,9 +154,18 @@ function draw!(canvas::Canvas, mol::Molecule)
             end
         end
         # -[atom]- or no hydrogens
-        drawcentertext!(
+        drawsymbolcenter!(
             canvas, pos, mol.v[:Symbol][i], mol.v[:Charge][i],
             mol.v[:H_Count][i], mol.v[:AtomColor][i]
         )
+    end
+end
+
+
+function drawatomindex!(canvas::Canvas, mol::Molecule)
+    for i in 1:atomcount(mol)
+        offset = mol.v[:AtomVisible][i] ? [0, canvas.fontsize / 2] : [0, 0]
+        pos = vec2d(canvas.coords[i, :]) + offset
+        drawtext!(canvas, pos, i, 0.7, Color(0, 0, 0), Color(240, 240, 255))
     end
 end
