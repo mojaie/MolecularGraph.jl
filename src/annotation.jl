@@ -4,21 +4,25 @@
 #
 
 export
-    default_annotation!
+    default_annotation!,
+    intrinsic_annot!,
+    valence_annot!,
+    atom_annot!,
+    group_annot!,
+    rotatable!,
+    aromatic!
 
 
 struct IntrinsicAnnot <: Annotation end
 struct ValenceAnnot <: Annotation end
+struct AtomAnnot <: Annotation end
+struct GroupAnnot <: Annotation end
 
 
 function default_annotation!(mol::Molecule)
     molgraph_topology!(mol)
     intrinsic_annot!(mol)
     valence_annot!(mol)
-    group_annot!(mol)
-    rotatable!(mol)
-    aromatic!(mol)
-    # TODO: standardize chirality flag
     return
 end
 
@@ -102,33 +106,136 @@ function molweight(atom, h_count)
 end
 
 
-function group_annot!(mol)
+function atom_annot!(mol)
     required_annotation(mol, :Valence)
-    mol.v[:Carbonyl] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
-    carbonylO = Vector{Bool}(
-        (mol.v[:Symbol] .== :O)
-        .* (mol.v[:NumBonds] .== 1)
-        .* (mol.v[:Valence] .== 2)
-    )
-    for nbrs in mol.graph.adjacency[carbonylO]
+
+    # Oxygen type
+    # 0:atom, 1:hydroxyl, 2:ether, 3:oxonium,
+    # 4:oxo, 5:oxocarbenium
+    mol.v[:Oxygen] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
+    for i in 1:atomcount(mol)
+        if mol.v[:Symbol][i] != :O
+            continue
+        end
+        if mol.v[:Pi][i] == 1
+            mol.v[:Oxygen][i] = mol.v[:NumBonds][i] + 3
+        else
+            mol.v[:Oxygen][i] = mol.v[:NumBonds][i]
+        end
+    end
+
+    # Nitrogen type
+    # 0:atom, 1:primary amine, 2:sec, 3:tert, 4:quart(ammonium),
+    # 5:primary imine, 6:sec, 7:iminium, 8:nitrile
+    mol.v[:Nitrogen] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
+    for i in 1:atomcount(mol)
+        if mol.v[:Symbol][i] != :N
+            continue
+        end
+        if mol.v[:Pi][i] == 2
+            mol.v[:Nitrogen][i] = 8
+        elseif mol.v[:Pi][i] == 1
+            mol.v[:Nitrogen][i] = mol.v[:NumBonds][i] + 4
+        else
+            mol.v[:Nitrogen][i] = mol.v[:NumBonds][i]
+        end
+    end
+
+    # Sulfer type
+    # 0:atom, 1:thiol, 2:sulfide, 3:sulfonium,
+    # 4:thio, 5:thiocarbenium, 6:higher valent
+    mol.v[:Sulfur] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
+    for i in 1:atomcount(mol)
+        if mol.v[:Symbol][i] != :N
+            continue
+        end
+        if mol.v[:Valence][i] > 3
+            mol.v[:Sulfur][i] = 6
+        elseif mol.v[:Pi][i] == 1
+            mol.v[:Sulfur][i] = mol.v[:NumBonds][i] + 4
+        else
+            mol.v[:Sulfur][i] = mol.v[:NumBonds][i]
+        end
+    end
+
+    mol.annotation[:AtomType] = AtomAnnot()
+end
+
+
+function group_annot!(mol)
+    required_annotation(mol, :AtomType)
+
+    # Alchohol
+    # 0: methanol, 1: primary, 2: sec, 3:tert, 4: vinyl
+    mol.v[:Alcohol] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
+    for nbrs in mol.graph.adjacency[mol.v[:Oxygen] .== 1]
         n = collect(keys(nbrs))[1]
-        if mol.v[:Symbol][n] == :C
+        if mol.v[:Symbol][n] != :C
+            continue
+        elseif mol.v[:Pi][n] == 1
+            mol.v[:Alcohol][i] = 4
+        else
+            mol.v[:Alcohol][n] = mol.v[:NumBonds][n] - 1
+        end
+    end
+
+    # Thiol
+    # 0: methanethiol, 1: primary, 2: sec, 3:tert, 4: vinyl
+    mol.v[:Thiol] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
+    for nbrs in mol.graph.adjacency[mol.v[:Sulfur] .== 1]
+        n = collect(keys(nbrs))[1]
+        if mol.v[:Symbol][n] != :C
+            continue
+        elseif mol.v[:Pi][n] == 1
+            mol.v[:Thiol][i] = 4
+        else
+            mol.v[:Thiol][n] = mol.v[:NumBonds][n] - 1
+        end
+    end
+
+    # Carbonyl
+    # 0:formaldehyde, 1: aldehyde, 2: ketone
+    mol.v[:Carbonyl] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
+    for nbrs in mol.graph.adjacency[mol.v[:Oxygen] .== 4]
+        n = collect(keys(nbrs))[1]
+        if mol.v[:Symbol][n] != :C
+            continue
+        else
             mol.v[:Carbonyl][n] = mol.v[:NumBonds][n] - 1
         end
     end
-    # TODO: fragments
-    # mol.annotmap[:F_Alcohol] C-O
-    # mol.annotmap[:F_Thiol] C-S
-    # search NumBond=1 O, pi=0
-    # neighbor[1]=C C.nbr=2->primary  3->sec  4->tert
 
-    # mol.annotmap[:F_Amine] N
-    # search pi=0 N
-    # NumBond=1->primary  2->sec  3->tert 4->quart
+    # Imine
+    # 0:methaneimine, 1:aldimine, 2:ketimine
+    mol.v[:Imine] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
+    for nbrs in mol.graph.adjacency[mol.v[:Nitrogen] .== 5]
+        n = [i for (i, b) in nbrs if mol.v[:BondOrder][b] == 2][1]
+        if mol.v[:Symbol][n] != :C
+            continue
+        else
+            mol.v[:Imine][n] = mol.v[:NumBonds][n] - 1
+        end
+    end
+
+    # Sulfoxide
+    # 1:Sulfoxide 2:Sulfone
+    mol.v[:Sulfoxide] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
+    for nbrs in mol.graph.adjacency[mol.v[:Oxygen] .== 4]
+        n = collect(keys(nbrs))[1]
+        if mol.v[:Symbol][n] != :S
+            continue
+        else
+            mol.v[:Sulfoxide][n] = mol.v[:Sulfoxide][n] === nothing ? 1 : 2
+        end
+    end
+
+    mol.annotation[:AtomGroup] = GroupAnnot()
 end
 
 
 function rotatable!(mol)
+    required_annotation(mol, :Topology)
+    required_annotation(mol, :Valence)
     pred = (i, b) -> (
         mol.v[:BondOrder][i] == 1
         && mol.v[:NumBonds][b.u] != 1
@@ -141,6 +248,8 @@ end
 
 
 function aromatic!(mol)
+    required_annotation(mol, :Topology)
+    required_annotation(mol, :AtomGroup)
     mol.v[:Aromatic] = falses(atomcount(mol))
     for ring in mol.annotation[:Topology].cycles
         if satisfyHuckel(mol, ring)
