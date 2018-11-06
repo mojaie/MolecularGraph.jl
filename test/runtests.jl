@@ -8,7 +8,7 @@ module GeometryTest
     using LinearAlgebra
     using StaticArrays
     using GraphMol.Geometry
-    using GraphMol.GraphMolError
+    using GraphMol.Error
     include("geometry.jl")
 end
 
@@ -16,7 +16,7 @@ end
 module GraphModelTest
     using Test
     using GraphMol.GraphModel
-    using GraphMol.GraphMolError
+    using GraphMol.Error
     include("./model/udgraph.jl")
 end
 
@@ -24,7 +24,7 @@ end
 module MolecularModelTest
     using Test
     using StaticArrays
-    using GraphMol.GraphMolError
+    using GraphMol.Error
     using GraphMol.MolecularModel
     include("./model/atom.jl")
     include("./model/molgraph.jl")
@@ -33,11 +33,8 @@ end
 
 module GraphMolIOTest
     using Test
-    using GraphMol.GraphMolError
+    using GraphMol.Error
     using GraphMol.GraphMolIO
-    using GraphMol.GraphMolIO: parsesdfatom, parsesdfbond, parsesdfmol
-    using GraphMol.GraphMolIO: tokenize, parsesmiles!, parsesmilestoken,
-                               parsesmilesatom, parsesmilesbond
     using GraphMol.MolecularModel
     include("sdfilereader.jl")
     include("smilesreader.jl")
@@ -48,7 +45,7 @@ module BaseAnnotationTest
     using Test
     using GraphMol.BaseAnnotation
     using GraphMol.BaseAnnotation: resolve_inclusion, canonicalize_cycle
-    using GraphMol.GraphMolError
+    using GraphMol.Error
     using GraphMol.GraphMolIO
     using GraphMol.MolecularModel
     include("topology.jl")

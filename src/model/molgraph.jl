@@ -35,6 +35,17 @@ struct MutableMolecule <: AbstractMolecule
     end
 end
 
+function MutableMolecule(nodes::Vector{Atom}, edges::Vector{Bond})
+    mol = MutableMolecule()
+    for (i, a) in enumerate(nodes)
+        updateatom!(mol, a, i)
+    end
+    for (i, b) in enumerate(edges)
+        updatebond!(mol, b, i)
+    end
+    mol
+end
+
 
 struct Molecule <: AbstractMolecule
     graph::UDGraph{Atom,Bond}

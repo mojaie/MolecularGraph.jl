@@ -4,22 +4,32 @@
 #
 
 export
-    smilestomol
+    smilestomol,
+    parsesmiles,
+    tokenize,
+    parsesmilesgroup!,
+    parsesmilestoken,
+    parsesmilesatom,
+    parsesmilesbond
 
 
-function smilestomol(smiles; precalc=true)
+
+
+
+function smilestomol(smiles)
+    mol = parsesmiles(smiles, mutable=false)
+    default_annotation!(mol)
+    mol
+end
+
+
+function parsesmiles(smiles; mutable=false)
     mmol = MutableMolecule()
     tokens = tokenize(smiles)
     ringclose = Dict()
-    parsesmiles!(mmol, ringclose, tokens, 0) # Recursive
-    # println(Int64[a.index for a in atomvector(mol)])
-    # println(Tuple{Int64, Int64}[(b.u, b.v) for b in bondvector(mol)])
-    mol = Molecule(mmol)
-    mol.attribute[:sourcetype] = :smiles
-    if precalc
-        default_annotation!(mol)
-    end
-    mol
+    parsesmilesgroup!(mmol, ringclose, tokens, 0) # Recursive
+    mmol.attribute[:sourcetype] = :smiles
+    mutable ? mmol : Molecule(mmol)
 end
 
 
@@ -41,13 +51,13 @@ function tokenize(smiles)
 end
 
 
-function parsesmiles!(mol, ringclose, tokens, base)
+function parsesmilesgroup!(mol, ringclose, tokens, base)
     pos = base
     nobond = base == 0
     while length(tokens) > 0
         token = popfirst!(tokens)
         if token == "("
-            parsesmiles!(mol, ringclose, tokens, pos)
+            parsesmilesgroup!(mol, ringclose, tokens, pos)
             continue
         elseif token == ")"
             break

@@ -32,7 +32,7 @@ end
 
 function sdfatom(symbol, charge, multi, mass, coords)
     if !(string(symbol) in keys(PERIODIC_TABLE))
-        throw(AnnotationError("Atom '$(symbol)' not supported"))
+        throw(IOError("unsupported symbol: $(symbol)"))
     end
     Atom(symbol, charge, multi, mass, coords, nothing, nothing)
 end
@@ -40,7 +40,7 @@ end
 
 function smilesatom(symbol, charge, multi, mass, aromatic, stereo)
     if !(string(symbol) in keys(PERIODIC_TABLE))
-        throw(AnnotationError("Atom '$(symbol)' not supported"))
+        throw(IOError("unsupported symbol: $(symbol)"))
     end
     Atom(symbol, charge, multi, mass, nothing, aromatic, stereo)
 end

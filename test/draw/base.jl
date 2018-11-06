@@ -38,7 +38,7 @@
 
     @testset "draw2d" begin
         ASSET_DIR = joinpath(dirname(@__FILE__), "..", "..", "assets", "test")
-        demomol = loadsdfmol(open(joinpath(ASSET_DIR, "demo.mol")))
+        demomol = sdftomol(open(joinpath(ASSET_DIR, "demo.mol")))
         draw2d_annot!(demomol)
         @test count(demomol.v[:AtomVisible]) == 15
         @test count(demomol.v[:BondNotation] .== 2) == 2

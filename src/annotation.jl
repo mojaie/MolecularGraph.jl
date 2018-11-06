@@ -27,12 +27,6 @@ function default_annotation!(mol::Molecule)
 end
 
 
-function remove_hydrogen(mol::MutableMolecule)
-    # TODO: ignore hydrogen
-    # TODO: stash stereo hydrogen (annotation :SDF_Stereo_Hydrogen)
-end
-
-
 function intrinsic_annot!(mol::Molecule)
     # Symbol
     mol.v[:Symbol] = [atom.symbol for atom in mol.graph.nodes]

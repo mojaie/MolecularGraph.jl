@@ -3,86 +3,91 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export loadsdfiter, loadsdfmol
+export
+    sdftomol,
+    sdfilereader,
+    sdfbatchsupplier,
+    nohaltsupplier,
+    parsesdf,
+    parsesdfblocks,
+    parsesdfmol,
+    parsesdfatom,
+    parsesdfbond,
+    sdfatomprops!,
+    parsesdfoptions
 
 
-function loadsdfiter(file::IO; nohalt=true, precalc=true)
-    loadsdfiter(eachline(file), nohalt=false, precalc=precalc)
+function sdftomol(lines)
+    mol = parsesdf(lines, mutable=false)
+    default_annotation!(mol)
+    mol
+end
+
+sdftomol(file::IO) = sdftomol(eachline(file))
+
+
+function sdfilereader(lines)
+    sdfbatchsupplier(nohaltsupplier, sdftomol, lines)
+end
+
+sdfilereader(file::IO) = sdfilereader(eachline(file))
+
+
+function sdfbatchsupplier(supplier, sdfparser, lines)
+    # TODO: Return value of sdfparser should be Molecule (not MutableMolecule)
+    Channel(ctype=Molecule, csize=0) do channel
+        for (i, block) in enumerate(parsesdfblocks(lines))
+            put!(channel, supplier(sdfparser, block, i))
+        end
+    end
 end
 
 
-function loadsdfiter(data; nohalt=true, precalc=true)
-    parseblock(data, false, precalc)
+function nohaltsupplier(sdfparser, block, i)
+    try
+        sdfparser(block)
+    catch e
+        if e isa GraphMolError
+            println("$(e.msg) (#$(i) in sdfilereader)")
+            sdfparser(nullmol())
+        else
+            throw(e)
+        end
+    end
 end
 
 
-function loadsdfmol(file::IO; precalc=true)
-    loadsdfmol(eachline(file), precalc=precalc)
+function parsesdf(lines; mutable=false)
+    lines = collect(lines)
+    molend = findnext(x -> x == "M  END", lines, 1)
+    mollines = view(lines, 1:(molend - 1))
+    optlines = view(lines, (molend + 1):lastindex(lines))
+    molobj = parsesdfmol(mollines, mutable)
+    molobj.attribute[:sourcetype] = :sdfile
+    merge!(molobj.attribute, parsesdfoptions(optlines))
+    molobj
 end
 
 
-function loadsdfmol(data; precalc=true)
-    moliter = loadsdfiter(data, nohalt=false, precalc=precalc)
-    iterate(moliter)[1]
-end
-
-
-function parseblock(lines, nohalt, precalc)
-    sdfblock = Channel(ctype=Tuple, csize=0) do channel::Channel{Tuple}
-        mol = String[]
-        opt = String[]
-        ismol = true
+function parsesdfblocks(lines)
+    Channel(ctype=Vector{String}, csize=0) do channel
+        sdfblock = []
         for line in lines
             if startswith(line, raw"$$$$")
-                put!(channel, (copy(mol), copy(opt)))
-                ismol = true
-                empty!(mol)
-                empty!(opt)
-            elseif startswith(line, "M  END")
-                ismol = false
-            elseif ismol
-                push!(mol, rstrip(line))
+                put!(channel, sdfblock)
+                empty!(sdfblock)
             else
-                push!(opt, rstrip(line))
+                push!(sdfblock, rstrip(line))
             end
         end
-        if !isempty(mol)
-            put!(channel, (mol, opt))
-        end
-    end
-
-    Channel(ctype=Molecule, csize=0) do channel::Channel{Molecule}
-        for (i, (mol, opt)) in enumerate(sdfblock)
-            molobj = try
-                m = parsesdfmol(mol)
-                if precalc
-                    default_annotation!(m)
-                end
-                m
-            catch e
-                if !nohalt
-                    # TODO: stacktrace
-                    throw(e)
-                elseif isa(e, AnnotationError)
-                    print("Unsupported symbol: $(e) (#$(i+1) in sdfilereader)")
-                    m = nullmol(precalc)
-                elseif isa(e, OperationError)
-                    print("Failed to minimize ring: $(e) (#$(i+1) in sdfilereader)")
-                else
-                    print("Unexpected error: (#$(i+1) in sdfilereader)")
-                    m = nullmol(precalc)
-                end
-                m
-            end
-            molobj.attribute[:sourcetype] = :sdfile
-            merge!(molobj.attribute, parsesdfoptions(opt))
-            put!(channel, molobj)
+        if !isempty(sdfblock)
+            put!(channel, sdfblock)
         end
     end
 end
 
 
-function parsesdfmol(lines)
+function parsesdfmol(lines, mutable)
     countline = lines[4]
     atomcount = parse(UInt16, countline[1:3])
     bondcount = parse(UInt16, countline[4:6])
@@ -96,7 +101,7 @@ function parsesdfmol(lines)
     sdfatomprops!(atoms, propblock)
     aobjs = [sdfatom(atom...) for atom in atoms]
     bobjs = [sdfbond(bond...) for bond in bonds]
-    Molecule(aobjs, bobjs)
+    mutable ? MutableMolecule(aobjs, bobjs) : Molecule(aobjs, bobjs)
 end
 
 

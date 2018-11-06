@@ -4,21 +4,29 @@
 #
 
 export
+    GraphMolError,
+    IOError,
     AnnotationError,
     OperationError
 
 import Base: showerror
 
 
-struct AnnotationError <: Exception
+abstract type GraphMolError <: Exception end
+
+
+struct IOError <: GraphMolError
     msg::String
 end
 
-showerror(io::IO, e::AnnotationError) = print(io, e.msg)
 
-
-struct OperationError <: Exception
+struct AnnotationError <: GraphMolError
     msg::String
 end
 
-showerror(io::IO, e::OperationError) = print(io, e.msg)
+
+struct OperationError <: GraphMolError
+    msg::String
+end
+
+showerror(io::IO, e::GraphMolError) = print(io, e.msg)

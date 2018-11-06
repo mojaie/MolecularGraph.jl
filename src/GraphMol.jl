@@ -6,14 +6,14 @@
 module GraphMol
 
     export
-        GraphMolError,
+        Error,
         Geometry,
         GraphModel,
         MolecularModel,
         Descriptor,
         GraphMolIO
 
-    module GraphMolError
+    module Error
         include("exception.jl")
     end
 
@@ -25,7 +25,7 @@ module GraphMol
 
     module GraphModel
         using StaticArrays
-        using ..GraphMolError
+        using ..Error
         include("./model/udgraph.jl")
     end
 
@@ -59,7 +59,7 @@ module GraphMol
 
     module GraphMolIO
         using StaticArrays
-        using ..GraphMolError
+        using ..Error
         using ..MolecularModel
         using ..BaseAnnotation
         include("download.jl")
