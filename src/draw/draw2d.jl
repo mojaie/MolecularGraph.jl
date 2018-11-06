@@ -4,7 +4,7 @@
 #
 
 export
-    draw!,
+    draw2d!,
     drawatomindex!
 
 
@@ -98,11 +98,11 @@ BOND_DRAWER = Dict(
 )
 
 
-function draw!(canvas::Canvas, mol::Molecule)
-    if atomcount(mol) == 0
+function draw2d!(canvas::Canvas, mol::Molecule)
+    initcanvas!(canvas, mol)
+    if !canvas.valid
         return
     end
-    initialize!(canvas, mol)
     coords = canvas.coords
 
     """ Draw bonds """

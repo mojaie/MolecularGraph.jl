@@ -17,7 +17,7 @@ end
 @testset "isclockwise" begin
     @test isclockwise(SVector{2}[[0, 1], [1, 0], [0, -1], [-1, 0]])
     @test !isclockwise(SVector{2}[[0, 1], [-1, 0], [0, -1], [1, 0]])
-    @test isnan(isclockwise(SVector{2}[[1, 1], [1, -1], [-1, 1], [-1, -1]]))
+    @test isclockwise(SVector{2}[[1, 1], [1, -1], [-1, 1], [-1, -1]]) === nothing
     @test isclockwise(SVector{2}[
         [-1, 1], [1, 1], [1, 2], [2, 2], [2, -2], [-2, -2], [-2, 2], [-1, 2]
     ])

@@ -117,7 +117,7 @@ function isclockwise(vertices)
     elseif round(counter / pi) == vlen - 2
         false
     else
-        NaN
+        nothing
     end
 end
 

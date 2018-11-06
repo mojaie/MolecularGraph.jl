@@ -2,4 +2,5 @@
 .ipynb_checkpoints
 
 notebook/*.jl
+notebook/*.py
 _resources

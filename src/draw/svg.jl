@@ -7,7 +7,7 @@ export
     SvgCanvas,
     tosvg,
     drawsvg!,
-    initialize!,
+    initcanvas!,
     drawline!,
     drawwedge!,
     drawdashedwedge!,
@@ -44,6 +44,7 @@ mutable struct SvgCanvas <: Canvas
     viewboxH::Float64
 
     elements::Vector{String}
+    valid::Bool
 
     function SvgCanvas()
         canvas = new()
@@ -63,6 +64,7 @@ mutable struct SvgCanvas <: Canvas
         canvas.paddingY = 30.0
 
         canvas.elements = []
+        canvas.valid = false
         canvas
     end
 end
@@ -92,19 +94,23 @@ end
 function drawsvg!(mol::Molecule, width, height)
     draw2d_annot!(mol)
     canvas = SvgCanvas()
-    draw!(canvas, mol)
+    draw2d!(canvas, mol)
     tosvg(canvas, width, height)
 end
 
 
-function initialize!(canvas::Canvas, mol::Molecule)
+function initcanvas!(canvas::Canvas, mol::Molecule)
+    if atomcount(mol) == 0
+        return
+    end
     coords = mol.v[:Coords2D]
-    (top, left, width, height) = boundary(coords)
-    sf = canvas.scalef / sizeunit(mol, coords)
+    (top, left, width, height, unit) = boundary(mol, coords)
+    sf = canvas.scalef / unit
     coords = (coords .- [left top]) .* [1 -1] .* sf
     canvas.coords = coords .+ [canvas.paddingX canvas.paddingY]
     canvas.viewboxW = width * sf + canvas.paddingX * 2
     canvas.viewboxH = height * sf + canvas.paddingY * 2
+    canvas.valid = true
     return
 end
 

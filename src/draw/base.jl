@@ -13,8 +13,7 @@ export
     bondnotation,
     terminal_double_bond!,
     double_bond_along_ring!,
-    booundary,
-    sizeunit,
+    boundary,
     chargesign,
     atommarkup,
     atomhtml
@@ -127,27 +126,33 @@ function double_bond_along_ring!(vec, adj, rings, coords, order)
 end
 
 
-function boundary(coords)
+function boundary(mol::Molecule, coords)
     (left, right) = extrema(coords[:, 1])
     (bottom, top) = extrema(coords[:, 2])
     width = right - left
     height = top - bottom
-    (top, left, width, height)
-end
-
-
-function sizeunit(mol::Molecule, coords)
     dists = []
+    # Size unit
     for bond in mol.graph.edges
         u = vec2d(coords[bond.u, :])
         v = vec2d(coords[bond.v, :])
         d = norm(v - u)
-        if d > 0  # Remove overlapped
+        if d > 0.0001  # Remove overlapped
             push!(dists, d)
         end
     end
-    # Median bond length
-    isempty(dists) ? nothing : median(dists)
+    if isempty(dists)
+        long = max(width, height)
+        if long > 0.0001
+            unit = long / sqrt(atomcount(mol))
+        else
+            unit = 1
+        end
+    else
+        unit = median(dists) # Median bond length
+    end
+
+    (top, left, width, height, unit)
 end
 
 
