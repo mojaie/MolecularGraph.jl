@@ -3,6 +3,8 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# TODO: re-design annotation
+
 export
     default_annotation!,
     intrinsic_annot!,

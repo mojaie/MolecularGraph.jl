@@ -8,10 +8,7 @@ module GraphMol
     export
         Error,
         Geometry,
-        GraphModel,
-        MolecularModel,
-        Descriptor,
-        GraphMolIO
+        GraphModel
 
     module Error
         include("exception.jl")
@@ -29,42 +26,29 @@ module GraphMol
         include("./model/udgraph.jl")
     end
 
-    module MolecularModel
-        using StaticArrays
-        using YAML
-        using ..GraphModel
-        include("./model/atom.jl")
-        include("./model/bond.jl")
-        include("./model/molgraph.jl")
-    end
+    using LinearAlgebra
+    using Printf
+    using StaticArrays
+    using Statistics
+    using YAML
+    using ..Error
+    using ..GraphModel
+    using ..Geometry
 
-    module Drawing
-        using LinearAlgebra
-        using Printf
-        using StaticArrays
-        using Statistics
-        using ..MolecularModel
-        using ..Geometry
-        include("./draw/base.jl")
-        include("./draw/coords2d.jl")
-        include("./draw/draw2d.jl")
-        include("./draw/svg.jl")
-    end
+    include("./model/atom.jl")
+    include("./model/bond.jl")
+    include("./model/molgraph.jl")
 
-    module BaseAnnotation
-        using ...MolecularModel
-        include("topology.jl")
-        include("annotation.jl")
-    end
+    include("topology.jl")
+    include("annotation.jl")
 
-    module GraphMolIO
-        using StaticArrays
-        using ..Error
-        using ..MolecularModel
-        using ..BaseAnnotation
-        include("download.jl")
-        include("sdfilereader.jl")
-        include("smilesreader.jl")
-    end
+    include("./draw/base.jl")
+    include("./draw/coords2d.jl")
+    include("./draw/draw2d.jl")
+    include("./draw/svg.jl")
+
+    include("download.jl")
+    include("sdfilereader.jl")
+    include("smilesreader.jl")
 
 end

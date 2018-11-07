@@ -21,44 +21,24 @@ module GraphModelTest
 end
 
 
-module MolecularModelTest
+module GraphMolTest
     using Test
     using StaticArrays
+    using GraphMol
     using GraphMol.Error
-    using GraphMol.MolecularModel
+    using GraphMol: resolve_inclusion, canonicalize_cycle
+
     include("./model/atom.jl")
     include("./model/molgraph.jl")
-end
 
-
-module GraphMolIOTest
-    using Test
-    using GraphMol.Error
-    using GraphMol.GraphMolIO
-    using GraphMol.MolecularModel
-    include("sdfilereader.jl")
-    include("smilesreader.jl")
-end
-
-
-module BaseAnnotationTest
-    using Test
-    using GraphMol.BaseAnnotation
-    using GraphMol.BaseAnnotation: resolve_inclusion, canonicalize_cycle
-    using GraphMol.Error
-    using GraphMol.GraphMolIO
-    using GraphMol.MolecularModel
     include("topology.jl")
     include("annotation.jl")
-end
 
-
-module DrawingTest
-    using Test
-    using GraphMol.GraphMolIO
-    using GraphMol.MolecularModel
-    using GraphMol.Drawing
     include("./draw/base.jl")
     # include("./draw/coords2d.jl")
     # include("./draw/svg.jl")
+
+    include("sdfilereader.jl")
+    include("smilesreader.jl")
+
 end

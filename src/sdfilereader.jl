@@ -35,7 +35,7 @@ sdfilereader(file::IO) = sdfilereader(eachline(file))
 
 function sdfbatchsupplier(supplier, sdfparser, lines)
     # TODO: Return value of sdfparser should be Molecule (not MutableMolecule)
-    Channel(ctype=Molecule, csize=0) do channel
+    Channel() do channel
         for (i, block) in enumerate(parsesdfblocks(lines))
             put!(channel, supplier(sdfparser, block, i))
         end
@@ -70,7 +70,7 @@ end
 
 
 function parsesdfblocks(lines)
-    Channel(ctype=Vector{String}, csize=0) do channel
+    Channel() do channel
         sdfblock = []
         for line in lines
             if startswith(line, raw"$$$$")

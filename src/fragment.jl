@@ -3,6 +3,9 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+# TODO: deprecated
+
 export
     default_annot!
 
@@ -59,5 +62,5 @@ function fragment_annot!(mol)
         end
     end
 
-    
+
 end
