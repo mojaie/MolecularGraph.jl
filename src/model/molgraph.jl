@@ -19,7 +19,7 @@ export
     updatebond!,
     required_annotation
 
-import ..GraphModel: neighbors, neighborcount
+import ..Graph: neighbors, neighborcount
 
 
 abstract type AbstractMolecule end
@@ -76,6 +76,7 @@ nullmol() = Molecule(Vector{Atom}[], Vector{Bond}[])
 getatom(mol::AbstractMolecule, idx) = getnode(mol.graph, idx)
 
 getbond(mol::AbstractMolecule, u, v) = getedge(mol.graph, u, v)
+getbond(mol::AbstractMolecule, idx) = getedge(mol.graph, idx)
 
 neighbors(mol::AbstractMolecule, idx) = neighbors(mol.graph, idx)
 

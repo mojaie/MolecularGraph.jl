@@ -8,7 +8,7 @@ module GraphMol
     export
         Error,
         Geometry,
-        GraphModel
+        Graph
 
     module Error
         include("exception.jl")
@@ -20,10 +20,12 @@ module GraphMol
         include("geometry.jl")
     end
 
-    module GraphModel
+    module Graph
         using StaticArrays
         using ..Error
-        include("./model/udgraph.jl")
+        include("./graph/udgraph.jl")
+        include("./graph/isomorphism.jl")
+        include("./graph/translate.jl")
     end
 
     using LinearAlgebra
@@ -32,8 +34,8 @@ module GraphMol
     using Statistics
     using YAML
     using ..Error
-    using ..GraphModel
     using ..Geometry
+    using ..Graph
 
     include("./model/atom.jl")
     include("./model/bond.jl")
@@ -41,6 +43,7 @@ module GraphMol
 
     include("topology.jl")
     include("annotation.jl")
+    include("substructure.jl")
 
     include("./draw/base.jl")
     include("./draw/coords2d.jl")

@@ -13,11 +13,13 @@ module GeometryTest
 end
 
 
-module GraphModelTest
+module GraphTest
     using Test
-    using GraphMol.GraphModel
+    using GraphMol.Graph
     using GraphMol.Error
-    include("./model/udgraph.jl")
+    include("./graph/udgraph.jl")
+    include("./graph/isomorphism.jl")
+    include("./graph/translate.jl")
 end
 
 
@@ -37,6 +39,8 @@ module GraphMolTest
     include("./draw/base.jl")
     # include("./draw/coords2d.jl")
     # include("./draw/svg.jl")
+
+    include("substructure.jl")
 
     include("sdfilereader.jl")
     include("smilesreader.jl")

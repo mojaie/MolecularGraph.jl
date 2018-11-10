@@ -69,7 +69,7 @@ function draw2d_annot!(mol::Molecule, setting)
     return
 end
 
-draw2d_annot!(mol::Molecule) = draw2d_annot!(mol, DRAW_SETTING)
+draw2d_annot!(mol::Molecule) = draw2d_annot!(mol, copy(DRAW_SETTING))
 
 
 function atomcolor(setting)

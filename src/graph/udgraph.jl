@@ -13,10 +13,16 @@ export
     MutableUDGraph,
     getnode,
     getedge,
+    nodekeys,
     neighbors,
+    neighborkeys,
+    neighbornodes,
+    neighboredgekeys,
+    neighboredges,
     nodecount,
     edgecount,
     neighborcount,
+    degree,
     updatenode!,
     updateedge!,
     unlinknode!,
@@ -122,12 +128,28 @@ getnode(graph::AbstractUDGraph, idx) = graph.nodes[idx]
 getedge(graph::AbstractUDGraph, idx) = graph.edges[idx]
 getedge(graph::AbstractUDGraph, u, v) = getedge(graph, graph.adjacency[u][v])
 
+
+nodekeys(graph::UDGraph) = Set(1:nodecount(graph))
+nodekeys(graph::MutableUDGraph) = Set(keys(graph.nodes))
+
+
 neighbors(graph::AbstractUDGraph, idx) = graph.adjacency[idx]
 
+neighborkeys(graph, idx) = collect(keys(graph.adjacency[idx]))
+
+neighbornodes(graph, idx) = getnode.((graph,), keys(graph.adjacency[idx]))
+
+neighboredgekeys(graph, idx) = collect(values(graph.adjacency[idx]))
+
+neighboredges(graph, idx) = getedge.((graph,), values(graph.adjacency[idx]))
+
+
 nodecount(graph::AbstractUDGraph) = length(graph.nodes)
+
 edgecount(graph::AbstractUDGraph) = length(graph.edges)
 
-neighborcount(graph::AbstractUDGraph, idx) = length(graph.adjacency[idx])
+neighborcount(graph, idx) = length(graph.adjacency[idx])
+degree = neighborcount
 
 function updatenode!(graph::MutableUDGraph, node, idx)
     """Add or update a node"""
