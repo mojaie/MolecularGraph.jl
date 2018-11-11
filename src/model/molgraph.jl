@@ -28,10 +28,11 @@ abstract type Annotation end
 
 struct MutableMolecule <: AbstractMolecule
     graph::MutableUDGraph{Atom,Bond}
+    annotation::Dict{Symbol, Annotation}
     attribute::Dict
 
     function MutableMolecule()
-        new(MutableUDGraph{Atom,Bond}(), Dict())
+        new(MutableUDGraph{Atom,Bond}(), Dict(), Dict())
     end
 end
 
@@ -55,7 +56,7 @@ struct Molecule <: AbstractMolecule
 end
 
 function Molecule(mol::MutableMolecule)
-    Molecule(UDGraph(mol.graph), Dict(), Dict(), mol.attribute)
+    Molecule(UDGraph(mol.graph), Dict(), mol.annotation, mol.attribute)
 end
 
 function Molecule(nodes::Vector{Atom}, edges::Vector{Bond})
@@ -98,7 +99,21 @@ end
 updatebond!(m::MutableMolecule, bond, u, v) = updatedge!(m.graph, bond, u, v)
 
 
-function required_annotation(mol::Molecule, annot)
+function unlinkatom!(mol::MutableMolecule, idx)
+    unlinknode!(mol.graph, idx)
+end
+
+
+function unlinkbond!(mol::MutableMolecule, idx)
+    unlinkedge!(mol.graph, idx)
+end
+
+function unlinkbond!(mol::MutableMolecule, u, v)
+    unlinkedge!(mol.graph, u, v)
+end
+
+
+function required_annotation(mol::AbstractMolecule, annot)
     if !(annot in keys(mol.annotation))
         throw(ErrorException("$(annot) is not available"))
     end

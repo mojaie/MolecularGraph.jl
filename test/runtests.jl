@@ -35,12 +35,13 @@ module GraphMolTest
 
     include("topology.jl")
     include("annotation.jl")
+    include("substructure.jl")
+    include("remover.jl")
 
     include("./draw/base.jl")
     # include("./draw/coords2d.jl")
     # include("./draw/svg.jl")
 
-    include("substructure.jl")
 
     include("sdfilereader.jl")
     include("smilesreader.jl")

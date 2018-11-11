@@ -131,7 +131,7 @@ const SMILES_CHARGE_TABLE = Dict(
 const SMILES_H_COUNT_TABLE = Dict(
     nothing => 0, "H" => 1, "H2" => 2, "H3" => 3, "H4" => 4)
 
-const SMILES_STEREO_TABLE = Dict("" => 0, "@" => 1, "@@" => 2)
+const SMILES_STEREO_TABLE = Dict("" => nothing, "@" => 1, "@@" => 2)
 
 
 function parsesmilesatom(token)

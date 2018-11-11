@@ -182,10 +182,9 @@ function unlinknode!(graph::MutableUDGraph, idx)
     if !(idx in keys(graph.nodes))
         throw(OperationError("Missing node: $(idx)"))
     end
-    for (u, nbr) in graph.adjacency
-        for (v, e) in nbr
-            unlinkedge!(graph, u, v)
-        end
+    for (n, nbr) in graph.adjacency[idx]
+        delete!(graph.edges, nbr)
+        delete!(graph.adjacency[n], idx)
     end
     delete!(graph.nodes, idx)
     delete!(graph.adjacency, idx)
@@ -203,5 +202,17 @@ function unlinkedge!(graph::MutableUDGraph, u, v)
     delete!(graph.edges, graph.adjacency[u][v])
     delete!(graph.adjacency[u], v)
     delete!(graph.adjacency[v], u)
+    return
+end
+
+function unlinkedge!(graph::MutableUDGraph, idx)
+    """Remove an edge"""
+    if !(idx in keys(graph.edges))
+        throw(OperationError("Missing edge: $(idx)"))
+    end
+    e = getedge(graph, idx)
+    delete!(graph.edges, idx)
+    delete!(graph.adjacency[e.u], e.v)
+    delete!(graph.adjacency[e.v], e.u)
     return
 end

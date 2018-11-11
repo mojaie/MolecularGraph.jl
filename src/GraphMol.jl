@@ -44,6 +44,7 @@ module GraphMol
     include("topology.jl")
     include("annotation.jl")
     include("substructure.jl")
+    include("remover.jl")
 
     include("./draw/base.jl")
     include("./draw/coords2d.jl")
