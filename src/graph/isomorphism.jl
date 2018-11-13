@@ -9,14 +9,13 @@ export
     is_isomorphic,
     subgraph_is_isomorphic,
     isomorphism_mapping,
+    isomorphism_mappings,
     vf2match!,
     updatestate!,
     candidatepairs,
     is_feasible,
     is_semantic_feasible,
     restore!
-
-
 
 
 struct VF2State
@@ -43,9 +42,7 @@ const VF2_SETTING = Dict(
 
 
 function is_isomorphic(G, H, setting)
-    state = VF2State(G, H, setting)
-    mapping = vf2match!(state, nothing, nothing)
-    mapping !== nothing
+    iterate(isomorphism_mappings(G, H, setting)) !== nothing
 end
 
 is_isomorphic(G, H) = is_isomorphic(G, H, copy(VF2_SETTING))
@@ -53,26 +50,24 @@ is_isomorphic(G, H) = is_isomorphic(G, H, copy(VF2_SETTING))
 
 function subgraph_is_isomorphic(G, H, setting)
     setting[:mode] = :subgraph
-    state = VF2State(G, H, setting)
-    mapping = vf2match!(state, nothing, nothing)
-    mapping !== nothing
+    iterate(isomorphism_mappings(G, H, setting)) !== nothing
 end
 
 subgraph_is_isomorphic(G, H) = subgraph_is_isomorphic(G, H, copy(VF2_SETTING))
 
 
-function isomorphism_mapping(G, H, setting)
+function isomorphism_mappings(G, H, setting)
     state = VF2State(G, H, setting)
-    vf2match!(state, nothing, nothing)
+    Channel(c -> vf2match!(c, state, nothing, nothing))
 end
 
 
-function vf2match!(state, g_prev, h_prev)
+function vf2match!(c, state, g_prev, h_prev)
     # Recursive
     # println("depth $(length(state.g_core))")
     if length(state.g_core) == nodecount(state.H)
         # println("done $(state.g_core)")
-        return state.g_core
+        put!(c, state.g_core)
     elseif length(state.g_core) >= state.setting[:depthlimit]
         throw(OperationError("Maximum recursion reached"))
     else
@@ -81,10 +76,7 @@ function vf2match!(state, g_prev, h_prev)
             if is_feasible(state, g, h) && is_semantic_feasible(state, g, h)
                 updatestate!(state, g, h)
                 # println("g_core $(state.g_core)")
-                res = vf2match!(state, g, h)
-                if res !== nothing
-                    return res
-                end
+                vf2match!(c, state, g, h)
             end
         end
         restore!(state, g_prev, h_prev)

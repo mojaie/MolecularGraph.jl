@@ -8,7 +8,7 @@ export
     is_identical,
     is_substruct,
     is_superstruct,
-    substruct_mapping,
+    substruct_mappings,
     struct_match,
     preprocess,
     fast_identity_filter,
@@ -33,8 +33,7 @@ function is_identical(mol1, mol2)
     setting = copy(STRUCT_MATCH_SETTING)
     setting[:prefilter] = fast_identity_filter
     setting[:preprocess] = preprocess
-    setting[:postprocess] = m -> m !== nothing
-    struct_match(mol1, mol2, setting)
+    iterate(struct_match(mol1, mol2, setting)) !== nothing
 end
 
 
@@ -43,14 +42,13 @@ function is_substruct(mol1, mol2)
     setting[:vf2conf][:mode] = :subgraph
     setting[:prefilter] = fast_substr_filter
     setting[:preprocess] = preprocess
-    setting[:postprocess] = m -> m !== nothing
-    struct_match(mol2, mol1, setting)
+    iterate(struct_match(mol2, mol1, setting)) !== nothing
 end
 
 is_superstruct(mol1, mol2) = is_substruct(mol2, mol1)
 
 
-function substruct_mapping(mol1, mol2)
+function substruct_mappings(mol1, mol2)
     setting = copy(STRUCT_MATCH_SETTING)
     setting[:vf2conf][:mode] = :subgraph
     setting[:prefilter] = fast_substr_filter
@@ -60,28 +58,29 @@ end
 
 
 function struct_match(mol1, mol2, setting)
-    if !setting[:prefilter](mol1, mol2)
-        return false
-    end
-    lg1 = setting[:preprocess](mol1)
-    lg2 = setting[:preprocess](mol2)
-    vf2conf = copy(setting[:vf2conf])
-    vf2conf[:node_match] = node_match(mol1, mol2, lg1, lg2)
-    vf2conf[:edge_match] = edge_match(mol1, mol2, lg1, lg2)
-    state = VF2State(lg1, lg2, vf2conf)
-    mapping = vf2match!(state, nothing, nothing)
-    if mapping !== nothing
-        # Delta-Y transformation check
-        dy1 = deltaYmap(mapping, mol1, mol2)
-        dy2 = deltaYmap(Dict(v => k for (k, v) in mapping), mol2, mol1)
-        for m in keys(dy1)
-            delete!(mapping, m[1])
+    Channel() do channel
+        if !setting[:prefilter](mol1, mol2)
+            return
         end
-        for m in values(dy2)
-            delete!(mapping, m[1])
+        lg1 = setting[:preprocess](mol1)
+        lg2 = setting[:preprocess](mol2)
+        vf2conf = copy(setting[:vf2conf])
+        vf2conf[:node_match] = node_match(mol1, mol2, lg1, lg2)
+        vf2conf[:edge_match] = edge_match(mol1, mol2, lg1, lg2)
+        state = VF2State(lg1, lg2, vf2conf)
+        for mapping in Channel(c -> vf2match!(c, state, nothing, nothing))
+            # Delta-Y transformation check
+            dy1 = deltaYmap(mapping, mol1, mol2)
+            dy2 = deltaYmap(Dict(v => k for (k, v) in mapping), mol2, mol1)
+            for m in keys(dy1)
+                delete!(mapping, m[1])
+            end
+            for m in values(dy2)
+                delete!(mapping, m[1])
+            end
+            put!(channel, mapping)
         end
     end
-    setting[:postprocess](mapping)
 end
 
 
