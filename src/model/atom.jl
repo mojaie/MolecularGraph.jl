@@ -4,10 +4,12 @@
 #
 
 export
+    PERIODIC_TABLE,
     H_WEIGHT,
     Atom,
     sdfatom,
     smilesatom,
+    atomsymbol,
     atomnumber,
     atomname,
     atomweight
@@ -43,6 +45,16 @@ function smilesatom(symbol, charge, multi, mass, aromatic, stereo)
         throw(IOError("unsupported symbol: $(symbol)"))
     end
     Atom(symbol, charge, multi, mass, nothing, aromatic, stereo)
+end
+
+
+function atomsymbol(number::Int)
+    for (sym, atom) in PERIODIC_TABLE
+        if atom["number"] == number
+            return Symbol(sym)
+        end
+    end
+    throw(OperationError("invalid atomic number $(number)"))
 end
 
 

@@ -46,6 +46,12 @@ module GraphMol
     include("substructure.jl")
     include("remover.jl")
 
+    include("./smarts/base.jl")
+    include("./smarts/atom.jl")
+    include("./smarts/bond.jl")
+    include("./smarts/logicaloperator.jl")
+    include("./smarts/molecule.jl")
+
     include("./draw/base.jl")
     include("./draw/coords2d.jl")
     include("./draw/draw2d.jl")

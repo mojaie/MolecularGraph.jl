@@ -4,3 +4,5 @@
 notebook/*.jl
 notebook/*.py
 _resources
+
+memo.txt

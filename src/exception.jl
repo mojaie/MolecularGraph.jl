@@ -6,6 +6,7 @@
 export
     GraphMolError,
     IOError,
+    ParserError,
     AnnotationError,
     OperationError
 
@@ -16,6 +17,11 @@ abstract type GraphMolError <: Exception end
 
 
 struct IOError <: GraphMolError
+    msg::String
+end
+
+
+struct ParserError <: GraphMolError
     msg::String
 end
 

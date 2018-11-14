@@ -49,7 +49,7 @@ function valence_annot!(mol::Molecule)
     for (i, nbr) in enumerate(mol.graph.adjacency)
         push!(nbrords, [mol.v[:BondOrder][b] for b in values(nbr)])
     end
-    # Number of bonds
+    # Number of bonds TODO: rename to "Degree" (exclude explicit H)
     mol.v[:NumBonds] = length.(nbrords)
     # Valence
     sm = arr -> reduce(+, arr; init=0)  # TODO: sum of empty arr is invalid

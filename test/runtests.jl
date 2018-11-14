@@ -38,10 +38,17 @@ module GraphMolTest
     include("substructure.jl")
     include("remover.jl")
 
+    include("./smarts/base.jl")
+    include("./smarts/logicaloperator.jl")
+    include("./smarts/atom.jl")
+    include("./smarts/bond.jl")
+    include("./smarts/molecule.jl")
+    include("./smarts/smiles.jl")
+    include("./smarts/smarts.jl")
+
     include("./draw/base.jl")
     # include("./draw/coords2d.jl")
     # include("./draw/svg.jl")
-
 
     include("sdfilereader.jl")
     include("smilesreader.jl")

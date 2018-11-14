@@ -5,6 +5,7 @@
 
 export
     AbstractMolecule,
+    AbstractMutableMolecule,
     Annotation,
     Molecule,
     MutableMolecule,
@@ -13,6 +14,7 @@ export
     getbond,
     neighbors,
     neighborcount,
+    degree,
     atomcount,
     bondcount,
     updateatom!,
@@ -23,10 +25,11 @@ import ..Graph: neighbors, neighborcount
 
 
 abstract type AbstractMolecule end
+abstract type AbstractMutableMolecule <: AbstractMolecule end
 abstract type Annotation end
 
 
-struct MutableMolecule <: AbstractMolecule
+struct MutableMolecule <: AbstractMutableMolecule
     graph::MutableUDGraph{Atom,Bond}
     annotation::Dict{Symbol, Annotation}
     attribute::Dict
@@ -85,30 +88,30 @@ atomcount(mol::AbstractMolecule) = nodecount(mol.graph)
 bondcount(mol::AbstractMolecule) = edgecount(mol.graph)
 
 neighborcount(mol::AbstractMolecule, idx) = length(neighbors(mol.graph, idx))
+degree = neighborcount
 
-
-function updateatom!(mol::MutableMolecule, atom, idx)
+function updateatom!(mol::AbstractMutableMolecule, atom, idx)
     updatenode!(mol.graph, atom, idx)
 end
 
 
-function updatebond!(mol::MutableMolecule, bond, idx)
+function updatebond!(mol::AbstractMutableMolecule, bond, idx)
     updateedge!(mol.graph, bond, idx)
 end
 
-updatebond!(m::MutableMolecule, bond, u, v) = updatedge!(m.graph, bond, u, v)
+updatebond!(m::AbstractMutableMolecule, bond, u, v) = updatedge!(m.graph, bond, u, v)
 
 
-function unlinkatom!(mol::MutableMolecule, idx)
+function unlinkatom!(mol::AbstractMutableMolecule, idx)
     unlinknode!(mol.graph, idx)
 end
 
 
-function unlinkbond!(mol::MutableMolecule, idx)
+function unlinkbond!(mol::AbstractMutableMolecule, idx)
     unlinkedge!(mol.graph, idx)
 end
 
-function unlinkbond!(mol::MutableMolecule, u, v)
+function unlinkbond!(mol::AbstractMutableMolecule, u, v)
     unlinkedge!(mol.graph, u, v)
 end
 
