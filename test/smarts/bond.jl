@@ -17,10 +17,6 @@
 end
 
 @testset "bond" begin
-    state = SmilesParserState("")
-    implicit1 = bond!(state)
-    @test implicit1 === nothing
-
     state = SmilesParserState("#")
     triple = bond!(state)
     @test triple.order == 3

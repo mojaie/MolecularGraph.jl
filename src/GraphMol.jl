@@ -52,7 +52,6 @@ module GraphMol
     include("./smarts/bond.jl")
     include("./smarts/logicaloperator.jl")
     include("./smarts/molecule.jl")
-    include("./smarts/smilesreader.jl")
 
     include("./draw/base.jl")
     include("./draw/coords2d.jl")

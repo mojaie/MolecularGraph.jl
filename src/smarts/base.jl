@@ -7,11 +7,12 @@ export
     AbstractSmartsParser,
     SmartsParserState,
     SmilesParserState,
+    parse,
+    smilestomol,
     lookahead,
     read,
     forward!,
-    backtrack!,
-    parse
+    backtrack!
 
 
 import Base: read, parse
@@ -21,34 +22,40 @@ abstract type AbstractSmartsParser end
 
 
 mutable struct SmilesParserState <: AbstractSmartsParser
+    input::String
     pos::Int
     done::Bool
-    input::String
+    node::Int # No. of current node
+    branch::Int # No. of node at the current branch root
+    root::Int # No. of node at the current tree root
     ringlabel::Dict
     mol::SMILES
 
     function SmilesParserState(smiles)
-        new(1, false, smiles, Dict(), SMILES())
+        new(smiles, 1, false, 0, 1, 1, Dict(), SMILES())
     end
 end
 
 
 mutable struct SmartsParserState <: AbstractSmartsParser
+    input::String
     pos::Int
     done::Bool
-    input::String
+    node::Int # No. of current node
+    branch::Int # No. of node at the current branch root
+    root::Int # No. of node at the current tree root
     ringlabel::Dict
     mol::SMARTS
 
     function SmartsParserState(smarts)
-        new(1, false, smarts, Dict(), SMARTS())
+        new(smarts, 1, false, 0, 1, 1, Dict(), SMARTS())
     end
 end
 
 
 function parse(::Type{T}, str::AbstractString) where T <: SMILES
     state = SmilesParserState(str)
-    connectedquery!(state)
+    fragment!(state)
     return state.mol
 end
 
@@ -57,6 +64,14 @@ function parse(::Type{T}, str::AbstractString) where T <: SMARTS
     state = SmartsParserState(str)
     componentquery!(state)
     return state.mol
+end
+
+
+function smilestomol(smiles::AbstractString)
+    mol = parse(SMILES, smiles)
+    vmol = vectormol(mol)
+    default_annotation!(vmol)
+    return vmol
 end
 
 

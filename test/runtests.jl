@@ -2,7 +2,7 @@
 # This file is a part of graphmol.jl
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
-
+"""
 module GeometryTest
     using Test
     using LinearAlgebra
@@ -21,7 +21,7 @@ module GraphTest
     include("./graph/isomorphism.jl")
     include("./graph/translate.jl")
 end
-
+"""
 
 module GraphMolTest
     using Test
@@ -33,11 +33,6 @@ module GraphMolTest
     include("./model/atom.jl")
     include("./model/molgraph.jl")
 
-    include("topology.jl")
-    include("annotation.jl")
-    include("substructure.jl")
-    include("remover.jl")
-
     include("./smarts/base.jl")
     include("./smarts/logicaloperator.jl")
     include("./smarts/atom.jl")
@@ -45,7 +40,11 @@ module GraphMolTest
     include("./smarts/molecule.jl")
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
-    include("./smarts/smilesreader.jl")
+
+    include("topology.jl")
+    include("annotation.jl")
+    include("substructure.jl")
+    include("remover.jl")
 
     include("./draw/base.jl")
     # include("./draw/coords2d.jl")

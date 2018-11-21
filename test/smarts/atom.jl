@@ -26,6 +26,20 @@ end
     iso = atomprop!(state)
     @test iso == (:Mass => 123)
 
+    state = SmartsParserState("2H]")
+    forward!(state)
+    hyd = atomprop!(state)
+    @test hyd == (:Symbol => :H)
+
+    state = SmartsParserState("!H]")
+    forward!(state)
+    noth = atomprop!(state)
+    @test noth == (:H_Count => 1)
+
+    state = SmartsParserState("H+")
+    proton = atomprop!(state)
+    @test proton == (:and => (:Symbol => :H, :Charge => 1))
+
     state = SmartsParserState("H41")
     H4 = atomprop!(state)
     @test H4 == (:H_Count => 4)
@@ -97,10 +111,6 @@ end
     ox = atom!(state)
     @test ox.symbol == :O
     @test ox.charge == -2
-
-    state = SmilesParserState("2")
-    ring2 = atom!(state)
-    @test ring2 == (:ring => 2)
 end
 
 @testset "atomquery" begin

@@ -25,27 +25,28 @@ function atom!(state::SmilesParserState)
         @assert ca == ']' "(atom!) unexpected token: $(ca)"
         forward!(state)
         prop = Dict()
-        for p in a.second
-            if p.first == :and
-                for p2 in p.second
-                    prop[p2.first] = p2.second
+        # TODO: merge logical operator
+        if a.first == :and
+            for p in a.second
+                if p.first == :and
+                    for p2 in p.second
+                        prop[p2.first] = p2.second
+                    end
+                else
+                    prop[p.first] = p.second
                 end
-            else
-                prop[p.first] = p.second
             end
+        else
+            prop[a.first] = a.second
         end
         return SmilesAtom(
             prop[:Symbol],
             get!(prop, :Charge, 0),
-            0,
+            1,
             get!(prop, :Mass, nothing),
             get!(prop, :Aromatic, false),
             get!(prop, :stereo, nothing)
         )
-    elseif isdigit(c)
-        num = parse(Int, c)
-        forward!(state)
-        return :ring => num
     else
         a = atomsymbol!(state)
         if a === nothing
@@ -68,10 +69,6 @@ function atomquery!(state::SmartsParserState)
         @assert cq == ']' "(atomquery!) unexpected token: $(cq)"
         forward!(state)
         return SmartsAtom(q)
-    elseif isdigit(c)
-        num = parse(Int, c)
-        forward!(state)
-        return :ring => num
     else
         a = atomsymbol!(state)
         if a === nothing
@@ -156,6 +153,20 @@ function atomprop!(state::AbstractSmartsParser)
     a = atomsymbol!(state)
     if a !== nothing
         return :and => (:Symbol => a[1], :Aromatic => a[2])
+    end
+    # Hydrogen special cases
+    if c == 'H'
+        cb = lookahead(state, -1)
+        c2 = lookahead(state, 1)
+        if c2 == ']' && (isdigit(cb) || cb == '[')
+            # Hydrogen atom
+            forward!(state)
+            return :Symbol => :H
+        elseif c2 == '+'
+            # Proton
+            forward!(state)
+            return :and => (:Symbol => :H, :Charge => 1)
+        end
     end
     # Atom properties
     if c in keys(SMARTS_ATOM_COND_SYMBOL)

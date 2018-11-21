@@ -6,7 +6,6 @@
 export
     componentquery!,
     component!,
-    connectedquery!,
     fragment!,
     branch!,
     chain!
@@ -16,129 +15,156 @@ function componentquery!(state::SmartsParserState)
     """ Start <- Component ('.' Component)*
     """
     if read(state) == '\0'
-        return # Empty molecule
+        return # Empty query
     end
     component!(state)
     while !state.done && read(state) == '.'
         forward!(state)
+        state.root = state.node + 1
         component!(state)
     end
 end
 
 
 function component!(state::SmartsParserState)
-    """ Component <- '(' ConnectedQuery ')' / Fragment
+    """ Component <- '(' Fragment ')' / Fragment
     """
     if read(state) == '('
+        # Connectivity restriction
         forward!(state)
-        connectedquery!(state)
+        push!(state.mol.connectivity, [state.root])
+        fragment!(state)
         c2 = read(state)
-        @assert c2 == ')' "(component!) unexpected token: $(c2)"
+        @assert c2 == ')' "unexpected token: $(c2) at $(state.pos)"
         forward!(state)
     else
-        fragment!(state, atomcount(state.mol), true)
+        fragment!(state)
     end
 end
 
 
-function connectedquery!(state::AbstractSmartsParser)
-    """ Connected <- Fragment ('.' Fragment)*
+function fragment!(state::AbstractSmartsParser)
+    """ Fragment <- Group
     """
     if state isa SmilesParserState && read(state) == '\0'
         return # Empty molecule
     end
-    pos = atomcount(state.mol)
-    heads = [pos + 1]
-    fragment!(state, pos, true)
-    while !state.done && read(state) == '.'
-        forward!(state)
-        h = atomcount(state.mol)
-        fragment!(state, h, true)
-        push!(heads, h + 1)
-    end
-    if state isa SmartsParserState
-        push!(state.mol.connectivity, heads)
+    group!(state, nothing)
+    # Validity check
+    if state.node + 1 == state.root
+        throw(MolParseError(
+            "unexpected token: $(read(state)) at $(state.pos)"))
+    elseif length(state.ringlabel) > 0
+        label = collect(keys(state.ringlabel))[1]
+        throw(MolParseError("unclosed ring: $(label)"))
     end
 end
 
 
-function fragment!(state::AbstractSmartsParser, root, ishead)
-    """ Fragment <- Chain Branch?
-    """
-    chain!(state, root, ishead)
-    if !state.done
-        if read(state) == '('
-            branch!(state)
-        end
-    end
-end
-
-
-function branch!(state::AbstractSmartsParser)
-    """ Branch <- ('(' Fragment ')')+ Fragment
-    """
-    root = atomcount(state.mol)
-    while read(state) == '('
-        forward!(state)
-        fragment!(state, root, false)
-        c = read(state)
-        @assert c == ')' "(branch!) unexpected token: $(c)"
-        forward!(state)
-    end
-    fragment!(state, root, false)
-end
-
-
-function chain!(state::AbstractSmartsParser, root, ishead)
-    """ Chain <- (Bond? Atom)+
+function group!(state::AbstractSmartsParser, bond)
+    """ Group <- Atom ((Bond? Group) / Chain)* Chain
     """
     atomf = state isa SmilesParserState ? atom! : atomquery!
     bondf = state isa SmilesParserState ? bond! : bondquery!
-    pos = root
-    if ishead
-        # first atom
-        pos += 1
-        a = atomf(state)
-        if a === nothing
-            throw(MolParseError("unexpected token: $(read(state))"))
-        end
-        updateatom!(state.mol, a, pos)
+    a = atomf(state)
+    if a === nothing
+        # Do not start with '(' ex. C((C)C)C is invalid
+        throw(MolParseError(
+            "unexpected token: $(read(state)) at $(state.pos)"))
     end
-    while !state.done
-        b = bondf(state)
-        a = atomf(state)
-        u = pos
-        if a === nothing
-            c = read(state)
-            @assert c in "()." "(chain!) unexpected token: $(c)"
-            break
-        elseif a isa Pair && a.first == :ring
-            # Ring
-            if a.second in keys(state.ringlabel)
-                (v, rb) = state.ringlabel[a.second]
-                b = b === nothing ? rb : b
-                delete!(state.ringlabel, a.second) # Ring number is reusable
-            else
-                state.ringlabel[a.second] = (u, b)
-                continue
-            end
-        else
-            v = atomcount(state.mol) + 1
-            updateatom!(state.mol, a, v)
-            pos = v
-        end
-        if b === nothing
-            if state isa SmilesParserState
-                b = SmilesBond(1, false, nothing)
-            else
-                b = SmartsBond(:BondOrder => 1)
-            end
-        end
-        b = connect(b, u, v)
+    state.node += 1
+    updateatom!(state.mol, a, state.node)
+    if bond !== nothing
+        # Connect branch
+        b = connect(bond, state.branch, state.node)
         updatebond!(state.mol, b, bondcount(state.mol) + 1)
     end
-    if pos == root
-        # Empty chain is prohibited
-        throw(MolParseError("unexpected token: $(read(state))"))
+    state.branch = state.node
+    while true
+        if read(state) == '('
+            forward!(state)
+            buf = state.branch
+            b = something(bondf(state), defaultbond(state))
+            group!(state, b)
+            state.branch = buf
+            c = read(state)
+            @assert c == ')' "unexpected token: $(c) at $(state.pos)"
+            forward!(state)
+            if state.done || read(state) in ")."
+                # Do not finish with ')' ex, CC(C)(C) should be CC(C)C
+                throw(MolParseError(
+                    "unexpected token: $(read(state)) at $(state.pos)"))
+            end
+        else
+            chain!(state)
+            state.branch = state.node
+            if state.done || read(state) in ")."
+                break
+            end
+        end
+    end
+end
+
+
+function chain!(state::AbstractSmartsParser)
+    """ Chain <- (Bond? (Atom / RingLabel))+
+    """
+    atomf = state isa SmilesParserState ? atom! : atomquery!
+    bondf = state isa SmilesParserState ? bond! : bondquery!
+    u = state.branch
+    while !state.done
+        # Bond?
+        if read(state) == '.' && lookahead(state, 1) != '('
+            # Disconnected
+            forward!(state)
+            b = :disconn
+        else
+            b = bondf(state)
+        end
+
+        # RingLabel
+        if isdigit(read(state))
+            num = parse(Int, read(state))
+            forward!(state)
+            if num in keys(state.ringlabel)
+                (v, rb) = state.ringlabel[num]
+                b = something(b, rb, defaultbond(state))
+                delete!(state.ringlabel, num) # Ring label is reusable
+                b = connect(b, u, v)
+                updatebond!(state.mol, b, bondcount(state.mol) + 1)
+            else
+                state.ringlabel[num] = (u, b)
+            end
+            continue
+        end
+
+        # Atom
+        a = atomf(state)
+        if a === nothing
+            c = read(state)
+            @assert c in "().\0" "unexpected token: $(c) at $(state.pos)"
+            if b == :disconn
+                throw(MolParseError(
+                    "unexpected token: $(read(state)) at $(state.pos)"))
+            end
+            break
+        else
+            state.node += 1
+            updateatom!(state.mol, a, state.node)
+        end
+        if b == :disconn
+            if (state isa SmartsParserState)
+                for conn in state.mol.connectivity
+                    if conn[1] == state.root
+                        push!(conn, state.node)
+                    end
+                end
+            end
+        else
+            b = something(b, defaultbond(state))
+            b = connect(b, u, state.node)
+            updatebond!(state.mol, b, bondcount(state.mol) + 1)
+        end
+        u = state.node
     end
 end

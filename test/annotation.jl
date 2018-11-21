@@ -100,7 +100,7 @@ end
     @test count(caffeine.v[:Aromatic]) == 9
 
     # Difficult aromaticities
-    quinodimethane = smilestomol("C1=CC=CC(=C)C1(=C)")
+    quinodimethane = smilestomol("C1=CC=CC(=C)C1=C")
     assign_annot!(quinodimethane)
     @test_broken count(azulene.v[:Aromatic]) == 10
     dihydronaphthalene = smilestomol("C=1CCC=C2C1C=CC=C2")

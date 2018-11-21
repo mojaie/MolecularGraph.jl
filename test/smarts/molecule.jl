@@ -2,34 +2,63 @@
 @testset "smarts.molecule" begin
 
 @testset "chain" begin
-    pen = SmartsParserState("CCCCC")
-    chain!(pen, 0, true)
-    @test atomcount(pen.mol) == 5
-    @test bondcount(pen.mol) == 4
+    state = SmartsParserState("CCCCC")
+    state.node = 1
+    updateatom!(state.mol, SmartsAtom(:Symbol => :C), 1)
+    forward!(state)
+    chain!(state)
+    @test atomcount(state.mol) == 5
+    @test bondcount(state.mol) == 4
 
-    hex = SmartsParserState("C1CCCCC1")
-    chain!(hex, 0, true)
-    @test 6 in keys(neighbors(hex.mol, 1))
+    state = SmartsParserState("C1CCCCC1")
+    state.node = 1
+    updateatom!(state.mol, SmartsAtom(:Symbol => :C), 1)
+    forward!(state)
+    chain!(state)
+    @test 6 in keys(neighbors(state.mol, 1))
 end
 
 @testset "fragment" begin
-    neo = SmartsParserState("C(C)(C)(C)C")
-    fragment!(neo, 0, true)
-    @test degree(neo.mol, 1) == 4
+    branched1 = SmartsParserState("C(C)(C)(C)C")
+    fragment!(branched1)
+    @test degree(branched1.mol, 1) == 4
+
+    branched2 = SmartsParserState("CC(C)C(C)C(C)C")
+    fragment!(branched2)
+    @test degree(branched2.mol, 6) == 3
 
     nested1 = SmartsParserState("C(C(C(C)C)C)C")
-    fragment!(nested1, 0, true)
+    fragment!(nested1)
     @test 7 in keys(neighbors(nested1.mol, 1))
     @test 2 in keys(neighbors(nested1.mol, 6))
 
-    invalid1 = SmartsParserState("CC(C)")
-    @test_throws MolParseError fragment!(invalid1, 0, true)
+    ring1 = SmartsParserState("CC(C(C)1)CC1")
+    fragment!(ring1)
+    @test 3 in keys(neighbors(ring1.mol, 6))
 
-    invalid2 = SmartsParserState("(CC)CC")
-    @test_throws MolParseError fragment!(invalid2, 0, true)
+    invalid1 = SmartsParserState("CC(")
+    @test_throws MolParseError fragment!(invalid1)
 
-    invalid3 = SmartsParserState("C(C(C))CC")
-    @test_throws MolParseError fragment!(invalid3, 0, true)
+    invalid2 = SmartsParserState("C()C")
+    @test_throws MolParseError fragment!(invalid2)
+
+    invalid3 = SmartsParserState("C1CC")
+    @test_throws MolParseError fragment!(invalid3)
+
+    invalid4 = SmartsParserState("1CCC1")
+    @test_throws MolParseError fragment!(invalid4)
+
+    invalid5 = SmartsParserState("CC(C)")
+    @test_throws MolParseError fragment!(invalid5)
+
+    invalid6 = SmartsParserState("(CC)CC")
+    @test_throws MolParseError fragment!(invalid6)
+
+    invalid7 = SmartsParserState("C(C(C))CC")
+    @test_throws MolParseError fragment!(invalid7)
+
+    invalid8 = SmartsParserState("C(1C)C1C")
+    @test_throws MolParseError fragment!(invalid8)
 end
 
 
@@ -59,6 +88,15 @@ end
     conn5 = SmartsParserState("(C.C.C).(C.C).C.(C)")
     componentquery!(conn5)
     @test conn5.mol.connectivity == [[1, 2, 3], [4, 5], [7]]
+
+    invalid1 = SmartsParserState("C..C")
+    @test_throws MolParseError fragment!(invalid1)
+
+    invalid2 = SmartsParserState("CCC.")
+    @test_throws MolParseError fragment!(invalid2)
+
+    invalid3 = SmartsParserState("CC(C).C")
+    @test_throws MolParseError fragment!(invalid3)
 end
 
 end # smarts.molecule

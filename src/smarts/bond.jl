@@ -4,9 +4,14 @@
 #
 
 export
+    defaultbond,
     bond!,
     bondquery!,
     bondsymbol!
+
+
+defaultbond(state::SmilesParserState) = SmilesBond(1, false, nothing)
+defaultbond(state::SmartsParserState) = SmartsBond(:BondOrder => 1)
 
 
 function bond!(state::SmilesParserState)
@@ -22,7 +27,6 @@ function bond!(state::SmilesParserState)
     elseif b[1] == :stereo
         return SmilesBond(1, false, b[2])
     end
-    # raise Error
 end
 
 
@@ -34,12 +38,11 @@ function bondquery!(state::SmartsParserState)
         return SmartsBond(:any => true)
     else
         b = lglowand!(state, bondsymbol!)
-        if b === nothing
-            return
-        else
+        if b !== nothing
             return SmartsBond(b)
         end
     end
+    # return nothing: Invalid bond token or implicit single bond
 end
 
 

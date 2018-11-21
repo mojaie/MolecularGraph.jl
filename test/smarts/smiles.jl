@@ -67,6 +67,9 @@ end
 
     tetrahedrane = parse(SMILES, "C12C3C1C23")
     @test bondcount(tetrahedrane) == 6
+
+    thiamin = parse(SMILES, "OCCc1c(C)[n+](=cs1)Cc2cnc(C)nc(N)2")
+    @test bondcount(thiamin) == 19
 end
 
 @testset "component" begin
@@ -88,6 +91,10 @@ end
     @test getatom(CuSO4, 1).charge == 2
     @test getatom(CuSO4, 6).charge == -1
     @test neighborcount(CuSO4, 3) == 4
+
+    PhONa = parse(SMILES, "c1cc([O-].[Na+])ccc1")
+    @test neighborcount(PhONa, 3) == 3
+    @test neighborcount(PhONa, 5) == 0
 end
 
 @testset "stereo" begin
@@ -108,9 +115,6 @@ end
     pyridone = parse(SMILES, "O=c1[nH]cccc1")
     @test getatom(pyridone, 3).isaromatic
     @test neighborcount(pyridone, 3) == 2 # Implicit H is ignored
-    PhONa = parse(SMILES, "c1cc([O-])ccc1.[Na+]")
-    @test neighborcount(PhONa, 3) == 3
-    @test neighborcount(PhONa, 8) == 0
 
     # println(Int64[a.index for a in atomvector(ethanol2)])
     # println(Tuple{Int64, Int64}[(b.u, b.v) for b in bondvector(ethanol2)])
