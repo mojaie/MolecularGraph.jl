@@ -23,13 +23,13 @@ end
     @test 2 in keys(neighbors(nested1.mol, 6))
 
     invalid1 = SmartsParserState("CC(C)")
-    @test_throws ParserError fragment!(invalid1, 0, true)
+    @test_throws MolParseError fragment!(invalid1, 0, true)
 
     invalid2 = SmartsParserState("(CC)CC")
-    @test_throws ParserError fragment!(invalid2, 0, true)
+    @test_throws MolParseError fragment!(invalid2, 0, true)
 
     invalid3 = SmartsParserState("C(C(C))CC")
-    @test_throws ParserError fragment!(invalid3, 0, true)
+    @test_throws MolParseError fragment!(invalid3, 0, true)
 end
 
 

@@ -84,8 +84,8 @@ end
     iso = atom!(state)
     @test iso.symbol == :C
     @test iso.mass == 14
-    @test iso.smiles_aromatic
-    @test iso.smiles_stereo == 2
+    @test iso.isaromatic
+    @test iso.stereo == 2
     @test state.pos == 9
 
     state = SmilesParserState("[Zn++]")

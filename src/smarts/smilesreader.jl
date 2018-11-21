@@ -13,23 +13,20 @@ export
     parsesmilesbond
 
 
-
-
-
 function smilestomol(smiles)
-    mol = parsesmiles(smiles, mutable=false)
-    default_annotation!(mol)
-    mol
+    mol = parsesmiles(smiles)
+    vmol = vectormol(mol)
+    default_annotation!(vmol)
+    vmol
 end
 
 
-function parsesmiles(smiles; mutable=false)
-    mmol = MutableMolecule()
+function parsesmiles(smiles)
+    mol = SMILES()
     tokens = tokenize(smiles)
     ringclose = Dict()
-    parsesmilesgroup!(mmol, ringclose, tokens, 0) # Recursive
-    mmol.attribute[:sourcetype] = :smiles
-    mutable ? mmol : Molecule(mmol)
+    parsesmilesgroup!(mol, ringclose, tokens, 0) # Recursive
+    return mol
 end
 
 
@@ -42,7 +39,7 @@ function tokenize(smiles)
             smiles[i:end]
         )
         if m === nothing
-            throw(OperationError("Invalid SMILES"))
+            throw(MolParseError("Invalid SMILES"))
         end
         i += length(m.match)
         push!(tokens, m.match)
@@ -70,7 +67,7 @@ function parsesmilesgroup!(mol, ringclose, tokens, base)
         # Atom
         # println(objectid(mol), " ", pos, " ", newpos, " ", token)
         (atok, btok, ringc) = parsesmilestoken(token)
-        atom = smilesatom(parsesmilesatom(atok)...)
+        atom = SmilesAtom(parsesmilesatom(atok)...)
         updateatom!(mol, atom, newpos)
 
         # Ring bond
@@ -88,7 +85,7 @@ function parsesmilesgroup!(mol, ringclose, tokens, base)
                 if num in keys(ringclose)
                     (upos, ubd) = ringclose[num]
                     rtype = ubd === nothing ? bondtype : ubd
-                    bond = smilesbond(upos, newpos, parsesmilesbond(rtype)...)
+                    bond = SmilesBond(upos, newpos, parsesmilesbond(rtype)...)
                     updatebond!(mol, bond, length(mol.graph.edges) + 1)
                     delete!(ringclose, num)
                 else
@@ -101,7 +98,7 @@ function parsesmilesgroup!(mol, ringclose, tokens, base)
         if nobond
             nobond = false
         else
-            bond = smilesbond(pos, newpos, parsesmilesbond(btok)...)
+            bond = SmilesBond(pos, newpos, parsesmilesbond(btok)...)
             updatebond!(mol, bond, length(mol.graph.edges) + 1)
         end
         pos = newpos

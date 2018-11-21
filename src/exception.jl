@@ -5,8 +5,7 @@
 
 export
     GraphMolError,
-    IOError,
-    ParserError,
+    MolParseError,
     AnnotationError,
     OperationError
 
@@ -16,12 +15,7 @@ import Base: showerror
 abstract type GraphMolError <: Exception end
 
 
-struct IOError <: GraphMolError
-    msg::String
-end
-
-
-struct ParserError <: GraphMolError
+struct MolParseError <: GraphMolError
     msg::String
 end
 

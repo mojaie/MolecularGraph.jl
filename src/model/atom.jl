@@ -6,9 +6,9 @@
 export
     PERIODIC_TABLE,
     H_WEIGHT,
-    Atom,
-    sdfatom,
-    smilesatom,
+    SDFileAtom,
+    SmilesAtom,
+    SmartsAtom,
     atomsymbol,
     atomnumber,
     atomname,
@@ -21,30 +21,41 @@ const PERIODIC_TABLE = YAML.load(open(
 const H_WEIGHT = PERIODIC_TABLE["H"]["std_weight"]
 
 
-struct Atom <: AbstractNode
+struct SDFileAtom <: Atom
     symbol::Symbol
     charge::Int
     multiplicity::Int
     mass::Union{Float64, Nothing}
-    sdf_coords::Union{SVector{3}, Nothing}
-    smiles_aromatic::Union{Bool, Nothing}
-    smiles_stereo::Union{Int, Nothing}
+    coords::Union{SVector{3}, Nothing}
+
+    function SDFileAtom(sym, chg, multi, mass, coords)
+        if !(string(sym) in keys(PERIODIC_TABLE))
+            throw(MolParseError("unsupported symbol: $(sym)"))
+        end
+        new(sym, chg, multi, mass, coords)
+    end
 end
 
 
-function sdfatom(symbol, charge, multi, mass, coords)
-    if !(string(symbol) in keys(PERIODIC_TABLE))
-        throw(IOError("unsupported symbol: $(symbol)"))
+struct SmilesAtom <: Atom
+    symbol::Symbol
+    charge::Int
+    multiplicity::Int
+    mass::Union{Float64, Nothing}
+    isaromatic::Union{Bool, Nothing}
+    stereo::Union{Int, Nothing}
+
+    function SmilesAtom(sym, chg, multi, mass, aromatic, stereo)
+        if !(string(sym) in keys(PERIODIC_TABLE))
+            throw(MolParseError("unsupported symbol: $(sym)"))
+        end
+        new(sym, chg, multi, mass, aromatic, stereo)
     end
-    Atom(symbol, charge, multi, mass, coords, nothing, nothing)
 end
 
 
-function smilesatom(symbol, charge, multi, mass, aromatic, stereo)
-    if !(string(symbol) in keys(PERIODIC_TABLE))
-        throw(IOError("unsupported symbol: $(symbol)"))
-    end
-    Atom(symbol, charge, multi, mass, nothing, aromatic, stereo)
+struct SmartsAtom <: QueryAtom
+    query::Pair
 end
 
 
@@ -54,7 +65,7 @@ function atomsymbol(number::Int)
             return Symbol(sym)
         end
     end
-    throw(OperationError("invalid atomic number $(number)"))
+    throw(MolParseError("invalid atomic number $(number)"))
 end
 
 

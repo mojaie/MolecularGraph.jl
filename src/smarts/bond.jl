@@ -16,11 +16,11 @@ function bond!(state::SmilesParserState)
     if b === nothing
         return
     elseif b[1] == :BondOrder
-        return smilesbond(0, 0, b[2], false, nothing)
+        return SmilesBond(b[2], false, nothing)
     elseif b[1] == :Aromatic
-        return smilesbond(0, 0, 1, true, nothing)
+        return SmilesBond(1, true, nothing)
     elseif b[1] == :stereo
-        return smilesbond(0, 0, 1, false, b[2])
+        return SmilesBond(1, false, b[2])
     end
     # raise Error
 end
@@ -31,13 +31,13 @@ function bondquery!(state::SmartsParserState)
     """
     if read(state) == '~'
         forward!(state)
-        return QueryBond(0, 0, :any => true)
+        return SmartsBond(:any => true)
     else
         b = lglowand!(state, bondsymbol!)
         if b === nothing
             return
         else
-            return QueryBond(0, 0, b)
+            return SmartsBond(b)
         end
     end
 end
@@ -54,7 +54,7 @@ const SMARTS_BOND_SYMBOL = Dict(
 )
 
 
-function bondsymbol!(state::AbstractSmartsParserState)
+function bondsymbol!(state::AbstractSmartsParser)
     c = read(state)
     if c in keys(SMARTS_BOND_SYMBOL)
         cond = SMARTS_BOND_SYMBOL[c]

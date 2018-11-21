@@ -21,7 +21,7 @@ struct AtomAnnot <: Annotation end
 struct GroupAnnot <: Annotation end
 
 
-function default_annotation!(mol::Molecule)
+function default_annotation!(mol::VectorMol)
     molgraph_topology!(mol)
     intrinsic_annot!(mol)
     valence_annot!(mol)
@@ -29,7 +29,7 @@ function default_annotation!(mol::Molecule)
 end
 
 
-function intrinsic_annot!(mol::Molecule)
+function intrinsic_annot!(mol::VectorMol)
     # Symbol
     mol.v[:Symbol] = [atom.symbol for atom in mol.graph.nodes]
     # Charge
@@ -43,7 +43,7 @@ function intrinsic_annot!(mol::Molecule)
 end
 
 
-function valence_annot!(mol::Molecule)
+function valence_annot!(mol::VectorMol)
     required_annotation(mol, :Intrinsic)
     nbrords = Vector{Int}[]
     for (i, nbr) in enumerate(mol.graph.adjacency)
@@ -256,7 +256,7 @@ function aromatic!(mol)
 end
 
 
-function satisfyHuckel(mol::Molecule, ring)
+function satisfyHuckel(mol::VectorMol, ring)
     cnt = 0
     for r in ring
         if mol.v[:Carbonyl][r] == 2

@@ -4,12 +4,16 @@
 #
 
 export
-    Bond,
-    sdfbond,
-    smilesbond
+    SDFileBond,
+    SmilesBond,
+    SmartsBond,
+    connect
 
 
-struct Bond <: AbstractEdge
+import ..Graph: connect
+
+
+struct SDFileBond <: Bond
     """Bond
 
     * Notation
@@ -26,25 +30,35 @@ struct Bond <: AbstractEdge
             * 2: u ＝ v (equal length, for terminal bond by default)
             * 3: u × v (Cis-Trans Unknown)
     """
-    u::Int
-    v::Int
+    u::Union{Int, Nothing}
+    v::Union{Int, Nothing}
     order::Int
-    sdf_notation::Union{Int, Nothing}
-    smiles_aromatic::Union{Bool, Nothing}
-    smiles_cistrans::Union{Int, Nothing}
+    notation::Union{Int, Nothing}
 end
 
-Bond(b::Bond, u::Integer, v::Integer) = Bond(
-    u, v, b.order,
-    b.sdf_notation, b.smiles_aromatic, b.smiles_cistrans
-)
+SDFileBond(order, notation) = SDFileBond(nothing, nothing, order, notation)
+connect(b::SDFileBond, u, v) = SDFileBond(u, v, b.order, b.notation)
 
 
-function sdfbond(u, v, order, notation)
-    Bond(u, v, order, notation, nothing, nothing)
+struct SmilesBond <: Bond
+    u::Union{Int, Nothing}
+    v::Union{Int, Nothing}
+    order::Int
+    isaromatic::Union{Bool, Nothing}
+    cistrans::Union{Int, Nothing}
 end
 
+SmilesBond(order, aromatic, cistrans) = SmilesBond(
+    nothing, nothing, order, aromatic, cistrans)
+connect(b::SmilesBond, u, v) = SmilesBond(
+    u, v, b.order, b.isaromatic, b.cistrans)
 
-function smilesbond(u, v, order, aromatic, cistrans)
-    Bond(u, v, order, nothing, aromatic, cistrans)
+
+struct SmartsBond <: QueryBond
+    u::Union{Int, Nothing}
+    v::Union{Int, Nothing}
+    query::Pair
 end
+
+SmartsBond(query) = SmartsBond(nothing, nothing, query)
+connect(b::SmartsBond, u, v) = SmartsBond(u, v, b.query)

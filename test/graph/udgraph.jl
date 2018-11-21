@@ -39,7 +39,7 @@ end
     nbr = neighbors(graph, 6)
     @test length(nbr) == 0
     m = MutableUDGraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
-    frozen = UDGraph(m)
+    frozen = UDGraph{Node,Edge}(m)
     fedge = getedge(frozen, 2, 1)
     @test fedge.u == 1
     @test fedge.v == 2

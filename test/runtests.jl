@@ -45,12 +45,12 @@ module GraphMolTest
     include("./smarts/molecule.jl")
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
+    include("./smarts/smilesreader.jl")
 
     include("./draw/base.jl")
     # include("./draw/coords2d.jl")
     # include("./draw/svg.jl")
 
     include("sdfilereader.jl")
-    include("smilesreader.jl")
 
 end

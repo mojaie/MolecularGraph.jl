@@ -41,7 +41,7 @@ function component!(state::SmartsParserState)
 end
 
 
-function connectedquery!(state::AbstractSmartsParserState)
+function connectedquery!(state::AbstractSmartsParser)
     """ Connected <- Fragment ('.' Fragment)*
     """
     if state isa SmilesParserState && read(state) == '\0'
@@ -62,7 +62,7 @@ function connectedquery!(state::AbstractSmartsParserState)
 end
 
 
-function fragment!(state::AbstractSmartsParserState, root, ishead)
+function fragment!(state::AbstractSmartsParser, root, ishead)
     """ Fragment <- Chain Branch?
     """
     chain!(state, root, ishead)
@@ -74,7 +74,7 @@ function fragment!(state::AbstractSmartsParserState, root, ishead)
 end
 
 
-function branch!(state::AbstractSmartsParserState)
+function branch!(state::AbstractSmartsParser)
     """ Branch <- ('(' Fragment ')')+ Fragment
     """
     root = atomcount(state.mol)
@@ -89,19 +89,18 @@ function branch!(state::AbstractSmartsParserState)
 end
 
 
-function chain!(state::AbstractSmartsParserState, root, ishead)
+function chain!(state::AbstractSmartsParser, root, ishead)
     """ Chain <- (Bond? Atom)+
     """
     atomf = state isa SmilesParserState ? atom! : atomquery!
     bondf = state isa SmilesParserState ? bond! : bondquery!
-    bondconst = state isa SmilesParserState ? Bond : QueryBond
     pos = root
     if ishead
         # first atom
         pos += 1
         a = atomf(state)
         if a === nothing
-            throw(ParserError("unexpected token: $(read(state))"))
+            throw(MolParseError("unexpected token: $(read(state))"))
         end
         updateatom!(state.mol, a, pos)
     end
@@ -130,16 +129,16 @@ function chain!(state::AbstractSmartsParserState, root, ishead)
         end
         if b === nothing
             if state isa SmilesParserState
-                b = smilesbond(0, 0, 1, false, nothing)
+                b = SmilesBond(1, false, nothing)
             else
-                b = QueryBond(0, 0, :BondOrder => 1)
+                b = SmartsBond(:BondOrder => 1)
             end
         end
-        b = bondconst(b, u, v)
+        b = connect(b, u, v)
         updatebond!(state.mol, b, bondcount(state.mol) + 1)
     end
     if pos == root
         # Empty chain is prohibited
-        throw(ParserError("unexpected token: $(read(state))"))
+        throw(MolParseError("unexpected token: $(read(state))"))
     end
 end

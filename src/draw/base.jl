@@ -51,13 +51,13 @@ const DRAW_SETTING = Dict(
 )
 
 
-function draw2d_annot!(mol::Molecule, setting)
+function draw2d_annot!(mol::VectorMol, setting)
     required_annotation(mol, :Topology)
     required_annotation(mol, :Valence)
-    if mol.attribute[:sourcetype] == :sdfile
+    if mol isa GVectorMol{SDFileAtom,SDFileBond}
         mol.v[:Coords2D] = zeros(Float64, atomcount(mol), 2)
         for (i, a) in enumerate(mol.graph.nodes)
-            mol.v[:Coords2D][i, :] = a.sdf_coords[1:2]
+            mol.v[:Coords2D][i, :] = a.coords[1:2]
         end
     else
         mol.v[:Coords2D] = coords2d(mol)
@@ -69,7 +69,7 @@ function draw2d_annot!(mol::Molecule, setting)
     return
 end
 
-draw2d_annot!(mol::Molecule) = draw2d_annot!(mol, copy(DRAW_SETTING))
+draw2d_annot!(mol::VectorMol) = draw2d_annot!(mol, copy(DRAW_SETTING))
 
 
 function atomcolor(setting)
@@ -81,9 +81,9 @@ function atomvisible(termc)
 end
 
 
-function bondnotation(mol::Molecule)
-    if mol.attribute[:sourcetype] == :sdfile
-        notation = [b.sdf_notation for b in mol.graph.edges]
+function bondnotation(mol::VectorMol)
+    if mol isa GVectorMol{SDFileAtom,SDFileBond}
+        notation = [b.notation for b in mol.graph.edges]
     else
         notation = zeros(Int, bondcount(mol))
     end
@@ -126,7 +126,7 @@ function double_bond_along_ring!(vec, adj, rings, coords, order)
 end
 
 
-function boundary(mol::Molecule, coords)
+function boundary(mol::VectorMol, coords)
     (left, right) = extrema(coords[:, 1])
     (bottom, top) = extrema(coords[:, 2])
     width = right - left

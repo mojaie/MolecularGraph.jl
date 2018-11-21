@@ -20,10 +20,11 @@ struct NoWater <: Annotation end
 struct NoPharmSalt <: Annotation end
 
 
-function remove_H!(mol::MutableMolecule)
+function remove_H!(mol::MapMol)
     for (i, a) in mol.graph.nodes
+        # TODO: check stereo (SMILES, SDFile)
         if (a.symbol == :H && a.charge == 0 && a.multiplicity == 1
-                && a.mass === nothing && a.smiles_stereo === nothing)
+                && a.mass === nothing)
             unlinkatom!(mol, i)
         end
     end
@@ -38,7 +39,7 @@ function remove_H(mol; use_deepcopy=true)
 end
 
 
-function removeall_H!(mol::MutableMolecule)
+function removeall_H!(mol::MapMol)
     required_annotation(mol, :NoImplicitH)
     for (i, a) in mol.graph.nodes
         if a.symbol == :H
@@ -56,7 +57,7 @@ function removeall_H(mol; use_deepcopy=true)
 end
 
 
-function removewater!(mol::MutableMolecule)
+function removewater!(mol::MapMol)
     required_annotation(mol, :NoImplicitH)
     for (i, a) in mol.graph.nodes
         if a.symbol == :O && neighborcount(mol, i) == 0
@@ -77,7 +78,7 @@ end
 const SINGLE_ELEM_SALT = [:N, :Na, :Mg, :Al, :Cl, :K, :Ca, :Br, :I]
 
 
-function removesalt!(mol::MutableMolecule)
+function removesalt!(mol::MapMol)
     required_annotation(mol, :NoImplicitH)
     for (i, a) in mol.graph.nodes
         if a.symbol in SINGLE_ELEM_SALT && neighborcount(mol, i) == 0

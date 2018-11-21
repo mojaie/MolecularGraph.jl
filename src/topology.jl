@@ -15,7 +15,7 @@ struct MolGraphTopology <: Annotation
 end
 
 
-function molgraph_topology!(mol::Molecule)
+function molgraph_topology!(mol::VectorMol)
     nodeset = Set(1:atomcount(mol))
     candidates = Dict()
     connectivity = []

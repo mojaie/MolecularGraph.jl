@@ -9,7 +9,7 @@ export
     cartesian
 
 
-function coords2d(mol::Molecule, root)
+function coords2d(mol::VectorMol, root)
     required_annotation(mol, :Valence)
     required_annotation(mol, :Topology)
     zmatrix = [

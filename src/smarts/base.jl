@@ -4,86 +4,54 @@
 #
 
 export
-    QueryMolecule,
-    QueryAtom,
-    QueryBond,
-    AbstractSmartsParserState,
+    AbstractSmartsParser,
     SmartsParserState,
     SmilesParserState,
     lookahead,
     read,
     forward!,
     backtrack!,
-    parse,
-    SMILES,
-    SMARTS
+    parse
 
 
 import Base: read, parse
 
 
-struct QueryAtom <: AbstractNode
-    query::Pair
-end
 
 
-struct QueryBond <: AbstractEdge
-    u::Int
-    v::Int
-    query::Pair
-end
 
-QueryBond(b::QueryBond, u, v) = QueryBond(u, v, b.query)
+abstract type AbstractSmartsParser end
 
 
-struct QueryMolecule <: AbstractMutableMolecule
-    graph::MutableUDGraph{QueryAtom,QueryBond}
-    connectivity::Array{Array{Int}}
-    attribute::Dict
-
-    function QueryMolecule()
-        new(MutableUDGraph{QueryAtom,QueryBond}(), [], Dict())
-    end
-end
-
-
-abstract type AbstractSmartsParserState end
-
-
-mutable struct SmilesParserState <: AbstractSmartsParserState
+mutable struct SmilesParserState <: AbstractSmartsParser
     pos::Int
     done::Bool
     input::String
     ringlabel::Dict
-    mol::MutableMolecule
+    mol::SMILES
 
     function SmilesParserState(smiles)
-        new(1, false, smiles, Dict(), MutableMolecule())
+        new(1, false, smiles, Dict(), SMILES())
     end
 end
 
 
-mutable struct SmartsParserState <: AbstractSmartsParserState
+mutable struct SmartsParserState <: AbstractSmartsParser
     pos::Int
     done::Bool
     input::String
     ringlabel::Dict
-    mol::QueryMolecule
+    mol::SMARTS
 
     function SmartsParserState(smarts)
-        new(1, false, smarts, Dict(), QueryMolecule())
+        new(1, false, smarts, Dict(), SMARTS())
     end
 end
-
-
-SMILES = MutableMolecule
-SMARTS = QueryMolecule
 
 
 function parse(::Type{T}, str::AbstractString) where T <: SMILES
     state = SmilesParserState(str)
     connectedquery!(state)
-    state.mol.attribute[:sourcetype] = :smiles
     return state.mol
 end
 
@@ -91,12 +59,11 @@ end
 function parse(::Type{T}, str::AbstractString) where T <: SMARTS
     state = SmartsParserState(str)
     componentquery!(state)
-    state.mol.attribute[:sourcetype] = :smarts
     return state.mol
 end
 
 
-function lookahead(state::AbstractSmartsParserState, pos::Int)
+function lookahead(state::AbstractSmartsParser, pos::Int)
     # Negative pos can be used
     newpos = state.pos + pos
     if newpos > length(state.input) || newpos < 1
@@ -106,7 +73,7 @@ function lookahead(state::AbstractSmartsParserState, pos::Int)
         if isascii(c)
             return state.input[newpos]
         else
-            throw(ParserError("invalid charactor $(c)"))
+            throw(MolParseError("invalid charactor $(c)"))
         end
     end
 end
@@ -114,15 +81,15 @@ end
 read(state) = lookahead(state, 0)
 
 
-function forward!(state::AbstractSmartsParserState, num::Int)
+function forward!(state::AbstractSmartsParser, num::Int)
     # Negative num can be used
     state.pos += num
     if state.pos > length(state.input)
         state.done = true
     elseif state.done
-        throw(ParserError("Charactors in the buffer were used up"))
+        throw(MolParseError("Charactors in the buffer were used up"))
     elseif state.pos < 1
-        throw(ParserError("No more backtracking!"))
+        throw(MolParseError("No more backtracking!"))
     end
 end
 

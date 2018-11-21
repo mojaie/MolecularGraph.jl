@@ -4,11 +4,13 @@
 #
 
 export
-    AbstractMolecule,
-    AbstractMutableMolecule,
-    Annotation,
-    Molecule,
-    MutableMolecule,
+    GMapMol,
+    GQueryMol,
+    GVectorMol,
+    SDFile,
+    SMILES,
+    SMARTS,
+    vectormol,
     nullmol,
     getatom,
     getbond,
@@ -24,23 +26,19 @@ export
 import ..Graph: neighbors, neighborcount
 
 
-abstract type AbstractMolecule end
-abstract type AbstractMutableMolecule <: AbstractMolecule end
-abstract type Annotation end
-
-
-struct MutableMolecule <: AbstractMutableMolecule
-    graph::MutableUDGraph{Atom,Bond}
+struct GMapMol{A<:Atom,B<:Bond} <: MapMol
+    graph::MutableUDGraph{A,B}
     annotation::Dict{Symbol, Annotation}
     attribute::Dict
 
-    function MutableMolecule()
-        new(MutableUDGraph{Atom,Bond}(), Dict(), Dict())
+    function GMapMol{A,B}() where {A<:Atom,B<:Bond}
+        new(MutableUDGraph{A,B}(), Dict(), Dict())
     end
 end
 
-function MutableMolecule(nodes::Vector{Atom}, edges::Vector{Bond})
-    mol = MutableMolecule()
+function GMapMol{A,B}(nodes::Vector{A}, edges::Vector{B}
+        ) where {A<:Atom,B<:Bond}
+    mol = GMapMol{A,B}()
     for (i, a) in enumerate(nodes)
         updateatom!(mol, a, i)
     end
@@ -51,72 +49,97 @@ function MutableMolecule(nodes::Vector{Atom}, edges::Vector{Bond})
 end
 
 
-struct Molecule <: AbstractMolecule
-    graph::UDGraph{Atom,Bond}
+struct GQueryMol{A<:QueryAtom,B<:QueryBond} <: QueryMol
+    graph::MutableUDGraph{A,B}
+    connectivity::Array{Array{Int}}
+    attribute::Dict
+
+    function GQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
+        new(MutableUDGraph{A,B}(), [], Dict())
+    end
+end
+
+
+struct GVectorMol{A<:Atom,B<:Bond} <: VectorMol
+    graph::UDGraph{A,B}
     v::Dict{Symbol, Array}
     annotation::Dict{Symbol, Annotation}
     attribute::Dict
 end
 
-function Molecule(mol::MutableMolecule)
-    Molecule(UDGraph(mol.graph), Dict(), mol.annotation, mol.attribute)
-end
 
-function Molecule(nodes::Vector{Atom}, edges::Vector{Bond})
+function GVectorMol{A,B}(nodes::Vector{A}, edges::Vector{B}
+        ) where {A<:Atom,B<:Bond}
     # do not use `fill`
     adj = [Dict() for i in 1:length(nodes)]
     for (i, e) in enumerate(edges)
         adj[e.u][e.v] = i
         adj[e.v][e.u] = i
     end
-    graph = UDGraph{Atom,Bond}(nodes, edges, adj)
-    Molecule(graph, Dict(), Dict(), Dict())
+    GVectorMol{A,B}(
+        UDGraph{A,B}(nodes, edges, adj), Dict(), Dict(), Dict()
+    )
 end
 
 
-nullmol() = Molecule(Vector{Atom}[], Vector{Bond}[])
+# Aliases
+SDFile = GMapMol{SDFileAtom,SDFileBond}
+SMILES = GMapMol{SmilesAtom,SmilesBond}
+SMARTS = GQueryMol{SmartsAtom,SmartsBond}
 
 
-getatom(mol::AbstractMolecule, idx) = getnode(mol.graph, idx)
+function vectormol(mol::GMapMol{A,B}) where {A<:Atom,B<:Bond}
+    GVectorMol{A,B}(
+        UDGraph{A,B}(mol.graph), Dict(), mol.annotation, mol.attribute
+    )
+end
 
-getbond(mol::AbstractMolecule, u, v) = getedge(mol.graph, u, v)
-getbond(mol::AbstractMolecule, idx) = getedge(mol.graph, idx)
 
-neighbors(mol::AbstractMolecule, idx) = neighbors(mol.graph, idx)
+# TODO:
+nullmol() = GVectorMol{A,B}(Vector{A}[], Vector{B}[])
 
-atomcount(mol::AbstractMolecule) = nodecount(mol.graph)
-bondcount(mol::AbstractMolecule) = edgecount(mol.graph)
 
-neighborcount(mol::AbstractMolecule, idx) = length(neighbors(mol.graph, idx))
+getatom(mol::AbstractMol, idx) = getnode(mol.graph, idx)
+
+getbond(mol::AbstractMol, u, v) = getedge(mol.graph, u, v)
+getbond(mol::AbstractMol, idx) = getedge(mol.graph, idx)
+
+neighbors(mol::AbstractMol, idx) = neighbors(mol.graph, idx)
+
+atomcount(mol::AbstractMol) = nodecount(mol.graph)
+bondcount(mol::AbstractMol) = edgecount(mol.graph)
+
+neighborcount(mol::AbstractMol, idx) = length(neighbors(mol.graph, idx))
 degree = neighborcount
 
-function updateatom!(mol::AbstractMutableMolecule, atom, idx)
+
+function updateatom!(mol::AbstractMapMol, atom, idx)
     updatenode!(mol.graph, atom, idx)
 end
 
 
-function updatebond!(mol::AbstractMutableMolecule, bond, idx)
+function updatebond!(mol::AbstractMapMol, bond, idx)
     updateedge!(mol.graph, bond, idx)
 end
 
-updatebond!(m::AbstractMutableMolecule, bond, u, v) = updatedge!(m.graph, bond, u, v)
+updatebond!(m::AbstractMapMol, bond, u, v) = updatedge!(m.graph, bond, u, v)
 
 
-function unlinkatom!(mol::AbstractMutableMolecule, idx)
+function unlinkatom!(mol::AbstractMapMol, idx)
     unlinknode!(mol.graph, idx)
 end
 
 
-function unlinkbond!(mol::AbstractMutableMolecule, idx)
+function unlinkbond!(mol::AbstractMapMol, idx)
     unlinkedge!(mol.graph, idx)
 end
 
-function unlinkbond!(mol::AbstractMutableMolecule, u, v)
+function unlinkbond!(mol::AbstractMapMol, u, v)
     unlinkedge!(mol.graph, u, v)
 end
 
 
-function required_annotation(mol::AbstractMolecule, annot)
+function required_annotation(mol::AbstractMol, annot)
     if !(annot in keys(mol.annotation))
         throw(ErrorException("$(annot) is not available"))
     end

@@ -91,7 +91,7 @@ function tosvg(canvas::Canvas, width, height)
 end
 
 
-function drawsvg!(mol::Molecule, width, height)
+function drawsvg!(mol::VectorMol, width, height)
     draw2d_annot!(mol)
     canvas = SvgCanvas()
     draw2d!(canvas, mol)
@@ -99,7 +99,7 @@ function drawsvg!(mol::Molecule, width, height)
 end
 
 
-function initcanvas!(canvas::Canvas, mol::Molecule)
+function initcanvas!(canvas::Canvas, mol::VectorMol)
     if atomcount(mol) == 0
         return
     end

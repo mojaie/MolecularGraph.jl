@@ -28,14 +28,10 @@ end
 
 @testset "parsesdfmol" begin
     demomol = joinpath(dirname(@__FILE__), "..", "assets", "test", "demo.mol")
-    mol = parsesdfmol(readlines(demomol), false)
+    mol = parsesdfmol(readlines(demomol))
     @test length(mol.graph.edges) == 37
     @test length(mol.graph.adjacency) == 37
-    @test mol isa Molecule
-    mol = parsesdfmol(readlines(demomol), true)
-    @test length(mol.graph.edges) == 37
-    @test length(mol.graph.adjacency) == 37
-    @test mol isa MutableMolecule
+    @test mol isa SDFile
 end
 
 end # sdfilereader

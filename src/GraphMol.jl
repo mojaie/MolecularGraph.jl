@@ -37,6 +37,7 @@ module GraphMol
     using ..Geometry
     using ..Graph
 
+    include("./model/interface.jl")
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
@@ -51,6 +52,7 @@ module GraphMol
     include("./smarts/bond.jl")
     include("./smarts/logicaloperator.jl")
     include("./smarts/molecule.jl")
+    include("./smarts/smilesreader.jl")
 
     include("./draw/base.jl")
     include("./draw/coords2d.jl")
@@ -59,6 +61,5 @@ module GraphMol
 
     include("download.jl")
     include("sdfilereader.jl")
-    include("smilesreader.jl")
 
 end

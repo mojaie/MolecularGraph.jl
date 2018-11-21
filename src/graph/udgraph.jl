@@ -11,6 +11,7 @@ export
     Edge,
     UDGraph,
     MutableUDGraph,
+    connect,
     getnode,
     getedge,
     nodekeys,
@@ -48,7 +49,7 @@ struct Edge <: AbstractEdge
 end
 
 Edge(u, v) = Edge(u, v, Dict())
-Edge(e::Edge, u, v) = Edge(u, v, e.attr)
+connect(e::Edge, u, v) = Edge(u, v, e.attr)
 
 
 struct MutableUDGraph{N<:AbstractNode,E<:AbstractEdge} <: AbstractUDGraph
@@ -80,7 +81,7 @@ struct UDGraph{N<:AbstractNode,E<:AbstractEdge} <: AbstractUDGraph
     adjacency::Vector{Dict{Int,Int}}
 end
 
-function UDGraph(size::Integer, edges::AbstractArray{Tuple{Int,Int}})
+function UDGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
     # do not use `fill`
     ns = [Node() for i in 1:size]
     adj = [Dict() for i in 1:size]
@@ -93,9 +94,8 @@ function UDGraph(size::Integer, edges::AbstractArray{Tuple{Int,Int}})
     UDGraph{Node,Edge}(ns, es, adj)
 end
 
-function UDGraph(graph::MutableUDGraph)
-    N = valtype(graph.nodes)
-    E = valtype(graph.edges)
+function UDGraph{N,E}(graph::MutableUDGraph{N,E}
+        ) where {N<:AbstractNode,E<:AbstractEdge}
     ns = []
     es = []
     adj = [Dict() for n in graph.nodes]
@@ -112,7 +112,7 @@ function UDGraph(graph::MutableUDGraph)
     for (i, k) in enumerate(ekeys)
         edgemap[k] = i
         e = graph.edges[k]
-        push!(es, E(e, nodemap[e.u], nodemap[e.v]))
+        push!(es, connect(e, nodemap[e.u], nodemap[e.v]))
     end
     for (u, nbrs) in graph.adjacency
         for (v, e) in nbrs

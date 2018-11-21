@@ -34,7 +34,7 @@ function atom!(state::SmilesParserState)
                 prop[p.first] = p.second
             end
         end
-        return smilesatom(
+        return SmilesAtom(
             prop[:Symbol],
             get!(prop, :Charge, 0),
             0,
@@ -51,7 +51,7 @@ function atom!(state::SmilesParserState)
         if a === nothing
             return
         else
-            return smilesatom(a[1], 0, 1, nothing, a[2], nothing)
+            return SmilesAtom(a[1], 0, 1, nothing, a[2], nothing)
         end
     end
 end
@@ -67,7 +67,7 @@ function atomquery!(state::SmartsParserState)
         cq = read(state)
         @assert cq == ']' "(atomquery!) unexpected token: $(cq)"
         forward!(state)
-        return QueryAtom(q)
+        return SmartsAtom(q)
     elseif isdigit(c)
         num = parse(Int, c)
         forward!(state)
@@ -78,19 +78,19 @@ function atomquery!(state::SmartsParserState)
             return
         elseif a[1] !== nothing && a[2] !== nothing
             q = :and => (:Symbol => a[1], :Aromatic => a[2])
-            return QueryAtom(q)
+            return SmartsAtom(q)
         elseif a[1] !== nothing
-            return QueryAtom(:Symbol => a[1])
+            return SmartsAtom(:Symbol => a[1])
         elseif a[2] !== nothing
-            return QueryAtom(:Aromatic => a[2])
+            return SmartsAtom(:Aromatic => a[2])
         else
-            return QueryAtom(:Any => true)
+            return SmartsAtom(:Any => true)
         end
     end
 end
 
 
-function atomsymbol!(state::AbstractSmartsParserState)
+function atomsymbol!(state::AbstractSmartsParser)
     """ Atomsymbol <- Br / Cl / [AaBCcNnOoPpSsFI*]
     """
     if read(state) == 'C' && lookahead(state, 1) == 'l'
@@ -133,7 +133,7 @@ const SMARTS_CHARGE_SIGN = Dict(
 )
 
 
-function atomprop!(state::AbstractSmartsParserState)
+function atomprop!(state::AbstractSmartsParser)
     """ AtomReq <- '\$(' RecursiveQuery ')' / ISO / Sym / Num /
         X / v / R / r / Stereo / H / CHG
     """

@@ -98,7 +98,7 @@ BOND_DRAWER = Dict(
 )
 
 
-function draw2d!(canvas::Canvas, mol::Molecule)
+function draw2d!(canvas::Canvas, mol::VectorMol)
     initcanvas!(canvas, mol)
     if !canvas.valid
         return
@@ -162,7 +162,7 @@ function draw2d!(canvas::Canvas, mol::Molecule)
 end
 
 
-function drawatomindex!(canvas::Canvas, mol::Molecule)
+function drawatomindex!(canvas::Canvas, mol::VectorMol)
     for i in 1:atomcount(mol)
         offset = mol.v[:AtomVisible][i] ? [0, canvas.fontsize / 2] : [0, 0]
         pos = vec2d(canvas.coords[i, :]) + offset

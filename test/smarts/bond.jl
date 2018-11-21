@@ -27,7 +27,7 @@ end
 
     state = SmilesParserState(":")
     arom = bond!(state)
-    @test arom.smiles_aromatic == true
+    @test arom.isaromatic == true
 end
 
 @testset "bondquery" begin

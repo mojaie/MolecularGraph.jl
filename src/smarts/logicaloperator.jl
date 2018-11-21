@@ -62,7 +62,7 @@ function lgor!(state::SmartsParserState, func)
 end
 
 
-function lghighand!(state::AbstractSmartsParserState, func)
+function lghighand!(state::AbstractSmartsParser, func)
     """ And <- Not ('&'? Not)*
     """
     cond = []
@@ -84,7 +84,7 @@ function lghighand!(state::AbstractSmartsParserState, func)
 end
 
 
-function lgnot!(state::AbstractSmartsParserState, func)
+function lgnot!(state::AbstractSmartsParser, func)
     """ Not <- '!'? Element
     """
     if read(state) == '!'

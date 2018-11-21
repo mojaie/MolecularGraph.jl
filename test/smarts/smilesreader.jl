@@ -11,8 +11,8 @@
     @test tokenize("C\\C=C/C") == ["C", "\\C", "=C", "/C"]
     @test tokenize("BrCCl") == ["Br", "C", "Cl"]
     @test tokenize("C12C3C1C23") == ["C12", "C3", "C1", "C23"]
-    @test_throws OperationError tokenize("C1CCC(C)1CC")
-    @test_throws OperationError tokenize("MgCl")
+    @test_throws MolParseError tokenize("C1CCC(C)1CC")
+    @test_throws MolParseError tokenize("MgCl")
 end
 
 @testset "parsetoken" begin
@@ -109,17 +109,17 @@ end
     # TODO: optical isomers
     LAla = smilestomol("N[C@H](C)C(=O)O")
     @test neighborcount(LAla, 2) == 3
-    @test getatom(LAla, 2).smiles_stereo == 1
+    @test getatom(LAla, 2).stereo == 1
     DAla = smilestomol("N[C@@H](C)C(=O)O")
     @test neighborcount(DAla, 2) == 3
-    @test getatom(DAla, 2).smiles_stereo == 2
+    @test getatom(DAla, 2).stereo == 2
 
     # TODO: aromatic
     benzene = smilestomol("c1ccccc1")
-    @test getatom(benzene, 1).smiles_aromatic
+    @test getatom(benzene, 1).isaromatic
     @test getbond(benzene, 1, 6).order == 1
     pyridone = smilestomol("O=c1[nH]cccc1")
-    @test getatom(pyridone, 3).smiles_aromatic
+    @test getatom(pyridone, 3).isaromatic
     @test neighborcount(pyridone, 3) == 2 # Implicit H is ignored
     PhONa = smilestomol("c1cc([O-].[Na+])ccc1")
     @test neighborcount(PhONa, 3) == 3

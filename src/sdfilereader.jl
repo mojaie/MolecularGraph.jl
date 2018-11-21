@@ -8,7 +8,7 @@ export
     sdfilereader,
     sdfbatchsupplier,
     nohaltsupplier,
-    parsesdf,
+    parse,
     parsesdfblocks,
     parsesdfmol,
     parsesdfatom,
@@ -17,10 +17,14 @@ export
     parsesdfoptions
 
 
+import Base: parse
+
+
 function sdftomol(lines)
-    mol = parsesdf(lines, mutable=false)
-    default_annotation!(mol)
-    mol
+    mol = parse(SDFile, lines)
+    vmol = vectormol(mol)
+    default_annotation!(vmol)
+    vmol
 end
 
 sdftomol(file::IO) = sdftomol(eachline(file))
@@ -33,23 +37,23 @@ end
 sdfilereader(file::IO) = sdfilereader(eachline(file))
 
 
-function sdfbatchsupplier(supplier, sdfparser, lines)
+function sdfbatchsupplier(supplier, parser, lines)
     # TODO: Return value of sdfparser should be Molecule (not MutableMolecule)
     Channel() do channel
         for (i, block) in enumerate(parsesdfblocks(lines))
-            put!(channel, supplier(sdfparser, block, i))
+            put!(channel, supplier(parser, block, i))
         end
     end
 end
 
 
-function nohaltsupplier(sdfparser, block, i)
+function nohaltsupplier(parser, block, i)
     try
-        sdfparser(block)
+        parser(block)
     catch e
         if e isa GraphMolError
             println("$(e.msg) (#$(i) in sdfilereader)")
-            sdfparser(nullmol())
+            parser(nullmol())
         else
             throw(e)
         end
@@ -57,13 +61,12 @@ function nohaltsupplier(sdfparser, block, i)
 end
 
 
-function parsesdf(lines; mutable=false)
+function parse(::Type{T}, lines) where T <: SDFile
     lines = collect(lines)
     molend = findnext(x -> x == "M  END", lines, 1)
     mollines = view(lines, 1:(molend - 1))
     optlines = view(lines, (molend + 1):lastindex(lines))
-    molobj = parsesdfmol(mollines, mutable)
-    molobj.attribute[:sourcetype] = :sdfile
+    molobj = parsesdfmol(mollines)
     merge!(molobj.attribute, parsesdfoptions(optlines))
     molobj
 end
@@ -87,7 +90,7 @@ function parsesdfblocks(lines)
 end
 
 
-function parsesdfmol(lines, mutable)
+function parsesdfmol(lines)
     countline = lines[4]
     atomcount = parse(UInt16, countline[1:3])
     bondcount = parse(UInt16, countline[4:6])
@@ -99,9 +102,9 @@ function parsesdfmol(lines, mutable)
     bonds = parsesdfbond.(bondblock)
     propblock = @view lines[ atomcount + bondcount + 5 : end ]
     sdfatomprops!(atoms, propblock)
-    aobjs = [sdfatom(atom...) for atom in atoms]
-    bobjs = [sdfbond(bond...) for bond in bonds]
-    mutable ? MutableMolecule(aobjs, bobjs) : Molecule(aobjs, bobjs)
+    aobjs = [SDFileAtom(atom...) for atom in atoms]
+    bobjs = [SDFileBond(bond...) for bond in bonds]
+    return GMapMol{SDFileAtom,SDFileBond}(aobjs, bobjs)
 end
 
 
@@ -126,47 +129,11 @@ function parsesdfatom(line)
 end
 
 
-const SDF_STEREO_TABLE = Dict(0 => 0, 1 => 1, 3 => 3, 4 => 5, 6 => 3)
-
-
 function parsesdfbond(line)
-    """Bond
-
-    * Notation
-        * Single bond
-            * 0: u - v
-            * 1: u ◀ v (Up-arrow)
-            * 2: u ▶ v
-            * 3: u ◁ v (Down-arrow)
-            * 4: u ▷ v
-            * 5: u ~ v (Chiral)
-        * Double bond
-            * 0: v ニ u (clockwise, default)
-            * 1: u ニ v (counter-clockwise)
-            * 2: u ＝ v (equal length, for terminal bond by default)
-            * 3: u × v (Cis-Trans Unknown)
-    """
     u = parse(Int, line[1:3])
     v = parse(Int, line[4:6])
-    """ TODO: no need to order?
-    first = parse(UInt16, line[1:3])
-    second = parse(UInt16, line[4:6])
-    ordered = first < second
-    u = ordered ? first : second
-    v = ordered ? second : first
-    """
     order = parse(Int, line[7:9])
     notation = parse(Int, line[10:12])
-    "
-    notation = SDF_STEREO_TABLE[parse(UInt8, line[10:12])]
-    if !ordered && order == 1
-        if notation == 1
-            notation = 2
-        elseif notation == 3
-            notation = 4
-        end
-    end
-    "
     [u, v, order, notation]
 end
 
