@@ -17,9 +17,6 @@ export
 import Base: read, parse
 
 
-
-
-
 abstract type AbstractSmartsParser end
 
 
