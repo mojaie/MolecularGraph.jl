@@ -88,15 +88,16 @@ SMILES = GMapMol{SmilesAtom,SmilesBond}
 SMARTS = GQueryMol{SmartsAtom,SmartsBond}
 
 
+nullmol(::Type{T}) where T <: SDFile = SDFile()
+nullmol(::Type{T}) where T <: SMILES = SMILES()
+nullmol(::Type{T}) where T <: SMARTS = SMARTS()
+
+
 function vectormol(mol::GMapMol{A,B}) where {A<:Atom,B<:Bond}
     GVectorMol{A,B}(
         UDGraph{A,B}(mol.graph), Dict(), mol.annotation, mol.attribute
     )
 end
-
-
-# TODO:
-nullmol() = GVectorMol{A,B}(Vector{A}[], Vector{B}[])
 
 
 getatom(mol::AbstractMol, idx) = getnode(mol.graph, idx)

@@ -29,6 +29,13 @@ function default_annotation!(mol::VectorMol)
 end
 
 
+# TODO: :RingBond
+# TODO: :Degree (without hydrogen)
+# TODO: :Connectivity (with hydrogen)
+# TODO: :RingSize
+# TODO: :RingCount (SSSR?)
+
+
 function intrinsic_annot!(mol::VectorMol)
     # Symbol
     mol.v[:Symbol] = [atom.symbol for atom in mol.graph.nodes]

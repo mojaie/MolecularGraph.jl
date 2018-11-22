@@ -17,4 +17,10 @@
         updatebond!(q, b, 1)
         @test atomcount(q) == 2
     end
+
+    @testset "nullmol" begin
+        nullsdf = nullmol(SDFile)
+        @test atomcount(nullsdf) == 0
+        @test bondcount(nullsdf) == 0
+    end
 end

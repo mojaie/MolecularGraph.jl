@@ -7,6 +7,7 @@ export
     sdftomol,
     sdfilereader,
     sdfbatchsupplier,
+    defaultpostprocess,
     nohaltsupplier,
     parse,
     parsesdfblocks,
@@ -22,23 +23,20 @@ import Base: parse
 
 function sdftomol(lines)
     mol = parse(SDFile, lines)
-    vmol = vectormol(mol)
-    default_annotation!(vmol)
-    vmol
+    return defaultpostprocess(mol)
 end
 
 sdftomol(file::IO) = sdftomol(eachline(file))
 
 
 function sdfilereader(lines)
-    sdfbatchsupplier(nohaltsupplier, sdftomol, lines)
+    sdfbatchsupplier(nohaltsupplier, defaultpostprocess, lines)
 end
 
 sdfilereader(file::IO) = sdfilereader(eachline(file))
 
 
-function sdfbatchsupplier(supplier, parser, lines)
-    # TODO: Return value of sdfparser should be Molecule (not MutableMolecule)
+function sdfbatchsupplier(supplier, postprocess, lines)
     Channel() do channel
         for (i, block) in enumerate(parsesdfblocks(lines))
             put!(channel, supplier(parser, block, i))
@@ -47,17 +45,25 @@ function sdfbatchsupplier(supplier, parser, lines)
 end
 
 
-function nohaltsupplier(parser, block, i)
-    try
-        parser(block)
+function nohaltsupplier(postprocess, block, i)
+    mol = try
+        parse(SDFile, block)
     catch e
         if e isa GraphMolError
             println("$(e.msg) (#$(i) in sdfilereader)")
-            parser(nullmol())
+            nullmol(SDFile)
         else
             throw(e)
         end
     end
+    return postprocess(mol)
+end
+
+
+function defaultpostprocess(mol::SDFile)
+    vmol = vectormol(mol)
+    default_annotation!(vmol)
+    return vmol
 end
 
 
