@@ -113,13 +113,13 @@ end
     @test ox.charge == -2
 end
 
-@testset "atomquery" begin
+@testset "smartsatom" begin
     state = SmartsParserState("c")
-    aromc = atomquery!(state)
+    aromc = atom!(state)
     @test aromc.query == (:and => (:Symbol => :C, :Aromatic => true))
 
     state = SmartsParserState("[#16]")
-    no16 = atomquery!(state)
+    no16 = atom!(state)
     @test no16.query == (:Symbol => :S)
 end
 

@@ -7,7 +7,7 @@ export
     componentquery!,
     component!,
     fragment!,
-    branch!,
+    group!,
     chain!
 
 
@@ -64,9 +64,7 @@ end
 function group!(state::AbstractSmartsParser, bond)
     """ Group <- Atom ((Bond? Group) / Chain)* Chain
     """
-    atomf = state isa SmilesParserState ? atom! : atomquery!
-    bondf = state isa SmilesParserState ? bond! : bondquery!
-    a = atomf(state)
+    a = atom!(state)
     if a === nothing
         # Do not start with '(' ex. C((C)C)C is invalid
         throw(MolParseError(
@@ -84,7 +82,7 @@ function group!(state::AbstractSmartsParser, bond)
         if read(state) == '('
             forward!(state)
             buf = state.branch
-            b = something(bondf(state), defaultbond(state))
+            b = something(bond!(state), defaultbond(state))
             group!(state, b)
             state.branch = buf
             c = read(state)
@@ -109,8 +107,6 @@ end
 function chain!(state::AbstractSmartsParser)
     """ Chain <- (Bond? (Atom / RingLabel))+
     """
-    atomf = state isa SmilesParserState ? atom! : atomquery!
-    bondf = state isa SmilesParserState ? bond! : bondquery!
     u = state.branch
     while !state.done
         # Bond?
@@ -119,7 +115,7 @@ function chain!(state::AbstractSmartsParser)
             forward!(state)
             b = :disconn
         else
-            b = bondf(state)
+            b = bond!(state)
         end
 
         # RingLabel
@@ -139,7 +135,7 @@ function chain!(state::AbstractSmartsParser)
         end
 
         # Atom
-        a = atomf(state)
+        a = atom!(state)
         if a === nothing
             c = read(state)
             @assert c in "().\0" "unexpected token: $(c) at $(state.pos)"

@@ -6,7 +6,6 @@
 export
     defaultbond,
     bond!,
-    bondquery!,
     bondsymbol!
 
 
@@ -15,7 +14,7 @@ defaultbond(state::SmartsParserState) = SmartsBond(:BondOrder => 1)
 
 
 function bond!(state::SmilesParserState)
-    """ Bond <- [-=#:/\\]?
+    """ Bond <- BondSymbol?
     """
     b = bondsymbol!(state)
     if b === nothing
@@ -30,8 +29,8 @@ function bond!(state::SmilesParserState)
 end
 
 
-function bondquery!(state::SmartsParserState)
-    """ BondQuery <- '~' / BondLogicalCond '?'?
+function bond!(state::SmartsParserState)
+    """ Bond <- '~' / (BondSymbol / LogicalCond)?
     """
     if read(state) == '~'
         forward!(state)
@@ -58,6 +57,8 @@ const SMARTS_BOND_SYMBOL = Dict(
 
 
 function bondsymbol!(state::AbstractSmartsParser)
+    """ BondSymbol <- [-=#@:/\\] / '/?' / '\\?'
+    """
     c = read(state)
     if c in keys(SMARTS_BOND_SYMBOL)
         cond = SMARTS_BOND_SYMBOL[c]

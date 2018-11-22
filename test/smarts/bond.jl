@@ -26,13 +26,13 @@ end
     @test arom.isaromatic == true
 end
 
-@testset "bondquery" begin
+@testset "smartsbond" begin
     state = SmartsParserState("~")
-    anyb = bondquery!(state)
+    anyb = bond!(state)
     @test anyb.query == (:any => true)
 
     state = SmartsParserState("-!@")
-    notring = bondquery!(state)
+    notring = bond!(state)
     @test notring.query == (
         :and => (:BondOrder => 1, :not => (:RingBond => true))
     )

@@ -5,7 +5,6 @@
 
 export
     atom!,
-    atomquery!,
     atomsymbol!,
     atomprop!
 
@@ -15,7 +14,7 @@ export
 
 
 function atom!(state::SmilesParserState)
-    """ Atom <- '[' atomprop+ ']' / [0-9] / atomsymbol
+    """ Atom <- '[' AtomProp+ ']' / AtomSymbol
     """
     c = read(state)
     if c == '['
@@ -58,8 +57,8 @@ function atom!(state::SmilesParserState)
 end
 
 
-function atomquery!(state::SmartsParserState)
-    """ Atom <- '[' AtomPropLogicalCond ']' / [0-9] / atomsymbol
+function atom!(state::SmartsParserState)
+    """ Atom <- '[' (AtomProp / LogicalOperator)+ ']' / AtomSymbol
     """
     c = read(state)
     if c == '['
@@ -131,8 +130,8 @@ const SMARTS_CHARGE_SIGN = Dict(
 
 
 function atomprop!(state::AbstractSmartsParser)
-    """ AtomReq <- '\$(' RecursiveQuery ')' / ISO / Sym / Num /
-        X / v / R / r / Stereo / H / CHG
+    """ AtomProp <- '\$(' RecursiveQuery ')' / Mass / Symbol / AtomNum /
+        Stereo / CHG / [DHRrvX]
     """
     c = read(state)
     atomsyms = keys(PERIODIC_TABLE)
