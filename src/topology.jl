@@ -15,6 +15,14 @@ struct MolGraphTopology <: Annotation
 end
 
 
+# TODO: redesign with general cycle detection algorithm
+
+# TODO: annotation
+# :RingBond
+# :RingSize
+# :RingCount (SSSR?)
+
+
 function molgraph_topology!(mol::VectorMol)
     nodeset = Set(1:atomcount(mol))
     candidates = Dict()

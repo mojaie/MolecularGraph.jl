@@ -15,28 +15,20 @@ export
     aromatic!
 
 
-struct IntrinsicAnnot <: Annotation end
-struct ValenceAnnot <: Annotation end
+struct DefaultAnnot <: Annotation end
 struct AtomAnnot <: Annotation end
 struct GroupAnnot <: Annotation end
 
 
 function default_annotation!(mol::VectorMol)
     molgraph_topology!(mol)
-    intrinsic_annot!(mol)
+    default_annot!(mol)
     valence_annot!(mol)
     return
 end
 
 
-# TODO: :RingBond
-# TODO: :Degree (without hydrogen)
-# TODO: :Connectivity (with hydrogen)
-# TODO: :RingSize
-# TODO: :RingCount (SSSR?)
-
-
-function intrinsic_annot!(mol::VectorMol)
+function default_annot!(mol::VectorMol)
     # Symbol
     mol.v[:Symbol] = [atom.symbol for atom in mol.graph.nodes]
     # Charge
@@ -45,35 +37,31 @@ function intrinsic_annot!(mol::VectorMol)
     mol.v[:Multiplicity] = [atom.multiplicity for atom in mol.graph.nodes]
     # Bond order
     mol.v[:BondOrder] = [bond.order for bond in mol.graph.edges]
-    mol.annotation[:Intrinsic] = IntrinsicAnnot()
-    return
-end
 
-
-function valence_annot!(mol::VectorMol)
-    required_annotation(mol, :Intrinsic)
     nbrords = Vector{Int}[]
     for (i, nbr) in enumerate(mol.graph.adjacency)
         push!(nbrords, [mol.v[:BondOrder][b] for b in values(nbr)])
     end
-    # Number of bonds TODO: rename to "Degree" (exclude explicit H)
-    mol.v[:NumBonds] = length.(nbrords)
+    # Degree (connection without hydrogen)
+    mol.v[:Degree] = length.(nbrords)
     # Valence
     sm = arr -> reduce(+, arr; init=0)  # TODO: sum of empty arr is invalid
     mol.v[:Valence] = sm.(nbrords)
     # Number of pi electrons
-    mol.v[:Pi] = mol.v[:Valence] - mol.v[:NumBonds]
+    mol.v[:Pi] = mol.v[:Valence] - mol.v[:Degree]
     # Number of lone pairs
     mol.v[:LonePair] = lonepair.(mol.v[:Symbol], mol.v[:Charge])
     # Hydrogen count
     mol.v[:H_Count] = h_count.(mol.v[:Valence], mol.v[:LonePair])
+    # Connectivity (connection including hydrogen)
+    mol.v[:Connectivity] = mol.v[:Degree] + mol.v[:H_Count])
     # Hydrogen bond donor count
     mol.v[:H_Donor] = h_donor.(mol.v[:Symbol], mol.v[:H_Count])
     # Hydrogen bond acceptor count
     mol.v[:H_Acceptor] = h_acceptor.(mol.v[:Symbol], mol.v[:LonePair])
     # Molecular weight including neighbor hydrogens
     mol.v[:MolWeight] = molweight.(mol.graph.nodes, mol.v[:H_Count])
-    mol.annotation[:Valence] = ValenceAnnot()
+    mol.annotation[:Default] = DefaultAnnot()
     return
 end
 
@@ -110,7 +98,7 @@ end
 
 
 function atom_annot!(mol)
-    required_annotation(mol, :Valence)
+    required_annotation(mol, :Default)
 
     # Oxygen type
     # 0:atom, 1:hydroxyl, 2:ether, 3:oxonium,
@@ -121,9 +109,9 @@ function atom_annot!(mol)
             continue
         end
         if mol.v[:Pi][i] == 1
-            mol.v[:Oxygen][i] = mol.v[:NumBonds][i] + 3
+            mol.v[:Oxygen][i] = mol.v[:Degree][i] + 3
         else
-            mol.v[:Oxygen][i] = mol.v[:NumBonds][i]
+            mol.v[:Oxygen][i] = mol.v[:Degree][i]
         end
     end
 
@@ -138,9 +126,9 @@ function atom_annot!(mol)
         if mol.v[:Pi][i] == 2
             mol.v[:Nitrogen][i] = 8
         elseif mol.v[:Pi][i] == 1
-            mol.v[:Nitrogen][i] = mol.v[:NumBonds][i] + 4
+            mol.v[:Nitrogen][i] = mol.v[:Degree][i] + 4
         else
-            mol.v[:Nitrogen][i] = mol.v[:NumBonds][i]
+            mol.v[:Nitrogen][i] = mol.v[:Degree][i]
         end
     end
 
@@ -155,9 +143,9 @@ function atom_annot!(mol)
         if mol.v[:Valence][i] > 3
             mol.v[:Sulfur][i] = 6
         elseif mol.v[:Pi][i] == 1
-            mol.v[:Sulfur][i] = mol.v[:NumBonds][i] + 4
+            mol.v[:Sulfur][i] = mol.v[:Degree][i] + 4
         else
-            mol.v[:Sulfur][i] = mol.v[:NumBonds][i]
+            mol.v[:Sulfur][i] = mol.v[:Degree][i]
         end
     end
 
@@ -238,11 +226,11 @@ end
 
 function rotatable!(mol)
     required_annotation(mol, :Topology)
-    required_annotation(mol, :Valence)
+    required_annotation(mol, :Default)
     pred = (i, b) -> (
         mol.v[:BondOrder][i] == 1
-        && mol.v[:NumBonds][b.u] != 1
-        && mol.v[:NumBonds][b.v] != 1
+        && mol.v[:Degree][b.u] != 1
+        && mol.v[:Degree][b.v] != 1
         && isempty(intersect(mol.v[:Cycle][b.u], mol.v[:Cycle][b.v]))
     )
     mol.v[:Rotatable] = pred.(collect(1:bondcount(mol)), mol.graph.edges)
