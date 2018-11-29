@@ -4,35 +4,26 @@
 #
 
 export
-    AbstractNode,
-    AbstractEdge,
-    AbstractUDGraph,
     Node,
     Edge,
-    UDGraph,
-    MutableUDGraph,
+    UGraph,
+    GMapUGraph,
+    GVectorUGraph,
     connect,
     getnode,
     getedge,
+    nodesiter,
+    edgesiter,
     nodekeys,
+    edgekeys,
     neighbors,
-    neighborkeys,
-    neighbornodes,
-    neighboredgekeys,
-    neighboredges,
     nodecount,
     edgecount,
-    neighborcount,
-    degree,
     updatenode!,
     updateedge!,
     unlinknode!,
-    unlinkedge!
-
-
-abstract type AbstractNode end
-abstract type AbstractEdge end
-abstract type AbstractUDGraph end
+    unlinkedge!,
+    similarmap
 
 
 struct Node <: AbstractNode
@@ -52,19 +43,19 @@ Edge(u, v) = Edge(u, v, Dict())
 connect(e::Edge, u, v) = Edge(u, v, e.attr)
 
 
-struct MutableUDGraph{N<:AbstractNode,E<:AbstractEdge} <: AbstractUDGraph
+struct GMapUGraph{N<:AbstractNode,E<:AbstractEdge} <: MapUGraph
     nodes::Dict{Int,N}
     edges::Dict{Int,E}
     adjacency::Dict{Int,Dict{Int,Int}}
 
-    function MutableUDGraph{N,E}() where {N<:AbstractNode,E<:AbstractEdge}
+    function GMapUGraph{N,E}() where {N<:AbstractNode,E<:AbstractEdge}
         new(Dict(), Dict(), Dict())
     end
 end
 
-function MutableUDGraph(nodes::AbstractArray{Int},
+function GMapUGraph(nodes::AbstractArray{Int},
                         edges::AbstractArray{Tuple{Int,Int}})
-    graph = MutableUDGraph{Node,Edge}()
+    graph = GMapUGraph{Node,Edge}()
     for node in nodes
         updatenode!(graph, Node(), node)
     end
@@ -75,13 +66,13 @@ function MutableUDGraph(nodes::AbstractArray{Int},
 end
 
 
-struct UDGraph{N<:AbstractNode,E<:AbstractEdge} <: AbstractUDGraph
+struct GVectorUGraph{N<:AbstractNode,E<:AbstractEdge} <: VectorUGraph
     nodes::Vector{N}
     edges::Vector{E}
     adjacency::Vector{Dict{Int,Int}}
 end
 
-function UDGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
+function GVectorUGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
     # do not use `fill`
     ns = [Node() for i in 1:size]
     adj = [Dict() for i in 1:size]
@@ -91,10 +82,10 @@ function UDGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
         adj[u][v] = i
         adj[v][u] = i
     end
-    UDGraph{Node,Edge}(ns, es, adj)
+    GVectorUGraph{Node,Edge}(ns, es, adj)
 end
 
-function UDGraph{N,E}(graph::MutableUDGraph{N,E}
+function GVectorUGraph{N,E}(graph::GMapUGraph{N,E}
         ) where {N<:AbstractNode,E<:AbstractEdge}
     ns = []
     es = []
@@ -119,39 +110,35 @@ function UDGraph{N,E}(graph::MutableUDGraph{N,E}
             adj[nodemap[u]][nodemap[v]] = edgemap[e]
         end
     end
-    UDGraph{N,E}(ns, es, adj)
+    GVectorUGraph{N,E}(ns, es, adj)
 end
 
 
-getnode(graph::AbstractUDGraph, idx) = graph.nodes[idx]
+getnode(graph::UGraph, idx) = graph.nodes[idx]
 
-getedge(graph::AbstractUDGraph, idx) = graph.edges[idx]
-getedge(graph::AbstractUDGraph, u, v) = getedge(graph, graph.adjacency[u][v])
+getedge(graph::UGraph, idx) = graph.edges[idx]
+getedge(graph::UGraph, u, v) = getedge(graph, graph.adjacency[u][v])
+
+nodesiter(graph::VectorUGraph) = enumerate(graph.nodes)
+nodesiter(graph::MapUGraph) = graph.nodes
+
+nodekeys(graph::VectorUGraph) = Set(1:nodecount(graph))
+nodekeys(graph::MapUGraph) = Set(keys(graph.nodes))
+
+edgesiter(graph::VectorUGraph) = enumerate(graph.edges)
+edgesiter(graph::MapUGraph) = graph.edges
+
+edgekeys(graph::VectorUGraph) = Set(1:edgecount(graph))
+edgekeys(graph::MapUGraph) = Set(keys(graph.edges))
+
+neighbors(graph::UGraph, idx) = graph.adjacency[idx]
+
+nodecount(graph::UGraph) = length(graph.nodes)
+
+edgecount(graph::UGraph) = length(graph.edges)
 
 
-nodekeys(graph::UDGraph) = Set(1:nodecount(graph))
-nodekeys(graph::MutableUDGraph) = Set(keys(graph.nodes))
-
-
-neighbors(graph::AbstractUDGraph, idx) = graph.adjacency[idx]
-
-neighborkeys(graph, idx) = collect(keys(graph.adjacency[idx]))
-
-neighbornodes(graph, idx) = getnode.((graph,), keys(graph.adjacency[idx]))
-
-neighboredgekeys(graph, idx) = collect(values(graph.adjacency[idx]))
-
-neighboredges(graph, idx) = getedge.((graph,), values(graph.adjacency[idx]))
-
-
-nodecount(graph::AbstractUDGraph) = length(graph.nodes)
-
-edgecount(graph::AbstractUDGraph) = length(graph.edges)
-
-neighborcount(graph, idx) = length(graph.adjacency[idx])
-degree = neighborcount
-
-function updatenode!(graph::MutableUDGraph, node, idx)
+function updatenode!(graph::MapUGraph, node, idx)
     """Add or update a node"""
     graph.nodes[idx] = node
     if !(idx in keys(graph.adjacency))
@@ -161,7 +148,7 @@ function updatenode!(graph::MutableUDGraph, node, idx)
 end
 
 
-function updateedge!(graph::MutableUDGraph, edge, idx)
+function updateedge!(graph::MapUGraph, edge, idx)
     """Add or update an edge"""
     if !(edge.u in keys(graph.nodes))
         throw(OperationError("Missing node: $(edge.u)"))
@@ -177,7 +164,7 @@ end
 updateedge!(G, edge, u, v) = updateedge!(G, edge, graph.adjacency[u][v])
 
 
-function unlinknode!(graph::MutableUDGraph, idx)
+function unlinknode!(graph::MapUGraph, idx)
     """Remove a node and its connecting edges"""
     if !(idx in keys(graph.nodes))
         throw(OperationError("Missing node: $(idx)"))
@@ -192,7 +179,7 @@ function unlinknode!(graph::MutableUDGraph, idx)
 end
 
 
-function unlinkedge!(graph::MutableUDGraph, u, v)
+function unlinkedge!(graph::MapUGraph, u, v)
     """Remove an edge"""
     if !(u in keys(graph.nodes))
         throw(OperationError("Missing node: $(u)"))
@@ -205,7 +192,7 @@ function unlinkedge!(graph::MutableUDGraph, u, v)
     return
 end
 
-function unlinkedge!(graph::MutableUDGraph, idx)
+function unlinkedge!(graph::MapUGraph, idx)
     """Remove an edge"""
     if !(idx in keys(graph.edges))
         throw(OperationError("Missing edge: $(idx)"))
@@ -215,4 +202,17 @@ function unlinkedge!(graph::MutableUDGraph, idx)
     delete!(graph.adjacency[e.u], e.v)
     delete!(graph.adjacency[e.v], e.u)
     return
+end
+
+
+function similarmap(graph::MapUGraph)
+    N = valtype(graph.nodes)
+    E = valtype(graph.edges)
+    GMapUGraph{N,E}()
+end
+
+function similarmap(graph::VectorUGraph)
+    N = eltype(graph.nodes)
+    E = eltype(graph.edges)
+    GMapUGraph{N,E}()
 end

@@ -7,8 +7,7 @@
 
 export
     default_annotation!,
-    intrinsic_annot!,
-    valence_annot!,
+    default_annot!,
     atom_annot!,
     group_annot!,
     rotatable!,
@@ -23,7 +22,6 @@ struct GroupAnnot <: Annotation end
 function default_annotation!(mol::VectorMol)
     molgraph_topology!(mol)
     default_annot!(mol)
-    valence_annot!(mol)
     return
 end
 
@@ -54,7 +52,7 @@ function default_annot!(mol::VectorMol)
     # Hydrogen count
     mol.v[:H_Count] = h_count.(mol.v[:Valence], mol.v[:LonePair])
     # Connectivity (connection including hydrogen)
-    mol.v[:Connectivity] = mol.v[:Degree] + mol.v[:H_Count])
+    mol.v[:Connectivity] = mol.v[:Degree] + mol.v[:H_Count]
     # Hydrogen bond donor count
     mol.v[:H_Donor] = h_donor.(mol.v[:Symbol], mol.v[:H_Count])
     # Hydrogen bond acceptor count
@@ -166,7 +164,7 @@ function group_annot!(mol)
         elseif mol.v[:Pi][n] == 1
             mol.v[:Alcohol][i] = 4
         else
-            mol.v[:Alcohol][n] = mol.v[:NumBonds][n] - 1
+            mol.v[:Alcohol][n] = mol.v[:Degree][n] - 1
         end
     end
 
@@ -180,7 +178,7 @@ function group_annot!(mol)
         elseif mol.v[:Pi][n] == 1
             mol.v[:Thiol][i] = 4
         else
-            mol.v[:Thiol][n] = mol.v[:NumBonds][n] - 1
+            mol.v[:Thiol][n] = mol.v[:Degree][n] - 1
         end
     end
 
@@ -192,7 +190,7 @@ function group_annot!(mol)
         if mol.v[:Symbol][n] != :C
             continue
         else
-            mol.v[:Carbonyl][n] = mol.v[:NumBonds][n] - 1
+            mol.v[:Carbonyl][n] = mol.v[:Degree][n] - 1
         end
     end
 
@@ -204,7 +202,7 @@ function group_annot!(mol)
         if mol.v[:Symbol][n] != :C
             continue
         else
-            mol.v[:Imine][n] = mol.v[:NumBonds][n] - 1
+            mol.v[:Imine][n] = mol.v[:Degree][n] - 1
         end
     end
 

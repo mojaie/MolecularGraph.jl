@@ -10,7 +10,7 @@ export
 
 
 function coords2d(mol::VectorMol, root)
-    required_annotation(mol, :Valence)
+    required_annotation(mol, :Default)
     required_annotation(mol, :Topology)
     zmatrix = [
         -2 nothing nothing nothing nothing nothing nothing;

@@ -53,7 +53,7 @@ const DRAW_SETTING = Dict(
 
 function draw2d_annot!(mol::VectorMol, setting)
     required_annotation(mol, :Topology)
-    required_annotation(mol, :Valence)
+    required_annotation(mol, :Default)
     if mol isa GVectorMol{SDFileAtom,SDFileBond}
         mol.v[:Coords2D] = zeros(Float64, atomcount(mol), 2)
         for (i, a) in enumerate(mol.graph.nodes)
@@ -64,7 +64,7 @@ function draw2d_annot!(mol::VectorMol, setting)
     end
     mol.v[:AtomColor] = atomcolor(setting).(mol.v[:Symbol])
     mol.v[:AtomVisible] = atomvisible(
-        setting[:display_terminal_carbon]).(mol.v[:Symbol], mol.v[:NumBonds])
+        setting[:display_terminal_carbon]).(mol.v[:Symbol], mol.v[:Degree])
     mol.v[:BondNotation] = bondnotation(mol)
     return
 end
@@ -88,7 +88,7 @@ function bondnotation(mol::VectorMol)
         notation = zeros(Int, bondcount(mol))
     end
     terminal_double_bond!(notation, mol.graph.adjacency,
-                          mol.v[:NumBonds], mol.v[:Valence])
+                          mol.v[:Degree], mol.v[:Valence])
     double_bond_along_ring!(notation, mol.graph.adjacency,
                             mol.annotation[:Topology].cycles,
                             mol.v[:Coords2D], mol.v[:BondOrder])

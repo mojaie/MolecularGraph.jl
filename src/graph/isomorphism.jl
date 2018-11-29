@@ -19,13 +19,13 @@ export
 
 
 struct VF2State
-    G::AbstractUDGraph
-    H::AbstractUDGraph
-    setting::Dict
-    g_core::Dict
-    h_core::Dict
-    g_term::Dict
-    h_term::Dict
+    G::AbstractUGraph
+    H::AbstractUGraph
+    setting::Dict{Symbol,Any}
+    g_core::Dict{Int,Int}
+    h_core::Dict{Int,Int}
+    g_term::Dict{Int,Int}
+    h_term::Dict{Int,Int}
 
     function VF2State(G, H, setting)
         new(G, H, setting, Dict(), Dict(), Dict(), Dict())

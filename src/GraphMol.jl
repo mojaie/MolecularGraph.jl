@@ -23,9 +23,17 @@ module GraphMol
     module Graph
         using StaticArrays
         using ..Error
-        include("./graph/udgraph.jl")
+        include("./graph/interface.jl")
+        include("./graph/ugraph.jl")
+        include("./graph/ugraphview.jl")
+
+        include("./graph/bridge.jl")
+        include("./graph/component.jl")
+        include("./graph/cycle.jl")
         include("./graph/isomorphism.jl")
-        include("./graph/translate.jl")
+        include("./graph/linegraph.jl")
+        include("./graph/merge.jl")
+        include("./graph/shortestpath.jl")
     end
 
     using LinearAlgebra

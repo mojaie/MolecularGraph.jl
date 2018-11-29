@@ -22,20 +22,20 @@ struct LineGraphEdge <: AbstractEdge
 end
 
 
-function linegraph(G)
-    L = MutableUDGraph{LineGraphNode, LineGraphEdge}()
-    for (i, edge) in enumerate(G.edges)
+function linegraph(G::AbstractUGraph)
+    L = GMapUGraph{LineGraphNode, LineGraphEdge}()
+    for (i, edge) in edgesiter(G)
         L.nodes[i] = LineGraphNode(edge.u, edge.v)
         L.adjacency[i] = Dict()
     end
     ecnt = 1
-    for (i, adj) in enumerate(G.adjacency)
+    for i in nodekeys(G)
         if degree(G, i) <= 1
             continue
         end
         # TODO: is there a stuff like itertools.combination?
-        for e1 in values(adj)
-            for e2 in values(adj)
+        for e1 in neighboredgekeys(G, i)
+            for e2 in neighboredgekeys(G, i)
                 if e1 < e2
                     L.edges[ecnt] = LineGraphEdge(e1, e2, i)
                     L.adjacency[e1][e2] = ecnt
@@ -45,5 +45,5 @@ function linegraph(G)
             end
         end
     end
-    L
+    return L
 end

@@ -2,7 +2,7 @@
 # This file is a part of graphmol.jl
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
-"""
+
 module GeometryTest
     using Test
     using LinearAlgebra
@@ -17,11 +17,17 @@ module GraphTest
     using Test
     using GraphMol.Graph
     using GraphMol.Error
-    include("./graph/udgraph.jl")
+    include("./graph/ugraph.jl")
+    include("./graph/ugraphview.jl")
+    include("./graph/shortestpath.jl")
+    include("./graph/bridge.jl")
+    include("./graph/component.jl")
+    include("./graph/merge.jl")
+    include("./graph/cycle.jl")
+    include("./graph/linegraph.jl")
     include("./graph/isomorphism.jl")
-    include("./graph/translate.jl")
 end
-"""
+
 
 module GraphMolTest
     using Test

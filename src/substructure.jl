@@ -87,7 +87,7 @@ end
 function preprocess(mol)
     # remove and annotate Hs and trivials
     required_annotation(mol, :Topology)
-    required_annotation(mol, :Valence)
+    required_annotation(mol, :Default)
     linegraph(mol.graph)
 end
 
