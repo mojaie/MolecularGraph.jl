@@ -8,7 +8,6 @@ export
     VF2_SETTING,
     is_isomorphic,
     subgraph_is_isomorphic,
-    isomorphism_mapping,
     isomorphism_mappings,
     vf2match!,
     updatestate!,
@@ -26,9 +25,10 @@ struct VF2State
     h_core::Dict{Int,Int}
     g_term::Dict{Int,Int}
     h_term::Dict{Int,Int}
+    mappings::Vector{Dict{Int,Int}}
 
     function VF2State(G, H, setting)
-        new(G, H, setting, Dict(), Dict(), Dict(), Dict())
+        new(G, H, setting, Dict(), Dict(), Dict(), Dict(), [])
     end
 end
 
@@ -39,6 +39,10 @@ const VF2_SETTING = Dict(
     :node_match => nothing,
     :edge_match => nothing
 )
+
+function yieldmap!(state::VF2State)
+    push!(state.mappings, copy(state.g_core))
+end
 
 
 function is_isomorphic(G, H, setting)
@@ -58,16 +62,17 @@ subgraph_is_isomorphic(G, H) = subgraph_is_isomorphic(G, H, copy(VF2_SETTING))
 
 function isomorphism_mappings(G, H, setting)
     state = VF2State(G, H, setting)
-    Channel(c -> vf2match!(c, state, nothing, nothing))
+    vf2match!(state, nothing, nothing)
+    return state.mappings
 end
 
 
-function vf2match!(c, state, g_prev, h_prev)
+function vf2match!(state::VF2State, g_prev, h_prev)
     # Recursive
     # println("depth $(length(state.g_core))")
     if length(state.g_core) == nodecount(state.H)
         # println("done $(state.g_core)")
-        put!(c, state.g_core)
+        yieldmap!(state)
     elseif length(state.g_core) >= state.setting[:depthlimit]
         throw(OperationError("Maximum recursion reached"))
     else
@@ -76,7 +81,7 @@ function vf2match!(c, state, g_prev, h_prev)
             if is_feasible(state, g, h) && is_semantic_feasible(state, g, h)
                 updatestate!(state, g, h)
                 # println("g_core $(state.g_core)")
-                vf2match!(c, state, g, h)
+                vf2match!(state, g, h)
             end
         end
         restore!(state, g_prev, h_prev)
@@ -108,20 +113,20 @@ end
 
 
 function candidatepairs(state::VF2State)
-    Channel() do channel
-        g_cand = setdiff(keys(state.g_term), keys(state.g_core))
-        h_cand = setdiff(keys(state.h_term), keys(state.h_core))
-        if isempty(g_cand) || isempty(h_cand)
-            g_cand = setdiff(nodekeys(state.G), keys(state.g_core))
-            h_cand = setdiff(nodekeys(state.H), keys(state.h_core))
-        end
-        if !isempty(h_cand)
-            h_min = minimum(h_cand)
-            for g in g_cand
-                put!(channel, (g, h_min))
-            end
+    pairs = []
+    g_cand = setdiff(keys(state.g_term), keys(state.g_core))
+    h_cand = setdiff(keys(state.h_term), keys(state.h_core))
+    if isempty(g_cand) || isempty(h_cand)
+        g_cand = setdiff(nodekeys(state.G), keys(state.g_core))
+        h_cand = setdiff(nodekeys(state.H), keys(state.h_core))
+    end
+    if !isempty(h_cand)
+        h_min = minimum(h_cand)
+        for g in g_cand
+            push!(pairs, (g, h_min))
         end
     end
+    return pairs
 end
 
 

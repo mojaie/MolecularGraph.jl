@@ -58,29 +58,30 @@ end
 
 
 function struct_match(mol1, mol2, setting)
-    Channel() do channel
-        if !setting[:prefilter](mol1, mol2)
-            return
-        end
-        lg1 = setting[:preprocess](mol1)
-        lg2 = setting[:preprocess](mol2)
-        vf2conf = copy(setting[:vf2conf])
-        vf2conf[:node_match] = node_match(mol1, mol2, lg1, lg2)
-        vf2conf[:edge_match] = edge_match(mol1, mol2, lg1, lg2)
-        state = VF2State(lg1, lg2, vf2conf)
-        for mapping in Channel(c -> vf2match!(c, state, nothing, nothing))
-            # Delta-Y transformation check
-            dy1 = deltaYmap(mapping, mol1, mol2)
-            dy2 = deltaYmap(Dict(v => k for (k, v) in mapping), mol2, mol1)
-            for m in keys(dy1)
-                delete!(mapping, m[1])
-            end
-            for m in values(dy2)
-                delete!(mapping, m[1])
-            end
-            put!(channel, mapping)
-        end
+    mappings = []
+    if !setting[:prefilter](mol1, mol2)
+        return mappings
     end
+    lg1 = setting[:preprocess](mol1)
+    lg2 = setting[:preprocess](mol2)
+    vf2conf = copy(setting[:vf2conf])
+    vf2conf[:node_match] = node_match(mol1, mol2, lg1, lg2)
+    vf2conf[:edge_match] = edge_match(mol1, mol2, lg1, lg2)
+    state = VF2State(lg1, lg2, vf2conf)
+    vf2match!(state, nothing, nothing)
+    for mp in state.mappings
+        # Delta-Y transformation check
+        dy1 = deltaYmap(mp, mol1, mol2)
+        dy2 = deltaYmap(Dict(v => k for (k, v) in mp), mol2, mol1)
+        for m in keys(dy1)
+            delete!(mp, m[1])
+        end
+        for m in values(dy2)
+            delete!(mp, m[1])
+        end
+        push!(mappings, mp)
+    end
+    return mappings
 end
 
 
@@ -88,12 +89,12 @@ function preprocess(mol)
     # remove and annotate Hs and trivials
     required_annotation(mol, :Topology)
     required_annotation(mol, :Default)
-    linegraph(mol.graph)
+    return linegraph(mol.graph)
 end
 
 
 function node_match(mol1, mol2, lg1, lg2)
-    function (g, h)
+    return function (g, h)
         sym1 = mol1.v[:Symbol]
         pi1 = mol1.v[:Pi]
         sym2 = mol2.v[:Symbol]
@@ -110,7 +111,7 @@ end
 
 
 function edge_match(mol1, mol2, lg1, lg2)
-    function (g, h)
+    return function (g, h)
         sym1 = mol1.v[:Symbol]
         pi1 = mol1.v[:Pi]
         sym2 = mol2.v[:Symbol]
@@ -170,5 +171,5 @@ function deltaYmap(mapping, mol1, mol2)
             end
         end
     end
-    res
+    return res
 end
