@@ -4,11 +4,12 @@
 #
 
 export
-    VF2State,
-    VF2_SETTING,
+    VF2NodeInducedState,
+    vf2isomorphstate,
+    vf2subgraphstate,
     is_isomorphic,
-    subgraph_is_isomorphic,
-    isomorphism_mappings,
+    subgraph_isomorph,
+    isomorphmap!,
     vf2match!,
     updatestate!,
     candidatepairs,
@@ -17,53 +18,58 @@ export
     restore!
 
 
-struct VF2State
+mutable struct VF2NodeInducedState <: VF2State
     G::AbstractUGraph
     H::AbstractUGraph
-    setting::Dict{Symbol,Any}
+
+    mode::Symbol
+    depthlimit::Int
+    nodematch::Union{Function,Nothing}
+    edgematch::Union{Function,Nothing}
+    mandatory::Dict{Int,Int}
+    forbidden::Dict{Int,Int}
+
     g_core::Dict{Int,Int}
     h_core::Dict{Int,Int}
     g_term::Dict{Int,Int}
     h_term::Dict{Int,Int}
-    mappings::Vector{Dict{Int,Int}}
 
-    function VF2State(G, H, setting)
-        new(G, H, setting, Dict(), Dict(), Dict(), Dict(), [])
-    end
+    mappings::Vector{Dict{Int,Int}}
 end
 
-
-const VF2_SETTING = Dict(
-    :mode => :isomorphic,
-    :depthlimit => 100,
-    :node_match => nothing,
-    :edge_match => nothing
+vf2isomorphstate(G, H) = VF2NodeInducedState(
+    G, H, :isomorphic, 1000, nothing, nothing, Dict(), Dict(),
+    Dict(), Dict(), Dict(), Dict(), []
 )
+
+vf2subgraphstate(G, H) = VF2NodeInducedState(
+    G, H, :subgraph, 1000, nothing, nothing, Dict(), Dict(),
+    Dict(), Dict(), Dict(), Dict(), []
+)
+
 
 function yieldmap!(state::VF2State)
     push!(state.mappings, copy(state.g_core))
 end
 
 
-function is_isomorphic(G, H, setting)
-    iterate(isomorphism_mappings(G, H, setting)) !== nothing
+function is_isomorphic(G, H)
+    state = vf2isomorphstate(G, H)
+    isomorphmap!(state)
+    return !isempty(state.mappings)
 end
 
-is_isomorphic(G, H) = is_isomorphic(G, H, copy(VF2_SETTING))
 
-
-function subgraph_is_isomorphic(G, H, setting)
-    setting[:mode] = :subgraph
-    iterate(isomorphism_mappings(G, H, setting)) !== nothing
+function subgraph_isomorph(G, H)
+    """ True if H is an induced subgraph of G"""
+    state = vf2subgraphstate(G, H)
+    isomorphmap!(state)
+    return !isempty(state.mappings)
 end
 
-subgraph_is_isomorphic(G, H) = subgraph_is_isomorphic(G, H, copy(VF2_SETTING))
 
-
-function isomorphism_mappings(G, H, setting)
-    state = VF2State(G, H, setting)
+function isomorphmap!(state::VF2NodeInducedState)
     vf2match!(state, nothing, nothing)
-    return state.mappings
 end
 
 
@@ -73,7 +79,7 @@ function vf2match!(state::VF2State, g_prev, h_prev)
     if length(state.g_core) == nodecount(state.H)
         # println("done $(state.g_core)")
         yieldmap!(state)
-    elseif length(state.g_core) >= state.setting[:depthlimit]
+    elseif length(state.g_core) >= state.depthlimit
         throw(OperationError("Maximum recursion reached"))
     else
         for (g, h) in candidatepairs(state)
@@ -82,11 +88,12 @@ function vf2match!(state::VF2State, g_prev, h_prev)
                 updatestate!(state, g, h)
                 # println("g_core $(state.g_core)")
                 vf2match!(state, g, h)
+                # println("restored $(state.g_core)")
+                restore!(state, g, h)
             end
         end
-        restore!(state, g_prev, h_prev)
-        # println("restored $(state.g_core)")
     end
+    return
 end
 
 
@@ -113,16 +120,29 @@ end
 
 
 function candidatepairs(state::VF2State)
+    # Mandatory pair
+    md = setdiff(keys(state.mandatory), keys(state.g_core))
+    if !isempty(md)
+        n = pop!(md)
+        return [(n, state.mandatory[n])]
+    end
+
     pairs = []
     g_cand = setdiff(keys(state.g_term), keys(state.g_core))
     h_cand = setdiff(keys(state.h_term), keys(state.h_core))
     if isempty(g_cand) || isempty(h_cand)
+        # New connected component
         g_cand = setdiff(nodekeys(state.G), keys(state.g_core))
         h_cand = setdiff(nodekeys(state.H), keys(state.h_core))
     end
     if !isempty(h_cand)
         h_min = minimum(h_cand)
         for g in g_cand
+            # Forbidden pair
+            if get(state.forbidden, g, nothing) == h_min
+                continue
+            end
+
             push!(pairs, (g, h_min))
         end
     end
@@ -148,34 +168,34 @@ function is_feasible(state::VF2State, g, h)
     # Terminal set size
     g_term_count = length(setdiff(keys(state.g_term), keys(state.g_core)))
     h_term_count = length(setdiff(keys(state.h_term), keys(state.h_core)))
-    if state.setting[:mode] == :isomorphic && g_term_count != h_term_count
+    if state.mode == :isomorphic && g_term_count != h_term_count
         return false
-    elseif state.setting[:mode] == :subgraph && g_term_count < h_term_count
+    elseif state.mode == :subgraph && g_term_count < h_term_count
         return false
     end
     # Yet unexplored size
     g_new_count = length(setdiff(nodekeys(state.G), keys(state.g_term)))
     h_new_count = length(setdiff(nodekeys(state.H), keys(state.h_term)))
-    if state.setting[:mode] == :isomorphic && g_new_count != h_new_count
+    if state.mode == :isomorphic && g_new_count != h_new_count
         return false
-    elseif state.setting[:mode] == :subgraph && g_new_count < h_new_count
+    elseif state.mode == :subgraph && g_new_count < h_new_count
         return false
     end
     return true
 end
 
 
-function is_semantic_feasible(state, g, h)
-    if state.setting[:node_match] !== nothing
-        if !state.setting[:node_match](g, h)
+function is_semantic_feasible(state::VF2NodeInducedState, g, h)
+    if state.nodematch !== nothing
+        if !state.nodematch(g, h)
             return false
         end
     end
-    if state.setting[:edge_match] !== nothing
+    if state.edgematch !== nothing
         for nbr in intersect(neighborkeys(state.G, g), keys(state.g_core))
             g_edge = neighbors(state.G, g)[nbr]
             h_edge = neighbors(state.H, h)[state.g_core[nbr]]
-            if !state.setting[:edge_match](g_edge, h_edge)
+            if !state.edgematch(g_edge, h_edge)
                 return false
             end
         end

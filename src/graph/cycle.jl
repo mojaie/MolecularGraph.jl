@@ -33,7 +33,7 @@ end
 function minimumcycles(graph::AbstractUGraph)
     mincycs = Vector{Int}[]
     for biconn in two_edge_connected(graph)
-        subg = inducedsubgraph(graph, biconn)
+        subg = nodesubgraph(graph, biconn)
         for cyc in mincyclebasis(subg)
             push!(mincycs, cyc)
         end

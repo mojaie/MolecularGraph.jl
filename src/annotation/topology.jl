@@ -36,7 +36,7 @@ function molgraph_topology!(mol::VectorMol)
             push!(mol.v[:RingMem][n], i)
             push!(mol.v[:RingSize][n], size)
         end
-        sub = inducedsubgraph(mol.graph, Set(ring))
+        sub = nodesubgraph(mol.graph, Set(ring))
         for e in edgekeys(sub)
             mol.v[:RingBond][e] = true
         end

@@ -21,7 +21,7 @@ function bond!(state::SmilesParserState)
         return
     elseif b[1] == :BondOrder
         return SmilesBond(b[2], false, nothing)
-    elseif b[1] == :Aromatic
+    elseif b[1] == :AromaticBond
         return SmilesBond(1, true, nothing)
     elseif b[1] == :stereo
         return SmilesBond(1, false, b[2])
@@ -50,7 +50,7 @@ const SMARTS_BOND_SYMBOL = Dict(
     '=' => :BondOrder => 2,
     '#' => :BondOrder => 3,
     '@' => :RingBond => true,
-    ':' => :Aromatic => true,
+    ':' => :AromaticBond => true,
     '/' => :stereo => 1,
     '\\' => :stereo => 2
 )

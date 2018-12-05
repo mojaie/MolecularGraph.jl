@@ -10,13 +10,9 @@ export
 function default_annotation!(mol::VectorMol)
     molgraph_topology!(mol)
     default_annot!(mol)
+    atom_annot!(mol)
+    group_annot!(mol)
+    rotatable!(mol)
+    aromatic!(mol)
     return
 end
-
-
-# Graph based stereoisomer determination
-#:BondEorZ
-#    -> SMILES_CisTrans
-#:CIP_Rule  # TODO Dont use CIP for chirality info. use Index like SMILES
-#    -> SDFile_BondType
-#    -> SMILES_Stereo

@@ -24,13 +24,13 @@
     # TODO check pop!(nodekeys)
 end
 
-@testset "inducedsubgraph" begin
+@testset "nodesubgraph" begin
     graph = GMapUGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
-    subg = inducedsubgraph(graph, [2, 3, 4])
+    subg = nodesubgraph(graph, [2, 3, 4])
     @test nodecount(subg) == 3
     @test edgecount(subg) == 2
     @test neighborkeys(subg, 2) == [3]
-    subgsubg = inducedsubgraph(subg, [2, 3])
+    subgsubg = nodesubgraph(subg, [2, 3])
     @test nodecount(subgsubg) == 2
     @test edgecount(subgsubg) == 1
 end

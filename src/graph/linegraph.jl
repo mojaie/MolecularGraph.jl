@@ -18,7 +18,7 @@ end
 struct LineGraphEdge <: AbstractEdge
     u::Int
     v::Int
-    common::Int
+    node::Int
 end
 
 

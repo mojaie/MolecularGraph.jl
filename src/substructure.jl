@@ -4,121 +4,169 @@
 #
 
 export
-    STRUCT_MATCH_SETTING,
+    molidentstate,
+    molsubstrstate,
+    substructmap!,
     is_identical,
     is_substruct,
     is_superstruct,
-    substruct_mappings,
-    struct_match,
-    preprocess,
+    match_molquery,
+    match_groupquery,
     fast_identity_filter,
     fast_substr_filter,
     deltaYmap!
 
 
-const STRUCT_MATCH_SETTING = Dict(
-    :prefilter => (a, b) -> true,
-    :preprocess => identity,
-    :postprocess => identity,
-    :vf2conf => Dict(
-        :mode => :isomorphic,
-        :depthlimit => 100,
-        :node_match => nothing,
-        :edge_match => nothing
-    )
+molidentstate(G, H, nmatch, ematch) = VF2EdgeInducedState(
+    G, H, :isomorphic, 1000, nmatch, ematch, Dict(), Dict(),
+    Dict(), Dict(), Dict(), Dict(), []
+)
+
+molsubstrstate(G, H, nmatch, ematch) = VF2EdgeInducedState(
+    G, H, :subgraph, 1000, nmatch, ematch, Dict(), Dict(),
+    Dict(), Dict(), Dict(), Dict(), []
 )
 
 
-function is_identical(mol1, mol2)
-    setting = copy(STRUCT_MATCH_SETTING)
-    setting[:prefilter] = fast_identity_filter
-    setting[:preprocess] = preprocess
-    iterate(struct_match(mol1, mol2, setting)) !== nothing
+function substructmap!(mol, query, state)
+    substrs = []
+    if bondcount(query) != 0
+        # Edge induced subgraph mapping
+        isomorphmap!(state)
+        for emap in state.mappings
+            # Isolated node mapping
+            m = nodesubgraph(
+                mol.graph, setdiff(nodekeys(mol.graph), keys(emap)))
+            q = nodesubgraph(
+                query.graph, setdiff(nodekeys(query.graph), values(emap)))
+            nmap = maxcardmap(nodekeys(m), nodekeys(q), atommatch(mol, query))
+            if length(nmap) == nodecount(q)
+                push!(substrs, (emap, nmap))
+            end
+        end
+    elseif atomcount(query) != 0
+        # Isolated nodes only
+        nmap = maxcardmap(
+            nodekeys(mol.graph), nodekeys(query.graph), atommatch(mol, query)
+        )
+        if length(nmap) == atomcount(query)
+            push!(substrs, ([], nmap))
+        end
+    end
+    return substrs
 end
 
 
-function is_substruct(mol1, mol2)
-    setting = copy(STRUCT_MATCH_SETTING)
-    setting[:vf2conf][:mode] = :subgraph
-    setting[:prefilter] = fast_substr_filter
-    setting[:preprocess] = preprocess
-    iterate(struct_match(mol2, mol1, setting)) !== nothing
+function is_identical(mol1::VectorMol, mol2::VectorMol)
+    preprocess!(mol1)
+    preprocess!(mol2)
+    if !fast_identity_filter(mol1, mol2)
+        return false
+    end
+    state = molidentstate(
+        mol1.graph, mol2.graph, atommatch(mol1, mol2), bondmatch(mol1, mol2))
+    return !isempty(substructmap!(mol1, mol2, state))
+end
+
+
+function is_substruct(mol1::VectorMol, mol2::VectorMol)
+    preprocess!(mol1)
+    preprocess!(mol2)
+    if !fast_substr_filter(mol2, mol1)
+        return false
+    end
+    state = molsubstrstate(
+        mol2.graph, mol1.graph, atommatch(mol1, mol2), bondmatch(mol1, mol2))
+    return !isempty(substructmap!(mol2, mol1, state))
 end
 
 is_superstruct(mol1, mol2) = is_substruct(mol2, mol1)
 
 
-function substruct_mappings(mol1, mol2)
-    setting = copy(STRUCT_MATCH_SETTING)
-    setting[:vf2conf][:mode] = :subgraph
-    setting[:prefilter] = fast_substr_filter
-    setting[:preprocess] = preprocess
-    struct_match(mol2, mol2, setting)
+function match_molquery(mol::VectorMol, query::QueryMol)
+    preprocess!(mol)
+    state = molsubstrstate(
+        mol.graph, query.graph, atommatch(mol, query), bondmatch(mol, query))
+    return !isempty(substructmap!(mol, query, state))
 end
 
 
-function struct_match(mol1, mol2, setting)
-    mappings = []
-    if !setting[:prefilter](mol1, mol2)
-        return mappings
-    end
-    lg1 = setting[:preprocess](mol1)
-    lg2 = setting[:preprocess](mol2)
-    vf2conf = copy(setting[:vf2conf])
-    vf2conf[:node_match] = node_match(mol1, mol2, lg1, lg2)
-    vf2conf[:edge_match] = edge_match(mol1, mol2, lg1, lg2)
-    state = VF2State(lg1, lg2, vf2conf)
-    vf2match!(state, nothing, nothing)
-    for mp in state.mappings
-        # Delta-Y transformation check
-        dy1 = deltaYmap(mp, mol1, mol2)
-        dy2 = deltaYmap(Dict(v => k for (k, v) in mp), mol2, mol1)
-        for m in keys(dy1)
-            delete!(mp, m[1])
+function match_groupquery(mol::VectorMol, query::QueryMol, root::Int)
+    preprocess!(mol)
+    for nbr in neighboredgekeys(mol, root)
+        state = molsubstrstate(
+            mol.graph, query.graph,
+            atommatch(mol, query), bondmatch(mol, query))
+        state.mandatory[nbr] = 1
+        isomorphmap!(state)
+        if !isempty(state.mappings)
+            return true
         end
-        for m in values(dy2)
-            delete!(mp, m[1])
-        end
-        push!(mappings, mp)
     end
-    return mappings
+    return false
 end
 
 
-function preprocess(mol)
-    # remove and annotate Hs and trivials
+function preprocess!(mol)
+    # TODO: remove and annotate Hs and trivials
     required_annotation(mol, :Topology)
     required_annotation(mol, :Default)
-    return linegraph(mol.graph)
+    return
 end
 
 
-function node_match(mol1, mol2, lg1, lg2)
-    return function (g, h)
+function atommatch(mol1::VectorMol, mol2::VectorMol)
+    return function (a1, a2)
         sym1 = mol1.v[:Symbol]
-        pi1 = mol1.v[:Pi]
         sym2 = mol2.v[:Symbol]
+        pi1 = mol1.v[:Pi]
         pi2 = mol2.v[:Pi]
-        p = getnode(lg1, g)
-        q = getnode(lg2, h)
-
-        ((sym1[p.n1] == sym2[q.n1] && sym1[p.n2] == sym2[q.n2]
-         && pi1[p.n1] == pi2[q.n1] && pi1[p.n2] == pi2[q.n2])
-        || (sym1[p.n1] == sym2[q.n2] && sym1[p.n2] == sym2[q.n1]
-         && pi1[p.n1] == pi2[q.n2] && pi1[p.n2] == pi2[q.n1]))
+        sym1[a1] == sym2[a2] && pi1[a1] == pi2[a2]
     end
 end
 
+function atommatch(mol::VectorMol, querymol::QueryMol)
+    return function (a, qa)
+        q = getatom(querymol, qa).query
+        return querymatchtree(q, mol, a)
+    end
+end
 
-function edge_match(mol1, mol2, lg1, lg2)
-    return function (g, h)
-        sym1 = mol1.v[:Symbol]
-        pi1 = mol1.v[:Pi]
-        sym2 = mol2.v[:Symbol]
-        pi2 = mol2.v[:Pi]
-        p = getedge(lg1, g)
-        q = getedge(lg2, h)
-        sym1[p.common] == sym2[q.common] && pi1[p.common] == pi2[q.common]
+atommatch(query::QueryMol, mol::VectorMol) = atom_match(mol, query)
+
+
+function bondmatch(mol1::VectorMol, mol2::VectorMol)
+    # TODO: need bond attribute matching?
+    return (b1, b2) -> true
+end
+
+function bondmatch(mol::VectorMol, querymol::QueryMol)
+    return function (b, qb)
+        q = getbond(querymol, qb).query
+        return querymatchtree(q, mol, b)
+    end
+end
+
+bond_match(query::QueryMol, mol::VectorMol) = bond_match(mol, query)
+
+
+function querymatchtree(query::Pair, mol::VectorMol, i::Int)
+    if query.first == :any
+        return true
+    elseif query.first == :and
+        return all(querymatchtree(q, mol, i) for q in query.second)
+    elseif query.first == :or
+        return any(querymatchtree(q, mol, i) for q in query.second)
+    elseif query.first == :not
+        return !querymatchtree(query.second, mol, i)
+    elseif query.first == :stereo
+        # TODO: stereo not implemented yet
+        return true
+    elseif query.first == :recursive
+        subq = parse(SMARTS, query.second)
+        return match_groupquery(mol, subq, i)
+    else
+        return mol.v[query.first][i] == query.second
     end
 end
 
@@ -146,30 +194,4 @@ function fast_substr_filter(mol1, mol2)
         return false
     end
     return true
-end
-
-
-function deltaYmap(mapping, mol1, mol2)
-    # Return edges should be removed
-    res = []
-    for r in mol1.annotation[:Topology].rings
-        if length(r) != 3
-            continue
-        end
-        symr = mol1.v[:Symbol][r]
-        pir = mol1.v[:Pi][r]
-        if all(symr .== symr[1]) && all(pir .== pir[1])
-            cyc = [(1, 2), (2, 3), (3, 1)]
-            edges = [neighbors(mol1, r[u])[r[v]] for (u, v) in cyc]
-            emap = Dict(e => mapping[e] for e in edges if e in keys(mapping))
-            if length(emap) < 3
-                continue
-            end
-            m2n = [(e = getbond(mol2, n); (e.u, e.v)) for n in values(emap)]
-            if length(intersect(m2n)) == 4  # star-shaped
-                push!(res, emap)
-            end
-        end
-    end
-    return res
 end

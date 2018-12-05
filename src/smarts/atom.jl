@@ -79,7 +79,7 @@ function atom!(state::SmartsParserState)
         elseif a[2] !== nothing
             return SmartsAtom(:Aromatic => a[2])
         else
-            return SmartsAtom(:Any => true)
+            return SmartsAtom(:any => true)
         end
     end
 end

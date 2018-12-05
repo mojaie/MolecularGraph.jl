@@ -10,10 +10,16 @@ function aromatic!(mol)
     required_annotation(mol, :Topology)
     required_annotation(mol, :AtomGroup)
     mol.v[:Aromatic] = falses(atomcount(mol))
+    mol.v[:AromaticBond] = falses(bondcount(mol))
     for ring in mol.annotation[:Topology].rings
         if satisfyHuckel(mol, ring)
             mol.v[:Aromatic][ring] .= true
+            sub = nodesubgraph(mol.graph, Set(ring))
+            for e in edgekeys(sub)
+                mol.v[:AromaticBond][e] = true
+            end
         end
+
     end
     return
 end

@@ -36,7 +36,7 @@ end
 function two_edge_connected(graph::AbstractUGraph)
     brs = Int[]
     for conn in connected_components(graph)
-        subg = inducedsubgraph(graph, conn)
+        subg = nodesubgraph(graph, conn)
         root = pop!(nodekeys(subg))
         append!(brs, bridges(subg, root))
     end

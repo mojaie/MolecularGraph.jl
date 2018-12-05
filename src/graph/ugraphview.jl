@@ -5,7 +5,8 @@
 
 export
     GUGraphView,
-    inducedsubgraph,
+    nodesubgraph,
+    edgesubgraph,
     getnode,
     getedge,
     nodesiter,
@@ -25,7 +26,8 @@ struct GUGraphView{G<:AbstractUGraph} <: UGraphView
 end
 
 
-function inducedsubgraph(graph::AbstractUGraph, nodes)
+function nodesubgraph(graph::AbstractUGraph, nodes)
+    """ Node induced subgraph"""
     edges = Set{Int}()
     for n in nodes
         for (nbr, e) in neighbors(graph, n)
@@ -35,6 +37,17 @@ function inducedsubgraph(graph::AbstractUGraph, nodes)
         end
     end
     return GUGraphView(graph, Set(nodes), edges)
+end
+
+
+function edgesubgraph(graph::AbstractUGraph, edges)
+    """ Edge induced subgraph"""
+    nodes = Set{Int}()
+    for e in edges
+        eg = getedge(graph, e)
+        push!(nodes, eg.u, eg.v)
+    end
+    return GUGraphView(graph, nodes, Set(edges))
 end
 
 

@@ -3,6 +3,8 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+"""
+
 module GeometryTest
     using Test
     using LinearAlgebra
@@ -19,15 +21,19 @@ module GraphTest
     using GraphMol.Error
     include("./graph/ugraph.jl")
     include("./graph/ugraphview.jl")
+    include("./graph/merge.jl")
+    include("./graph/linegraph.jl")
     include("./graph/shortestpath.jl")
+    include("./graph/triangle.jl")
+    include("./graph/bipartite.jl")
     include("./graph/bridge.jl")
     include("./graph/component.jl")
-    include("./graph/merge.jl")
     include("./graph/cycle.jl")
-    include("./graph/linegraph.jl")
-    include("./graph/isomorphism.jl")
+    include("./graph/vf2.jl")
+    include("./graph/vf2edge.jl")
 end
 
+"""
 
 module GraphMolTest
     using Test
@@ -35,6 +41,7 @@ module GraphMolTest
     using GraphMol
     using GraphMol.Error
 
+    """
     include("./model/atom.jl")
     include("./model/molgraph.jl")
 
@@ -51,7 +58,8 @@ module GraphMolTest
     include("./annotation/group.jl")
     include("./annotation/rotatable.jl")
     include("./annotation/aromatic.jl")
-
+    """
+    
     include("substructure.jl")
     include("remover.jl")
 

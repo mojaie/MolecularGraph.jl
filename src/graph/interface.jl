@@ -16,7 +16,8 @@ export
     neighboredgekeys,
     neighboredges,
     neighborcount,
-    degree
+    degree,
+    VF2State
 
 
 abstract type AbstractUGraph end
@@ -37,3 +38,6 @@ neighboredgekeys(graph, idx) = collect(values(neighbors(graph, idx)))
 neighboredges(graph, idx) = getedge.((graph,), neighboredgekeys(graph, idx))
 neighborcount(graph, idx) = length(neighbors(graph, idx))
 degree = neighborcount
+
+
+abstract type VF2State end

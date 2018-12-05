@@ -26,14 +26,17 @@ module GraphMol
         include("./graph/interface.jl")
         include("./graph/ugraph.jl")
         include("./graph/ugraphview.jl")
+        include("./graph/merge.jl")
+        include("./graph/linegraph.jl")
 
+        include("./graph/shortestpath.jl")
+        include("./graph/bipartite.jl")
+        include("./graph/triangle.jl")
         include("./graph/bridge.jl")
         include("./graph/component.jl")
         include("./graph/cycle.jl")
-        include("./graph/isomorphism.jl")
-        include("./graph/linegraph.jl")
-        include("./graph/merge.jl")
-        include("./graph/shortestpath.jl")
+        include("./graph/vf2.jl")
+        include("./graph/vf2edge.jl")
     end
 
     using LinearAlgebra

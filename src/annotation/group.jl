@@ -20,7 +20,7 @@ function group_annot!(mol)
         if mol.v[:Symbol][n] != :C
             continue
         elseif mol.v[:Pi][n] == 1
-            mol.v[:Alcohol][i] = 4
+            mol.v[:Alcohol][n] = 4
         else
             mol.v[:Alcohol][n] = mol.v[:Degree][n] - 1
         end
@@ -34,7 +34,7 @@ function group_annot!(mol)
         if mol.v[:Symbol][n] != :C
             continue
         elseif mol.v[:Pi][n] == 1
-            mol.v[:Thiol][i] = 4
+            mol.v[:Thiol][n] = 4
         else
             mol.v[:Thiol][n] = mol.v[:Degree][n] - 1
         end
