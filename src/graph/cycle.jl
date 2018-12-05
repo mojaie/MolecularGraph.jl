@@ -49,10 +49,10 @@ function mincyclebasis(graph::AbstractUGraph)
     S = [Set(e) for e in cycleedges(graph, root)]
     N = length(S)
     for k in 1:N
-        mincyc = findmincycle(graph, S[k])
-        push!(cycles, mincyc)
+        minnodes, minedges = findmincycle(graph, S[k])
+        push!(cycles, minnodes)
         for i in (k + 1):N
-            if length(intersect(S[i], mincyc)) % 2 == 1
+            if length(intersect(S[i], minedges)) % 2 == 1
                 S[i] = symdiff(S[i], S[k])
             end
         end
@@ -82,6 +82,25 @@ function findmincycle(graph, S)
         push!(pls, length(sp))
     end
     minpath = ps[argmin(pls)]
-    pop!(minpath)
-    return Int[n in gnodes ? n : nrev[n] for n in minpath]
+    ns = Int[n in gnodes ? n : nrev[n] for n in minpath]
+    es = [neighbors(graph, ns[n])[ns[n+1]] for n in 1:(length(ns) - 1)]
+    pop!(ns)
+    return canonicalize(ns), es
+end
+
+
+function canonicalize(nodes)
+    """Align cycle indices to start from lowest index and following one of
+    neighbors that have the lower index
+    """
+    (fst, fstidx) = findmin(nodes)
+    succidx = fstidx == lastindex(nodes) ? 1 : fstidx + 1
+    succ = nodes[succidx]
+    predidx = fstidx == 1 ? lastindex(nodes) : fstidx - 1
+    pred = nodes[predidx]
+    cp = succ < pred ? copy(nodes) : reverse(copy(nodes))
+    while cp[1] != fst
+        pushfirst!(cp, pop!(cp))
+    end
+    return cp
 end

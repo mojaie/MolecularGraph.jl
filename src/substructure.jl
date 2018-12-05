@@ -127,8 +127,8 @@ function fast_identity_filter(mol1, mol2)
         return false
     elseif bondcount(mol1) != bondcount(mol2)
         return false
-    elseif (length(mol1.annotation[:Topology].cycles)
-            != length(mol2.annotation[:Topology].cycles))
+    elseif (length(mol1.annotation[:Topology].rings)
+            != length(mol2.annotation[:Topology].rings))
         return false
     end
     return true
@@ -140,8 +140,8 @@ function fast_substr_filter(mol1, mol2)
         return false
     elseif bondcount(mol1) < bondcount(mol2)
         return false
-    elseif (length(mol1.annotation[:Topology].cycles)
-            < length(mol2.annotation[:Topology].cycles))
+    elseif (length(mol1.annotation[:Topology].rings)
+            < length(mol2.annotation[:Topology].rings))
         return false
     end
     return true
@@ -151,7 +151,7 @@ end
 function deltaYmap(mapping, mol1, mol2)
     # Return edges should be removed
     res = []
-    for r in mol1.annotation[:Topology].cycles
+    for r in mol1.annotation[:Topology].rings
         if length(r) != 3
             continue
         end

@@ -10,7 +10,6 @@ export
 
 
 # TODO: radical
-# TODO: ring size, ring count
 
 
 function atom!(state::SmilesParserState)
@@ -120,7 +119,9 @@ const SMARTS_ATOM_COND_SYMBOL = Dict(
     'X' => :Connectivity,
     'D' => :Degree,
     'v' => :Valence,
-    'H' => :H_Count
+    'H' => :H_Count,
+    'r' => :RingSize,
+    'R' => :RingMemCount
 )
 
 const SMARTS_CHARGE_SIGN = Dict(

@@ -34,7 +34,6 @@ module GraphMolTest
     using StaticArrays
     using GraphMol
     using GraphMol.Error
-    using GraphMol: resolve_inclusion, canonicalize_cycle
 
     include("./model/atom.jl")
     include("./model/molgraph.jl")
@@ -47,8 +46,12 @@ module GraphMolTest
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
-    include("topology.jl")
-    include("annotation.jl")
+    include("./annotation/default.jl")
+    include("./annotation/topology.jl")
+    include("./annotation/group.jl")
+    include("./annotation/rotatable.jl")
+    include("./annotation/aromatic.jl")
+
     include("substructure.jl")
     include("remover.jl")
 

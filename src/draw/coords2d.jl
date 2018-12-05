@@ -23,7 +23,7 @@ function coords2d(mol::VectorMol, root)
     ringmap = Dict(0 => Set(), -1 => Set(), -2 => Set())
     cyclemap = Dict(i => c for (i, c) in enumerate(mol.v[:Cycle]))
     merge!(ringmap, cyclemap)
-    rings = mol.annotation[:Topology].cycles
+    rings = mol.annotation[:Topology].rings
     backtracked = false
     while length(stack) > 0
         c = pop!(stack)

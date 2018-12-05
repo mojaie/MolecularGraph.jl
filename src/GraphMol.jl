@@ -50,8 +50,14 @@ module GraphMol
     include("./model/bond.jl")
     include("./model/molgraph.jl")
 
-    include("topology.jl")
-    include("annotation.jl")
+    include("./annotation/base.jl")
+    include("./annotation/default.jl")
+    include("./annotation/topology.jl")
+    include("./annotation/atom.jl")
+    include("./annotation/group.jl")
+    include("./annotation/rotatable.jl")
+    include("./annotation/aromatic.jl")
+
     include("substructure.jl")
     include("remover.jl")
 

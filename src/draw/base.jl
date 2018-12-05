@@ -90,7 +90,7 @@ function bondnotation(mol::VectorMol)
     terminal_double_bond!(notation, mol.graph.adjacency,
                           mol.v[:Degree], mol.v[:Valence])
     double_bond_along_ring!(notation, mol.graph.adjacency,
-                            mol.annotation[:Topology].cycles,
+                            mol.annotation[:Topology].rings,
                             mol.v[:Coords2D], mol.v[:BondOrder])
     notation
 end
