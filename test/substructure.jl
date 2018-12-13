@@ -87,6 +87,12 @@ end
     @test !match_molquery(hetero2, disconn)
     @test match_molquery(hetero3, disconn)
     @test !match_molquery(hetero4, disconn)
+
+    peroxide = parse(SMARTS, "[OX2][OX2]")
+    po1 = smilestomol("COOC")
+    npo1 = smilestomol("COCOCOC")
+    @test match_molquery(po1, peroxide)
+    @test !match_molquery(npo1, peroxide)
 end
 
 end # substructure

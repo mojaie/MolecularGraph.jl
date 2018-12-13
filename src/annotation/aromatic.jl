@@ -32,6 +32,8 @@ function satisfyHuckel(mol::VectorMol, ring)
             continue
         elseif mol.v[:Pi][r] == 1
             cnt += 1
+        elseif mol.v[:LonePair][r] === nothing
+            return false
         elseif mol.v[:LonePair][r] > 0
             cnt += 2
         elseif mol.v[:LonePair][r] < 0

@@ -37,11 +37,12 @@ sdfilereader(file::IO) = sdfilereader(eachline(file))
 
 
 function sdfbatchsupplier(supplier, postprocess, lines)
-    Channel() do channel
-        for (i, block) in enumerate(parsesdfblocks(lines))
-            put!(channel, supplier(parser, block, i))
-        end
+    # TODO: Lazy supplier
+    res = []
+    for (i, block) in enumerate(parsesdfblocks(lines))
+        push!(res, supplier(postprocess, block, i))
     end
+    return res
 end
 
 
@@ -49,7 +50,7 @@ function nohaltsupplier(postprocess, block, i)
     mol = try
         parse(SDFile, block)
     catch e
-        if e isa GraphMolError
+        if e isa MolParseError
             println("$(e.msg) (#$(i) in sdfilereader)")
             nullmol(SDFile)
         else
@@ -79,20 +80,22 @@ end
 
 
 function parsesdfblocks(lines)
-    Channel() do channel
-        sdfblock = []
-        for line in lines
-            if startswith(line, raw"$$$$")
-                put!(channel, sdfblock)
-                empty!(sdfblock)
-            else
-                push!(sdfblock, rstrip(line))
-            end
-        end
-        if !isempty(sdfblock)
-            put!(channel, sdfblock)
+    # TODO: Lazy supplier
+    blocks = []
+
+    sdfblock = []
+    for line in lines
+        if startswith(line, raw"$$$$")
+            push!(blocks, copy(sdfblock))
+            empty!(sdfblock)
+        else
+            push!(sdfblock, rstrip(line))
         end
     end
+    if !isempty(sdfblock)
+        push!(blocks, sdfblock)
+    end
+    return blocks
 end
 
 

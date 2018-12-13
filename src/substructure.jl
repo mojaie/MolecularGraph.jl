@@ -34,11 +34,20 @@ function substructmap!(mol, query, state)
         # Edge induced subgraph mapping
         isomorphmap!(state)
         for emap in state.mappings
+            mnset = Set()
+            for mn in keys(emap)
+                me = getbond(mol, mn)
+                push!(mnset, me.u, me.v)
+            end
+            qnset = Set()
+            for qn in values(emap)
+                qe = getbond(query, qn)
+                push!(qnset, qe.u, qe.v)
+            end
             # Isolated node mapping
-            m = nodesubgraph(
-                mol.graph, setdiff(nodekeys(mol.graph), keys(emap)))
+            m = nodesubgraph(mol.graph, setdiff(nodekeys(mol.graph), mnset))
             q = nodesubgraph(
-                query.graph, setdiff(nodekeys(query.graph), values(emap)))
+                query.graph, setdiff(nodekeys(query.graph), qnset))
             nmap = maxcardmap(nodekeys(m), nodekeys(q), atommatch(mol, query))
             if length(nmap) == nodecount(q)
                 push!(substrs, (emap, nmap))

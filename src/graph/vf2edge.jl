@@ -63,9 +63,17 @@ end
 
 
 function is_semantic_feasible(state::VF2EdgeInducedState, g, h)
+    # TODO: refactor
     # Linegraph node match (edge match)
     if state.edgematch !== nothing
         if !state.edgematch(g, h)
+            return false
+        end
+        gn = getnode(state.G, g)
+        hn = getnode(state.H, h)
+        m1 = state.nodematch(gn.n1, hn.n1) && state.nodematch(gn.n2, hn.n2)
+        m2 = state.nodematch(gn.n2, hn.n1) && state.nodematch(gn.n1, hn.n2)
+        if !m1 && !m2
             return false
         end
     end

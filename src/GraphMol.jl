@@ -61,6 +61,7 @@ module GraphMol
     include("./annotation/rotatable.jl")
     include("./annotation/aromatic.jl")
 
+    include("properties.jl")
     include("substructure.jl")
     include("remover.jl")
 
