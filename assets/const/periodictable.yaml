@@ -207,6 +207,16 @@ Y:
   name: Yttrium
   std_weight: 88.906
 
+Zr:
+  number: 40
+  name: Zirconium
+  std_weight: 91.224
+
+Nb:
+  number: 41
+  name: Niobium
+  std_weight: 92.906
+
 Mo:
   number: 42
   name: Molybdenum
@@ -226,6 +236,11 @@ Ag:
   number: 47
   name: Silver
   std_weight: 107.87
+
+Cd:
+  number: 48
+  name: Cadmium
+  std_weight: 112.41
 
 In:
   number: 49
@@ -284,6 +299,11 @@ Gd:
   name: Gadolinium
   std_weight: 157.25
 
+Ho:
+  number: 67
+  name: Holmium
+  std_weight: 164.93
+
 Lu:
   number: 71
   name: Lutetium
@@ -338,3 +358,13 @@ Ra:
   number: 88
   name: Radium
   std_weight: 226
+
+Ac:
+  number: 89
+  name: Actinium
+  std_weight: 227
+
+Bk:
+  number: 97
+  name: Berkelium
+  std_weight: 247
