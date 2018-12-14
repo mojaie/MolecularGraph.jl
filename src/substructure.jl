@@ -30,34 +30,28 @@ molsubstrstate(G, H, nmatch, ematch) = VF2EdgeInducedState(
 
 function substructmap!(mol, query, state)
     substrs = []
+    mnodeset = nodekeys(mol.graph)
+    qnodeset = nodekeys(query.graph)
+    matchfunc = atommatch(mol, query)
     if bondcount(query) != 0
         # Edge induced subgraph mapping
         isomorphmap!(state)
         for emap in state.mappings
-            mnset = Set()
-            for mn in keys(emap)
-                me = getbond(mol, mn)
-                push!(mnset, me.u, me.v)
-            end
-            qnset = Set()
-            for qn in values(emap)
-                qe = getbond(query, qn)
-                push!(qnset, qe.u, qe.v)
-            end
             # Isolated node mapping
-            m = nodesubgraph(mol.graph, setdiff(nodekeys(mol.graph), mnset))
-            q = nodesubgraph(
-                query.graph, setdiff(nodekeys(query.graph), qnset))
-            nmap = maxcardmap(nodekeys(m), nodekeys(q), atommatch(mol, query))
-            if length(nmap) == nodecount(q)
+            msub = edgesubgraph(mol.graph, keys(emap))
+            qsub = edgesubgraph(query.graph, values(emap))
+            miso = setdiff(mnodeset, nodekeys(msub))
+            qiso = setdiff(qnodeset, nodekeys(qsub))
+            mrem = nodesubgraph(mol.graph, miso)
+            qrem = nodesubgraph(query.graph, qiso)
+            nmap = maxcardmap(nodekeys(mrem), nodekeys(qrem), matchfunc)
+            if length(nmap) == nodecount(qrem)
                 push!(substrs, (emap, nmap))
             end
         end
     elseif atomcount(query) != 0
         # Isolated nodes only
-        nmap = maxcardmap(
-            nodekeys(mol.graph), nodekeys(query.graph), atommatch(mol, query)
-        )
+        nmap = maxcardmap(mnodeset, qnodeset, matchfunc)
         if length(nmap) == atomcount(query)
             push!(substrs, ([], nmap))
         end

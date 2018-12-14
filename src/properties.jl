@@ -5,13 +5,13 @@
 
 
 export
-    molecular_weight,
+    molweight,
     H_acceptor_count,
     H_donor_count,
     rotatable_count
 
 
-function molecular_weight(mol::VectorMol)
+function molweight(mol::VectorMol)
     reduce(+, mol.v[:MolWeight]; init=0)
 end
 

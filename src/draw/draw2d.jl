@@ -107,17 +107,20 @@ function draw2d!(canvas::Canvas, mol::VectorMol)
 
     """ Draw bonds """
     for (i, bond) in enumerate(mol.graph.edges)
-        upos = vec2d(coords[bond.u, :])
-        vpos = vec2d(coords[bond.v, :])
+        u = bond.u
+        v = bond.v
+        upos = vec2d(coords[u, :])
+        vpos = vec2d(coords[v, :])
         uv = vecpair(upos, vpos)
         if upos == vpos
             continue # Overlapped: avoid zero division
         end
-        u = mol.v[:AtomVisible][bond.u] ? vecU(trimU(uv, canvas.trimoverlapf)) : upos
-        v = mol.v[:AtomVisible][bond.v] ? vecV(trimV(uv, canvas.trimoverlapf)) : vpos
+        trimf = canvas.trimoverlapf
+        upos = mol.v[:AtomVisible][u] ? vecU(trimU(uv, trimf)) : upos
+        vpos = mol.v[:AtomVisible][v] ? vecV(trimV(uv, trimf)) : vpos
         drawer = BOND_DRAWER[mol.v[:BondOrder][i]][mol.v[:BondNotation][i]]
-        drawer(canvas, vecpair(u, v),
-               mol.v[:AtomColor][bond.u], mol.v[:AtomColor][bond.v])
+        drawer(canvas, vecpair(upos, vpos),
+               mol.v[:AtomColor][u], mol.v[:AtomColor][v])
     end
     """ Draw atoms """
     for i in 1:atomcount(mol)

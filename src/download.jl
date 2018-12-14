@@ -5,6 +5,8 @@
 
 export
     clear,
+    fetchfile,
+    fetchresource,
     pubchemsdf,
     molsfortest,
     resource_dir,
@@ -14,7 +16,7 @@ export
 resource_dir = joinpath(dirname(@__FILE__), "..", "_resources")
 pubchem_dir = joinpath(resource_dir, "PubChem")
 
-function initialize()
+function initialize_resource_dir()
     if !isdir(resource_dir)
         mkdir(resource_dir)
         println("Resource directory created: $(resource_dir)")
@@ -23,7 +25,7 @@ end
 
 
 function clear()
-    initialize()
+    initialize_resource_dir()
     for p in readdir(resource_dir)
         rm(p, recursive=true)
     end
@@ -31,9 +33,26 @@ function clear()
 end
 
 
-function pubchemsdf(cid::AbstractString, name::AbstractString)
+function fetchfile(url, dest)
+    if isfile(dest)
+        println("file: $(basename(dest)) already exists")
+        return
+    end
+    println("Downloading: $(url)")
+    download(url, dest)
+end
+
+
+function fetchresource(url, filename)
+    initialize_resource_dir()
+    dest = joinpath(resource_dir, filename)
+    fetchfile(url, dest)
+end
+
+
+function pubchemsdf(cid, name)
     if !isdir(pubchem_dir)
-        initialize()
+        initialize_resource_dir()
         mkdir(pubchem_dir)
         println("PubChem data directory created: $(pubchem_dir)")
     end
@@ -54,7 +73,7 @@ function molsfortest()
     ]
     testdir = joinpath(resource_dir, "testmols")
     if !isdir(testdir)
-        initialize()
+        initialize_resource_dir()
         mkdir(testdir)
         println("Test data directory created: $(testdir)")
     end

@@ -19,18 +19,6 @@
         @test !atomvisible(true)(:C, 2)
     end
 
-    @testset "terminal_double_bond" begin
-        vec = zeros(Int, 4)
-        adj = [
-            Dict(2=>1), Dict(1=>1, 3=>2), Dict(2=>2, 4=>3),
-            Dict(3=>3, 5=>4), Dict(4=>4)
-        ]
-        numb = [1, 2, 2, 2, 1]
-        valence = [2, 3, 3, 3, 1]
-        terminal_double_bond!(vec, adj, numb, valence)
-        @test vec == [2, 0, 0, 0]
-    end
-
     @testset "atomhtml" begin
         @test atomhtml(:C, 0, 3, :right) == "CH<sub>3</sub>"
         @test atomhtml(:N, 1, 4, :left) == "<sup>+</sup>H<sub>4</sub>N"

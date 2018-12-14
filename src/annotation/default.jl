@@ -41,7 +41,7 @@ function default_annot!(mol::VectorMol)
     # Hydrogen bond acceptor count
     mol.v[:H_Acceptor] = h_acceptor.(mol.v[:Symbol], mol.v[:LonePair])
     # Molecular weight including neighbor hydrogens
-    mol.v[:MolWeight] = molweight.(mol.graph.nodes, mol.v[:H_Count])
+    mol.v[:MolWeight] = atomhweight.(mol.graph.nodes, mol.v[:H_Count])
     mol.annotation[:Default] = DefaultAnnot()
     return
 end
@@ -73,6 +73,6 @@ function h_acceptor(symbol, lonepair)
 end
 
 
-function molweight(atom, h_count)
+function atomhweight(atom, h_count)
     atomweight(atom) + H_WEIGHT * h_count
 end

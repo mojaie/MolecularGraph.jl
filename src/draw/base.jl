@@ -10,9 +10,9 @@ export
     draw2d_annot!,
     atomcolor,
     atomvisible,
-    bondnotation,
-    terminal_double_bond!,
-    double_bond_along_ring!,
+    bondnotation!,
+    termbondnotation!,
+    ringbondnotation!,
     boundary,
     chargesign,
     atommarkup,
@@ -65,7 +65,7 @@ function draw2d_annot!(mol::VectorMol, setting)
     mol.v[:AtomColor] = atomcolor(setting).(mol.v[:Symbol])
     mol.v[:AtomVisible] = atomvisible(
         setting[:display_terminal_carbon]).(mol.v[:Symbol], mol.v[:Degree])
-    mol.v[:BondNotation] = bondnotation(mol)
+    bondnotation!(mol)
     return
 end
 
@@ -81,44 +81,50 @@ function atomvisible(termc)
 end
 
 
-function bondnotation(mol::VectorMol)
+function bondnotation!(mol::VectorMol)
     if mol isa GVectorMol{SDFileAtom,SDFileBond}
-        notation = [b.notation for b in mol.graph.edges]
+        mol.v[:BondNotation] = [b.notation for b in mol.graph.edges]
     else
-        notation = zeros(Int, bondcount(mol))
+        mol.v[:BondNotation] = zeros(Int, bondcount(mol))
     end
-    terminal_double_bond!(notation, mol.graph.adjacency,
-                          mol.v[:Degree], mol.v[:Valence])
-    double_bond_along_ring!(notation, mol.graph.adjacency,
-                            mol.annotation[:Topology].rings,
-                            mol.v[:Coords2D], mol.v[:BondOrder])
-    notation
+    termbondnotation!(mol)
+    ringbondnotation!(mol)
+    return
 end
 
 
-function terminal_double_bond!(vec, adj, numb, valence)
-    for nbrs in adj[(numb .== 1) .* (valence .== 2)]
-        vec[collect(values(nbrs))[1]] = 2
+function termbondnotation!(mol::VectorMol)
+    termatoms = findall((mol.v[:Degree] .== 1) .* (mol.v[:Valence] .== 2))
+    for a in termatoms
+        termbond = neighboredgekeys(mol, a)[1]
+        mol.v[:BondNotation][termbond] = 2
     end
     return
 end
 
 
-function double_bond_along_ring!(vec, adj, rings, coords, order)
+function ringbondnotation!(mol::VectorMol)
+    rings = mol.annotation[:Topology].rings
+    coords = mol.v[:Coords2D]
     for ring in sort(rings, by=length, rev=true)
         vtcs = [vec2d(coords[n, :]) for n in ring]
         cw = isclockwise(vtcs)
         if cw === nothing
             continue
         end
-        directed = cw ? ring : reverse(ring)
-        push!(directed, directed[1])
-        for i in 1: length(directed) - 1
-            u = directed[i]
-            v = directed[i + 1]
-            b = adj[u][v]
-            if order[b] == 2 && u < v
-                vec[b] = 1
+        succ = Dict()
+        ordered = cw ? ring : reverse(ring)
+        for n in 1:length(ring)-1
+            succ[ordered[n]] = ordered[n+1]
+        end
+        succ[ordered[end]] = ordered[1]
+        rsub = nodesubgraph(mol.graph, ring)
+        for (i, e) in edgesiter(rsub)
+            if mol.v[:BondOrder][i] != 2
+                continue
+            end
+            if succ[e.u] == e.v
+                mol.v[:BondNotation][i] = 1
             end
         end
     end
@@ -152,7 +158,7 @@ function boundary(mol::VectorMol, coords)
         unit = median(dists) # Median bond length
     end
 
-    (top, left, width, height, unit)
+    return (top, left, width, height, unit)
 end
 
 
@@ -162,7 +168,7 @@ function chargesign(charge)
     end
     sign = charge > 0 ? "+" : "–" # en dash, not hyphen-minus
     num = abs(charge)
-    num > 1 ? string(num, sign) : sign
+    return num > 1 ? string(num, sign) : sign
 end
 
 
@@ -177,7 +183,7 @@ function atommarkup(symbol, charge, hcount, direction,
     end
     chg = charge == 0 ? "" : string(supstart, chargesign(charge), supend)
     txt = direction == :left ? [chg, hs, symbol] : [symbol, hs, chg]
-    string(txt...)
+    return string(txt...)
 end
 
 
