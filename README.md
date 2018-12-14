@@ -2,7 +2,7 @@
 Graphmol.jl
 ===================================================
 
-**Graphmol.jl** is a graph-based molecule modeling library written in Julia. This is a re-implementation of [Chorus](https://github.com/mojaie/chorus).
+**Graphmol.jl** is a graph-based molecule modeling library written in Julia.
 
 
 Installation
@@ -27,16 +27,24 @@ Features
 - Structure image export (SVG)
   <img src="./assets/image/demo.svg" width="300"/>
 
-- Import from/export to .sdf, .mol
-- Molecular property calculation (MW, Chemical formula)
-- Descriptors
+- SDFile import/export (.sdf, .mol)
 
+- SMILES/SMARTS parser
+
+- Basic descriptors
+  - molecular weight, composition and formula
   - H-bond donor/acceptor
-  - Wildman-Crippen logP
+  - rotatable bonds
   - Aromaticity
+  - Wildman-Crippen logP
+
 
 - Molecule graph topology (ring, scaffold, connectivity)
+
 - Sub(super)structure search
+  - VF2 algorithm based subgraph isomorphism
+
+
 - MCS with diameter restriction (MCS-DR) and graph-based local similarity (GLS)
 
 
