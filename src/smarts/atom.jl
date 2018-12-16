@@ -50,7 +50,9 @@ function atom!(state::SmilesParserState)
         if a === nothing
             return
         else
-            return SmilesAtom(a[1], 0, 1, nothing, a[2], nothing)
+            sym = a.second[1].second
+            arom = a.second[2].second
+            return SmilesAtom(sym, 0, 1, nothing, arom, nothing)
         end
     end
 end
@@ -71,15 +73,8 @@ function atom!(state::SmartsParserState)
         a = atomsymbol!(state)
         if a === nothing
             return
-        elseif a[1] !== nothing && a[2] !== nothing
-            q = :and => (:Symbol => a[1], :Aromatic => a[2])
-            return SmartsAtom(q)
-        elseif a[1] !== nothing
-            return SmartsAtom(:Symbol => a[1])
-        elseif a[2] !== nothing
-            return SmartsAtom(:Aromatic => a[2])
         else
-            return SmartsAtom(:any => true)
+            return SmartsAtom(a)
         end
     end
 end
@@ -90,27 +85,27 @@ function atomsymbol!(state::AbstractSmartsParser)
     """
     if read(state) == 'C' && lookahead(state, 1) == 'l'
         forward!(state, 2)
-        return (:Cl, false)
+        return :and => (:Symbol => :Cl, :Aromatic => false)
     elseif read(state) == 'B' && lookahead(state, 1) == 'r'
         forward!(state, 2)
-        return (:Br, false)
+        return :and => (:Symbol => :Br, :Aromatic => false)
     elseif read(state) in "BCNOPSFI"
         sym = Symbol(read(state))
         forward!(state)
-        return (sym, false)
+        return :and => (:Symbol => sym, :Aromatic => false)
     elseif read(state) in "cnops"
         sym = Symbol(uppercase(read(state)))
         forward!(state)
-        return (sym, true)
+        return :and => (:Symbol => sym, :Aromatic => true)
     elseif read(state) == 'A'
         forward!(state)
-        return (nothing, false)
+        return :Aromatic => false
     elseif read(state) == 'a'
         forward!(state)
-        return (nothing, true)
+        return :Aromatic => true
     elseif read(state) == '*'
         forward!(state)
-        return (nothing, nothing)
+        return :any => :true
     end
 end
 
@@ -135,10 +130,10 @@ function atomprop!(state::AbstractSmartsParser)
         Stereo / CHG / [DHRrvX]
     """
     c = read(state)
+    c2 = lookahead(state, 1)
     atomsyms = keys(PERIODIC_TABLE)
     if isuppercase(c)
         # Non-organic atoms
-        c2 = lookahead(state, 1)
         c3 = lookahead(state, 2)
         if string(c, c2, c3) in atomsyms
             # Note: three-letter atoms (U-series) are not supported yet
@@ -152,12 +147,11 @@ function atomprop!(state::AbstractSmartsParser)
     # Organic atoms
     a = atomsymbol!(state)
     if a !== nothing
-        return :and => (:Symbol => a[1], :Aromatic => a[2])
+        return a
     end
     # Hydrogen special cases
     if c == 'H'
         cb = lookahead(state, -1)
-        c2 = lookahead(state, 1)
         if c2 == ']' && (isdigit(cb) || cb == '[')
             # Hydrogen atom
             forward!(state)

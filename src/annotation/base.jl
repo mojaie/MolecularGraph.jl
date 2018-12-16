@@ -8,11 +8,10 @@ export
 
 
 function default_annotation!(mol::VectorMol)
-    molgraph_topology!(mol)
-    default_annot!(mol)
-    atom_annot!(mol)
-    group_annot!(mol)
+    topology!(mol)
+    elemental!(mol)
     rotatable!(mol)
     aromatic!(mol)
+    # wclogp!(mol)
     return
 end

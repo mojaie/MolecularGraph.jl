@@ -3,13 +3,13 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export default_annot!
+export elemental!
 
 
-struct DefaultAnnot <: Annotation end
+struct Elemental <: Annotation end
 
 
-function default_annot!(mol::VectorMol)
+function elemental!(mol::VectorMol)
     # Symbol
     mol.v[:Symbol] = [atom.symbol for atom in mol.graph.nodes]
     # Charge
@@ -42,7 +42,7 @@ function default_annot!(mol::VectorMol)
     mol.v[:H_Acceptor] = h_acceptor.(mol.v[:Symbol], mol.v[:LonePair])
     # Molecular weight including neighbor hydrogens
     mol.v[:MolWeight] = atomhweight.(mol.graph.nodes, mol.v[:H_Count])
-    mol.annotation[:Default] = DefaultAnnot()
+    mol.annotation[:Elemental] = Elemental()
     return
 end
 

@@ -4,17 +4,17 @@
 @testset "atomsymbol" begin
     state = SmartsParserState("Cl")
     Chloride = atomsymbol!(state)
-    @test Chloride == (:Cl, false)
+    @test Chloride == (:and => (:Symbol => :Cl, :Aromatic => false))
     @test state.pos == 3
 
     state = SmartsParserState("Cr")
     Chromium = atomsymbol!(state)
-    @test Chromium == (:C, false)
+    @test Chromium == (:and => (:Symbol => :C, :Aromatic => false))
     @test state.pos == 2
 
     state = SmartsParserState("p")
     aromp = atomsymbol!(state)
-    @test aromp == (:P, true)
+    @test aromp == (:and => (:Symbol => :P, :Aromatic => true))
 end
 
 @testset "atomprop" begin

@@ -1,7 +1,7 @@
 
-@testset "annotation.default" begin
+@testset "annotation.elemental" begin
 
-@testset "default" begin
+@testset "elemental" begin
     alkyne = smilestomol("CC=CC#C")
     @test alkyne.v[:Pi] == [0, 1, 1, 2, 2]
     pyrrole = smilestomol("C1=CC=CN1")
@@ -16,4 +16,4 @@
     @test fluoro.v[:H_Donor] == [0, 0, 0, 0, 1, 0, 0]
 end
 
-end # annotation.default
+end # annotation.elemental

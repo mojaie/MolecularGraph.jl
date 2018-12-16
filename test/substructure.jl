@@ -93,6 +93,12 @@ end
     npo1 = smilestomol("COCOCOC")
     @test match_molquery(po1, peroxide)
     @test !match_molquery(npo1, peroxide)
+
+    sixmem = parse(SMARTS, "[*r6]1[*r6][*r6][*r6][*r6][*r6]1")
+    pyridine = smilestomol("n1ccccc1")
+    pyrrole = smilestomol("n1cccc1")
+    @test match_molquery(pyridine, sixmem)
+    @test !match_molquery(pyrrole, sixmem)
 end
 
 end # substructure

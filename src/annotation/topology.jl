@@ -4,18 +4,18 @@
 #
 
 export
-    MolGraphTopology,
-    molgraph_topology!
+    Topology,
+    topology!
 
 
-struct MolGraphTopology <: Annotation
+struct Topology <: Annotation
     rings::Vector{Vector{Int}}
     scaffolds::Vector{Set{Int}}
     molecules::Vector{Set{Int}}
 end
 
 
-function molgraph_topology!(mol::VectorMol)
+function topology!(mol::VectorMol)
     # TODO: shortcut function
     # minimumcycles is derived from 2-edge connected components
     # 2-edge connected components is derived from connected components
@@ -23,7 +23,7 @@ function molgraph_topology!(mol::VectorMol)
     scaffolds = two_edge_connected(mol.graph)  # Vector{Set{Int}}
     rings = minimumcycles(mol.graph)  # Vector{Vector{Int}}
 
-    mol.annotation[:Topology] = MolGraphTopology(rings, scaffolds, components)
+    mol.annotation[:Topology] = Topology(rings, scaffolds, components)
     # Ring membership
     mol.v[:RingMem] = Set{Int}[Set() for i in 1:atomcount(mol)] # dont use fill
     # Ring size

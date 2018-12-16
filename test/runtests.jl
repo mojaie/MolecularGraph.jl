@@ -3,6 +3,8 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+"""
+
 module GeometryTest
     using Test
     using LinearAlgebra
@@ -31,6 +33,7 @@ module GraphTest
     include("./graph/vf2edge.jl")
 end
 
+"""
 
 module GraphMolTest
     using Test
@@ -38,8 +41,10 @@ module GraphMolTest
     using GraphMol
     using GraphMol.Error
 
+    """
     include("./model/atom.jl")
     include("./model/molgraph.jl")
+    """
 
     include("./smarts/base.jl")
     include("./smarts/logicaloperator.jl")
@@ -49,11 +54,11 @@ module GraphMolTest
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
-    include("./annotation/default.jl")
     include("./annotation/topology.jl")
-    include("./annotation/group.jl")
+    include("./annotation/elemental.jl")
     include("./annotation/rotatable.jl")
     include("./annotation/aromatic.jl")
+    include("./annotation/funcgroup.jl")
 
     include("substructure.jl")
     include("remover.jl")

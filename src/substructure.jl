@@ -12,6 +12,9 @@ export
     is_superstruct,
     match_molquery,
     match_groupquery,
+    preprocess!,
+    atommatch,
+    bondmatch,
     fast_identity_filter,
     fast_substr_filter,
     deltaYmap!
@@ -29,6 +32,7 @@ molsubstrstate(G, H, nmatch, ematch) = VF2EdgeInducedState(
 
 
 function substructmap!(mol, query, state)
+    # TODO: CQS
     substrs = []
     mnodeset = nodekeys(mol.graph)
     qnodeset = nodekeys(query.graph)
@@ -113,7 +117,7 @@ end
 function preprocess!(mol)
     # TODO: remove and annotate Hs and trivials
     required_annotation(mol, :Topology)
-    required_annotation(mol, :Default)
+    required_annotation(mol, :Elemental)
     return
 end
 
@@ -169,7 +173,12 @@ function querymatchtree(query::Pair, mol::VectorMol, i::Int)
         subq = parse(SMARTS, query.second)
         return match_groupquery(mol, subq, i)
     else
-        return mol.v[query.first][i] == query.second
+        if query.first == :RingSize
+            # TODO:
+            return query.second in mol.v[query.first][i]
+        else
+            return mol.v[query.first][i] == query.second
+        end
     end
 end
 

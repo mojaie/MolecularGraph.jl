@@ -1,0 +1,281 @@
+---
+
+
+
+# Carbon
+
+- key: Alkene
+  query: "C=C"
+- key: Alkyne
+  query: "C#C"
+
+- key: Diene
+  have: [Alkene]
+  query: "C=CC=C"
+
+
+
+# Oxygen
+
+- key: Alcohol
+  query: "[#6][OD1]"
+- key: PrimaryAlcohol
+  isa: Alcohol
+  query: "[CD2][OD1]"
+- key: SecAlcohol
+  isa: Alcohol
+  query: "[CD3][OD1]"
+- key: TertAlcohol
+  isa: Alcohol
+  query: "[CD4][OD1]"
+- key: AromaticAlcohol
+  isa: Alcohol
+  query: "c[OD1]"
+
+- key: Carbonyl
+  query: "[#6]=O"
+
+- key: Ketone
+  have: [Carbonyl]
+  query: "[#6]C(=O)[#6]"
+
+- key: Aldehyde
+  have: [Carbonyl]
+  query: "[#6][CD2]=O"
+
+- key: Ether
+  query: "[#6]O[#6]"
+
+- key: AromaticOxygen
+  query: "aoa"
+
+- key: Peroxide
+  query: "[OD2][OD2]"
+
+- key: Carboxyl
+  have: [Carbonyl, Alcohol]
+  query: "O=CO"
+
+- key: Ester
+  have: [Carbonyl, Ether]
+  query: "O=CO[#6]"
+
+- key: Acetal
+  have: [Ether]
+  query: "[#6]OCO[#6]"
+
+- key: Hemiacetal
+  have: [Ether, Alcohol]
+  query: "[#6]OC[OD1]"
+
+- key: GemDiol
+  have: [Alcohol]
+  query: "[OD1]C[OD1]"
+
+
+
+# Nitrogen
+
+- key: PrimaryAmine
+  query: "[#6][ND1]"
+
+- key: SecAmine
+  query: "[#6][ND2][#6]"
+
+- key: TertAmine
+  query: "[#6][ND3]([#6])[#6]"
+
+- key: QuartAmmonium
+  query: "[#6][N+]([#6])([#6])[#6]"
+
+- key: AromaticNitrogen
+  query: "ana"
+
+- key: Imine
+  query: "C=N"
+
+- key: Nitrile
+  query: "C#N"
+
+- key: Hydrazine
+  query: "[N+0]-[N+0]"
+
+- key: Azo
+  query: "[N+0]=[N+0]"
+
+- key: Azide
+  any: ["N=[N+D2]=[N-D1]", "[N-][N+D2]#[ND1]"]
+
+- key: Amidine
+  have: [Imine]
+  query: "NC=N"
+
+- key: Guanidine
+  have: [Amidine]
+  query: "NC(=N)N"
+
+
+
+# O, N
+
+- key: Amide
+  have: [Carbonyl]
+  query: "O=CN"
+- key: Carbamoyl
+  isa: Amide
+  query: "O=C[ND1]"
+
+- key: Nitro
+  query: "O=[N+][O-]"
+
+- key: Nitroso
+  query: "N=O"
+
+- key: Oxime
+  have: [Imine]
+  query: "C=NO"
+
+- key: Cyanate
+  have: [Nitrile]
+  query: "OC#[ND1]"
+
+- key: Isocyanate
+  have: [Imine, Carbonyl]
+  query: "N=C=[OD1]"
+
+
+
+# Sulfur
+
+- key: Thiol
+  query: "[#6][SD1]"
+
+- key: Thioether
+  query: "[#6]S[#6]"
+
+- key: AromaticSulfur
+  query: "asa"
+
+- key: Disulfide
+  query: "[SD2][SD2]"
+
+
+- key: Thiocarbonyl
+  query: "C=S"
+
+- key: Thial
+  have: [Thiocarbonyl]
+  query: "[#6][CD2]=S"
+
+- key: Thioketone
+  have: [Thiocarbonyl]
+  query: "[#6]C(=S)[#6]"
+
+- key: Dithiocarboxylate
+  have: [Thiocarbonyl]
+  query: "S=CS"
+
+
+
+# O, N, S
+
+- key: Sulfoxide
+  any: ["[#16]=O", "[#16+][O-]"]
+
+- key: Sulfinate
+  have: [Sulfoxide]
+  query: "O=SO"
+
+
+- key: Sulfone
+  query: "[#16](=O)=O"
+
+- key: Sulfonate
+  have: [Sulfone]
+  query: "O=S(=O)O"
+
+- key: Sulfoneamide
+  have: [Sulfone]
+  query: "O=S(=O)N"
+
+- key: Sulfamide
+  have: [Sulfoneamide]
+  query: "NS(=O)(=O)N"
+
+
+- key: Thiocyanate
+  have: [Nitrile]
+  query: "S-C#[ND1]"
+
+- key: Isothiocyanate
+  have: [Imine, Thiocarbonyl]
+  query: "N=C=[SD1]"
+
+
+
+# Phosphorus
+
+- key: Organophosphorus
+  query: "[#6]P"
+
+- key: Phosphonate
+  have: [Organophosphorus]
+  query: "[#6]P(=O)(O)O"
+
+- key: Phosphate
+  query: "OP(=O)(O)O"
+
+
+
+# Boron
+
+- key: Organoborane
+  query: "[#6]B"
+
+- key: Boronate
+  have: [Organoborane]
+  query: "[#6]B(O)O"
+
+- key: Borinate
+  have: [Organoborane]
+  query: "[#6]B(O)[#6]"
+
+
+
+
+# Halogen
+
+- key: Halide
+  query: "C[F,Cl,Br,I]"
+- key: Fluoride
+  isa: Halide
+  query: "CF"
+- key: Chloride
+  isa: Halide
+  query: "CCl"
+- key: Bromide
+  isa: Halide
+  query: "CBr"
+- key: Iodoide
+  isa: Halide
+  query: "CI"
+
+- key: Acylhalide
+  have: [Halide]
+  query: "C(=O)[F,Cl,Br,I]"
+- key: Acylfluoride
+  have: [Fluoride]
+  isa: Acylhalide
+  query: "C(=O)F"
+- key: Acylchloride
+  have: [Chloride]
+  isa: Acylhalide
+  query: "C(=O)Cl"
+- key: Acylbromide
+  have: [Bromide]
+  isa: Acylhalide
+  query: "C(=O)Br"
+- key: Acyliodide
+  have: [Iodoide]
+  isa: Acylhalide
+  query: "C(=O)I"

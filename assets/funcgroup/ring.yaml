@@ -1,0 +1,160 @@
+---
+
+
+# 3 membered
+
+- key: ThreeMemberedRing
+  query: "[*r3]1[*r3][*r3]1"
+
+- key: Cyclopropane
+  isa: ThreeMemberedRing
+  query: "C1CC1"
+
+- key: Epoxide
+  have: [Ether]
+  isa: ThreeMemberedRing
+  query: "O1CC1"
+
+- key: Aziridine
+  have: [SecAmine]
+  isa: ThreeMemberedRing
+  query: "N1CC1"
+
+
+
+# 4 membered
+
+- key: FourMemberedRing
+  query: "[*r4]1[*r4][*r4][*r4]1"
+
+- key: Cyclobutane
+  isa: FourMemberedRing
+  query: "C1CCC1"
+
+- key: Oxetane
+  have: [Ether]
+  isa: FourMemberedRing
+  query: "O1CCC1"
+
+- key: Azetidine
+  have: [SecAmine]
+  isa: FourMemberedRing
+  query: "N1CCC1"
+
+
+
+# 5 membered
+
+- key: FiveMemberedRing
+  query: "[*r5]1[*r5][*r5][*r5][*r5]1"
+
+- key: Cyclopentane
+  isa: FiveMemberedRing
+  query: "C1CCCC1"
+
+- key: Tetrahydrofuran
+  have: [Ether]
+  isa: FiveMemberedRing
+  query: "O1CCCC1"
+
+- key: Furan
+  have: [AromaticOxygen]
+  isa: FiveMemberedRing
+  query: "o1cccc1"
+
+- key: Pyrrolidine
+  have: [SecAmine]
+  isa: FiveMemberedRing
+  query: "N1CCCC1"
+
+- key: Pyrrole
+  have: [AromaticNitrogen]
+  isa: FiveMemberedRing
+  query: "n1cccc1"
+
+- key: Imidazole
+  have: [AromaticNitrogen]
+  isa: FiveMemberedRing
+  query: "n1cncc1"
+
+- key: Tetrazole
+  have: [AromaticNitrogen]
+  isa: FiveMemberedRing
+  query: "n1nnnc1"
+
+
+
+# 6 membered
+
+- key: SixMemberedRing
+  query: "[*r6]1[*r6][*r6][*r6][*r6][*r6]1"
+
+- key: Cyclohexane
+  isa: SixMemberedRing
+  query: "C1CCCCC1"
+
+- key: Benzene
+  isa: SixMemberedRing
+  query: "c1ccccc1"
+
+- key: Pyridine
+  isa: SixMemberedRing
+  query: "n1ccccc1"
+
+- key: Pyrimidine
+  isa: SixMemberedRing
+  query: "n1cnccc1"
+
+
+
+# 7-membered
+
+- key: SevenMemberedRing
+  query: "[*r7]1[*r7][*r7][*r7][*r7][*r7][*r7]1"
+
+
+
+# large ring
+
+- key: EightMemberedRing
+  query: "[*r8]1[*r8][*r8][*r8][*r8][*r8][*r8][*r8]1"
+
+- key: NineMemberedRing
+  query: "[*r9]1[*r9][*r9][*r9][*r9][*r9][*r9][*r9][*r9]1"
+
+
+
+# Substituted ring
+
+- key: BetaLactam
+  have: [Azetidine, Amide]
+  query: "N1C(=O)CC1"
+
+
+- key: Benzyl
+  have: [Benzene]
+  query: "[CD2]c1ccccc1"
+
+
+
+# Fused ring
+
+- key: Naphthalene
+  have: [Benzene]
+  query: "c1cccc2c1cccc2"
+
+- key: Anthracene
+  have: [Naphthalene]
+  query: "c1cccc2c1cc1ccccc1c2"
+
+- key: Biphenyl
+  have: [Benzene]
+  query: "c1ccccc1Cc1ccccc1"
+
+- key: Indole
+  have: [Benzene, Pyrrole]
+  query: "c1cccc2c1ncc2"
+
+- key: Purine
+  have: [Pyrimidine, Imidazole]
+  query: "n1cncc2c1ncn2"

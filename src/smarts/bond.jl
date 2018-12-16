@@ -10,7 +10,8 @@ export
 
 
 defaultbond(state::SmilesParserState) = SmilesBond(1, false, nothing)
-defaultbond(state::SmartsParserState) = SmartsBond(:BondOrder => 1)
+defaultbond(state::SmartsParserState) = SmartsBond(
+    :or => (:BondOrder => 1, :AromaticBond => true))
 
 
 function bond!(state::SmilesParserState)

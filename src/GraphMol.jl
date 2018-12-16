@@ -54,12 +54,11 @@ module GraphMol
     include("./model/molgraph.jl")
 
     include("./annotation/base.jl")
-    include("./annotation/default.jl")
     include("./annotation/topology.jl")
-    include("./annotation/atom.jl")
-    include("./annotation/group.jl")
+    include("./annotation/elemental.jl")
     include("./annotation/rotatable.jl")
     include("./annotation/aromatic.jl")
+    include("./annotation/funcgroup.jl")
 
     include("properties.jl")
     include("substructure.jl")

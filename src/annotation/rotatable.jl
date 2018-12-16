@@ -8,7 +8,8 @@ export rotatable!
 
 function rotatable!(mol)
     required_annotation(mol, :Topology)
-    required_annotation(mol, :Default)
+    required_annotation(mol, :Elemental)
+    # TODO: use RingBond
     pred = (i, b) -> (
         mol.v[:BondOrder][i] == 1
         && mol.v[:Degree][b.u] != 1
