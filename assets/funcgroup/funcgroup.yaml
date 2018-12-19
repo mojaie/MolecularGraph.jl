@@ -246,19 +246,19 @@
 # Halogen
 
 - key: Halide
-  query: "C[F,Cl,Br,I]"
+  query: "[#6][F,Cl,Br,I]"
 - key: Fluoride
   isa: Halide
-  query: "CF"
+  query: "[#6]F"
 - key: Chloride
   isa: Halide
-  query: "CCl"
+  query: "[#6]Cl"
 - key: Bromide
   isa: Halide
-  query: "CBr"
+  query: "[#6]Br"
 - key: Iodoide
   isa: Halide
-  query: "CI"
+  query: "[#6]I"
 
 - key: Acylhalide
   have: [Halide]

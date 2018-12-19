@@ -100,7 +100,7 @@ end
 
 function match_groupquery(mol::VectorMol, query::QueryMol, root::Int)
     preprocess!(mol)
-    for nbr in neighboredgekeys(mol, root)
+    for nbr in neighboredgekeys(mol.graph, root)
         state = molsubstrstate(
             mol.graph, query.graph,
             atommatch(mol, query), bondmatch(mol, query))

@@ -6,13 +6,15 @@
 export
     funcgrouptable,
     FUNC_GROUP_TABLE,
+    FGTermNode,
+    FGRelationEdge,
     FunctionalGroup,
     functionalgroup!,
     fgrouprecord,
     fgroupcond,
-    fgroupquery
+    fgroupquery,
+    largestcomponents
 
-a = 1
 
 function funcgrouptable()
     table = []
@@ -34,11 +36,24 @@ end
 FUNC_GROUP_TABLE = funcgrouptable()
 
 
+struct FGTermNode <: AbstractNode
+    term::Symbol
+end
+
+
+struct FGRelationEdge <: AbstractDirectedEdge
+    source::Int
+    target::Int
+    relation::Symbol
+end
+
+
 struct FunctionalGroup <: Annotation
     nodeset::Dict{Symbol,Set{Set{Int}}}
+    graph::DAG{FGTermNode,FGRelationEdge}
 
     function FunctionalGroup()
-        new(Dict())
+        new(Dict(), DAG{FGTermNode,FGRelationEdge}())
     end
 end
 
@@ -47,11 +62,32 @@ function functionalgroup!(mol::VectorMol)
     required_annotation(mol, :Topology)
     required_annotation(mol, :Elemental)
     required_annotation(mol, :Aromatic)
-    mol.annotation[:FunctionalGroup] = FunctionalGroup()
+    mol.annotation[:FunctionalGroup] = fg = FunctionalGroup()
+    fggraphidx = Dict{Symbol,Int}()
+    ncnt = 0
+    ecnt = 0
     for rcd in FUNC_GROUP_TABLE
         fgset = fgrouprecord(mol, rcd)
         fgkey = Symbol(rcd["key"])
-        mol.annotation[:FunctionalGroup].nodeset[fgkey] = fgset
+        fg.nodeset[fgkey] = fgset
+        # Update ontology graph
+        if !isempty(fgset)
+            ncnt += 1
+            fggraphidx[fgkey] = ncnt
+            updatenode!(fg.graph, FGTermNode(fgkey), ncnt)
+            if "have" in keys(rcd)
+                for k in rcd["have"]
+                    ecnt += 1
+                    e = FGRelationEdge(fggraphidx[Symbol(k)], ncnt, :partof)
+                    updateedge!(fg.graph, e, ecnt)
+                end
+            end
+            if "isa" in keys(rcd)
+                ecnt += 1
+                e = FGRelationEdge(ncnt, fggraphidx[Symbol(rcd["isa"])], :isa)
+                updateedge!(fg.graph, e, ecnt)
+            end
+        end
     end
 end
 
@@ -66,7 +102,6 @@ function fgrouprecord(mol::VectorMol, rcd)
                 return newset
             end
         end
-        # TODO: update ontology graph
     end
     # Substructure match
     preprocess!(mol)
@@ -86,7 +121,6 @@ function fgrouprecord(mol::VectorMol, rcd)
                 push!(newset, nodekeys(esub))
             end
         end
-        # TODO: update ontology graph
     else
         union!(newset, fgroupcond(mol, rcd))
     end
@@ -119,4 +153,50 @@ function fgroupquery(mol::VectorMol, query)
         push!(newset, nodes)
     end
     return newset
+end
+
+
+
+function largestcomponents(fg::FunctionalGroup)
+    components = Dict{Symbol,Set{Set{Int}}}()
+    ontnodes = topologicalsort(fg.graph)
+    for n in ontnodes
+        rmset = Set{Set{Int}}()
+        nterm = getnode(fg.graph, n).term
+        for (s, e) in successors(fg.graph, n)
+            rel = getedge(fg.graph, e)
+            if rel.relation != :partof
+                continue
+            end
+            ansterm = getnode(fg.graph, s).term
+            ansset = union(fg.nodeset[ansterm]...)
+            for nset in fg.nodeset[nterm]
+                if isempty(setdiff(nset, ansset))
+                    push!(rmset, nset)
+                end
+            end
+        end
+        components[nterm] = setdiff(fg.nodeset[nterm], rmset)
+    end
+    for n in ontnodes
+        rmset = Set{Set{Int}}()
+        nterm = getnode(fg.graph, n).term
+        for (s, e) in successors(fg.graph, n)
+            rel = getedge(fg.graph, e)
+            if rel.relation != :isa
+                continue
+            end
+            ansterm = getnode(fg.graph, s).term
+            intersect!(components[nterm], components[ansterm])
+        end
+        for (p, e) in predecessors(fg.graph, n)
+            rel = getedge(fg.graph, e)
+            if rel.relation != :isa
+                continue
+            end
+            descterm = getnode(fg.graph, p).term
+            setdiff!(components[nterm], components[descterm])
+        end
+    end
+    return components
 end

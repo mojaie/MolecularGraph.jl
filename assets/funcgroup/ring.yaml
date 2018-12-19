@@ -98,10 +98,12 @@
   query: "c1ccccc1"
 
 - key: Pyridine
+  have: [AromaticNitrogen]
   isa: SixMemberedRing
   query: "n1ccccc1"
 
 - key: Pyrimidine
+  have: [AromaticNitrogen]
   isa: SixMemberedRing
   query: "n1cnccc1"
 

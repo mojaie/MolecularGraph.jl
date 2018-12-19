@@ -156,7 +156,9 @@ function drawwedge!(canvas, uv, color)
         SVector{2}(uvlen, uvlen / 2 * canvas.wedgewidthf),
         normalize(utov(uv)), vecU(uv)
     )
-    tfarr = reshape(tf[1:2, :], (1, 6))
+    # TODO: StaticArrays bug?
+    tfarr = tf[[1, 2, 4, 5, 7, 8]]
+    # tfarr = reshape(tf[1:2, :], (1, 6))
     tftxt = join(crdf.(tfarr), " ")
     elem = """<polygon points="0,1 0,-1 1,0" fill="$(rgbf(color))"
      transform="matrix($(tftxt))"/>
@@ -173,7 +175,9 @@ function drawdashedwedge!(canvas, uv, color)
         SVector{2}(uvlen / 7, uvlen / 14 * canvas.wedgewidthf),
         normalize(utov(uv)), vecU(uv)
     )
-    tfarr = reshape(tf[1:2, :], (1, 6))
+    # TODO: StaticArrays bug?
+    tfarr = tf[[1, 2, 4, 5, 7, 8]]
+    # tfarr = reshape(tf[1:2, :], (1, 6))
     tftxt = join(crdf.(tfarr), " ")
     elem = """<g stroke="$(rgbf(color))" stroke-width="0.3" transform="matrix($(tftxt))">
      <line x1="0" y1="8" x2="0" y2="-8" />
@@ -197,7 +201,9 @@ function drawwave!(canvas, uv, color)
         SVector{2}(uvlen / 7, uvlen / 2 * canvas.wavewidthf),
         normalize(utov(uv)), vecU(uv)
     )
-    tfarr = reshape(tf[1:2, :], (1, 6))
+    # TODO: StaticArrays bug?
+    tfarr = tf[[1, 2, 4, 5, 7, 8]]
+    # tfarr = reshape(tf[1:2, :], (1, 6))
     tftxt = join(crdf.(tfarr), " ")
     elem = """<polyline points="0,0 0.5,0 1,1 2,-1 3,1 4,-1 5,1 6,-1 6.5,0 7,0"
      stroke="$(rgbf(color))" stroke-width="0.2"

@@ -16,4 +16,15 @@
     @test shortestpath(graph, 1, 6) === nothing
 end
 
+@testset "dgraph" begin
+    graph = GMapDGraph(1:10, [
+        (1, 4), (2, 4), (3, 7), (4, 5), (4, 6),
+        (4, 7), (6, 9), (7, 8), (7, 9), (7, 10)
+    ])
+    @test issetequal(reachablenodes(graph, 4), [5, 6, 7, 8, 9, 10])
+    plen = pathlength(graph, 1)
+    @test plen[6] == 2
+    @test plen[10] == 3
+end
+
 end # graph.shortestpath

@@ -4,9 +4,7 @@
 #
 
 export
-    Node,
     Edge,
-    UGraph,
     GMapUGraph,
     GVectorUGraph,
     connect,
@@ -19,18 +17,17 @@ export
     neighbors,
     nodecount,
     edgecount,
+    neighborkeys,
+    neighbornodes,
+    neighboredgekeys,
+    neighboredges,
+    neighborcount,
+    degree,
     updatenode!,
     updateedge!,
     unlinknode!,
     unlinkedge!,
     similarmap
-
-
-struct Node <: AbstractNode
-    attr::Dict
-end
-
-Node() = Node(Dict())
 
 
 struct Edge <: AbstractEdge
@@ -134,8 +131,19 @@ edgekeys(graph::MapUGraph) = Set(keys(graph.edges))
 neighbors(graph::UGraph, idx) = graph.adjacency[idx]
 
 nodecount(graph::UGraph) = length(graph.nodes)
-
 edgecount(graph::UGraph) = length(graph.edges)
+
+neighborkeys(graph::AbstractUGraph, idx) = collect(keys(neighbors(graph, idx)))
+neighbornodes(
+    graph::AbstractUGraph, idx) = getnode.((graph,), neighborkeys(graph, idx))
+neighboredgekeys(
+    graph::AbstractUGraph, idx) = collect(values(neighbors(graph, idx)))
+neighboredges(
+    graph::AbstractUGraph, idx
+) = getedge.((graph,), neighboredgekeys(graph, idx))
+neighborcount(
+    graph::AbstractUGraph, idx) = length(neighbors(graph, idx))
+degree = neighborcount
 
 
 function updatenode!(graph::MapUGraph, node, idx)
@@ -161,7 +169,8 @@ function updateedge!(graph::MapUGraph, edge, idx)
     return
 end
 
-updateedge!(G, edge, u, v) = updateedge!(G, edge, graph.adjacency[u][v])
+updateedge!(
+    G::MapUGraph, edge, u, v) = updateedge!(G, edge, graph.adjacency[u][v])
 
 
 function unlinknode!(graph::MapUGraph, idx)

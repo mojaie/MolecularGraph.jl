@@ -26,8 +26,12 @@ module GraphMol
         include("./graph/interface.jl")
         include("./graph/ugraph.jl")
         include("./graph/ugraphview.jl")
+        include("./graph/dgraph.jl")
+        include("./graph/dgraphview.jl")
+
         include("./graph/merge.jl")
         include("./graph/linegraph.jl")
+        include("./graph/dag.jl")
 
         include("./graph/shortestpath.jl")
         include("./graph/bipartite.jl")

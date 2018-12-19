@@ -9,35 +9,50 @@ export
     UGraphView,
     MapUGraph,
     VectorUGraph,
+    AbstractDGraph,
+    DGraph,
+    DGraphView,
+    MapDGraph,
     AbstractNode,
     AbstractEdge,
-    neighborkeys,
-    neighbornodes,
-    neighboredgekeys,
-    neighboredges,
-    neighborcount,
-    degree,
+    AbstractDirectedEdge,
+    Node,
     VF2State
 
 
-abstract type AbstractUGraph end
+# Undirected graph
 
+abstract type AbstractUGraph end
 abstract type UGraph <: AbstractUGraph end
 abstract type UGraphView <: AbstractUGraph end
-
 abstract type MapUGraph <: UGraph end
 abstract type VectorUGraph <: UGraph end
 
+
+# Directed graph
+
+abstract type AbstractDGraph end
+abstract type DGraph <: AbstractDGraph end
+abstract type DGraphView <: AbstractDGraph end
+abstract type MapDGraph <: DGraph end
+
+
+# Components
+
 abstract type AbstractNode end
 abstract type AbstractEdge end
+abstract type AbstractDirectedEdge end
 
 
-neighborkeys(graph, idx) = collect(keys(neighbors(graph, idx)))
-neighbornodes(graph, idx) = getnode.((graph,), neighborkeys(graph, idx))
-neighboredgekeys(graph, idx) = collect(values(neighbors(graph, idx)))
-neighboredges(graph, idx) = getedge.((graph,), neighboredgekeys(graph, idx))
-neighborcount(graph, idx) = length(neighbors(graph, idx))
-degree = neighborcount
+# Node
 
+struct Node <: AbstractNode
+    attr::Dict
+end
+
+Node() = Node(Dict())
+
+
+# Graph algorithm states
 
 abstract type VF2State end

@@ -4,7 +4,6 @@
 #
 
 """
-
 module GeometryTest
     using Test
     using LinearAlgebra
@@ -21,8 +20,13 @@ module GraphTest
     using GraphMol.Error
     include("./graph/ugraph.jl")
     include("./graph/ugraphview.jl")
+    include("./graph/dgraph.jl")
+    include("./graph/dgraphview.jl")
+
     include("./graph/merge.jl")
     include("./graph/linegraph.jl")
+    include("./graph/dag.jl")
+
     include("./graph/shortestpath.jl")
     include("./graph/triangle.jl")
     include("./graph/bipartite.jl")
@@ -32,7 +36,6 @@ module GraphTest
     include("./graph/vf2.jl")
     include("./graph/vf2edge.jl")
 end
-
 """
 
 module GraphMolTest
@@ -44,7 +47,6 @@ module GraphMolTest
     """
     include("./model/atom.jl")
     include("./model/molgraph.jl")
-    """
 
     include("./smarts/base.jl")
     include("./smarts/logicaloperator.jl")
@@ -62,10 +64,11 @@ module GraphMolTest
 
     include("substructure.jl")
     include("remover.jl")
+    """
 
     include("./draw/base.jl")
     # include("./draw/coords2d.jl")
-    # include("./draw/svg.jl")
+    include("./draw/svg.jl")
 
     include("sdfilereader.jl")
 end
