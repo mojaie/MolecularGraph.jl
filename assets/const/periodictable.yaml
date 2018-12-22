@@ -9,13 +9,11 @@ H:
   number: 1
   name: Hydrogen
   std_weight: 1.008
-  color: [0, 0, 0]
 
 D:
   number: 1
   name: Deuterium
   std_weight: 2.014
-  color: [0, 0, 0]
 
 He:
   number: 2
@@ -36,36 +34,26 @@ B:
   number: 5
   name: Boron
   std_weight: 11.811
-  valence: [3, ]
-  color: [128, 0, 0]
 
 C:
   number: 6
   name: Carbon
   std_weight: 12.011
-  valence: [4, ]
-  color: [0, 0, 0]
 
 N:
   number: 7
   name: Nitrogen
   std_weight: 14.007
-  valence: [3, 5]
-  color: [0, 0, 255]
 
 O:
   number: 8
   name: Oxygen
   std_weight: 15.999
-  valence: [2, ]
-  color: [255, 0, 0]
 
 F:
   number: 9
   name: Fluorine
   std_weight: 18.998
-  valence: [1, ]
-  color: [0, 255, 0]
 
 Ne:
   number: 10
@@ -91,29 +79,26 @@ Si:
   number: 14
   name: Silicon
   std_weight: 28.085
-  valence: [4, ]
-  color: [128, 64, 192]
 
 P:
   number: 15
   name: Phosphorus
   std_weight: 30.974
-  valence: [3, 5]
-  color: [192, 0, 192]
 
 S:
   number: 16
   name: Sulfur
   std_weight: 32.061
-  valence: [2, 4, 6]
-  color: [192, 192, 0]
 
 Cl:
   number: 17
   name: Chlorine
   std_weight: 35.451
-  valence: [1, ]
-  color: [64, 192, 64]
+
+Ar:
+  number: 18
+  name: Argon
+  std_weight: 39.948
 
 K:
   number: 19
@@ -124,6 +109,11 @@ Ca:
   number: 20
   name: Calcium
   std_weight: 40.078
+
+Sk:
+  number: 21
+  name: Scandium
+  std_weight: 44.956
 
 Ti:
   number: 22
@@ -175,6 +165,11 @@ Ga:
   name: Gallium
   std_weight: 69.723
 
+Ge:
+  number: 32
+  name: Germanium
+  std_weight: 72.631
+
 As:
   number: 33
   name: Arsenic
@@ -189,8 +184,11 @@ Br:
   number: 35
   name: Bromine
   std_weight: 79.904
-  valence: [1, ]
-  color: [0, 192, 0]
+
+Kr:
+  number: 36
+  name: Krypton
+  std_weight: 83.798
 
 Rb:
   number: 37
@@ -232,6 +230,16 @@ Ru:
   name: Ruthenium
   std_weight: 101.07
 
+Rh:
+  number: 45
+  name: Rhodium
+  std_weight: 102.91
+
+Pd:
+  number: 46
+  name: Palladium
+  std_weight: 106.42
+
 Ag:
   number: 47
   name: Silver
@@ -266,8 +274,6 @@ I:
   number: 53
   name: Iodine
   std_weight: 126.90
-  valence: [1, ]
-  color: [0, 128, 0]
 
 Xe:
   number: 54

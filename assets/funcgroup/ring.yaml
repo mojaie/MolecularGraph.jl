@@ -82,6 +82,16 @@
   isa: [FiveMemberedRing]
   query: "n1nnnc1"
 
+- key: Thiophene
+  have: [AromaticSulfur]
+  isa: [FiveMemberedRing]
+  query: "s1cccc1"
+
+- key: Thiazole
+  have: [AromaticNitrogen, AromaticSulfur]
+  isa: [FiveMemberedRing]
+  query: "s1cncc1"
+
 
 
 # 6 membered
@@ -97,6 +107,11 @@
   isa: [SixMemberedRing]
   query: "c1ccccc1"
 
+- key: Piperazine
+  have: [SecAmine]
+  isa: [SixMemberedRing]
+  query: "N1CCNCC1"
+
 - key: Pyridine
   have: [AromaticNitrogen]
   isa: [SixMemberedRing]
@@ -107,6 +122,10 @@
   isa: [SixMemberedRing]
   query: "n1cnccc1"
 
+- key: Morpholine
+  have: [Ether, SecAmine]
+  isa: [SixMemberedRing]
+  query: "N1CCOCC1"
 
 
 # 7-membered
@@ -114,6 +133,10 @@
 - key: SevenMemberedRing
   query: "[*r7]~1~[*r7]~[*r7]~[*r7]~[*r7]~[*r7]~[*r7]1"
 
+- key: Azepane
+  have: [SecAmine]
+  isa: [SevenMemberedRing]
+  query: "N1CCCCCC1"
 
 
 # large ring
@@ -136,7 +159,16 @@
 - key: Benzyl
   have: [Benzene]
   query: "[CD2]c1ccccc1"
+- key: Biphenyl
+  have: [Benzene]
+  query: "c1ccccc1Cc1ccccc1"
 
+- key: Tosyl
+  have: [Benzene, Sulfone]
+  query: "C(=O)(=O)c1ccc([CD1])cc1"
+- key: Tosylate
+  have: [Tosyl]
+  query: "OC(=O)(=O)c1ccc([CD1])cc1"
 
 
 # Fused ring
@@ -144,18 +176,17 @@
 - key: Naphthalene
   have: [Benzene]
   query: "c1cccc2c1cccc2"
-
 - key: Anthracene
   have: [Naphthalene]
   query: "c1cccc2c1cc1ccccc1c2"
 
-- key: Biphenyl
-  have: [Benzene]
-  query: "c1ccccc1Cc1ccccc1"
-
 - key: Indole
   have: [Benzene, Pyrrole]
   query: "c1cccc2c1ncc2"
+
+- key: Acridine
+  have: [Benzene, Pyridine]
+  query: "c1cccc2c1nc1ccccc1c2"
 
 - key: Purine
   have: [Pyrimidine, Imidazole]

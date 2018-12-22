@@ -1,7 +1,6 @@
 ---
 
 
-
 # Carbon
 
 - key: Alkene
@@ -36,15 +35,16 @@
   query: "c[OD1]"
 
 - key: Carbonyl
-  query: "[#6]=O"
-
+  query: "C=O"
 - key: Ketone
   have: [Carbonyl]
   query: "[#6]C(=O)[#6]"
-
 - key: Aldehyde
   have: [Carbonyl]
   query: "[#6][CD2]=O"
+- key: Acetyl
+  have: [Carbonyl]
+  query: "C(=O)[CD1]"
 
 - key: Ether
   query: "[#6]O[#6]"
@@ -58,6 +58,12 @@
 - key: Carboxyl
   have: [Carbonyl, Alcohol]
   query: "O=CO"
+- key: Pivaloyl
+  have: [Carboxyl]
+  query: "OC(=O)C([CD1])([CD1])[CD1]"
+- key: Pivoxil
+  have: [Pivaloyl, Ether]
+  query: "OCOC(=O)C([CD1])([CD1])[CD1]"
 
 - key: Ester
   have: [Carbonyl, Ether]
@@ -80,16 +86,19 @@
 # Nitrogen
 
 - key: PrimaryAmine
-  query: "[#6][ND1]"
+  query: "C[ND1]"
 
 - key: SecAmine
-  query: "[#6][ND2][#6]"
+  query: "C[ND2]C"
 
 - key: TertAmine
-  query: "[#6][ND3]([#6])[#6]"
+  query: "C[ND3](C)C"
 
 - key: QuartAmmonium
-  query: "[#6][N+]([#6])([#6])[#6]"
+  query: "C[N+](C)(C)C"
+
+- key: AromaticAmine
+  query: "cN"
 
 - key: AromaticNitrogen
   query: "ana"
@@ -132,7 +141,10 @@
   query: "O=[N+][O-]"
 
 - key: Nitroso
-  query: "N=O"
+  query: "[N+0]=[O+0]"
+
+- key: AmineOxide
+  any: ["C[N+]([O-])CC", "[n+][O-]"]
 
 - key: Oxime
   have: [Imine]
@@ -151,7 +163,10 @@
 # Sulfur
 
 - key: Thiol
-  query: "[#6][SD1]"
+  query: "C[SD1]"
+
+- key: AromaticThiol
+  query: "c[SD1]"
 
 - key: Thioether
   query: "[#6]S[#6]"
@@ -200,11 +215,16 @@
 - key: Sulfoneamide
   have: [Sulfone]
   query: "O=S(=O)N"
-
 - key: Sulfamide
   have: [Sulfoneamide]
   query: "NS(=O)(=O)N"
 
+- key: Mesyl
+  have: [Sulfone]
+  query: "O=S(=O)[CD1]"
+- key: Mesylate
+  have: [Mesyl]
+  query: "OS(=O)(=O)[CD1]"
 
 - key: Thiocyanate
   have: [Nitrile]
@@ -255,7 +275,6 @@
 - key: Borinate
   have: [Organoborane]
   query: "[#6]B(O)[#6]"
-
 
 
 
@@ -310,3 +329,8 @@
   have: [Alkyliodoide]
   isa: [Acylhalide]
   query: "C(=O)I"
+
+
+- key: Triflate
+  have: [Sulfonate]
+  query: "OS(=O)(=O)C(F)(F)(F)"
