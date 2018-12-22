@@ -4,20 +4,20 @@
 # 3 membered
 
 - key: ThreeMemberedRing
-  query: "[*r3]1[*r3][*r3]1"
+  query: "[*r3]~1~[*r3]~[*r3]1"
 
 - key: Cyclopropane
-  isa: ThreeMemberedRing
+  isa: [ThreeMemberedRing]
   query: "C1CC1"
 
 - key: Epoxide
   have: [Ether]
-  isa: ThreeMemberedRing
+  isa: [ThreeMemberedRing]
   query: "O1CC1"
 
 - key: Aziridine
   have: [SecAmine]
-  isa: ThreeMemberedRing
+  isa: [ThreeMemberedRing]
   query: "N1CC1"
 
 
@@ -25,20 +25,20 @@
 # 4 membered
 
 - key: FourMemberedRing
-  query: "[*r4]1[*r4][*r4][*r4]1"
+  query: "[*r4]~1~[*r4]~[*r4]~[*r4]1"
 
 - key: Cyclobutane
-  isa: FourMemberedRing
+  isa: [FourMemberedRing]
   query: "C1CCC1"
 
 - key: Oxetane
   have: [Ether]
-  isa: FourMemberedRing
+  isa: [FourMemberedRing]
   query: "O1CCC1"
 
 - key: Azetidine
   have: [SecAmine]
-  isa: FourMemberedRing
+  isa: [FourMemberedRing]
   query: "N1CCC1"
 
 
@@ -46,40 +46,40 @@
 # 5 membered
 
 - key: FiveMemberedRing
-  query: "[*r5]1[*r5][*r5][*r5][*r5]1"
+  query: "[*r5]~1~[*r5]~[*r5]~[*r5]~[*r5]1"
 
 - key: Cyclopentane
-  isa: FiveMemberedRing
+  isa: [FiveMemberedRing]
   query: "C1CCCC1"
 
 - key: Tetrahydrofuran
   have: [Ether]
-  isa: FiveMemberedRing
+  isa: [FiveMemberedRing]
   query: "O1CCCC1"
 
 - key: Furan
   have: [AromaticOxygen]
-  isa: FiveMemberedRing
+  isa: [FiveMemberedRing]
   query: "o1cccc1"
 
 - key: Pyrrolidine
   have: [SecAmine]
-  isa: FiveMemberedRing
+  isa: [FiveMemberedRing]
   query: "N1CCCC1"
 
 - key: Pyrrole
   have: [AromaticNitrogen]
-  isa: FiveMemberedRing
+  isa: [FiveMemberedRing]
   query: "n1cccc1"
 
 - key: Imidazole
   have: [AromaticNitrogen]
-  isa: FiveMemberedRing
+  isa: [FiveMemberedRing]
   query: "n1cncc1"
 
 - key: Tetrazole
   have: [AromaticNitrogen]
-  isa: FiveMemberedRing
+  isa: [FiveMemberedRing]
   query: "n1nnnc1"
 
 
@@ -87,24 +87,24 @@
 # 6 membered
 
 - key: SixMemberedRing
-  query: "[*r6]1[*r6][*r6][*r6][*r6][*r6]1"
+  query: "[*r6]~1~[*r6]~[*r6]~[*r6]~[*r6]~[*r6]1"
 
 - key: Cyclohexane
-  isa: SixMemberedRing
+  isa: [SixMemberedRing]
   query: "C1CCCCC1"
 
 - key: Benzene
-  isa: SixMemberedRing
+  isa: [SixMemberedRing]
   query: "c1ccccc1"
 
 - key: Pyridine
   have: [AromaticNitrogen]
-  isa: SixMemberedRing
+  isa: [SixMemberedRing]
   query: "n1ccccc1"
 
 - key: Pyrimidine
   have: [AromaticNitrogen]
-  isa: SixMemberedRing
+  isa: [SixMemberedRing]
   query: "n1cnccc1"
 
 
@@ -112,17 +112,17 @@
 # 7-membered
 
 - key: SevenMemberedRing
-  query: "[*r7]1[*r7][*r7][*r7][*r7][*r7][*r7]1"
+  query: "[*r7]~1~[*r7]~[*r7]~[*r7]~[*r7]~[*r7]~[*r7]1"
 
 
 
 # large ring
 
 - key: EightMemberedRing
-  query: "[*r8]1[*r8][*r8][*r8][*r8][*r8][*r8][*r8]1"
+  query: "[*r8]~1~[*r8]~[*r8]~[*r8]~[*r8]~[*r8]~[*r8]~[*r8]1"
 
 - key: NineMemberedRing
-  query: "[*r9]1[*r9][*r9][*r9][*r9][*r9][*r9][*r9][*r9]1"
+  query: "[*r9]~1~[*r9]~[*r9]~[*r9]~[*r9]~[*r9]~[*r9]~[*r9]~[*r9]1"
 
 
 

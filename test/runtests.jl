@@ -3,7 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-"""
 module GeometryTest
     using Test
     using LinearAlgebra
@@ -36,7 +35,6 @@ module GraphTest
     include("./graph/vf2.jl")
     include("./graph/vf2edge.jl")
 end
-"""
 
 module GraphMolTest
     using Test
@@ -44,7 +42,6 @@ module GraphMolTest
     using GraphMol
     using GraphMol.Error
 
-    """
     include("./model/atom.jl")
     include("./model/molgraph.jl")
 
@@ -64,7 +61,6 @@ module GraphMolTest
 
     include("substructure.jl")
     include("remover.jl")
-    """
 
     include("./draw/base.jl")
     # include("./draw/coords2d.jl")

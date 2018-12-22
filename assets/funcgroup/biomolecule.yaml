@@ -7,7 +7,7 @@
   have: [Carbonyl]
   query: "NCC=O"
 - key: Gly
-  isa: AminoAcid
+  isa: [AminoAcid]
   query: "N[CD2]C=O"
 
 - key: Ala

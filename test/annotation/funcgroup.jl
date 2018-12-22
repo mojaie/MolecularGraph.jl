@@ -30,10 +30,10 @@ end
 
     gr[:Carboxyl] = res1
     res3 = fgrouprecord(
-        coumarin, Dict("isa" => "Carboxyl", "query" => "c(=O)o"))
+        coumarin, Dict("isa" => ["Carboxyl"], "query" => "c(=O)o"))
     @test issetequal(collect(res3)[1], [3, 4, 5])
     res4 = fgrouprecord(
-        coumarin, Dict("isa" => "Carboxyl", "query" => "[#6](=O)O"))
+        coumarin, Dict("isa" => ["Carboxyl"], "query" => "[#6](=O)O"))
     @test isempty(res4)
 end
 

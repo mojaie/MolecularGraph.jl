@@ -13,6 +13,9 @@
   have: [Alkene]
   query: "C=CC=C"
 
+- key: Triene
+  have: [Diene]
+  query: "C=CC=CC=C"
 
 
 # Oxygen
@@ -20,16 +23,16 @@
 - key: Alcohol
   query: "[#6][OD1]"
 - key: PrimaryAlcohol
-  isa: Alcohol
+  isa: [Alcohol]
   query: "[CD2][OD1]"
 - key: SecAlcohol
-  isa: Alcohol
+  isa: [Alcohol]
   query: "[CD3][OD1]"
 - key: TertAlcohol
-  isa: Alcohol
+  isa: [Alcohol]
   query: "[CD4][OD1]"
 - key: AromaticAlcohol
-  isa: Alcohol
+  isa: [Alcohol]
   query: "c[OD1]"
 
 - key: Carbonyl
@@ -122,7 +125,7 @@
   have: [Carbonyl]
   query: "O=CN"
 - key: Carbamoyl
-  isa: Amide
+  isa: [Amide]
   query: "O=C[ND1]"
 
 - key: Nitro
@@ -223,7 +226,20 @@
   query: "[#6]P(=O)(O)O"
 
 - key: Phosphate
-  query: "OP(=O)(O)O"
+  query: "OP(~O)(~O)~O"
+
+- key: Phosphoramide
+  query: "NP(=O)(N)N"
+
+- key: Phosphoramidate
+  query: "NP(~O)(~O)~O"
+
+- key: Thiophosphate
+  query: "S~P~O"
+
+- key: Thiophosphoramidate
+  have: [Thiophosphate]
+  query: "NP(~S)(~[O,S])~[O,S]"
 
 
 
@@ -245,37 +261,52 @@
 
 # Halogen
 
-- key: Halide
-  query: "[#6][F,Cl,Br,I]"
-- key: Fluoride
-  isa: Halide
-  query: "[#6]F"
-- key: Chloride
-  isa: Halide
-  query: "[#6]Cl"
-- key: Bromide
-  isa: Halide
-  query: "[#6]Br"
-- key: Iodoide
-  isa: Halide
-  query: "[#6]I"
+- key: Alkylhalide
+  query: "C[F,Cl,Br,I]"
+- key: Alkylfluoride
+  isa: [Alkylhalide]
+  query: "CF"
+- key: Alkylchloride
+  isa: [Alkylhalide]
+  query: "CCl"
+- key: Alkylbromide
+  isa: [Alkylhalide]
+  query: "CBr"
+- key: Alkyliodoide
+  isa: [Alkylhalide]
+  query: "CI"
+
+- key: Arylhalide
+  query: "c[F,Cl,Br,I]"
+- key: Arylfluoride
+  isa: [Arylhalide]
+  query: "cF"
+- key: Arylchloride
+  isa: [Arylhalide]
+  query: "cCl"
+- key: Arylbromide
+  isa: [Arylhalide]
+  query: "cBr"
+- key: Aryliodoide
+  isa: [Arylhalide]
+  query: "cI"
 
 - key: Acylhalide
-  have: [Halide]
+  have: [Alkylhalide]
   query: "C(=O)[F,Cl,Br,I]"
 - key: Acylfluoride
-  have: [Fluoride]
-  isa: Acylhalide
+  have: [Alkylfluoride]
+  isa: [Acylhalide]
   query: "C(=O)F"
 - key: Acylchloride
-  have: [Chloride]
-  isa: Acylhalide
+  have: [Alkylchloride]
+  isa: [Acylhalide]
   query: "C(=O)Cl"
 - key: Acylbromide
-  have: [Bromide]
-  isa: Acylhalide
+  have: [Alkylbromide]
+  isa: [Acylhalide]
   query: "C(=O)Br"
 - key: Acyliodide
-  have: [Iodoide]
-  isa: Acylhalide
+  have: [Alkyliodoide]
+  isa: [Acylhalide]
   query: "C(=O)I"

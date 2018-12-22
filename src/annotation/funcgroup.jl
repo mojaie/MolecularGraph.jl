@@ -83,9 +83,11 @@ function functionalgroup!(mol::VectorMol)
                 end
             end
             if "isa" in keys(rcd)
-                ecnt += 1
-                e = FGRelationEdge(ncnt, fggraphidx[Symbol(rcd["isa"])], :isa)
-                updateedge!(fg.graph, e, ecnt)
+                for k in rcd["isa"]
+                    ecnt += 1
+                    e = FGRelationEdge(ncnt, fggraphidx[Symbol(k)], :isa)
+                    updateedge!(fg.graph, e, ecnt)
+                end
             end
         end
     end
@@ -107,18 +109,26 @@ function fgrouprecord(mol::VectorMol, rcd)
     preprocess!(mol)
     if "isa" in keys(rcd)
         q = parse(SMARTS, rcd["query"])
-        refset = fgsetmap[Symbol(rcd["isa"])]
-        for s in refset
-            # TODO: SubstructureView for isomorph mapping
-            subg = nodesubgraph(mol.graph, s)
-            state = molidentstate(
-                subg, q.graph, atommatch(mol, q), bondmatch(mol, q))
-            mappings = substructmap!(mol, q, state)
-            for (emap, nmap) in mappings
-                esub = edgesubgraph(mol.graph, keys(emap))
-                # nodes = union(nodekeys(esub), keys(nmap))
-                # push!(newset, nodes)
-                push!(newset, nodekeys(esub))
+        for k in rcd["isa"]
+            refset = fgsetmap[Symbol(k)]
+            eachset = Set{Set{Int}}()
+            for s in refset
+                # TODO: SubstructureView for isomorph mapping
+                subg = nodesubgraph(mol.graph, s)
+                state = molidentstate(
+                    subg, q.graph, atommatch(mol, q), bondmatch(mol, q))
+                mappings = substructmap!(mol, q, state)
+                for (emap, nmap) in mappings
+                    esub = edgesubgraph(mol.graph, keys(emap))
+                    # nodes = union(nodekeys(esub), keys(nmap))
+                    # push!(newset, nodes)
+                    push!(eachset, nodekeys(esub))
+                end
+            end
+            if isempty(newset)
+                union!(newset, eachset)
+            else
+                intersect!(newset, eachset)
             end
         end
     else
