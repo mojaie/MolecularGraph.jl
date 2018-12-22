@@ -21,11 +21,13 @@ Try examples and tutorials in the [notebook directory](./notebook)
 
 
 
+
 Features
 ----------
 
+<img src="./assets/image/demo.svg" width="200"/><img src="./assets/image/Acetohexamide.svg" width="200"/><img src="./assets/image/Bivalirudin.svg" width="200"/><img src="./assets/image/Cefmenoxime.svg" width="200"/><img src="./assets/image/Succinic acid.svg" width="200"/><img src="./assets/image/Quinacrine.svg" width="200"/><img src="./assets/image/Docetaxel.svg" width="200"/><img src="./assets/image/FerrocenylethylMaleimide.svg" width="200"/>
+
 - Structure image export (SVG)
-  <img src="./assets/image/demo.svg" width="300"/>
 
 - SDFile import/export (.sdf, .mol)
 
