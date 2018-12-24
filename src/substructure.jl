@@ -33,6 +33,8 @@ molsubstrstate(G, H, nmatch, ematch) = VF2EdgeInducedState(
 
 function substructmap!(mol, query, state)
     # TODO: CQS
+    # TODO: not efficient in the case of small query (one atom or one bond)
+    # TODO: VF2 lazy iterator
     substrs = []
     mnodeset = nodekeys(mol.graph)
     qnodeset = nodekeys(query.graph)

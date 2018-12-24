@@ -4,49 +4,51 @@
 #
 
 export
-    sdftomol,
+    SDFileReader,
     sdfilereader,
-    sdfbatchsupplier,
-    defaultpostprocess,
     nohaltsupplier,
+    defaultpostprocess,
+    sdftomol,
     parse,
-    parsesdfblocks,
-    parsesdfmol,
-    parsesdfatom,
-    parsesdfbond,
+    sdfmol,
+    sdfatom,
+    sdfbond,
     sdfatomprops!,
-    parsesdfoptions
+    sdfoptions
 
 
-import Base: parse
+import Base: parse, iterate, IteratorSize
 
 
-function sdftomol(lines)
-    mol = parse(SDFile, lines)
-    return defaultpostprocess(mol)
+struct SDFileReader
+    lines::Base.EachLine
+    parser::Function
 end
-
-sdftomol(file::IO) = sdftomol(eachline(file))
-
-
-function sdfilereader(lines)
-    sdfbatchsupplier(nohaltsupplier, defaultpostprocess, lines)
-end
-
-sdfilereader(file::IO) = sdfilereader(eachline(file))
+sdfilereader(file::IO) = SDFileReader(eachline(file), nohaltsupplier)
 
 
-function sdfbatchsupplier(supplier, postprocess, lines)
-    # TODO: Lazy supplier
-    res = []
-    for (i, block) in enumerate(parsesdfblocks(lines))
-        push!(res, supplier(postprocess, block, i))
+function sdfblock(reader::SDFileReader, next)
+    block = []
+    while next !== nothing
+        (line, state) = next
+        if startswith(line, raw"$$$$")
+            return (reader.parser(block), state)
+        end
+        push!(block, rstrip(line))
+        next = iterate(reader.lines, state)
     end
-    return res
+    if !isempty(block)
+        return (reader.parser(block), state)
+    end
+    return
 end
+iterate(reader::SDFileReader) = sdfblock(reader, iterate(reader.lines))
+iterate(reader::SDFileReader, state) = sdfblock(
+    reader, iterate(reader.lines, state))
+IteratorSize(::Type{SDFileReader}) = Base.SizeUnknown()
 
 
-function nohaltsupplier(postprocess, block, i)
+function nohaltsupplier(block)
     mol = try
         parse(SDFile, block)
     catch e
@@ -57,7 +59,7 @@ function nohaltsupplier(postprocess, block, i)
             throw(e)
         end
     end
-    return postprocess(mol)
+    return defaultpostprocess(mol)
 end
 
 
@@ -68,47 +70,35 @@ function defaultpostprocess(mol::SDFile)
 end
 
 
+function sdftomol(lines)
+    mol = parse(SDFile, lines)
+    return defaultpostprocess(mol)
+end
+
+sdftomol(file::IO) = sdftomol(eachline(file))
+
+
 function parse(::Type{T}, lines) where T <: SDFile
     lines = collect(lines)
     molend = findnext(x -> x == "M  END", lines, 1)
     mollines = view(lines, 1:(molend - 1))
     optlines = view(lines, (molend + 1):lastindex(lines))
-    molobj = parsesdfmol(mollines)
-    merge!(molobj.attribute, parsesdfoptions(optlines))
-    molobj
+    molobj = sdfmol(mollines)
+    merge!(molobj.attribute, sdfoptions(optlines))
+    return molobj
 end
 
 
-function parsesdfblocks(lines)
-    # TODO: Lazy supplier
-    blocks = []
-
-    sdfblock = []
-    for line in lines
-        if startswith(line, raw"$$$$")
-            push!(blocks, copy(sdfblock))
-            empty!(sdfblock)
-        else
-            push!(sdfblock, rstrip(line))
-        end
-    end
-    if !isempty(sdfblock)
-        push!(blocks, sdfblock)
-    end
-    return blocks
-end
-
-
-function parsesdfmol(lines)
+function sdfmol(lines)
     countline = lines[4]
     atomcount = parse(UInt16, countline[1:3])
     bondcount = parse(UInt16, countline[4:6])
     # chiralflag = countline[12:15] Not used
     # propcount = countline[30:33] No longer supported
     atomblock = @view lines[ 5 : atomcount + 4 ]
-    atoms = parsesdfatom.(atomblock)
+    atoms = sdfatom.(atomblock)
     bondblock = @view lines[ atomcount + 5 : atomcount + bondcount + 4 ]
-    bonds = parsesdfbond.(bondblock)
+    bonds = sdfbond.(bondblock)
     propblock = @view lines[ atomcount + bondcount + 5 : end ]
     sdfatomprops!(atoms, propblock)
     aobjs = [SDFileAtom(atom...) for atom in atoms]
@@ -122,7 +112,7 @@ const SDF_CHARGE_TABLE = Dict(
 )
 
 
-function parsesdfatom(line)
+function sdfatom(line)
     sym = Symbol(rstrip(line[32:34]))
     xpos = parse(Float64, line[1:10])
     ypos = parse(Float64, line[11:20])
@@ -138,7 +128,7 @@ function parsesdfatom(line)
 end
 
 
-function parsesdfbond(line)
+function sdfbond(line)
     u = parse(Int, line[1:3])
     v = parse(Int, line[4:6])
     order = parse(Int, line[7:9])
@@ -179,7 +169,7 @@ function sdfatomprops!(atoms, lines)
 end
 
 
-function parsesdfoptions(lines)
+function sdfoptions(lines)
     data = Dict()
     for (i, line) in enumerate(lines)
         # Some inappropriate signs are accepted for practical use
@@ -188,5 +178,5 @@ function parsesdfoptions(lines)
             data[m[1]] = lines[i + 1]
         end
     end
-    data
+    return data
 end

@@ -11,7 +11,7 @@ export
 struct Aromatic <: Annotation end
 
 
-function aromatic!(mol)
+function aromatic!(mol::VectorMol)
     required_annotation(mol, :Topology)
     required_annotation(mol, :Elemental)
     # Precalculate carbonyl
@@ -45,12 +45,17 @@ end
 
 function satisfyHuckel(mol::VectorMol, ring)
     cnt = 0
-    carbonyl = fgroupquery(mol, "[#6]=[OD1]")
-    if !isempty(carbonyl)
-        carbonyl = union(carbonyl...)
+    # Carbonyl
+    carbonylC = Int[]
+    carbonylO = findall((mol.v[:Symbol] .== :O) .* (mol.v[:Degree] .== 1))
+    for o in carbonylO
+        c = collect(neighborkeys(mol.graph, o))[1]
+        if mol.v[:Symbol][c] == :C
+            push!(carbonylC, c)
+        end
     end
     for r in ring
-        if r in carbonyl
+        if r in carbonylC
             continue
         elseif mol.v[:Pi][r] == 1
             cnt += 1
