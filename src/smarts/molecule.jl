@@ -11,7 +11,7 @@ export
     chain!
 
 
-function componentquery!(state::SmartsParserState)
+function componentquery!(state::DisconnectedSmarts)
     """ Start <- Component ('.' Component)*
     """
     if read(state) == '\0'
@@ -26,7 +26,7 @@ function componentquery!(state::SmartsParserState)
 end
 
 
-function component!(state::SmartsParserState)
+function component!(state::DisconnectedSmarts)
     """ Component <- '(' Fragment ')' / Fragment
     """
     if read(state) == '('
@@ -43,10 +43,10 @@ function component!(state::SmartsParserState)
 end
 
 
-function fragment!(state::AbstractSmartsParser)
+function fragment!(state::SmartsParser)
     """ Fragment <- Group
     """
-    if state isa SmilesParserState && read(state) == '\0'
+    if state isa SmilesParser && read(state) == '\0'
         return # Empty molecule
     end
     group!(state, nothing)
@@ -61,14 +61,14 @@ function fragment!(state::AbstractSmartsParser)
 end
 
 
-function group!(state::AbstractSmartsParser, bond)
+function group!(state::SmartsParser, bond)
     """ Group <- Atom ((Bond? Group) / Chain)* Chain
     """
     a = atom!(state)
     if a === nothing
-        # Do not start with '(' ex. C((C)C)C is invalid
+        # ex. CC((C)C)C should be CC(CC)C
         throw(MolParseError(
-            "unexpected token: $(read(state)) at $(state.pos)"))
+            "unexpected token: branch starts with '(' at $(state.pos)"))
     end
     state.node += 1
     updateatom!(state.mol, a, state.node)
@@ -89,9 +89,9 @@ function group!(state::AbstractSmartsParser, bond)
             @assert c == ')' "unexpected token: $(c) at $(state.pos)"
             forward!(state)
             if state.done || read(state) in ")."
-                # Do not finish with ')' ex, CC(C)(C) should be CC(C)C
+                # ex. CC(C)(C) should be CC(C)C
                 throw(MolParseError(
-                    "unexpected token: $(read(state)) at $(state.pos)"))
+                    "unexpected token: branch ends with ')' at $(state.pos)"))
             end
         else
             chain!(state)
@@ -104,16 +104,23 @@ function group!(state::AbstractSmartsParser, bond)
 end
 
 
-function chain!(state::AbstractSmartsParser)
+function chain!(state::SmartsParser)
     """ Chain <- (Bond? (Atom / RingLabel))+
     """
     u = state.branch
     while !state.done
         # Bond?
-        if read(state) == '.' && lookahead(state, 1) != '('
-            # Disconnected
-            forward!(state)
-            b = :disconn
+        if read(state) == '.'
+            if state isa ConnectedSmarts
+                throw(MolParseError(
+                    "unexpected token: disconnected at $(state.pos)"))
+            elseif lookahead(state, 1) != '('
+                # Disconnected
+                forward!(state)
+                b = :disconn
+            else
+                b = bond!(state)
+            end
         else
             b = bond!(state)
         end
@@ -149,7 +156,7 @@ function chain!(state::AbstractSmartsParser)
             updateatom!(state.mol, a, state.node)
         end
         if b == :disconn
-            if (state isa SmartsParserState)
+            if (state isa DisconnectedSmarts)
                 for conn in state.mol.connectivity
                     if conn[1] == state.root
                         push!(conn, state.node)

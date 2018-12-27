@@ -4,9 +4,11 @@
 #
 
 export
-    AbstractSmartsParser,
-    SmartsParserState,
-    SmilesParserState,
+    SmartsParser,
+    SmilesParser,
+    AnySmarts,
+    ConnectedSmarts,
+    DisconnectedSmarts,
     parse,
     smilestomol,
     lookahead,
@@ -18,10 +20,7 @@ export
 import Base: read, parse
 
 
-abstract type AbstractSmartsParser end
-
-
-mutable struct SmilesParserState <: AbstractSmartsParser
+mutable struct SmartsParser{T<:AbstractMapMol}
     input::String
     pos::Int
     done::Bool
@@ -29,39 +28,34 @@ mutable struct SmilesParserState <: AbstractSmartsParser
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
     ringlabel::Dict
-    mol::SMILES
+    mol::T
 
-    function SmilesParserState(smiles)
-        new(smiles, 1, false, 0, 1, 1, Dict(), SMILES())
+    function SmartsParser{T}(smiles) where {T<:AbstractMapMol}
+        new(smiles, 1, false, 0, 1, 1, Dict(), T())
     end
 end
 
-
-mutable struct SmartsParserState <: AbstractSmartsParser
-    input::String
-    pos::Int
-    done::Bool
-    node::Int # No. of current node
-    branch::Int # No. of node at the current branch root
-    root::Int # No. of node at the current tree root
-    ringlabel::Dict
-    mol::SMARTS
-
-    function SmartsParserState(smarts)
-        new(smarts, 1, false, 0, 1, 1, Dict(), SMARTS())
-    end
-end
+SmilesParser = SmartsParser{SMILES}
+AnySmarts = SmartsParser{T} where {T<:AbstractQueryMol}
+ConnectedSmarts = SmartsParser{ConnectedSMARTS}
+DisconnectedSmarts = SmartsParser{SMARTS}
 
 
-function parse(::Type{T}, str::AbstractString) where T <: SMILES
-    state = SmilesParserState(str)
+function parse(::Type{SMILES}, str::AbstractString)
+    state = SmilesParser(str)
     fragment!(state)
     return state.mol
 end
 
 
-function parse(::Type{T}, str::AbstractString) where T <: SMARTS
-    state = SmartsParserState(str)
+function parse(::Type{ConnectedSMARTS}, str::AbstractString)
+    state = ConnectedSmarts(str)
+    fragment!(state)
+    return state.mol
+end
+
+function parse(::Type{SMARTS}, str::AbstractString)
+    state = DisconnectedSmarts(str)
     componentquery!(state)
     return state.mol
 end
@@ -75,7 +69,7 @@ function smilestomol(smiles::AbstractString)
 end
 
 
-function lookahead(state::AbstractSmartsParser, pos::Int)
+function lookahead(state::SmartsParser, pos::Int)
     # Negative pos can be used
     newpos = state.pos + pos
     if newpos > length(state.input) || newpos < 1
@@ -93,7 +87,7 @@ end
 read(state) = lookahead(state, 0)
 
 
-function forward!(state::AbstractSmartsParser, num::Int)
+function forward!(state::SmartsParser, num::Int)
     # Negative num can be used
     state.pos += num
     if state.pos > length(state.input)

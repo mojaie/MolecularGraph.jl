@@ -5,10 +5,12 @@
 
 export
     GMapMol,
+    GConnectedQueryMol,
     GQueryMol,
     GVectorMol,
     SDFile,
     SMILES,
+    ConnectedSMARTS,
     SMARTS,
     vectormol,
     nullmol,
@@ -49,6 +51,16 @@ function GMapMol{A,B}(nodes::Vector{A}, edges::Vector{B}
 end
 
 
+struct GConnectedQueryMol{A<:QueryAtom,B<:QueryBond} <: ConnectedQueryMol
+    graph::GMapUGraph{A,B}
+    attribute::Dict
+
+    function GConnectedQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
+        new(GMapUGraph{A,B}(), Dict())
+    end
+end
+
+
 struct GQueryMol{A<:QueryAtom,B<:QueryBond} <: QueryMol
     graph::GMapUGraph{A,B}
     connectivity::Array{Array{Int}}
@@ -85,6 +97,7 @@ end
 # Aliases
 SDFile = GMapMol{SDFileAtom,SDFileBond}
 SMILES = GMapMol{SmilesAtom,SmilesBond}
+ConnectedSMARTS = GConnectedQueryMol{SmartsAtom,SmartsBond}
 SMARTS = GQueryMol{SmartsAtom,SmartsBond}
 
 

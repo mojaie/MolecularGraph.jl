@@ -2,99 +2,99 @@
 @testset "smarts.atom" begin
 
 @testset "atomsymbol" begin
-    state = SmartsParserState("Cl")
+    state = ConnectedSmarts("Cl")
     Chloride = atomsymbol!(state)
     @test Chloride == (:and => (:Symbol => :Cl, :Aromatic => false))
     @test state.pos == 3
 
-    state = SmartsParserState("Cr")
+    state = ConnectedSmarts("Cr")
     Chromium = atomsymbol!(state)
     @test Chromium == (:and => (:Symbol => :C, :Aromatic => false))
     @test state.pos == 2
 
-    state = SmartsParserState("p")
+    state = ConnectedSmarts("p")
     aromp = atomsymbol!(state)
     @test aromp == (:and => (:Symbol => :P, :Aromatic => true))
 end
 
 @testset "atomprop" begin
-    state = SmartsParserState("s")
+    state = ConnectedSmarts("s")
     aroms = atomprop!(state)
     @test aroms == (:and => (:Symbol => :S, :Aromatic => true))
 
-    state = SmartsParserState("123")
+    state = ConnectedSmarts("123")
     iso = atomprop!(state)
     @test iso == (:Mass => 123)
 
-    state = SmartsParserState("2H]")
+    state = ConnectedSmarts("2H]")
     forward!(state)
     hyd = atomprop!(state)
     @test hyd == (:Symbol => :H)
 
-    state = SmartsParserState("!H]")
+    state = ConnectedSmarts("!H]")
     forward!(state)
     noth = atomprop!(state)
     @test noth == (:H_Count => 1)
 
-    state = SmartsParserState("H+")
+    state = ConnectedSmarts("H+")
     proton = atomprop!(state)
     @test proton == (:and => (:Symbol => :H, :Charge => 1))
 
-    state = SmartsParserState("H41")
+    state = ConnectedSmarts("H41")
     H4 = atomprop!(state)
     @test H4 == (:H_Count => 4)
     @test state.pos == 3
 
-    state = SmartsParserState("X2")
+    state = ConnectedSmarts("X2")
     X2 = atomprop!(state)
     @test X2 == (:Connectivity => 2)
 
-    state = SmartsParserState("Xe")
+    state = ConnectedSmarts("Xe")
     Xe = atomprop!(state)
     @test Xe == (:Symbol => :Xe)
     @test state.pos == 3
 
-    state = SmartsParserState("Na")
+    state = ConnectedSmarts("Na")
     Na = atomprop!(state)
     @test Na == (:Symbol => :Na)
     @test state.pos == 3
 
-    state = SmartsParserState("Yv2")
+    state = ConnectedSmarts("Yv2")
     Yval = atomprop!(state)
     @test Yval == (:Symbol => :Y)
 
-    state = SmartsParserState("+23")
+    state = ConnectedSmarts("+23")
     chg1 = atomprop!(state)
     @test chg1 == (:Charge => 2)
     @test state.pos == 3
 
-    state = SmartsParserState("----+")
+    state = ConnectedSmarts("----+")
     chg2 = atomprop!(state)
     @test chg2 == (:Charge => -4)
     @test state.pos == 5
 
-    state = SmartsParserState("@+")
+    state = ConnectedSmarts("@+")
     stereo1 = atomprop!(state)
     @test stereo1 == (:stereo => 1)
     @test state.pos == 2
 
-    state = SmartsParserState("@@?")
+    state = ConnectedSmarts("@@?")
     stereo4 = atomprop!(state)
     @test stereo4 == (:stereo => 4)
     @test state.pos == 4
 
-    state = SmartsParserState("\$([CH2]=*)")
+    state = ConnectedSmarts("\$([CH2]=*)")
     rec = atomprop!(state)
     @test rec == (:recursive => "[CH2]=*")
     @test state.pos == 11
 end
 
 @testset "atom" begin
-    state = SmilesParserState("Br")
+    state = SmilesParser("Br")
     br = atom!(state)
     @test br.symbol == :Br
 
-    state = SmilesParserState("[14c@@H]")
+    state = SmilesParser("[14c@@H]")
     iso = atom!(state)
     @test iso.symbol == :C
     @test iso.mass == 14
@@ -102,23 +102,23 @@ end
     @test iso.stereo == 2
     @test state.pos == 9
 
-    state = SmilesParserState("[Zn++]")
+    state = SmilesParser("[Zn++]")
     zn = atom!(state)
     @test zn.symbol == :Zn
     @test zn.charge == 2
 
-    state = SmilesParserState("[O-2]")
+    state = SmilesParser("[O-2]")
     ox = atom!(state)
     @test ox.symbol == :O
     @test ox.charge == -2
 end
 
 @testset "smartsatom" begin
-    state = SmartsParserState("c")
+    state = ConnectedSmarts("c")
     aromc = atom!(state)
     @test aromc.query == (:and => (:Symbol => :C, :Aromatic => true))
 
-    state = SmartsParserState("[#16]")
+    state = ConnectedSmarts("[#16]")
     no16 = atom!(state)
     @test no16.query == (:Symbol => :S)
 end

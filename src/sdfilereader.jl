@@ -78,6 +78,7 @@ end
 sdftomol(file::IO) = sdftomol(eachline(file))
 
 
+# TODO: Type{SDFile}
 function parse(::Type{T}, lines) where T <: SDFile
     lines = collect(lines)
     molend = findnext(x -> x == "M  END", lines, 1)

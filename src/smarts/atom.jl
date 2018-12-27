@@ -12,7 +12,7 @@ export
 # TODO: radical
 
 
-function atom!(state::SmilesParserState)
+function atom!(state::SmilesParser)
     """ Atom <- '[' AtomProp+ ']' / AtomSymbol
     """
     c = read(state)
@@ -58,7 +58,7 @@ function atom!(state::SmilesParserState)
 end
 
 
-function atom!(state::SmartsParserState)
+function atom!(state::SmartsParser)
     """ Atom <- '[' (AtomProp / LogicalOperator)+ ']' / AtomSymbol
     """
     c = read(state)
@@ -80,7 +80,7 @@ function atom!(state::SmartsParserState)
 end
 
 
-function atomsymbol!(state::AbstractSmartsParser)
+function atomsymbol!(state::SmartsParser)
     """ Atomsymbol <- Br / Cl / [AaBCcNnOoPpSsFI*]
     """
     if read(state) == 'C' && lookahead(state, 1) == 'l'
@@ -125,7 +125,7 @@ const SMARTS_CHARGE_SIGN = Dict(
 )
 
 
-function atomprop!(state::AbstractSmartsParser)
+function atomprop!(state::SmartsParser)
     """ AtomProp <- '\$(' RecursiveQuery ')' / Mass / Symbol / AtomNum /
         Stereo / CHG / [DHRrvX]
     """

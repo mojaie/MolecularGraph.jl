@@ -17,19 +17,19 @@
         end
     end
 
-    state = SmartsParserState("!a")
+    state = ConnectedSmarts("!a")
     not1 = lgnot!(state, parseabc)
     @test not1 == (:not => (:v => :a))
 
-    state = SmartsParserState("a&b")
+    state = ConnectedSmarts("a&b")
     and1 = lghighand!(state, parseabc)
     @test and1 == (:and => (:v => :a, :v => :b))
 
-    state = SmartsParserState("abc")
+    state = ConnectedSmarts("abc")
     and2 = lghighand!(state, parseabc)
     @test and2 == (:and => (:v => :a, :v => :b, :v => :c))
 
-    state = SmartsParserState("!ab")
+    state = ConnectedSmarts("!ab")
     not2 = lghighand!(state, parseabc)
     @test not2 == (
         :and => (
@@ -38,29 +38,29 @@
         )
     )
 
-    state = SmartsParserState("a,b")
+    state = ConnectedSmarts("a,b")
     or1 = lgor!(state, parseabc)
     @test or1 == (:or => (:v => :a, :v => :b))
 
-    state = SmartsParserState("a;b")
+    state = ConnectedSmarts("a;b")
     and3 = lglowand!(state, parseabc)
     @test and3 == (:and => (:v => :a, :v => :b))
 
-    state = SmartsParserState("")
+    state = ConnectedSmarts("")
     null = lglowand!(state, parseabc)
     @test null == nothing
 
-    state = SmartsParserState("!a!x")
+    state = ConnectedSmarts("!a!x")
     not3 = lglowand!(state, parseabc)
     @test not3 == (:not => (:v => :a))
     @test state.pos == 3
 
-    state = SmartsParserState("abcdef")
+    state = ConnectedSmarts("abcdef")
     and4 = lghighand!(state, parseabc)
     @test and4 == (:and => (:v => :a, :v => :b, :v => :c))
     @test state.pos == 4
 
-    state = SmartsParserState("a;b&c")
+    state = ConnectedSmarts("a;b&c")
     and5 = lglowand!(state, parseabc)
     @test and5 == (
         :and => (
@@ -69,7 +69,7 @@
         )
     )
 
-    state = SmartsParserState("a,b&c")
+    state = ConnectedSmarts("a,b&c")
     comp1 = lglowand!(state, parseabc)
     @test comp1 == (
         :or => (
@@ -78,7 +78,7 @@
         )
     )
 
-    state = SmartsParserState("a,b;c")
+    state = ConnectedSmarts("a,b;c")
     comp2 = lglowand!(state, parseabc)
     @test comp2 == (
         :and => (
@@ -87,7 +87,7 @@
         )
     )
 
-    state = SmartsParserState("ac;a!b,c;bx")
+    state = ConnectedSmarts("ac;a!b,c;bx")
     comp3 = lglowand!(state, parseabc)
     @test comp3 == (
         :and => (

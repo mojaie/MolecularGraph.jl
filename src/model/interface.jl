@@ -7,6 +7,8 @@ export
     AbstractMol,
     AbstractMapMol,
     MapMol,
+    AbstractQueryMol,
+    ConnectedQueryMol,
     QueryMol,
     AbstractVectorMol,
     VectorMol,
@@ -18,12 +20,15 @@ export
     QueryBond,
     Annotation
 
+# TODO: MapMol, QueryMol, VectorMol should be concrete class
 
 abstract type AbstractMol end
 
 abstract type AbstractMapMol <: AbstractMol end
 abstract type MapMol <: AbstractMapMol end
-abstract type QueryMol <: AbstractMapMol end
+abstract type AbstractQueryMol <: AbstractMapMol end
+abstract type ConnectedQueryMol <: AbstractQueryMol end
+abstract type QueryMol <: AbstractQueryMol end
 
 abstract type AbstractVectorMol <: AbstractMol end
 abstract type VectorMol <: AbstractVectorMol end

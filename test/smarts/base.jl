@@ -2,8 +2,8 @@
 @testset "smarts.base" begin
 
 @testset "parserstate" begin
-    state1 = SmilesParserState("C1SC(C=O)CCC1")
-    state2 = SmartsParserState(raw"*OC$([Cv4H2+0])")
+    state1 = SmilesParser("C1SC(C=O)CCC1")
+    state2 = ConnectedSmarts(raw"*OC$([Cv4H2+0])")
     @test read(state1) == 'C'
     @test lookahead(state1, 2) == 'S'
     @test read(state2) == '*'

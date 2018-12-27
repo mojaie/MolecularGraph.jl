@@ -14,7 +14,7 @@ argument, process tokens found in the given text, and returns nothing if no
 valid tokens were found.
 """
 
-function lglowand!(state::SmartsParserState, func)
+function lglowand!(state::AnySmarts, func)
     """ LogicalLowAnd <- Or (';' Or)*
     """
     cond = []
@@ -38,7 +38,7 @@ function lglowand!(state::SmartsParserState, func)
 end
 
 
-function lgor!(state::SmartsParserState, func)
+function lgor!(state::AnySmarts, func)
     """ Or <- And (',' And)*
     """
     cond = []
@@ -62,7 +62,7 @@ function lgor!(state::SmartsParserState, func)
 end
 
 
-function lghighand!(state::AbstractSmartsParser, func)
+function lghighand!(state::SmartsParser, func)
     """ And <- Not ('&'? Not)*
     """
     cond = []
@@ -84,7 +84,7 @@ function lghighand!(state::AbstractSmartsParser, func)
 end
 
 
-function lgnot!(state::AbstractSmartsParser, func)
+function lgnot!(state::SmartsParser, func)
     """ Not <- '!'? Element
     """
     if read(state) == '!'

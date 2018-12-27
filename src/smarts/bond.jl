@@ -9,12 +9,12 @@ export
     bondsymbol!
 
 
-defaultbond(state::SmilesParserState) = SmilesBond(1, false, nothing)
-defaultbond(state::SmartsParserState) = SmartsBond(
+defaultbond(state::SmilesParser) = SmilesBond(1, false, nothing)
+defaultbond(state::AnySmarts) = SmartsBond(
     :or => (:BondOrder => 1, :AromaticBond => true))
 
 
-function bond!(state::SmilesParserState)
+function bond!(state::SmilesParser)
     """ Bond <- BondSymbol?
     """
     b = bondsymbol!(state)
@@ -30,7 +30,7 @@ function bond!(state::SmilesParserState)
 end
 
 
-function bond!(state::SmartsParserState)
+function bond!(state::AnySmarts)
     """ Bond <- '~' / (BondSymbol / LogicalCond)?
     """
     if read(state) == '~'
@@ -57,7 +57,7 @@ const SMARTS_BOND_SYMBOL = Dict(
 )
 
 
-function bondsymbol!(state::AbstractSmartsParser)
+function bondsymbol!(state::SmartsParser)
     """ BondSymbol <- [-=#@:/\\] / '/?' / '\\?'
     """
     c = read(state)
