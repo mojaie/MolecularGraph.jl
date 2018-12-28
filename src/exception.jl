@@ -29,4 +29,4 @@ struct OperationError <: GraphMolError
     msg::String
 end
 
-showerror(io::IO, e::GraphMolError) = print(io, e.msg)
+showerror(io::IO, e::GraphMolError) = show(io, e.msg)

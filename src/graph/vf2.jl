@@ -7,15 +7,18 @@ export
     VF2NodeInducedState,
     vf2isomorphstate,
     vf2subgraphstate,
+    isomorphmap!,
     is_isomorphic,
     subgraph_isomorph,
-    isomorphmap!,
     vf2match!,
     updatestate!,
     candidatepairs,
     is_feasible,
     is_semantic_feasible,
     restore!
+
+
+import Base: iterate
 
 
 mutable struct VF2NodeInducedState <: VF2State
@@ -34,64 +37,65 @@ mutable struct VF2NodeInducedState <: VF2State
     g_term::Dict{Int,Int}
     h_term::Dict{Int,Int}
 
-    mappings::Vector{Dict{Int,Int}}
+    function VF2NodeInducedState(G, H, mode, lim, nmatch, ematch, mand, forb)
+        new(G, H, mode, lim, nmatch, ematch, mand, forb,
+            Dict(), Dict(), Dict(), Dict())
+    end
 end
 
 vf2isomorphstate(G, H) = VF2NodeInducedState(
-    G, H, :isomorphic, 1000, nothing, nothing, Dict(), Dict(),
-    Dict(), Dict(), Dict(), Dict(), []
-)
+    G, H, :isomorphic, 1000, nothing, nothing, Dict(), Dict())
 
 vf2subgraphstate(G, H) = VF2NodeInducedState(
-    G, H, :subgraph, 1000, nothing, nothing, Dict(), Dict(),
-    Dict(), Dict(), Dict(), Dict(), []
-)
+    G, H, :subgraph, 1000, nothing, nothing, Dict(), Dict())
 
 
-function yieldmap!(state::VF2State)
-    push!(state.mappings, copy(state.g_core))
+function isomorphmap!(state::VF2NodeInducedState)
+    return Channel(c::Channel -> vf2match!(state, c), ctype=Dict{Int,Int})
 end
 
 
 function is_isomorphic(G, H)
     state = vf2isomorphstate(G, H)
-    isomorphmap!(state)
-    return !isempty(state.mappings)
+    return vf2match!(state) !== nothing
 end
 
 
 function subgraph_isomorph(G, H)
     """ True if H is an induced subgraph of G"""
     state = vf2subgraphstate(G, H)
-    isomorphmap!(state)
-    return !isempty(state.mappings)
+    return vf2match!(state) !== nothing
 end
 
 
-function isomorphmap!(state::VF2NodeInducedState)
-    vf2match!(state, nothing, nothing)
-end
-
-
-function vf2match!(state::VF2State, g_prev, h_prev)
+function vf2match!(state::VF2State, channel=nothing)
     # Recursive
     # println("depth $(length(state.g_core))")
     if length(state.g_core) == nodecount(state.H)
         # println("done $(state.g_core)")
-        yieldmap!(state)
-    elseif length(state.g_core) >= state.depthlimit
-        throw(OperationError("Maximum recursion reached"))
-    else
-        for (g, h) in candidatepairs(state)
-            # println("candidates $(g) $(h)")
-            if is_feasible(state, g, h) && is_semantic_feasible(state, g, h)
-                updatestate!(state, g, h)
-                # println("g_core $(state.g_core)")
-                vf2match!(state, g, h)
-                # println("restored $(state.g_core)")
-                restore!(state, g, h)
-            end
+        if channel === nothing
+            return copy(state.g_core)
+        else
+            put!(channel, copy(state.g_core))
+            return
         end
+    end
+    if length(state.g_core) >= state.depthlimit
+        throw(OperationError("Maximum recursion reached"))
+    end
+    for (g, h) in candidatepairs(state)
+        # println("candidates $(g) $(h)")
+        if !is_feasible(state, g, h) || !is_semantic_feasible(state, g, h)
+            continue
+        end
+        updatestate!(state, g, h)
+        # println("g_core $(state.g_core)")
+        mp = vf2match!(state, channel)
+        if mp !== nothing
+            return mp
+        end
+        # println("restored $(state.g_core)")
+        restore!(state, g, h)
     end
     return
 end
@@ -127,7 +131,7 @@ function candidatepairs(state::VF2State)
         return [(n, state.mandatory[n])]
     end
 
-    pairs = []
+    pairs = Tuple{Int,Int}[]
     g_cand = setdiff(keys(state.g_term), keys(state.g_core))
     h_cand = setdiff(keys(state.h_term), keys(state.h_core))
     if isempty(g_cand) || isempty(h_cand)

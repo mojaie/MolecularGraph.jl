@@ -27,21 +27,25 @@ mutable struct VF2EdgeInducedState <: VF2State
     h_core::Dict{Int,Int}
     g_term::Dict{Int,Int}
     h_term::Dict{Int,Int}
-
-    mappings::Vector{Dict{Int,Int}}
 end
 
 vf2edgesubgraphstate(G, H) = VF2EdgeInducedState(
     G, H, :subgraph, 1000, nothing, nothing, Dict(), Dict(),
-    Dict(), Dict(), Dict(), Dict(), []
+    Dict(), Dict(), Dict(), Dict()
 )
 
 
 function edge_subgraph_isomorph(G, H)
     """ True if H is an edge-induced subgraph of G"""
-    state = vf2edgesubgraphstate(G, H)
-    isomorphmap!(state)
-    !isempty(state.mappings)
+    state = vf2edgesubgraphstate(linegraph(G), linegraph(H))
+    mapping = vf2match!(state)
+    if mapping === nothing
+        return false
+    elseif deltaYmismatch(G, H, mapping)
+        return false
+    else
+        return true
+    end
 end
 
 
@@ -51,14 +55,10 @@ function isomorphmap!(state::VF2EdgeInducedState)
     H = state.H
     state.G = linegraph(G)
     state.H = linegraph(H)
-    vf2match!(state, nothing, nothing)
-    deltaYfiltered = []
-    for mapping in state.mappings
-        if !deltaYmismatch(G, H, mapping)
-            push!(deltaYfiltered, mapping)
-        end
+    channel = Channel(c::Channel -> vf2match!(state, c), ctype=Dict{Int,Int})
+    return Iterators.filter(channel) do mapping
+        return !deltaYmismatch(G, H, mapping)
     end
-    state.mappings = deltaYfiltered
 end
 
 
