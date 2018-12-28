@@ -5,20 +5,16 @@
 
 export
     VF2NodeInducedState,
-    vf2isomorphstate,
-    vf2subgraphstate,
-    isomorphmap!,
     is_isomorphic,
-    subgraph_isomorph,
+    is_subgraph,
+    isomorphmap,
+    isomorphmapiter,
     vf2match!,
     updatestate!,
     candidatepairs,
     is_feasible,
     is_semantic_feasible,
     restore!
-
-
-import Base: iterate
 
 
 mutable struct VF2NodeInducedState <: VF2State
@@ -29,8 +25,8 @@ mutable struct VF2NodeInducedState <: VF2State
     depthlimit::Int
     nodematch::Union{Function,Nothing}
     edgematch::Union{Function,Nothing}
-    mandatory::Dict{Int,Int}
-    forbidden::Dict{Int,Int}
+    mandatory::Union{Dict{Int,Int},Nothing}
+    forbidden::Union{Dict{Int,Int},Nothing}
 
     g_core::Dict{Int,Int}
     h_core::Dict{Int,Int}
@@ -43,28 +39,43 @@ mutable struct VF2NodeInducedState <: VF2State
     end
 end
 
-vf2isomorphstate(G, H) = VF2NodeInducedState(
-    G, H, :isomorphic, 1000, nothing, nothing, Dict(), Dict())
 
-vf2subgraphstate(G, H) = VF2NodeInducedState(
-    G, H, :subgraph, 1000, nothing, nothing, Dict(), Dict())
+function is_isomorphic(G, H; kwargs...)
+    return isomorphmap(G, H; mode=:graph, kwargs...) !== nothing
+end
 
 
-function isomorphmap!(state::VF2NodeInducedState)
+function is_subgraph(G, H; kwargs...)
+    """ True if G is an induced subgraph of H"""
+    return isomorphmap(H, G; kwargs...) !== nothing
+end
+
+
+function isomorphmap(G::AbstractUGraph, H::AbstractUGraph;
+                     mode=:subgraph, depthlimit=1000,
+                     nodematcher=nothing, edgematcher=nothing,
+                     mandatory=nothing, forbidden=nothing)
+    if nodecount(G) == 0 || nodecount(H) == 0
+        return
+    end
+    state = VF2NodeInducedState(
+        G, H, mode, depthlimit, nodematcher, edgematcher,
+        mandatory, forbidden)
+    return vf2match!(state)
+end
+
+
+function isomorphmapiter(G::AbstractUGraph, H::AbstractUGraph;
+                         mode=:subgraph, depthlimit=1000,
+                         nodematcher=nothing, edgematcher=nothing,
+                         mandatory=nothing, forbidden=nothing)
+    if nodecount(G) == 0 || nodecount(H) == 0
+        return
+    end
+    state = VF2NodeInducedState(
+        G, H, mode, depthlimit, nodematcher, edgematcher,
+        mandatory, forbidden)
     return Channel(c::Channel -> vf2match!(state, c), ctype=Dict{Int,Int})
-end
-
-
-function is_isomorphic(G, H)
-    state = vf2isomorphstate(G, H)
-    return vf2match!(state) !== nothing
-end
-
-
-function subgraph_isomorph(G, H)
-    """ True if H is an induced subgraph of G"""
-    state = vf2subgraphstate(G, H)
-    return vf2match!(state) !== nothing
 end
 
 
@@ -124,11 +135,13 @@ end
 
 
 function candidatepairs(state::VF2State)
-    # Mandatory pair
-    md = setdiff(keys(state.mandatory), keys(state.g_core))
-    if !isempty(md)
-        n = pop!(md)
-        return [(n, state.mandatory[n])]
+    if state.mandatory !== nothing
+        # Mandatory pair
+        md = setdiff(keys(state.mandatory), keys(state.g_core))
+        if !isempty(md)
+            n = pop!(md)
+            return [(n, state.mandatory[n])]
+        end
     end
 
     pairs = Tuple{Int,Int}[]
@@ -142,11 +155,12 @@ function candidatepairs(state::VF2State)
     if !isempty(h_cand)
         h_min = minimum(h_cand)
         for g in g_cand
-            # Forbidden pair
-            if get(state.forbidden, g, nothing) == h_min
-                continue
+            if state.forbidden !== nothing
+                # Forbidden pair
+                if haskey(state.forbidden, g) && state.forbidden[g] == h_min
+                    continue
+                end
             end
-
             push!(pairs, (g, h_min))
         end
     end
@@ -172,7 +186,7 @@ function is_feasible(state::VF2State, g, h)
     # Terminal set size
     g_term_count = length(setdiff(keys(state.g_term), keys(state.g_core)))
     h_term_count = length(setdiff(keys(state.h_term), keys(state.h_core)))
-    if state.mode == :isomorphic && g_term_count != h_term_count
+    if state.mode == :graph && g_term_count != h_term_count
         return false
     elseif state.mode == :subgraph && g_term_count < h_term_count
         return false
@@ -180,7 +194,7 @@ function is_feasible(state::VF2State, g, h)
     # Yet unexplored size
     g_new_count = length(setdiff(nodekeys(state.G), keys(state.g_term)))
     h_new_count = length(setdiff(nodekeys(state.H), keys(state.h_term)))
-    if state.mode == :isomorphic && g_new_count != h_new_count
+    if state.mode == :graph && g_new_count != h_new_count
         return false
     elseif state.mode == :subgraph && g_new_count < h_new_count
         return false

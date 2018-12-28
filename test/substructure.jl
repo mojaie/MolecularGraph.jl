@@ -34,11 +34,10 @@ end
     @test !is_identical(sulfide, disconn)
     @test is_substruct(disconn, sulfide)
 
-    # TODO: substr match does not care charges
+    # Invalid (no edges)
     nacl = smilestomol("[Na+].[Cl-]")
     na = smilestomol("[Na]")
-    @test !is_identical(nacl, na)
-    @test is_substruct(na, nacl)
+    @test !is_substruct(na, nacl)
 
     tetrahedrane = smilestomol("C12C3C1C23")
     fused = smilestomol("C1C2C1C2")
@@ -47,58 +46,60 @@ end
     @test !is_substruct(spiro, tetrahedrane)
 end
 
-@testset "query" begin
-    anyatom = parse(SMARTS, "*")
+@testset "connectedquery" begin
+    anyatom = parse(ConnectedSMARTS, "*")
     hexane = smilestomol("CCCCCC")
-    @test match_molquery(hexane, anyatom)
+    @test is_querymatch(hexane, anyatom)
 
-    priamine = parse(SMARTS, "[NX3;H2]")
+    priamine = parse(ConnectedSMARTS, "[NX3;H2]")
     aniline = smilestomol("C1=CC=CC=C1N")
     dieamine = smilestomol("CCNCC")
-    @test match_molquery(aniline, priamine)
-    @test !match_molquery(dieamine, priamine)
+    @test is_querymatch(aniline, priamine)
+    @test !is_querymatch(dieamine, priamine)
 
-    alcohol = parse(SMARTS, "[#6][OD]")
+    alcohol = parse(ConnectedSMARTS, "[#6][OD]")
     diether = smilestomol("CCOCC")
     phenol = smilestomol("c1ccccc1O")
     glycerol = smilestomol("OCC(O)CO")
-    @test !match_molquery(diether, alcohol)
-    @test match_molquery(phenol, alcohol)
-    @test match_molquery(glycerol, alcohol)
+    @test !is_querymatch(diether, alcohol)
+    @test is_querymatch(phenol, alcohol)
+    @test is_querymatch(glycerol, alcohol)
 
-    aliphring = parse(SMARTS, "*@;!:*")
+    aliphring = parse(ConnectedSMARTS, "*@;!:*")
     cyclopentane = smilestomol("C1CCCC1")
     pyrrole = smilestomol("N1C=CC=C1")
-    @test match_molquery(cyclopentane, aliphring)
-    @test !match_molquery(pyrrole, aliphring)
+    @test is_querymatch(cyclopentane, aliphring)
+    @test !is_querymatch(pyrrole, aliphring)
 
-    notamide = parse(SMARTS, raw"[NX3;!$(NC=O)]")
+    notamide = parse(ConnectedSMARTS, raw"[NX3;!$(NC=O)]")
     triamine = smilestomol("CCN(CC)CC")
     acetamide = smilestomol("CC(=O)N")
-    @test match_molquery(triamine, notamide)
-    @test !match_molquery(acetamide, notamide)
+    @test is_querymatch(triamine, notamide)
+    @test !is_querymatch(acetamide, notamide)
 
+    peroxide = parse(ConnectedSMARTS, "[OX2][OX2]")
+    po1 = smilestomol("COOC")
+    npo1 = smilestomol("COCOCOC")
+    @test is_querymatch(po1, peroxide)
+    @test !is_querymatch(npo1, peroxide)
+
+    sixmem = parse(ConnectedSMARTS, "[*r6]1[*r6][*r6][*r6][*r6][*r6]1")
+    pyridine = smilestomol("n1ccccc1")
+    pyrrole = smilestomol("n1cccc1")
+    @test is_querymatch(pyridine, sixmem)
+    @test !is_querymatch(pyrrole, sixmem)
+end
+
+@testset "disconnectedquery" begin
     disconn = parse(SMARTS, "[#7,#8].[!#6].N")
     hetero1 = smilestomol("CCN(O)[O-]")
     hetero2 = smilestomol("CCN=N")
     hetero3 = smilestomol("BrCCOC#N")
     hetero4 = smilestomol("CCS(=O)(=O)O")
-    @test match_molquery(hetero1, disconn)
-    @test !match_molquery(hetero2, disconn)
-    @test match_molquery(hetero3, disconn)
-    @test !match_molquery(hetero4, disconn)
-
-    peroxide = parse(SMARTS, "[OX2][OX2]")
-    po1 = smilestomol("COOC")
-    npo1 = smilestomol("COCOCOC")
-    @test match_molquery(po1, peroxide)
-    @test !match_molquery(npo1, peroxide)
-
-    sixmem = parse(SMARTS, "[*r6]1[*r6][*r6][*r6][*r6][*r6]1")
-    pyridine = smilestomol("n1ccccc1")
-    pyrrole = smilestomol("n1cccc1")
-    @test match_molquery(pyridine, sixmem)
-    @test !match_molquery(pyrrole, sixmem)
+    @test is_querymatch(hetero1, disconn)
+    @test !is_querymatch(hetero2, disconn)
+    @test is_querymatch(hetero3, disconn)
+    @test !is_querymatch(hetero4, disconn)
 end
 
 end # substructure

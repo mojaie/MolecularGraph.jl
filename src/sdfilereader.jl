@@ -9,7 +9,6 @@ export
     nohaltsupplier,
     defaultpostprocess,
     sdftomol,
-    parse,
     sdfmol,
     sdfatom,
     sdfbond,
@@ -17,18 +16,19 @@ export
     sdfoptions
 
 
-import Base: parse, iterate, IteratorSize
+import Base: parse, iterate, eltype, IteratorSize, IteratorEltype
 
 
 struct SDFileReader
     lines::Base.EachLine
     parser::Function
 end
+
 sdfilereader(file::IO) = SDFileReader(eachline(file), nohaltsupplier)
 
-
-function sdfblock(reader::SDFileReader, next)
-    block = []
+function iterate(reader::SDFileReader, state=nothing)
+    block = String[]
+    next = iterate(reader.lines)
     while next !== nothing
         (line, state) = next
         if startswith(line, raw"$$$$")
@@ -42,10 +42,10 @@ function sdfblock(reader::SDFileReader, next)
     end
     return
 end
-iterate(reader::SDFileReader) = sdfblock(reader, iterate(reader.lines))
-iterate(reader::SDFileReader, state) = sdfblock(
-    reader, iterate(reader.lines, state))
+
+eltype(::Type{SDFileReader}) = Vector{String}
 IteratorSize(::Type{SDFileReader}) = Base.SizeUnknown()
+IteratorEltype(::Type{SDFileReader}) = Base.HasEltype()
 
 
 function nohaltsupplier(block)

@@ -5,11 +5,11 @@
 
 export
     VF2EdgeInducedState,
-    vf2edgesubgraphstate,
-    edge_subgraph_isomorph,
-    isomorphmap!,
+    is_edge_subgraph,
+    edgeisomorph,
+    edgeisomorphiter,
     is_semantic_feasible,
-    deltaYmismatch
+    delta_y_mismatch
 
 
 mutable struct VF2EdgeInducedState <: VF2State
@@ -20,44 +20,46 @@ mutable struct VF2EdgeInducedState <: VF2State
     depthlimit::Int
     nodematch::Union{Function,Nothing}
     edgematch::Union{Function,Nothing}
-    mandatory::Dict{Int,Int}
-    forbidden::Dict{Int,Int}
+    mandatory::Union{Dict{Int,Int},Nothing}
+    forbidden::Union{Dict{Int,Int},Nothing}
 
     g_core::Dict{Int,Int}
     h_core::Dict{Int,Int}
     g_term::Dict{Int,Int}
     h_term::Dict{Int,Int}
-end
 
-vf2edgesubgraphstate(G, H) = VF2EdgeInducedState(
-    G, H, :subgraph, 1000, nothing, nothing, Dict(), Dict(),
-    Dict(), Dict(), Dict(), Dict()
-)
-
-
-function edge_subgraph_isomorph(G, H)
-    """ True if H is an edge-induced subgraph of G"""
-    state = vf2edgesubgraphstate(linegraph(G), linegraph(H))
-    mapping = vf2match!(state)
-    if mapping === nothing
-        return false
-    elseif deltaYmismatch(G, H, mapping)
-        return false
-    else
-        return true
+    function VF2EdgeInducedState(G, H, mode, lim, nmatch, ematch, mand, forb)
+        new(G, H, mode, lim, nmatch, ematch, mand, forb,
+            Dict(), Dict(), Dict(), Dict())
     end
 end
 
 
-function isomorphmap!(state::VF2EdgeInducedState)
+function is_edge_subgraph(G, H; kwargs...)
+    """ True if G is an edge-induced subgraph of H"""
+    return edgeisomorph(H, G; kwargs...) !== nothing
+end
+
+
+function edgeisomorph(G::AbstractUGraph, H::AbstractUGraph; kwargs...)
+    return iterate(edgeisomorphiter(G, H; kwargs...))
+end
+
+
+function edgeisomorphiter(G::AbstractUGraph, H::AbstractUGraph;
+                          mode=:subgraph, depthlimit=1000,
+                          nodematcher=nothing, edgematcher=nothing,
+                          mandatory=nothing, forbidden=nothing)
     # Edge induced subgraph isomorphism mapping
-    G = state.G
-    H = state.H
-    state.G = linegraph(G)
-    state.H = linegraph(H)
+    if edgecount(G) == 0 || edgecount(H) == 0
+        return ()
+    end
+    state = VF2EdgeInducedState(
+        linegraph(G), linegraph(H), mode, depthlimit,
+        nodematcher, edgematcher, mandatory, forbidden)
     channel = Channel(c::Channel -> vf2match!(state, c), ctype=Dict{Int,Int})
     return Iterators.filter(channel) do mapping
-        return !deltaYmismatch(G, H, mapping)
+        return !delta_y_mismatch(G, H, mapping)
     end
 end
 
@@ -93,16 +95,16 @@ function is_semantic_feasible(state::VF2EdgeInducedState, g, h)
 end
 
 
-function deltaYmismatch(G, H, mapping)
+function delta_y_mismatch(G, H, mapping)
     # Delta-Y check for edge induced subgraph isomorphism
     gsub = edgesubgraph(G, keys(mapping))
     hsub = edgesubgraph(H, values(mapping))
     revmap = Dict(v => k for (k, v) in mapping)
-    return deltaY(gsub, hsub, mapping) || deltaY(hsub, gsub, revmap)
+    return delta_y(gsub, hsub, mapping) || delta_y(hsub, gsub, revmap)
 end
 
 
-function deltaY(gsub, hsub, mapping)
+function delta_y(gsub, hsub, mapping)
     for gn in triangles(gsub)
         triad = [(1, 2), (2, 3), (1, 3)]
         g_edges = [neighbors(gsub, gn[u])[gn[v]] for (u, v) in triad]

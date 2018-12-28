@@ -53,13 +53,14 @@ module GraphMolTest
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
+    include("substructure.jl")
+
     include("./annotation/topology.jl")
     include("./annotation/elemental.jl")
     include("./annotation/rotatable.jl")
     include("./annotation/aromatic.jl")
     include("./annotation/funcgroup.jl")
 
-    include("substructure.jl")
     include("remover.jl")
 
     include("./draw/base.jl")

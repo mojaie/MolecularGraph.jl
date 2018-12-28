@@ -106,23 +106,20 @@ function fgrouprecord(mol::VectorMol, rcd)
         end
     end
     # Substructure match
-    preprocess!(mol)
     if "isa" in keys(rcd)
-        q = parse(SMARTS, rcd["query"])
+        q = parse(ConnectedSMARTS, rcd["query"])
         for k in rcd["isa"]
             refset = fgsetmap[Symbol(k)]
             eachset = Set{Set{Int}}()
             for s in refset
-                # TODO: SubstructureView for isomorph mapping
-                subg = nodesubgraph(mol.graph, s)
-                state = molidentstate(
-                    subg, q.graph, atommatch(mol, q), bondmatch(mol, q))
-                mappings = substructmap!(mol, q, state)
-                for (emap, nmap) in mappings
-                    esub = edgesubgraph(mol.graph, keys(emap))
-                    # nodes = union(nodekeys(esub), keys(nmap))
-                    # push!(newset, nodes)
-                    push!(eachset, nodekeys(esub))
+                subst = atomsubstr(mol, s)
+                for (emap, nmap) in querymatchiter(subst, q, mode=:graph)
+                    if !isempty(emap)
+                        esub = edgesubgraph(mol.graph, keys(emap))
+                        push!(eachset, nodekeys(esub))
+                    elseif !isempty(nmap)
+                        push!(eachset, keys(nmap))
+                    end
                 end
             end
             if isempty(newset)
@@ -152,15 +149,15 @@ end
 
 
 function fgroupquery(mol::VectorMol, query)
-    q = parse(SMARTS, query)
+    q = parse(ConnectedSMARTS, query)
     newset = Set{Set{Int}}()
-    state = molsubstrstate(
-        mol.graph, q.graph, atommatch(mol, q), bondmatch(mol, q))
-    mappings = substructmap!(mol, q, state)
-    for (emap, nmap) in mappings
-        esub = edgesubgraph(mol.graph, keys(emap))
-        nodes = union(nodekeys(esub), keys(nmap))
-        push!(newset, nodes)
+    for (emap, nmap) in querymatchiter(mol, q)
+        if !isempty(emap)
+            esub = edgesubgraph(mol.graph, keys(emap))
+            push!(newset, nodekeys(esub))
+        elseif !isempty(nmap)
+            push!(newset, keys(nmap))
+        end
     end
     return newset
 end

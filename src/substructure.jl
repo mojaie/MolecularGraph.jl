@@ -4,15 +4,14 @@
 #
 
 export
-    molidentstate,
-    molsubstrstate,
-    substructmap!,
     is_identical,
     is_substruct,
     is_superstruct,
-    match_molquery,
-    match_groupquery,
-    preprocess!,
+    isomorphmap,
+    is_querymatch,
+    querymatch,
+    querymatchiter,
+    isSMARTSgroupmatch,
     atommatch,
     bondmatch,
     fast_identity_filter,
@@ -20,29 +19,56 @@ export
     deltaYmap!
 
 
-molidentstate(G, H, nmatch, ematch) = VF2EdgeInducedState(
-    G, H, :isomorphic, 1000, nmatch, ematch, Dict(), Dict(),
-    Dict(), Dict(), Dict(), Dict(), []
-)
-
-molsubstrstate(G, H, nmatch, ematch) = VF2EdgeInducedState(
-    G, H, :subgraph, 1000, nmatch, ematch, Dict(), Dict(),
-    Dict(), Dict(), Dict(), Dict(), []
-)
+function is_identical(mol1::VectorMol, mol2::VectorMol)
+    if !fast_identity_filter(mol1, mol2)
+        return false
+    end
+    return isomorphmap(mol1, mol2, mode=:graph) !== nothing
+end
 
 
-function substructmap!(mol, query, state)
-    # TODO: CQS
-    # TODO: not efficient in the case of small query (one atom or one bond)
-    # TODO: VF2 lazy iterator
-    substrs = []
+function is_substruct(mol1::VectorMol, mol2::VectorMol)
+    if !fast_substr_filter(mol2, mol1)
+        return false
+    end
+    return isomorphmap(mol2, mol1) !== nothing
+end
+
+is_superstruct(mol1, mol2) = is_substruct(mol2, mol1)
+
+
+function isomorphmap(mol1::VectorMol, mol2::VectorMol;
+                     mode=:subgraph, depthlimit=1000,
+                     atommatcher=atommatch, bondmatcher=bondmatch)
+    # Mapping based on edge subgraph isomorphism (ignore disconnected atom)
+    # Intended for use in substructure search
+    return edgeisomorph(
+        mol1.graph, mol2.graph, mode=mode, depthlimit=depthlimit,
+        nodematcher=atommatcher(mol1, mol2),
+        edgematcher=bondmatcher(mol1, mol2)
+    )
+end
+
+
+function is_querymatch(mol, query; kwargs...)
+    return querymatch(mol, query; kwargs...) !== nothing
+end
+
+
+function querymatch(mol::AbstractMol, query::QueryMol;
+                    mode=:subgraph, depthlimit=1000,
+                    atommatcher=atommatch, bondmatcher=bondmatch)
+    # Accept also disconnected atom but return only the first match
+    # Intended for use in SMARTS query search
     mnodeset = nodekeys(mol.graph)
     qnodeset = nodekeys(query.graph)
-    matchfunc = atommatch(mol, query)
+    afunc = atommatcher(mol, query)
+    bfunc = bondmatcher(mol, query)
     if bondcount(query) != 0
         # Edge induced subgraph mapping
-        isomorphmap!(state)
-        for emap in state.mappings
+        for emap in edgeisomorphiter(
+                mol.graph, query.graph, mode=mode, depthlimit=depthlimit,
+                nodematcher=afunc, edgematcher=bfunc)
             # Isolated node mapping
             msub = edgesubgraph(mol.graph, keys(emap))
             qsub = edgesubgraph(query.graph, values(emap))
@@ -50,77 +76,99 @@ function substructmap!(mol, query, state)
             qiso = setdiff(qnodeset, nodekeys(qsub))
             mrem = nodesubgraph(mol.graph, miso)
             qrem = nodesubgraph(query.graph, qiso)
-            nmap = maxcardmap(nodekeys(mrem), nodekeys(qrem), matchfunc)
+            nmap = maxcardmap(nodekeys(mrem), nodekeys(qrem), afunc)
             if length(nmap) == nodecount(qrem)
-                push!(substrs, (emap, nmap))
+                return (emap, nmap)
             end
         end
     elseif atomcount(query) != 0
         # Isolated nodes only
-        nmap = maxcardmap(mnodeset, qnodeset, matchfunc)
+        nmap = maxcardmap(mnodeset, qnodeset, afunc)
         if length(nmap) == atomcount(query)
-            push!(substrs, ([], nmap))
+            return (Dict(), nmap)
         end
     end
-    return substrs
-end
-
-
-function is_identical(mol1::VectorMol, mol2::VectorMol)
-    preprocess!(mol1)
-    preprocess!(mol2)
-    if !fast_identity_filter(mol1, mol2)
-        return false
-    end
-    state = molidentstate(
-        mol1.graph, mol2.graph, atommatch(mol1, mol2), bondmatch(mol1, mol2))
-    return !isempty(substructmap!(mol1, mol2, state))
-end
-
-
-function is_substruct(mol1::VectorMol, mol2::VectorMol)
-    preprocess!(mol1)
-    preprocess!(mol2)
-    if !fast_substr_filter(mol2, mol1)
-        return false
-    end
-    state = molsubstrstate(
-        mol2.graph, mol1.graph, atommatch(mol1, mol2), bondmatch(mol1, mol2))
-    return !isempty(substructmap!(mol2, mol1, state))
-end
-
-is_superstruct(mol1, mol2) = is_substruct(mol2, mol1)
-
-
-function match_molquery(mol::VectorMol, query::QueryMol)
-    preprocess!(mol)
-    state = molsubstrstate(
-        mol.graph, query.graph, atommatch(mol, query), bondmatch(mol, query))
-    return !isempty(substructmap!(mol, query, state))
-end
-
-
-function match_groupquery(mol::VectorMol, query::QueryMol, root::Int)
-    preprocess!(mol)
-    for nbr in neighboredgekeys(mol.graph, root)
-        state = molsubstrstate(
-            mol.graph, query.graph,
-            atommatch(mol, query), bondmatch(mol, query))
-        state.mandatory[nbr] = 1
-        isomorphmap!(state)
-        if !isempty(state.mappings)
-            return true
-        end
-    end
-    return false
-end
-
-
-function preprocess!(mol)
-    # TODO: remove and annotate Hs and trivials
-    required_annotation(mol, :Topology)
-    required_annotation(mol, :Elemental)
     return
+end
+
+
+querymatch(
+    mol::AbstractMol, query::ConnectedQueryMol; kwargs...
+) = iterate(querymatchiter(mol, query; kwargs...))
+
+
+function querymatchiter(mol::AbstractMol, query::ConnectedQueryMol;
+                        mode=:subgraph, depthlimit=1000,
+                        atommatcher=atommatch, bondmatcher=bondmatch,
+                        mandatory=nothing, forbidden=nothing)
+    # Iterate over all possible subgraph isomorphism mappings
+    # Intended for use in functional group annotation
+    afunc = atommatcher(mol, query)
+    bfunc = bondmatcher(mol, query)
+    if atomcount(query) == 0
+        return ()
+    elseif atomcount(query) == 1
+        # node match
+        qa = pop!(nodekeys(query.graph))
+        match = Iterators.filter(nodekeys(mol.graph)) do ma
+            return afunc(ma, qa)
+        end
+        return ((Dict(), Dict(ma => qa)) for ma in match)
+    elseif bondcount(query) == 1
+        # edge match
+        qb = pop!(edgekeys(query.graph))
+        qbond = getbond(query, qb)
+        match = Iterators.filter(edgekeys(mol.graph)) do mb
+            mbond = getbond(mol, mb)
+            return (
+                ((afunc(mbond.u, qbond.u) && afunc(mbond.v, qbond.v))
+                || (afunc(mbond.u, qbond.v) && afunc(mbond.v, qbond.u)))
+                && bfunc(mb, qb)
+            )
+        end
+        return ((Dict(mb => qb), Dict()) for mb in match)
+    else
+        # subgraph match
+        return ((emap, Dict()) for emap in edgeisomorphiter(
+            mol.graph, query.graph, mode=mode, depthlimit=depthlimit,
+            nodematcher=afunc, edgematcher=bfunc,
+            mandatory=mandatory, forbidden=forbidden
+        ))
+    end
+end
+
+
+function isSMARTSgroupmatch(mol::AbstractMol, query::ConnectedQueryMol, root;
+                            atommatcher=atommatch, bondmatcher=bondmatch,
+                            kwargs...)
+    # For recursive SMARTS match
+    afunc = atommatcher(mol, query)
+    bfunc = bondmatcher(mol, query)
+    @assert root in nodekeys(mol.graph) "node $(root) does not exist"
+    if atomcount(query) == 1
+        # node match
+        return afunc(root, 1)
+    elseif bondcount(query) == 1
+        # edge match
+        for (nbr, b) in neighbors(mol.graph, root)
+            if afunc(root, 1) && afunc(nbr, 2) && bfunc(b, 1)
+                return true
+            end
+        end
+        return false
+    else
+        # subgraph match
+        for n in neighboredgekeys(mol.graph, root)
+            if is_edge_subgraph(
+                    query.graph, mol.graph;
+                    nodematcher=afunc, edgematcher=bfunc,
+                    mandatory=Base.ImmutableDict(n=>1), kwargs...
+                )
+                return true
+            end
+        end
+        return false
+    end
 end
 
 
@@ -134,14 +182,17 @@ function atommatch(mol1::VectorMol, mol2::VectorMol)
     end
 end
 
-function atommatch(mol::VectorMol, querymol::QueryMol)
+function atommatch(mol::VectorMol, querymol::AbstractQueryMol)
     return function (a, qa)
         q = getatom(querymol, qa).query
         return querymatchtree(q, mol, a)
     end
 end
 
-atommatch(query::QueryMol, mol::VectorMol) = atom_match(mol, query)
+atommatch(
+    view::MolGraphView{G,M}, querymol::AbstractQueryMol
+) where {G<:UGraphView,M<:VectorMol} = atommatch(view.molecule, querymol)
+
 
 
 function bondmatch(mol1::VectorMol, mol2::VectorMol)
@@ -149,14 +200,16 @@ function bondmatch(mol1::VectorMol, mol2::VectorMol)
     return (b1, b2) -> true
 end
 
-function bondmatch(mol::VectorMol, querymol::QueryMol)
+function bondmatch(mol::VectorMol, querymol::AbstractQueryMol)
     return function (b, qb)
         q = getbond(querymol, qb).query
         return querymatchtree(q, mol, b)
     end
 end
 
-bond_match(query::QueryMol, mol::VectorMol) = bond_match(mol, query)
+bondmatch(
+    view::MolGraphView{G,M}, querymol::AbstractQueryMol
+) where {G<:UGraphView,M<:VectorMol} = bondmatch(view.molecule, querymol)
 
 
 function querymatchtree(query::Pair, mol::VectorMol, i::Int)
@@ -172,8 +225,8 @@ function querymatchtree(query::Pair, mol::VectorMol, i::Int)
         # TODO: stereo not implemented yet
         return true
     elseif query.first == :recursive
-        subq = parse(SMARTS, query.second)
-        return match_groupquery(mol, subq, i)
+        subq = parse(ConnectedSMARTS, query.second)
+        return isSMARTSgroupmatch(mol, subq, i)
     else
         if query.first == :RingSize
             # TODO:
@@ -185,7 +238,7 @@ function querymatchtree(query::Pair, mol::VectorMol, i::Int)
 end
 
 
-function fast_identity_filter(mol1, mol2)
+function fast_identity_filter(mol1::VectorMol, mol2::VectorMol)
     if atomcount(mol1) != atomcount(mol2)
         return false
     elseif bondcount(mol1) != bondcount(mol2)
@@ -198,7 +251,7 @@ function fast_identity_filter(mol1, mol2)
 end
 
 
-function fast_substr_filter(mol1, mol2)
+function fast_substr_filter(mol1::VectorMol, mol2::VectorMol)
     if atomcount(mol1) < atomcount(mol2)
         return false
     elseif bondcount(mol1) < bondcount(mol2)
