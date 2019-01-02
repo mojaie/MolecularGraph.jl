@@ -6,7 +6,7 @@
 @testset "graph.dgraphview" begin
 
 @testset "dgraphview" begin
-    graph = GMapDGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph = MapDGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
     view = GDGraphView(graph, Set([3, 4, 5]), Set([3, 4]))
     node = getnode(view, 3)
     @test isa(node, Node)
@@ -26,7 +26,7 @@
 end
 
 @testset "nodesubgraph" begin
-    graph = GMapDGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph = MapDGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
     subg = nodesubgraph(graph, [2, 3, 4])
     @test nodecount(subg) == 3
     @test edgecount(subg) == 2

@@ -5,8 +5,8 @@
 
 export
     Edge,
-    GMapUGraph,
-    GVectorUGraph,
+    MapUGraph,
+    VectorUGraph,
     connect,
     getnode,
     getedge,
@@ -40,19 +40,19 @@ Edge(u, v) = Edge(u, v, Dict())
 connect(e::Edge, u, v) = Edge(u, v, e.attr)
 
 
-struct GMapUGraph{N<:AbstractNode,E<:AbstractEdge} <: MapUGraph
+struct MapUGraph{N<:AbstractNode,E<:AbstractEdge} <: UGraph
     nodes::Dict{Int,N}
     edges::Dict{Int,E}
     adjacency::Dict{Int,Dict{Int,Int}}
 
-    function GMapUGraph{N,E}() where {N<:AbstractNode,E<:AbstractEdge}
+    function MapUGraph{N,E}() where {N<:AbstractNode,E<:AbstractEdge}
         new(Dict(), Dict(), Dict())
     end
 end
 
-function GMapUGraph(nodes::AbstractArray{Int},
+function MapUGraph(nodes::AbstractArray{Int},
                         edges::AbstractArray{Tuple{Int,Int}})
-    graph = GMapUGraph{Node,Edge}()
+    graph = MapUGraph{Node,Edge}()
     for node in nodes
         updatenode!(graph, Node(), node)
     end
@@ -63,13 +63,13 @@ function GMapUGraph(nodes::AbstractArray{Int},
 end
 
 
-struct GVectorUGraph{N<:AbstractNode,E<:AbstractEdge} <: VectorUGraph
+struct VectorUGraph{N<:AbstractNode,E<:AbstractEdge} <: UGraph
     nodes::Vector{N}
     edges::Vector{E}
     adjacency::Vector{Dict{Int,Int}}
 end
 
-function GVectorUGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
+function VectorUGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
     # do not use `fill`
     ns = [Node() for i in 1:size]
     adj = [Dict() for i in 1:size]
@@ -79,10 +79,10 @@ function GVectorUGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
         adj[u][v] = i
         adj[v][u] = i
     end
-    GVectorUGraph{Node,Edge}(ns, es, adj)
+    VectorUGraph{Node,Edge}(ns, es, adj)
 end
 
-function GVectorUGraph{N,E}(graph::GMapUGraph{N,E}
+function VectorUGraph{N,E}(graph::MapUGraph{N,E}
         ) where {N<:AbstractNode,E<:AbstractEdge}
     ns = []
     es = []
@@ -107,7 +107,7 @@ function GVectorUGraph{N,E}(graph::GMapUGraph{N,E}
             adj[nodemap[u]][nodemap[v]] = edgemap[e]
         end
     end
-    GVectorUGraph{N,E}(ns, es, adj)
+    VectorUGraph{N,E}(ns, es, adj)
 end
 
 
@@ -217,11 +217,11 @@ end
 function similarmap(graph::MapUGraph)
     N = valtype(graph.nodes)
     E = valtype(graph.edges)
-    GMapUGraph{N,E}()
+    MapUGraph{N,E}()
 end
 
 function similarmap(graph::VectorUGraph)
     N = eltype(graph.nodes)
     E = eltype(graph.edges)
-    GMapUGraph{N,E}()
+    MapUGraph{N,E}()
 end

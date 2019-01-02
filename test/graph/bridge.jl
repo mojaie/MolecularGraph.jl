@@ -6,21 +6,21 @@
 @testset "graph.bridge" begin
 
 @testset "bridge" begin
-    graph1 = GMapUGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph1 = MapUGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
     @test issetequal(bridges(graph1, 1), [1, 2, 3, 4])
-    graph2 = GMapUGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
+    graph2 = MapUGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
     @test isempty(bridges(graph2, 1))
-    graph3 = GMapUGraph(1:8, [
+    graph3 = MapUGraph(1:8, [
         (1, 2), (2, 3), (1, 3), (3, 4), (4, 5),
         (5, 6), (4, 6), (5, 7), (7, 8), (8, 6)
     ])
     @test issetequal(bridges(graph3, 1), [4])
-    graph4 = GMapUGraph(1:9, [
+    graph4 = MapUGraph(1:9, [
         (1, 2), (2, 3), (3, 4), (4, 5), (4, 6),
         (3, 7), (7, 8), (8, 9), (9, 1)
     ])
     @test issetequal(bridges(graph4, 1), [3, 4, 5])
-    graph5 = GMapUGraph(1:10, [
+    graph5 = MapUGraph(1:10, [
         (1, 2), (2, 3), (3, 4), (3, 5), (5, 6),
         (6, 7), (7, 5), (5, 8), (8, 9), (9, 5), (5, 10)
     ])

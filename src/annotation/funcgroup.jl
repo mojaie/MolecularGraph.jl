@@ -50,10 +50,10 @@ end
 
 struct FunctionalGroup <: Annotation
     nodeset::Dict{Symbol,Set{Set{Int}}}
-    graph::DAG{FGTermNode,FGRelationEdge}
+    graph::MapDGraph{FGTermNode,FGRelationEdge}
 
     function FunctionalGroup()
-        new(Dict(), DAG{FGTermNode,FGRelationEdge}())
+        new(Dict(), MapDGraph{FGTermNode,FGRelationEdge}())
     end
 end
 

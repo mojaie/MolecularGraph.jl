@@ -25,8 +25,6 @@ export
 abstract type AbstractUGraph end
 abstract type UGraph <: AbstractUGraph end
 abstract type UGraphView <: AbstractUGraph end
-abstract type MapUGraph <: UGraph end
-abstract type VectorUGraph <: UGraph end
 
 
 # Directed graph
@@ -34,7 +32,6 @@ abstract type VectorUGraph <: UGraph end
 abstract type AbstractDGraph end
 abstract type DGraph <: AbstractDGraph end
 abstract type DGraphView <: AbstractDGraph end
-abstract type MapDGraph <: DGraph end
 
 
 # Components

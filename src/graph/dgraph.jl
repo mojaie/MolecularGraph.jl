@@ -5,7 +5,7 @@
 
 export
     Arrow,
-    GMapDGraph,
+    MapDGraph,
     connect,
     getnode,
     getedge,
@@ -45,20 +45,20 @@ Arrow(s, t) = Arrow(s, t, Dict())
 connect(a::Arrow, s, t) = Arrow(s, t, a.attr)
 
 
-struct GMapDGraph{N<:AbstractNode,E<:AbstractDirectedEdge} <: MapDGraph
+struct MapDGraph{N<:AbstractNode,E<:AbstractDirectedEdge} <: DGraph
     nodes::Dict{Int,N}
     edges::Dict{Int,E}
     successors::Dict{Int,Dict{Int,Int}}
     predecessors::Dict{Int,Dict{Int,Int}}
 
-    function GMapDGraph{N,E}() where {N<:AbstractNode,E<:AbstractDirectedEdge}
+    function MapDGraph{N,E}() where {N<:AbstractNode,E<:AbstractDirectedEdge}
         new(Dict(), Dict(), Dict(), Dict())
     end
 end
 
-function GMapDGraph(nodes::AbstractArray{Int},
+function MapDGraph(nodes::AbstractArray{Int},
                     edges::AbstractArray{Tuple{Int,Int}})
-    graph = GMapDGraph{Node,Arrow}()
+    graph = MapDGraph{Node,Arrow}()
     for node in nodes
         updatenode!(graph, Node(), node)
     end
@@ -188,5 +188,5 @@ end
 function similarmap(graph::MapDGraph)
     N = valtype(graph.nodes)
     E = valtype(graph.edges)
-    GMapDGraph{N,E}()
+    MapDGraph{N,E}()
 end

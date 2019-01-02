@@ -6,7 +6,7 @@
 @testset "graph.dgraph" begin
 
 @testset "mapdgraph" begin
-    graph = GMapDGraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
+    graph = MapDGraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
     node = getnode(graph, 4)
     @test typeof(node) <: AbstractNode
     edge = getedge(graph, 3, 4)

@@ -23,7 +23,7 @@ end
 
 
 function linegraph(G::AbstractUGraph)
-    L = GMapUGraph{LineGraphNode, LineGraphEdge}()
+    L = MapUGraph{LineGraphNode, LineGraphEdge}()
     for (i, edge) in edgesiter(G)
         L.nodes[i] = LineGraphNode(edge.u, edge.v)
         L.adjacency[i] = Dict()

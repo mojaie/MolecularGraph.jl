@@ -6,8 +6,8 @@
 @testset "graph.merge" begin
 
 @testset "shallowmerge" begin
-    G = GMapUGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
-    H = GMapUGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
+    G = MapUGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
+    H = MapUGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
     U, nmap, emap = shallowmerge(G, H)
     @test nodecount(U) == 10
     @test edgecount(U) == 8
