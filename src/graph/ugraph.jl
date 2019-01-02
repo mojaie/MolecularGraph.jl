@@ -5,8 +5,8 @@
 
 export
     Edge,
-    MapUGraph,
-    VectorUGraph,
+    MapUDGraph,
+    VectorUDGraph,
     connect,
     getnode,
     getedge,
@@ -40,19 +40,19 @@ Edge(u, v) = Edge(u, v, Dict())
 connect(e::Edge, u, v) = Edge(u, v, e.attr)
 
 
-struct MapUGraph{N<:AbstractNode,E<:AbstractEdge} <: UGraph
+struct MapUDGraph{N<:AbstractNode,E<:AbstractEdge} <: UndirectedGraph
     nodes::Dict{Int,N}
     edges::Dict{Int,E}
     adjacency::Dict{Int,Dict{Int,Int}}
 
-    function MapUGraph{N,E}() where {N<:AbstractNode,E<:AbstractEdge}
+    function MapUDGraph{N,E}() where {N<:AbstractNode,E<:AbstractEdge}
         new(Dict(), Dict(), Dict())
     end
 end
 
-function MapUGraph(nodes::AbstractArray{Int},
+function MapUDGraph(nodes::AbstractArray{Int},
                         edges::AbstractArray{Tuple{Int,Int}})
-    graph = MapUGraph{Node,Edge}()
+    graph = MapUDGraph{Node,Edge}()
     for node in nodes
         updatenode!(graph, Node(), node)
     end
@@ -63,13 +63,13 @@ function MapUGraph(nodes::AbstractArray{Int},
 end
 
 
-struct VectorUGraph{N<:AbstractNode,E<:AbstractEdge} <: UGraph
+struct VectorUDGraph{N<:AbstractNode,E<:AbstractEdge} <: UndirectedGraph
     nodes::Vector{N}
     edges::Vector{E}
     adjacency::Vector{Dict{Int,Int}}
 end
 
-function VectorUGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
+function VectorUDGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
     # do not use `fill`
     ns = [Node() for i in 1:size]
     adj = [Dict() for i in 1:size]
@@ -79,10 +79,10 @@ function VectorUGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
         adj[u][v] = i
         adj[v][u] = i
     end
-    VectorUGraph{Node,Edge}(ns, es, adj)
+    VectorUDGraph{Node,Edge}(ns, es, adj)
 end
 
-function VectorUGraph{N,E}(graph::MapUGraph{N,E}
+function VectorUDGraph{N,E}(graph::MapUDGraph{N,E}
         ) where {N<:AbstractNode,E<:AbstractEdge}
     ns = []
     es = []
@@ -107,46 +107,46 @@ function VectorUGraph{N,E}(graph::MapUGraph{N,E}
             adj[nodemap[u]][nodemap[v]] = edgemap[e]
         end
     end
-    VectorUGraph{N,E}(ns, es, adj)
+    VectorUDGraph{N,E}(ns, es, adj)
 end
 
 
-getnode(graph::UGraph, idx) = graph.nodes[idx]
+getnode(graph::UDGraph, idx) = graph.nodes[idx]
 
-getedge(graph::UGraph, idx) = graph.edges[idx]
-getedge(graph::UGraph, u, v) = getedge(graph, graph.adjacency[u][v])
+getedge(graph::UDGraph, idx) = graph.edges[idx]
+getedge(graph::UDGraph, u, v) = getedge(graph, graph.adjacency[u][v])
 
-nodesiter(graph::VectorUGraph) = enumerate(graph.nodes)
-nodesiter(graph::MapUGraph) = graph.nodes
+nodesiter(graph::VectorUDGraph) = enumerate(graph.nodes)
+nodesiter(graph::MapUDGraph) = graph.nodes
 
-nodekeys(graph::VectorUGraph) = Set(1:nodecount(graph))
-nodekeys(graph::MapUGraph) = Set(keys(graph.nodes))
+nodekeys(graph::VectorUDGraph) = Set(1:nodecount(graph))
+nodekeys(graph::MapUDGraph) = Set(keys(graph.nodes))
 
-edgesiter(graph::VectorUGraph) = enumerate(graph.edges)
-edgesiter(graph::MapUGraph) = graph.edges
+edgesiter(graph::VectorUDGraph) = enumerate(graph.edges)
+edgesiter(graph::MapUDGraph) = graph.edges
 
-edgekeys(graph::VectorUGraph) = Set(1:edgecount(graph))
-edgekeys(graph::MapUGraph) = Set(keys(graph.edges))
+edgekeys(graph::VectorUDGraph) = Set(1:edgecount(graph))
+edgekeys(graph::MapUDGraph) = Set(keys(graph.edges))
 
-neighbors(graph::UGraph, idx) = graph.adjacency[idx]
+neighbors(graph::UDGraph, idx) = graph.adjacency[idx]
 
-nodecount(graph::UGraph) = length(graph.nodes)
-edgecount(graph::UGraph) = length(graph.edges)
+nodecount(graph::UDGraph) = length(graph.nodes)
+edgecount(graph::UDGraph) = length(graph.edges)
 
-neighborkeys(graph::AbstractUGraph, idx) = collect(keys(neighbors(graph, idx)))
+neighborkeys(graph::UDGraph, idx) = collect(keys(neighbors(graph, idx)))
 neighbornodes(
-    graph::AbstractUGraph, idx) = getnode.((graph,), neighborkeys(graph, idx))
+    graph::UDGraph, idx) = getnode.((graph,), neighborkeys(graph, idx))
 neighboredgekeys(
-    graph::AbstractUGraph, idx) = collect(values(neighbors(graph, idx)))
+    graph::UDGraph, idx) = collect(values(neighbors(graph, idx)))
 neighboredges(
-    graph::AbstractUGraph, idx
+    graph::UDGraph, idx
 ) = getedge.((graph,), neighboredgekeys(graph, idx))
 neighborcount(
-    graph::AbstractUGraph, idx) = length(neighbors(graph, idx))
+    graph::UDGraph, idx) = length(neighbors(graph, idx))
 degree = neighborcount
 
 
-function updatenode!(graph::MapUGraph, node, idx)
+function updatenode!(graph::MapUDGraph, node, idx)
     """Add or update a node"""
     graph.nodes[idx] = node
     if !(idx in keys(graph.adjacency))
@@ -156,7 +156,7 @@ function updatenode!(graph::MapUGraph, node, idx)
 end
 
 
-function updateedge!(graph::MapUGraph, edge, idx)
+function updateedge!(graph::MapUDGraph, edge, idx)
     """Add or update an edge"""
     if !(edge.u in keys(graph.nodes))
         throw(OperationError("Missing node: $(edge.u)"))
@@ -170,10 +170,10 @@ function updateedge!(graph::MapUGraph, edge, idx)
 end
 
 updateedge!(
-    G::MapUGraph, edge, u, v) = updateedge!(G, edge, graph.adjacency[u][v])
+    G::MapUDGraph, edge, u, v) = updateedge!(G, edge, graph.adjacency[u][v])
 
 
-function unlinknode!(graph::MapUGraph, idx)
+function unlinknode!(graph::MapUDGraph, idx)
     """Remove a node and its connecting edges"""
     if !(idx in keys(graph.nodes))
         throw(OperationError("Missing node: $(idx)"))
@@ -188,7 +188,7 @@ function unlinknode!(graph::MapUGraph, idx)
 end
 
 
-function unlinkedge!(graph::MapUGraph, u, v)
+function unlinkedge!(graph::MapUDGraph, u, v)
     """Remove an edge"""
     if !(u in keys(graph.nodes))
         throw(OperationError("Missing node: $(u)"))
@@ -201,7 +201,7 @@ function unlinkedge!(graph::MapUGraph, u, v)
     return
 end
 
-function unlinkedge!(graph::MapUGraph, idx)
+function unlinkedge!(graph::MapUDGraph, idx)
     """Remove an edge"""
     if !(idx in keys(graph.edges))
         throw(OperationError("Missing edge: $(idx)"))
@@ -214,14 +214,14 @@ function unlinkedge!(graph::MapUGraph, idx)
 end
 
 
-function similarmap(graph::MapUGraph)
+function similarmap(graph::MapUDGraph)
     N = valtype(graph.nodes)
     E = valtype(graph.edges)
-    MapUGraph{N,E}()
+    MapUDGraph{N,E}()
 end
 
-function similarmap(graph::VectorUGraph)
+function similarmap(graph::VectorUDGraph)
     N = eltype(graph.nodes)
     E = eltype(graph.edges)
-    MapUGraph{N,E}()
+    MapUDGraph{N,E}()
 end

@@ -191,7 +191,7 @@ end
 
 atommatch(
     view::MolGraphView{G,M}, querymol::AbstractQueryMol
-) where {G<:UGraphView,M<:VectorMol} = atommatch(view.molecule, querymol)
+) where {G<:SubgraphView,M<:VectorMol} = atommatch(view.molecule, querymol)
 
 
 
@@ -209,7 +209,7 @@ end
 
 bondmatch(
     view::MolGraphView{G,M}, querymol::AbstractQueryMol
-) where {G<:UGraphView,M<:VectorMol} = bondmatch(view.molecule, querymol)
+) where {G<:SubgraphView,M<:VectorMol} = bondmatch(view.molecule, querymol)
 
 
 function querymatchtree(query::Pair, mol::VectorMol, i::Int)

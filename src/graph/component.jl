@@ -18,7 +18,7 @@ function dfswalk(graph, v, visited)
 end
 
 
-function connected_components(graph::AbstractUGraph)
+function connected_components(graph::UDGraph)
     components = Set{Int}[]
     nodeset = nodekeys(graph)
     visited = Set{Int}()
@@ -33,13 +33,13 @@ function connected_components(graph::AbstractUGraph)
 end
 
 
-function two_edge_connected(graph::AbstractUGraph)
+function two_edge_connected(graph::UDGraph)
     brs = Int[]
     for conn in connected_components(graph)
         subg = nodesubgraph(graph, conn)
         root = pop!(nodekeys(subg))
         append!(brs, bridges(subg, root))
     end
-    bicomp = GUGraphView(graph, nodekeys(graph), setdiff(edgekeys(graph), brs))
+    bicomp = UDSubgraph(graph, nodekeys(graph), setdiff(edgekeys(graph), brs))
     return Set{Int}[c for c in connected_components(bicomp) if length(c) > 1]
 end

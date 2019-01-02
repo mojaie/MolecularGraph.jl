@@ -6,8 +6,8 @@
 @testset "graph.ugraphview" begin
 
 @testset "ugraphview" begin
-    graph = MapUGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
-    view = GUGraphView(graph, Set([3, 4, 5]), Set([3, 4]))
+    graph = MapUDGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
+    view = UDSubgraph(graph, Set([3, 4, 5]), Set([3, 4]))
     node = getnode(view, 3)
     @test isa(node, Node)
     edge = getedge(view, 3, 4)
@@ -20,12 +20,12 @@
     @test nodecount(view) == 3
     @test edgecount(view) == 2
     nullgraph = similarmap(view)
-    @test isa(nullgraph, MapUGraph)
+    @test isa(nullgraph, MapUDGraph)
     # TODO check pop!(nodekeys)
 end
 
 @testset "nodesubgraph" begin
-    graph = MapUGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph = MapUDGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
     subg = nodesubgraph(graph, [2, 3, 4])
     @test nodecount(subg) == 3
     @test edgecount(subg) == 2

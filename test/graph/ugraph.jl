@@ -6,7 +6,7 @@
 @testset "graph.ugraph" begin
 
 @testset "mapugraph" begin
-    graph = MapUGraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
+    graph = MapUDGraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
     node = getnode(graph, 4)
     @test typeof(node) <: AbstractNode
     edge = getedge(graph, 3, 4)
@@ -34,7 +34,7 @@
 end
 
 @testset "vectorugraph" begin
-    graph = VectorUGraph(6, [(1,2), (3,4), (4,5)])
+    graph = VectorUDGraph(6, [(1,2), (3,4), (4,5)])
     node = getnode(graph, 1)
     @test typeof(node) <: AbstractNode
     edge = getedge(graph, 3)
@@ -43,8 +43,8 @@ end
     @test edge.v == 5
     nbr = neighbors(graph, 6)
     @test length(nbr) == 0
-    m = MapUGraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
-    frozen = VectorUGraph{Node,Edge}(m)
+    m = MapUDGraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
+    frozen = VectorUDGraph{Node,Edge}(m)
     fedge = getedge(frozen, 2, 1)
     @test fedge.u == 1
     @test fedge.v == 2

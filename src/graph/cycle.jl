@@ -22,7 +22,7 @@ function findcycleedge(graph, v, pred, cy)
 end
 
 
-function cycleedges(graph::AbstractUGraph, root)
+function cycleedges(graph::UDGraph, root)
     pred = Dict{Int, Union{Int,Nothing}}(root => nothing)
     cy = Int[]
     findcycleedge(graph, root, pred, cy)
@@ -30,7 +30,7 @@ function cycleedges(graph::AbstractUGraph, root)
 end
 
 
-function minimumcycles(graph::AbstractUGraph)
+function minimumcycles(graph::UDGraph)
     mincycs = Vector{Int}[]
     for biconn in two_edge_connected(graph)
         subg = nodesubgraph(graph, biconn)
@@ -42,7 +42,7 @@ function minimumcycles(graph::AbstractUGraph)
 end
 
 
-function mincyclebasis(graph::AbstractUGraph)
+function mincyclebasis(graph::UDGraph)
     # de Pina algorithm re-interpreted by Kavitha et al.
     cycles = Vector{Int}[]
     root = pop!(nodekeys(graph))
@@ -63,7 +63,7 @@ end
 
 function findmincycle(graph, S)
     gnodes = nodekeys(graph)
-    G = GUGraphView(graph, gnodes, setdiff(edgekeys(graph), S))
+    G = UDSubgraph(graph, gnodes, setdiff(edgekeys(graph), S))
     U, nmap, emap = shallowmerge(G, G)
     nrev = Dict(v => k for (k, v) in nmap)
     for s in S

@@ -7,7 +7,7 @@ export
     bridges
 
 
-mutable struct FindBridgeState{G<:AbstractUGraph}
+mutable struct FindBridgeState{G<:UDGraph}
     graph::G
     pos::Int
     depth::Int
@@ -28,7 +28,7 @@ function yieldedge(state::FindBridgeState, edge)
 end
 
 
-function bridges(graph::AbstractUGraph, root)
+function bridges(graph::UDGraph, root)
     state = FindBridgeState(graph, root)
     findbridge(state)
     return state.bridges

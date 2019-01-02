@@ -6,14 +6,14 @@
 @testset "graph.vf2" begin
 
 @testset "subgraph" begin
-    g = VectorUGraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
-    h = VectorUGraph(6, [(1,2), (2,3), (3,4), (3,5), (3,6)])
+    g = VectorUDGraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
+    h = VectorUDGraph(6, [(1,2), (2,3), (3,4), (3,5), (3,6)])
     @test is_subgraph(h, g)
     @test is_isomorphic(g, h)
-    h2 = VectorUGraph(7, [(1,2), (2,3), (3,4), (3,5), (3,6), (6,7)])
+    h2 = VectorUDGraph(7, [(1,2), (2,3), (3,4), (3,5), (3,6), (6,7)])
     @test is_subgraph(g, h2)
     @test !is_isomorphic(h2, g)
-    h3 = VectorUGraph(6, [(1,2), (2,3), (3,4), (3,5), (3,6), (6,1)])
+    h3 = VectorUDGraph(6, [(1,2), (2,3), (3,4), (3,5), (3,6), (6,1)])
     @test !is_subgraph(g, h3)
 end
 

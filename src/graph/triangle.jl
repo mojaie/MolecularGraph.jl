@@ -7,7 +7,7 @@ export
     triangles
 
 
-function triangles(graph::AbstractUGraph)
+function triangles(graph::UDGraph)
     triads = Set()
     for n in nodekeys(graph)
         nkeys = neighborkeys(graph, n)

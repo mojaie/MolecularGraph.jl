@@ -7,7 +7,7 @@ export
     shallowmerge
 
 
-function shallowmerge(G::AbstractUGraph, H::AbstractUGraph)
+function shallowmerge(G::UDGraph, H::UDGraph)
     U = similarmap(G)
     for (i, n) in nodesiter(G)
         U.nodes[i] = n

@@ -13,8 +13,8 @@ export
 
 
 mutable struct VF2EdgeInducedState <: VF2State
-    G::AbstractUGraph
-    H::AbstractUGraph
+    G::UDGraph
+    H::UDGraph
 
     mode::Symbol
     depthlimit::Int
@@ -41,12 +41,12 @@ function is_edge_subgraph(G, H; kwargs...)
 end
 
 
-function edgeisomorph(G::AbstractUGraph, H::AbstractUGraph; kwargs...)
+function edgeisomorph(G::UDGraph, H::UDGraph; kwargs...)
     return iterate(edgeisomorphiter(G, H; kwargs...))
 end
 
 
-function edgeisomorphiter(G::AbstractUGraph, H::AbstractUGraph;
+function edgeisomorphiter(G::UDGraph, H::UDGraph;
                           mode=:subgraph, depthlimit=1000,
                           nodematcher=nothing, edgematcher=nothing,
                           mandatory=nothing, forbidden=nothing)

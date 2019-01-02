@@ -15,6 +15,7 @@ export
     edgekeys,
     predecessors,
     successors,
+    neighbors,
     nodecount,
     edgecount,
     succkeys,
@@ -45,7 +46,7 @@ Arrow(s, t) = Arrow(s, t, Dict())
 connect(a::Arrow, s, t) = Arrow(s, t, a.attr)
 
 
-struct MapDGraph{N<:AbstractNode,E<:AbstractDirectedEdge} <: DGraph
+struct MapDGraph{N<:AbstractNode,E<:AbstractDirectedEdge} <: DirectedGraph
     nodes::Dict{Int,N}
     edges::Dict{Int,E}
     successors::Dict{Int,Dict{Int,Int}}
@@ -85,30 +86,33 @@ successors(graph::MapDGraph, idx) = graph.successors[idx]
 
 predecessors(graph::MapDGraph, idx) = graph.predecessors[idx]
 
+neighbors(graph::MapDGraph, idx) = merge(
+    graph.successors[idx], graph.predecessors[idx])
+
 nodecount(graph::MapDGraph) = length(graph.nodes)
 
 edgecount(graph::MapDGraph) = length(graph.edges)
 
-succkeys(graph::AbstractDGraph, idx) = collect(keys(successors(graph, idx)))
-predkeys(graph::AbstractDGraph, idx) = collect(keys(predecessors(graph, idx)))
+succkeys(graph::DGraph, idx) = collect(keys(successors(graph, idx)))
+predkeys(graph::DGraph, idx) = collect(keys(predecessors(graph, idx)))
 
 succnodes(
-    graph::AbstractDGraph, idx) = getnode.((graph,), succkeys(graph, idx))
+    graph::DGraph, idx) = getnode.((graph,), succkeys(graph, idx))
 prednodes(
-    graph::AbstractDGraph, idx) = getnode.((graph,), predkeys(graph, idx))
+    graph::DGraph, idx) = getnode.((graph,), predkeys(graph, idx))
 
 outedgekeys(
-    graph::AbstractDGraph, idx) = collect(values(successors(graph, idx)))
+    graph::DGraph, idx) = collect(values(successors(graph, idx)))
 inedgekeys(
-    graph::AbstractDGraph, idx) = collect(values(predecessors(graph, idx)))
+    graph::DGraph, idx) = collect(values(predecessors(graph, idx)))
 
 outedges(
-    graph::AbstractDGraph, idx) = getedge.((graph,), outedgekeys(graph, idx))
+    graph::DGraph, idx) = getedge.((graph,), outedgekeys(graph, idx))
 inedges(
-    graph::AbstractDGraph, idx) = getedge.((graph,), inedgekeys(graph, idx))
+    graph::DGraph, idx) = getedge.((graph,), inedgekeys(graph, idx))
 
-outdegree(graph::AbstractDGraph, idx) = length(successors(graph, idx))
-indegree(graph::AbstractDGraph, idx) = length(predecessors(graph, idx))
+outdegree(graph::DGraph, idx) = length(successors(graph, idx))
+indegree(graph::DGraph, idx) = length(predecessors(graph, idx))
 
 
 function updatenode!(graph::MapDGraph, node, idx)

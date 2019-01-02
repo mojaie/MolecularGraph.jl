@@ -22,8 +22,8 @@ struct LineGraphEdge <: AbstractEdge
 end
 
 
-function linegraph(G::AbstractUGraph)
-    L = MapUGraph{LineGraphNode, LineGraphEdge}()
+function linegraph(G::UDGraph)
+    L = MapUDGraph{LineGraphNode, LineGraphEdge}()
     for (i, edge) in edgesiter(G)
         L.nodes[i] = LineGraphNode(edge.u, edge.v)
         L.adjacency[i] = Dict()

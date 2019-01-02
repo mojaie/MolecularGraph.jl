@@ -6,7 +6,7 @@
 @testset "graph.shortestpath" begin
 
 @testset "shortestpath" begin
-    graph = MapUGraph(1:10, [
+    graph = MapUDGraph(1:10, [
         (1, 2), (2, 3), (1, 4), (4, 5), (3, 7),
         (7, 4), (7, 8), (8, 9), (9, 10)
     ])

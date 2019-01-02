@@ -6,7 +6,7 @@
 @testset "graph.linegraph" begin
 
 @testset "linegraph" begin
-    G = VectorUGraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
+    G = VectorUDGraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
     L = linegraph(G)
     @test nodecount(L) == 5
     @test edgecount(L) == 7

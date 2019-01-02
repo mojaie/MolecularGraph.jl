@@ -4,15 +4,14 @@
 #
 
 export
-    AbstractUGraph,
-    UGraph,
-    UGraphView,
-    MapUGraph,
-    VectorUGraph,
-    AbstractDGraph,
+    AbstractGraph,
+    UndirectedGraph,
+    DirectedGraph,
+    UndirectedGraphView,
+    DirectedGraphView,
+    UDGraph,
     DGraph,
-    DGraphView,
-    MapDGraph,
+    GraphView,
     AbstractNode,
     AbstractEdge,
     AbstractDirectedEdge,
@@ -20,18 +19,19 @@ export
     VF2State
 
 
-# Undirected graph
+abstract type AbstractGraph end
+abstract type UndirectedGraph <: AbstractGraph end
+abstract type DirectedGraph <: AbstractGraph end
+abstract type UndirectedGraphView <: AbstractGraph end
+abstract type DirectedGraphView <: AbstractGraph end
 
-abstract type AbstractUGraph end
-abstract type UGraph <: AbstractUGraph end
-abstract type UGraphView <: AbstractUGraph end
+# Union types
+# TODO: use traits
+# https://github.com/JuliaLang/julia/issues/2345
 
-
-# Directed graph
-
-abstract type AbstractDGraph end
-abstract type DGraph <: AbstractDGraph end
-abstract type DGraphView <: AbstractDGraph end
+UDGraph = Union{UndirectedGraph,UndirectedGraphView}
+DGraph = Union{DirectedGraph,DirectedGraphView}
+GraphView = Union{DirectedGraphView,UndirectedGraphView}
 
 
 # Components

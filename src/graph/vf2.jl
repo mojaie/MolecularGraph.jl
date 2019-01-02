@@ -18,8 +18,8 @@ export
 
 
 mutable struct VF2NodeInducedState <: VF2State
-    G::AbstractUGraph
-    H::AbstractUGraph
+    G::UDGraph
+    H::UDGraph
 
     mode::Symbol
     depthlimit::Int
@@ -51,7 +51,7 @@ function is_subgraph(G, H; kwargs...)
 end
 
 
-function isomorphmap(G::AbstractUGraph, H::AbstractUGraph;
+function isomorphmap(G::UDGraph, H::UDGraph;
                      mode=:subgraph, depthlimit=1000,
                      nodematcher=nothing, edgematcher=nothing,
                      mandatory=nothing, forbidden=nothing)
@@ -65,7 +65,7 @@ function isomorphmap(G::AbstractUGraph, H::AbstractUGraph;
 end
 
 
-function isomorphmapiter(G::AbstractUGraph, H::AbstractUGraph;
+function isomorphmapiter(G::UDGraph, H::UDGraph;
                          mode=:subgraph, depthlimit=1000,
                          nodematcher=nothing, edgematcher=nothing,
                          mandatory=nothing, forbidden=nothing)

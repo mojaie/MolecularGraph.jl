@@ -10,7 +10,7 @@ export
     backtrack
 
 
-function shortestpath(graph::AbstractUGraph, u, v)
+function shortestpath(graph::UDGraph, u, v)
     if u == v
         return
     end
@@ -39,14 +39,14 @@ function shortestpath(graph::AbstractUGraph, u, v)
 end
 
 
-function reachablenodes(graph::AbstractDGraph, source)
+function reachablenodes(graph::DGraph, source)
     pred = shortestpath(graph, source)
     delete!(pred, source)
     return keys(pred)
 end
 
 
-function pathlength(graph::AbstractDGraph, source)
+function pathlength(graph::DGraph, source)
     res = Dict{Int,Int}()
     pred = shortestpath(graph, source)
     for p in keys(pred)
@@ -57,7 +57,7 @@ function pathlength(graph::AbstractDGraph, source)
 end
 
 
-function shortestpath(graph::AbstractDGraph, source)
+function shortestpath(graph::DGraph, source)
     queue = [source]
     pred = Dict{Int,Union{Int,Nothing}}(source => nothing)
     while !isempty(queue)

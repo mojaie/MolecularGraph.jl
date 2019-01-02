@@ -7,7 +7,7 @@
 
 @testset "dgraphview" begin
     graph = MapDGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
-    view = GDGraphView(graph, Set([3, 4, 5]), Set([3, 4]))
+    view = DSubgraph(graph, Set([3, 4, 5]), Set([3, 4]))
     node = getnode(view, 3)
     @test isa(node, Node)
     edge = getedge(view, 3, 4)

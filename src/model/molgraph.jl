@@ -29,12 +29,12 @@ import ..Graph: neighbors, neighborcount
 
 
 struct GMapMol{A<:Atom,B<:Bond} <: MapMol
-    graph::MapUGraph{A,B}
+    graph::MapUDGraph{A,B}
     annotation::Dict{Symbol, Annotation}
     attribute::Dict
 
     function GMapMol{A,B}() where {A<:Atom,B<:Bond}
-        new(MapUGraph{A,B}(), Dict(), Dict())
+        new(MapUDGraph{A,B}(), Dict(), Dict())
     end
 end
 
@@ -52,28 +52,28 @@ end
 
 
 struct GConnectedQueryMol{A<:QueryAtom,B<:QueryBond} <: ConnectedQueryMol
-    graph::MapUGraph{A,B}
+    graph::MapUDGraph{A,B}
     attribute::Dict
 
     function GConnectedQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
-        new(MapUGraph{A,B}(), Dict())
+        new(MapUDGraph{A,B}(), Dict())
     end
 end
 
 
 struct GQueryMol{A<:QueryAtom,B<:QueryBond} <: QueryMol
-    graph::MapUGraph{A,B}
+    graph::MapUDGraph{A,B}
     connectivity::Array{Array{Int}}
     attribute::Dict
 
     function GQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
-        new(MapUGraph{A,B}(), [], Dict())
+        new(MapUDGraph{A,B}(), [], Dict())
     end
 end
 
 
 struct GVectorMol{A<:Atom,B<:Bond} <: VectorMol
-    graph::VectorUGraph{A,B}
+    graph::VectorUDGraph{A,B}
     v::Dict{Symbol, Array}
     annotation::Dict{Symbol, Annotation}
     attribute::Dict
@@ -89,7 +89,7 @@ function GVectorMol{A,B}(nodes::Vector{A}, edges::Vector{B}
         adj[e.v][e.u] = i
     end
     GVectorMol{A,B}(
-        VectorUGraph{A,B}(nodes, edges, adj), Dict(), Dict(), Dict()
+        VectorUDGraph{A,B}(nodes, edges, adj), Dict(), Dict(), Dict()
     )
 end
 
@@ -108,7 +108,7 @@ nullmol(::Type{T}) where T <: SMARTS = SMARTS()
 
 function vectormol(mol::GMapMol{A,B}) where {A<:Atom,B<:Bond}
     GVectorMol{A,B}(
-        VectorUGraph{A,B}(mol.graph), Dict(), mol.annotation, mol.attribute
+        VectorUDGraph{A,B}(mol.graph), Dict(), mol.annotation, mol.attribute
     )
 end
 

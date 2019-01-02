@@ -10,7 +10,7 @@ export
     required_annotation
 
 
-struct MolGraphView{G<:UGraphView,M<:AbstractMol} <: AbstractMol
+struct MolGraphView{G<:SubgraphView,M<:AbstractMol} <: AbstractMol
     graph::G
     molecule::M
 end
