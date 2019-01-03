@@ -43,9 +43,8 @@ function iterate(reader::SDFileReader, state=nothing)
     return
 end
 
-eltype(::Type{SDFileReader}) = Vector{String}
 IteratorSize(::Type{SDFileReader}) = Base.SizeUnknown()
-IteratorEltype(::Type{SDFileReader}) = Base.HasEltype()
+IteratorEltype(::Type{SDFileReader}) = Base.EltypeUnknown()
 
 
 function nohaltsupplier(block)
@@ -78,8 +77,7 @@ end
 sdftomol(file::IO) = sdftomol(eachline(file))
 
 
-# TODO: Type{SDFile}
-function parse(::Type{T}, lines) where T <: SDFile
+function parse(::Type{SDFile}, lines)
     lines = collect(lines)
     molend = findnext(x -> x == "M  END", lines, 1)
     mollines = view(lines, 1:(molend - 1))
