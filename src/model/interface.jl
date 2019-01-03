@@ -4,34 +4,33 @@
 #
 
 export
-    AbstractMol,
-    AbstractMapMol,
-    MapMol,
-    AbstractQueryMol,
-    ConnectedQueryMol,
-    QueryMol,
-    AbstractVectorMol,
-    VectorMol,
-    AbstractAtom,
-    Atom,
-    QueryAtom,
-    AbstractBond,
-    Bond,
-    QueryBond,
+    MolGraph, VectorMolGraph, MapMolGraph, QueryMolGraph,
+    VectorMolView, MapMolView, QueryMolView,
+    VectorMol, MapMol, QueryMol,
+    MolView, MutableMol,
+    AbstractAtom, Atom, QueryAtom,
+    AbstractBond, Bond, QueryBond,
     Annotation
 
-# TODO: MapMol, QueryMol, VectorMol should be concrete class
 
-abstract type AbstractMol end
+abstract type MolGraph <: UndirectedGraphView end
+abstract type VectorMolGraph <: MolGraph end
+abstract type MapMolGraph <: MolGraph end
+abstract type QueryMolGraph <: MolGraph end
+abstract type VectorMolView <: MolGraph end
+abstract type MapMolView <: MolGraph end
+abstract type QueryMolView <: MolGraph end
 
-abstract type AbstractMapMol <: AbstractMol end
-abstract type MapMol <: AbstractMapMol end
-abstract type AbstractQueryMol <: AbstractMapMol end
-abstract type ConnectedQueryMol <: AbstractQueryMol end
-abstract type QueryMol <: AbstractQueryMol end
+# Union types
+# TODO: use traits
+# https://github.com/JuliaLang/julia/issues/2345
 
-abstract type AbstractVectorMol <: AbstractMol end
-abstract type VectorMol <: AbstractVectorMol end
+VectorMol = Union{VectorMolGraph,VectorMolView}
+QueryMol = Union{QueryMolGraph,QueryMolView}
+MapMol = Union{MapMolGraph,MapMolView,QueryMol}
+MolView = Union{VectorMolView,MapMolView,QueryMolView}
+MutableMol = Union{MapMolGraph,QueryMolGraph}
+
 
 abstract type AbstractAtom <: AbstractNode end
 abstract type Atom <: AbstractAtom end

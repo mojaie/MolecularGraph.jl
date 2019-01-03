@@ -20,7 +20,7 @@ export
 import Base: read, parse
 
 
-mutable struct SmartsParser{T<:AbstractMapMol}
+mutable struct SmartsParser{T<:MapMol}
     input::String
     pos::Int
     done::Bool
@@ -30,13 +30,13 @@ mutable struct SmartsParser{T<:AbstractMapMol}
     ringlabel::Dict
     mol::T
 
-    function SmartsParser{T}(smiles) where {T<:AbstractMapMol}
+    function SmartsParser{T}(smiles) where {T<:MapMol}
         new(smiles, 1, false, 0, 1, 1, Dict(), T())
     end
 end
 
 SmilesParser = SmartsParser{SMILES}
-AnySmarts = SmartsParser{T} where {T<:AbstractQueryMol}
+AnySmarts = SmartsParser{T} where {T<:QueryMolGraph}
 ConnectedSmarts = SmartsParser{ConnectedSMARTS}
 DisconnectedSmarts = SmartsParser{SMARTS}
 

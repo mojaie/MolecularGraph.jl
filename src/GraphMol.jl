@@ -27,6 +27,7 @@ module GraphMol
         include("./graph/ugraph.jl")
         include("./graph/dgraph.jl")
         include("./graph/graphview.jl")
+        include("./graph/graphutil.jl")
 
         include("./graph/merge.jl")
         include("./graph/linegraph.jl")

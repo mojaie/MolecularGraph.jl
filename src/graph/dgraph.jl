@@ -4,35 +4,15 @@
 #
 
 export
-    Arrow,
-    MapDGraph,
+    Arrow, MapDGraph,
     connect,
-    getnode,
-    getedge,
-    nodesiter,
-    edgesiter,
-    nodekeys,
-    edgekeys,
-    predecessors,
-    successors,
-    neighbors,
-    nodecount,
-    edgecount,
-    succkeys,
-    predkeys,
-    succnodes,
-    prednodes,
-    inedgekeys,
-    outedgekeys,
-    inedges,
-    outedges,
-    indegree,
-    outdegree,
-    updatenode!,
-    updateedge!,
-    unlinknode!,
-    unlinkedge!,
-    similarmap
+    getnode, getedge,
+    nodesiter, edgesiter,
+    nodekeys, edgekeys,
+    predecessors, successors, neighbors,
+    updatenode!, updateedge!,
+    unlinknode!, unlinkedge!,
+    nodetype, edgetype, similarmap
 
 
 
@@ -66,53 +46,23 @@ function MapDGraph(nodes::AbstractArray{Int},
     for (i, edge) in enumerate(edges)
         updateedge!(graph, Arrow(edge...), i)
     end
-    graph
+    return graph
 end
 
-getnode(graph::MapDGraph, idx) = graph.nodes[idx]
+getnode(graph::DirectedGraph, idx) = graph.nodes[idx]
 
-getedge(graph::MapDGraph, idx) = graph.edges[idx]
-getedge(graph::MapDGraph, s, t) = getedge(graph, graph.successors[s][t])
+getedge(graph::DirectedGraph, idx) = graph.edges[idx]
+getedge(graph::DirectedGraph, s, t) = getedge(graph, graph.successors[s][t])
 
 nodesiter(graph::MapDGraph) = graph.nodes
-
-nodekeys(graph::MapDGraph) = Set(keys(graph.nodes))
-
 edgesiter(graph::MapDGraph) = graph.edges
 
+nodekeys(graph::MapDGraph) = Set(keys(graph.nodes))
 edgekeys(graph::MapDGraph) = Set(keys(graph.edges))
 
-successors(graph::MapDGraph, idx) = graph.successors[idx]
-
-predecessors(graph::MapDGraph, idx) = graph.predecessors[idx]
-
-neighbors(graph::MapDGraph, idx) = merge(
-    graph.successors[idx], graph.predecessors[idx])
-
-nodecount(graph::MapDGraph) = length(graph.nodes)
-
-edgecount(graph::MapDGraph) = length(graph.edges)
-
-succkeys(graph::DGraph, idx) = collect(keys(successors(graph, idx)))
-predkeys(graph::DGraph, idx) = collect(keys(predecessors(graph, idx)))
-
-succnodes(
-    graph::DGraph, idx) = getnode.((graph,), succkeys(graph, idx))
-prednodes(
-    graph::DGraph, idx) = getnode.((graph,), predkeys(graph, idx))
-
-outedgekeys(
-    graph::DGraph, idx) = collect(values(successors(graph, idx)))
-inedgekeys(
-    graph::DGraph, idx) = collect(values(predecessors(graph, idx)))
-
-outedges(
-    graph::DGraph, idx) = getedge.((graph,), outedgekeys(graph, idx))
-inedges(
-    graph::DGraph, idx) = getedge.((graph,), inedgekeys(graph, idx))
-
-outdegree(graph::DGraph, idx) = length(successors(graph, idx))
-indegree(graph::DGraph, idx) = length(predecessors(graph, idx))
+successors(g::DirectedGraph, i) = g.successors[i]
+predecessors(g::DirectedGraph, i) = g.predecessors[i]
+neighbors(g::DirectedGraph, i) = merge(successors(g, i), predecessors(g, i))
 
 
 function updatenode!(graph::MapDGraph, node, idx)
@@ -128,11 +78,9 @@ end
 
 function updateedge!(graph::MapDGraph, edge, idx)
     """Add or update an edge"""
-    if !(edge.source in keys(graph.nodes))
-        throw(OperationError("Missing node: $(edge.source)"))
-    elseif !(edge.target in keys(graph.nodes))
-        throw(OperationError("Missing node: $(edge.target)"))
-    end
+    ns = nodekeys(graph)
+    (edge.source in ns) || throw(OperationError("Missing node: $(edge.source)"))
+    (edge.target in ns) || throw(OperationError("Missing node: $(edge.target)"))
     graph.edges[idx] = edge
     graph.successors[edge.source][edge.target] = idx
     graph.predecessors[edge.target][edge.source] = idx
@@ -140,19 +88,17 @@ function updateedge!(graph::MapDGraph, edge, idx)
 end
 
 updateedge!(
-    G::MapDGraph, edge, s, t) = updateedge!(G, edge, graph.successors[s][t])
+    g::MapDGraph, edge, s, t) = updateedge!(g, edge, successors(graph, s)[t])
 
 
 function unlinknode!(graph::MapDGraph, idx)
     """Remove a node and its connecting edges"""
-    if !(idx in keys(graph.nodes))
-        throw(OperationError("Missing node: $(idx)"))
-    end
-    for (s, succ) in graph.successors[idx]
+    (idx in keys(graph.nodes)) || throw(OperationError("Missing node: $(idx)"))
+    for (s, succ) in successors(graph, idx)
         delete!(graph.edges, succ)
         delete!(graph.predecessors[s], idx)
     end
-    for (p, pred) in graph.predecessors[idx]
+    for (p, pred) in predecessors(graph, idx)
         delete!(graph.edges, pred)
         delete!(graph.successors[p], idx)
     end
@@ -165,11 +111,9 @@ end
 
 function unlinkedge!(graph::MapDGraph, source, target)
     """Remove an edge"""
-    if !(source in keys(graph.nodes))
-        throw(OperationError("Missing node: $(source)"))
-    elseif !(target in keys(graph.nodes))
-        throw(OperationError("Missing node: $(target)"))
-    end
+    ns = nodekeys(graph)
+    (source in ns) || throw(OperationError("Missing node: $(source)"))
+    (target in ns) || throw(OperationError("Missing node: $(target)"))
     delete!(graph.edges, graph.successors[source][target])
     delete!(graph.successors[source], target)
     delete!(graph.predecessors[target], source)
@@ -178,9 +122,7 @@ end
 
 function unlinkedge!(graph::MapDGraph, idx)
     """Remove an edge"""
-    if !(idx in keys(graph.edges))
-        throw(OperationError("Missing edge: $(idx)"))
-    end
+    (idx in keys(graph.edges)) || throw(OperationError("Missing edge: $(idx)"))
     a = getedge(graph, idx)
     delete!(graph.edges, idx)
     delete!(graph.successors[a.source], a.target)
@@ -189,8 +131,11 @@ function unlinkedge!(graph::MapDGraph, idx)
 end
 
 
+nodetype(graph::MapDGraph) = valtype(graph.nodes)
+edgetype(graph::MapDGraph) = valtype(graph.edges)
+
 function similarmap(graph::MapDGraph)
-    N = valtype(graph.nodes)
-    E = valtype(graph.edges)
+    N = nodetype(graph)
+    E = edgetype(graph)
     MapDGraph{N,E}()
 end

@@ -54,7 +54,7 @@ const DRAW_SETTING = Dict(
 function draw2d_annot!(mol::VectorMol, setting)
     required_annotation(mol, :Topology)
     required_annotation(mol, :Elemental)
-    if mol isa GVectorMol{SDFileAtom,SDFileBond}
+    if nodetype(mol) === SDFileAtom
         mol.v[:Coords2D] = zeros(Float64, atomcount(mol), 2)
         for (i, a) in enumerate(mol.graph.nodes)
             mol.v[:Coords2D][i, :] = a.coords[1:2]
@@ -82,7 +82,7 @@ end
 
 
 function bondnotation!(mol::VectorMol)
-    if mol isa GVectorMol{SDFileAtom,SDFileBond}
+    if nodetype(mol) === SDFileAtom
         mol.v[:BondNotation] = [b.notation for b in mol.graph.edges]
     else
         mol.v[:BondNotation] = zeros(Int, bondcount(mol))

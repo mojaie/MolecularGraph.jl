@@ -4,75 +4,65 @@
 #
 
 export
-    GMapMol,
-    GConnectedQueryMol,
-    GQueryMol,
-    GVectorMol,
-    SDFile,
-    SMILES,
-    ConnectedSMARTS,
-    SMARTS,
-    vectormol,
-    nullmol,
-    getatom,
-    getbond,
-    neighbors,
-    neighborcount,
-    degree,
-    atomcount,
-    bondcount,
-    updateatom!,
-    updatebond!,
+    GeneralMapMol, GeneralVectorMol,
+    ConnectedQueryMol, DisconnectedQueryMol,
+    SDFile, SMILES, ConnectedSMARTS, SMARTS,
+    vectormol, nullmol,
+    getatom, getbond,
+    neighbors, neighborcount, degree,
+    atomcount, bondcount,
+    updateatom!, updatebond!,
+    unlinkatom!, unlinkbond!,
     required_annotation
 
 import ..Graph: neighbors, neighborcount
 
 
-struct GMapMol{A<:Atom,B<:Bond} <: MapMol
+struct GeneralMapMol{A<:Atom,B<:Bond} <: MapMolGraph
     graph::MapUDGraph{A,B}
     annotation::Dict{Symbol, Annotation}
     attribute::Dict
 
-    function GMapMol{A,B}() where {A<:Atom,B<:Bond}
+    function GeneralMapMol{A,B}() where {A<:Atom,B<:Bond}
         new(MapUDGraph{A,B}(), Dict(), Dict())
     end
 end
 
-function GMapMol{A,B}(nodes::Vector{A}, edges::Vector{B}
+function GeneralMapMol{A,B}(nodes::Vector{A}, edges::Vector{B}
         ) where {A<:Atom,B<:Bond}
-    mol = GMapMol{A,B}()
+    mol = GeneralMapMol{A,B}()
     for (i, a) in enumerate(nodes)
         updateatom!(mol, a, i)
     end
     for (i, b) in enumerate(edges)
         updatebond!(mol, b, i)
     end
-    mol
+    return mol
 end
 
 
-struct GConnectedQueryMol{A<:QueryAtom,B<:QueryBond} <: ConnectedQueryMol
+struct ConnectedQueryMol{A<:QueryAtom,B<:QueryBond} <: QueryMolGraph
     graph::MapUDGraph{A,B}
     attribute::Dict
 
-    function GConnectedQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
+    function ConnectedQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
         new(MapUDGraph{A,B}(), Dict())
     end
 end
 
 
-struct GQueryMol{A<:QueryAtom,B<:QueryBond} <: QueryMol
+struct DisconnectedQueryMol{A<:QueryAtom,B<:QueryBond} <: QueryMolGraph
     graph::MapUDGraph{A,B}
     connectivity::Array{Array{Int}}
     attribute::Dict
 
-    function GQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
+    function DisconnectedQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
         new(MapUDGraph{A,B}(), [], Dict())
     end
 end
 
 
-struct GVectorMol{A<:Atom,B<:Bond} <: VectorMol
+struct GeneralVectorMol{A<:Atom,B<:Bond} <: VectorMolGraph
     graph::VectorUDGraph{A,B}
     v::Dict{Symbol, Array}
     annotation::Dict{Symbol, Annotation}
@@ -80,7 +70,7 @@ struct GVectorMol{A<:Atom,B<:Bond} <: VectorMol
 end
 
 
-function GVectorMol{A,B}(nodes::Vector{A}, edges::Vector{B}
+function GeneralVectorMol{A,B}(nodes::Vector{A}, edges::Vector{B}
         ) where {A<:Atom,B<:Bond}
     # do not use `fill`
     adj = [Dict() for i in 1:length(nodes)]
@@ -88,17 +78,18 @@ function GVectorMol{A,B}(nodes::Vector{A}, edges::Vector{B}
         adj[e.u][e.v] = i
         adj[e.v][e.u] = i
     end
-    GVectorMol{A,B}(
+    return GeneralVectorMol{A,B}(
         VectorUDGraph{A,B}(nodes, edges, adj), Dict(), Dict(), Dict()
     )
 end
 
 
 # Aliases
-SDFile = GMapMol{SDFileAtom,SDFileBond}
-SMILES = GMapMol{SmilesAtom,SmilesBond}
-ConnectedSMARTS = GConnectedQueryMol{SmartsAtom,SmartsBond}
-SMARTS = GQueryMol{SmartsAtom,SmartsBond}
+# TODO: use traits
+SDFile = GeneralMapMol{SDFileAtom,SDFileBond}
+SMILES = GeneralMapMol{SmilesAtom,SmilesBond}
+ConnectedSMARTS = ConnectedQueryMol{SmartsAtom,SmartsBond}
+SMARTS = DisconnectedQueryMol{SmartsAtom,SmartsBond}
 
 
 nullmol(::Type{T}) where T <: SDFile = SDFile()
@@ -106,54 +97,34 @@ nullmol(::Type{T}) where T <: SMILES = SMILES()
 nullmol(::Type{T}) where T <: SMARTS = SMARTS()
 
 
-function vectormol(mol::GMapMol{A,B}) where {A<:Atom,B<:Bond}
-    GVectorMol{A,B}(
+function vectormol(mol::GeneralMapMol{A,B}) where {A<:Atom,B<:Bond}
+    return GeneralVectorMol{A,B}(
         VectorUDGraph{A,B}(mol.graph), Dict(), mol.annotation, mol.attribute
     )
 end
 
 
-getatom(mol::AbstractMol, idx) = getnode(mol.graph, idx)
+getatom(mol::MolGraph, idx) = getnode(mol.graph, idx)
 
-getbond(mol::AbstractMol, u, v) = getedge(mol.graph, u, v)
-getbond(mol::AbstractMol, idx) = getedge(mol.graph, idx)
+getbond(mol::MolGraph, u, v) = getedge(mol.graph, u, v)
+getbond(mol::MolGraph, idx) = getedge(mol.graph, idx)
 
-neighbors(mol::AbstractMol, idx) = neighbors(mol.graph, idx)
-
-atomcount(mol::AbstractMol) = nodecount(mol.graph)
-bondcount(mol::AbstractMol) = edgecount(mol.graph)
-
-neighborcount(mol::AbstractMol, idx) = length(neighbors(mol.graph, idx))
+neighbors(mol::MolGraph, idx) = neighbors(mol.graph, idx)
+neighborcount(mol::MolGraph, idx) = length(neighbors(mol.graph, idx))
 degree = neighborcount
 
+atomcount(mol::MolGraph) = nodecount(mol.graph)
+bondcount(mol::MolGraph) = edgecount(mol.graph)
 
-function updateatom!(mol::AbstractMapMol, atom, idx)
-    updatenode!(mol.graph, atom, idx)
-end
-
-
-function updatebond!(mol::AbstractMapMol, bond, idx)
-    updateedge!(mol.graph, bond, idx)
-end
-
-updatebond!(m::AbstractMapMol, bond, u, v) = updatedge!(m.graph, bond, u, v)
+updateatom!(mol::MutableMol, atom, idx) = updatenode!(mol.graph, atom, idx)
+updatebond!(mol::MutableMol, bond, idx) = updateedge!(mol.graph, bond, idx)
+updatebond!(mol::MutableMol, bond, u, v) = updateedge!(mol.graph, bond, u, v)
+unlinkatom!(mol::MutableMol, idx) = unlinknode!(mol.graph, idx)
+unlinkbond!(mol::MutableMol, idx) = unlinkedge!(mol.graph, idx)
+unlinkbond!(mol::MutableMol, u, v) = unlinkedge!(mol.graph, u, v)
 
 
-function unlinkatom!(mol::AbstractMapMol, idx)
-    unlinknode!(mol.graph, idx)
-end
-
-
-function unlinkbond!(mol::AbstractMapMol, idx)
-    unlinkedge!(mol.graph, idx)
-end
-
-function unlinkbond!(mol::AbstractMapMol, u, v)
-    unlinkedge!(mol.graph, u, v)
-end
-
-
-function required_annotation(mol::AbstractMol, annot)
+function required_annotation(mol::MolGraph, annot)
     if !(annot in keys(mol.annotation))
         throw(ErrorException("$(annot) is not available"))
     end

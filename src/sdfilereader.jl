@@ -104,7 +104,7 @@ function sdfmol(lines)
     sdfatomprops!(atoms, propblock)
     aobjs = [SDFileAtom(atom...) for atom in atoms]
     bobjs = [SDFileBond(bond...) for bond in bonds]
-    return GMapMol{SDFileAtom,SDFileBond}(aobjs, bobjs)
+    return SDFile(aobjs, bobjs)
 end
 
 

@@ -5,13 +5,9 @@
 
 export
     AbstractGraph,
-    UndirectedGraph,
-    DirectedGraph,
-    UndirectedGraphView,
-    DirectedGraphView,
-    UDGraph,
-    DGraph,
-    GraphView,
+    UndirectedGraph, DirectedGraph,
+    UndirectedGraphView, DirectedGraphView,
+    UDGraph, DGraph, GraphView,
     AbstractNode,
     AbstractEdge,
     AbstractDirectedEdge,

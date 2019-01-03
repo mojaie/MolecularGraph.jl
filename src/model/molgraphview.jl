@@ -10,18 +10,18 @@ export
     required_annotation
 
 
-struct MolGraphView{G<:SubgraphView,M<:AbstractMol} <: AbstractMol
+struct MolGraphView{G<:SubgraphView,M<:MolGraph} <: MolGraph
     graph::G
     molecule::M
 end
 
 
-function atomsubstr(mol::AbstractMol, atoms)
+function atomsubstr(mol::MolGraph, atoms)
     return MolGraphView(nodesubgraph(mol.graph, atoms), mol)
 end
 
 
-function bondsubstr(mol::AbstractMol, bonds)
+function bondsubstr(mol::MolGraph, bonds)
     return MolGraphView(edgesubgraph(mol.graph, bonds), mol)
 end
 

@@ -55,7 +55,7 @@ function is_querymatch(mol, query; kwargs...)
 end
 
 
-function querymatch(mol::AbstractMol, query::QueryMol;
+function querymatch(mol::MolGraph, query::QueryMolGraph;
                     mode=:subgraph, depthlimit=1000,
                     atommatcher=atommatch, bondmatcher=bondmatch)
     # Accept also disconnected atom but return only the first match
@@ -93,11 +93,11 @@ end
 
 
 querymatch(
-    mol::AbstractMol, query::ConnectedQueryMol; kwargs...
+    mol::MolGraph, query::ConnectedQueryMol; kwargs...
 ) = iterate(querymatchiter(mol, query; kwargs...))
 
 
-function querymatchiter(mol::AbstractMol, query::ConnectedQueryMol;
+function querymatchiter(mol::MolGraph, query::ConnectedQueryMol;
                         mode=:subgraph, depthlimit=1000,
                         atommatcher=atommatch, bondmatcher=bondmatch,
                         mandatory=nothing, forbidden=nothing)
@@ -138,7 +138,7 @@ function querymatchiter(mol::AbstractMol, query::ConnectedQueryMol;
 end
 
 
-function isSMARTSgroupmatch(mol::AbstractMol, query::ConnectedQueryMol, root;
+function isSMARTSgroupmatch(mol::MolGraph, query::ConnectedQueryMol, root;
                             atommatcher=atommatch, bondmatcher=bondmatch,
                             kwargs...)
     # For recursive SMARTS match
@@ -182,7 +182,7 @@ function atommatch(mol1::VectorMol, mol2::VectorMol)
     end
 end
 
-function atommatch(mol::VectorMol, querymol::AbstractQueryMol)
+function atommatch(mol::VectorMol, querymol::QueryMolGraph)
     return function (a, qa)
         q = getatom(querymol, qa).query
         return querymatchtree(q, mol, a)
@@ -190,7 +190,7 @@ function atommatch(mol::VectorMol, querymol::AbstractQueryMol)
 end
 
 atommatch(
-    view::MolGraphView{G,M}, querymol::AbstractQueryMol
+    view::MolGraphView{G,M}, querymol::QueryMolGraph
 ) where {G<:SubgraphView,M<:VectorMol} = atommatch(view.molecule, querymol)
 
 
@@ -200,7 +200,7 @@ function bondmatch(mol1::VectorMol, mol2::VectorMol)
     return (b1, b2) -> true
 end
 
-function bondmatch(mol::VectorMol, querymol::AbstractQueryMol)
+function bondmatch(mol::VectorMol, querymol::QueryMolGraph)
     return function (b, qb)
         q = getbond(querymol, qb).query
         return querymatchtree(q, mol, b)
@@ -208,7 +208,7 @@ function bondmatch(mol::VectorMol, querymol::AbstractQueryMol)
 end
 
 bondmatch(
-    view::MolGraphView{G,M}, querymol::AbstractQueryMol
+    view::MolGraphView{G,M}, querymol::QueryMolGraph
 ) where {G<:SubgraphView,M<:VectorMol} = bondmatch(view.molecule, querymol)
 
 

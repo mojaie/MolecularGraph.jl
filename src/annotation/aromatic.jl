@@ -24,7 +24,7 @@ function aromatic!(mol::VectorMol)
             for e in edgekeys(sub)
                 mol.v[:AromaticBond][e] = true
             end
-        elseif mol isa GVectorMol{SmilesAtom,SmilesBond}
+        elseif nodetype(mol) === SmilesAtom
             # SMILES aromatic atom
             for (i, n) in nodesiter(sub)
                 if n.isaromatic

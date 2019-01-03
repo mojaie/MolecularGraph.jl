@@ -4,30 +4,15 @@
 #
 
 export
-    Edge,
-    MapUDGraph,
-    VectorUDGraph,
+    Edge, MapUDGraph, VectorUDGraph,
     connect,
-    getnode,
-    getedge,
-    nodesiter,
-    edgesiter,
-    nodekeys,
-    edgekeys,
+    getnode, getedge,
+    nodesiter, edgesiter,
+    nodekeys, edgekeys,
     neighbors,
-    nodecount,
-    edgecount,
-    neighborkeys,
-    neighbornodes,
-    neighboredgekeys,
-    neighboredges,
-    neighborcount,
-    degree,
-    updatenode!,
-    updateedge!,
-    unlinknode!,
-    unlinkedge!,
-    similarmap
+    updatenode!, updateedge!,
+    unlinknode!, unlinkedge!,
+    nodetype, edgetype, similarmap
 
 
 struct Edge <: AbstractEdge
@@ -111,10 +96,10 @@ function VectorUDGraph{N,E}(graph::MapUDGraph{N,E}
 end
 
 
-getnode(graph::UDGraph, idx) = graph.nodes[idx]
+getnode(graph::UndirectedGraph, idx) = graph.nodes[idx]
 
-getedge(graph::UDGraph, idx) = graph.edges[idx]
-getedge(graph::UDGraph, u, v) = getedge(graph, graph.adjacency[u][v])
+getedge(graph::UndirectedGraph, idx) = graph.edges[idx]
+getedge(graph::UndirectedGraph, u, v) = getedge(graph, graph.adjacency[u][v])
 
 nodesiter(graph::VectorUDGraph) = enumerate(graph.nodes)
 nodesiter(graph::MapUDGraph) = graph.nodes
@@ -128,22 +113,7 @@ edgesiter(graph::MapUDGraph) = graph.edges
 edgekeys(graph::VectorUDGraph) = Set(1:edgecount(graph))
 edgekeys(graph::MapUDGraph) = Set(keys(graph.edges))
 
-neighbors(graph::UDGraph, idx) = graph.adjacency[idx]
-
-nodecount(graph::UDGraph) = length(graph.nodes)
-edgecount(graph::UDGraph) = length(graph.edges)
-
-neighborkeys(graph::UDGraph, idx) = collect(keys(neighbors(graph, idx)))
-neighbornodes(
-    graph::UDGraph, idx) = getnode.((graph,), neighborkeys(graph, idx))
-neighboredgekeys(
-    graph::UDGraph, idx) = collect(values(neighbors(graph, idx)))
-neighboredges(
-    graph::UDGraph, idx
-) = getedge.((graph,), neighboredgekeys(graph, idx))
-neighborcount(
-    graph::UDGraph, idx) = length(neighbors(graph, idx))
-degree = neighborcount
+neighbors(graph::UndirectedGraph, idx) = graph.adjacency[idx]
 
 
 function updatenode!(graph::MapUDGraph, node, idx)
@@ -158,11 +128,9 @@ end
 
 function updateedge!(graph::MapUDGraph, edge, idx)
     """Add or update an edge"""
-    if !(edge.u in keys(graph.nodes))
-        throw(OperationError("Missing node: $(edge.u)"))
-    elseif !(edge.v in keys(graph.nodes))
-        throw(OperationError("Missing node: $(edge.v)"))
-    end
+    nodes = nodekeys(graph)
+    (edge.u in nodes) || throw(OperationError("Missing node: $(edge.u)"))
+    (edge.v in nodes) || throw(OperationError("Missing node: $(edge.v)"))
     graph.edges[idx] = edge
     graph.adjacency[edge.u][edge.v] = idx
     graph.adjacency[edge.v][edge.u] = idx
@@ -175,10 +143,8 @@ updateedge!(
 
 function unlinknode!(graph::MapUDGraph, idx)
     """Remove a node and its connecting edges"""
-    if !(idx in keys(graph.nodes))
-        throw(OperationError("Missing node: $(idx)"))
-    end
-    for (n, nbr) in graph.adjacency[idx]
+    (idx in nodekeys(graph)) || throw(OperationError("Missing node: $(idx)"))
+    for (n, nbr) in neighbors(graph, idx)
         delete!(graph.edges, nbr)
         delete!(graph.adjacency[n], idx)
     end
@@ -190,11 +156,9 @@ end
 
 function unlinkedge!(graph::MapUDGraph, u, v)
     """Remove an edge"""
-    if !(u in keys(graph.nodes))
-        throw(OperationError("Missing node: $(u)"))
-    elseif !(v in keys(graph.nodes))
-        throw(OperationError("Missing node: $(v)"))
-    end
+    nodes = nodekeys(graph)
+    (u in nodes) || throw(OperationError("Missing node: $(u)"))
+    (v in nodes) || throw(OperationError("Missing node: $(v)"))
     delete!(graph.edges, graph.adjacency[u][v])
     delete!(graph.adjacency[u], v)
     delete!(graph.adjacency[v], u)
@@ -203,9 +167,7 @@ end
 
 function unlinkedge!(graph::MapUDGraph, idx)
     """Remove an edge"""
-    if !(idx in keys(graph.edges))
-        throw(OperationError("Missing edge: $(idx)"))
-    end
+    (idx in keys(graph.edges)) || throw(OperationError("Missing edge: $(idx)"))
     e = getedge(graph, idx)
     delete!(graph.edges, idx)
     delete!(graph.adjacency[e.u], e.v)
@@ -214,14 +176,14 @@ function unlinkedge!(graph::MapUDGraph, idx)
 end
 
 
-function similarmap(graph::MapUDGraph)
-    N = valtype(graph.nodes)
-    E = valtype(graph.edges)
-    MapUDGraph{N,E}()
-end
+nodetype(graph::MapUDGraph) = valtype(graph.nodes)
+nodetype(graph::VectorUDGraph) = eltype(graph.nodes)
 
-function similarmap(graph::VectorUDGraph)
-    N = eltype(graph.nodes)
-    E = eltype(graph.edges)
+edgetype(graph::MapUDGraph) = valtype(graph.edges)
+edgetype(graph::VectorUDGraph) = eltype(graph.edges)
+
+function similarmap(graph::UndirectedGraph)
+    N = nodetype(graph)
+    E = edgetype(graph)
     MapUDGraph{N,E}()
 end

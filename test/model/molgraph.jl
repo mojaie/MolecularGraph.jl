@@ -2,9 +2,9 @@
 @testset "molgraph" begin
 
     @testset "mapmol" begin
-        sdf = GMapMol{SDFileAtom,SDFileBond}()
+        sdf = GeneralMapMol{SDFileAtom,SDFileBond}()
         vmol = vectormol(sdf)
-        @test vmol isa GVectorMol{SDFileAtom,SDFileBond}
+        @test vmol isa GeneralVectorMol{SDFileAtom,SDFileBond}
     end
 
     @testset "querymol" begin

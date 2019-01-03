@@ -4,21 +4,15 @@
 #
 
 export
-    UDSubgraph,
-    DSubgraph,
+    UDSubgraph, DSubgraph,
     SubgraphView,
-    nodesubgraph,
-    edgesubgraph,
-    getnode,
-    getedge,
-    nodesiter,
-    edgesiter,
-    nodekeys,
-    edgekeys,
+    nodesubgraph, edgesubgraph,
+    getnode, getedge,
+    nodesiter, edgesiter,
+    nodekeys, edgekeys,
     neighbors,
-    nodecount,
-    edgecount,
-    similarmap
+    nodecount, edgecount,
+    nodetype, edgetype, similarmap
 
 
 struct UDSubgraph{T<:UDGraph} <: UndirectedGraphView
@@ -112,6 +106,7 @@ function successors(view::DSubgraph, idx)
     )
 end
 
+
 function predecessors(view::DSubgraph, idx)
     (idx in view.nodes) || throw(OperationError("Missing node: $(idx)"))
     return Dict(
@@ -124,12 +119,11 @@ end
 nodecount(view::SubgraphView) = length(view.nodes)
 edgecount(view::SubgraphView) = length(view.edges)
 
-similarmap(view::SubgraphView) = similarmap(view.graph)
-
 
 struct ReverseGraph{T<:DGraph} <: DirectedGraphView
     graph::T
 end
+
 
 function getedge(view::ReverseGraph, idx)
     e = getedge(view.graph, idx)
@@ -138,9 +132,16 @@ end
 
 getedge(view::ReverseGraph, s, t) = connect(getedge(view.graph, s, t), t, s)
 
+
 edgesiter(view::ReverseGraph) = (
     i => connect(e, e.target, e.source) for (i, e) in edgesiter(view.graph))
 
 successors(view::ReverseGraph, idx) = view.graph.predecessors[idx]
 
 predecessors(view::ReverseGraph, idx) = view.graph.successors[idx]
+
+
+
+nodetype(view::GraphView) = nodetype(view.graph)
+edgetype(view::GraphView) = edgetype(view.graph)
+similarmap(view::GraphView) = similarmap(view.graph)

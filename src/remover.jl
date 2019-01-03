@@ -20,7 +20,7 @@ struct NoWater <: Annotation end
 struct NoPharmSalt <: Annotation end
 
 
-function remove_H!(mol::MapMol)
+function remove_H!(mol::MutableMol)
     for (i, a) in mol.graph.nodes
         # TODO: check stereo (SMILES, SDFile)
         if (a.symbol == :H && a.charge == 0 && a.multiplicity == 1
@@ -39,7 +39,7 @@ function remove_H(mol; use_deepcopy=true)
 end
 
 
-function removeall_H!(mol::MapMol)
+function removeall_H!(mol::MutableMol)
     required_annotation(mol, :NoImplicitH)
     for (i, a) in mol.graph.nodes
         if a.symbol == :H
