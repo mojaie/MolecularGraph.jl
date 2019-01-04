@@ -48,9 +48,15 @@
 
 - key: Ether
   query: "[#6]O[#6]"
+- key: AromaticEther
+  isa: [Ether]
+  query: "cO[#6]"
+- key: CyclicEther
+  isa: [Ether]
+  query: "[#6]@O@[#6]"
 
 - key: AromaticOxygen
-  query: "aoa"
+  query: "o"
 
 - key: Peroxide
   query: "[OD2][OD2]"
@@ -94,6 +100,9 @@
 - key: TertAmine
   query: "C[ND3](C)C"
 
+- key: CyclicAmine
+  query: "C@N@C"
+
 - key: QuartAmmonium
   query: "C[N+](C)(C)C"
 
@@ -101,7 +110,7 @@
   query: "cN"
 
 - key: AromaticNitrogen
-  query: "ana"
+  query: "n"
 
 - key: Imine
   query: "C=N"

@@ -11,12 +11,12 @@
   query: "C1CC1"
 
 - key: Epoxide
-  have: [Ether]
+  have: [CyclicEther]
   isa: [ThreeMemberedRing]
   query: "O1CC1"
 
 - key: Aziridine
-  have: [SecAmine]
+  have: [CyclicAmine]
   isa: [ThreeMemberedRing]
   query: "N1CC1"
 
@@ -32,12 +32,12 @@
   query: "C1CCC1"
 
 - key: Oxetane
-  have: [Ether]
+  have: [CyclicEther]
   isa: [FourMemberedRing]
   query: "O1CCC1"
 
 - key: Azetidine
-  have: [SecAmine]
+  have: [CyclicAmine]
   isa: [FourMemberedRing]
   query: "N1CCC1"
 
@@ -53,7 +53,7 @@
   query: "C1CCCC1"
 
 - key: Tetrahydrofuran
-  have: [Ether]
+  have: [CyclicEther]
   isa: [FiveMemberedRing]
   query: "O1CCCC1"
 
@@ -63,7 +63,7 @@
   query: "o1cccc1"
 
 - key: Pyrrolidine
-  have: [SecAmine]
+  have: [CyclicAmine]
   isa: [FiveMemberedRing]
   query: "N1CCCC1"
 
@@ -107,8 +107,13 @@
   isa: [SixMemberedRing]
   query: "c1ccccc1"
 
+- key: Piperidine
+  have: [CyclicAmine]
+  isa: [SixMemberedRing]
+  query: "N1CCCCC1"
+
 - key: Piperazine
-  have: [SecAmine]
+  have: [CyclicAmine]
   isa: [SixMemberedRing]
   query: "N1CCNCC1"
 
@@ -123,7 +128,7 @@
   query: "n1cnccc1"
 
 - key: Morpholine
-  have: [Ether, SecAmine]
+  have: [CyclicEther, CyclicAmine]
   isa: [SixMemberedRing]
   query: "N1CCOCC1"
 
@@ -134,7 +139,7 @@
   query: "[*r7]~1~[*r7]~[*r7]~[*r7]~[*r7]~[*r7]~[*r7]1"
 
 - key: Azepane
-  have: [SecAmine]
+  have: [CyclicAmine]
   isa: [SevenMemberedRing]
   query: "N1CCCCCC1"
 
@@ -171,7 +176,22 @@
   query: "OC(=O)(=O)c1ccc([CD1])cc1"
 
 
-# Fused ring
+# Fused aliphatic ring
+
+- key: Norbornane
+  have: [Cyclopentane, Cyclohexane]
+  query: "C12CCC(CC1)C2"
+
+- key: Adamantane
+  have: [Cyclohexane]
+  query: "C12CC3CC(C2)CC(C3)C1"
+
+- key: Tropane
+  have: [Piperidine, Pyrrolidine, TertAmine]
+  query: "C12CCCC(CC1)N2C"
+
+
+# Fused aromatic ring
 
 - key: Naphthalene
   have: [Benzene]
