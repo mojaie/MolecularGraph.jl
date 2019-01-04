@@ -4,6 +4,7 @@
 #
 
 export
+    neighbors,
     succkeys, predkeys, neighborkeys,
     succnodes, prednodes, neighbornodes,
     inedgekeys, outedgekeys, neighboredgekeys,
@@ -11,6 +12,8 @@ export
     indegree, outdegree, neighborcount, degree,
     nodecount, edgecount
 
+
+neighbors(g::DGraph, i) = merge(successors(g, i), predecessors(g, i))
 
 succkeys(g::DGraph, i) = collect(keys(successors(g, i)))
 predkeys(g::DGraph, i) = collect(keys(predecessors(g, i)))

@@ -9,14 +9,14 @@ export
     getnode, getedge,
     nodesiter, edgesiter,
     nodekeys, edgekeys,
-    predecessors, successors, neighbors,
+    predecessors, successors,
     updatenode!, updateedge!,
     unlinknode!, unlinkedge!,
     nodetype, edgetype, similarmap
 
 
 
-struct Arrow <: AbstractDirectedEdge
+struct Arrow <: DirectedEdge
     source::Int
     target::Int
     attr::Dict
@@ -26,13 +26,13 @@ Arrow(s, t) = Arrow(s, t, Dict())
 connect(a::Arrow, s, t) = Arrow(s, t, a.attr)
 
 
-struct MapDGraph{N<:AbstractNode,E<:AbstractDirectedEdge} <: DirectedGraph
+struct MapDGraph{N<:AbstractNode,E<:DirectedEdge} <: DirectedGraph
     nodes::Dict{Int,N}
     edges::Dict{Int,E}
     successors::Dict{Int,Dict{Int,Int}}
     predecessors::Dict{Int,Dict{Int,Int}}
 
-    function MapDGraph{N,E}() where {N<:AbstractNode,E<:AbstractDirectedEdge}
+    function MapDGraph{N,E}() where {N<:AbstractNode,E<:DirectedEdge}
         new(Dict(), Dict(), Dict(), Dict())
     end
 end
@@ -62,7 +62,6 @@ edgekeys(graph::MapDGraph) = Set(keys(graph.edges))
 
 successors(g::DirectedGraph, i) = g.successors[i]
 predecessors(g::DirectedGraph, i) = g.predecessors[i]
-neighbors(g::DirectedGraph, i) = merge(successors(g, i), predecessors(g, i))
 
 
 function updatenode!(graph::MapDGraph, node, idx)

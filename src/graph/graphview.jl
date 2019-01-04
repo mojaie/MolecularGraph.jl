@@ -4,7 +4,7 @@
 #
 
 export
-    UDSubgraph, DSubgraph,
+    UDSubgraph, DSubgraph, ReverseGraph,
     SubgraphView,
     nodesubgraph, edgesubgraph,
     getnode, getedge,
@@ -49,16 +49,24 @@ function _nodesubgraph(graph, nodes)
 end
 
 
-edgesubgraph(g::UDGraph, nodes) = UDSubgraph(_edgesubgraph(g, nodes)...)
-edgesubgraph(g::DGraph, nodes) = DSubgraph(_edgesubgraph(g, nodes)...)
-function _edgesubgraph(graph, edges)
+function edgesubgraph(graph::UDGraph, edges)
     """ Edge induced subgraph"""
     nodes = Set{Int}()
     for e in edges
         eg = getedge(graph, e)
         push!(nodes, eg.u, eg.v)
     end
-    return (graph, nodes, Set(edges))
+    return UDSubgraph(graph, nodes, Set(edges))
+end
+
+function edgesubgraph(graph::DGraph, edges)
+    """ Edge induced subgraph"""
+    nodes = Set{Int}()
+    for e in edges
+        eg = getedge(graph, e)
+        push!(nodes, eg.source, eg.target)
+    end
+    return DSubgraph(graph, nodes, Set(edges))
 end
 
 
@@ -124,6 +132,8 @@ struct ReverseGraph{T<:DGraph} <: DirectedGraphView
     graph::T
 end
 
+getnode(view::ReverseGraph, i) = getnode(view.graph, i)
+nodesiter(view::ReverseGraph) = nodesiter(view.graph)
 
 function getedge(view::ReverseGraph, idx)
     e = getedge(view.graph, idx)

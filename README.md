@@ -41,11 +41,12 @@ Features
   - Wildman-Crippen logP
 
 
-- Molecule graph topology (ring, scaffold, connectivity)
+- Molecular graph topology (ring, scaffold, connectivity)
 
 - Sub(super)structure search
-  - VF2 algorithm based subgraph isomorphism
+  - Subgraph isomorphism detection with VF2 algorithm
 
+- Ontology-based functional group detection/analysis
 
 - MCS with diameter restriction (MCS-DR) and graph-based local similarity (GLS)
 

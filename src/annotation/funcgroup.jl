@@ -41,7 +41,7 @@ struct FGTermNode <: AbstractNode
 end
 
 
-struct FGRelationEdge <: AbstractDirectedEdge
+struct FGRelationEdge <: DirectedEdge
     source::Int
     target::Int
     relation::Symbol

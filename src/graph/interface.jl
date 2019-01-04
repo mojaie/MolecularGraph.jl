@@ -9,8 +9,8 @@ export
     UndirectedGraphView, DirectedGraphView,
     UDGraph, DGraph, GraphView,
     AbstractNode,
-    AbstractEdge,
-    AbstractDirectedEdge,
+    UndirectedEdge,
+    DirectedEdge,
     Node,
     VF2State
 
@@ -34,7 +34,8 @@ GraphView = Union{DirectedGraphView,UndirectedGraphView}
 
 abstract type AbstractNode end
 abstract type AbstractEdge end
-abstract type AbstractDirectedEdge end
+abstract type UndirectedEdge <: AbstractEdge end
+abstract type DirectedEdge <: AbstractEdge end
 
 
 # Node

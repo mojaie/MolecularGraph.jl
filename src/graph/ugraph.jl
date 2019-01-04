@@ -15,7 +15,7 @@ export
     nodetype, edgetype, similarmap
 
 
-struct Edge <: AbstractEdge
+struct Edge <: UndirectedEdge
     u::Int
     v::Int
     attr::Dict
@@ -25,12 +25,12 @@ Edge(u, v) = Edge(u, v, Dict())
 connect(e::Edge, u, v) = Edge(u, v, e.attr)
 
 
-struct MapUDGraph{N<:AbstractNode,E<:AbstractEdge} <: UndirectedGraph
+struct MapUDGraph{N<:AbstractNode,E<:UndirectedEdge} <: UndirectedGraph
     nodes::Dict{Int,N}
     edges::Dict{Int,E}
     adjacency::Dict{Int,Dict{Int,Int}}
 
-    function MapUDGraph{N,E}() where {N<:AbstractNode,E<:AbstractEdge}
+    function MapUDGraph{N,E}() where {N<:AbstractNode,E<:UndirectedEdge}
         new(Dict(), Dict(), Dict())
     end
 end
@@ -48,7 +48,7 @@ function MapUDGraph(nodes::AbstractArray{Int},
 end
 
 
-struct VectorUDGraph{N<:AbstractNode,E<:AbstractEdge} <: UndirectedGraph
+struct VectorUDGraph{N<:AbstractNode,E<:UndirectedEdge} <: UndirectedGraph
     nodes::Vector{N}
     edges::Vector{E}
     adjacency::Vector{Dict{Int,Int}}
@@ -68,7 +68,7 @@ function VectorUDGraph(size::Int, edges::AbstractArray{Tuple{Int,Int}})
 end
 
 function VectorUDGraph{N,E}(graph::MapUDGraph{N,E}
-        ) where {N<:AbstractNode,E<:AbstractEdge}
+        ) where {N<:AbstractNode,E<:UndirectedEdge}
     ns = []
     es = []
     adj = [Dict() for n in graph.nodes]
@@ -101,12 +101,14 @@ getnode(graph::UndirectedGraph, idx) = graph.nodes[idx]
 getedge(graph::UndirectedGraph, idx) = graph.edges[idx]
 getedge(graph::UndirectedGraph, u, v) = getedge(graph, graph.adjacency[u][v])
 
+# TODO: `enumerate` yields `Tuple` whereas `Dict` yields `Pair`
 nodesiter(graph::VectorUDGraph) = enumerate(graph.nodes)
 nodesiter(graph::MapUDGraph) = graph.nodes
 
 nodekeys(graph::VectorUDGraph) = Set(1:nodecount(graph))
 nodekeys(graph::MapUDGraph) = Set(keys(graph.nodes))
 
+# TODO: `enumerate` yields `Tuple` whereas `Dict` yields `Pair`
 edgesiter(graph::VectorUDGraph) = enumerate(graph.edges)
 edgesiter(graph::MapUDGraph) = graph.edges
 

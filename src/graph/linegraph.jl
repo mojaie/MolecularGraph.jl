@@ -15,7 +15,7 @@ struct LineGraphNode <: AbstractNode
 end
 
 
-struct LineGraphEdge <: AbstractEdge
+struct LineGraphEdge <: UndirectedEdge
     u::Int
     v::Int
     node::Int

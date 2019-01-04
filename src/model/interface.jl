@@ -36,7 +36,7 @@ abstract type AbstractAtom <: AbstractNode end
 abstract type Atom <: AbstractAtom end
 abstract type QueryAtom <: AbstractAtom end
 
-abstract type AbstractBond <: AbstractEdge end
+abstract type AbstractBond <: UndirectedEdge end
 abstract type Bond <: AbstractBond end
 abstract type QueryBond <: AbstractBond end
 

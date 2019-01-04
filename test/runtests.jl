@@ -18,9 +18,8 @@ module GraphTest
     using GraphMol.Graph
     using GraphMol.Error
     include("./graph/ugraph.jl")
-    include("./graph/ugraphview.jl")
     include("./graph/dgraph.jl")
-    include("./graph/dgraphview.jl")
+    include("./graph/graphview.jl")
 
     include("./graph/merge.jl")
     include("./graph/linegraph.jl")
