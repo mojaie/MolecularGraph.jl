@@ -2,6 +2,8 @@
 Graphmol.jl
 ===================================================
 
+![](https://travis-ci.org/mojaie/graphmol.jl.svg?branch=master)
+
 **Graphmol.jl** is a graph-based molecule modeling library written in Julia.
 
 
