@@ -25,6 +25,7 @@ struct SDFileReader
 end
 
 sdfilereader(file::IO) = SDFileReader(eachline(file), nohaltsupplier)
+sdfilereader(path::AbstractString) = sdfilereader(open(path))
 
 function iterate(reader::SDFileReader, state=nothing)
     block = String[]
@@ -75,6 +76,7 @@ function sdftomol(lines)
 end
 
 sdftomol(file::IO) = sdftomol(eachline(file))
+sdftomol(path::AbstractString) = sdftomol(open(path))
 
 
 function parse(::Type{SDFile}, lines)
