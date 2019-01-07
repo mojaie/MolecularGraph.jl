@@ -27,6 +27,7 @@ module GraphTest
 
     include("./graph/shortestpath.jl")
     include("./graph/triangle.jl")
+    include("./graph/clique.jl")
     include("./graph/bipartite.jl")
     include("./graph/bridge.jl")
     include("./graph/component.jl")

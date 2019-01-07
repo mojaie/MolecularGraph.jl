@@ -36,6 +36,7 @@ module MolecularGraph
         include("./graph/shortestpath.jl")
         include("./graph/bipartite.jl")
         include("./graph/triangle.jl")
+        include("./graph/clique.jl")
         include("./graph/bridge.jl")
         include("./graph/component.jl")
         include("./graph/cycle.jl")
