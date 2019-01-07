@@ -1,17 +1,17 @@
 
-Graphmol.jl
+MolecularGraph.jl
 ===================================================
 
-![](https://travis-ci.org/mojaie/graphmol.jl.svg?branch=master)
+![](https://travis-ci.org/mojaie/MolecularGraph.jl.svg?branch=master)
 
-**Graphmol.jl** is a graph-based molecule modeling library written in Julia.
+**MolecularGraph.jl** is a graph-based molecule modeling library written in Julia.
 
 
 Installation
 -------------
 
 ```
- (v1.0) pkg> add GraphMol
+ (v1.0) pkg> add MolecularGraph
 ```
 
 

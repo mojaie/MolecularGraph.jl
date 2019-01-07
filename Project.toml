@@ -1,7 +1,7 @@
-name = "GraphMol"
+name = "MolecularGraph"
 uuid = "7d54bc1e-c61b-11e8-18e7-2164fc5fa400"
 authors = ["Seiji Matsuoka <mojaie@aol.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

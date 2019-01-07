@@ -7,16 +7,16 @@ module GeometryTest
     using Test
     using LinearAlgebra
     using StaticArrays
-    using GraphMol.Geometry
-    using GraphMol.Error
+    using MolecularGraph.Geometry
+    using MolecularGraph.Error
     include("geometry.jl")
 end
 
 
 module GraphTest
     using Test
-    using GraphMol.Graph
-    using GraphMol.Error
+    using MolecularGraph.Graph
+    using MolecularGraph.Error
     include("./graph/ugraph.jl")
     include("./graph/dgraph.jl")
     include("./graph/graphview.jl")
@@ -35,11 +35,11 @@ module GraphTest
     include("./graph/vf2edge.jl")
 end
 
-module GraphMolTest
+module MolecularGraphTest
     using Test
     using StaticArrays
-    using GraphMol
-    using GraphMol.Error
+    using MolecularGraph
+    using MolecularGraph.Error
 
     include("./model/atom.jl")
     include("./model/molgraph.jl")

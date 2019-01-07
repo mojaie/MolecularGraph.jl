@@ -4,7 +4,7 @@
 #
 
 export
-    GraphMolError,
+    MolecularGraphError,
     MolParseError,
     AnnotationError,
     OperationError
@@ -12,21 +12,21 @@ export
 import Base: showerror
 
 
-abstract type GraphMolError <: Exception end
+abstract type MolecularGraphError <: Exception end
 
 
-struct MolParseError <: GraphMolError
+struct MolParseError <: MolecularGraphError
     msg::String
 end
 
 
-struct AnnotationError <: GraphMolError
+struct AnnotationError <: MolecularGraphError
     msg::String
 end
 
 
-struct OperationError <: GraphMolError
+struct OperationError <: MolecularGraphError
     msg::String
 end
 
-showerror(io::IO, e::GraphMolError) = show(io, e.msg)
+showerror(io::IO, e::MolecularGraphError) = show(io, e.msg)
