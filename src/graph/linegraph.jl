@@ -4,6 +4,7 @@
 #
 
 export
+    LineGraph,
     LineGraphNode,
     LineGraphEdge,
     linegraph
@@ -21,9 +22,11 @@ struct LineGraphEdge <: UndirectedEdge
     node::Int
 end
 
+LineGraph = MapUDGraph{LineGraphNode, LineGraphEdge}
+
 
 function linegraph(G::UDGraph)
-    L = MapUDGraph{LineGraphNode, LineGraphEdge}()
+    L = LineGraph()
     for (i, edge) in edgesiter(G)
         L.nodes[i] = LineGraphNode(edge.u, edge.v)
         L.adjacency[i] = Dict()

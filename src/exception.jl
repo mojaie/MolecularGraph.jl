@@ -5,6 +5,7 @@
 
 export
     MolecularGraphError,
+    ValueError,
     MolParseError,
     AnnotationError,
     OperationError
@@ -13,6 +14,11 @@ import Base: showerror
 
 
 abstract type MolecularGraphError <: Exception end
+
+
+struct ValueError <: MolecularGraphError
+    msg::String
+end
 
 
 struct MolParseError <: MolecularGraphError

@@ -14,6 +14,8 @@ export
     nodecount, edgecount,
     nodetype, edgetype, similarmap
 
+# TODO: graphview directory (graphview, reverse, subgraph, complement...)
+# TODO: complement graph
 
 struct UDSubgraph{T<:UDGraph} <: UndirectedGraphView
     graph::T

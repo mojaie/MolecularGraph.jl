@@ -7,6 +7,7 @@ module MolecularGraph
 
     export
         Error,
+        Util,
         Geometry,
         Graph
 
@@ -14,24 +15,33 @@ module MolecularGraph
         include("exception.jl")
     end
 
+    module Util
+        using ..Error
+        include("./util/iterator.jl")
+    end
+
     module Geometry
         using LinearAlgebra
         using StaticArrays
+        using ..Error
         include("geometry.jl")
     end
 
     module Graph
         using StaticArrays
         using ..Error
+        using ..Util
         include("./graph/interface.jl")
         include("./graph/ugraph.jl")
         include("./graph/dgraph.jl")
         include("./graph/graphview.jl")
         include("./graph/graphutil.jl")
 
+        include("./graph/generator.jl")
         include("./graph/merge.jl")
         include("./graph/linegraph.jl")
         include("./graph/dag.jl")
+        include("./graph/modularproduct.jl")
 
         include("./graph/shortestpath.jl")
         include("./graph/bipartite.jl")
@@ -40,8 +50,10 @@ module MolecularGraph
         include("./graph/bridge.jl")
         include("./graph/component.jl")
         include("./graph/cycle.jl")
-        include("./graph/vf2.jl")
-        include("./graph/vf2edge.jl")
+
+        include("./graph/isomorphism/base.jl")
+        include("./graph/isomorphism/cliquebased.jl")
+        include("./graph/isomorphism/vf2.jl")
     end
 
     using LinearAlgebra
@@ -50,6 +62,7 @@ module MolecularGraph
     using Statistics
     using YAML
     using ..Error
+    using ..Util
     using ..Geometry
     using ..Graph
 
@@ -68,6 +81,7 @@ module MolecularGraph
 
     include("properties.jl")
     include("substructure.jl")
+    include("mcs.jl")
     include("remover.jl")
 
     include("./smarts/base.jl")

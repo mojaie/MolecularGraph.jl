@@ -4,95 +4,103 @@
 #
 
 export
-    VF2NodeInducedState,
-    is_isomorphic,
-    is_subgraph,
-    isomorphmap,
-    isomorphmapiter,
-    vf2match!,
-    updatestate!,
-    candidatepairs,
-    is_feasible,
-    is_semantic_feasible,
-    restore!
+    isomorphismvf2,
+    isomorphismitervf2,
+    edgeisomorphismvf2,
+    edgeisomorphismitervf2
 
 
-mutable struct VF2NodeInducedState <: VF2State
+mutable struct VF2State
+    # Input
     G::UDGraph
     H::UDGraph
-
     mode::Symbol
-    depthlimit::Int
-    nodematch::Union{Function,Nothing}
-    edgematch::Union{Function,Nothing}
-    mandatory::Union{Dict{Int,Int},Nothing}
-    forbidden::Union{Dict{Int,Int},Nothing}
-
+    subgraphtype::Symbol
+    # Optional
+    timeout # Int
+    nodematcher # Function
+    edgematcher # Function
+    mandatory # Dict{Int,Int}
+    forbidden # Dict{Int,Int}
+    # States
     g_core::Dict{Int,Int}
     h_core::Dict{Int,Int}
     g_term::Dict{Int,Int}
     h_term::Dict{Int,Int}
+    expire # UInt64, nanoseconds
+    status::Symbol
 
-    function VF2NodeInducedState(G, H, mode, lim, nmatch, ematch, mand, forb)
-        new(G, H, mode, lim, nmatch, ematch, mand, forb,
-            Dict(), Dict(), Dict(), Dict())
+    function VF2State(G, H, mode, subg)
+        state = new()
+        state.G = G
+        state.H = H
+        state.mode = mode
+        state.subgraphtype = subg
+        state.g_core = Dict()
+        state.h_core = Dict()
+        state.g_term = Dict()
+        state.h_term = Dict()
+        state.status = :Ready
+        return state
     end
 end
 
 
-function is_isomorphic(G, H; kwargs...)
-    return isomorphmap(G, H; mode=:graph, kwargs...) !== nothing
+function isomorphismvf2(G, H; kwargs...)
+    return iterate(isomorphismitervf2(G, H; kwargs...))
 end
 
 
-function is_subgraph(G, H; kwargs...)
-    """ True if G is an induced subgraph of H"""
-    return isomorphmap(H, G; kwargs...) !== nothing
-end
-
-
-function isomorphmap(G::UDGraph, H::UDGraph;
-                     mode=:subgraph, depthlimit=1000,
-                     nodematcher=nothing, edgematcher=nothing,
-                     mandatory=nothing, forbidden=nothing)
+function isomorphismitervf2(G, H; kwargs...)
     if nodecount(G) == 0 || nodecount(H) == 0
-        return
+        return ()
     end
-    state = VF2NodeInducedState(
-        G, H, mode, depthlimit, nodematcher, edgematcher,
-        mandatory, forbidden)
-    return vf2match!(state)
+    state = VF2State(G, H, kwargs[:mode], kwargs[:subgraphtype])
+    if haskey(kwargs, :timeout)
+        state.timeout = kwargs[:timeout]::Int
+        state.expire = (time_ns() + state.timeout * 1_000_000_000)::UInt64
+    end
+    (haskey(kwargs, :nodematcher)
+        && (state.nodematcher = kwargs[:nodematcher]::Function))
+    (haskey(kwargs, :edgematcher)
+        && (state.edgematcher = kwargs[:edgematcher]::Function))
+    (haskey(kwargs, :mandatory)
+        && (state.mandatory = kwargs[:mandatory]::Dict{Int,Int}))
+    (haskey(kwargs, :forbidden)
+        && (state.forbidden = kwargs[:forbidden]::Dict{Int,Int}))
+    return Channel(c::Channel -> expand!(state, c), ctype=Dict{Int,Int})
 end
 
 
-function isomorphmapiter(G::UDGraph, H::UDGraph;
-                         mode=:subgraph, depthlimit=1000,
-                         nodematcher=nothing, edgematcher=nothing,
-                         mandatory=nothing, forbidden=nothing)
-    if nodecount(G) == 0 || nodecount(H) == 0
-        return
-    end
-    state = VF2NodeInducedState(
-        G, H, mode, depthlimit, nodematcher, edgematcher,
-        mandatory, forbidden)
-    return Channel(c::Channel -> vf2match!(state, c), ctype=Dict{Int,Int})
+function edgeisomorphismvf2(G, H; kwargs...)
+    return iterate(edgeisomorphismitervf2(G, H; kwargs...))
 end
 
 
-function vf2match!(state::VF2State, channel=nothing)
+function edgeisomorphismitervf2(G, H;
+        nodematcher=(g,h)->true, edgematcher=(g,h)->true, kwargs...)
+    lg = linegraph(G)
+    lh = linegraph(H)
+    nmatch = lgnodematcher(lg, lh, nodematcher, edgematcher)
+    ematch = lgedgematcher(lg, lh, nodematcher)
+    results = isomorphismitervf2(lg, lh,
+        nodematcher=nmatch, edgematcher=ematch; kwargs...)
+    return Iterators.filter(results) do mapping
+        return !delta_y_mismatch(G, H, mapping)
+    end
+end
+
+
+function expand!(state::VF2State, channel)
     # Recursive
     # println("depth $(length(state.g_core))")
     if length(state.g_core) == nodecount(state.H)
         # println("done $(state.g_core)")
-        if channel === nothing
-            return copy(state.g_core)
-        else
-            put!(channel, copy(state.g_core))
-            return
-        end
-    end
-    if length(state.g_core) >= state.depthlimit
-        throw(OperationError("Maximum recursion reached"))
+        put!(channel, copy(state.g_core))
+        return
+    elseif isdefined(state, :timeout) && time_ns() > state.expire
+        state.status = :Timedout
+        return
     end
     for (g, h) in candidatepairs(state)
         # println("candidates $(g) $(h)")
@@ -101,10 +109,7 @@ function vf2match!(state::VF2State, channel=nothing)
         end
         updatestate!(state, g, h)
         # println("g_core $(state.g_core)")
-        mp = vf2match!(state, channel)
-        if mp !== nothing
-            return mp
-        end
+        mp = expand!(state, channel)
         # println("restored $(state.g_core)")
         restore!(state, g, h)
     end
@@ -134,8 +139,27 @@ function updatestate!(state::VF2State, g, h)
 end
 
 
+function restore!(state::VF2State, g, h)
+    depth = length(state.g_core)
+    if g !== nothing && h !== nothing
+        delete!(state.g_core, g)
+        delete!(state.h_core, h)
+    end
+    for (k, v) in state.g_term
+        if v == depth
+            delete!(state.g_term, k)
+        end
+    end
+    for (k, v) in state.h_term
+        if v == depth
+            delete!(state.h_term, k)
+        end
+    end
+end
+
+
 function candidatepairs(state::VF2State)
-    if state.mandatory !== nothing
+    if isdefined(state, :mandatory)
         # Mandatory pair
         md = setdiff(keys(state.mandatory), keys(state.g_core))
         if !isempty(md)
@@ -155,7 +179,7 @@ function candidatepairs(state::VF2State)
     if !isempty(h_cand)
         h_min = minimum(h_cand)
         for g in g_cand
-            if state.forbidden !== nothing
+            if isdefined(state, :forbidden)
                 # Forbidden pair
                 if haskey(state.forbidden, g) && state.forbidden[g] == h_min
                     continue
@@ -186,56 +210,37 @@ function is_feasible(state::VF2State, g, h)
     # Terminal set size
     g_term_count = length(setdiff(keys(state.g_term), keys(state.g_core)))
     h_term_count = length(setdiff(keys(state.h_term), keys(state.h_core)))
-    if state.mode == :graph && g_term_count != h_term_count
+    if state.mode == :Isomorphism && g_term_count != h_term_count
         return false
-    elseif state.mode == :subgraph && g_term_count < h_term_count
+    elseif state.mode == :Subgraph && g_term_count < h_term_count
         return false
     end
     # Yet unexplored size
     g_new_count = length(setdiff(nodekeys(state.G), keys(state.g_term)))
     h_new_count = length(setdiff(nodekeys(state.H), keys(state.h_term)))
-    if state.mode == :graph && g_new_count != h_new_count
+    if state.mode == :Isomorphism && g_new_count != h_new_count
         return false
-    elseif state.mode == :subgraph && g_new_count < h_new_count
+    elseif state.mode == :Subgraph && g_new_count < h_new_count
         return false
     end
     return true
 end
 
 
-function is_semantic_feasible(state::VF2NodeInducedState, g, h)
-    if state.nodematch !== nothing
-        if !state.nodematch(g, h)
+function is_semantic_feasible(state::VF2State, g, h)
+    if isdefined(state, :nodematcher)
+        if !state.nodematcher(g, h)
             return false
         end
     end
-    if state.edgematch !== nothing
+    if isdefined(state, :edgematcher)
         for nbr in intersect(neighborkeys(state.G, g), keys(state.g_core))
             g_edge = neighbors(state.G, g)[nbr]
             h_edge = neighbors(state.H, h)[state.g_core[nbr]]
-            if !state.edgematch(g_edge, h_edge)
+            if !state.edgematcher(g_edge, h_edge)
                 return false
             end
         end
     end
     return true
-end
-
-
-function restore!(state::VF2State, g, h)
-    depth = length(state.g_core)
-    if g !== nothing && h !== nothing
-        delete!(state.g_core, g)
-        delete!(state.h_core, h)
-    end
-    for (k, v) in state.g_term
-        if v == depth
-            delete!(state.g_term, k)
-        end
-    end
-    for (k, v) in state.h_term
-        if v == depth
-            delete!(state.h_term, k)
-        end
-    end
 end

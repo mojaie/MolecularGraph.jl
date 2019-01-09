@@ -7,7 +7,7 @@ export
     is_identical,
     is_substruct,
     is_superstruct,
-    isomorphmap,
+    isomorphism,
     is_querymatch,
     querymatch,
     querymatchiter,
@@ -23,7 +23,7 @@ function is_identical(mol1::VectorMol, mol2::VectorMol)
     if !fast_identity_filter(mol1, mol2)
         return false
     end
-    return isomorphmap(mol1, mol2, mode=:graph) !== nothing
+    return isomorphism(mol1, mol2, mode=:Isomorphism) !== nothing
 end
 
 
@@ -31,22 +31,19 @@ function is_substruct(mol1::VectorMol, mol2::VectorMol)
     if !fast_substr_filter(mol2, mol1)
         return false
     end
-    return isomorphmap(mol2, mol1) !== nothing
+    return isomorphism(mol2, mol1) !== nothing
 end
 
 is_superstruct(mol1, mol2) = is_substruct(mol2, mol1)
 
 
-function isomorphmap(mol1::VectorMol, mol2::VectorMol;
-                     mode=:subgraph, depthlimit=1000,
-                     atommatcher=atommatch, bondmatcher=bondmatch)
+function isomorphism(mol1::VectorMol, mol2::VectorMol;
+        mode=:Subgraph, atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Mapping based on edge subgraph isomorphism (ignore disconnected atom)
     # Intended for use in substructure search
-    return edgeisomorph(
-        mol1.graph, mol2.graph, mode=mode, depthlimit=depthlimit,
+    return edgeisomorphism(mol1.graph, mol2.graph, mode=mode,
         nodematcher=atommatcher(mol1, mol2),
-        edgematcher=bondmatcher(mol1, mol2)
-    )
+        edgematcher=bondmatcher(mol1, mol2), kwargs...)
 end
 
 
@@ -56,8 +53,7 @@ end
 
 
 function querymatch(mol::MolGraph, query::QueryMolGraph;
-                    mode=:subgraph, depthlimit=1000,
-                    atommatcher=atommatch, bondmatcher=bondmatch)
+        atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Accept also disconnected atom but return only the first match
     # Intended for use in SMARTS query search
     mnodeset = nodekeys(mol.graph)
@@ -66,9 +62,9 @@ function querymatch(mol::MolGraph, query::QueryMolGraph;
     bfunc = bondmatcher(mol, query)
     if bondcount(query) != 0
         # Edge induced subgraph mapping
-        for emap in edgeisomorphiter(
-                mol.graph, query.graph, mode=mode, depthlimit=depthlimit,
-                nodematcher=afunc, edgematcher=bfunc)
+        for emap in edgeisomorphismiter(
+                mol.graph, query.graph, mode=:Subgraph,
+                nodematcher=afunc, edgematcher=bfunc; kwargs...)
             # Isolated node mapping
             msub = edgesubgraph(mol.graph, keys(emap))
             qsub = edgesubgraph(query.graph, values(emap))
@@ -98,9 +94,7 @@ querymatch(
 
 
 function querymatchiter(mol::MolGraph, query::ConnectedQueryMol;
-                        mode=:subgraph, depthlimit=1000,
-                        atommatcher=atommatch, bondmatcher=bondmatch,
-                        mandatory=nothing, forbidden=nothing)
+        atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Iterate over all possible subgraph isomorphism mappings
     # Intended for use in functional group annotation
     afunc = atommatcher(mol, query)
@@ -129,10 +123,9 @@ function querymatchiter(mol::MolGraph, query::ConnectedQueryMol;
         return ((Dict(mb => qb), Dict()) for mb in match)
     else
         # subgraph match
-        return ((emap, Dict()) for emap in edgeisomorphiter(
-            mol.graph, query.graph, mode=mode, depthlimit=depthlimit,
-            nodematcher=afunc, edgematcher=bfunc,
-            mandatory=mandatory, forbidden=forbidden
+        return ((emap, Dict()) for emap in edgeisomorphismiter(
+            mol.graph, query.graph, mode=:Subgraph,
+            nodematcher=afunc, edgematcher=bfunc; kwargs...
         ))
     end
 end
@@ -160,9 +153,9 @@ function isSMARTSgroupmatch(mol::MolGraph, query::ConnectedQueryMol, root;
         # subgraph match
         for n in neighboredgekeys(mol.graph, root)
             if is_edge_subgraph(
-                    query.graph, mol.graph;
+                    query.graph, mol.graph,
                     nodematcher=afunc, edgematcher=bfunc,
-                    mandatory=Base.ImmutableDict(n=>1), kwargs...
+                    mandatory=Dict(n=>1); kwargs...
                 )
                 return true
             end

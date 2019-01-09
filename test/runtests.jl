@@ -3,6 +3,15 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+"""
+module UtilTest
+    using Test
+    using MolecularGraph.Util
+    using MolecularGraph.Error
+    include("./util/iterator.jl")
+end
+
+
 module GeometryTest
     using Test
     using LinearAlgebra
@@ -11,16 +20,18 @@ module GeometryTest
     using MolecularGraph.Error
     include("geometry.jl")
 end
-
+"""
 
 module GraphTest
     using Test
     using MolecularGraph.Graph
     using MolecularGraph.Error
+
     include("./graph/ugraph.jl")
     include("./graph/dgraph.jl")
     include("./graph/graphview.jl")
 
+    include("./graph/generator.jl")
     include("./graph/merge.jl")
     include("./graph/linegraph.jl")
     include("./graph/dag.jl")
@@ -32,8 +43,9 @@ module GraphTest
     include("./graph/bridge.jl")
     include("./graph/component.jl")
     include("./graph/cycle.jl")
-    include("./graph/vf2.jl")
-    include("./graph/vf2edge.jl")
+    include("./graph/modularproduct.jl")
+    include("./graph/isomorphism/vf2.jl")
+    include("./graph/isomorphism/cliquebased.jl")
 end
 
 module MolecularGraphTest
@@ -41,6 +53,8 @@ module MolecularGraphTest
     using StaticArrays
     using MolecularGraph
     using MolecularGraph.Error
+
+    include("mcs.jl")
 
     include("./model/atom.jl")
     include("./model/molgraph.jl")

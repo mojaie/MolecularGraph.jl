@@ -6,7 +6,7 @@
 export
     Edge, MapUDGraph, VectorUDGraph,
     connect,
-    getnode, getedge,
+    getnode, getedge, hasedge,
     nodesiter, edgesiter,
     nodekeys, edgekeys,
     neighbors,
@@ -35,8 +35,7 @@ struct MapUDGraph{N<:AbstractNode,E<:UndirectedEdge} <: UndirectedGraph
     end
 end
 
-function MapUDGraph(nodes::AbstractArray{Int},
-                        edges::AbstractArray{Tuple{Int,Int}})
+function MapUDGraph(nodes, edges)
     graph = MapUDGraph{Node,Edge}()
     for node in nodes
         updatenode!(graph, Node(), node)
@@ -100,6 +99,8 @@ getnode(graph::UndirectedGraph, idx) = graph.nodes[idx]
 
 getedge(graph::UndirectedGraph, idx) = graph.edges[idx]
 getedge(graph::UndirectedGraph, u, v) = getedge(graph, graph.adjacency[u][v])
+
+hasedge(graph::UndirectedGraph, u, v) = haskey(graph.adjacency[u], v)
 
 # TODO: `enumerate` yields `Tuple` whereas `Dict` yields `Pair`
 nodesiter(graph::VectorUDGraph) = enumerate(graph.nodes)

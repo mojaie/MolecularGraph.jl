@@ -11,8 +11,7 @@ export
     AbstractNode,
     UndirectedEdge,
     DirectedEdge,
-    Node,
-    VF2State
+    Node
 
 
 abstract type AbstractGraph end
@@ -45,8 +44,3 @@ struct Node <: AbstractNode
 end
 
 Node() = Node(Dict())
-
-
-# Graph algorithm states
-
-abstract type VF2State end
