@@ -6,9 +6,9 @@
 @testset "graph.bridge" begin
 
 @testset "bridge" begin
-    graph1 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph1 = pathgraph(5)
     @test issetequal(bridges(graph1, 1), [1, 2, 3, 4])
-    graph2 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
+    graph2 = cyclegraph(5)
     @test isempty(bridges(graph2, 1))
     graph3 = MapUDGraph(1:8, [
         (1, 2), (2, 3), (1, 3), (3, 4), (4, 5),

@@ -6,11 +6,22 @@
 @testset "graph.generator" begin
 
 @testset "pathgraph" begin
-    nullg = pathgraph(0)
-    @test nodecount(nullg) == 0
-    pg100 = pathgraph(100)
-    @test edgecount(pg100) == 99
-    @test length(shortestpath(pg100, 1, 100)) == 100
+    @test_throws ValueError pathgraph(1)
+    P2 = pathgraph(2)
+    @test nodecount(P2) == edgecount(P2) + 1
+    P100 = pathgraph(100)
+    @test nodecount(P100) == edgecount(P100) + 1
+    @test length(shortestpath(P100, 1, 100)) == 100
+end
+
+@testset "cyclegraph" begin
+    @test_throws ValueError cyclegraph(2)
+    C3 = cyclegraph(3)
+    @test nodecount(C3) == edgecount(C3)
+    C100 = cyclegraph(100)
+    @test nodecount(C100) == edgecount(C100)
+    @test length(shortestpath(C100, 1, 100)) == 2
+    @test length(shortestpath(C100, 1, 50)) == 50
 end
 
 @testset "completegraph" begin

@@ -32,7 +32,7 @@ end
 end
 
 @testset "deltaY" begin
-    tri = VectorUDGraph(3, [(1,2), (2,3), (1,3)])
+    tri = cyclegraph(3)
     star = VectorUDGraph(4, [(1,2), (1,3), (1,4)])
     @test is_edge_subgraph(tri, tri)
     @test is_edge_subgraph(star, star)
@@ -49,8 +49,8 @@ end
 end
 
 @testset "mandatory" begin
-    path = VectorUDGraph(7, [(1,2), (2,3), (3,4), (4,5), (5,6), (6,7)])
-    subp = VectorUDGraph(3, [(1,2), (2,3)])
+    path = pathgraph(7)
+    subp = pathgraph(3)
     eiso = edgeisomorphismiter(path, subp, mode=:Subgraph)
     @test length(collect(eiso)) == 10
 

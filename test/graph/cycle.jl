@@ -7,9 +7,9 @@
 
 @testset "cycleedges" begin
     # TODO: deterministic travarsal
-    graph1 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph1 = pathgraph(5)
     @test isempty(cycleedges(graph1, 1))
-    graph2 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
+    graph2 = cyclegraph(5)
     @test issetequal(cycleedges(graph2, 1), [5])
     graph3 = MapUDGraph(1:8, [
         (1, 2), (2, 3), (1, 3), (3, 4), (4, 5),
@@ -30,9 +30,9 @@ end
 
 @testset "minimumcycles" begin
     # TODO: canonical cycle indexing
-    graph1 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph1 = pathgraph(5)
     @test isempty(minimumcycles(graph1))
-    graph2 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
+    graph2 = cyclegraph(5)
     @test issetequal(minimumcycles(graph2)[1], 1:5)
     graph3 = MapUDGraph(1:8, [
         (1, 2), (2, 3), (1, 3), (3, 4), (4, 5),

@@ -11,7 +11,7 @@
         [tuple(c...) for c in connected_components(graph0)],
         [(1,), (2,), (3,), (4,), (5,)]
     )
-    graph1 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph1 = pathgraph(5)
     @test issetequal(
         [tuple(sort(collect(c))...) for c in connected_components(graph1)],
         [tuple(1:5...)]
@@ -24,9 +24,9 @@
 end
 
 @testset "two_edge_connected" begin
-    graph1 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph1 = pathgraph(5)
     @test isempty(two_edge_connected(graph1))
-    graph2 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
+    graph2 = cyclegraph(5)
     @test issetequal(
         [tuple(sort(collect(c))...) for c in two_edge_connected(graph2)],
         [tuple(1:5...)]

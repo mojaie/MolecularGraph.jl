@@ -6,7 +6,7 @@
 @testset "graph.graphview" begin
 
 @testset "udsubgraph" begin
-    graph = MapUDGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph = pathgraph(5)
     subg = nodesubgraph(graph, [3, 4, 5])
     @test issetequal(subg.edges, [3, 4])
 

@@ -5,21 +5,40 @@
 
 export
     pathgraph,
+    cyclegraph,
     completegraph
 
 
 """
     pathgraph(length::Int) -> MapUDGraph{Node,Edge}
 
-Generate path graph with the given length.
+Generate path graph with the given size.
 """
-function pathgraph(length::Int)
-    return MapUDGraph(1:length, (i, i + 1) for i in 1:(length-1))
+function pathgraph(size::Int)
+    if size < 2
+        throw(ValueError("Invalid value: $(size)"))
+    end
+    return MapUDGraph(1:size, (i, i + 1) for i in 1:(size-1))
 end
 
 
 """
-    completegraph(type::MapUDGraph, length::Int)
+    cyclegraph(length::Int) -> MapUDGraph{Node,Edge}
+
+Generate cycle graph with the given size.
+"""
+function cyclegraph(size::Int)
+    if size < 3
+        throw(ValueError("Invalid value: $(size)"))
+    end
+    edges = [(i, i + 1) for i in 1:(size-1)]
+    push!(edges, (size, 1))
+    return MapUDGraph(1:size, edges)
+end
+
+
+"""
+    completegraph(type::MapUDGraph, length::Int) -> MapUDGraph{Node,Edge}
 
 Generate complete graph with the given size.
 """

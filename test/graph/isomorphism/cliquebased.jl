@@ -14,7 +14,7 @@
     @test length(nodemcsclique(g, h)) == 6
 
     g = pathgraph(4)
-    h = VectorUDGraph(4, [(1,2), (2,3), (3,4), (4,1)])
+    h = cyclegraph(4)
     @test length(nodemcsclique(g, h)) == 3
 
     g = completegraph(7)
@@ -32,7 +32,7 @@ end
     @test length(edgemcsclique(g, h)) == 5
 
     g = pathgraph(4)
-    h = VectorUDGraph(4, [(1,2), (2,3), (3,4), (4,1)])
+    h = cyclegraph(4)
     @test length(edgemcsclique(g, h)) == 3
 
     g = completegraph(4)

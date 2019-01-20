@@ -12,7 +12,7 @@
     noedges = MapUDGraph(1:5, Tuple{Int,Int}[])
     @test length(maxclique(noedges)) == 1
 
-    g1 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
+    g1 = cyclegraph(5)
     @test length(maxclique(g1)) == 2
 
     g2 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 1), (3, 4), (4, 5)])

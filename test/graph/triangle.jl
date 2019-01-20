@@ -6,7 +6,7 @@
 @testset "graph.triangle" begin
 
 @testset "triangles" begin
-    graph1 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph1 = pathgraph(5)
     @test isempty(triangles(graph1))
     graph2 = MapUDGraph(1:5, [(1, 2), (2, 3), (3, 1)])
     @test issetequal(collect(triangles(graph2))[1], 1:3)
