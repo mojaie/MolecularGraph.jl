@@ -4,18 +4,14 @@
 #
 
 export
-    UDSubgraph, DSubgraph, ReverseGraph,
-    SubgraphView,
+    UDSubgraph, DSubgraph, SubgraphView,
     nodesubgraph, edgesubgraph,
     getnode, getedge,
     nodesiter, edgesiter,
     nodekeys, edgekeys,
-    neighbors,
-    nodecount, edgecount,
-    nodetype, edgetype, similarmap
+    neighbors, successors, predecessors,
+    nodecount, edgecount
 
-# TODO: graphview directory (graphview, reverse, subgraph, complement...)
-# TODO: complement graph
 
 struct UDSubgraph{T<:UDGraph} <: UndirectedGraphView
     graph::T
@@ -35,6 +31,11 @@ end
 SubgraphView = Union{UDSubgraph,DSubgraph}
 
 
+"""
+    nodesubgraph(graph::AbstractGraph, nodes)
+
+Generate node-induced subgraph view.
+"""
 nodesubgraph(g::UDGraph, nodes) = UDSubgraph(_nodesubgraph(g, nodes)...)
 nodesubgraph(g::DGraph, nodes) = DSubgraph(_nodesubgraph(g, nodes)...)
 function _nodesubgraph(graph, nodes)
@@ -51,6 +52,11 @@ function _nodesubgraph(graph, nodes)
 end
 
 
+"""
+    edgesubgraph(graph::AbstractGraph, edges)
+
+Generate edge-induced subgraph view.
+"""
 function edgesubgraph(graph::UDGraph, edges)
     """ Edge induced subgraph"""
     nodes = Set{Int}()
@@ -128,32 +134,3 @@ end
 
 nodecount(view::SubgraphView) = length(view.nodes)
 edgecount(view::SubgraphView) = length(view.edges)
-
-
-struct ReverseGraph{T<:DGraph} <: DirectedGraphView
-    graph::T
-end
-
-getnode(view::ReverseGraph, i) = getnode(view.graph, i)
-nodesiter(view::ReverseGraph) = nodesiter(view.graph)
-
-function getedge(view::ReverseGraph, idx)
-    e = getedge(view.graph, idx)
-    return connect(e, e.target, e.source)
-end
-
-getedge(view::ReverseGraph, s, t) = connect(getedge(view.graph, s, t), t, s)
-
-
-edgesiter(view::ReverseGraph) = (
-    i => connect(e, e.target, e.source) for (i, e) in edgesiter(view.graph))
-
-successors(view::ReverseGraph, idx) = view.graph.predecessors[idx]
-
-predecessors(view::ReverseGraph, idx) = view.graph.successors[idx]
-
-
-
-nodetype(view::GraphView) = nodetype(view.graph)
-edgetype(view::GraphView) = edgetype(view.graph)
-similarmap(view::GraphView) = similarmap(view.graph)

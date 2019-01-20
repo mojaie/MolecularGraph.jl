@@ -34,8 +34,12 @@ module MolecularGraph
         include("./graph/interface.jl")
         include("./graph/ugraph.jl")
         include("./graph/dgraph.jl")
-        include("./graph/graphview.jl")
         include("./graph/graphutil.jl")
+
+        include("./graph/view/base.jl")
+        include("./graph/view/inducedsubgraph.jl")
+        include("./graph/view/complementgraph.jl")
+        include("./graph/view/reversegraph.jl")
 
         include("./graph/generator.jl")
         include("./graph/merge.jl")
