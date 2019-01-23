@@ -16,7 +16,7 @@ Generate path graph with the given size.
 """
 function pathgraph(size::Int)
     if size < 2
-        throw(ValueError("Invalid value: $(size)"))
+        throw(DomainError(size, "path graph size should be 2 or more"))
     end
     return MapUDGraph(1:size, (i, i + 1) for i in 1:(size-1))
 end
@@ -29,7 +29,7 @@ Generate cycle graph with the given size.
 """
 function cyclegraph(size::Int)
     if size < 3
-        throw(ValueError("Invalid value: $(size)"))
+        throw(DomainError(size, "cycle graph size should be 3 or more"))
     end
     edges = [(i, i + 1) for i in 1:(size-1)]
     push!(edges, (size, 1))
@@ -44,7 +44,7 @@ Generate complete graph with the given size.
 """
 function completegraph(size::Int)
     if size < 0
-        throw(ValueError("Invalid value: $(size)"))
+        throw(DomainError(size, "graph size should not be negative"))
     elseif size == 0
         return MapUDGraph{Node,Edge}()
     elseif size == 1

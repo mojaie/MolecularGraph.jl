@@ -7,7 +7,6 @@
 module UtilTest
     using Test
     using MolecularGraph.Util
-    using MolecularGraph.Error
     include("./util/iterator.jl")
 end
 
@@ -17,7 +16,6 @@ module GeometryTest
     using LinearAlgebra
     using StaticArrays
     using MolecularGraph.Geometry
-    using MolecularGraph.Error
     include("geometry.jl")
 end
 """
@@ -25,7 +23,6 @@ end
 module GraphTest
     using Test
     using MolecularGraph.Graph
-    using MolecularGraph.Error
 
     include("./graph/ugraph.jl")
     include("./graph/dgraph.jl")
@@ -54,7 +51,6 @@ module MolecularGraphTest
     using Test
     using StaticArrays
     using MolecularGraph
-    using MolecularGraph.Error
 
     include("mcs.jl")
 

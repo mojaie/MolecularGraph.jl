@@ -51,7 +51,7 @@ function nohaltsupplier(block)
     mol = try
         parse(SDFile, block)
     catch e
-        if e isa MolParseError
+        if e isa ErrorException
             println("$(e.msg) (#$(i) in sdfilereader)")
             nullmol(SDFile)
         else

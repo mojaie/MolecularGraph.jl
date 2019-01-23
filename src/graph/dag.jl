@@ -38,7 +38,7 @@ function topologicalsort(graph::DGraph)
         end
     end
     if edgecount(graph) != length(used)
-        throw(OperationError("Cycle found"))
+        throw(ErrorException("cycle found"))
     end
     return result
 end

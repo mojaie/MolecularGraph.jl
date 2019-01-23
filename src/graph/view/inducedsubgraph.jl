@@ -79,19 +79,19 @@ end
 
 
 function getnode(view::SubgraphView, idx)
-    (idx in view.nodes) || throw(OperationError("Missing node: $(idx)"))
+    (idx in view.nodes) || throw(KeyError(idx))
     getnode(view.graph, idx)
 end
 
 
 function getedge(view::SubgraphView, idx)
-    (idx in view.edges) || throw(OperationError("Missing edge: $(idx)"))
+    (idx in view.edges) || throw(KeyError(idx))
     getedge(view.graph, idx)
 end
 
 function getedge(view::SubgraphView, u, v)
-    (u in view.nodes) || throw(OperationError("Missing node: $(u)"))
-    (v in view.nodes) || throw(OperationError("Missing node: $(v)"))
+    (u in view.nodes) || throw(KeyError(u))
+    (v in view.nodes) || throw(KeyError(v))
     getedge(view.graph, u, v)
 end
 
@@ -106,7 +106,7 @@ edgekeys(view::SubgraphView) = copy(view.edges)
 
 
 function neighbors(view::SubgraphView, idx)
-    (idx in view.nodes) || throw(OperationError("Missing node: $(idx)"))
+    (idx in view.nodes) || throw(KeyError(idx))
     return Dict(
         n for n in neighbors(view.graph, idx)
         if n.first in view.nodes && n.second in view.edges
@@ -115,7 +115,7 @@ end
 
 
 function successors(view::DSubgraph, idx)
-    (idx in view.nodes) || throw(OperationError("Missing node: $(idx)"))
+    (idx in view.nodes) || throw(KeyError(idx))
     return Dict(
         n for n in successors(view.graph, idx)
         if n.first in view.nodes && n.second in view.edges
@@ -124,7 +124,7 @@ end
 
 
 function predecessors(view::DSubgraph, idx)
-    (idx in view.nodes) || throw(OperationError("Missing node: $(idx)"))
+    (idx in view.nodes) || throw(KeyError(idx))
     return Dict(
         n for n in predecessors(view.graph, idx)
         if n.first in view.nodes && n.second in view.edges

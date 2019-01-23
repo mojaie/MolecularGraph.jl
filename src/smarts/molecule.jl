@@ -52,11 +52,11 @@ function fragment!(state::SmartsParser)
     group!(state, nothing)
     # Validity check
     if state.node + 1 == state.root
-        throw(MolParseError(
+        throw(ErrorException(
             "unexpected token: $(read(state)) at $(state.pos)"))
     elseif length(state.ringlabel) > 0
         label = collect(keys(state.ringlabel))[1]
-        throw(MolParseError("unclosed ring: $(label)"))
+        throw(ErrorException("unclosed ring: $(label)"))
     end
 end
 
@@ -67,7 +67,7 @@ function group!(state::SmartsParser, bond)
     a = atom!(state)
     if a === nothing
         # ex. CC((C)C)C should be CC(CC)C
-        throw(MolParseError(
+        throw(ErrorException(
             "unexpected token: branch starts with '(' at $(state.pos)"))
     end
     state.node += 1
@@ -90,7 +90,7 @@ function group!(state::SmartsParser, bond)
             forward!(state)
             if state.done || read(state) in ")."
                 # ex. CC(C)(C) should be CC(C)C
-                throw(MolParseError(
+                throw(ErrorException(
                     "unexpected token: branch ends with ')' at $(state.pos)"))
             end
         else
@@ -112,7 +112,7 @@ function chain!(state::SmartsParser)
         # Bond?
         if read(state) == '.'
             if state isa ConnectedSmarts
-                throw(MolParseError(
+                throw(ErrorException(
                     "unexpected token: disconnected at $(state.pos)"))
             elseif lookahead(state, 1) != '('
                 # Disconnected
@@ -147,7 +147,7 @@ function chain!(state::SmartsParser)
             c = read(state)
             @assert c in "().\0" "unexpected token: $(c) at $(state.pos)"
             if b == :disconn
-                throw(MolParseError(
+                throw(ErrorException(
                     "unexpected token: $(read(state)) at $(state.pos)"))
             end
             break

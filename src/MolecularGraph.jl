@@ -6,30 +6,22 @@
 module MolecularGraph
 
     export
-        Error,
         Util,
         Geometry,
         Graph
 
-    module Error
-        include("exception.jl")
-    end
-
     module Util
-        using ..Error
         include("./util/iterator.jl")
     end
 
     module Geometry
         using LinearAlgebra
         using StaticArrays
-        using ..Error
         include("geometry.jl")
     end
 
     module Graph
         using StaticArrays
-        using ..Error
         using ..Util
         include("./graph/interface.jl")
         include("./graph/ugraph.jl")
@@ -65,7 +57,6 @@ module MolecularGraph
     using StaticArrays
     using Statistics
     using YAML
-    using ..Error
     using ..Util
     using ..Geometry
     using ..Graph

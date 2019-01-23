@@ -30,7 +30,7 @@ struct SDFileAtom <: Atom
 
     function SDFileAtom(sym, chg, multi, mass, coords)
         if !(string(sym) in keys(PERIODIC_TABLE))
-            throw(MolParseError("unsupported symbol: $(sym)"))
+            throw(ErrorException("unsupported symbol: $(sym)"))
         end
         new(sym, chg, multi, mass, coords)
     end
@@ -47,7 +47,7 @@ struct SmilesAtom <: Atom
 
     function SmilesAtom(sym, chg, multi, mass, aromatic, stereo)
         if !(string(sym) in keys(PERIODIC_TABLE))
-            throw(MolParseError("unsupported symbol: $(sym)"))
+            throw(ErrorException("unsupported symbol: $(sym)"))
         end
         new(sym, chg, multi, mass, aromatic, stereo)
     end
@@ -65,7 +65,7 @@ function atomsymbol(number::Int)
             return Symbol(sym)
         end
     end
-    throw(MolParseError("invalid atomic number $(number)"))
+    throw(ErrorException("invalid atomic number $(number)"))
 end
 
 

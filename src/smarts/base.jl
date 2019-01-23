@@ -79,7 +79,7 @@ function lookahead(state::SmartsParser, pos::Int)
         if isascii(c)
             return state.input[newpos]
         else
-            throw(MolParseError("invalid charactor $(c)"))
+            throw(ErrorException("invalid charactor $(c)"))
         end
     end
 end
@@ -93,9 +93,9 @@ function forward!(state::SmartsParser, num::Int)
     if state.pos > length(state.input)
         state.done = true
     elseif state.done
-        throw(MolParseError("Charactors in the buffer were used up"))
+        throw(ErrorException("charactors in the buffer were used up"))
     elseif state.pos < 1
-        throw(MolParseError("No more backtracking!"))
+        throw(ErrorException("no more backtracking!"))
     end
 end
 

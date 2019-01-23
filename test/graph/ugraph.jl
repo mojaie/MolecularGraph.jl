@@ -106,16 +106,16 @@
     updateedge!(graph, Edge(4, 6), 4)
     @test degree(graph, 4) == 3
     # Try to connect invalid node
-    @test_throws OperationError updateedge!(graph, Edge(4, 8), 5)
+    @test_throws KeyError updateedge!(graph, Edge(4, 8), 5)
 
     # Delete edge
     unlinkedge!(graph, 1, 2)
     @test degree(graph, 1) == 0
-    @test_throws OperationError unlinkedge!(graph, 7, 8)
+    @test_throws KeyError unlinkedge!(graph, 7, 8)
     # Delete node and adjacent edges
     unlinknode!(graph, 4)
     @test edgecount(graph) == 0
-    @test_throws OperationError unlinknode!(graph, 8)
+    @test_throws KeyError unlinknode!(graph, 8)
 end
 
 

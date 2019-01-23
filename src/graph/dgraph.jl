@@ -78,8 +78,8 @@ end
 function updateedge!(graph::MapDGraph, edge, idx)
     """Add or update an edge"""
     ns = nodekeys(graph)
-    (edge.source in ns) || throw(OperationError("Missing node: $(edge.source)"))
-    (edge.target in ns) || throw(OperationError("Missing node: $(edge.target)"))
+    (edge.source in ns) || throw(KeyError(edge.source))
+    (edge.target in ns) || throw(KeyError(edge.target))
     graph.edges[idx] = edge
     graph.successors[edge.source][edge.target] = idx
     graph.predecessors[edge.target][edge.source] = idx
@@ -92,7 +92,7 @@ updateedge!(
 
 function unlinknode!(graph::MapDGraph, idx)
     """Remove a node and its connecting edges"""
-    (idx in keys(graph.nodes)) || throw(OperationError("Missing node: $(idx)"))
+    (idx in keys(graph.nodes)) || throw(KeyError(idx))
     for (s, succ) in successors(graph, idx)
         delete!(graph.edges, succ)
         delete!(graph.predecessors[s], idx)
@@ -111,8 +111,8 @@ end
 function unlinkedge!(graph::MapDGraph, source, target)
     """Remove an edge"""
     ns = nodekeys(graph)
-    (source in ns) || throw(OperationError("Missing node: $(source)"))
-    (target in ns) || throw(OperationError("Missing node: $(target)"))
+    (source in ns) || throw(KeyError(source))
+    (target in ns) || throw(KeyError(target))
     delete!(graph.edges, graph.successors[source][target])
     delete!(graph.successors[source], target)
     delete!(graph.predecessors[target], source)
@@ -121,7 +121,7 @@ end
 
 function unlinkedge!(graph::MapDGraph, idx)
     """Remove an edge"""
-    (idx in keys(graph.edges)) || throw(OperationError("Missing edge: $(idx)"))
+    (idx in keys(graph.edges)) || throw(KeyError(idx))
     a = getedge(graph, idx)
     delete!(graph.edges, idx)
     delete!(graph.successors[a.source], a.target)

@@ -12,14 +12,14 @@
 
     node = getnode(subg, 4)
     @test isa(node, AbstractNode)
-    @test_throws OperationError getnode(subg, 2)
+    @test_throws KeyError getnode(subg, 2)
 
     edge = getedge(subg, 3, 4)
     @test isa(edge, UndirectedEdge)
     @test edge.u == 3
     @test edge.v == 4
     @test getedge(graph, 3) === edge
-    @test_throws OperationError getedge(subg, 1)
+    @test_throws KeyError getedge(subg, 1)
 
     nodes = nodesiter(subg)
     (n, state) = iterate(nodes)
@@ -67,7 +67,7 @@
     subgsubg = nodesubgraph(subg, [4, 5])
     @test nodecount(subgsubg) == 2
     @test edgecount(subgsubg) == 1
-    @test_throws OperationError getedge(subgsubg, 3)
+    @test_throws KeyError getedge(subgsubg, 3)
     @test degree(subgsubg, 4) == 1
     newsubgsubg = similarmap(subgsubg)
     @test isa(newsubgsubg, MapUDGraph)
@@ -80,14 +80,14 @@ end
 
     node = getnode(subg, 4)
     @test isa(node, AbstractNode)
-    @test_throws OperationError getnode(subg, 2)
+    @test_throws KeyError getnode(subg, 2)
 
     edge = getedge(subg, 3, 4)
     @test isa(edge, DirectedEdge)
     @test edge.source == 3
     @test edge.target == 4
     @test getedge(graph, 3) === edge
-    @test_throws OperationError getedge(subg, 1)
+    @test_throws KeyError getedge(subg, 1)
 
     nodes = nodesiter(subg)
     (n, state) = iterate(nodes)
@@ -135,7 +135,7 @@ end
     subgsubg = nodesubgraph(subg, [4, 5])
     @test nodecount(subgsubg) == 2
     @test edgecount(subgsubg) == 1
-    @test_throws OperationError getedge(subgsubg, 3)
+    @test_throws KeyError getedge(subgsubg, 3)
     @test indegree(subgsubg, 4) == 0
     newsubgsubg = similarmap(subgsubg)
     @test isa(newsubgsubg, MapDGraph)

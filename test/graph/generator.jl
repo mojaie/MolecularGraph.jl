@@ -6,7 +6,7 @@
 @testset "graph.generator" begin
 
 @testset "pathgraph" begin
-    @test_throws ValueError pathgraph(1)
+    @test_throws DomainError pathgraph(1)
     P2 = pathgraph(2)
     @test nodecount(P2) == edgecount(P2) + 1
     P100 = pathgraph(100)
@@ -15,7 +15,7 @@
 end
 
 @testset "cyclegraph" begin
-    @test_throws ValueError cyclegraph(2)
+    @test_throws DomainError cyclegraph(2)
     C3 = cyclegraph(3)
     @test nodecount(C3) == edgecount(C3)
     C100 = cyclegraph(100)
@@ -25,7 +25,7 @@ end
 end
 
 @testset "completegraph" begin
-    @test_throws ValueError completegraph(-1)
+    @test_throws DomainError completegraph(-1)
     cg0 = completegraph(0)
     @test nodecount(cg0) == 0
     @test edgecount(cg0) == 0

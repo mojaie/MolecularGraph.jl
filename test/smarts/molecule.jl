@@ -37,28 +37,28 @@ end
     @test 3 in keys(neighbors(ring1.mol, 6))
 
     invalid1 = ConnectedSmarts("CC(")
-    @test_throws MolParseError fragment!(invalid1)
+    @test_throws ErrorException fragment!(invalid1)
 
     invalid2 = ConnectedSmarts("C()C")
-    @test_throws MolParseError fragment!(invalid2)
+    @test_throws ErrorException fragment!(invalid2)
 
     invalid3 = ConnectedSmarts("C1CC")
-    @test_throws MolParseError fragment!(invalid3)
+    @test_throws ErrorException fragment!(invalid3)
 
     invalid4 = ConnectedSmarts("1CCC1")
-    @test_throws MolParseError fragment!(invalid4)
+    @test_throws ErrorException fragment!(invalid4)
 
     invalid5 = ConnectedSmarts("CC(C)")
-    @test_throws MolParseError fragment!(invalid5)
+    @test_throws ErrorException fragment!(invalid5)
 
     invalid6 = ConnectedSmarts("(CC)CC")
-    @test_throws MolParseError fragment!(invalid6)
+    @test_throws ErrorException fragment!(invalid6)
 
     invalid7 = ConnectedSmarts("C(C(C))CC")
-    @test_throws MolParseError fragment!(invalid7)
+    @test_throws ErrorException fragment!(invalid7)
 
     invalid8 = ConnectedSmarts("C(1C)C1C")
-    @test_throws MolParseError fragment!(invalid8)
+    @test_throws ErrorException fragment!(invalid8)
 end
 
 
@@ -90,13 +90,13 @@ end
     @test conn5.mol.connectivity == [[1, 2, 3], [4, 5], [7]]
 
     invalid1 = DisconnectedSmarts("C..C")
-    @test_throws MolParseError fragment!(invalid1)
+    @test_throws ErrorException fragment!(invalid1)
 
     invalid2 = DisconnectedSmarts("CCC.")
-    @test_throws MolParseError fragment!(invalid2)
+    @test_throws ErrorException fragment!(invalid2)
 
     invalid3 = DisconnectedSmarts("CC(C).C")
-    @test_throws MolParseError fragment!(invalid3)
+    @test_throws ErrorException fragment!(invalid3)
 end
 
 end # smarts.molecule

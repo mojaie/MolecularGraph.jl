@@ -15,26 +15,29 @@ struct Combinations{T}
     indice::Vector{Int}
 end
 
-function Combinations(iter, num::Int)
+
+"""
+    combinations(iter, k::Int=2)
+
+An iterator that yields `k`-combinations (card. k subsets of the collection)
+"""
+function combinations(iter, k::Int=2)
     col = collect(iter)
     T = eltype(col)
-    if num < 0 || num > length(col)
-        throw(ValueError("invalid value $(num)"))
-    elseif num == 0
+    if k < 0
+        throw(DomainError(k, "k should not be negative"))
+    elseif k > length(col)
+        throw(ErrorException(k, "k is larger than the collection size"))
+    elseif k == 0
         return (Int[],)
     else
-        idc = collect(1:num)
+        idc = collect(1:k)
         idc[end] -= 1
         return Combinations{T}(col, idc)
     end
 end
 
-"""
-    combinations(iter, k::Int)
 
-An iterator that yields `k`-combinations (subsets of the `iter` elements)
-"""
-combinations(iter, k::Int=2) = Combinations(iter, k)
 
 function iterate(cmb::Combinations, state=nothing)
     lastidx = lastindex(cmb.collection)
