@@ -57,8 +57,8 @@ getedge(graph::DirectedGraph, s, t) = getedge(graph, graph.successors[s][t])
 nodesiter(graph::MapDGraph) = graph.nodes
 edgesiter(graph::MapDGraph) = graph.edges
 
-nodekeys(graph::MapDGraph) = Set(keys(graph.nodes))
-edgekeys(graph::MapDGraph) = Set(keys(graph.edges))
+nodekeys(g::MapDGraph) = Set(keys(g.nodes))
+edgekeys(g::MapDGraph) = Set(keys(g.edges))
 
 successors(g::DirectedGraph, i) = g.successors[i]
 predecessors(g::DirectedGraph, i) = g.predecessors[i]

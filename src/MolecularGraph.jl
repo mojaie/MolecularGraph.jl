@@ -72,6 +72,7 @@ module MolecularGraph
     include("./annotation/elemental.jl")
     include("./annotation/rotatable.jl")
     include("./annotation/aromatic.jl")
+    include("./annotation/wclogp.jl")
     include("./annotation/funcgroup.jl")
 
     include("properties.jl")

@@ -96,7 +96,7 @@ end
 function termbondnotation!(mol::VectorMol)
     termatoms = findall((mol.v[:Degree] .== 1) .* (mol.v[:Valence] .== 2))
     for a in termatoms
-        termbond = neighboredgekeys(mol.graph, a)[1]
+        termbond = pop!(neighboredgekeys(mol, a))
         mol.v[:BondNotation][termbond] = 2
     end
     return

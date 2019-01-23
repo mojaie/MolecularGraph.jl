@@ -2,6 +2,9 @@
 @testset "annotation.aromatic" begin
 
 @testset "aromatic" begin
+    phenol = smilestomol("C=1C=CC=CC=1O")  # not carbonyl O
+    @test count(phenol.v[:Aromatic]) == 6
+
     furan = smilestomol("o1cccc1")
     @test count(furan.v[:Aromatic]) == 5
 

@@ -7,6 +7,8 @@
   query: "C=C"
 - key: Alkyne
   query: "C#C"
+- key: Allene
+  query: "C=C=C"
 
 - key: Diene
   have: [Alkene]
@@ -45,6 +47,9 @@
 - key: Acetyl
   have: [Carbonyl]
   query: "C(=O)[CD1]"
+- key: Ketene
+  have: [Alkene, Carbonyl]
+  query: "C=C=O"
 
 - key: Ether
   query: "[#6]O[#6]"

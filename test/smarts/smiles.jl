@@ -49,6 +49,9 @@ end
     cychexe3 = parse(SMILES, "C1CCCCC=1")
     @test getbond(cychexe3, 1, 6).order == 2
 
+    cychexe4 = parse(SMILES, "C=1CCCCC=1")
+    @test getbond(cychexe4, 1, 6).order == 2
+
     bicyclohexyl = parse(SMILES, "C1CCCCC1C1CCCCC1")
     @test getbond(bicyclohexyl, 1, 6).order == 1
     @test getbond(bicyclohexyl, 7, 12).order == 1

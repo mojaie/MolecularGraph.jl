@@ -12,6 +12,5 @@ function default_annotation!(mol::VectorMol)
     elemental!(mol)
     rotatable!(mol)
     aromatic!(mol)
-    # wclogp!(mol)
     return
 end

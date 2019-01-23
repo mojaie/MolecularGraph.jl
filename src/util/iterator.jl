@@ -27,7 +27,7 @@ function combinations(iter, k::Int=2)
     if k < 0
         throw(DomainError(k, "k should not be negative"))
     elseif k > length(col)
-        throw(ErrorException(k, "k is larger than the collection size"))
+        throw(ErrorException("$(k) is larger than the collection size"))
     elseif k == 0
         return (Int[],)
     else

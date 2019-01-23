@@ -40,11 +40,13 @@ end
 
 
 function removeall_H!(mol::MutableMol)
-    required_annotation(mol, :NoImplicitH)
     for (i, a) in mol.graph.nodes
         if a.symbol == :H
             unlinkatom!(mol, i)
         end
+    end
+    if !haskey(mol.annotation, :NoImplicitH)
+        mol.annotation[:NoImplicitH] = NoImplicitH()
     end
     mol.annotation[:NoHydrogen] = NoHydrogen()
     return
@@ -52,7 +54,7 @@ end
 
 function removeall_H(mol; use_deepcopy=true)
     mol1 = use_deepcopy ? deepcopy(mol) : copy(mol)
-    remove_H!(mol1)
+    removeall_H!(mol1)
     mol1
 end
 

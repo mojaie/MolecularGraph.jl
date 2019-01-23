@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-"""
+
 module UtilTest
     using Test
     using MolecularGraph.Util
@@ -18,7 +18,6 @@ module GeometryTest
     using MolecularGraph.Geometry
     include("geometry.jl")
 end
-"""
 
 module GraphTest
     using Test
@@ -47,6 +46,7 @@ module GraphTest
     include("./graph/isomorphism/cliquebased.jl")
 end
 
+
 module MolecularGraphTest
     using Test
     using StaticArrays
@@ -71,6 +71,7 @@ module MolecularGraphTest
     include("./annotation/elemental.jl")
     include("./annotation/rotatable.jl")
     include("./annotation/aromatic.jl")
+    include("./annotation/wclogp.jl")
     include("./annotation/funcgroup.jl")
 
     include("remover.jl")

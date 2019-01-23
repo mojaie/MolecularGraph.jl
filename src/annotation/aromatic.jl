@@ -46,8 +46,10 @@ end
 function satisfyHuckel(mol::VectorMol, ring)
     cnt = 0
     # Carbonyl
+    # TODO: polarized carbonyl
     carbonylC = Int[]
-    carbonylO = findall((mol.v[:Symbol] .== :O) .* (mol.v[:Degree] .== 1))
+    carbonylO = findall(
+        (mol.v[:Symbol] .== :O) .* (mol.v[:Degree] .== 1) .* (mol.v[:Pi] .== 1))
     for o in carbonylO
         c = collect(neighborkeys(mol.graph, o))[1]
         if mol.v[:Symbol][c] == :C
@@ -69,5 +71,5 @@ function satisfyHuckel(mol::VectorMol, ring)
             return false
         end
     end
-    cnt % 4 == 2
+    return cnt % 4 == 2
 end
