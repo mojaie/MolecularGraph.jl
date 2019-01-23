@@ -9,7 +9,9 @@ export
     nodekeys, edgekeys,
     neighbors, successors, predecessors,
     nodecount, edgecount,
-    nodetype, edgetype, similarmap
+    nodetype, edgetype, similarmap,
+    updatenode!, updateedge!,
+    unlinknode!, unlinkedge!
 
 
 getnode(view::GraphView, idx) = getnode(view.graph, idx)
@@ -34,3 +36,11 @@ edgecount(view::GraphView) = edgecount(view.graph)
 nodetype(view::GraphView) = nodetype(view.graph)
 edgetype(view::GraphView) = edgetype(view.graph)
 similarmap(view::GraphView) = similarmap(view.graph)
+
+# TODO: MutableGraphView
+updatenode!(view::GraphView, node, i) = updatenode!(view.graph, node, i)
+updateedge!(view::GraphView, edge, i) = updateedge!(view.graph, edge, i)
+updateedge!(view::GraphView, edge, u, v) = updateedge!(view.graph, edge, u, v)
+unlinknode!(view::GraphView, i) = unlinknode!(view.graph, i)
+unlinkedge!(view::GraphView, e) = unlinkedge!(view.graph, e)
+unlinkedge!(view::GraphView, u, v) = unlinkedge!(view.graph, u, v)

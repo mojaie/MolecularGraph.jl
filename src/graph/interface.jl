@@ -9,8 +9,7 @@ export
     UndirectedGraphView, DirectedGraphView,
     UDGraph, DGraph, GraphView,
     AbstractNode,
-    UndirectedEdge,
-    DirectedEdge,
+    UndirectedEdge, DirectedEdge,
     Node
 
 

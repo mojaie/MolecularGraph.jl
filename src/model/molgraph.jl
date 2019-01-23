@@ -8,14 +8,12 @@ export
     ConnectedQueryMol, DisconnectedQueryMol,
     SDFile, SMILES, ConnectedSMARTS, SMARTS,
     vectormol, nullmol,
-    getatom, getbond,
+    getnode, getatom, getedge, getbond,
     neighbors, neighborcount, degree,
-    atomcount, bondcount,
-    updateatom!, updatebond!,
-    unlinkatom!, unlinkbond!,
+    nodecount, atomcount, edgecount, bondcount,
+    updatenode!, updateatom!, updatebond!, updatebond!,
+    unlinknode!, unlinkatom!, unlinkedge!, unlinkbond!,
     required_annotation
-
-import ..Graph: neighbors, neighborcount
 
 
 struct GeneralMapMol{A<:Atom,B<:Bond} <: MapMolGraph
@@ -85,6 +83,7 @@ end
 
 
 # Aliases
+
 # TODO: use traits
 SDFile = GeneralMapMol{SDFileAtom,SDFileBond}
 SMILES = GeneralMapMol{SmilesAtom,SmilesBond}
@@ -104,24 +103,16 @@ function vectormol(mol::GeneralMapMol{A,B}) where {A<:Atom,B<:Bond}
 end
 
 
-getatom(mol::MolGraph, idx) = getnode(mol.graph, idx)
+# Aliases
 
-getbond(mol::MolGraph, u, v) = getedge(mol.graph, u, v)
-getbond(mol::MolGraph, idx) = getedge(mol.graph, idx)
-
-neighbors(mol::MolGraph, idx) = neighbors(mol.graph, idx)
-neighborcount(mol::MolGraph, idx) = length(neighbors(mol.graph, idx))
-degree = neighborcount
-
-atomcount(mol::MolGraph) = nodecount(mol.graph)
-bondcount(mol::MolGraph) = edgecount(mol.graph)
-
-updateatom!(mol::MutableMol, atom, idx) = updatenode!(mol.graph, atom, idx)
-updatebond!(mol::MutableMol, bond, idx) = updateedge!(mol.graph, bond, idx)
-updatebond!(mol::MutableMol, bond, u, v) = updateedge!(mol.graph, bond, u, v)
-unlinkatom!(mol::MutableMol, idx) = unlinknode!(mol.graph, idx)
-unlinkbond!(mol::MutableMol, idx) = unlinkedge!(mol.graph, idx)
-unlinkbond!(mol::MutableMol, u, v) = unlinkedge!(mol.graph, u, v)
+getatom = getnode
+getbond = getedge
+atomcount = nodecount
+bondcount = edgecount
+updateatom! = updatenode!
+updatebond! = updateedge!
+unlinkatom! = unlinknode!
+unlinkbond! = unlinkedge!
 
 
 function required_annotation(mol::MolGraph, annot)
