@@ -9,50 +9,67 @@ export elemental!
 struct Elemental <: Annotation end
 
 
-# TODO: consider SMILES aromatic
-
 function elemental!(mol::VectorMol)
+    atomvector = [atom for (i, atom) in nodesiter(mol)] # TODO:
+    bondvector = [bond for (i, bond) in edgesiter(mol)] # TODO:
     # Symbol
-    mol.v[:Symbol] = [atom.symbol for (i, atom) in nodesiter(mol)]
+    mol.v[:Symbol] = getproperty.(atomvector, :symbol)
     # Charge
-    mol.v[:Charge] = [atom.charge for (i, atom) in nodesiter(mol)]
+    mol.v[:Charge] = getproperty.(atomvector, :charge)
     # Radical
-    mol.v[:Multiplicity] = [atom.multiplicity for (i, atom) in nodesiter(mol)]
+    mol.v[:Multiplicity] = getproperty.(atomvector, :multiplicity)
     # Bond order
-    mol.v[:BondOrder] = [bond.order for (i, bond) in edgesiter(mol)]
+    mol.v[:BondOrder] = getproperty.(bondvector, :order)
 
-    nbrords = Vector{Int}[]
+    heavyatoms = zeros(Int, nodecount(mol)) # Number of adjacent heavy atoms
+    explhcount = zeros(Int, nodecount(mol)) # Number of explicit hydrogens
+    heavyatombonds = zeros(Int, nodecount(mol)) # Total order of adjacent bonds
     for (n, node) in nodesiter(mol)
-        orders = Int[]
         for (nbr, e) in neighbors(mol, n)
-            if mol.v[:Symbol][nbr] != :H
-                push!(orders, mol.v[:BondOrder][e])
+            if mol.v[:Symbol][nbr] == :H
+                explhcount[n] += 1
+            else
+                heavyatoms[n] += 1
+                heavyatombonds[n] += mol.v[:BondOrder][e]
             end
         end
-        push!(nbrords, orders)
     end
-    # Degree (connection without hydrogen)
-    mol.v[:Degree] = length.(nbrords)
+    # Degree (graph degree including explicit hydrogens)
+    mol.v[:Degree] = heavyatoms + explhcount
     # Valence
-    sm = arr -> reduce(+, arr; init=0)  # TODO: sum of empty arr is invalid
-    mol.v[:Valence] = sm.(nbrords)
-    # Number of pi electrons
-    mol.v[:Pi] = mol.v[:Valence] - mol.v[:Degree]
+    mol.v[:Valence] = valence.(mol.v[:Symbol], mol.v[:Charge])
     # Number of lone pairs
     mol.v[:LonePair] = lonepair.(mol.v[:Symbol], mol.v[:Charge])
     # Hydrogen count
-    mol.v[:H_Count] = h_count.(mol.v[:Valence], mol.v[:LonePair])
-    # Connectivity (connection including hydrogen)
-    mol.v[:Connectivity] = mol.v[:Degree] + mol.v[:H_Count]
+    hcnt = (v, b) -> v === nothing ? 0 : max(0, v - b)
+    mol.v[:H_Count] = hcnt.(mol.v[:Valence], heavyatombonds)
+    # Connectivity (connection including hydrogens)
+    mol.v[:Connectivity] = heavyatoms + mol.v[:H_Count]
+    # Number of pi electrons
+    mol.v[:Pi] = heavyatombonds - heavyatoms
     # Hydrogen bond donor count
-    mol.v[:H_Donor] = h_donor.(mol.v[:Symbol], mol.v[:H_Count])
+    dc = (sym, h) -> sym in (:N, :O) && h > 0
+    mol.v[:H_Donor] = dc.(mol.v[:Symbol], mol.v[:H_Count])
     # Hydrogen bond acceptor count
-    mol.v[:H_Acceptor] = h_acceptor.(mol.v[:Symbol], mol.v[:LonePair])
-    # Molecular weight including neighbor hydrogens
-    mol.v[:MolWeight] = atomhweight.(
-        [atom for (i, atom) in nodesiter(mol)], mol.v[:H_Count])
+    ac = (sym, lp) -> lp === nothing ? false : sym in (:N, :O, :F) && lp > 0
+    mol.v[:H_Acceptor] = ac.(mol.v[:Symbol], mol.v[:LonePair])
+    # Standard molecular weight
+    weight = (atom, h) -> atomweight(atom) + H_WEIGHT * h
+    implHcount = mol.v[:H_Count] - explhcount
+    mol.v[:MolWeight] = weight.(atomvector, implHcount)
     mol.annotation[:Elemental] = Elemental()
     return
+end
+
+
+function valence(symbol, charge)
+    defs = Dict(
+        :H => 1, :B => 3, :C => 4, :N => 3, :O => 2, :F => 1,
+        :Si => 4, :P => 3, :S => 2, :Cl => 1,
+        :As => 3, :Se => 2, :Br => 1, :I => 1
+    )
+    num = get(defs, symbol, nothing)
+    return num === nothing ? nothing : num + charge
 end
 
 
@@ -64,28 +81,4 @@ function lonepair(symbol, charge)
     )
     num = get(defs, symbol, nothing)
     return num === nothing ? nothing : num - charge
-end
-
-
-function h_count(valence, lonepair)
-    return lonepair === nothing ? 0 : max(0, 4 - abs(lonepair) - valence)
-end
-
-
-function h_donor(symbol, h_count)
-    return symbol in (:N, :O) && h_count > 0
-end
-
-
-function h_acceptor(symbol, lonepair)
-    return symbol in (:N, :O, :F) && lonepair > 0
-end
-
-
-function atomhweight(atom, h_count)
-    if atom.symbol == :H
-        return 0  # avoid double count
-    else
-        return atomweight(atom) + H_WEIGHT * h_count
-    end
 end

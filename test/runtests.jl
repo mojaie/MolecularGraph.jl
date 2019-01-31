@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
+"""
 module UtilTest
     using Test
     using MolecularGraph.Util
@@ -45,14 +45,12 @@ module GraphTest
     include("./graph/isomorphism/vf2.jl")
     include("./graph/isomorphism/cliquebased.jl")
 end
-
+"""
 
 module MolecularGraphTest
     using Test
     using StaticArrays
     using MolecularGraph
-
-    include("mcs.jl")
 
     include("./model/atom.jl")
     include("./model/molgraph.jl")
@@ -66,6 +64,7 @@ module MolecularGraphTest
     include("./smarts/smarts.jl")
 
     include("substructure.jl")
+    include("mcs.jl")
 
     include("./annotation/topology.jl")
     include("./annotation/elemental.jl")

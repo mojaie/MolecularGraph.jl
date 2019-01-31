@@ -132,7 +132,7 @@ function wclogptype!(mol)
             nbrs = collect(neighborkeys(mol, i))
             if mol.v[:Aromatic][i]
                 mol.v[:WCLogP][i] = :N12 # Charged aromatic nitrogen
-            elseif mol.v[:Valence][i] == 4
+            elseif mol.v[:H_Count][i] == 0
                 if mol.v[:Degree][i] == 2 && all(mol.v[:Symbol][nbrs] .== :N)
                     mol.v[:WCLogP][i] = :N14 # Azide is exceptionally N14
                 else
