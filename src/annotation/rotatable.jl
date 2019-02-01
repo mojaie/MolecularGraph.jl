@@ -6,9 +6,12 @@
 export rotatable!
 
 
-function rotatable!(mol)
-    required_annotation(mol, :Topology)
-    required_annotation(mol, :Elemental)
+function rotatable!(mol; recalculate=false)
+    if haskey(mol.v, :Rotatable) && !recalculate
+        return
+    end
+    topology!(mol, recalculate=recalculate)
+    elemental!(mol, recalculate=recalculate)
     # TODO: use RingBond
     pred = (i, b) -> (
         mol.v[:BondOrder][i] == 1

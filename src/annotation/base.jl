@@ -7,7 +7,11 @@ export
     default_annotation!
 
 
-function default_annotation!(mol::VectorMol)
+function default_annotation!(mol::VectorMol; recalculate=false)
+    if recalculate
+        empty!(mol.v)
+        empty!(mol.annotation)
+    end
     topology!(mol)
     elemental!(mol)
     rotatable!(mol)

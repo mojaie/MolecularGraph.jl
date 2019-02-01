@@ -12,8 +12,7 @@ export
     neighbors, neighborcount, degree,
     nodecount, atomcount, edgecount, bondcount,
     updatenode!, updateatom!, updatebond!, updatebond!,
-    unlinknode!, unlinkatom!, unlinkedge!, unlinkbond!,
-    required_annotation
+    unlinknode!, unlinkatom!, unlinkedge!, unlinkbond!
 
 
 struct GeneralMapMol{A<:Atom,B<:Bond} <: MapMolGraph
@@ -113,10 +112,3 @@ updateatom! = updatenode!
 updatebond! = updateedge!
 unlinkatom! = unlinknode!
 unlinkbond! = unlinkedge!
-
-
-function required_annotation(mol::MolGraph, annot)
-    if !(annot in keys(mol.annotation))
-        throw(ErrorException("$(annot) is not available"))
-    end
-end

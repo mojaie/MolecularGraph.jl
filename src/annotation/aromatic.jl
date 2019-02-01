@@ -3,17 +3,15 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    Aromatic,
-    aromatic!
+export aromatic!
 
 
-struct Aromatic <: Annotation end
-
-
-function aromatic!(mol::VectorMol)
-    required_annotation(mol, :Topology)
-    required_annotation(mol, :Elemental)
+function aromatic!(mol::VectorMol; recalculate=false)
+    if haskey(mol.v, :Aromatic) && !recalculate
+        return
+    end
+    topology!(mol, recalculate=recalculate)
+    elemental!(mol, recalculate=recalculate)
     # Precalculate carbonyl
     mol.v[:Aromatic] = falses(atomcount(mol))
     mol.v[:AromaticBond] = falses(bondcount(mol))
@@ -38,7 +36,6 @@ function aromatic!(mol::VectorMol)
             end
         end
     end
-    mol.annotation[:Aromatic] = Aromatic()
     return
 end
 

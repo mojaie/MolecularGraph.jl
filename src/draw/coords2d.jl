@@ -5,13 +5,11 @@
 
 export
     coords2d,
-    coords2d!,
     cartesian
 
 
 function coords2d(mol::VectorMol, root)
-    required_annotation(mol, :Topology)
-    required_annotation(mol, :Elemental)
+    # Requires :Topology
     zmatrix = [
         -2 nothing nothing nothing nothing nothing nothing;
         -1 -2 1.0 nothing nothing nothing nothing;

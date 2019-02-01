@@ -51,9 +51,13 @@ const DRAW_SETTING = Dict(
 )
 
 
-function draw2d_annot!(mol::VectorMol, setting)
-    required_annotation(mol, :Topology)
-    required_annotation(mol, :Elemental)
+function draw2d_annot!(mol::VectorMol,
+                       setting=copy(DRAW_SETTING); recalculate=false)
+    if haskey(mol.v, :Coords2D) && !recalculate
+       return
+    end
+    topology!(mol, recalculate=recalculate)
+    elemental!(mol, recalculate=recalculate)
     if nodetype(mol) === SDFileAtom
         mol.v[:Coords2D] = zeros(Float64, atomcount(mol), 2)
         for (i, a) in enumerate(mol.graph.nodes)
@@ -68,8 +72,6 @@ function draw2d_annot!(mol::VectorMol, setting)
     bondnotation!(mol)
     return
 end
-
-draw2d_annot!(mol::VectorMol) = draw2d_annot!(mol, copy(DRAW_SETTING))
 
 
 function atomcolor(setting)

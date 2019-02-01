@@ -6,8 +6,7 @@
 export
     MolGraphView,
     atomsubstr,
-    bondsubstr,
-    required_annotation
+    bondsubstr
 
 
 struct MolGraphView{G<:SubgraphView,M<:MolGraph} <: MolGraph
@@ -24,7 +23,3 @@ end
 function bondsubstr(mol::MolGraph, bonds)
     return MolGraphView(edgesubgraph(mol.graph, bonds), mol)
 end
-
-
-required_annotation(
-    view::MolGraphView, annot) = required_annotation(view.molecule, annot)

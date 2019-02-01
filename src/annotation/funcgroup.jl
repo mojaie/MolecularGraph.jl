@@ -58,10 +58,11 @@ struct FunctionalGroup <: Annotation
 end
 
 
-function functionalgroup!(mol::VectorMol)
-    required_annotation(mol, :Topology)
-    required_annotation(mol, :Elemental)
-    required_annotation(mol, :Aromatic)
+function functionalgroup!(mol::VectorMol; recalculate=false)
+    if haskey(mol.annotation, :FunctionalGroup) && !recalculate
+        return
+    end
+    aromatic!(mol, recalculate=recalculate)
     mol.annotation[:FunctionalGroup] = fg = FunctionalGroup()
     fggraphidx = Dict{Symbol,Int}()
     ncnt = 0

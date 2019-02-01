@@ -6,10 +6,10 @@
 export elemental!
 
 
-struct Elemental <: Annotation end
-
-
-function elemental!(mol::VectorMol)
+function elemental!(mol::VectorMol; recalculate=false)
+    if haskey(mol.v, :Symbol) && !recalculate
+        return
+    end
     atomvector = [atom for (i, atom) in nodesiter(mol)] # TODO:
     bondvector = [bond for (i, bond) in edgesiter(mol)] # TODO:
     # Symbol
@@ -57,7 +57,6 @@ function elemental!(mol::VectorMol)
     weight = (atom, h) -> atomweight(atom) + H_WEIGHT * h
     implHcount = mol.v[:H_Count] - explhcount
     mol.v[:MolWeight] = weight.(atomvector, implHcount)
-    mol.annotation[:Elemental] = Elemental()
     return
 end
 

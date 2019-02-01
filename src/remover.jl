@@ -14,12 +14,6 @@ export
     removesalt!
 
 
-struct NoImplicitH <: Annotation end
-struct NoHydrogen <: Annotation end
-struct NoWater <: Annotation end
-struct NoPharmSalt <: Annotation end
-
-
 function remove_H!(mol::MutableMol)
     for (i, a) in mol.graph.nodes
         # TODO: check stereo (SMILES, SDFile)
@@ -28,7 +22,6 @@ function remove_H!(mol::MutableMol)
             unlinkatom!(mol, i)
         end
     end
-    mol.annotation[:NoImplicitH] = NoImplicitH()
     return
 end
 
@@ -45,10 +38,6 @@ function removeall_H!(mol::MutableMol)
             unlinkatom!(mol, i)
         end
     end
-    if !haskey(mol.annotation, :NoImplicitH)
-        mol.annotation[:NoImplicitH] = NoImplicitH()
-    end
-    mol.annotation[:NoHydrogen] = NoHydrogen()
     return
 end
 
@@ -60,13 +49,11 @@ end
 
 
 function removewater!(mol::MapMol)
-    required_annotation(mol, :NoImplicitH)
     for (i, a) in mol.graph.nodes
         if a.symbol == :O && neighborcount(mol, i) == 0
             unlinkatom!(mol, i)
         end
     end
-    mol.annotation[:NoWater] = NoWater()
     return
 end
 
@@ -81,7 +68,6 @@ const SINGLE_ELEM_SALT = [:N, :Na, :Mg, :Al, :Cl, :K, :Ca, :Br, :I]
 
 
 function removesalt!(mol::MapMol)
-    required_annotation(mol, :NoImplicitH)
     for (i, a) in mol.graph.nodes
         if a.symbol in SINGLE_ELEM_SALT && neighborcount(mol, i) == 0
             unlinkatom!(mol, i)
@@ -91,7 +77,6 @@ function removesalt!(mol::MapMol)
         # mesylate, tosylate, besylate,
         # benzoate, gluconate
     end
-    mol.annotation[:NoPharmSalt] = NoPharmSalt()
     return
 end
 
