@@ -1,6 +1,10 @@
 language: julia
 julia:
     - 1.0
+branches:
+  only:
+    - master
+    - "/^v\d+\.\d+(\.\d+)?(-\S*)?$/"
 jobs:
   include:
     - stage: "Documentation"

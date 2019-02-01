@@ -7,28 +7,26 @@ MolecularGraph.jl
 **MolecularGraph.jl** is a graph-based molecule modeling library written in Julia.
 
 
-Installation
--------------
+## Installation
 
 ```
  (v1.0) pkg> add MolecularGraph
 ```
 
 
-
-Usage
--------------
+## Usage
 
 Try examples and tutorials in the [notebook directory](./notebook)
 
 
+## Documentation
+
+https://mojaie.github.io/MolecularGraph.jl/
 
 
-Features
-----------
+## Features
 
 <img src="./assets/image/demo.svg" width="200"/><img src="./assets/image/Acetohexamide.svg" width="200"/><img src="./assets/image/Bivalirudin.svg" width="200"/><img src="./assets/image/Cefmenoxime.svg" width="200"/><img src="./assets/image/Succinic acid.svg" width="200"/><img src="./assets/image/Quinacrine.svg" width="200"/><img src="./assets/image/Docetaxel.svg" width="200"/><img src="./assets/image/FerrocenylethylMaleimide.svg" width="200"/>
-
 
 - I/O
   - Structure image drawing and export to SVG
@@ -62,14 +60,11 @@ Features
   - Diameter restriction (MCS-DR) and graph-based local similarity (GLS)
 
 
-
-License
--------------
+## License
 
 [MIT license](http://opensource.org/licenses/MIT)
 
 
-Copyright
---------------
+## Copyright
 
 (C) 2018 Seiji Matsuoka
