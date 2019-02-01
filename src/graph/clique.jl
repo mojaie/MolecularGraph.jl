@@ -30,7 +30,7 @@ end
 
 
 """
-    maxclique(graph::UDGraph; timeout::Int=3600) -> Set{Int}
+    maxclique(graph::UDGraph; kwargs...) -> Set{Int}
 
 Compute maximum clique of the graph. For details, see [`maximalcliques`](@ref).
 """

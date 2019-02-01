@@ -4,6 +4,8 @@ julia:
 branches:
   only:
     - master
+    - dev
+    - deploytest
     - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 jobs:
   include:
