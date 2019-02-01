@@ -103,7 +103,7 @@ function initcanvas!(canvas::Canvas, mol::VectorMol)
     if atomcount(mol) == 0
         return
     end
-    coords = mol.v[:Coords2D]
+    coords = mol[:Coords2D]
     (top, left, width, height, unit) = boundary(mol, coords)
     sf = canvas.scalef / unit
     coords = (coords .- [left top]) .* [1 -1] .* sf

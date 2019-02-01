@@ -167,10 +167,10 @@ end
 
 function atommatch(mol1::VectorMol, mol2::VectorMol)
     return function (a1, a2)
-        sym1 = mol1.v[:Symbol]
-        sym2 = mol2.v[:Symbol]
-        pi1 = mol1.v[:Pi]
-        pi2 = mol2.v[:Pi]
+        sym1 = mol1[:Symbol]
+        sym2 = mol2[:Symbol]
+        pi1 = mol1[:Pi]
+        pi2 = mol2[:Pi]
         sym1[a1] == sym2[a2] && pi1[a1] == pi2[a2]
     end
 end
@@ -223,9 +223,9 @@ function querymatchtree(query::Pair, mol::VectorMol, i::Int)
     else
         if query.first == :RingSize
             # TODO:
-            return query.second in mol.v[query.first][i]
+            return query.second in mol[query.first][i]
         else
-            return mol.v[query.first][i] == query.second
+            return mol[query.first][i] == query.second
         end
     end
 end

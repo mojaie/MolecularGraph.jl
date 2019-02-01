@@ -66,6 +66,7 @@ module MolecularGraph
     include("./model/bond.jl")
     include("./model/molgraph.jl")
     include("./model/molgraphview.jl")
+    include("./model/molgraphutil.jl")
 
     include("./annotation/base.jl")
     include("./annotation/topology.jl")

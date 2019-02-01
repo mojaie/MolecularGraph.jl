@@ -5,7 +5,7 @@
 
 export
     getnode, getedge,
-    nodesiter, edgesiter,
+    nodesiter, edgesiter, nodevector, edgevector,
     nodekeys, edgekeys,
     neighbors, successors, predecessors,
     nodecount, edgecount,
@@ -21,6 +21,9 @@ getedge(view::GraphView, u, v) = getedge(view.graph, u, v)
 
 nodesiter(view::GraphView) = nodesiter(view.graph)
 edgesiter(view::GraphView) = edgesiter(view.graph)
+# TODO: for only VectorGraph
+nodevector(view::GraphView) = nodevector(view.graph)
+edgevector(view::GraphView) = edgevector(view.graph)
 
 nodekeys(view::GraphView) = nodekeys(view.graph)
 edgekeys(view::GraphView) = nodekeys(view.graph)

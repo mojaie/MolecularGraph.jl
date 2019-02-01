@@ -7,7 +7,7 @@ export
     Edge, MapUDGraph, VectorUDGraph,
     connect,
     getnode, getedge, hasedge,
-    nodesiter, edgesiter,
+    nodesiter, edgesiter, nodevector, edgevector,
     nodekeys, edgekeys,
     neighbors,
     updatenode!, updateedge!,
@@ -105,6 +105,7 @@ hasedge(graph::UndirectedGraph, u, v) = haskey(graph.adjacency[u], v)
 # TODO: `enumerate` yields `Tuple` whereas `Dict` yields `Pair`
 nodesiter(graph::VectorUDGraph) = enumerate(graph.nodes)
 nodesiter(graph::MapUDGraph) = graph.nodes
+nodevector(graph::VectorUDGraph) = graph.nodes
 
 nodekeys(graph::VectorUDGraph) = Set(1:nodecount(graph))
 nodekeys(graph::MapUDGraph) = Set(keys(graph.nodes))
@@ -112,6 +113,7 @@ nodekeys(graph::MapUDGraph) = Set(keys(graph.nodes))
 # TODO: `enumerate` yields `Tuple` whereas `Dict` yields `Pair`
 edgesiter(graph::VectorUDGraph) = enumerate(graph.edges)
 edgesiter(graph::MapUDGraph) = graph.edges
+edgevector(graph::VectorUDGraph) = graph.edges
 
 edgekeys(graph::VectorUDGraph) = Set(1:edgecount(graph))
 edgekeys(graph::MapUDGraph) = Set(keys(graph.edges))

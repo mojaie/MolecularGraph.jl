@@ -7,12 +7,7 @@ export
     GeneralMapMol, GeneralVectorMol,
     ConnectedQueryMol, DisconnectedQueryMol,
     SDFile, SMILES, ConnectedSMARTS, SMARTS,
-    vectormol, nullmol,
-    getnode, getatom, getedge, getbond,
-    neighbors, neighborcount, degree,
-    nodecount, atomcount, edgecount, bondcount,
-    updatenode!, updateatom!, updatebond!, updatebond!,
-    unlinknode!, unlinkatom!, unlinkedge!, unlinkbond!
+    vectormol, nullmol
 
 
 struct GeneralMapMol{A<:Atom,B<:Bond} <: MapMolGraph
@@ -61,7 +56,7 @@ end
 
 struct GeneralVectorMol{A<:Atom,B<:Bond} <: VectorMolGraph
     graph::VectorUDGraph{A,B}
-    v::Dict{Symbol, Array}
+    vector::Dict{Symbol, Array}
     annotation::Dict{Symbol, Annotation}
     attribute::Dict
 end
@@ -81,6 +76,13 @@ function GeneralVectorMol{A,B}(nodes::Vector{A}, edges::Vector{B}
 end
 
 
+function vectormol(mol::GeneralMapMol{A,B}) where {A<:Atom,B<:Bond}
+    return GeneralVectorMol{A,B}(
+        VectorUDGraph{A,B}(mol.graph), Dict(), mol.annotation, mol.attribute
+    )
+end
+
+
 # Aliases
 
 # TODO: use traits
@@ -93,22 +95,3 @@ SMARTS = DisconnectedQueryMol{SmartsAtom,SmartsBond}
 nullmol(::Type{T}) where T <: SDFile = SDFile()
 nullmol(::Type{T}) where T <: SMILES = SMILES()
 nullmol(::Type{T}) where T <: SMARTS = SMARTS()
-
-
-function vectormol(mol::GeneralMapMol{A,B}) where {A<:Atom,B<:Bond}
-    return GeneralVectorMol{A,B}(
-        VectorUDGraph{A,B}(mol.graph), Dict(), mol.annotation, mol.attribute
-    )
-end
-
-
-# Aliases
-
-getatom = getnode
-getbond = getedge
-atomcount = nodecount
-bondcount = edgecount
-updateatom! = updatenode!
-updatebond! = updateedge!
-unlinkatom! = unlinknode!
-unlinkbond! = unlinkedge!

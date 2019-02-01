@@ -15,7 +15,7 @@ export
 
 
 function remove_H!(mol::MutableMol)
-    for (i, a) in mol.graph.nodes
+    for (i, a) in nodesiter(mol)
         # TODO: check stereo (SMILES, SDFile)
         if (a.symbol == :H && a.charge == 0 && a.multiplicity == 1
                 && a.mass === nothing)
@@ -33,7 +33,7 @@ end
 
 
 function removeall_H!(mol::MutableMol)
-    for (i, a) in mol.graph.nodes
+    for (i, a) in nodesiter(mol)
         if a.symbol == :H
             unlinkatom!(mol, i)
         end
@@ -49,7 +49,7 @@ end
 
 
 function removewater!(mol::MapMol)
-    for (i, a) in mol.graph.nodes
+    for (i, a) in nodesiter(mol)
         if a.symbol == :O && neighborcount(mol, i) == 0
             unlinkatom!(mol, i)
         end
@@ -68,7 +68,7 @@ const SINGLE_ELEM_SALT = [:N, :Na, :Mg, :Al, :Cl, :K, :Ca, :Br, :I]
 
 
 function removesalt!(mol::MapMol)
-    for (i, a) in mol.graph.nodes
+    for (i, a) in nodesiter(mol)
         if a.symbol in SINGLE_ELEM_SALT && neighborcount(mol, i) == 0
             unlinkatom!(mol, i)
         end

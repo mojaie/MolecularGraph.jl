@@ -29,8 +29,8 @@ end
 @testset "sdfmol" begin
     demomol = joinpath(dirname(@__FILE__), "..", "assets", "test", "demo.mol")
     mol = sdfmol(readlines(demomol))
-    @test length(mol.graph.edges) == 37
-    @test length(mol.graph.adjacency) == 37
+    @test edgecount(mol) == 37
+    @test nodecount(mol) == 37
     @test mol isa SDFile
 end
 

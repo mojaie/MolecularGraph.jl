@@ -18,7 +18,7 @@ export
 Return standard molecular weight.
 """
 function molweight(mol::VectorMol; digits=2)
-    return round(reduce(+, mol.v[:MolWeight]; init=0), digits=digits)
+    return round(reduce(+, mol[:MolWeight]; init=0), digits=digits)
 end
 
 
@@ -28,7 +28,7 @@ end
 Return the number of hydrogen bond acceptors (N, O and F).
 """
 function H_acceptor_count(mol::VectorMol)
-    return reduce(+, mol.v[:H_Acceptor]; init=0)
+    return reduce(+, mol[:H_Acceptor]; init=0)
 end
 
 
@@ -38,7 +38,7 @@ end
 Return the number of hydrogen bond donors (O and N attached to hydrogens).
 """
 function H_donor_count(mol::VectorMol)
-    return reduce(+, mol.v[:H_Donor]; init=0)
+    return reduce(+, mol[:H_Donor]; init=0)
 end
 
 
@@ -54,7 +54,7 @@ Parameters by Atomic Contributions. Journal of Chemical Information and
 Modeling, 39(5), 868–873. https://doi.org/10.1021/ci990307l
 """
 function wclogp(mol::VectorMol; digits=2)
-    return round(reduce(+, mol.v[:WCLogPContrib]; init=0), digits=digits)
+    return round(reduce(+, mol[:WCLogPContrib]; init=0), digits=digits)
 end
 
 
@@ -64,5 +64,5 @@ end
 Return the number of rotatable bonds.
 """
 function rotatable_count(mol::VectorMol)
-    return reduce(+, mol.v[:Rotatable]; init=0)
+    return reduce(+, mol[:Rotatable]; init=0)
 end

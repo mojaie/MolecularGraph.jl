@@ -7,56 +7,54 @@ export elemental!
 
 
 function elemental!(mol::VectorMol; recalculate=false)
-    if haskey(mol.v, :Symbol) && !recalculate
+    if haskey(mol, :Symbol) && !recalculate
         return
     end
-    atomvector = [atom for (i, atom) in nodesiter(mol)] # TODO:
-    bondvector = [bond for (i, bond) in edgesiter(mol)] # TODO:
     # Symbol
-    mol.v[:Symbol] = getproperty.(atomvector, :symbol)
+    mol[:Symbol] = getproperty.(nodevector(mol), :symbol)
     # Charge
-    mol.v[:Charge] = getproperty.(atomvector, :charge)
+    mol[:Charge] = getproperty.(nodevector(mol), :charge)
     # Radical
-    mol.v[:Multiplicity] = getproperty.(atomvector, :multiplicity)
+    mol[:Multiplicity] = getproperty.(nodevector(mol), :multiplicity)
     # Bond order
-    mol.v[:BondOrder] = getproperty.(bondvector, :order)
+    mol[:BondOrder] = getproperty.(edgevector(mol), :order)
 
     heavyatoms = zeros(Int, nodecount(mol)) # Number of adjacent heavy atoms
     explhcount = zeros(Int, nodecount(mol)) # Number of explicit hydrogens
     heavyatombonds = zeros(Int, nodecount(mol)) # Total order of adjacent bonds
     for (n, node) in nodesiter(mol)
         for (nbr, e) in neighbors(mol, n)
-            if mol.v[:Symbol][nbr] == :H
+            if mol[:Symbol][nbr] == :H
                 explhcount[n] += 1
             else
                 heavyatoms[n] += 1
-                heavyatombonds[n] += mol.v[:BondOrder][e]
+                heavyatombonds[n] += mol[:BondOrder][e]
             end
         end
     end
     # Degree (graph degree including explicit hydrogens)
-    mol.v[:Degree] = heavyatoms + explhcount
+    mol[:Degree] = heavyatoms + explhcount
     # Valence
-    mol.v[:Valence] = valence.(mol.v[:Symbol], mol.v[:Charge])
+    mol[:Valence] = valence.(mol[:Symbol], mol[:Charge])
     # Number of lone pairs
-    mol.v[:LonePair] = lonepair.(mol.v[:Symbol], mol.v[:Charge])
+    mol[:LonePair] = lonepair.(mol[:Symbol], mol[:Charge])
     # Hydrogen count
     hcnt = (v, b) -> v === nothing ? 0 : max(0, v - b)
-    mol.v[:H_Count] = hcnt.(mol.v[:Valence], heavyatombonds)
+    mol[:H_Count] = hcnt.(mol[:Valence], heavyatombonds)
     # Connectivity (connection including hydrogens)
-    mol.v[:Connectivity] = heavyatoms + mol.v[:H_Count]
+    mol[:Connectivity] = heavyatoms + mol[:H_Count]
     # Number of pi electrons
-    mol.v[:Pi] = heavyatombonds - heavyatoms
+    mol[:Pi] = heavyatombonds - heavyatoms
     # Hydrogen bond donor count
     dc = (sym, h) -> sym in (:N, :O) && h > 0
-    mol.v[:H_Donor] = dc.(mol.v[:Symbol], mol.v[:H_Count])
+    mol[:H_Donor] = dc.(mol[:Symbol], mol[:H_Count])
     # Hydrogen bond acceptor count
     ac = (sym, lp) -> lp === nothing ? false : sym in (:N, :O, :F) && lp > 0
-    mol.v[:H_Acceptor] = ac.(mol.v[:Symbol], mol.v[:LonePair])
+    mol[:H_Acceptor] = ac.(mol[:Symbol], mol[:LonePair])
     # Standard molecular weight
     weight = (atom, h) -> atomweight(atom) + H_WEIGHT * h
-    implHcount = mol.v[:H_Count] - explhcount
-    mol.v[:MolWeight] = weight.(atomvector, implHcount)
+    implHcount = mol[:H_Count] - explhcount
+    mol[:MolWeight] = weight.(nodevector(mol), implHcount)
     return
 end
 

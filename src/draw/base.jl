@@ -53,22 +53,22 @@ const DRAW_SETTING = Dict(
 
 function draw2d_annot!(mol::VectorMol,
                        setting=copy(DRAW_SETTING); recalculate=false)
-    if haskey(mol.v, :Coords2D) && !recalculate
+    if haskey(mol, :Coords2D) && !recalculate
        return
     end
     topology!(mol, recalculate=recalculate)
     elemental!(mol, recalculate=recalculate)
     if nodetype(mol) === SDFileAtom
-        mol.v[:Coords2D] = zeros(Float64, atomcount(mol), 2)
-        for (i, a) in enumerate(mol.graph.nodes)
-            mol.v[:Coords2D][i, :] = a.coords[1:2]
+        mol[:Coords2D] = zeros(Float64, atomcount(mol), 2)
+        for (i, a) in nodesiter(mol)
+            mol[:Coords2D][i, :] = a.coords[1:2]
         end
     else
-        mol.v[:Coords2D] = coords2d(mol)
+        mol[:Coords2D] = coords2d(mol)
     end
-    mol.v[:AtomColor] = atomcolor(setting).(mol.v[:Symbol])
-    mol.v[:AtomVisible] = atomvisible(
-        setting[:display_terminal_carbon]).(mol.v[:Symbol], mol.v[:Degree])
+    mol[:AtomColor] = atomcolor(setting).(mol[:Symbol])
+    mol[:AtomVisible] = atomvisible(
+        setting[:display_terminal_carbon]).(mol[:Symbol], mol[:Degree])
     bondnotation!(mol)
     return
 end
@@ -85,9 +85,9 @@ end
 
 function bondnotation!(mol::VectorMol)
     if nodetype(mol) === SDFileAtom
-        mol.v[:BondNotation] = [b.notation for b in mol.graph.edges]
+        mol[:BondNotation] = getproperty.(edgevector(mol), :notation)
     else
-        mol.v[:BondNotation] = zeros(Int, bondcount(mol))
+        mol[:BondNotation] = zeros(Int, bondcount(mol))
     end
     termbondnotation!(mol)
     ringbondnotation!(mol)
@@ -96,10 +96,10 @@ end
 
 
 function termbondnotation!(mol::VectorMol)
-    for a in findall(mol.v[:Degree] .== 1)
+    for a in findall(mol[:Degree] .== 1)
         termbond = pop!(neighboredgekeys(mol, a))
-        if mol.v[:BondOrder][termbond] == 2
-            mol.v[:BondNotation][termbond] = 2
+        if mol[:BondOrder][termbond] == 2
+            mol[:BondNotation][termbond] = 2
         end
     end
     return
@@ -108,7 +108,7 @@ end
 
 function ringbondnotation!(mol::VectorMol)
     rings = mol.annotation[:Topology].rings
-    coords = mol.v[:Coords2D]
+    coords = mol[:Coords2D]
     for ring in sort(rings, by=length, rev=true)
         vtcs = [vec2d(coords[n, :]) for n in ring]
         cw = isclockwise(vtcs)
@@ -123,11 +123,11 @@ function ringbondnotation!(mol::VectorMol)
         succ[ordered[end]] = ordered[1]
         rsub = nodesubgraph(mol.graph, ring)
         for (i, e) in edgesiter(rsub)
-            if mol.v[:BondOrder][i] != 2
+            if mol[:BondOrder][i] != 2
                 continue
             end
             if succ[e.u] == e.v
-                mol.v[:BondNotation][i] = 1
+                mol[:BondNotation][i] = 1
             end
         end
     end
@@ -142,7 +142,7 @@ function boundary(mol::VectorMol, coords)
     height = top - bottom
     dists = []
     # Size unit
-    for bond in mol.graph.edges
+    for bond in edgevector(mol)
         u = vec2d(coords[bond.u, :])
         v = vec2d(coords[bond.v, :])
         d = norm(v - u)
