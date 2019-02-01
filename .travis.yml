@@ -4,7 +4,7 @@ julia:
 branches:
   only:
     - master
-    - "/^v\d+\.\d+(\.\d+)?(-\S*)?$/"
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 jobs:
   include:
     - stage: "Documentation"
