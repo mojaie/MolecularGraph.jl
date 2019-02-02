@@ -21,7 +21,7 @@ Try examples and tutorials in the [notebook directory](./notebook)
 
 ## Documentation
 
-https://mojaie.github.io/MolecularGraph.jl/
+https://mojaie.github.io/MolecularGraph.jl/dev/
 
 
 ## Features
