@@ -1,5 +1,5 @@
 #
-# This file is a part of graphmol.jl
+# This file is a part of MolecularGraph.jl
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
@@ -19,6 +19,11 @@ export
     deltaYmap!
 
 
+"""
+    is_identical(mol1::VectorMol, mol2::VectorMol)
+
+Return whether mol1 and mol2 are identical in chemical structure.
+"""
 function is_identical(mol1::VectorMol, mol2::VectorMol)
     if !fast_identity_filter(mol1, mol2)
         return false
@@ -27,6 +32,11 @@ function is_identical(mol1::VectorMol, mol2::VectorMol)
 end
 
 
+"""
+    is_substruct(mol1::VectorMol, mol2::VectorMol)
+
+Return whether mol1 is a substructure of mol2.
+"""
 function is_substruct(mol1::VectorMol, mol2::VectorMol)
     if !fast_substr_filter(mol2, mol1)
         return false
@@ -34,6 +44,12 @@ function is_substruct(mol1::VectorMol, mol2::VectorMol)
     return isomorphism(mol2, mol1) !== nothing
 end
 
+
+"""
+    is_superstruct(mol1, mol2)
+
+Return whether mol1 is a superstructure of mol2.
+"""
 is_superstruct(mol1, mol2) = is_substruct(mol2, mol1)
 
 
@@ -47,6 +63,11 @@ function isomorphism(mol1::VectorMol, mol2::VectorMol;
 end
 
 
+"""
+    is_querymatch(mol, query; kwargs...)
+
+Return whether mol matches with the query.
+"""
 function is_querymatch(mol, query; kwargs...)
     return querymatch(mol, query; kwargs...) !== nothing
 end

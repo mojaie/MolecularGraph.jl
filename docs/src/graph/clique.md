@@ -1,5 +1,5 @@
 
-# Graph
+# Clique
 
 ```@meta
 CurrentModule = Graph

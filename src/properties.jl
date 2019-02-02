@@ -1,5 +1,5 @@
 #
-# This file is a part of graphmol.jl
+# This file is a part of MolecularGraph.jl
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
@@ -50,8 +50,8 @@ Return predicted logP value calculated by using Wildman and Crippen method.
 # Reference
 
 1. Wildman, S. A. and Crippen, G. M. (1999). Prediction of Physicochemical
-Parameters by Atomic Contributions. Journal of Chemical Information and
-Modeling, 39(5), 868–873. https://doi.org/10.1021/ci990307l
+   Parameters by Atomic Contributions. Journal of Chemical Information and
+   Modeling, 39(5), 868–873. https://doi.org/10.1021/ci990307l
 """
 function wclogp(mol::VectorMol; digits=2)
     return round(reduce(+, mol[:WCLogPContrib]; init=0), digits=digits)

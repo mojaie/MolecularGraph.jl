@@ -5,6 +5,7 @@ branches:
   only:
     - master
     - dev
+    - gh-pages
     - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 jobs:
   include:

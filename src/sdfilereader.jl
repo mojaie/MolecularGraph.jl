@@ -1,5 +1,5 @@
 #
-# This file is a part of graphmol.jl
+# This file is a part of MolecularGraph.jl
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
@@ -24,8 +24,43 @@ struct SDFileReader
     parser::Function
 end
 
+
+"""
+    sdfilereader(file::IO)
+
+Read SDFile data from input stream and return a lazy iterator which
+yields molecule objects.
+
+`sdfilereader` does not stop and raise errors when an erroneous or incompatible
+SDFile block is read but produces an error message and yields an empty molecule.
+If this behavior is not desirable, you can use the customized supplier function
+instead of default supplier `nohaltsupplier`
+
+```
+function customsupplier()
+    mol = try
+        parse(SDFile, block)
+    catch e
+        throw(ErrorException("incompatible molecule found, aborting..."))
+    end
+    return defaultpostprocess(mol)
+end
+
+function sdfilereader(file::IO)
+    return SDFileReader(eachline(file), customsupplier)
+end
+```
+"""
 sdfilereader(file::IO) = SDFileReader(eachline(file), nohaltsupplier)
+
+
+"""
+    sdfilereader(path::AbstractString)
+
+Read a SDFile and return a lazy iterator which yields molecule objects.
+"""
 sdfilereader(path::AbstractString) = sdfilereader(open(path))
+
 
 function iterate(reader::SDFileReader, state=nothing)
     block = String[]
@@ -70,15 +105,35 @@ function defaultpostprocess(mol::SDFile)
 end
 
 
+"""
+    sdftomol(file::IO)
+
+Read a SDFile mol block from the input stream and parse it into a molecule
+object.
+"""
+sdftomol(file::IO) = sdftomol(eachline(file))
+
+
+"""
+    sdftomol(path::AbstractString)
+
+Read a SDFile and parse it into a molecule object. Single mol block files
+without optional information are often provided as a .mol file.
+"""
+sdftomol(path::AbstractString) = sdftomol(open(path))
+
+
 function sdftomol(lines)
     mol = parse(SDFile, lines)
     return defaultpostprocess(mol)
 end
 
-sdftomol(file::IO) = sdftomol(eachline(file))
-sdftomol(path::AbstractString) = sdftomol(open(path))
 
+"""
+    parse(::Type{SDFile}, lines)
 
+Parse lines of a SDFile mol block data into a molecule object.
+"""
 function parse(::Type{SDFile}, lines)
     lines = collect(lines)
     molend = findnext(x -> x == "M  END", lines, 1)

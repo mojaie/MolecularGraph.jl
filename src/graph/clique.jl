@@ -1,5 +1,5 @@
 #
-# This file is a part of graphmol.jl
+# This file is a part of MolecularGraph.jl
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
@@ -55,13 +55,12 @@ represented as a `Set` of member nodes.
 # Reference
 
 1. Tomita, E., Tanaka, A., & Takahashi, H. (2006). The worst-case time
-complexity for generating all maximal cliques and computational experiments.
-Theoretical Computer Science, 363(1), 28–42.
-https://doi.org/10.1016/J.TCS.2006.06.015
-
+   complexity for generating all maximal cliques and computational experiments.
+   Theoretical Computer Science, 363(1), 28–42.
+   https://doi.org/10.1016/J.TCS.2006.06.015
 1. Cazals, F., & Karande, C. (2005). An algorithm for reporting maximal
-c-cliques. Theoretical Computer Science, 349(3), 484–490.
-https://doi.org/10.1016/j.tcs.2005.09.038
+   c-cliques. Theoretical Computer Science, 349(3), 484–490.
+   https://doi.org/10.1016/j.tcs.2005.09.038
 
 """
 function maximalcliques(graph::UDGraph; kwargs...)

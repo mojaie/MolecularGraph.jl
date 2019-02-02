@@ -2,9 +2,14 @@
 MolecularGraph.jl
 ===================================================
 
-![](https://travis-ci.org/mojaie/MolecularGraph.jl.svg?branch=master)
+[![Build Status](https://travis-ci.org/mojaie/MolecularGraph.jl.svg?branch=master)](https://travis-ci.org/mojaie/MolecularGraph.jl)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://mojaie.github.io/MolecularGraph.jl/dev)
 
-**MolecularGraph.jl** is a graph-based molecule modeling library written in Julia.
+
+<img src="./assets/image/demo.svg" width="200"/><img src="./assets/image/Acetohexamide.svg" width="200"/><img src="./assets/image/Bivalirudin.svg" width="200"/><img src="./assets/image/Cefmenoxime.svg" width="200"/><img src="./assets/image/Succinic acid.svg" width="200"/><img src="./assets/image/Quinacrine.svg" width="200"/><img src="./assets/image/Docetaxel.svg" width="200"/><img src="./assets/image/FerrocenylethylMaleimide.svg" width="200"/>
+
+
+**MolecularGraph.jl** is a graph-based molecule modeling and chemoinformatics toolkit library written in Julia.
 
 
 ## Installation
@@ -16,17 +21,11 @@ MolecularGraph.jl
 
 ## Usage
 
-Try examples and tutorials in the [notebook directory](./notebook)
-
-
-## Documentation
-
-https://mojaie.github.io/MolecularGraph.jl/dev/
+- Try examples and tutorials in the [notebook directory](./notebook)
+- [Documentation and API Reference](https://mojaie.github.io/MolecularGraph.jl/dev)
 
 
 ## Features
-
-<img src="./assets/image/demo.svg" width="200"/><img src="./assets/image/Acetohexamide.svg" width="200"/><img src="./assets/image/Bivalirudin.svg" width="200"/><img src="./assets/image/Cefmenoxime.svg" width="200"/><img src="./assets/image/Succinic acid.svg" width="200"/><img src="./assets/image/Quinacrine.svg" width="200"/><img src="./assets/image/Docetaxel.svg" width="200"/><img src="./assets/image/FerrocenylethylMaleimide.svg" width="200"/>
 
 - I/O
   - Structure image drawing and export to SVG
@@ -67,4 +66,4 @@ https://mojaie.github.io/MolecularGraph.jl/dev/
 
 ## Copyright
 
-(C) 2018 Seiji Matsuoka
+(C) 2018-2019 Seiji Matsuoka

@@ -6,14 +6,16 @@ makedocs(
     sitename="MolecularGraph.jl",
     pages = [
         "Home" => "index.md",
-        "API" => [
-            "Molecular properties" => "api/properties.md",
-            "Graph" => "api/graph.md"
+        "MolecularGraph" => [
+            "Molecule I/O" => "moleculargraph/io.md",
+            "Basic chemical properties" => "moleculargraph/properties.md",
+            "Structure match" => "moleculargraph/structure.md"
         ],
-        "Further readings" => [
-            "Python interface" => "python.md",
-            "Design of molecular graph models" => "moleculargraph.md"
-        ]
+        "Graph" => [
+            "Clique" => "graph/clique.md"
+        ],
+        "Python interface" => "python.md",
+        "Design of molecular graph models" => "moleculargraph.md"
     ]
 )
 
