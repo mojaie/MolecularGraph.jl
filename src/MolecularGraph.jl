@@ -79,7 +79,7 @@ module MolecularGraph
     include("properties.jl")
     include("substructure.jl")
     include("mcs.jl")
-    include("remover.jl")
+    include("preprocess.jl")
 
     include("./smarts/base.jl")
     include("./smarts/atom.jl")

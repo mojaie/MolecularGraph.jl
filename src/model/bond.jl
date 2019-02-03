@@ -13,7 +13,7 @@ export
 import ..Graph: connect
 
 
-struct SDFileBond <: Bond
+mutable struct SDFileBond <: Bond
     """Bond
 
     * Notation
@@ -40,7 +40,7 @@ SDFileBond(order, notation) = SDFileBond(nothing, nothing, order, notation)
 connect(b::SDFileBond, u, v) = SDFileBond(u, v, b.order, b.notation)
 
 
-struct SmilesBond <: Bond
+mutable struct SmilesBond <: Bond
     u::Union{Int, Nothing}
     v::Union{Int, Nothing}
     order::Int
@@ -54,7 +54,7 @@ connect(b::SmilesBond, u, v) = SmilesBond(
     u, v, b.order, b.isaromatic, b.cistrans)
 
 
-struct SmartsBond <: QueryBond
+mutable struct SmartsBond <: QueryBond
     u::Union{Int, Nothing}
     v::Union{Int, Nothing}
     query::Pair

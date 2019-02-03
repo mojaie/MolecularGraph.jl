@@ -1,5 +1,5 @@
 name = "MolecularGraph"
-uuid = "7d54bc1e-c61b-11e8-18e7-2164fc5fa400"
+uuid = "6c89ec66-9cd8-5372-9f91-fabc50dd27fd"
 authors = ["Seiji Matsuoka <mojaie@aol.com>"]
 version = "0.2.0"
 
@@ -13,3 +13,6 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

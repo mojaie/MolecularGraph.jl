@@ -21,7 +21,7 @@ const PERIODIC_TABLE = YAML.load(open(
 const H_WEIGHT = PERIODIC_TABLE["H"]["std_weight"]
 
 
-struct SDFileAtom <: Atom
+mutable struct SDFileAtom <: Atom
     symbol::Symbol
     charge::Int
     multiplicity::Int
@@ -37,7 +37,7 @@ struct SDFileAtom <: Atom
 end
 
 
-struct SmilesAtom <: Atom
+mutable struct SmilesAtom <: Atom
     symbol::Symbol
     charge::Int
     multiplicity::Int
@@ -54,7 +54,7 @@ struct SmilesAtom <: Atom
 end
 
 
-struct SmartsAtom <: QueryAtom
+mutable struct SmartsAtom <: QueryAtom
     query::Pair
 end
 

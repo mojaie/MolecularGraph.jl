@@ -52,8 +52,11 @@ module MolecularGraphTest
     using StaticArrays
     using MolecularGraph
 
+
     include("./model/atom.jl")
     include("./model/molgraph.jl")
+
+    include("sdfilereader.jl")
 
     include("./smarts/base.jl")
     include("./smarts/logicaloperator.jl")
@@ -63,9 +66,6 @@ module MolecularGraphTest
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
-    include("substructure.jl")
-    include("mcs.jl")
-
     include("./annotation/topology.jl")
     include("./annotation/elemental.jl")
     include("./annotation/rotatable.jl")
@@ -73,11 +73,13 @@ module MolecularGraphTest
     include("./annotation/wclogp.jl")
     include("./annotation/funcgroup.jl")
 
-    include("remover.jl")
+    include("preprocess.jl")
+    include("substructure.jl")
+    include("mcs.jl")
 
     include("./draw/base.jl")
     # include("./draw/coords2d.jl")
     include("./draw/svg.jl")
 
-    include("sdfilereader.jl")
+
 end

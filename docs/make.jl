@@ -9,6 +9,7 @@ makedocs(
         "MolecularGraph" => [
             "Molecule I/O" => "moleculargraph/io.md",
             "Basic chemical properties" => "moleculargraph/properties.md",
+            "Preprocessing" => "moleculargraph/preprocess.md",
             "Structure match" => "moleculargraph/structure.md"
         ],
         "Graph" => [
