@@ -9,9 +9,10 @@ export
     bondsymbol!
 
 
-defaultbond(state::SmilesParser) = SmilesBond(1, false, nothing)
+defaultbond(state::SmilesParser) = SmilesBond(
+    nothing, nothing, 1, false, nothing)
 defaultbond(state::AnySmarts) = SmartsBond(
-    :or => (:BondOrder => 1, :AromaticBond => true))
+    nothing, nothing, :or => (:BondOrder => 1, :AromaticBond => true))
 
 
 function bond!(state::SmilesParser)
@@ -21,11 +22,11 @@ function bond!(state::SmilesParser)
     if b === nothing
         return
     elseif b[1] == :BondOrder
-        return SmilesBond(b[2], false, nothing)
+        return SmilesBond(nothing, nothing, b[2], false, nothing)
     elseif b[1] == :AromaticBond
-        return SmilesBond(1, true, nothing)
+        return SmilesBond(nothing, nothing, 1, true, nothing)
     elseif b[1] == :stereo
-        return SmilesBond(1, false, b[2])
+        return SmilesBond(nothing, nothing, 1, false, b[2])
     end
 end
 
@@ -35,11 +36,11 @@ function bond!(state::AnySmarts)
     """
     if read(state) == '~'
         forward!(state)
-        return SmartsBond(:any => true)
+        return SmartsBond(nothing, nothing, :any => true)
     else
         b = lglowand!(state, bondsymbol!)
         if b !== nothing
-            return SmartsBond(b)
+            return SmartsBond(nothing, nothing, b)
         end
     end
     # return nothing: Invalid bond token or implicit single bond

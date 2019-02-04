@@ -38,7 +38,7 @@ abstract type DirectedEdge <: AbstractEdge end
 
 # Node
 
-struct Node <: AbstractNode
+mutable struct Node <: AbstractNode
     attr::Dict
 end
 

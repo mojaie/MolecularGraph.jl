@@ -19,6 +19,7 @@ module GeometryTest
     include("geometry.jl")
 end
 
+
 module GraphTest
     using Test
     using MolecularGraph.Graph
@@ -52,7 +53,6 @@ module MolecularGraphTest
     using StaticArrays
     using MolecularGraph
 
-
     include("./model/atom.jl")
     include("./model/molgraph.jl")
 
@@ -80,6 +80,4 @@ module MolecularGraphTest
     include("./draw/base.jl")
     # include("./draw/coords2d.jl")
     include("./draw/svg.jl")
-
-
 end

@@ -46,7 +46,7 @@
     etype = edgetype(rev)
     @test etype <: DirectedEdge
 
-    newgraph = similarmap(rev)
+    newgraph = similargraph(rev)
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
     @test isa(newgraph, MapDGraph)

@@ -74,7 +74,7 @@ function group!(state::SmartsParser, bond)
     updateatom!(state.mol, a, state.node)
     if bond !== nothing
         # Connect branch
-        b = connect(bond, state.branch, state.node)
+        b = similaredge(bond, state.branch, state.node)
         updatebond!(state.mol, b, bondcount(state.mol) + 1)
     end
     state.branch = state.node
@@ -133,7 +133,7 @@ function chain!(state::SmartsParser)
                 (v, rb) = state.ringlabel[num]
                 b = something(b, rb, defaultbond(state))
                 delete!(state.ringlabel, num) # Ring label is reusable
-                b = connect(b, u, v)
+                b = similaredge(b, u, v)
                 updatebond!(state.mol, b, bondcount(state.mol) + 1)
             else
                 state.ringlabel[num] = (u, b)
@@ -165,7 +165,7 @@ function chain!(state::SmartsParser)
             end
         else
             b = something(b, defaultbond(state))
-            b = connect(b, u, state.node)
+            b = similaredge(b, u, state.node)
             updatebond!(state.mol, b, bondcount(state.mol) + 1)
         end
         u = state.node

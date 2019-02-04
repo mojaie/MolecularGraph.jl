@@ -10,7 +10,7 @@ export
     connect
 
 
-import ..Graph: connect
+import ..Graph: similaredge
 
 
 mutable struct SDFileBond <: Bond
@@ -36,8 +36,9 @@ mutable struct SDFileBond <: Bond
     notation::Union{Int, Nothing}
 end
 
-SDFileBond(order, notation) = SDFileBond(nothing, nothing, order, notation)
-connect(b::SDFileBond, u, v) = SDFileBond(u, v, b.order, b.notation)
+SDFileBond(u, v) = SDFileBond(u, v, 1, 0)
+SDFileBond(u, v, order) = SDFileBond(u, v, order, 0)
+similaredge(b::SDFileBond, u, v) = SDFileBond(u, v, b.order, b.notation)
 
 
 mutable struct SmilesBond <: Bond
@@ -48,9 +49,9 @@ mutable struct SmilesBond <: Bond
     cistrans::Union{Int, Nothing}
 end
 
-SmilesBond(order, aromatic, cistrans) = SmilesBond(
-    nothing, nothing, order, aromatic, cistrans)
-connect(b::SmilesBond, u, v) = SmilesBond(
+SmilesBond(u, v) = SmilesBond(u, v, 1, false, nothing)
+SmilesBond(u, v, order) = SmilesBond(u, v, order, false, nothing)
+similaredge(b::SmilesBond, u, v) = SmilesBond(
     u, v, b.order, b.isaromatic, b.cistrans)
 
 
@@ -60,5 +61,5 @@ mutable struct SmartsBond <: QueryBond
     query::Pair
 end
 
-SmartsBond(query) = SmartsBond(nothing, nothing, query)
-connect(b::SmartsBond, u, v) = SmartsBond(u, v, b.query)
+SmartsBond(u, v) = SmartsBond(u, v, :any=>true)
+similaredge(b::SmartsBond, u, v) = SmartsBond(u, v, b.query)

@@ -5,7 +5,10 @@
 
 export
     trivialhydrogens,
-    allhydrogens,
+    all_hydrogens,
+    make_hydrogens_implicit,
+    make_hydrogens_explicit,
+    largest_component_nodes,
     largestcomponent,
     neutralize_acids!,
     neutralize_oniums!,
@@ -20,18 +23,16 @@ export
 # mesylate, tosylate, besylate,
 # benzoate, gluconate
 
-# TODO: hydrogensexplicit!(mol::MolGraph)
-
 
 """
     trivialhydrogens(mol::MolGraph) -> Set{Int}
 
-Return a set of trivial hydrogen nodes (light hydrogen which is uncharged,
+Return a set of trivial hydrogen nodes (light hydrogens which are uncharged,
 non-radical, non-stereospecific and attached to organic heavy atoms)
 """
 function trivialhydrogens(mol::MolGraph)
     hs = Set{Int}()
-    organicheavy = (
+    organic_heavy = (
         :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I)
     for (i, a) in nodesiter(mol)
         if (a.symbol != :H || a.charge != 0 || a.multiplicity != 1
@@ -40,14 +41,14 @@ function trivialhydrogens(mol::MolGraph)
         elseif a isa SmilesAtom && a.stereo !== nothing
             continue
         end
-        nbrs = neighbors(mol, i)
+        nbrs = collect(neighbors(mol, i))
         if length(nbrs) != 1
             continue
         end
         (nbr, bond) = pop!(nbrs)
         if bond isa SDFileBond && (bond.order != 1 || bond.notation != 0)
             continue
-        elseif !in(getnode(mol, nbr).symbol, organicheavy)
+        elseif !in(getnode(mol, nbr).symbol, organic_heavy)
             continue
         end
         push!(hs, i)
@@ -57,11 +58,11 @@ end
 
 
 """
-    allhydrogens(mol::MolGraph) -> Set{Int}
+    all_hydrogens(mol::MolGraph) -> Set{Int}
 
 Return a set of hydrogen nodes.
 """
-function allhydrogens(mol::MolGraph)
+function all_hydrogens(mol::MolGraph)
     hs = Set{Int}()
     for (i, a) in nodesiter(mol)
         if a.symbol == :H
@@ -73,16 +74,63 @@ end
 
 
 """
-    largestcomponent(mol::MolGraph) -> Set{Int}
+    make_hydrogens_implicit(mol::MolGraph) -> GeneralMapMol
+
+Return molecule whose hydrogen nodes are removed. If option `all` is set to
+false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
+"""
+function make_hydrogens_implicit(mol::MolGraph; all=true, deepcopy=false)
+    hydrogens = all ? all_hydrogens : trivialhydrogens
+    ns = setdiff(nodekeys(mol), hydrogens(mol))
+    return newgraph(nodesubgraph(mol, ns))
+end
+
+
+"""
+    make_hydrogens_explicit(mol::VectorMol) -> GeneralMapMol
+
+Return molecule whose hydrogens are fully attached. If option `all` is set to
+false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
+"""
+function make_hydrogens_explicit(mol::VectorMol; deepcopy=false)
+    newmol = newgraph(mol)
+    ncnt = nodecount(mol)
+    ecnt = edgecount(mol)
+    for (n, node) in nodesiter(mol)
+        hcnt = mol[:Connectivity][n] - mol[:Degree][n]
+        for i in 1:hcnt
+            ncnt += 1
+            ecnt += 1
+            updatenode!(newmol, nodetype(mol)(:H), ncnt)
+            updateedge!(newmol, edgetype(mol)(n, ncnt), ecnt)
+        end
+    end
+    return newmol
+end
+
+
+"""
+    largest_component_nodes(mol::MolGraph) -> Set{Int}
 
 Return a set of nodes in the largest connected component.
 """
-function largestcomponent(mol::MolGraph)
+function largest_component_nodes(mol::MolGraph)
     # TODO: better way like python's max(iter, key=cmp)
     conn = connected_components(mol)
     sizemax = map(length, conn)
     largest = conn[argmax(sizemax)]
     return largest
+end
+
+
+"""
+    largestcomponent(mol::MolGraph) -> GeneralMapMol
+
+Return largest connected component of the molecular graph.
+"""
+function largestcomponent(mol::MolGraph; deepcopy=false)
+    ns = largest_component_nodes(mol)
+    return newgraph(nodesubgraph(mol, ns))
 end
 
 
@@ -144,14 +192,16 @@ see [`canonicalize!`](@ref).
 """
 function depolarize!(mol::VectorMol)
     for o in findall((mol[:Symbol] .== :O) .* (mol[:Charge] .== -1))
-        nbrs = neighborkeys(mol, o)
+        nbrs = collect(neighbors(mol, o))
         @assert length(nbrs) == 1 "unexpected oxygen degree $(length(nbrs))"
-        nbr = pop!(nbrs)
+        (nbr, b) = pop!(nbrs)
         if mol[:Charge][nbr] == 1 && !mol[:Aromatic][nbr]
             oatom = getnode(mol, o)
             oatom.charge = 0
             natom = getnode(mol, nbr)
             natom.charge = 0
+            bond = getedge(mol, b)
+            bond.order = 2
         end
     end
 end
@@ -171,18 +221,19 @@ function triplebond_anion!(mol::VectorMol)
     for tb in findall(mol[:BondOrder] .== 3)
         tbond = getbond(mol, tb)
         for (f, s) in ((tbond.u, tbond.v), (tbond.v, tbond.u))
-            nbrs = neighbors(mol, f)
+            nbrs = copy(neighbors(mol, f))
             pop!(nbrs, s)
             if length(nbrs) != 1
                 continue
             end
-            (nbr, nbond) = pop!(nbrs)
+            (nbr, nb) = pop!(nbrs)
             if mol[:Charge][nbr] == -1
                 natom = getnode(mol, nbr)
                 natom.charge = 0
-                nbond.order = 2
                 satom = getnode(mol, s)
                 satom.charge = -1
+                nbond = getedge(mol, nb)
+                nbond.order = 2
                 tbond.order = 2
             end
         end

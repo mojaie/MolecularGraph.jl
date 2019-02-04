@@ -36,6 +36,9 @@ mutable struct SDFileAtom <: Atom
     end
 end
 
+SDFileAtom(sym) = SDFileAtom(sym, 0, 1, nothing, nothing)
+SDFileAtom(sym, chg) = SDFileAtom(sym, chg, 1, nothing, nothing)
+
 
 mutable struct SmilesAtom <: Atom
     symbol::Symbol
@@ -52,6 +55,9 @@ mutable struct SmilesAtom <: Atom
         new(sym, chg, multi, mass, aromatic, stereo)
     end
 end
+
+SmilesAtom(sym) = SmilesAtom(sym, 0, 1, nothing, nothing, nothing)
+SmilesAtom(sym, chg) = SmilesAtom(sym, chg, 1, nothing, nothing, nothing)
 
 
 mutable struct SmartsAtom <: QueryAtom

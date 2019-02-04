@@ -105,7 +105,7 @@ function atomsymbol!(state::SmartsParser)
         return :Aromatic => true
     elseif read(state) == '*'
         forward!(state)
-        return :any => :true
+        return :any => true
     end
 end
 

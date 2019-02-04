@@ -4,25 +4,22 @@
 #
 
 export
-    Edge, MapUDGraph, VectorUDGraph,
-    connect,
+    Edge, similaredge, MapUDGraph, VectorUDGraph,
     getnode, getedge, hasedge,
     nodesiter, edgesiter, nodevector, edgevector,
     nodekeys, edgekeys,
     neighbors,
     updatenode!, updateedge!,
     unlinknode!, unlinkedge!,
-    nodetype, edgetype, similarmap
+    nodetype, edgetype, similargraph
 
 
-struct Edge <: UndirectedEdge
+mutable struct Edge <: UndirectedEdge
     u::Int
     v::Int
-    attr::Dict
 end
 
-Edge(u, v) = Edge(u, v, Dict())
-connect(e::Edge, u, v) = Edge(u, v, e.attr)
+similaredge(e::Edge, u, v) = Edge(u, v)
 
 
 struct MapUDGraph{N<:AbstractNode,E<:UndirectedEdge} <: UndirectedGraph
@@ -84,7 +81,9 @@ function VectorUDGraph{N,E}(graph::MapUDGraph{N,E}
     for (i, k) in enumerate(ekeys)
         edgemap[k] = i
         e = graph.edges[k]
-        push!(es, connect(e, nodemap[e.u], nodemap[e.v]))
+        e.u = nodemap[e.u]
+        e.v = nodemap[e.v]
+        push!(es, e)
     end
     for (u, nbrs) in graph.adjacency
         for (v, e) in nbrs
@@ -187,7 +186,7 @@ nodetype(graph::VectorUDGraph) = eltype(graph.nodes)
 edgetype(graph::MapUDGraph) = valtype(graph.edges)
 edgetype(graph::VectorUDGraph) = eltype(graph.edges)
 
-function similarmap(graph::UndirectedGraph)
+function similargraph(graph::UndirectedGraph)
     N = nodetype(graph)
     E = edgetype(graph)
     MapUDGraph{N,E}()

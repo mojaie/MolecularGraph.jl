@@ -34,7 +34,7 @@ function getedge(view::UDComplementGraph, u, v)
     # TODO: hasedge
     (v in neighbors(view.graph, u)) || throw(KeyError(v))
     e = getedge(view.graph, u, v)
-    return connect(e, u, v)
+    return similaredge(e, u, v)
 end
 
 function edgesiter(view::UDComplementGraph)

@@ -17,13 +17,13 @@ end
 
 function getedge(view::ReverseGraph, idx)
     e = getedge(view.graph, idx)
-    return connect(e, e.target, e.source)
+    return similaredge(e, e.target, e.source)
 end
 
-getedge(view::ReverseGraph, s, t) = connect(getedge(view.graph, s, t), t, s)
+getedge(view::ReverseGraph, s, t) = similaredge(getedge(view.graph, s, t), t, s)
 
 edgesiter(view::ReverseGraph) = (
-    i => connect(e, e.target, e.source) for (i, e) in edgesiter(view.graph))
+    i => similaredge(e, e.target, e.source) for (i, e) in edgesiter(view.graph))
 
 successors(view::ReverseGraph, idx) = view.graph.predecessors[idx]
 

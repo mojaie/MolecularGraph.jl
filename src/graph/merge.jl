@@ -8,7 +8,7 @@ export
 
 
 function shallowmerge(G::UDGraph, H::UDGraph)
-    U = similarmap(G)
+    U = similargraph(G)
     for (i, n) in nodesiter(G)
         U.nodes[i] = n
         U.adjacency[i] = Dict()

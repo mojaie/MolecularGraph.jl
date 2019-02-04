@@ -60,7 +60,7 @@
     etype = edgetype(graph)
     @test etype <: DirectedEdge
 
-    newgraph = similarmap(graph)
+    newgraph = similargraph(graph)
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
     @test typeof(graph) === typeof(newgraph)

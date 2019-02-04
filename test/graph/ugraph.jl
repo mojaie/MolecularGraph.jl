@@ -64,22 +64,18 @@
     etype = edgetype(graph)
     @test etype <: UndirectedEdge
 
-    newgraph = similarmap(graph)
+    newgraph = similargraph(graph)
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
     @test typeof(graph) === typeof(newgraph)
 
-    # Nodes and Edges have mutable attribute `attr`
+    # Nodes and Edges are mutable
     @test getnode(graph, 1) !== Node()
-    newedge = Edge(1, 2)
-    @test getedge(graph, 1, 2) !== newedge
-    # `connect` function updates connectivity without making new instances
-    updated = connect(newedge, 3, 4)
-    @test updated.attr === newedge.attr
-    @test updated.u == 3
-    @test updated.v == 4
-
-
+    @test getedge(graph, 1, 2) !== Edge(1, 2)
+    edge = getedge(graph, 1, 2)
+    edge.u = 2
+    edge.v = 1
+    @test getedge(graph, 1, 2) === edge
     # Conversion to VectorGrpah
     vec = VectorUDGraph{Node,Edge}(graph)
     # Indices are sorted automatically
@@ -140,7 +136,7 @@ end
     @test e[1] == 1
     @test isa(e[2], UndirectedEdge)
 
-    newgraph = similarmap(graph)
+    newgraph = similargraph(graph)
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
     @test isa(newgraph, MapUDGraph)

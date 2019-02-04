@@ -4,12 +4,12 @@
 #
 
 export
-    getnode, getedge,
+    getnode, getedge, hasedge,
     nodesiter, edgesiter, nodevector, edgevector,
     nodekeys, edgekeys,
     neighbors, successors, predecessors,
     nodecount, edgecount,
-    nodetype, edgetype, similarmap,
+    nodetype, edgetype, similargraph, newgraph,
     updatenode!, updateedge!,
     unlinknode!, unlinkedge!
 
@@ -18,6 +18,8 @@ getnode(view::GraphView, idx) = getnode(view.graph, idx)
 
 getedge(view::GraphView, idx) = getedge(view.graph, idx)
 getedge(view::GraphView, u, v) = getedge(view.graph, u, v)
+
+hasedge(view::GraphView, u, v) = hasedge(view.graph, u, v)
 
 nodesiter(view::GraphView) = nodesiter(view.graph)
 edgesiter(view::GraphView) = edgesiter(view.graph)
@@ -38,7 +40,32 @@ edgecount(view::GraphView) = edgecount(view.graph)
 
 nodetype(view::GraphView) = nodetype(view.graph)
 edgetype(view::GraphView) = edgetype(view.graph)
-similarmap(view::GraphView) = similarmap(view.graph)
+similargraph(view::GraphView) = similargraph(view.graph)
+
+
+"""
+    newgraph(view::UndirectedGraphView)
+
+Generate graph from `GraphView`
+"""
+function newgraph(view::UndirectedGraphView; deepcopy=false)
+    newg = similargraph(view.graph)
+    for (i, node) in nodesiter(view)
+        newg.nodes[i] = node
+        newg.adjacency[i] = Dict{Int,Int}()
+        for (nbr, e) in neighbors(view, i)
+            if !(nbr in keys(newg.adjacency))
+                edge = getedge(view, e) # TODO: deepcopy?
+                edge.u = i
+                edge.v = nbr
+                newg.edges[e] = edge
+            end
+            newg.adjacency[i][nbr] = e
+        end
+    end
+    return newg
+end
+
 
 # TODO: MutableGraphView
 updatenode!(view::GraphView, node, i) = updatenode!(view.graph, node, i)

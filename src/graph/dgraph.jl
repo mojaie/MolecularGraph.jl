@@ -4,26 +4,23 @@
 #
 
 export
-    Arrow, MapDGraph,
-    connect,
+    Arrow, similaredge, MapDGraph,
     getnode, getedge,
     nodesiter, edgesiter,
     nodekeys, edgekeys,
     predecessors, successors,
     updatenode!, updateedge!,
     unlinknode!, unlinkedge!,
-    nodetype, edgetype, similarmap
+    nodetype, edgetype, similargraph
 
 
 
 struct Arrow <: DirectedEdge
     source::Int
     target::Int
-    attr::Dict
 end
 
-Arrow(s, t) = Arrow(s, t, Dict())
-connect(a::Arrow, s, t) = Arrow(s, t, a.attr)
+similaredge(e::Arrow, s, t) = Arrow(s, t)
 
 
 struct MapDGraph{N<:AbstractNode,E<:DirectedEdge} <: DirectedGraph
@@ -133,7 +130,7 @@ end
 nodetype(graph::MapDGraph) = valtype(graph.nodes)
 edgetype(graph::MapDGraph) = valtype(graph.edges)
 
-function similarmap(graph::MapDGraph)
+function similargraph(graph::MapDGraph)
     N = nodetype(graph)
     E = edgetype(graph)
     MapDGraph{N,E}()

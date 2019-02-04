@@ -48,7 +48,7 @@
     etype = edgetype(subg)
     @test etype <: UndirectedEdge
 
-    newgraph = similarmap(subg)
+    newgraph = similargraph(subg)
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
     @test isa(newgraph, MapUDGraph)
@@ -69,7 +69,7 @@
     @test edgecount(subgsubg) == 1
     @test_throws KeyError getedge(subgsubg, 3)
     @test degree(subgsubg, 4) == 1
-    newsubgsubg = similarmap(subgsubg)
+    newsubgsubg = similargraph(subgsubg)
     @test isa(newsubgsubg, MapUDGraph)
 end
 
@@ -122,7 +122,7 @@ end
     etype = edgetype(subg)
     @test etype <: DirectedEdge
 
-    newgraph = similarmap(subg)
+    newgraph = similargraph(subg)
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
     @test isa(newgraph, MapDGraph)
@@ -137,7 +137,7 @@ end
     @test edgecount(subgsubg) == 1
     @test_throws KeyError getedge(subgsubg, 3)
     @test indegree(subgsubg, 4) == 0
-    newsubgsubg = similarmap(subgsubg)
+    newsubgsubg = similargraph(subgsubg)
     @test isa(newsubgsubg, MapDGraph)
 end
 
