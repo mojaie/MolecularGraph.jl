@@ -9,7 +9,7 @@ MolecularGraph.jl
 <img src="./assets/image/demo.svg" width="200"/><img src="./assets/image/Acetohexamide.svg" width="200"/><img src="./assets/image/Bivalirudin.svg" width="200"/><img src="./assets/image/Cefmenoxime.svg" width="200"/><img src="./assets/image/Succinic acid.svg" width="200"/><img src="./assets/image/Quinacrine.svg" width="200"/><img src="./assets/image/Docetaxel.svg" width="200"/><img src="./assets/image/FerrocenylethylMaleimide.svg" width="200"/>
 
 
-**MolecularGraph.jl** is a graph-based molecule modeling and chemoinformatics toolkit library written in Julia.
+**MolecularGraph.jl** is a graph-based molecule modeling and chemoinformatics analysis toolkit which is fully implemented in Julia.
 
 
 ## Installation
@@ -27,7 +27,7 @@ MolecularGraph.jl
 
 ## Features
 
-- I/O
+- Chemical structure file I/O
   - Structure image drawing and export to SVG
   - SDFile import/export (.sdf, .mol)
   - SMILES/SMARTS parser

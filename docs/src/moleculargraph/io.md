@@ -3,10 +3,9 @@
 
 ## SDFile
 
-```@docs
-sdfilereader(file::IO)
-sdfilereader(path::AbstractString)
-sdftomol(file::IO)
-sdftomol(path::AbstractString)
-parse(::Type{SDFile}, lines)
+```@autodocs
+Modules = [MolecularGraph]
+Pages   = ["sdfilereader.jl"]
+Private = false
+Order   = [:constant, :function, :type]
 ```

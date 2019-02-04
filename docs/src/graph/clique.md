@@ -1,14 +1,13 @@
 
 # Clique
 
-```@meta
-CurrentModule = Graph
-```
-
 
 ## Clique
 
-```@docs
-maxclique(graph::UDGraph; kwargs...)
-maximalcliques(graph::UDGraph; kwargs...)
+
+```@autodocs
+Modules = [Graph]
+Pages   = ["graph/clique.jl"]
+Private = false
+Order   = [:constant, :function, :type]
 ```

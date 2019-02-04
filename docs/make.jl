@@ -16,7 +16,7 @@ makedocs(
             "Clique" => "graph/clique.md"
         ],
         "Python interface" => "python.md",
-        "Design of molecular graph models" => "moleculargraph.md"
+        "Design of molecular graph models" => "design.md"
     ]
 )
 
