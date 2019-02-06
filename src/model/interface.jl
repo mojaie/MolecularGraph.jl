@@ -9,8 +9,7 @@ export
     VectorMol, MapMol, QueryMol,
     MolView, MutableMol,
     AbstractAtom, Atom, QueryAtom,
-    AbstractBond, Bond, QueryBond,
-    Annotation
+    AbstractBond, Bond, QueryBond
 
 
 abstract type MolGraph <: UndirectedGraphView end
@@ -39,6 +38,3 @@ abstract type QueryAtom <: AbstractAtom end
 abstract type AbstractBond <: UndirectedEdge end
 abstract type Bond <: AbstractBond end
 abstract type QueryBond <: AbstractBond end
-
-
-abstract type Annotation end

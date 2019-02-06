@@ -4,8 +4,80 @@
 #
 
 export
-    coords2d,
-    cartesian
+    vec2d,
+    vec3d,
+
+import LinearAlgebra: cross
+
+"""
+    coords2d(mol::MolGraph) -> InternalCoordinates
+
+Depth first search based 2D embedding for outerplanar graph.
+"""
+function coords2d(mol::MolGraph)
+    fragments = InternalCoordinates[]
+
+    # Scaffolds
+    scaffoldnodes = two_edge_connected(mol)
+    scaffolds = nodesubgraph(scaffoldnodes)
+    for scaffold in connected_component(scaffolds)
+        if isouterplaner(nodesubgraph(scaffold))
+            push!(fragments, outerplaner_embed2d(scaffold))
+        else
+            push!(fragments, cartesian_embed2d(scaffold))
+        end
+    end
+
+    # Chains
+    chainnodes = setdiff(nodekeys(mol), scaffoldnodes)
+    chains = nodesubgraph(chainnodes)
+    for chain in connected_component(chains)
+        push!(fragments, chain_embed2d(chain))
+    end
+
+    # Merge fragments
+
+
+    # Boundary check and avoid overlap
+
+    return coords
+end
+
+
+"""
+    chain_embed2d(graph::UDGraph; kwargs...) -> InternalCoords
+
+Return a 2D embedding of chain(=tree graph).
+"""
+function chain_embed2d(graph)
+    nodes = Set(chains)
+    while !isempty(nodes)
+        pathnodes = longestpath(chain)
+    end
+end
+
+
+"""
+    outerplaner_embed2d(graph::UDGraph; kwargs...) -> InternalCoords
+
+Return a 2D embedding of the outerplanar graph.
+
+A 2D embedding of an outerplanar graph can be easily determined by depth first
+search(DFS) based algorithm.
+"""
+function outerplaner_embed2d(graph)
+
+end
+
+
+"""
+    cartesian_embed2d(graph::UDGraph; kwargs...) -> Cartesian2D
+
+Cartesian 2D embedding
+"""
+function cartesian_embed2d(graph)
+
+end
 
 
 function coords2d(mol::VectorMol, root)
@@ -71,33 +143,3 @@ function coords2d(mol::VectorMol, root)
 end
 
 coords2d(mol) = coords2d(mol, 1)
-
-
-function cartesian(zmatrix)
-    zmatlen = size(zmatrix, 1)
-    coords = zeros(Float64, zmatlen, 3)
-    coords[1, :] = [0, 0, 0]
-    coords[2, :] = [zmatrix[2, 3], 0, 0]
-    ang0 = (1 - zmatrix[3, 5]) * pi
-    coords[3, :] = vec([sin(ang0) cos(ang0) 0] * zmatrix[3, 3]) + coords[2, :]
-    idxmap = Dict(idx => row for (row, idx) in enumerate(zmatrix[:, 1]))
-    for i in 4:zmatlen
-        p1 = vec3d(coords[idxmap[zmatrix[i, 2]], :])
-        p2 = vec3d(coords[idxmap[zmatrix[i, 4]], :])
-        p3 = vec3d(coords[idxmap[zmatrix[i, 6]], :])
-        v1 = p1 - p2
-        v2 = p3 - p2
-        v1u = normalize(v1)
-        normalv = normalize(cross(v1, v2))
-        ang1 = (1 - zmatrix[i, 5]) * pi
-        rot1 = rotation(normalv, ang1)
-        ang2 = zmatrix[i, 7] * pi
-        rot2 = rotation(v1u, ang2)
-        len = zmatrix[i, 3]
-        coords[i, :] = vec(rot2 * rot1 * v1u) * len + p1
-    end
-    indexed = hcat(coords, zmatrix[:, 1])
-    sorted = sortslices(indexed, dims=1, by=r->r[4])
-    filtered = sorted[sorted[:, 4] .> 0, :] # Remove dummy elements
-    filtered[:, 1:3]
-end

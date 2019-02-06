@@ -4,17 +4,20 @@
 #
 
 export
-    default_annotation!
+    default_annotation!,
+    clear_annotation!
 
 
-function default_annotation!(mol::VectorMol; recalculate=false)
-    if recalculate
-        empty!(mol.v)
-        empty!(mol.annotation)
-    end
+function default_annotation!(mol::VectorMol)
     topology!(mol)
     elemental!(mol)
     rotatable!(mol)
     aromatic!(mol)
+    return
+end
+
+function clear_annotation!(mol::VectorMol)
+    empty!(mol.vector)
+    empty!(mol.annotation)
     return
 end

@@ -7,133 +7,56 @@ export
     draw2d!,
     drawatomindex!
 
+using MolecularGraph.Geometry: _coord
 
-function singlebond!(canvas, uv, ucolor, vcolor)
-    drawline!(canvas, uv, ucolor, vcolor)
-    return
-end
+function draw2d!(canvas::Canvas, mol::VectorMol;
+                 setting=copy(DRAW_SETTING), recalculate=false)
+    elemental!(mol)
+    topology!(mol)
 
+    # 2D coordinate generation
+    if recalculate
+        mol.coords[:Cartesian2D] = coords2d(mol)
+    elseif !haskey(mol.coords, :Cartesian2D)
+        if nodetype(mol) === SmilesAtom
+            mol.coords[:Cartesian2D] = coords2d(mol)
+        else
+            matrix = zeros(Float64, nodecount(mol), 2)
+            for (i, node) in nodesiter(mol)
+                matrix[i, :] = node.coords[1:2]
+            end
+            mol.coords[:Cartesian2D] = cartesian2d(matrix)
+        end
+    end
 
-function wedged!(canvas, uv, ucolor, vcolor)
-    drawwedge!(canvas, swap(uv), ucolor)
-    return
-end
-
-
-function dashedwedged!(canvas, uv, ucolor, vcolor)
-    drawdashedwedge!(canvas, swap(uv), ucolor)
-    return
-end
-
-
-function wavesingle!(canvas, uv, ucolor, vcolor)
-    drawwave!(canvas, uv, ucolor)
-    return
-end
-
-
-function doublebond!(canvas, uv, ucolor, vcolor)
-    dist = canvas.scalef * canvas.mbwidthf / 2
-    uv1 = translate(uv, pi / 2, dist)
-    uv2 = translate(uv, -pi / 2, dist)
-    drawline!(canvas, uv1, ucolor, vcolor)
-    drawline!(canvas, uv2, ucolor, vcolor)
-    return
-end
-
-
-function crossdouble!(canvas, uv, ucolor, vcolor)
-    dist = canvas.scalef * canvas.mbwidthf / 2
-    uv1 = translate(uv, pi / 2, dist)
-    uv2 = translate(uv, -pi / 2, dist)
-    drawline!(canvas, vecpair(vecU(uv1), vecV(uv2)), ucolor, vcolor)
-    drawline!(canvas, vecpair(vecU(uv2), vecV(uv1)), ucolor, vcolor)
-    return
-end
-
-
-function ringdouble!(canvas, uv, ucolor, vcolor, rad)
-    dist = canvas.scalef * canvas.mbwidthf
-    uvin = translate(uv, rad, dist)
-    uvtr = trimUV(uvin, canvas.triminnerf)
-    drawline!(canvas, uv, ucolor, vcolor)
-    drawline!(canvas, uvtr, ucolor, vcolor)
-    return
-end
-
-clockwisedouble!(canvas, uv, ucolor, vcolor) = ringdouble!(
-    canvas, uv, ucolor, vcolor, -pi / 2)
-
-counterdouble!(canvas, uv, ucolor, vcolor) = ringdouble!(
-    canvas, uv, ucolor, vcolor, pi / 2)
-
-
-function triplebond!(canvas, uv, ucolor, vcolor)
-    dist = canvas.scalef * canvas.mbwidthf
-    uv1 = translate(uv, pi / 2, dist)
-    uv2 = translate(uv, -pi / 2, dist)
-    drawline!(canvas, uv, ucolor, vcolor)
-    drawline!(canvas, uv1, ucolor, vcolor)
-    drawline!(canvas, uv2, ucolor, vcolor)
-    return
-end
-
-
-BOND_DRAWER = Dict(
-    1 => Dict(
-        0 => singlebond!,
-        1 => wedged!,
-        6 => dashedwedged!,
-        4 => wavesingle!
-    ),
-    2 => Dict(
-        0 => clockwisedouble!,
-        1 => counterdouble!,
-        2 => doublebond!,
-        3 => crossdouble!
-    ),
-    3 => Dict(
-        0 => triplebond!
-    )
-)
-
-
-function draw2d!(canvas::Canvas, mol::VectorMol)
+    # Canvas settings
+    atomnotation2d!(mol, setting=setting)
+    bondnotation2d!(mol, setting=setting)
     initcanvas!(canvas, mol)
     if !canvas.valid
         return
     end
-    coords = canvas.coords
 
-    """ Draw bonds """
+    # Draw bonds
     for (i, bond) in edgesiter(mol)
         u = bond.u
         v = bond.v
-        upos = vec2d(coords[u, :])
-        vpos = vec2d(coords[v, :])
-        uv = vecpair(upos, vpos)
-        if upos == vpos
-            continue # Overlapped: avoid zero division
-        end
-        trimf = canvas.trimoverlapf
-        upos = mol[:AtomVisible][u] ? vecU(trimU(uv, trimf)) : upos
-        vpos = mol[:AtomVisible][v] ? vecV(trimV(uv, trimf)) : vpos
         drawer = BOND_DRAWER[mol[:BondOrder][i]][mol[:BondNotation][i]]
-        drawer(canvas, vecpair(upos, vpos),
-               mol[:AtomColor][u], mol[:AtomColor][v])
+        drawer(canvas, mol, u, v)
     end
-    """ Draw atoms """
+
+    # Draw atoms
     for i in 1:atomcount(mol)
-        if !mol[:AtomVisible][i]
+        if !mol[:Visible2D][i]
             continue
         end
-        pos = vec2d(coords[i, :])
+        pos = _coord(mol.coords[:Cartesian2D], i)
         # Determine text direction
         if mol[:H_Count][i] > 0
             cosnbrs = []
-            hrzn = vec2d(posX(pos) + 1, posY(pos))
-            for nbr in keys(neighbors(mol, i))
-                posnbr = vec2d(coords[nbr, :])
+            hrzn = [pos[1] + 1.0, pos[2]]
+            for nbr in neighborkeys(mol, i)
+                posnbr = _coord(mol.coords[:Cartesian2D], nbr)
                 dist = norm(posnbr - pos)
                 if dist > 0
                     dp = dot(hrzn - pos, posnbr - pos)
@@ -142,33 +65,27 @@ function draw2d!(canvas::Canvas, mol::VectorMol)
             end
             if isempty(cosnbrs) || minimum(cosnbrs) > 0
                 # [atom]< or isolated node(ex. H2O, HCl)
-                drawsymbolright!(
-                    canvas, pos, mol[:Symbol][i], mol[:Charge][i],
-                    mol[:H_Count][i], mol[:AtomColor][i]
-                )
+                atomsymbolright!(canvas, mol, i)
                 continue
             elseif maximum(cosnbrs) < 0
                 # >[atom]
-                drawsymbolleft!(
-                    canvas, pos, mol[:Symbol][i], mol[:Charge][i],
-                    mol[:H_Count][i], mol[:AtomColor][i]
-                )
+                atomsymbolleft!(canvas, mol, i)
                 continue
             end
         end
         # -[atom]- or no hydrogens
-        drawsymbolcenter!(
-            canvas, pos, mol[:Symbol][i], mol[:Charge][i],
-            mol[:H_Count][i], mol[:AtomColor][i]
-        )
+        atomsymbolcenter!(canvas, mol, i)
     end
+    return
 end
 
 
-function drawatomindex!(canvas::Canvas, mol::VectorMol)
+function drawatomindex!(canvas::Canvas, mol::VectorMol;
+                        color=Color(0, 0, 0), bgcolor=Color(240, 240, 255))
     for i in 1:atomcount(mol)
-        offset = mol[:AtomVisible][i] ? [0, canvas.fontsize / 2] : [0, 0]
-        pos = vec2d(canvas.coords[i, :]) + offset
-        drawtext!(canvas, pos, i, 0.7, Color(0, 0, 0), Color(240, 240, 255))
+        offset = mol[:Visible2D][i] ? [0 canvas.fontsize/2] : [0 0]
+        pos = _coord(mol.coords[:Cartesian2D], i) + offset
+        atom_annotation!(canvas, pos, i, color, bgcolor)
     end
+    return
 end

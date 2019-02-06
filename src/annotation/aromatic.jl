@@ -6,12 +6,10 @@
 export aromatic!
 
 
-function aromatic!(mol::VectorMol; recalculate=false)
-    if haskey(mol, :Aromatic) && !recalculate
-        return
-    end
-    topology!(mol, recalculate=recalculate)
-    elemental!(mol, recalculate=recalculate)
+function aromatic!(mol::VectorMol)
+    haskey(mol, :Aromatic) && return
+    topology!(mol)
+    elemental!(mol)
     # Precalculate carbonyl
     mol[:Aromatic] = falses(atomcount(mol))
     mol[:AromaticBond] = falses(bondcount(mol))

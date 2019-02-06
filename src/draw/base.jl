@@ -4,33 +4,38 @@
 #
 
 export
-    Canvas,
-    Color,
     DRAW_SETTING,
-    draw2d_annot!,
-    atomcolor,
-    atomvisible,
-    bondnotation!,
-    termbondnotation!,
-    ringbondnotation!,
+    BOND_DRAWER,
+    atomnotation2d!,
+    bondnotation2d!,
     boundary,
     chargesign,
     atommarkup,
     atomhtml
 
 
-abstract type Canvas end
+"""
+    DRAW_SETTING
 
+Default setting parameters of the molecule drawing canvas.
 
-struct Color
-    r::Int
-    g::Int
-    b::Int
-end
+# Required fields
 
-
+- `:display_terminal_carbon`(Bool) whether to display terminal C atom or not
+- `:double_bond_notation`(Symbol)
+    - `:alongside`: all double bonds are represented as a carbon skeleton and
+                    a segment alongside it.
+    - `:dual`: all double bonds are represented as two equal length parallel
+               segments.
+    - `:chain`: `:dual` for chain bonds and `:alongside` for ring bonds
+    - `:terminal`: `:dual` for terminal bonds (adjacent to degree=1 node) and
+                   `:alongside` for others (default)
+- `:atomcolor`(Dict{Symbol,Color}) atom symbol and bond colors for organic atoms
+- `:defaul_atom_color`(Dict{Symbol,Color}) colors for other atoms
+"""
 const DRAW_SETTING = Dict(
     :display_terminal_carbon => false,
+    :double_bond_notation => :terminal,  # :alongside, :dual, :chain, :terminal
     :atomcolor => Dict(
         :H => Color(0, 0, 0),
         :B => Color(128, 0, 0),
@@ -47,71 +52,96 @@ const DRAW_SETTING = Dict(
         :Br => Color(0, 192, 0),
         :I => Color(0, 128, 0)
     ),
-    :defaultatomcolor => Color(0, 192, 192)
+    :default_atom_color => Color(0, 192, 192)
 )
 
 
-function draw2d_annot!(mol::VectorMol,
-                       setting=copy(DRAW_SETTING); recalculate=false)
-    if haskey(mol, :Coords2D) && !recalculate
-       return
-    end
-    topology!(mol, recalculate=recalculate)
-    elemental!(mol, recalculate=recalculate)
-    if nodetype(mol) === SDFileAtom
-        mol[:Coords2D] = zeros(Float64, atomcount(mol), 2)
-        for (i, a) in nodesiter(mol)
-            mol[:Coords2D][i, :] = a.coords[1:2]
-        end
-    else
-        mol[:Coords2D] = coords2d(mol)
-    end
-    mol[:AtomColor] = atomcolor(setting).(mol[:Symbol])
-    mol[:AtomVisible] = atomvisible(
-        setting[:display_terminal_carbon]).(mol[:Symbol], mol[:Degree])
-    bondnotation!(mol)
+const BOND_DRAWER = Dict(
+    1 => Dict(
+        0 => singlebond!,
+        1 => wedged!,
+        6 => dashedwedged!,
+        4 => wavesingle!
+    ),
+    2 => Dict(
+        0 => clockwisedouble!,
+        1 => counterdouble!,
+        2 => doublebond!,
+        3 => crossdouble!
+    ),
+    3 => Dict(
+        0 => triplebond!
+    )
+)
+
+
+abstract type Canvas end
+
+
+"""
+    atomnotation2d!(mol::VectorMol; setting=DRAW_SETTING)
+
+Set atom symbol notation vectors of the molecule drawing
+"""
+function atomnotation2d!(mol::VectorMol; setting=DRAW_SETTING)
+    haskey(mol, :AtomColor) && return
+    elemental!(mol)
+    atomc = setting[:atomcolor]
+    dfc =  setting[:default_atom_color]
+    mol[:Color2D] = Color[get(atomc, sym, dfc) for sym in mol[:Symbol]]
+    termc = setting[:display_terminal_carbon]
+    mol[:Visible2D] = Bool[
+        (deg == 0 || sym != :C || (termc && deg == 1))
+        for (deg, sym) in mol[:Degree, :Symbol]
+    ]
     return
 end
 
 
-function atomcolor(setting)
-    symbol -> get(setting[:atomcolor], symbol, setting[:defaultatomcolor])
-end
+"""
+    bondnotation2d!(mol::VectorMol; setting=DRAW_SETTING)
 
-function atomvisible(termc)
-    (symbol, numb) -> numb == 0 || symbol != :C || (termc && numb == 1)
-end
-
-
-function bondnotation!(mol::VectorMol)
+Set bond notation vectors of the molecule drawing
+"""
+function bondnotation2d!(mol::VectorMol; setting=DRAW_SETTING)
+    haskey(mol, :BondNotation) && return
+    haskey(mol.coords, :Cartesian2D) || throw(
+        ErrorException(":Cartesian2D is required"))
+    elemental!(mol)
+    topology!(mol)
     if nodetype(mol) === SDFileAtom
         mol[:BondNotation] = getproperty.(edgevector(mol), :notation)
     else
         mol[:BondNotation] = zeros(Int, bondcount(mol))
     end
-    termbondnotation!(mol)
-    ringbondnotation!(mol)
-    return
-end
+    dbnt = setting[:double_bond_notation]
 
+    # All double bonds to be "="
+    if dbnt == :dual
+        for a in findall(mol[:BondOrder] .== 2)
+            mol[:BondNotation][bond] = 2
+        end
+        return
+    end
 
-function termbondnotation!(mol::VectorMol)
-    for a in findall(mol[:Degree] .== 1)
-        termbond = pop!(neighboredgekeys(mol, a))
-        if mol[:BondOrder][termbond] == 2
-            mol[:BondNotation][termbond] = 2
+    # Or only non-ring bonds to be "="
+    if dbnt == :terminal
+        for a in findall(mol[:Degree] .== 1)
+            bond = pop!(neighboredgekeys(mol, a))
+            if mol[:BondOrder][bond] == 2
+                mol[:BondNotation][bond] = 2
+            end
+        end
+    elseif dbnt == :chain
+        for a in findall(.!mol[:RingBond] .* (mol[:BondOrder] .== 2))
+            mol[:BondNotation][bond] = 2
         end
     end
-    return
-end
 
-
-function ringbondnotation!(mol::VectorMol)
+    # Align double bonds alongside the ring
     rings = mol.annotation[:Topology].rings
-    coords = mol[:Coords2D]
     for ring in sort(rings, by=length, rev=true)
-        vtcs = [vec2d(coords[n, :]) for n in ring]
-        cw = isclockwise(vtcs)
+        cw = isclockwise(cyclicpath(mol.coords[:Cartesian2D], ring))
         if cw === nothing
             continue
         end
@@ -123,28 +153,31 @@ function ringbondnotation!(mol::VectorMol)
         succ[ordered[end]] = ordered[1]
         rsub = nodesubgraph(mol.graph, ring)
         for (i, e) in edgesiter(rsub)
-            if mol[:BondOrder][i] != 2
-                continue
-            end
-            if succ[e.u] == e.v
+            if mol[:BondOrder][i] == 2 && succ[e.u] != e.v
                 mol[:BondNotation][i] = 1
             end
         end
     end
-    return
 end
 
 
-function boundary(mol::VectorMol, coords)
-    (left, right) = extrema(coords[:, 1])
-    (bottom, top) = extrema(coords[:, 2])
+"""
+    boundary(mol::VectorMol) -> (top, left, width, height, unit)
+
+Get boundaries and an appropriate bond length unit for the molecule drawing
+canvas.
+"""
+function boundary(mol::VectorMol)
+    coords = mol.coords[:Cartesian2D]
+    (left, right) = extrema(x_components(coords))
+    (bottom, top) = extrema(y_components(coords))
     width = right - left
     height = top - bottom
     dists = []
     # Size unit
     for bond in edgevector(mol)
-        u = vec2d(coords[bond.u, :])
-        v = vec2d(coords[bond.v, :])
+        u = _coord(coords, bond.u)
+        v =  _coord(coords, bond.v)
         d = norm(v - u)
         if d > 0.0001  # Remove overlapped
             push!(dists, d)
@@ -153,7 +186,7 @@ function boundary(mol::VectorMol, coords)
     if isempty(dists)
         long = max(width, height)
         if long > 0.0001
-            unit = long / sqrt(atomcount(mol))
+            unit = long / sqrt(nodecount(mol))
         else
             unit = 1
         end
@@ -165,7 +198,12 @@ function boundary(mol::VectorMol, coords)
 end
 
 
-function chargesign(charge)
+"""
+    chargesign(charge::Int) -> String
+
+Get a charge sign.
+"""
+function chargesign(charge::Int)
     if charge == 0
         return ""
     end

@@ -12,11 +12,10 @@ export
 
 struct GeneralMapMol{A<:Atom,B<:Bond} <: MapMolGraph
     graph::MapUDGraph{A,B}
-    annotation::Dict{Symbol, Annotation}
-    attribute::Dict
+    attribute::Dict{Symbol,String}
 
     function GeneralMapMol{A,B}() where {A<:Atom,B<:Bond}
-        new(MapUDGraph{A,B}(), Dict(), Dict())
+        new(MapUDGraph{A,B}(), Dict())
     end
 end
 
@@ -35,7 +34,7 @@ end
 
 struct ConnectedQueryMol{A<:QueryAtom,B<:QueryBond} <: QueryMolGraph
     graph::MapUDGraph{A,B}
-    attribute::Dict
+    attribute::Dict{Symbol,String}
 
     function ConnectedQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
         new(MapUDGraph{A,B}(), Dict())
@@ -56,9 +55,10 @@ end
 
 struct GeneralVectorMol{A<:Atom,B<:Bond} <: VectorMolGraph
     graph::VectorUDGraph{A,B}
-    vector::Dict{Symbol, Array}
-    annotation::Dict{Symbol, Annotation}
-    attribute::Dict
+    vector::Dict{Symbol,Vector}
+    annotation::Dict{Symbol,Annotation}
+    coords::Dict{Symbol,Coordinates}
+    attribute::Dict{Symbol,String}
 end
 
 
@@ -71,14 +71,14 @@ function GeneralVectorMol{A,B}(nodes::Vector{A}, edges::Vector{B}
         adj[e.v][e.u] = i
     end
     return GeneralVectorMol{A,B}(
-        VectorUDGraph{A,B}(nodes, edges, adj), Dict(), Dict(), Dict()
+        VectorUDGraph{A,B}(nodes, edges, adj), Dict(), Dict(), Dict(), Dict()
     )
 end
 
 
 function vectormol(mol::GeneralMapMol{A,B}) where {A<:Atom,B<:Bond}
     return GeneralVectorMol{A,B}(
-        VectorUDGraph{A,B}(mol.graph), Dict(), mol.annotation, mol.attribute
+        VectorUDGraph{A,B}(mol.graph), Dict(), Dict(), Dict(), mol.attribute
     )
 end
 

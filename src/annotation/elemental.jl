@@ -6,10 +6,8 @@
 export elemental!
 
 
-function elemental!(mol::VectorMol; recalculate=false)
-    if haskey(mol, :Symbol) && !recalculate
-        return
-    end
+function elemental!(mol::VectorMol)
+    haskey(mol, :Symbol) && return
     # Symbol
     mol[:Symbol] = getproperty.(nodevector(mol), :symbol)
     # Charge

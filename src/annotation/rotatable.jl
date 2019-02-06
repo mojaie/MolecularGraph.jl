@@ -6,12 +6,10 @@
 export rotatable!
 
 
-function rotatable!(mol; recalculate=false)
-    if haskey(mol, :Rotatable) && !recalculate
-        return
-    end
-    topology!(mol, recalculate=recalculate)
-    elemental!(mol, recalculate=recalculate)
+function rotatable!(mol)
+    haskey(mol, :Rotatable) && return
+    topology!(mol)
+    elemental!(mol)
     pred = (e) -> (
         mol[:BondOrder][e[1]] == 1
         && mol[:Degree][e[2].u] != 1

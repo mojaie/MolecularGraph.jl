@@ -6,15 +6,19 @@
 export
     trivialhydrogens,
     all_hydrogens,
+    make_hydrogens_implicit!,
     make_hydrogens_implicit,
+    make_hydrogens_explicit!,
     make_hydrogens_explicit,
     largest_component_nodes,
+    largestcomponent!,
     largestcomponent,
     neutralize_acids!,
     neutralize_oniums!,
     depolarize!,
     triplebond_anion!,
-    canonicalize!
+    canonicalize!,
+    canonicalize
 
 # TODO: large conjugated system
 # TODO: salts and waters should detected by functional group analysis
@@ -74,16 +78,19 @@ end
 
 
 """
-    make_hydrogens_implicit(mol::MolGraph) -> GeneralMapMol
+    make_hydrogens_implicit!(mol::MolGraph) -> GeneralMapMol
 
 Return molecule whose hydrogen nodes are removed. If option `all` is set to
 false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
 """
-function make_hydrogens_implicit(mol::MolGraph; all=true, deepcopy=false)
+function make_hydrogens_implicit!(mol::MolGraph; all=true)
     hydrogens = all ? all_hydrogens : trivialhydrogens
     ns = setdiff(nodekeys(mol), hydrogens(mol))
     return newgraph(nodesubgraph(mol, ns))
 end
+
+make_hydrogens_implicit(m::MolGraph; kwargs...) = make_hydrogens_implicit!(
+    deepcopy(m); kwargs...)
 
 
 """
@@ -92,7 +99,7 @@ end
 Return molecule whose hydrogens are fully attached. If option `all` is set to
 false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
 """
-function make_hydrogens_explicit(mol::VectorMol; deepcopy=false)
+function make_hydrogens_explicit!(mol::VectorMol)
     newmol = newgraph(mol)
     ncnt = nodecount(mol)
     ecnt = edgecount(mol)
@@ -107,6 +114,8 @@ function make_hydrogens_explicit(mol::VectorMol; deepcopy=false)
     end
     return newmol
 end
+
+make_hydrogens_explicit(m::VectorMol) = make_hydrogens_explicit!(deepcopy(m))
 
 
 """
@@ -128,10 +137,12 @@ end
 
 Return largest connected component of the molecular graph.
 """
-function largestcomponent(mol::MolGraph; deepcopy=false)
+function largestcomponent!(mol::MolGraph)
     ns = largest_component_nodes(mol)
     return newgraph(nodesubgraph(mol, ns))
 end
+
+largestcomponent(mol::MolGraph) = largestcomponent!(deepcopy(mol))
 
 
 """
@@ -257,5 +268,7 @@ function canonicalize!(mol::VectorMol)
     neutralizeoniums!(mol)
     depolarize!(mol)
     triplebondanion!(mol)
-    aromatic!(mol, recalculate=true)
+    return newgraph(mol)
 end
+
+canonicalize(mol::VectorMol) = canonicalize!(deepcopy(mol))

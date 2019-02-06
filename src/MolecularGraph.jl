@@ -15,15 +15,25 @@ module MolecularGraph
     end
 
     module Geometry
+        using Formatting
         using LinearAlgebra
         using StaticArrays
-        include("geometry.jl")
+
+        include("./geometry/interface.jl")
+
+        include("./geometry/coords2d.jl")
+        # include("./geometry/coords3d.jl")
+        # include("./geometry/coordsinternal.jl")
+        # include("./geometry/embed2d.jl")
+        # include("./geometry/embed3d.jl")
     end
 
     module Graph
         using StaticArrays
         using ..Util
+
         include("./graph/interface.jl")
+
         include("./graph/ugraph.jl")
         include("./graph/dgraph.jl")
         include("./graph/graphutil.jl")
@@ -54,6 +64,7 @@ module MolecularGraph
 
     using LinearAlgebra
     using Printf
+    using Formatting
     using StaticArrays
     using Statistics
     using YAML
@@ -61,7 +72,10 @@ module MolecularGraph
     using ..Geometry
     using ..Graph
 
+    include("./annotation/interface.jl")
     include("./model/interface.jl")
+    include("./draw/interface.jl")
+
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
@@ -87,8 +101,8 @@ module MolecularGraph
     include("./smarts/logicaloperator.jl")
     include("./smarts/molecule.jl")
 
+    include("./draw/color.jl")
     include("./draw/base.jl")
-    include("./draw/coords2d.jl")
     include("./draw/draw2d.jl")
     include("./draw/svg.jl")
 

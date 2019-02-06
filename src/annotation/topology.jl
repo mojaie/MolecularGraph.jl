@@ -15,10 +15,8 @@ struct Topology <: Annotation
 end
 
 
-function topology!(mol::VectorMol; recalculate=false)
-    if haskey(mol.annotation, :Topology) && !recalculate
-        return
-    end
+function topology!(mol::VectorMol)
+    haskey(mol.annotation, :Topology) && return
     # TODO: shortcut function
     # minimumcycles is derived from 2-edge connected components
     # 2-edge connected components is derived from connected components

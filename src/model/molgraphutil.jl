@@ -12,10 +12,12 @@ export
     unlinknode!, unlinkatom!, unlinkedge!, unlinkbond!
 
 
-import Base: getindex, haskey, setindex!
+Base.getindex(mol::VectorMol, k::Symbol) = mol.vector[k]
+Base.getindex(
+    mol::VectorMol, k1::Symbol, k2::Symbol, K::Symbol...
+) = AnnotationArray(
+    hcat([mol.vector[k] for k in [k1, k2, K...]]...), [k1, k2, K...])
 
-
-Base.getindex(mol::VectorMol, k) = mol.vector[k]
 Base.haskey(mol::VectorMol, k) = haskey(mol.vector, k)
 
 function Base.setindex!(mol::VectorMol, v, k)

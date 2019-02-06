@@ -18,11 +18,9 @@ const WCLOGP_TABLE = YAML.load(open(
 struct WCLogP <: Annotation end
 
 
-function wclogpcalc!(mol; recalculate=false)
-    if haskey(mol, :WCLogPContrib) && !recalculate
-        return
-    end
-    aromatic!(mol, recalculate=recalculate)
+function wclogpcalc!(mol)
+    haskey(mol, :WCLogPContrib) && return
+    aromatic!(mol)
     wclogptype!(mol)
     wclogpcontrib!(mol)
     return
