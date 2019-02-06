@@ -3,6 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
 module UtilTest
     using Test
     using MolecularGraph.Util
@@ -48,6 +49,7 @@ module GraphTest
     include("./graph/isomorphism/cliquebased.jl")
 end
 
+
 module MolecularGraphTest
     using Test
     using StaticArrays
@@ -59,6 +61,7 @@ module MolecularGraphTest
     include("./model/molgraph.jl")
 
     include("sdfilereader.jl")
+    include("sdfilewriter.jl")
 
     include("./smarts/base.jl")
     include("./smarts/logicaloperator.jl")

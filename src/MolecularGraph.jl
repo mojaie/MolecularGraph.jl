@@ -11,6 +11,7 @@ module MolecularGraph
         Graph
 
     module Util
+        include("./util/meta.jl")
         include("./util/iterator.jl")
     end
 
@@ -108,5 +109,6 @@ module MolecularGraph
 
     include("download.jl")
     include("sdfilereader.jl")
+    include("sdfilewriter.jl")
 
 end

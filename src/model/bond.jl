@@ -15,15 +15,12 @@ import ..Graph: similaredge
 
 mutable struct SDFileBond <: Bond
     """Bond
-
     * Notation
         * Single bond
             * 0: u - v
             * 1: u ◀ v (Up-arrow)
-            * 2: u ▶ v
-            * 3: u ◁ v (Down-arrow)
-            * 4: u ▷ v
-            * 5: u ~ v (Chiral)
+            * 4: u ~ v (Up or down)
+            * 6: u ◁ v (Down-arrow)
         * Double bond
             * 0: v ニ u (clockwise, default)
             * 1: u ニ v (counter-clockwise)
