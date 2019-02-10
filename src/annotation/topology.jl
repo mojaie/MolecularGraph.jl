@@ -15,6 +15,11 @@ struct Topology <: Annotation
 end
 
 
+"""
+    topology!(mol::VectorMol)
+
+Assign graph topology parameter vectors to the molecule.
+"""
 function topology!(mol::VectorMol)
     haskey(mol.annotation, :Topology) && return
     # TODO: shortcut function

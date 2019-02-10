@@ -1,14 +1,14 @@
 
 @testset "annotation.wclogp" begin
 
-@testset "wclogp" begin
+@testset "wildman_crippen_logp" begin
     # Wildman and Crippen 1999, Table.2
     mol1 = smilestomol("C=1C=CC=C(OC)C=1O")
     wclogpcalc!(mol1)
     @test mol1[:WCLogP] == [
         :C18, :C18, :C18, :C18, :C23, :O4, :C3, :C23, :O2
     ]
-    @test wclogp(mol1) == 1.40
+    @test wildman_crippen_logp(mol1) == 1.40
 
     mol2 = smilestomol("C1=CC=CC=C1C2=CC=CC=N2")
     wclogpcalc!(mol2)
@@ -16,7 +16,7 @@
         :C18, :C18, :C18, :C18, :C18, :C20, :C20,
         :C18, :C18, :C18, :C18, :N11
     ]
-    @test wclogp(mol2) == 2.75
+    @test wildman_crippen_logp(mol2) == 2.75
 
     # Test molecules
     TESTMOL_DIR = joinpath(dirname(@__FILE__), "..", "..", "assets", "test")

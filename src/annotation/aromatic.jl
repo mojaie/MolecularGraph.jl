@@ -6,6 +6,20 @@
 export aromatic!
 
 
+"""
+    aromatic!(mol::VectorMol)
+
+Assign aromaticity parameters to the molecule parameter vector.
+
+This sets two parameter vector `:Aromatic` and `:AromaticBond` to the molecule.
+`:Aromatic` indicates whether the atoms are aromatic or not. Similarly,
+`:AromaticBond` indicates whether the bonds are aromatic or not.
+
+Note that aromaticity described here means simplified binary descriptor
+(aromatic or not) based on classical Huckel's rule. This is intended for use in
+some kind of pharmaceutical researches. Non-classical aromaticity such as
+Moebius aromaticity is not considered.
+"""
 function aromatic!(mol::VectorMol)
     haskey(mol, :Aromatic) && return
     topology!(mol)

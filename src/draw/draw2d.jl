@@ -9,6 +9,13 @@ export
 
 using MolecularGraph.Geometry: _coord
 
+
+"""
+    draw2d!(canvas::Canvas, mol::VectorMol;
+            setting=copy(DRAW_SETTING), recalculate=false)
+
+Draw molecular image to the canvas.
+"""
 function draw2d!(canvas::Canvas, mol::VectorMol;
                  setting=copy(DRAW_SETTING), recalculate=false)
     elemental!(mol)

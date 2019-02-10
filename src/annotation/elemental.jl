@@ -6,6 +6,20 @@
 export elemental!
 
 
+"""
+    elemental!(mol::VectorMol)
+
+Assign molecular parameter vectors which are fundamental and may be refered
+by other chemical descriptor calculation methods.
+
+# Vector keys
+
+- `:Symbol`(Symbol) atom symbol
+- `:Charge`(Int) atom charge
+- `:Multiplicity`(Int) 1: non-radical, 2: radical, 3: biradical
+- `:BondOrder`(Int) bond order
+
+"""
 function elemental!(mol::VectorMol)
     haskey(mol, :Symbol) && return
     # Symbol

@@ -6,7 +6,12 @@
 export rotatable!
 
 
-function rotatable!(mol)
+"""
+    rotatable!(mol::VectorMol)
+
+Assign `:Rotatable` parameter vector to the molecule.
+"""
+function rotatable!(mol::VectorMol)
     haskey(mol, :Rotatable) && return
     topology!(mol)
     elemental!(mol)

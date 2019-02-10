@@ -18,7 +18,12 @@ const WCLOGP_TABLE = YAML.load(open(
 struct WCLogP <: Annotation end
 
 
-function wclogpcalc!(mol)
+"""
+    wclogpcalc!(mol::VectorMol)
+
+Assign Wildman-Crippen LogP atom types and contributions.
+"""
+function wclogpcalc!(mol::VectorMol)
     haskey(mol, :WCLogPContrib) && return
     aromatic!(mol)
     wclogptype!(mol)
@@ -27,7 +32,7 @@ function wclogpcalc!(mol)
 end
 
 
-function wclogptype!(mol)
+function wclogptype!(mol::VectorMol)
     mol[:WCLogP] = fill(:undef, atomcount(mol))
     ALIPH_HETERO = Set([:H, :C, :N, :O, :P, :S, :F, :Cl, :Br, :I])
     AROM_HETERO = Dict(
@@ -268,7 +273,7 @@ function wclogptype!(mol)
 end
 
 
-function wclogphydrogentype(mol, i)
+function wclogphydrogentype(mol::VectorMol, i)
     if mol[:Symbol][i] == :C
         return :H1 # Hydrocarbon
     elseif mol[:Symbol][i] == :N
@@ -295,7 +300,7 @@ function wclogphydrogentype(mol, i)
 end
 
 
-function wclogpcontrib!(mol)
+function wclogpcontrib!(mol::VectorMol)
     mol[:WCLogPContrib] = zeros(atomcount(mol))
     for i in nodekeys(mol)
         hcnt = mol[:H_Count][i]

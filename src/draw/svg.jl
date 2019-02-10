@@ -60,7 +60,7 @@ mutable struct SvgCanvas <: Canvas
 end
 
 
-function tosvg(canvas::Canvas, width, height)
+function tosvg(canvas::Canvas, width::Int, height::Int)
     vbWf = fmt(".2f", canvas.viewboxW)
     vbHf = fmt(".2f", canvas.viewboxH)
     bgc = format("rgb({:d}, {:d}, {:d})", canvas.bgcolor)
@@ -82,13 +82,26 @@ function tosvg(canvas::Canvas, width, height)
 end
 
 
-function drawsvg!(mol::VectorMol, width, height)
+"""
+    drawsvg!(mol::VectorMol, width::Int, height::Int)
+
+Generate molecular structure image as a SVG format string.
+
+`width` and `height` specifies the size of the image (width and height
+attribute of svg tag).
+"""
+function drawsvg!(mol::VectorMol, width::Int, height::Int)
     canvas = SvgCanvas()
     draw2d!(canvas, mol)
     tosvg(canvas, width, height)
 end
 
 
+"""
+    initcanvas!(canvas::Canvas, mol::VectorMol)
+
+Move and adjust the size of the molecule for drawing.
+"""
 function initcanvas!(canvas::Canvas, mol::VectorMol)
     nodecount(mol) == 0 && return
     coords = rawdata(mol.coords[:Cartesian2D])

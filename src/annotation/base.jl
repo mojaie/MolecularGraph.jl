@@ -7,7 +7,11 @@ export
     default_annotation!,
     clear_annotation!
 
+"""
+    default_annotation!(mol::VectorMol)
 
+Assign default parameter vectors to the molecule.
+"""
 function default_annotation!(mol::VectorMol)
     topology!(mol)
     elemental!(mol)
@@ -16,6 +20,12 @@ function default_annotation!(mol::VectorMol)
     return
 end
 
+
+"""
+    clear_annotation!(mol::VectorMol)
+
+Clear all parameter vectors and annotations.
+"""
 function clear_annotation!(mol::VectorMol)
     empty!(mol.vector)
     empty!(mol.annotation)
