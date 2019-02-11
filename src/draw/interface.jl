@@ -19,6 +19,9 @@ export
     atom_annotation!
 
 
+using MolecularGraph.Geometry: _point, _vector, _u, _v
+
+
 # Required functions for drawing canvas
 # Single bonds
 function singlebond! end

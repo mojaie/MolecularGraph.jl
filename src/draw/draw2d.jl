@@ -7,8 +7,6 @@ export
     draw2d!,
     drawatomindex!
 
-using MolecularGraph.Geometry: _coord
-
 
 """
     draw2d!(canvas::Canvas, mol::VectorMol;
@@ -57,13 +55,13 @@ function draw2d!(canvas::Canvas, mol::VectorMol;
         if !mol[:Visible2D][i]
             continue
         end
-        pos = _coord(mol.coords[:Cartesian2D], i)
+        pos = _point(mol.coords[:Cartesian2D], i)
         # Determine text direction
         if mol[:H_Count][i] > 0
             cosnbrs = []
             hrzn = [pos[1] + 1.0, pos[2]]
             for nbr in neighborkeys(mol, i)
-                posnbr = _coord(mol.coords[:Cartesian2D], nbr)
+                posnbr = _point(mol.coords[:Cartesian2D], nbr)
                 dist = norm(posnbr - pos)
                 if dist > 0
                     dp = dot(hrzn - pos, posnbr - pos)
@@ -91,7 +89,7 @@ function drawatomindex!(canvas::Canvas, mol::VectorMol;
                         color=Color(0, 0, 0), bgcolor=Color(240, 240, 255))
     for i in 1:atomcount(mol)
         offset = mol[:Visible2D][i] ? [0 canvas.fontsize/2] : [0 0]
-        pos = _coord(mol.coords[:Cartesian2D], i) + offset
+        pos = _point(mol.coords[:Cartesian2D], i) + offset
         atom_annotation!(canvas, pos, i, color, bgcolor)
     end
     return

@@ -176,8 +176,8 @@ function boundary(mol::VectorMol)
     dists = []
     # Size unit
     for bond in edgevector(mol)
-        u = _coord(coords, bond.u)
-        v =  _coord(coords, bond.v)
+        u = _point(coords, bond.u)
+        v =  _point(coords, bond.v)
         d = norm(v - u)
         if d > 0.0001  # Remove overlapped
             push!(dists, d)

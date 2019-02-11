@@ -3,25 +3,26 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
+"""
 module UtilTest
     using Test
     using MolecularGraph.Util
     include("./util/iterator.jl")
 end
-
+"""
 
 module GeometryTest
     using Test
     using LinearAlgebra
     using StaticArrays
+    using Formatting
     using MolecularGraph.Geometry
 
     include("./geometry/coords2d.jl")
     # include("./geometry/embed2d.jl")
 end
 
-
+"""
 module GraphTest
     using Test
     using MolecularGraph.Graph
@@ -85,3 +86,4 @@ module MolecularGraphTest
     include("./draw/base.jl")
     include("./draw/svg.jl")
 end
+"""

@@ -9,8 +9,6 @@ export
     drawsvg!,
     initcanvas!
 
-using MolecularGraph.Geometry: _coord, _vector, _u, _v
-
 
 mutable struct SvgCanvas <: Canvas
     fontweight::String
@@ -215,7 +213,7 @@ end
 function atomsymbol!(canvas, mol, i;
                      direction=:right, anchor=""" text-anchor="end" """,
                      xoffset=0)
-    pos = _coord(mol.coords[:Cartesian2D], i) + [xoffset, canvas.fontsize/2]
+    pos = _point(mol.coords[:Cartesian2D], i) + [xoffset, canvas.fontsize/2]
     (x, y) = fmt.(".2f", pos)
     small = round(Int, canvas.fontsize * 0.7)
     hcnt = mol[:Connectivity][i] - mol[:Degree][i]
@@ -244,7 +242,7 @@ atomsymbolleft!(canvas, mol, i) = atomsymbol!(
 
 function atom_annotation!(canvas, mol, i, text, color, bgcolor)
     size = round(Int, canvas.fontsize * canvas.annotsizef)
-    pos = _coord(mol.coords[:Cartesian2D], i)
+    pos = _point(mol.coords[:Cartesian2D], i)
     (bx, by) = fmt.(".2f", pos)
     (tx, ty) = fmt.(".2f", pos + [0 size])
     c = format("rgb({:d}, {:d}, {:d})", color)

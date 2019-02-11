@@ -39,22 +39,40 @@ struct CyclicPath2D
 end
 
 
+"""
+    rawdata(coords) -> Matrix{Float64}
+
+Get raw data matrix of the coordinate.
+"""
+rawdata
 rawdata(coords::Cartesian2D) = coords.coords
 rawdata(point::Point2D) = point.coords[point.i, :]
 rawdata(segment::Segment2D) = segment.coords[[segment.u, segment.v], :]
+rawdata(path::CyclicPath2D) = segment.coords[path.nodes, :]
 
 
+"""
+    cartesian2d(coords::Matrix{Float64}) -> Cartesian2D
+
+Construct a new `Cartesian2D` object from `Array{Float64,2}`. The size of the
+array along the second dimension should be two, or it throws `DimensionMismatch`.
+"""
 function cartesian2d(coords::Matrix{Float64})
     size(coords, 2) == 2 || throw(
         DimensionMismatch("Unexpected matrix size $(size(coords))"))
-    Cartesian2D(coords)
+    return Cartesian2D(coords)
 end
 
-point(coords::Cartesian2D, i) = Point2D(rawdata(coords), i)
-point(segment::Segment2D, i) = Point2D(rawdata(segment), i)
+
+_point(coords::Cartesian2D, i::Int) = coords.coords[i, :]
+_point(segment::Segment2D, i::Int) = segment.coords[i, :]
+point(coords::Cartesian2D, i::Int) = Point2D(rawdata(coords), i)
+point(segment::Segment2D, i::Int) = Point2D(rawdata(segment), i)
 point(x::Float64, y::Float64) = Point2D([x y], 1)
+
 segment(coords::Cartesian2D, u, v) = Segment2D(rawdata(coords), u, v)
 segment(coords::Matrix{Float64}) = Segment2D(coords, 1, 2)
+
 cyclicpath(coords::Cartesian2D, nodes) = CyclicPath2D(rawdata(coords), nodes)
 cyclicpath(coords::Matrix{Float64}) = CyclicPath2D(coords, 1:size(coords, 1))
 
@@ -64,15 +82,12 @@ y(point::Point2D) = point.coords[point.i, 2]
 
 _u(segment::Segment2D) = segment.coords[segment.u, :]
 _v(segment::Segment2D) = segment.coords[segment.v, :]
-u(segment::Segment2D) = point(segment, 1) # Deprecated
-v(segment::Segment2D) = point(segment, 2) # Deprecated
 ux(segment::Segment2D) = segment.coords[segment.u, 1]
 uy(segment::Segment2D) = segment.coords[segment.u, 2]
 vx(segment::Segment2D) = segment.coords[segment.v, 1]
 vy(segment::Segment2D) = segment.coords[segment.v, 2]
 
-_coord(coords::Cartesian2D, i::Int) = coords.coords[i, :]
-coord(coords::Cartesian2D, i::Int) = point(_coord(coords, i))
+
 
 
 function setcoord!(segment::Segment2D, point::Point2D, i::Int)
