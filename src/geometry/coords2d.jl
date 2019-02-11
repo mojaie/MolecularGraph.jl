@@ -6,7 +6,7 @@
 export
     rawdata, setcoord!, cartesian2d, point, segment, cyclicpath,
     x, y, u, v, ux, uy, vx, vy,
-    coord, x_components, y_components,
+    x_components, y_components,
     vector, interiorangle, translate,
     midpoint, trim_u, trim_v, trim_uv,
     transformmatrix, isclockwise, radiantophase

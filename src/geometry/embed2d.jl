@@ -4,41 +4,42 @@
 #
 
 export
-    vec2d,
-    vec3d,
+    compute2dcoords
 
-import LinearAlgebra: cross
 
 """
-    coords2d(mol::MolGraph) -> InternalCoordinates
+    compute2dcoords(mol::MolGraph) -> InternalCoordinates
 
-Depth first search based 2D embedding for outerplanar graph.
+Compute 2D coordinates of the molecular graph.
 """
-function coords2d(mol::MolGraph)
+function compute2dcoords(mol::MolGraph)
+    graph = mol.graph
     fragments = InternalCoordinates[]
 
-    # Scaffolds
-    scaffoldnodes = two_edge_connected(mol)
+    # Extract scaffolds
+    scaffoldnodes = biconnected_component(graph) # not 2-edge connected
     scaffolds = nodesubgraph(scaffoldnodes)
     for scaffold in connected_component(scaffolds)
-        if isouterplaner(nodesubgraph(scaffold))
+        if is_outerplanar(nodesubgraph(scaffold))
             push!(fragments, outerplaner_embed2d(scaffold))
         else
             push!(fragments, cartesian_embed2d(scaffold))
         end
+        # TODO: macrocycle templates
     end
 
     # Chains
-    chainnodes = setdiff(nodekeys(mol), scaffoldnodes)
+    chainnodes = setdiff(nodekeys(graph), scaffoldnodes)
     chains = nodesubgraph(chainnodes)
     for chain in connected_component(chains)
         push!(fragments, chain_embed2d(chain))
     end
 
-    # Merge fragments
+    # TODO: Merge fragments
 
 
-    # Boundary check and avoid overlap
+    # TODO: Boundary check and avoid overlap
+
 
     return coords
 end
@@ -52,8 +53,34 @@ Return a 2D embedding of chain(=tree graph).
 function chain_embed2d(graph)
     nodes = Set(chains)
     while !isempty(nodes)
-        pathnodes = longestpath(chain)
+        longest = longestpath(chain)
+        push!(path, chain(longest))
+        setdiff!(nodes, longest)
     end
+end
+
+
+"""
+    is_outerplanar(mol::VectorMol) -> Bool
+
+Return whether the graph is outerplanar or not
+"""
+function is_outerplanar(mol::VectorMol)
+    # TODO: generalize and move to graph.planarity
+    # The given graph should be a biconnected graph
+
+    # A biconnected braph G is K4 minor if the graphs have 2n-3 and more edges.
+    edgecount(mol) > nodecount(mol) * 2 - 3 && return false
+
+    # A biconnected graph G is K2,3 minor if and only if any pair of basic
+    # cycles has two or more edges in common.
+    seen = Set{Set{Int}}()
+    for i findall(mol[:RingBondMem] .> 1)
+        m = mol[:RingBondMem][i]
+        m in seen && return false
+        push!(seen, m)
+    end
+    return true
 end
 
 
@@ -62,11 +89,47 @@ end
 
 Return a 2D embedding of the outerplanar graph.
 
-A 2D embedding of an outerplanar graph can be easily determined by depth first
-search(DFS) based algorithm.
+A 2D embedding of an outerplanar graph can be easily determined by Hamiltonian
+path traversal.
 """
-function outerplaner_embed2d(graph)
+function outerplaner_embed2d(mol::VecterMol)
+    coords = internalcoords()
+    root = pop!(nodekeys(mol))
+    stack = [root]
+    pred = Dict(root => root)
+    while !isempty(stack)
+        c = pop!(stack)
 
+        p1 = pred[c]
+        p2 = pred[p1]
+        p3 = pred[p2]
+        r = pop!(copy(mol[:RingMem][c]))
+        ringsize = pop!(copy(mol[:RingSize][c]))
+
+        for (nbr, bond) in neighbors(mol, c)
+            if length(mol[:RingBondMem][bond]) == 1 && !(nbr in keys(pred))
+                pred[nbr] = c
+            end
+        end
+
+        if !isempty(isec3)
+            # elongate ring
+            angle = 1 - 2 / length(rings[isec3[1]])
+            setnodes!(coords, c, [p1, p2, p3], [1,0, angle, 0.0])
+        elseif !isempty(isec2)
+            # branch ring
+            angle = 1 - 2 / length(rings[isec2[1]])
+            setnodes!(coords, c, [p1, p2, p3], [1,0, angle, 1.0])
+        end
+        # TODO: spiro
+        nextlevels = []
+        pop!(nbrs, pred[c])
+        backtracked = length(nextlevels) == 0
+        append!(stack, nextlevels)
+        push!(done, c)
+    end
+    coords3d = cartesian(zmatrix)
+    coords3d[:, 1:2]
 end
 
 
@@ -141,5 +204,3 @@ function coords2d(mol::VectorMol, root)
     coords3d = cartesian(zmatrix)
     coords3d[:, 1:2]
 end
-
-coords2d(mol) = coords2d(mol, 1)

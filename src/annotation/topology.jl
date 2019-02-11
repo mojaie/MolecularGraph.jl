@@ -36,6 +36,8 @@ function topology!(mol::VectorMol)
     mol[:RingSize] = Set{Int}[Set() for i in 1:atomcount(mol)]
     # Ring bond or not
     mol[:RingBond] = falses(bondcount(mol))
+    # Ring bond membership
+    mol[:RingBondMem] = Set{Int}[Set() for i in 1:atomcount(mol)]
     for (i, ring) in enumerate(rings)
         size = length(ring)
         for n in ring
@@ -45,6 +47,7 @@ function topology!(mol::VectorMol)
         sub = nodesubgraph(mol.graph, Set(ring))
         for e in edgekeys(sub)
             mol[:RingBond][e] = true
+            push!(mol[:RingBondMem][e], i)
         end
     end
     # Ring membership count

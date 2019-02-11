@@ -4,39 +4,47 @@
 #
 
 export
-    matrix, point, segment,
-    x, y, z, u, v, ux, uy, uz, vx, vy, vz,
-    coord, x_components, y_components, z_components,
-    fmt,
-    vector,
-    rotationmatrix
+    internalcoords
 
 
-import LinearAlgebra: cross
 import Formatting: fmt
 
 
 mutable struct InternalCoords <: Coordinates
-    indices::Matrix{Int}
-    geometry::Matrix{Float64}
-
-    function InternalCoords(indices, geometry)
-        new(indices, geometry)
-    end
+    nodes::Matrix{Int} # node1, node2 and node3
+    geometry::Matrix{Float64} # distance, angle and dihedral
 end
 
 
-node1(coords::InternalCoords, i::Int) = indices[i, 1]
-node2(coords::InternalCoords, i::Int) = indices[i, 2]
-node3(coords::InternalCoords, i::Int) = indices[i, 3]
-distance(coords::InternalCoords, i::Int) = geometry[i, 1]
-angle(coords::InternalCoords, i::Int) = geometry[i, 2]
-dihedral(coords::InternalCoords, i::Int) = geometry[i, 3]
+struct PointInternal
+    nodes::Matrix{Int}
+    geometry::Matrix{Float64}
+    i::Int
+end
 
 
-_coord(coords::InternalCoords, i::Int) = cat(indices[i, :3], geometry[i, :3])
-coord(coords::InternalCoords, i::Int) = PointInternal(_coord(coords, i)...)
+function internalcoords(nodes, geometry)
+    size(nodes, 2) == 3 || throw(
+        DimensionMismatch("Unexpected matrix size $(size(coords))"))
+    size(geometry, 2) == 3 || throw(
+        DimensionMismatch("Unexpected matrix size $(size(coords))"))
+    InternalCoords(nodes, geometry)
+end
 
+
+rawdata(coords::InternalCoords) = (coords.nodes, coords.geometry)
+rawdata(point::PointInternal) = (
+    point.nodes[point.i, :], point.geometry[point.i, :])
+
+_point(coords::InternalCoords, i::Int) = cat(nodes[i, :3], geometry[i, :3])
+point(coords::InternalCoords, i::Int) = PointInternal(rawdata(coords), i)
+
+node1(coords::InternalCoords, i::Int) = coords.nodes[i, 1]
+node2(coords::InternalCoords, i::Int) = coords.nodes[i, 2]
+node3(coords::InternalCoords, i::Int) = coords.nodes[i, 3]
+distance(coords::InternalCoords, i::Int) = coords.geometry[i, 1]
+angle(coords::InternalCoords, i::Int) = coords.geometry[i, 2]
+dihedral(coords::InternalCoords, i::Int) = coords.geometry[i, 3]
 
 
 function to_cartesian(zmatrix)
