@@ -9,7 +9,6 @@ module UtilTest
     using MolecularGraph.Util
     include("./util/iterator.jl")
 end
-"""
 
 module GeometryTest
     using Test
@@ -21,11 +20,14 @@ module GeometryTest
     include("./geometry/coords2d.jl")
     # include("./geometry/embed2d.jl")
 end
-
 """
+
 module GraphTest
     using Test
     using MolecularGraph.Graph
+
+    include("./graph/generator.jl")
+    include("./graph/planarity.jl")
 
     include("./graph/ugraph.jl")
     include("./graph/dgraph.jl")
@@ -33,7 +35,6 @@ module GraphTest
     include("./graph/view/inducedsubgraph.jl")
     include("./graph/view/reversegraph.jl")
 
-    include("./graph/generator.jl")
     include("./graph/merge.jl")
     include("./graph/linegraph.jl")
     include("./graph/dag.jl")
@@ -50,7 +51,7 @@ module GraphTest
     include("./graph/isomorphism/cliquebased.jl")
 end
 
-
+"""
 module MolecularGraphTest
     using Test
     using StaticArrays

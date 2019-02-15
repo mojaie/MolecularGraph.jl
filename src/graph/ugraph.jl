@@ -11,7 +11,7 @@ export
     neighbors,
     updatenode!, updateedge!,
     unlinknode!, unlinkedge!,
-    nodetype, edgetype, similargraph
+    nodetype, edgetype, similargraph, newgraph
 
 
 mutable struct Edge <: UndirectedEdge
@@ -190,4 +190,24 @@ function similargraph(graph::UndirectedGraph)
     N = nodetype(graph)
     E = edgetype(graph)
     MapUDGraph{N,E}()
+end
+
+
+newgraph(graph::MapUDGraph) = graph # TODO:
+
+"""
+    newgraph(graph::VectorUDGraph)
+
+Generate map graph from vector graph.
+"""
+function newgraph(graph::VectorUDGraph)
+    newg = similargraph(graph)
+    for i in nodekeys(graph)
+        newg.nodes[i] = graph.nodes[i]
+        newg.adjacency[i] = graph.adjacency[i]
+    end
+    for i in edgeskeys(graph)
+        newg.edges[i] = graph.edges[i]
+    end
+    return newg
 end

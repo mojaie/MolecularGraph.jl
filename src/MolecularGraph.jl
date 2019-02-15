@@ -57,6 +57,7 @@ module MolecularGraph
         include("./graph/bridge.jl")
         include("./graph/component.jl")
         include("./graph/cycle.jl")
+        include("./graph/planarity.jl")
 
         include("./graph/isomorphism/base.jl")
         include("./graph/isomorphism/cliquebased.jl")

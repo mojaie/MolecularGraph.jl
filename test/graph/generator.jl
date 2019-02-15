@@ -24,26 +24,66 @@ end
     @test length(shortestpath(C100, 1, 50)) == 50
 end
 
+@testset "bipartitegraph" begin
+    @test_throws DomainError bipartitegraph(0, 1)
+    @test_throws DomainError bipartitegraph(1, 0)
+    K1_1 = bipartitegraph(1, 1)
+    @test nodecount(K1_1) == 2
+    @test edgecount(K1_1) == 1
+    K3_3 = bipartitegraph(3, 3)
+    @test nodecount(K3_3) == 6
+    @test edgecount(K3_3) == 9
+end
+
 @testset "completegraph" begin
     @test_throws DomainError completegraph(-1)
-    cg0 = completegraph(0)
-    @test nodecount(cg0) == 0
-    @test edgecount(cg0) == 0
-    cg1 = completegraph(1)
-    @test nodecount(cg1) == 1
-    @test edgecount(cg1) == 0
-    cg2 = completegraph(2)
-    @test nodecount(cg2) == 2
-    @test edgecount(cg2) == 1
-    cg3 = completegraph(3)
-    @test nodecount(cg3) == 3
-    @test edgecount(cg3) == 3
-    cg5 = completegraph(5)
-    @test nodecount(cg5) == 5
-    @test edgecount(cg5) == 10
-    cg20 = completegraph(20)
-    @test nodecount(cg20) == 20
-    @test edgecount(cg20) == 190
+    K0 = completegraph(0)
+    @test nodecount(K0) == 0
+    @test edgecount(K0) == 0
+    K1 = completegraph(1)
+    @test nodecount(K1) == 1
+    @test edgecount(K1) == 0
+    K2 = completegraph(2)
+    @test nodecount(K2) == 2
+    @test edgecount(K2) == 1
+    K3 = completegraph(3)
+    @test nodecount(K3) == 3
+    @test edgecount(K3) == 3
+    K5 = completegraph(5)
+    @test nodecount(K5) == 5
+    @test edgecount(K5) == 10
+    K20 = completegraph(20)
+    @test nodecount(K20) == 20
+    @test edgecount(K20) == 190
+end
+
+@testset "laddergraph" begin
+    @test_throws DomainError laddergraph(0)
+    L3 = laddergraph(3)
+    @test edgecount(L3) == 7 # 3n - 2
+    L100 = laddergraph(100)
+    @test edgecount(L100) == 298 # 3n - 2
+    @test length(shortestpath(L100, 1, 100)) == 51
+end
+
+@testset "circularladder" begin
+    @test_throws DomainError circularladder(2)
+    CL3 = circularladder(3)
+    @test edgecount(CL3) == 9 # 3n
+    CL100 = circularladder(100)
+    @test edgecount(CL100) == 300 # 3n
+    @test length(shortestpath(CL100, 1, 50)) == 26
+    @test length(shortestpath(CL100, 1, 200)) == 3
+end
+
+@testset "moebiusladder" begin
+    @test_throws DomainError moebiusladder(2)
+    ML3 = moebiusladder(3)
+    @test edgecount(ML3) == 9 # 3n
+    ML100 = moebiusladder(100)
+    @test edgecount(ML100) == 300 # 3n
+    @test length(shortestpath(ML100, 1, 50)) == 26
+    @test length(shortestpath(ML100, 1, 200)) == 2
 end
 
 end # graph.generator

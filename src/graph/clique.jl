@@ -10,7 +10,7 @@ export
 
 mutable struct FindCliqueState
     # Input
-    graph::UDGraph
+    graph::UDGraph # TODO: use type parameter
     # Optional
     timeout # Int
     c_clique_constraint # Function

@@ -4,51 +4,108 @@
 #
 
 export
-    pathgraph,
-    cyclegraph,
-    completegraph
+    pathgraph, cyclegraph,
+    bipartitegraph, completegraph,
+    laddergraph, circularladder, moebiusladder
 
 
 """
-    pathgraph(length::Int) -> MapUDGraph{Node,Edge}
+    pathgraph(n::Int) -> MapUDGraph{Node,Edge}
 
-Generate path graph with the given size.
+Generate path graph ``P_n``.
 """
-function pathgraph(size::Int)
-    if size < 2
-        throw(DomainError(size, "path graph size should be 2 or more"))
-    end
-    return MapUDGraph(1:size, (i, i + 1) for i in 1:(size-1))
+function pathgraph(n::Int)
+    n >= 2 || throw(DomainError(n, "n should be 2 or more"))
+    return MapUDGraph(1:n, (i, i + 1) for i in 1:(n-1))
 end
 
 
 """
     cyclegraph(length::Int) -> MapUDGraph{Node,Edge}
 
-Generate cycle graph with the given size.
+Generate cycle graph ``C_n``.
 """
-function cyclegraph(size::Int)
-    if size < 3
-        throw(DomainError(size, "cycle graph size should be 3 or more"))
-    end
-    edges = [(i, i + 1) for i in 1:(size-1)]
-    push!(edges, (size, 1))
-    return MapUDGraph(1:size, edges)
+function cyclegraph(n::Int)
+    n >= 3 || throw(DomainError(n, "n should be 3 or more"))
+    edges = [(i, i + 1) for i in 1:(n-1)]
+    push!(edges, (n, 1))
+    return MapUDGraph(1:n, edges)
 end
 
 
 """
-    completegraph(type::MapUDGraph, length::Int) -> MapUDGraph{Node,Edge}
+    bipartitegraph(m::Int,n::Int) -> MapUDGraph{Node,Edge}
 
-Generate complete graph with the given size.
+Generate bipartite graph ``K_{m,n}``.
 """
-function completegraph(size::Int)
-    if size < 0
-        throw(DomainError(size, "graph size should not be negative"))
-    elseif size == 0
-        return MapUDGraph{Node,Edge}()
-    elseif size == 1
-        return MapUDGraph([1], [])
+function bipartitegraph(m::Int,n::Int)
+    m >= 1 || throw(DomainError(m, "m should not be 1 or more"))
+    n >= 1 || throw(DomainError(n, "n should not be 1 or more"))
+    edges = Tuple{Int,Int}[]
+    for i in 1:n
+        for j in n+1:n+m
+            push!(edges, (i, j))
+        end
     end
-    return MapUDGraph(1:size, ((u, v) for (u, v) in combinations(1:size)))
+    return MapUDGraph(1:n+m, edges)
+end
+
+
+"""
+    completegraph(length::Int) -> MapUDGraph{Node,Edge}
+
+Generate complete graph ``K_n``.
+"""
+function completegraph(n::Int)
+    n >= 0 || throw(DomainError(n, "n should not be negative"))
+    n == 0 && return MapUDGraph{Node,Edge}()
+    n == 1 && return MapUDGraph([1], [])
+    return MapUDGraph(1:n, ((u, v) for (u, v) in combinations(1:n)))
+end
+
+
+"""
+    laddergraph(n::Int) -> MapUDGraph{Node,Edge}
+
+Generate ladder graph ``L_n``.
+"""
+function laddergraph(n::Int)
+    n >= 1 || throw(DomainError(n, "n should be 1 or more"))
+    edges = [(1, 2)]
+    for i in 1:n-1
+        push!(edges, (2i+1, 2i+2))
+        push!(edges, (2i-1, 2i+1))
+        push!(edges, (2i, 2i+2))
+    end
+    return MapUDGraph(1:n*2, edges)
+end
+
+
+"""
+    circularladder(n::Int) -> MapUDGraph{Node,Edge}
+
+Generate circular ladder graph ``CL_n``.
+"""
+function circularladder(n::Int)
+    n >= 3 || throw(DomainError(n, "n should be 3 or more"))
+    graph = laddergraph(n)
+    edgecount = 3n - 2
+    updateedge!(graph, edgetype(graph)(1, 2n-1), edgecount + 1)
+    updateedge!(graph, edgetype(graph)(2, 2n), edgecount + 2)
+    return graph
+end
+
+
+"""
+    moebiusladder(n::Int) -> MapUDGraph{Node,Edge}
+
+Generate Möbius ladder graph ``ML_n``.
+"""
+function moebiusladder(n::Int)
+    n >= 3 || throw(DomainError(n, "n should be 3 or more"))
+    graph = laddergraph(n)
+    edgecount = 3n - 2
+    updateedge!(graph, edgetype(graph)(1, 2n), edgecount + 1)
+    updateedge!(graph, edgetype(graph)(2, 2n-1), edgecount + 2)
+    return graph
 end
