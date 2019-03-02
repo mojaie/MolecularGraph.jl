@@ -31,6 +31,7 @@ module GraphTest
 
     include("./graph/ugraph.jl")
     include("./graph/dgraph.jl")
+    include("./graph/multigraph.jl")
 
     include("./graph/view/inducedsubgraph.jl")
     include("./graph/view/reversegraph.jl")

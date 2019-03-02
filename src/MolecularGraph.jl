@@ -37,6 +37,7 @@ module MolecularGraph
 
         include("./graph/ugraph.jl")
         include("./graph/dgraph.jl")
+        include("./graph/multigraph.jl")
         include("./graph/graphutil.jl")
 
         include("./graph/view/base.jl")
