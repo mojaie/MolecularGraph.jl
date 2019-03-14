@@ -36,6 +36,7 @@ mutable struct SDFileAtom <: Atom
     end
 end
 
+SDFileAtom() = SDFileAtom(:C, 0, 1, nothing, nothing)
 SDFileAtom(sym) = SDFileAtom(sym, 0, 1, nothing, nothing)
 SDFileAtom(sym, chg) = SDFileAtom(sym, chg, 1, nothing, nothing)
 
@@ -56,6 +57,7 @@ mutable struct SmilesAtom <: Atom
     end
 end
 
+SmilesAtom() = SmilesAtom(:C, 0, 1, nothing, nothing, nothing)
 SmilesAtom(sym) = SmilesAtom(sym, 0, 1, nothing, nothing, nothing)
 SmilesAtom(sym, chg) = SmilesAtom(sym, chg, 1, nothing, nothing, nothing)
 

@@ -31,13 +31,13 @@ function topology!(mol::VectorMol)
 
     mol.annotation[:Topology] = Topology(rings, scaffolds, components)
     # Ring membership
-    mol[:RingMem] = Set{Int}[Set() for i in 1:atomcount(mol)] # dont use fill
+    mol[:RingMem] = Set{Int}[Set() for i in 1:nodecount(mol)] # dont use fill
     # Ring size
-    mol[:RingSize] = Set{Int}[Set() for i in 1:atomcount(mol)]
+    mol[:RingSize] = Set{Int}[Set() for i in 1:nodecount(mol)]
     # Ring bond or not
-    mol[:RingBond] = falses(bondcount(mol))
+    mol[:RingBond] = falses(edgecount(mol))
     # Ring bond membership
-    mol[:RingBondMem] = Set{Int}[Set() for i in 1:atomcount(mol)]
+    mol[:RingBondMem] = Set{Int}[Set() for i in 1:edgecount(mol)]
     for (i, ring) in enumerate(rings)
         size = length(ring)
         for n in ring
