@@ -105,7 +105,7 @@ function initcanvas!(canvas::Canvas, mol::VectorMol)
     coords = rawdata(mol.coords[:Cartesian2D])
     (top, left, width, height, unit) = boundary(mol)
     sf = canvas.scalef / unit
-    mol.coords[:Cartesian2D].coords = (
+    mol.coords[:Cartesian2D] = cartesian2d(
         (coords .- [left top]) .* [1 -1] .* sf
         .+ [canvas.paddingX canvas.paddingY]
     )

@@ -4,6 +4,7 @@
 #
 
 export
+    Point2D, Segment2D, PointSet2D, CyclicPath2D,
     rawdata, setcoord!, cartesian2d, point, segment, cyclicpath,
     x, y, u, v, ux, uy, vx, vy,
     x_components, y_components,
@@ -13,11 +14,6 @@ export
 
 
 # import Base: +, -, *
-
-
-mutable struct Cartesian2D <: Coordinates
-    coords::Matrix{Float64}
-end
 
 
 struct Point2D
@@ -62,6 +58,21 @@ function cartesian2d(coords::Matrix{Float64})
         DimensionMismatch("Unexpected matrix size $(size(coords))"))
     return Cartesian2D(coords)
 end
+
+
+"""
+    cartesian2d(coords::InternalCoords) -> Cartesian2D
+
+Embed `InternalCoords` into `Cartesian2D`.
+"""
+cartesian2d(coords::InternalCoords) = cartesian2d(cartesian3d(coords))
+
+"""
+    cartesian2d(coords::Cartesian3D) -> Cartesian2D
+
+Embed `Cartesian3D` into `Cartesian2D` by just removing z-axis component.
+"""
+cartesian2d(coords::Cartesian3D) = Cartesian2D(rawdata(coords)[:, 1:2])
 
 
 _point(coords::Cartesian2D, i::Int) = coords.coords[i, :]
@@ -114,6 +125,8 @@ end
 
 _vector(segment::Segment2D) = _v(segment) - _u(segment)
 vector(segment::Segment2D) = point(_vector(segment)...)
+
+distance(segment::Segment2D) = norm(_vector(segment))
 
 
 LinearAlgebra.cross(u::Point2D, v::Point2D) = x(u) * y(v) - y(u) * x(v)
