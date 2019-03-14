@@ -41,8 +41,7 @@ module MolecularGraph
         include("./graph/bipartite.jl")
         include("./graph/triangle.jl")
         include("./graph/clique.jl")
-        include("./graph/bridge.jl")
-        include("./graph/component.jl")
+        include("./graph/connectivity.jl")
         include("./graph/cycle.jl")
         include("./graph/planarity.jl")
 

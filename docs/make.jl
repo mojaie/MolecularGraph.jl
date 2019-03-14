@@ -16,6 +16,7 @@ makedocs(
         ],
         "Graph" => [
             "Graph generator" => "graph/generator.md",
+            "Connectivity" => "graph/connectivity.md",
             "Planarity" => "graph/planarity.md",
             "Clique" => "graph/clique.md"
         ],

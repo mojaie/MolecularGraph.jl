@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-@testset "graph.component" begin
+@testset "graph.connectivity" begin
 
 @testset "connected" begin
     graph0 = MapUDGraph(1:5, Tuple{Int,Int}[])
@@ -22,6 +22,30 @@
         [(1, 2, 3), (4, 5)]
     )
 end
+
+
+@testset "bridge" begin
+    graph1 = pathgraph(5)
+    @test issetequal(bridges(graph1), [1, 2, 3, 4])
+    graph2 = cyclegraph(5)
+    @test isempty(bridges(graph2))
+    graph3 = MapUDGraph(1:8, [
+        (1, 2), (2, 3), (1, 3), (3, 4), (4, 5),
+        (5, 6), (4, 6), (5, 7), (7, 8), (8, 6)
+    ])
+    @test issetequal(bridges(graph3), [4])
+    graph4 = MapUDGraph(1:9, [
+        (1, 2), (2, 3), (3, 4), (4, 5), (4, 6),
+        (3, 7), (7, 8), (8, 9), (9, 1)
+    ])
+    @test issetequal(bridges(graph4), [3, 4, 5])
+    graph5 = MapUDGraph(1:10, [
+        (1, 2), (2, 3), (3, 4), (3, 5), (5, 6),
+        (6, 7), (7, 5), (5, 8), (8, 9), (9, 5), (5, 10)
+    ])
+    @test issetequal(bridges(graph5), [1, 2, 3, 4, 11])
+end
+
 
 @testset "two_edge_connected" begin
     graph1 = pathgraph(5)
@@ -57,4 +81,4 @@ end
     )
 end
 
-end # graph.component
+end # graph.connectivity
