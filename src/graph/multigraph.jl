@@ -7,7 +7,6 @@ export
     MultiUDGraph,
     getnode, getedge, hasedge,
     nodesiter, edgesiter,
-    nodekeys, edgekeys,
     neighbors,
     updatenode!, updateedge!,
     unlinknode!, unlinkedge!
@@ -41,12 +40,14 @@ getedge(graph::MultiUDGraph, idx) = graph.edges[idx]
 hasedge(graph::MultiUDGraph, u, v) = haskey(graph.adjacency[u], v)
 
 nodesiter(graph::MultiUDGraph) = graph.nodes
-
-nodekeys(graph::MultiUDGraph) = Set(keys(graph.nodes))
-
 edgesiter(graph::MultiUDGraph) = graph.edges
 
-edgekeys(graph::MultiUDGraph) = Set(keys(graph.edges))
+nodekeys(graph::MultiUDGraph) = collect(keys(graph.nodes))
+edgekeys(graph::MultiUDGraph) = collect(keys(graph.edges))
+
+nodeset(graph::MultiUDGraph) = Set(keys(graph.nodes))
+edgeset(graph::MultiUDGraph) = Set(keys(graph.edges))
+
 
 function neighbors(graph::MultiUDGraph, idx)
     nbrs = Pair{Int,Int}[]
@@ -58,7 +59,7 @@ function neighbors(graph::MultiUDGraph, idx)
     return nbrs
 end
 
-neighboredgekeys(g::MultiUDGraph, i) = Set([nbr.second for nbr in neighbors(g, i)])
+neighboredgeset(g::MultiUDGraph, i) = Set([nbr.second for nbr in neighbors(g, i)])
 
 
 function updatenode!(graph::MultiUDGraph, node, idx)

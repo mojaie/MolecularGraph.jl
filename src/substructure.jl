@@ -77,8 +77,8 @@ function querymatch(mol::MolGraph, query::QueryMolGraph;
         atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Accept also disconnected atom but return only the first match
     # Intended for use in SMARTS query search
-    mnodeset = nodekeys(mol.graph)
-    qnodeset = nodekeys(query.graph)
+    mnodeset = nodeset(mol.graph)
+    qnodeset = nodeset(query.graph)
     afunc = atommatcher(mol, query)
     bfunc = bondmatcher(mol, query)
     if bondcount(query) != 0
@@ -89,11 +89,11 @@ function querymatch(mol::MolGraph, query::QueryMolGraph;
             # Isolated node mapping
             msub = edgesubgraph(mol.graph, keys(emap))
             qsub = edgesubgraph(query.graph, values(emap))
-            miso = setdiff(mnodeset, nodekeys(msub))
-            qiso = setdiff(qnodeset, nodekeys(qsub))
+            miso = setdiff(mnodeset, nodeset(msub))
+            qiso = setdiff(qnodeset, nodeset(qsub))
             mrem = nodesubgraph(mol.graph, miso)
             qrem = nodesubgraph(query.graph, qiso)
-            nmap = maxcardmap(nodekeys(mrem), nodekeys(qrem), afunc)
+            nmap = maxcardmap(nodeset(mrem), nodeset(qrem), afunc)
             if length(nmap) == nodecount(qrem)
                 return (emap, nmap)
             end
@@ -124,14 +124,14 @@ function querymatchiter(mol::MolGraph, query::ConnectedQueryMol;
         return ()
     elseif atomcount(query) == 1
         # node match
-        qa = pop!(nodekeys(query.graph))
+        qa = nodekeys(query.graph)[1]
         match = Iterators.filter(nodekeys(mol.graph)) do ma
             return afunc(ma, qa)
         end
         return ((Dict(), Dict(ma => qa)) for ma in match)
     elseif bondcount(query) == 1
         # edge match
-        qb = pop!(edgekeys(query.graph))
+        qb = edgekeys(query.graph)[1]
         qbond = getbond(query, qb)
         match = Iterators.filter(edgekeys(mol.graph)) do mb
             mbond = getbond(mol, mb)
@@ -172,7 +172,7 @@ function isSMARTSgroupmatch(mol::MolGraph, query::ConnectedQueryMol, root;
         return false
     else
         # subgraph match
-        for n in neighboredgekeys(mol.graph, root)
+        for n in neighboredgeset(mol.graph, root)
             if is_edge_subgraph(
                     query.graph, mol.graph,
                     nodematcher=afunc, edgematcher=bfunc,

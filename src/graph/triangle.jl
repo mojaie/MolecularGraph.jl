@@ -10,7 +10,7 @@ export
 function triangles(graph::UDGraph)
     triads = Set()
     for n in nodekeys(graph)
-        nkeys = neighborkeys(graph, n)
+        nkeys = neighborset(graph, n)
         if length(nkeys) < 2
             continue
         end

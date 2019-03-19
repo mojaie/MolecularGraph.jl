@@ -7,7 +7,6 @@ export
     Arrow, similaredge, MapDGraph,
     getnode, getedge,
     nodesiter, edgesiter,
-    nodekeys, edgekeys,
     predecessors, successors,
     updatenode!, updateedge!,
     unlinknode!, unlinkedge!,
@@ -54,8 +53,11 @@ getedge(graph::DirectedGraph, s, t) = getedge(graph, graph.successors[s][t])
 nodesiter(graph::MapDGraph) = graph.nodes
 edgesiter(graph::MapDGraph) = graph.edges
 
-nodekeys(g::MapDGraph) = Set(keys(g.nodes))
-edgekeys(g::MapDGraph) = Set(keys(g.edges))
+nodekeys(g::MapDGraph) = collect(keys(g.nodes))
+edgekeys(g::MapDGraph) = collect(keys(g.edges))
+
+nodeset(g::MapDGraph) = Set(keys(g.nodes))
+edgeset(g::MapDGraph) = Set(keys(g.edges))
 
 successors(g::DirectedGraph, i) = g.successors[i]
 predecessors(g::DirectedGraph, i) = g.predecessors[i]

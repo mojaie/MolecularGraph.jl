@@ -37,8 +37,8 @@ function linegraph(G::UDGraph)
             continue
         end
         # TODO: is there a stuff like itertools.combination?
-        for e1 in neighboredgekeys(G, i)
-            for e2 in neighboredgekeys(G, i)
+        for e1 in neighboredgeset(G, i)
+            for e2 in neighboredgeset(G, i)
                 if e1 < e2
                     L.edges[ecnt] = LineGraphEdge(e1, e2, i)
                     L.adjacency[e1][e2] = ecnt

@@ -60,9 +60,9 @@ end
 function modprodedgefilter(G, H, edgematcher)
     return function (g1, g2, h1, h2)
         # TODO: hasedge
-        if (g2 in neighborkeys(G, g1)) != (h2 in neighborkeys(H, h1))
+        if (g2 in neighborset(G, g1)) != (h2 in neighborset(H, h1))
             return false
-        elseif !(g2 in neighborkeys(G, g1)) && !(h2 in neighborkeys(H, h1))
+        elseif !(g2 in neighborset(G, g1)) && !(h2 in neighborset(H, h1))
             return true
         else
             return edgematcher(neighbors(G, g1)[g2], neighbors(H, h1)[h2])

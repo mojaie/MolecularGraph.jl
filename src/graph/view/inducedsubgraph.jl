@@ -8,7 +8,6 @@ export
     nodesubgraph, edgesubgraph,
     getnode, getedge,
     nodesiter, edgesiter,
-    nodekeys, edgekeys,
     neighbors, successors, predecessors,
     nodecount, edgecount
 
@@ -101,9 +100,11 @@ nodesiter(view::SubgraphView) = (
 edgesiter(view::SubgraphView) = (
     e => getedge(view.graph, e) for e in view.edges)
 
-nodekeys(view::SubgraphView) = copy(view.nodes)
-edgekeys(view::SubgraphView) = copy(view.edges)
+nodekeys(view::SubgraphView) = collect(view.nodes)
+edgekeys(view::SubgraphView) = collect(view.edges)
 
+nodeset(view::SubgraphView) = copy(view.nodes)
+edgeset(view::SubgraphView) = copy(view.edges)
 
 function neighbors(view::SubgraphView, idx)
     (idx in view.nodes) || throw(KeyError(idx))

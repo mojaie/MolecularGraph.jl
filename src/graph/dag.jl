@@ -32,7 +32,7 @@ function topologicalsort(graph::DGraph)
                 continue
             end
             push!(used, edge)
-            if isempty(setdiff(inedgekeys(graph, s), used))
+            if isempty(setdiff(inedgeset(graph, s), used))
                 push!(stack, s)
             end
         end

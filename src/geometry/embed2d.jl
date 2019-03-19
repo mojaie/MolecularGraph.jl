@@ -29,7 +29,7 @@ function compute2dcoords(mol::MolGraph)
     end
 
     # Chains
-    chainnodes = setdiff(nodekeys(graph), scaffoldnodes)
+    chainnodes = setdiff(nodeset(graph), scaffoldnodes)
     chains = nodesubgraph(chainnodes)
     for chain in connected_component(chains)
         push!(fragments, chain_embed2d(chain))

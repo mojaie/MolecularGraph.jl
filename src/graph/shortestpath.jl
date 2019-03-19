@@ -23,7 +23,7 @@ function shortestpath(graph::UDGraph, u, v)
     pred = Dict{Int,Union{Int,Nothing}}(u => nothing)
     while !isempty(queue)
         i = popfirst!(queue)
-        for nbr in neighborkeys(graph, i)
+        for nbr in neighborset(graph, i)
             if nbr == v
                 # v found
                 path = [v]
@@ -55,7 +55,7 @@ function distance(graph::UDGraph, root)
     dist = Dict{Int,Union{Int,Nothing}}(root => 0)
     while !isempty(queue)
         q = popfirst!(queue)
-        for nbr in neighborkeys(graph, q)
+        for nbr in neighborset(graph, q)
             if !(nbr in keys(dist))
                 dist[nbr] = dist[q] + 1
                 push!(queue, nbr)
@@ -152,7 +152,7 @@ function shortestpath(graph::DGraph, source)
     pred = Dict{Int,Union{Int,Nothing}}(source => nothing)
     while !isempty(queue)
         i = popfirst!(queue)
-        for succ in succkeys(graph, i)
+        for succ in succset(graph, i)
             if !(succ in keys(pred))
                 # New nodes
                 pred[succ] = i

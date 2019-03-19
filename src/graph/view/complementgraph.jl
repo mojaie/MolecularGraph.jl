@@ -8,7 +8,6 @@ export
     ComplementGraphView,
     getedge,
     edgesiter,
-    edgekeys,
     neighbors,
     edgecount
 
@@ -45,13 +44,13 @@ function neighbors(view::UDComplementGraph, idx)
     throw(ErrorException("Edge indexing not supported for this view."))
 end
 
-function neighborkeys(view::UDComplementGraph, idx)
-    ns = nodekeys(view.graph)
+function neighborset(view::UDComplementGraph, idx)
+    ns = nodeset(view.graph)
     pop!(ns, idx)
-    return setdiff(ns, neighborkeys(view.graph, idx))
+    return setdiff(ns, neighborset(view.graph, idx))
 end
 
-function neighboredgekeys(view::UDComplementGraph, idx)
+function neighboredgeset(view::UDComplementGraph, idx)
     throw(ErrorException("Edge indexing not supported for this view."))
 end
 

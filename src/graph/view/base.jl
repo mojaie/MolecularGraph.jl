@@ -6,7 +6,6 @@
 export
     getnode, getedge, hasedge,
     nodesiter, edgesiter, nodevector, edgevector,
-    nodekeys, edgekeys,
     neighbors, successors, predecessors,
     nodecount, edgecount,
     nodetype, edgetype, similargraph, newgraph,
@@ -28,7 +27,10 @@ nodevector(view::GraphView) = nodevector(view.graph)
 edgevector(view::GraphView) = edgevector(view.graph)
 
 nodekeys(view::GraphView) = nodekeys(view.graph)
-edgekeys(view::GraphView) = nodekeys(view.graph)
+edgekeys(view::GraphView) = edgekeys(view.graph)
+
+nodeset(view::GraphView) = nodeset(view.graph)
+edgeset(view::GraphView) = edgeset(view.graph)
 
 neighbors(view::GraphView, idx) = neighbors(view.graph, idx)
 

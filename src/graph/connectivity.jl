@@ -4,9 +4,10 @@
 #
 
 export
-    connected_components,
-    articulation_points, bridges, biconnected_components,
-    two_edge_connected
+    connected_components, connected_membership,
+    articulation_points, bridges,
+    biconnected_components, biconnected_membership,
+    two_edge_connected, two_edge_membership
 
 
 struct ConnectedComponentState{G<:UDGraph}
@@ -15,17 +16,17 @@ struct ConnectedComponentState{G<:UDGraph}
     visited::Set{Int}
     remaining::Set{Int}
 
-    components::Vector{Set{Int}}
+    components::Vector{Vector{Int}}
 
     function ConnectedComponentState{G}(graph) where {G<:UDGraph}
-        new(graph, Set(), nodekeys(graph), Set{Int}[])
+        new(graph, Set(), nodeset(graph), [])
     end
 end
 
 
 function dfs!(state::ConnectedComponentState, n)
     push!(state.visited, n)
-    for nbr in neighborkeys(state.graph, n)
+    for nbr in neighborset(state.graph, n)
         if !(nbr in state.visited)
             dfs!(state, nbr)
         end
@@ -36,7 +37,7 @@ end
 function run!(state::ConnectedComponentState)
     while !isempty(state.remaining)
         dfs!(state, pop!(state.remaining))
-        push!(state.components, copy(state.visited))
+        push!(state.components, collect(state.visited))
         setdiff!(state.remaining, state.visited)
         empty!(state.visited)
     end
@@ -44,16 +45,35 @@ end
 
 
 """
-    connected_components(graph::UDGraph) -> Set{Set{Int}}
+    connected_components(graph::UDGraph) -> Vector{Vector{Int}}
 
 Compute connectivity and return sets of the connected components.
 """
 function connected_components(graph::G) where {G<:UDGraph}
+    hasproperty(graph, :connected) && return graph.property.connected
     state = ConnectedComponentState{G}(graph)
     run!(state)
+    if isdefined(graph, :property)
+        append!(graph.property.connected, state.components)
+        return graph.property.connected
+    end
     return state.components
 end
 
+function connected_membership(graph::UDGraph)
+    hasproperty(graph, :connmembership) && return graph.property.connmembership
+    mem = zeros(Int, nodecount(graph))
+    for (i, conn) in enumerate(connected_components(graph))
+        for c in conn
+            mem[c] = i
+        end
+    end
+    if isdefined(graph, :property)
+        append!(graph.property.connmembership, mem)
+        return graph.property.connmembership
+    end
+    return mem
+end
 
 
 struct BiconnectedState{G<:UDGraph}
@@ -62,19 +82,16 @@ struct BiconnectedState{G<:UDGraph}
     pred::Dict{Int,Int}
     level::Dict{Int,Int}
     low::Dict{Int,Int}
-    compbuf::Set{Int}
+    compbuf::Vector{Int}
 
-    cutvertices::Set{Int}
-    bridges::Set{Int}
-    biconnected::Vector{Set{Int}}
+    cutvertices::Vector{Int}
+    bridges::Vector{Int}
+    biconnected::Vector{Vector{Int}}
 
     function BiconnectedState{G}(graph) where {G<:UDGraph}
-        new(graph, Dict(), Dict(), Dict(), Set(), Set(), Set(), Set{Int}[])
+        new(graph, Dict(), Dict(), Dict(), [], [], [], [])
     end
 end
-
-
-dfs!(state::BiconnectedState) = dfs!(state, 1, pop!(nodekeys(state.graph)))
 
 
 function dfs!(state::BiconnectedState, depth::Int, n::Int)
@@ -106,16 +123,31 @@ function dfs!(state::BiconnectedState, depth::Int, n::Int)
 end
 
 
+function biconnected(graph::G, sym::Symbol) where {G<:UDGraph}
+    hasproperty(graph, sym) && return getproperty(graph.property, sym)
+    state = BiconnectedState{G}(graph)
+    nodes = nodeset(graph)
+    while !isempty(nodes)
+        dfs!(state, 1, pop!(nodes))
+        setdiff!(nodes, keys(state.level))
+    end
+    if isdefined(graph, :property)
+        append!(graph.property.biconnected, state.biconnected)
+        append!(graph.property.cutvertices, state.cutvertices)
+        append!(graph.property.bridges, state.bridges)
+        return getproperty(graph.property, sym)
+    else
+        return getproperty(state, sym)
+    end
+end
+
+
 """
     articulation_points(graph::UDGraph) -> Set{Int}
 
 Compute biconnectivity and return articulation points.
 """
-function articulation_points(graph::G) where {G<:UDGraph}
-    state = BiconnectedState{G}(graph)
-    dfs!(state)
-    return state.cutvertices
-end
+articulation_points(graph::UDGraph) = biconnected(graph, :cutvertices)
 
 
 """
@@ -123,22 +155,30 @@ end
 
 Compute biconnectivity and return bridges.
 """
-function bridges(graph::G) where {G<:UDGraph}
-    state = BiconnectedState{G}(graph)
-    dfs!(state)
-    return state.bridges
-end
+bridges(graph::UDGraph) = biconnected(graph, :bridges)
 
 
 """
-    bridges(graph::UDGraph) -> Set{Int}
+    biconnected_components(graph::UDGraph) -> Vector{Set{Int}}
 
-Compute biconnectivity and return sets of the biconnected components.
+Compute biconnectivity and return sets of biconnected components.
 """
-function biconnected_components(graph::G) where {G<:UDGraph}
-    state = BiconnectedState{G}(graph)
-    dfs!(state)
-    return state.biconnected
+biconnected_components(graph::UDGraph) = biconnected(graph, :biconnected)
+
+
+function biconnected_membership(graph::UDGraph)
+    hasproperty(graph, :biconnmembership) && return graph.property.biconnmembership
+    mem = zeros(Int, nodecount(graph))
+    for (i, conn) in enumerate(biconnected_components(graph))
+        for c in conn
+            mem[c] = i
+        end
+    end
+    if isdefined(graph, :property)
+        append!(graph.property.biconnmembership, mem)
+        return graph.property.biconnmembership
+    end
+    return mem
 end
 
 
@@ -148,14 +188,29 @@ end
 Compute biconnectivity and return sets of the 2-edge connected components.
 Isolated nodes will be filtered out.
 """
-function two_edge_connected(graph::G) where {G<:UDGraph}
-    brs = Int[]
-    for conn in connected_components(graph)
-        subg = nodesubgraph(graph, conn)
-        state = BiconnectedState{G}(graph)
-        dfs!(state)
-        append!(brs, state.bridges)
+function two_edge_connected(graph::UDGraph)
+    hasproperty(graph, :twoedge) && return graph.property.twoedge
+    cobr = setdiff(edgeset(graph), bridges(graph))
+    comp = connected_components(edgesubgraph(graph, cobr))
+    if isdefined(graph, :property)
+        append!(graph.property.twoedge, comp)
+        return graph.property.twoedge
     end
-    bicomp = UDSubgraph(graph, nodekeys(graph), setdiff(edgekeys(graph), brs))
-    return Set{Int}[c for c in connected_components(bicomp) if length(c) > 1]
+    return comp
+end
+
+
+function two_edge_membership(graph::UDGraph)
+    hasproperty(graph, :twoedgemembership) && return graph.property.twoedgemembership
+    mem = zeros(Int, nodecount(graph))
+    for (i, conn) in enumerate(two_edge_connected(graph))
+        for c in conn
+            mem[c] = i
+        end
+    end
+    if isdefined(graph, :property)
+        append!(graph.property.twoedgemembership, mem)
+        return graph.property.twoedgemembership
+    end
+    return mem
 end

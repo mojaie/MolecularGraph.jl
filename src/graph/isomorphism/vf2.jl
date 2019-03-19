@@ -127,11 +127,12 @@ function updatestate!(state::VF2State, g, h)
     if !haskey(state.h_term, h)
         state.h_term[h] = depth
     end
-    g_nbrset = union([neighborkeys(state.G, n) for n in keys(state.g_core)]...)
+    # TODO: workaround: union(set::KeySet) causes error
+    g_nbrset = union([neighborset(state.G, n) for n in keys(state.g_core)]...)
     for n in setdiff(g_nbrset, keys(state.g_term))
         state.g_term[n] = depth
     end
-    h_nbrset = union([neighborkeys(state.H, n) for n in keys(state.h_core)]...)
+    h_nbrset = union([neighborset(state.H, n) for n in keys(state.h_core)]...)
     for n in setdiff(h_nbrset, keys(state.h_term))
         state.h_term[n] = depth
     end
@@ -173,8 +174,8 @@ function candidatepairs(state::VF2State)
     h_cand = setdiff(keys(state.h_term), keys(state.h_core))
     if isempty(g_cand) || isempty(h_cand)
         # New connected component
-        g_cand = setdiff(nodekeys(state.G), keys(state.g_core))
-        h_cand = setdiff(nodekeys(state.H), keys(state.h_core))
+        g_cand = setdiff(nodeset(state.G), keys(state.g_core))
+        h_cand = setdiff(nodeset(state.H), keys(state.h_core))
     end
     if !isempty(h_cand)
         h_min = minimum(h_cand)
@@ -195,8 +196,8 @@ end
 function is_feasible(state::VF2State, g, h)
     # assume no self loop
     # Neighbor connectivity
-    g_nbrs = neighborkeys(state.G, g)
-    h_nbrs = neighborkeys(state.H, h)
+    g_nbrs = neighborset(state.G, g)
+    h_nbrs = neighborset(state.H, h)
     for n in intersect(g_nbrs, keys(state.g_core))
         if !(state.g_core[n] in h_nbrs)
             return false
@@ -216,8 +217,8 @@ function is_feasible(state::VF2State, g, h)
         return false
     end
     # Yet unexplored size
-    g_new_count = length(setdiff(nodekeys(state.G), keys(state.g_term)))
-    h_new_count = length(setdiff(nodekeys(state.H), keys(state.h_term)))
+    g_new_count = length(setdiff(nodeset(state.G), keys(state.g_term)))
+    h_new_count = length(setdiff(nodeset(state.H), keys(state.h_term)))
     if state.mode == :Isomorphism && g_new_count != h_new_count
         return false
     elseif state.mode == :Subgraph && g_new_count < h_new_count
@@ -234,7 +235,7 @@ function is_semantic_feasible(state::VF2State, g, h)
         end
     end
     if isdefined(state, :edgematcher)
-        for nbr in intersect(neighborkeys(state.G, g), keys(state.g_core))
+        for nbr in intersect(neighborset(state.G, g), keys(state.g_core))
             g_edge = neighbors(state.G, g)[nbr]
             h_edge = neighbors(state.H, h)[state.g_core[nbr]]
             if !state.edgematcher(g_edge, h_edge)

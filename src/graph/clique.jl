@@ -72,9 +72,9 @@ function maximalcliques(graph::UDGraph; kwargs...)
     if haskey(kwargs, :c_clique_constraint)
         state.c_clique_constraint = kwargs[:c_clique_constraint]::Function
         f = c::Channel -> expand!(
-            state, nodekeys(graph), nodekeys(graph), nodekeys(graph), c)
+            state, nodeset(graph), nodeset(graph), nodeset(graph), c)
     else
-        f = c::Channel -> expand!(state, nodekeys(graph), nodekeys(graph), c)
+        f = c::Channel -> expand!(state, nodeset(graph), nodeset(graph), c)
     end
     return Channel(f, ctype=Set{Int})
 end
@@ -92,13 +92,13 @@ function expand!(state::FindCliqueState, subg, cand, channel)
     # TODO: better way like python's max(iter, key=cmp)
     arr = collect(subg)
     deg = map(arr) do n
-        length(intersect(cand, neighborkeys(state.graph, n)))
+        length(intersect(cand, neighborset(state.graph, n)))
     end
     pv = arr[argmax(deg)]
 
-    for q in setdiff(cand, neighborkeys(state.graph, pv))
+    for q in setdiff(cand, neighborset(state.graph, pv))
         push!(state.Q, q)
-        qnbrs = neighborkeys(state.graph, q)
+        qnbrs = neighborset(state.graph, q)
         subgq = intersect(subg, qnbrs)
         candq = intersect(cand, qnbrs)
         expand!(state, subgq, candq, channel)
@@ -121,11 +121,11 @@ function expand!(state::FindCliqueState, subg, cand, qual, channel)
     # TODO: better way like python's max(iter, key=cmp)
     arr = collect(subg)
     deg = map(arr) do n
-        length(intersect(cand, neighborkeys(state.graph, n)))
+        length(intersect(cand, neighborset(state.graph, n)))
     end
     pv = arr[argmax(deg)]
 
-    for q in setdiff(cand, neighborkeys(state.graph, pv))
+    for q in setdiff(cand, neighborset(state.graph, pv))
         push!(state.Q, q)
         qconnbrs = Set{Int}()
         qdisnbrs = Set{Int}()
@@ -136,7 +136,7 @@ function expand!(state::FindCliqueState, subg, cand, qual, channel)
                 push!(qdisnbrs, n)
             end
         end
-        qnbrs = neighborkeys(state.graph, q)
+        qnbrs = neighborset(state.graph, q)
         subgq = union(intersect(subg, qnbrs), intersect(qual, qconnbrs))
         candq = union(intersect(cand, qnbrs), intersect(qual, qconnbrs))
         qualq = intersect(qual, qdisnbrs)

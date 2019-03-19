@@ -60,7 +60,7 @@ function draw2d!(canvas::Canvas, mol::VectorMol;
         if mol[:H_Count][i] > 0
             cosnbrs = []
             hrzn = [pos[1] + 1.0, pos[2]]
-            for nbr in neighborkeys(mol, i)
+            for nbr in neighborset(mol, i)
                 posnbr = _point(mol.coords[:Cartesian2D], nbr)
                 dist = norm(posnbr - pos)
                 if dist > 0

@@ -73,16 +73,16 @@ module MolecularGraphTest
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
+    include("preprocess.jl")
+    include("substructure.jl")
+    include("mcs.jl")
+
     include("./annotation/topology.jl")
     include("./annotation/elemental.jl")
     include("./annotation/rotatable.jl")
     include("./annotation/aromatic.jl")
     include("./annotation/wclogp.jl")
     include("./annotation/funcgroup.jl")
-
-    include("preprocess.jl")
-    include("substructure.jl")
-    include("mcs.jl")
 
     include("./draw/base.jl")
     include("./draw/svg.jl")

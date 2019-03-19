@@ -36,7 +36,7 @@ DataStructure() = DataStructure([], [])
 DataStructure(cotree::Int) = DataStructure([cotree], [])
 
 
-dfs!(state::DFSState) = dfs!(state, pop!(nodekeys(state.graph)))
+dfs!(state::DFSState) = dfs!(state, pop!(nodeset(state.graph)))
 
 function dfs!(state::DFSState, u::Int)
     state.rank[u] = length(state.rank) + 1

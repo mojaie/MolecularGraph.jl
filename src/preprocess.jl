@@ -85,7 +85,7 @@ false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
 """
 function make_hydrogens_implicit!(mol::MolGraph; all=true)
     hydrogens = all ? all_hydrogens : trivialhydrogens
-    ns = setdiff(nodekeys(mol), hydrogens(mol))
+    ns = setdiff(nodeset(mol), hydrogens(mol))
     return newgraph(nodesubgraph(mol, ns))
 end
 
@@ -157,9 +157,9 @@ see [`canonicalize!`](@ref).
 function neutralize_acids!(mol::VectorMol)
     for o in findall((mol[:Symbol] .== :O)
             .* (mol[:Charge] .== -1) .* (mol[:Connectivity] .== 1))
-        nbr = pop!(neighborkeys(mol, o))
+        nbr = pop!(neighborset(mol, o))
         if mol[:Pi][nbr] == 1
-            cnbrs = neighborkeys(mol, nbr)
+            cnbrs = neighborset(mol, nbr)
             pop!(cnbrs, o)
             for cn in cnbrs
                 if (mol[:Symbol][cn] in (:O, :S)

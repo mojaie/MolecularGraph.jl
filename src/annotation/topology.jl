@@ -10,8 +10,8 @@ export
 
 struct Topology <: Annotation
     rings::Vector{Vector{Int}}
-    scaffolds::Vector{Set{Int}}
-    molecules::Vector{Set{Int}}
+    scaffolds::Vector{Vector{Int}}
+    molecules::Vector{Vector{Int}}
 end
 
 
@@ -25,46 +25,24 @@ function topology!(mol::VectorMol)
     # TODO: shortcut function
     # minimumcycles is derived from 2-edge connected components
     # 2-edge connected components is derived from connected components
-    components = connected_components(mol.graph)  # Vector{Set{Int}}
-    scaffolds = two_edge_connected(mol.graph)  # Vector{Set{Int}}
-    rings = minimumcycles(mol.graph)  # Vector{Vector{Int}}
+    components = connected_components(mol)  # Vector{Set{Int}}
+    scaffolds = two_edge_connected(mol)  # Vector{Set{Int}}
+    rings = mincycles(mol)  # Vector{Vector{Int}}
 
     mol.annotation[:Topology] = Topology(rings, scaffolds, components)
     # Ring membership
-    mol[:RingMem] = Set{Int}[Set() for i in 1:nodecount(mol)] # dont use fill
+    mol[:RingMem] = nodes_cycles(mol)
     # Ring size
-    mol[:RingSize] = Set{Int}[Set() for i in 1:nodecount(mol)]
+    mol[:RingSize] = nodes_cyclesizes(mol)
     # Ring bond or not
-    mol[:RingBond] = falses(edgecount(mol))
+    mol[:RingBond] = edges_iscyclemember(mol)
     # Ring bond membership
-    mol[:RingBondMem] = Set{Int}[Set() for i in 1:edgecount(mol)]
-    for (i, ring) in enumerate(rings)
-        size = length(ring)
-        for n in ring
-            push!(mol[:RingMem][n], i)
-            push!(mol[:RingSize][n], size)
-        end
-        sub = nodesubgraph(mol.graph, Set(ring))
-        for e in edgekeys(sub)
-            mol[:RingBond][e] = true
-            push!(mol[:RingBondMem][e], i)
-        end
-    end
+    mol[:RingBondMem] = edges_cycles(mol)
     # Ring membership count
-    mol[:RingMemCount] = length.(mol[:RingMem])
+    mol[:RingMemCount] = nodes_cyclecount(mol)
 
     # Scaffold membership
-    mol[:ScaffoldMem] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
-    for (i, scaffold) in enumerate(scaffolds)
-        for s in scaffold
-            mol[:ScaffoldMem][s] = i
-        end
-    end
+    mol[:ScaffoldMem] = two_edge_membership(mol)
     # Component membership
-    mol[:ComponentMem] = Vector{Union{Nothing,Int}}(nothing, atomcount(mol))
-    for (i, component) in enumerate(components)
-        for c in component
-            mol[:ComponentMem][c] = i
-        end
-    end
+    mol[:ComponentMem] = connected_membership(mol)
 end

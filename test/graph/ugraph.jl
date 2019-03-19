@@ -32,7 +32,7 @@
     @test nbr[1] == 4
     @test nbr[2] == 3
 
-    nbrnkeys = neighborkeys(graph, 5)
+    nbrnkeys = neighborset(graph, 5)
     (nbrn, state) = iterate(nbrnkeys)
     @test nbrn == 4
 
@@ -40,7 +40,7 @@
     (nbrnode, state) = iterate(nbrnodes)
     @test isa(nbrnode, AbstractNode)
 
-    nbrekeys = neighboredgekeys(graph, 5)
+    nbrekeys = neighboredgeset(graph, 5)
     (nbre, state) = iterate(nbrekeys)
     @test nbre == 3
 
