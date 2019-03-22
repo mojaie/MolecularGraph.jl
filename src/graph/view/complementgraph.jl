@@ -6,9 +6,6 @@
 export
     UDComplementGraph, DComplementGraph,
     ComplementGraphView,
-    getedge,
-    edgesiter,
-    neighbors,
     edgecount
 
 

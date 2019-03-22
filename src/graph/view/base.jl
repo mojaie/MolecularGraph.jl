@@ -4,13 +4,8 @@
 #
 
 export
-    getnode, getedge, hasedge,
-    nodesiter, edgesiter, nodevector, edgevector,
-    neighbors, successors, predecessors,
-    nodecount, edgecount,
-    nodetype, edgetype, similargraph, newgraph,
-    updatenode!, updateedge!,
-    unlinknode!, unlinkedge!
+    nodevector, edgevector,
+    similargraph, newgraph
 
 
 getnode(view::GraphView, idx) = getnode(view.graph, idx)

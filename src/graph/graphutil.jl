@@ -9,8 +9,6 @@ export
     neighbornodes, succnodes, prednodes,
     neighboredgeset, inedgeset, outedgeset,
     neighboredges, inedges, outedges,
-    neighborcount, degree, indegree, outdegree,
-    nodecount, edgecount,
     hasproperty
 
 
@@ -33,7 +31,6 @@ outedges(g::DGraph, i) = getedge.((g,), outedgeset(g, i))
 inedges(g::DGraph, i) = getedge.((g,), inedgeset(g, i))
 
 neighborcount(g::AbstractGraph, i) = length(neighbors(g, i))
-degree = neighborcount
 outdegree(g::DGraph, i) = length(successors(g, i))
 indegree(g::DGraph, i) = length(predecessors(g, i))
 

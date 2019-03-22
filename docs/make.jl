@@ -15,6 +15,7 @@ makedocs(
             "Structure match" => "moleculargraph/structure.md"
         ],
         "Graph" => [
+            "Interface" => "graph/interface.md",
             "Graph generator" => "graph/generator.md",
             "Connectivity" => "graph/connectivity.md",
             "Planarity" => "graph/planarity.md",

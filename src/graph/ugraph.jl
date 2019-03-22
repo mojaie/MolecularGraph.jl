@@ -5,12 +5,8 @@
 
 export
     Edge, similaredge, MapUDGraph, VectorUDGraph,
-    getnode, getedge, hasedge,
-    nodesiter, edgesiter, nodevector, edgevector,
-    neighbors,
-    updatenode!, updateedge!,
-    unlinknode!, unlinkedge!,
-    nodetype, edgetype, similargraph, newgraph
+    nodevector, edgevector,
+    similargraph, newgraph
 
 
 mutable struct Edge <: UndirectedEdge
@@ -131,7 +127,6 @@ neighbors(graph::UndirectedGraph, idx) = graph.adjacency[idx]
 
 
 function updatenode!(graph::MapUDGraph, node, idx)
-    """Add or update a node"""
     graph.nodes[idx] = node
     if !(idx in keys(graph.adjacency))
         graph.adjacency[idx] = Dict()
@@ -141,7 +136,6 @@ end
 
 
 function updateedge!(graph::MapUDGraph, edge, idx)
-    """Add or update an edge"""
     nodes = nodekeys(graph)
     (edge.u in nodes) || throw(KeyError(edge.u))
     (edge.v in nodes) || throw(KeyError(edge.v))
@@ -156,7 +150,6 @@ updateedge!(
 
 
 function unlinknode!(graph::MapUDGraph, idx)
-    """Remove a node and its connecting edges"""
     (idx in nodekeys(graph)) || throw(KeyError(idx))
     for (n, nbr) in neighbors(graph, idx)
         delete!(graph.edges, nbr)
@@ -169,7 +162,6 @@ end
 
 
 function unlinkedge!(graph::MapUDGraph, u, v)
-    """Remove an edge"""
     nodes = nodekeys(graph)
     (u in nodes) || throw(KeyError(u))
     (v in nodes) || throw(KeyError(v))
@@ -180,7 +172,6 @@ function unlinkedge!(graph::MapUDGraph, u, v)
 end
 
 function unlinkedge!(graph::MapUDGraph, idx)
-    """Remove an edge"""
     (idx in keys(graph.edges)) || throw(KeyError(idx))
     e = getedge(graph, idx)
     delete!(graph.edges, idx)

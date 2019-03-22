@@ -4,12 +4,7 @@
 #
 
 export
-    MultiUDGraph,
-    getnode, getedge, hasedge,
-    nodesiter, edgesiter,
-    neighbors,
-    updatenode!, updateedge!,
-    unlinknode!, unlinkedge!
+    MultiUDGraph
 
 
 struct MultiUDGraph{N<:AbstractNode,E<:UndirectedEdge} <: UndirectedGraph
@@ -34,17 +29,13 @@ function MultiUDGraph(nodes, edges)
 end
 
 getnode(graph::MultiUDGraph, idx) = graph.nodes[idx]
-
 getedge(graph::MultiUDGraph, idx) = graph.edges[idx]
-
 hasedge(graph::MultiUDGraph, u, v) = haskey(graph.adjacency[u], v)
 
 nodesiter(graph::MultiUDGraph) = graph.nodes
 edgesiter(graph::MultiUDGraph) = graph.edges
-
 nodekeys(graph::MultiUDGraph) = collect(keys(graph.nodes))
 edgekeys(graph::MultiUDGraph) = collect(keys(graph.edges))
-
 nodeset(graph::MultiUDGraph) = Set(keys(graph.nodes))
 edgeset(graph::MultiUDGraph) = Set(keys(graph.edges))
 

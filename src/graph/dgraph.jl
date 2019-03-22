@@ -5,12 +5,7 @@
 
 export
     Arrow, similaredge, MapDGraph,
-    getnode, getedge,
-    nodesiter, edgesiter,
-    predecessors, successors,
-    updatenode!, updateedge!,
-    unlinknode!, unlinkedge!,
-    nodetype, edgetype, similargraph
+    similargraph
 
 
 
@@ -64,7 +59,6 @@ predecessors(g::DirectedGraph, i) = g.predecessors[i]
 
 
 function updatenode!(graph::MapDGraph, node, idx)
-    """Add or update a node"""
     graph.nodes[idx] = node
     if !(idx in keys(graph.successors))
         graph.successors[idx] = Dict{Int,Int}()
@@ -75,7 +69,6 @@ end
 
 
 function updateedge!(graph::MapDGraph, edge, idx)
-    """Add or update an edge"""
     ns = nodekeys(graph)
     (edge.source in ns) || throw(KeyError(edge.source))
     (edge.target in ns) || throw(KeyError(edge.target))
@@ -90,7 +83,6 @@ updateedge!(
 
 
 function unlinknode!(graph::MapDGraph, idx)
-    """Remove a node and its connecting edges"""
     (idx in keys(graph.nodes)) || throw(KeyError(idx))
     for (s, succ) in successors(graph, idx)
         delete!(graph.edges, succ)
@@ -108,7 +100,6 @@ end
 
 
 function unlinkedge!(graph::MapDGraph, source, target)
-    """Remove an edge"""
     ns = nodekeys(graph)
     (source in ns) || throw(KeyError(source))
     (target in ns) || throw(KeyError(target))
@@ -119,7 +110,6 @@ function unlinkedge!(graph::MapDGraph, source, target)
 end
 
 function unlinkedge!(graph::MapDGraph, idx)
-    """Remove an edge"""
     (idx in keys(graph.edges)) || throw(KeyError(idx))
     a = getedge(graph, idx)
     delete!(graph.edges, idx)
