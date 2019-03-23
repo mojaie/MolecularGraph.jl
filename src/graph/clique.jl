@@ -10,7 +10,7 @@ export
 
 mutable struct FindCliqueState
     # Input
-    graph::UDGraph # TODO: use type parameter
+    graph::UndirectedGraph # TODO: use type parameter
     # Optional
     timeout # Int
     c_clique_constraint # Function
@@ -30,11 +30,11 @@ end
 
 
 """
-    maxclique(graph::UDGraph; kwargs...) -> Set{Int}
+    maxclique(graph::UndirectedGraph; kwargs...) -> Set{Int}
 
 Compute maximum clique of the graph. For details, see [`maximalcliques`](@ref).
 """
-function maxclique(graph::UDGraph; kwargs...)
+function maxclique(graph::UndirectedGraph; kwargs...)
     # TODO: better way like python's max(iter, key=cmp)
     maxclq = Set{Int}()
     for c in maximalcliques(graph; kwargs...)
@@ -47,7 +47,7 @@ end
 
 
 """
-    maximalcliques(graph::UDGraph; kwargs...)
+    maximalcliques(graph::UndirectedGraph; kwargs...)
 
 Return `Channel` which generates maximal cliques of the graph. Each cliques are
 represented as a `Set` of member nodes.
@@ -63,7 +63,7 @@ represented as a `Set` of member nodes.
    https://doi.org/10.1016/j.tcs.2005.09.038
 
 """
-function maximalcliques(graph::UDGraph; kwargs...)
+function maximalcliques(graph::UndirectedGraph; kwargs...)
     state = FindCliqueState(graph)
     if haskey(kwargs, :timeout)
         state.timeout = kwargs[:timeout]::Int
@@ -92,13 +92,13 @@ function expand!(state::FindCliqueState, subg, cand, channel)
     # TODO: better way like python's max(iter, key=cmp)
     arr = collect(subg)
     deg = map(arr) do n
-        length(intersect(cand, neighborset(state.graph, n)))
+        length(intersect(cand, adjacencies(state.graph, n)))
     end
     pv = arr[argmax(deg)]
 
-    for q in setdiff(cand, neighborset(state.graph, pv))
+    for q in setdiff(cand, adjacencies(state.graph, pv))
         push!(state.Q, q)
-        qnbrs = neighborset(state.graph, q)
+        qnbrs = adjacencies(state.graph, q)
         subgq = intersect(subg, qnbrs)
         candq = intersect(cand, qnbrs)
         expand!(state, subgq, candq, channel)
@@ -121,11 +121,11 @@ function expand!(state::FindCliqueState, subg, cand, qual, channel)
     # TODO: better way like python's max(iter, key=cmp)
     arr = collect(subg)
     deg = map(arr) do n
-        length(intersect(cand, neighborset(state.graph, n)))
+        length(intersect(cand, adjacencies(state.graph, n)))
     end
     pv = arr[argmax(deg)]
 
-    for q in setdiff(cand, neighborset(state.graph, pv))
+    for q in setdiff(cand, adjacencies(state.graph, pv))
         push!(state.Q, q)
         qconnbrs = Set{Int}()
         qdisnbrs = Set{Int}()
@@ -136,7 +136,7 @@ function expand!(state::FindCliqueState, subg, cand, qual, channel)
                 push!(qdisnbrs, n)
             end
         end
-        qnbrs = neighborset(state.graph, q)
+        qnbrs = adjacencies(state.graph, q)
         subgq = union(intersect(subg, qnbrs), intersect(qual, qconnbrs))
         candq = union(intersect(cand, qnbrs), intersect(qual, qconnbrs))
         qualq = intersect(qual, qdisnbrs)

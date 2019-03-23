@@ -12,7 +12,7 @@ export
 # TODO: radical
 
 
-function atom!(state::SmilesParser)
+function atom!(state::SmartsParser{SMILES})
     """ Atom <- '[' AtomProp+ ']' / AtomSymbol
     """
     c = read(state)
@@ -58,7 +58,7 @@ function atom!(state::SmilesParser)
 end
 
 
-function atom!(state::SmartsParser)
+function atom!(state::SmartsParser{SMARTS})
     """ Atom <- '[' (AtomProp / LogicalOperator)+ ']' / AtomSymbol
     """
     c = read(state)

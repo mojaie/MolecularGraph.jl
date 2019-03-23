@@ -12,8 +12,8 @@ export
 
 mutable struct VF2State
     # Input
-    G::UDGraph
-    H::UDGraph
+    G::UndirectedGraph
+    H::UndirectedGraph
     mode::Symbol
     subgraphtype::Symbol
     # Optional
@@ -128,11 +128,11 @@ function updatestate!(state::VF2State, g, h)
         state.h_term[h] = depth
     end
     # TODO: workaround: union(set::KeySet) causes error
-    g_nbrset = union([neighborset(state.G, n) for n in keys(state.g_core)]...)
+    g_nbrset = union([adjacencies(state.G, n) for n in keys(state.g_core)]...)
     for n in setdiff(g_nbrset, keys(state.g_term))
         state.g_term[n] = depth
     end
-    h_nbrset = union([neighborset(state.H, n) for n in keys(state.h_core)]...)
+    h_nbrset = union([adjacencies(state.H, n) for n in keys(state.h_core)]...)
     for n in setdiff(h_nbrset, keys(state.h_term))
         state.h_term[n] = depth
     end
@@ -196,8 +196,8 @@ end
 function is_feasible(state::VF2State, g, h)
     # assume no self loop
     # Neighbor connectivity
-    g_nbrs = neighborset(state.G, g)
-    h_nbrs = neighborset(state.H, h)
+    g_nbrs = adjacencies(state.G, g)
+    h_nbrs = adjacencies(state.H, h)
     for n in intersect(g_nbrs, keys(state.g_core))
         if !(state.g_core[n] in h_nbrs)
             return false
@@ -235,7 +235,7 @@ function is_semantic_feasible(state::VF2State, g, h)
         end
     end
     if isdefined(state, :edgematcher)
-        for nbr in intersect(neighborset(state.G, g), keys(state.g_core))
+        for nbr in intersect(adjacencies(state.G, g), keys(state.g_core))
             g_edge = neighbors(state.G, g)[nbr]
             h_edge = neighbors(state.H, h)[state.g_core[nbr]]
             if !state.edgematcher(g_edge, h_edge)

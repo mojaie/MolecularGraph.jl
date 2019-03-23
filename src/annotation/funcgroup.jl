@@ -50,10 +50,10 @@ end
 
 struct FunctionalGroup <: Annotation
     nodeset::Dict{Symbol,Set{Set{Int}}}
-    graph::MapDGraph{FGTermNode,FGRelationEdge}
+    graph::MapDiGraph{FGTermNode,FGRelationEdge}
 
     function FunctionalGroup()
-        new(Dict(), MapDGraph{FGTermNode,FGRelationEdge}())
+        new(Dict(), MapDiGraph{FGTermNode,FGRelationEdge}())
     end
 end
 
@@ -106,18 +106,15 @@ function fgrouprecord(mol::VectorMol, rcd)
     end
     # Substructure match
     if "isa" in keys(rcd)
-        q = parse(ConnectedSMARTS, rcd["query"])
+        q = parse(SMARTS, rcd["query"])
         for k in rcd["isa"]
             refset = fgsetmap[Symbol(k)]
             eachset = Set{Set{Int}}()
             for s in refset
                 subst = atomsubstr(mol, s)
-                for (emap, nmap) in querymatchiter(subst, q, mode=:graph)
-                    if !isempty(emap)
-                        esub = edgesubgraph(mol.graph, keys(emap))
-                        push!(eachset, nodeset(esub))
-                    elseif !isempty(nmap)
-                        push!(eachset, keys(nmap))
+                for (emap, nmap) in fastquerymatchiter(subst, q, mode=:graph)
+                    if !isempty(emap) || !isempty(nmap)
+                        push!(eachset, s)
                     end
                 end
             end
@@ -148,9 +145,9 @@ end
 
 
 function fgroupquery(mol::VectorMol, query)
-    q = parse(ConnectedSMARTS, query)
+    q = parse(SMARTS, query)
     newset = Set{Set{Int}}()
-    for (emap, nmap) in querymatchiter(mol, q)
+    for (emap, nmap) in fastquerymatchiter(mol, q)
         if !isempty(emap)
             esub = edgesubgraph(mol.graph, keys(emap))
             push!(newset, nodeset(esub))
@@ -169,7 +166,7 @@ function largestcomponents(fg::FunctionalGroup)
     for n in ontnodes
         rmset = Set{Set{Int}}()
         nterm = getnode(fg.graph, n).term
-        for (s, e) in successors(fg.graph, n)
+        for (s, e) in outneighbors(fg.graph, n)
             rel = getedge(fg.graph, e)
             if rel.relation != :partof
                 continue
@@ -187,7 +184,7 @@ function largestcomponents(fg::FunctionalGroup)
     for n in ontnodes
         rmset = Set{Set{Int}}()
         nterm = getnode(fg.graph, n).term
-        for (s, e) in successors(fg.graph, n)
+        for (s, e) in outneighbors(fg.graph, n)
             rel = getedge(fg.graph, e)
             if rel.relation != :isa
                 continue
@@ -195,7 +192,7 @@ function largestcomponents(fg::FunctionalGroup)
             ansterm = getnode(fg.graph, s).term
             intersect!(components[nterm], components[ansterm])
         end
-        for (p, e) in predecessors(fg.graph, n)
+        for (p, e) in inneighbors(fg.graph, n)
             rel = getedge(fg.graph, e)
             if rel.relation != :isa
                 continue

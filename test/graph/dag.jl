@@ -6,7 +6,7 @@
 @testset "graph.dag" begin
 
 @testset "dag" begin
-    graph = MapDGraph(1:10, [
+    graph = mapdigraph(1:10, [
         (1, 4), (2, 4), (3, 7), (4, 5), (4, 6),
         (4, 7), (6, 9), (7, 8), (7, 9), (7, 10)
     ])

@@ -6,7 +6,7 @@
 
 
 ```@autodocs
-Modules = [Graph]
+Modules = [MolecularGraphModel]
 Pages   = ["graph/interface.jl"]
 Private = false
 Order   = [:constant, :function, :type]

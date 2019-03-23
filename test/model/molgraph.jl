@@ -2,9 +2,21 @@
 @testset "molgraph" begin
 
     @testset "mapmol" begin
-        sdf = GeneralMapMol{SDFileAtom,SDFileBond}()
+        sdf = mapmol(SDFileAtom, SDFileBond)
         vmol = vectormol(sdf)
-        @test vmol isa GeneralVectorMol{SDFileAtom,SDFileBond}
+        @test vmol isa VectorMol{SDFileAtom,SDFileBond}
+    end
+
+    @testset "vectormol" begin
+        mol = vectormol(SDFileAtom, SDFileBond)
+        @test nodecount(mol) == 0
+        atoms = [SDFileAtom(),SDFileAtom(),SDFileAtom()]
+        bonds = [SDFileBond(1, 2)]
+        mol = vectormol(atoms, bonds)
+        newbond = setnodes(getedge(mol, 1), 2, 3)
+        # TODO: updateedge! for vectorgraph
+        # updateedge!(mol, newbond, 2)
+        # @test edgecount(mol) == 2
     end
 
     @testset "querymol" begin
@@ -18,9 +30,4 @@
         @test atomcount(q) == 2
     end
 
-    @testset "nullmol" begin
-        nullsdf = nullmol(SDFile)
-        @test atomcount(nullsdf) == 0
-        @test bondcount(nullsdf) == 0
-    end
 end

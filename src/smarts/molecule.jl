@@ -11,7 +11,7 @@ export
     chain!
 
 
-function componentquery!(state::DisconnectedSmarts)
+function componentquery!(state::SmartsParser{SMARTS})
     """ Start <- Component ('.' Component)*
     """
     if read(state) == '\0'
@@ -26,7 +26,7 @@ function componentquery!(state::DisconnectedSmarts)
 end
 
 
-function component!(state::DisconnectedSmarts)
+function component!(state::SmartsParser{SMARTS})
     """ Component <- '(' Fragment ')' / Fragment
     """
     if read(state) == '('
@@ -46,7 +46,7 @@ end
 function fragment!(state::SmartsParser)
     """ Fragment <- Group
     """
-    if state isa SmilesParser && read(state) == '\0'
+    if read(state) == '\0'
         return # Empty molecule
     end
     group!(state, nothing)
@@ -74,8 +74,8 @@ function group!(state::SmartsParser, bond)
     updateatom!(state.mol, a, state.node)
     if bond !== nothing
         # Connect branch
-        b = similaredge(bond, state.branch, state.node)
-        updatebond!(state.mol, b, bondcount(state.mol) + 1)
+        bond = setnodes(bond, state.branch, state.node)
+        updateedge!(state.mol, bond, edgecount(state.mol) + 1)
     end
     state.branch = state.node
     while true
@@ -111,7 +111,7 @@ function chain!(state::SmartsParser)
     while !state.done
         # Bond?
         if read(state) == '.'
-            if state isa ConnectedSmarts
+            if !state.allow_disconnected
                 throw(ErrorException(
                     "unexpected token: disconnected at $(state.pos)"))
             elseif lookahead(state, 1) != '('
@@ -133,8 +133,8 @@ function chain!(state::SmartsParser)
                 (v, rb) = state.ringlabel[num]
                 b = something(b, rb, defaultbond(state))
                 delete!(state.ringlabel, num) # Ring label is reusable
-                b = similaredge(b, u, v)
-                updatebond!(state.mol, b, bondcount(state.mol) + 1)
+                b = setnodes(b, u, v)
+                updateedge!(state.mol, b, edgecount(state.mol) + 1)
             else
                 state.ringlabel[num] = (u, b)
             end
@@ -153,10 +153,10 @@ function chain!(state::SmartsParser)
             break
         else
             state.node += 1
-            updateatom!(state.mol, a, state.node)
+            updatenode!(state.mol, a, state.node)
         end
         if b == :disconn
-            if (state isa DisconnectedSmarts)
+            if state isa SmartsParser{SMARTS}
                 for conn in state.mol.connectivity
                     if conn[1] == state.root
                         push!(conn, state.node)
@@ -165,8 +165,8 @@ function chain!(state::SmartsParser)
             end
         else
             b = something(b, defaultbond(state))
-            b = similaredge(b, u, state.node)
-            updatebond!(state.mol, b, bondcount(state.mol) + 1)
+            b = setnodes(b, u, state.node)
+            updateedge!(state.mol, b, edgecount(state.mol) + 1)
         end
         u = state.node
     end

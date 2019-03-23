@@ -22,15 +22,15 @@ struct ModularProductEdge <: UndirectedEdge
 end
 
 
-ModularProduct = MapUDGraph{ModularProductNode,ModularProductEdge}
+ModularProduct = MapGraph{ModularProductNode,ModularProductEdge}
 
 
 """
-    modularproduct(G::UDGraph, H::UDGraph) -> MapUDGraph
+    modularproduct(G::UndirectedGraph, H::UndirectedGraph) -> MapGraph
 
 Return the modular product of graphs G and H.
 """
-function modularproduct(G::UDGraph, H::UDGraph,
+function modularproduct(G::UndirectedGraph, H::UndirectedGraph,
         nodematcher=(g,h)->true, edgefilter=edgefilter(G, H))
     product = ModularProduct()
     ncnt = 0
@@ -58,13 +58,13 @@ function modularproduct(G::UDGraph, H::UDGraph,
             if nodematcher(g1, h1) && nodematcher(g2, h2)
                 # TODO: hasedge
                 e = ModularProductEdge(
-                    ndict[g1][h1], ndict[g2][h2], g2 in neighborset(G, g1))
+                    ndict[g1][h1], ndict[g2][h2], g2 in adjacencies(G, g1))
                 ecnt += 1
                 updateedge!(product, e, ecnt)
             end
             if nodematcher(g1, h2) && nodematcher(g2, h1)
                 e = ModularProductEdge(
-                    ndict[g1][h2], ndict[g2][h1], g2 in neighborset(G, g1))
+                    ndict[g1][h2], ndict[g2][h1], g2 in adjacencies(G, g1))
                 ecnt += 1
                 updateedge!(product, e, ecnt)
             end
@@ -76,6 +76,6 @@ end
 
 function edgefilter(G, H)
     return function (g1, g2, h1, h2)
-        return (g2 in neighborset(G, g1)) == (h2 in neighborset(H, h1))
+        return (g2 in adjacencies(G, g1)) == (h2 in adjacencies(H, h1))
     end
 end

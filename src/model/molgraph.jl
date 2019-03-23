@@ -4,94 +4,149 @@
 #
 
 export
-    GeneralMapMol, GeneralVectorMol,
-    ConnectedQueryMol, DisconnectedQueryMol,
-    SDFile, SMILES, ConnectedSMARTS, SMARTS,
-    vectormol, nullmol
+    MapMol, VectorMol, QueryMol,
+    mapmol, vectormol, querymol,
+    SDFile, SMILES, SMARTS
 
 
-struct GeneralMapMol{A<:Atom,B<:Bond} <: MapMolGraph
-    graph::MapUDGraph{A,B}
+struct MapMol{A<:Atom,B<:Bond} <: MolGraph
+    graph::MapGraph{A,B}
     attribute::Dict{Symbol,String}
 
-    function GeneralMapMol{A,B}() where {A<:Atom,B<:Bond}
-        new(MapUDGraph{A,B}(), Dict())
+    function MapMol{A,B}(graph::Graph) where {A<:Atom,B<:Bond}
+        new(graph, Dict())
     end
 end
 
-function GeneralMapMol{A,B}(nodes::Vector{A}, edges::Vector{B}
-        ) where {A<:Atom,B<:Bond}
-    mol = GeneralMapMol{A,B}()
-    for (i, a) in enumerate(nodes)
-        updateatom!(mol, a, i)
+MapMol{A,B}() where {A<:Atom,B<:Bond} = MapMol{A,B}(mapgraph(A,B))
+
+"""
+    mapmol(::Type{A}, ::Type{B}) where {A<:Atom,B<:Bond} -> MapMol{N,E}
+
+Generate empty `MapMol` that has atoms and bonds with the given types.
+"""
+mapmol(::Type{A}, ::Type{B}) where {A<:Atom,B<:Bond} = MapMol{A,B}()
+
+"""
+    mapmol(atoms::Vector{A}, bonds::Vector{B}) -> MapMol{A,B}
+
+Generate `MapMol` that has the given atom objects and edge objects.
+"""
+function mapmol(atoms::Vector{A}, bonds::Vector{B}) where {A<:Atom,B<:Bond}
+    mol = MapMol{A,B}()
+    for (i, atom) in enumerate(atoms)
+        mol.graph.nodes[i] = atom
+        mol.graph.neighbormap[i] = Dict()
     end
-    for (i, b) in enumerate(edges)
-        updatebond!(mol, b, i)
+    for (i, bond) in enumerate(bonds)
+        mol.graph.edges[i] = bond
+        mol.graph.neighbormap[bond.u][bond.v] = i
+        mol.graph.neighbormap[bond.v][bond.u] = i
     end
     return mol
 end
 
 
-struct ConnectedQueryMol{A<:QueryAtom,B<:QueryBond} <: QueryMolGraph
-    graph::MapUDGraph{A,B}
-    attribute::Dict{Symbol,String}
+"""
+    mapmol(mol::MolGraph{A,B}; clone=false) -> MapMol{A,B}
 
-    function ConnectedQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
-        new(MapUDGraph{A,B}(), Dict())
-    end
+Convert the given molecule into a new `MapMol`. See [`mapgraph`](@ref)
+for the details.
+"""
+function mapmol(mol::MolGraph)
+    A = nodetype(mol)
+    B = edgetype(mol)
+    newmol = MapMol{A,B}(mapgraph(mol))
+    merge!(newmol.attribute, mol.attribute)
+    return newmol
 end
 
 
-struct DisconnectedQueryMol{A<:QueryAtom,B<:QueryBond} <: QueryMolGraph
-    graph::MapUDGraph{A,B}
+
+struct QueryMol{A<:QueryAtom,B<:QueryBond} <: MolGraph
+    graph::MapGraph{A,B}
     connectivity::Array{Array{Int}}
-    attribute::Dict
 
-    function DisconnectedQueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
-        new(MapUDGraph{A,B}(), [], Dict())
+    function QueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
+        new(mapgraph(A,B), [])
     end
 end
 
+"""
+    querymol(::Type{A}, ::Type{B}
+        ) where {A<:QueryAtom,B<:QueryBond} -> QueryMol{N,E}
 
-struct GeneralVectorMol{A<:Atom,B<:Bond} <: VectorMolGraph
-    graph::VectorUDGraph{A,B}
+Generate empty `QueryMol` that has atoms and bonds with the given types.
+"""
+querymol(::Type{A}, ::Type{B}
+    ) where {A<:QueryAtom,B<:QueryBond} = QueryMol{A,B}()
+
+
+struct VectorMol{A<:Atom,B<:Bond} <: MolGraph
+    graph::VectorGraph{A,B}
     vector::Dict{Symbol,Vector}
     annotation::Dict{Symbol,Annotation}
     coords::Dict{Symbol,Coordinates}
     attribute::Dict{Symbol,String}
-end
 
-
-function GeneralVectorMol{A,B}(nodes::Vector{A}, edges::Vector{B}
-        ) where {A<:Atom,B<:Bond}
-    # do not use `fill`
-    adj = [Dict() for i in 1:length(nodes)]
-    for (i, e) in enumerate(edges)
-        adj[e.u][e.v] = i
-        adj[e.v][e.u] = i
+    function VectorMol{A,B}(graph::Graph) where {A<:Atom,B<:Bond}
+        new(graph, Dict(), Dict(), Dict(), Dict())
     end
-    return GeneralVectorMol{A,B}(
-        VectorUDGraph{A,B}(nodes, edges, adj), Dict(), Dict(), Dict(), Dict()
-    )
 end
 
+VectorMol{A,B}() where {A<:Atom,B<:Bond} = VectorMol{A,B}(vectorgraph(A,B))
 
-function vectormol(mol::GeneralMapMol{A,B}) where {A<:Atom,B<:Bond}
-    return GeneralVectorMol{A,B}(
-        VectorUDGraph{A,B}(mol.graph), Dict(), Dict(), Dict(), mol.attribute
-    )
+
+"""
+    vectormol(::Type{A}, ::Type{B}) where {A<:Atom,B<:Bond} -> VectorMol{A,B}
+
+Generate empty `VectorMol` that has atoms and bonds with the given types.
+"""
+vectormol(::Type{A}, ::Type{B}) where {A<:Atom,B<:Bond} = VectorMol{A,B}()
+
+"""
+    vectormol(atoms::Vector{A}, bonds::Vector{B}) -> VectorMol{A,B}
+
+Generate `VectorMol` that has the given atom objects and edge objects.
+"""
+function vectormol(nodes::Vector{A}, edges::Vector{B}) where {A<:Atom,B<:Bond}
+    mol = VectorMol{A,B}()
+    for (i, node) in enumerate(nodes)
+        push!(mol.graph.nodes, node)
+        push!(mol.graph.neighbormap, Dict())
+    end
+    for (i, edge) in enumerate(edges)
+        push!(mol.graph.edges, edge)
+        mol.graph.neighbormap[edge.u][edge.v] = i
+        mol.graph.neighbormap[edge.v][edge.u] = i
+    end
+    return mol
+end
+
+"""
+    vectormol(mol::MolGraph; clone=false) -> VectorMol
+
+Convert the given molecule into a new `VectorMol`. See [`vectorgraph`](@ref)
+for the details.
+"""
+function vectormol(mol::MolGraph)
+    A = nodetype(mol)
+    B = edgetype(mol)
+    newmol = VectorMol{A,B}(vectorgraph(mol))
+    merge!(newmol.attribute, mol.attribute)
+    return newmol
 end
 
 
 # Aliases
-
 # TODO: use traits
-SDFile = GeneralMapMol{SDFileAtom,SDFileBond}
-SMILES = GeneralMapMol{SmilesAtom,SmilesBond}
-ConnectedSMARTS = ConnectedQueryMol{SmartsAtom,SmartsBond}
-SMARTS = DisconnectedQueryMol{SmartsAtom,SmartsBond}
 
 
-nullmol(::Type{T}) where T <: SDFile = SDFile()
-nullmol(::Type{T}) where T <: SMILES = SMILES()
-nullmol(::Type{T}) where T <: SMARTS = SMARTS()
+SDFile = MapMol{SDFileAtom,SDFileBond}
+SMILES = MapMol{SmilesAtom,SmilesBond}
+SMARTS = QueryMol{SmartsAtom,SmartsBond}
+
+
+mapmol(::Type{T}) where T <: SDFile = mapmol(SDFileAtom,SDFileBond)
+mapmol(::Type{T}) where T <: SMILES = mapmol(SmilesAtom,SmilesBond)
+querymol(::Type{T}) where T <: SMARTS = querymol(SmartsAtom,SmartsBond)

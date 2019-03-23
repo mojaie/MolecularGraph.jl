@@ -5,33 +5,32 @@
 
 export
     AbstractGraph,
+    Graph, DiGraph, GraphView, DiGraphView,
     UndirectedGraph, DirectedGraph,
-    UndirectedGraphView, DirectedGraphView,
-    UDGraph, DGraph, GraphView,
     AbstractNode,
     UndirectedEdge, DirectedEdge,
     Node, GraphPropertyVectors,
     getnode, getedge, hasedge,
-    nodesiter, egdesiter, nodekeys, edgekeys, nodeset, edgeset,
-    neighbors, successors, predecessors,
+    nodesiter, edgesiter, nodekeys, edgekeys, nodeset, edgeset,
+    neighbors, outneighbors, inneighbors,
     updatenode!, updateedge!, unlinknode!, unlinkedge!,
     nodecount, edgecount, neighborcount, degree, indegree, outdegree,
     nodetype, edgetype
 
 
 abstract type AbstractGraph end
-abstract type UndirectedGraph <: AbstractGraph end
-abstract type DirectedGraph <: AbstractGraph end
-abstract type UndirectedGraphView <: AbstractGraph end
-abstract type DirectedGraphView <: AbstractGraph end
+abstract type Graph <: AbstractGraph end
+abstract type DiGraph <: AbstractGraph end
+abstract type MultiGraph <: AbstractGraph end
+abstract type GraphView <: AbstractGraph end
+abstract type DiGraphView <: AbstractGraph end
 
 # Union types
 # TODO: use traits
 # https://github.com/JuliaLang/julia/issues/2345
 
-UDGraph = Union{UndirectedGraph,UndirectedGraphView}
-DGraph = Union{DirectedGraph,DirectedGraphView}
-GraphView = Union{DirectedGraphView,UndirectedGraphView}
+UndirectedGraph = Union{Graph,GraphView}
+DirectedGraph = Union{DiGraph,DiGraphView}
 
 
 # Components
@@ -42,13 +41,11 @@ abstract type UndirectedEdge <: AbstractEdge end
 abstract type DirectedEdge <: AbstractEdge end
 
 
-# Node
-
-mutable struct Node <: AbstractNode
-    attr::Dict
+struct Node <: AbstractNode
+    dummy::Nothing
 end
 
-Node() = Node(Dict())
+Node() = Node(nothing)
 
 
 # Precalculated properties
@@ -76,7 +73,7 @@ end
 
 
 """
-    getnode(graph::AbstractGraph, index) -> AbstractNode
+    getnode(graph, index) -> AbstractNode
 
 Retrieve the node object at the given index within the graph.
 """
@@ -84,23 +81,23 @@ function getnode end
 
 
 """
-    getedge(graph::AbstractGraph, index) -> AbstractEdge
+    getedge(graph, index) -> AbstractEdge
 
 Retrieve the edge object at the given index within the graph.
 """
-function getedge(graph::AbstractGraph, index) end
+function getedge(graph, index) end
 
 
 """
-    getedge(graph::AbstractGraph, u, v) -> AbstractEdge
+    getedge(graph, u, v) -> AbstractEdge
 
 Retrieve an edge object which connects the given nodes.
 """
-function getedge(graph::AbstractGraph, u, v) end
+function getedge(graph, u, v) end
 
 
 """
-    hasedge(graph::AbstractGraph, u, v) -> AbstractEdge
+    hasedge(graph, u, v) -> AbstractEdge
 
 Return whether the given two nodes are connected by at least one edge.
 """
@@ -108,7 +105,7 @@ function hasedge end
 
 
 """
-    nodesiter(graph::AbstractGraph)
+    nodesiter(graph)
 
 An iterator that yields `(i, n)` where `i` is the node index, and `n` is the
 node object at the index `i` within the graph.
@@ -117,7 +114,7 @@ function nodesiter end
 
 
 """
-    edgesiter(graph::AbstractGraph)
+    edgesiter(graph)
 
 An iterator that yields `(i, e)` where `i` is the edge index, and `e` is the
 edge object at the index `i` within the graph.
@@ -126,7 +123,7 @@ function edgesiter end
 
 
 """
-    nodekeys(graph::AbstractGraph) -> Vector{Int}
+    nodekeys(graph) -> Vector{Int}
 
 Return graph node keys. If the given graph is a vector graph, the keys are in
 ascending order, whereas the order of indices in map graph is not guaranteed.
@@ -135,7 +132,7 @@ function nodekeys end
 
 
 """
-    nodeset(graph::AbstractGraph) -> Set{Int}
+    nodeset(graph) -> Set{Int}
 
 Return the set of node keys.
 """
@@ -143,7 +140,7 @@ function nodeset end
 
 
 """
-    edgekeys(graph::AbstractGraph) -> Vector{Int}
+    edgekeys(graph) -> Vector{Int}
 
 Return graph edge keys. If the given graph is a vector graph, the keys are in
 ascending order, whereas the order of indices in map graph is not guaranteed.
@@ -152,7 +149,7 @@ function edgekeys end
 
 
 """
-    edgeset(graph::AbstractGraph) -> Set{Int}
+    edgeset(graph) -> Set{Int}
 
 Return the set of edge keys.
 """
@@ -160,35 +157,35 @@ function edgeset end
 
 
 """
-    neighbors(graph::AbstractGraph, n) -> Dict{Int,Int}
+    neighbors(graph, n) -> Dict{Int,Int}
 
 Return the mapping of adjacent node keys and incident edge keys connected to
-the given node. If the graph is directed graph, both successors and
-predecessors are mapped.
+the given node. If the graph is directed graph, both outneighbors and
+inneighbors are mapped.
 """
 function neighbors end
 
 
 """
-    successors(graph::DirectedGraph, n) -> Dict{Int,Int}
+    outneighbors(graph, n) -> Dict{Int,Int}
 
 Return the mapping of successor node keys and out edge keys connected to
 the given node.
 """
-function successors end
+function outneighbors end
 
 
 """
-    predecessors(graph::DirectedGraph, n) -> Dict{Int,Int}
+    inneighbors(graph, n) -> Dict{Int,Int}
 
 Return the mapping of predecessor node keys and in edge keys connected to
 the given node.
 """
-function predecessors end
+function inneighbors end
 
 
 """
-    updatenode!(graph::AbstractGraph, node::AbstractNode, n)
+    updatenode!(graph, node, n)
 
 Rebind the node object stored at `n` of the graph by the given node object.
 If the index does not exist, add new node to the position `n`.
@@ -197,25 +194,25 @@ function updatenode! end
 
 
 """
-    updateedge!(graph::AbstractGraph, edge::AbstractEdge, e)
+    updateedge!(graph, edge, e)
 
 Rebind the edge object stored at `e` of the graph by the given edge object.
 If the index does not exist, add new edge to the position `e`.
 """
-function updateedge!(graph::AbstractGraph, edge, e) end
+function updateedge!(graph, edge, e) end
 
 
 """
-    updateedge!(graph::AbstractGraph, edge::AbstractEdge, u, v)
+    updateedge!(graph, edge, u, v)
 
 Rebind the edge that connects nodes `u` and `v` by the given edge object.
 If the nodes do not exist, throws `KeyError`.
 """
-function updateedge!(graph::AbstractGraph, edge, u, v) end
+function updateedge!(graph, edge, u, v) end
 
 
 """
-    unlinknode!(graph::AbstractGraph, n)
+    unlinknode!(graph, n)
 
 Delete the node at the index of `n` and its incident edges.
 """
@@ -223,23 +220,23 @@ function unlinknode! end
 
 
 """
-    unlinkedge!(graph::AbstractGraph, e)
+    unlinkedge!(graph, e)
 
 Delete the edge at the index of `e`.
 """
-function unlinkedge!(graph::AbstractGraph, e) end
+function unlinkedge!(graph, e) end
 
 
 """
-    unlinkedge!(graph::AbstractGraph, u, v)
+    unlinkedge!(graph, u, v)
 
 Delete the edge that connect nodes `u` and `v`.
 """
-function unlinkedge!(graph::AbstractGraph, u, v) end
+function unlinkedge!(graph, u, v) end
 
 
 """
-    nodecount(graph::AbstractGraph) -> Int
+    nodecount(graph) -> Int
 
 Return the number of graph nodes.
 """
@@ -247,7 +244,7 @@ function nodecount end
 
 
 """
-    edgecount(graph::AbstractGraph) -> Int
+    edgecount(graph) -> Int
 
 Return the number of graph edges.
 """
@@ -255,8 +252,8 @@ function edgecount end
 
 
 """
-    neighborcount(graph::AbstractGraph, n) -> Int
-    degree(graph::AbstractGraph, n) -> Int
+    neighborcount(graph, n) -> Int
+    degree(graph, n) -> Int
 
 Return the number of adjacent nodes of the node 'n'.
 """
@@ -265,30 +262,30 @@ degree = neighborcount
 
 
 """
-    indegree(graph::DirectedGraph, n) -> Int
+    indegree(graph, n) -> Int
 
-Return the number of predecessors of the node 'n'.
+Return the number of inneighbors of the node 'n'.
 """
 function indegree end
 
 
 """
-    outdegree(graph::DirectedGraph, n) -> Int
+    outdegree(graph, n) -> Int
 
-Return the number of successors of the node 'n'.
+Return the number of outneighbors of the node 'n'.
 """
 function outdegree end
 
 
 """
-    nodetype(graph::AbstractGraph)
+    nodetype(graph)
 
 Return the node type of the graph
 """
 function nodetype end
 
 """
-    edgetype(graph::AbstractGraph)
+    edgetype(graph)
 
 Return the edge type of the graph
 """

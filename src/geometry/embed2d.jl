@@ -46,7 +46,7 @@ end
 
 
 """
-    chain_embed2d(graph::UDGraph; kwargs...) -> InternalCoords
+    chain_embed2d(graph::UndirectedGraph; kwargs...) -> InternalCoords
 
 Return a 2D embedding of chain(=tree graph).
 """
@@ -85,7 +85,7 @@ end
 
 
 """
-    outerplaner_embed2d(graph::UDGraph; kwargs...) -> InternalCoords
+    outerplaner_embed2d(graph::UndirectedGraph; kwargs...) -> InternalCoords
 
 Return a 2D embedding of the outerplanar graph.
 
@@ -134,7 +134,7 @@ end
 
 
 """
-    cartesian_embed2d(graph::UDGraph; kwargs...) -> Cartesian2D
+    cartesian_embed2d(graph::UndirectedGraph; kwargs...) -> Cartesian2D
 
 Cartesian 2D embedding
 """

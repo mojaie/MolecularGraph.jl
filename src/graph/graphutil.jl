@@ -4,38 +4,40 @@
 #
 
 export
+    clone,
     neighbors,
-    neighborset, succset, predset,
-    neighbornodes, succnodes, prednodes,
-    neighboredgeset, inedgeset, outedgeset,
-    neighboredges, inedges, outedges,
+    adjacencies, successors, predecessors,
+    adjacentnodes, successornodes, predecessornodes,
+    incidences, in_incidences, outincidences,
+    incidentedges, inedges, outedges,
     hasproperty
 
+clone(node::AbstractNode) = node
 
-neighbors(g::DGraph, i) = merge(successors(g, i), predecessors(g, i))
+neighbors(g::DirectedGraph, i) = merge(outneighbors(g, i), inneighbors(g, i))
 
-neighborset(g::AbstractGraph, i) = Set(keys(neighbors(g, i)))
-succset(g::DGraph, i) = Set(keys(successors(g, i)))
-predset(g::DGraph, i) = Set(keys(predecessors(g, i)))
+adjacencies(g::AbstractGraph, i) = Set(keys(neighbors(g, i)))
+successors(g::DirectedGraph, i) = Set(keys(outneighbors(g, i)))
+predecessors(g::DirectedGraph, i) = Set(keys(inneighbors(g, i)))
 
-neighbornodes(g::AbstractGraph, i) = getnode.((g,), neighborset(g, i))
-succnodes(g::DGraph, i) = getnode.((g,), succkeys(g, i))
-prednodes(g::DGraph, i) = getnode.((g,), predkeys(g, i))
+adjacentnodes(g::AbstractGraph, i) = getnode.((g,), adjacencies(g, i))
+successornodes(g::DirectedGraph, i) = getnode.((g,), successors(g, i))
+predecessornodes(g::DirectedGraph, i) = getnode.((g,), predecessors(g, i))
 
-neighboredgeset(g::AbstractGraph, i) = Set(values(neighbors(g, i)))
-outedgeset(g::DGraph, i) = Set(values(successors(g, i)))
-inedgeset(g::DGraph, i) = Set(values(predecessors(g, i)))
+incidences(g::AbstractGraph, i) = Set(values(neighbors(g, i)))
+outincidences(g::DirectedGraph, i) = Set(values(outneighbors(g, i)))
+in_incidences(g::DirectedGraph, i) = Set(values(inneighbors(g, i)))
 
-neighboredges(g::AbstractGraph, i) = getedge.((g,), neighboredgeset(g, i))
-outedges(g::DGraph, i) = getedge.((g,), outedgeset(g, i))
-inedges(g::DGraph, i) = getedge.((g,), inedgeset(g, i))
+incidentedges(g::AbstractGraph, i) = getedge.((g,), incidences(g, i))
+outedges(g::DirectedGraph, i) = getedge.((g,), outincidences(g, i))
+inedges(g::DirectedGraph, i) = getedge.((g,), in_incidences(g, i))
 
 neighborcount(g::AbstractGraph, i) = length(neighbors(g, i))
-outdegree(g::DGraph, i) = length(successors(g, i))
-indegree(g::DGraph, i) = length(predecessors(g, i))
+outdegree(g::DirectedGraph, i) = length(outneighbors(g, i))
+indegree(g::DirectedGraph, i) = length(inneighbors(g, i))
 
-nodecount(g::Union{DirectedGraph,UndirectedGraph}) = length(g.nodes)
-edgecount(g::Union{DirectedGraph,UndirectedGraph}) = length(g.edges)
+nodecount(g::Union{DiGraph,Graph}) = length(g.nodes)
+edgecount(g::Union{DiGraph,Graph}) = length(g.edges)
 
 hasproperty(g::AbstractGraph, property::Symbol) = (
     isdefined(g, property) && !isempty(getproperty(g.property, property)))

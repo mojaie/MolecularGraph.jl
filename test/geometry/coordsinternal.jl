@@ -1,5 +1,5 @@
 
-using MolecularGraph.Geometry: _angle
+using MolecularGraph.MolecularGraphGeometry: _angle
 
 @testset "geometry.coordsinternal" begin
 

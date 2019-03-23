@@ -7,16 +7,16 @@ export
     shallowmerge
 
 
-function shallowmerge(G::UDGraph, H::UDGraph)
-    U = similargraph(G)
+function shallowmerge(G::UndirectedGraph, H::UndirectedGraph)
+    U = mapgraph(G)
     for (i, n) in nodesiter(G)
         U.nodes[i] = n
-        U.adjacency[i] = Dict()
+        U.neighbormap[i] = Dict()
     end
     for (i, e) in edgesiter(G)
         U.edges[i] = e
-        U.adjacency[e.u][e.v] = i
-        U.adjacency[e.v][e.u] = i
+        U.neighbormap[e.u][e.v] = i
+        U.neighbormap[e.v][e.u] = i
     end
     nmax = maximum(nodekeys(U))
     nmap = Dict(i => i + nmax for i in nodekeys(H))
@@ -24,12 +24,14 @@ function shallowmerge(G::UDGraph, H::UDGraph)
     emap = Dict(i => i + emax for i in edgekeys(H))
     for (i, n) in nodesiter(H)
         U.nodes[nmap[i]] = n
-        U.adjacency[nmap[i]] = Dict()
+        U.neighbormap[nmap[i]] = Dict()
     end
     for (i, e) in edgesiter(H)
-        U.edges[emap[i]] = e
-        U.adjacency[nmap[e.u]][nmap[e.v]] = emap[i]
-        U.adjacency[nmap[e.v]][nmap[e.u]] = emap[i]
+        newe = setnodes(e, nmap[e.u], nmap[e.v])
+        eidx = emap[i]
+        U.edges[eidx] = newe
+        U.neighbormap[newe.u][newe.v] = eidx
+        U.neighbormap[newe.v][newe.u] = eidx
     end
     return U, nmap, emap
 end

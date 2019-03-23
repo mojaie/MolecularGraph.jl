@@ -4,58 +4,61 @@
 #
 
 export
-    UDComplementGraph, DComplementGraph,
-    ComplementGraphView,
-    edgecount
+    ComplementGraphView, ComplementDiGraphView,
+    complementgraph
 
 
-struct UDComplementGraph{T<:UDGraph} <: UndirectedGraphView
+struct ComplementGraphView{T<:UndirectedGraph} <: GraphView
     graph::T
 end
 
 
-struct DComplementGraph{T<:DGraph} <: DirectedGraphView
+struct ComplementDiGraphView{T<:DirectedGraph} <: DiGraphView
     graph::T
 end
 
 # TODO: use traits
-ComplementGraphView = Union{UDComplementGraph,DComplementGraph}
+ComplementGraph = Union{ComplementGraphView,ComplementDiGraphView}
+
+complementgraph(graph::UndirectedGraph) = ComplementGraphView(graph)
+complementgraph(graph::DirectedGraph) = ComplementDiGraphView(graph)
 
 
-function getedge(view::UDComplementGraph, idx)
+function getedge(view::ComplementGraphView, idx)
     throw(ErrorException("Edge indexing not supported for this view."))
 end
 
-function getedge(view::UDComplementGraph, u, v)
-    # TODO: hasedge
+function getedge(view::ComplementGraphView, u, v)
     (v in neighbors(view.graph, u)) || throw(KeyError(v))
-    e = getedge(view.graph, u, v)
-    return similaredge(e, u, v)
+    return edgetype(view.graph)(u, v)
 end
 
-function edgesiter(view::UDComplementGraph)
+hasedge(view::ComplementGraphView, u, v) = !hasedge(view.graph, u, v)
+
+
+function edgesiter(view::ComplementGraphView)
     throw(ErrorException("Edge indexing not supported for this view."))
 end
 
-function neighbors(view::UDComplementGraph, idx)
+function neighbors(view::ComplementGraphView, idx)
     throw(ErrorException("Edge indexing not supported for this view."))
 end
 
-function neighborset(view::UDComplementGraph, idx)
+function adjacencies(view::ComplementGraphView, idx)
     ns = nodeset(view.graph)
     pop!(ns, idx)
-    return setdiff(ns, neighborset(view.graph, idx))
+    return setdiff(ns, adjacencies(view.graph, idx))
 end
 
-function neighboredgeset(view::UDComplementGraph, idx)
+function incidences(view::ComplementGraphView, idx)
     throw(ErrorException("Edge indexing not supported for this view."))
 end
 
-function neighboredges(view::UDComplementGraph, idx)
+function incidentedges(view::ComplementGraphView, idx)
     throw(ErrorException("Edge indexing not supported for this view."))
 end
 
-function edgecount(view::UDComplementGraph)
+function edgecount(view::ComplementGraphView)
     n = nodecount(view.graph)
     return n * (n - 1) / 2 - edgecount(view.graph)
 end

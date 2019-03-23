@@ -6,11 +6,11 @@
 @testset "graph.isomorphism.cliquebased" begin
 
 @testset "nodemcsclique" begin
-    nullg = MapUDGraph{Node,Edge}()
+    nullg = mapgraph(Node,Edge)
     @test isempty(nodemcsclique(nullg, nullg))
 
-    g = VectorUDGraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
-    h = VectorUDGraph(6, [(1,2), (2,3), (3,4), (3,5), (3,6)])
+    g = vectorgraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
+    h = vectorgraph(6, [(1,2), (2,3), (3,4), (3,5), (3,6)])
     @test length(nodemcsclique(g, h)) == 6
 
     g = pathgraph(4)
@@ -24,11 +24,11 @@
 end
 
 @testset "edgemcsclique" begin
-    nullg = MapUDGraph{Node,Edge}()
+    nullg = mapgraph(Node,Edge)
     @test isempty(edgemcsclique(nullg, nullg))
 
-    g = VectorUDGraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
-    h = VectorUDGraph(6, [(1,2), (2,3), (3,4), (3,5), (3,6)])
+    g = vectorgraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
+    h = vectorgraph(6, [(1,2), (2,3), (3,4), (3,5), (3,6)])
     @test length(edgemcsclique(g, h)) == 5
 
     g = pathgraph(4)

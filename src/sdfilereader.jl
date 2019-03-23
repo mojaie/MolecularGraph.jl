@@ -85,11 +85,11 @@ IteratorEltype(::Type{SDFileReader}) = Base.EltypeUnknown()
 
 function nohaltsupplier(block)
     mol = try
-        parse(SDFile, block)
+        return parse(SDFile, block)
     catch e
         if e isa ErrorException
             println("$(e.msg) (#$(i) in sdfilereader)")
-            nullmol(SDFile)
+            return mapmol(SDFile)
         else
             throw(e)
         end
@@ -159,7 +159,7 @@ function sdfmol(lines)
     sdfatomprops!(atoms, propblock)
     aobjs = [SDFileAtom(atom...) for atom in atoms]
     bobjs = [SDFileBond(bond...) for bond in bonds]
-    return SDFile(aobjs, bobjs)
+    return mapmol(aobjs, bobjs)
 end
 
 
@@ -173,7 +173,7 @@ function sdfatom(line)
     xpos = parse(Float64, line[1:10])
     ypos = parse(Float64, line[11:20])
     zpos = parse(Float64, line[21:30])
-    coords = SVector(xpos, ypos, zpos)
+    coords = Float64[xpos, ypos, zpos]
     # atom.mass_diff = parse(Int, line[35:36]) use ISO property
     old_sdf_charge = parse(Int, line[37:39])
     charge = SDF_CHARGE_TABLE[old_sdf_charge]

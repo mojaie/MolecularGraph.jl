@@ -48,7 +48,7 @@ function wclogptype!(mol::VectorMol)
     for i in findall(mol[:Symbol] .== :C)
         if mol[:Pi][i] == 0
             # Aliphatic (C1-4,8-12,27)
-            nbrs = collect(neighborset(mol, i))
+            nbrs = collect(adjacencies(mol, i))
             if !isempty(setdiff(mol[:Symbol][nbrs], ALIPH_HETERO))
                 mol[:WCLogP][i] = :C27 # Adjacent to inorganic atoms
             elseif all(mol[:Aromatic][nbrs] .== false)
@@ -115,8 +115,8 @@ function wclogptype!(mol::VectorMol)
             end
         else
             # Aliphatic multiple bond (C5-7,26)
-            nbrs = collect(neighborset(mol, i))
-            bonds = collect(neighboredgeset(mol, i))
+            nbrs = collect(adjacencies(mol, i))
+            bonds = collect(incidences(mol, i))
             if any(mol[:BondOrder][bonds] .== 3)
                 mol[:WCLogP][i] = :C7 # Alkyne, Nitrile
             elseif any((mol[:Pi][nbrs] .> 0) .* (mol[:Symbol][nbrs] .!= :C))
@@ -135,7 +135,7 @@ function wclogptype!(mol::VectorMol)
     # Nitrogens
     for i in findall(mol[:Symbol] .== :N)
         if mol[:Charge][i] > 0
-            nbrs = collect(neighborset(mol, i))
+            nbrs = collect(adjacencies(mol, i))
             if mol[:Aromatic][i]
                 mol[:WCLogP][i] = :N12 # Charged aromatic nitrogen
             elseif mol[:H_Count][i] == 0
@@ -163,7 +163,7 @@ function wclogptype!(mol::VectorMol)
                 mol[:WCLogP][i] = :N6
             end
         else
-            nbrs = collect(neighborset(mol, i))
+            nbrs = collect(adjacencies(mol, i))
             if all(mol[:Aromatic][nbrs] .== false)
                 # Aliphatic amine (N1,2,7)
                 if mol[:Degree][i] == 1
@@ -197,8 +197,8 @@ function wclogptype!(mol::VectorMol)
             mol[:WCLogP][i] = :O1
             continue
         end
-        nbrs = collect(neighborset(mol, i))
-        bonds = collect(neighboredgeset(mol, i))
+        nbrs = collect(adjacencies(mol, i))
+        bonds = collect(incidences(mol, i))
         if mol[:Degree][i] == 1
             # Hydroxyl (O2,5-12)
             nbr = nbrs[1]
@@ -212,7 +212,7 @@ function wclogptype!(mol::VectorMol)
                     mol[:WCLogP][i] = :O8 # Aromatic carbonyl
                 elseif mol[:WCLogP][nbr] == :C5
                     # Aliphatic carbonyl
-                    cnbrs = neighborset(mol, nbr)
+                    cnbrs = adjacencies(mol, nbr)
                     pop!(cnbrs, i)
                     cnbrs = collect(cnbrs)
                     if all(mol[:Symbol][cnbrs] .!= :C)
@@ -262,7 +262,7 @@ function wclogptype!(mol::VectorMol)
                 mol[:WCLogP][i] = :S2
             end
         elseif mol[:Symbol][i] == :H
-            nbr = pop!(neighborset(mol, i))
+            nbr = pop!(adjacencies(mol, i))
             mol[:WCLogP][i] = wclogphydrogentype(mol, nbr)
         elseif mol[:Symbol][i] in P_BLOCK
             mol[:WCLogP][i] = :Me1
@@ -279,7 +279,7 @@ function wclogphydrogentype(mol::VectorMol, i)
     elseif mol[:Symbol][i] == :N
         return :H3 # Amine
     elseif mol[:Symbol][i] == :O
-        nbr = pop!(neighborset(mol, i))
+        nbr = pop!(adjacencies(mol, i))
         if mol[:Symbol][nbr] == :N
             return :H3 # Hydroxyamine
         elseif mol[:Symbol][nbr] in (:O, :S)

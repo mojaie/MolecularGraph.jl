@@ -7,10 +7,10 @@ export
     triangles
 
 
-function triangles(graph::UDGraph)
+function triangles(graph::UndirectedGraph)
     triads = Set()
     for n in nodekeys(graph)
-        nkeys = neighborset(graph, n)
+        nkeys = adjacencies(graph, n)
         if length(nkeys) < 2
             continue
         end

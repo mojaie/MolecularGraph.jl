@@ -1,5 +1,5 @@
 
-using MolecularGraph.Geometry:
+using MolecularGraph.MolecularGraphGeometry:
     _point, _u, _v, _vector, _midpoint, _translate, _trim_u, _trim_v, _trim_uv
 
 @testset "geometry.coords2d" begin

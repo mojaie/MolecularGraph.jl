@@ -4,22 +4,18 @@
 #
 
 export
-    UDSubgraph, DSubgraph, SubgraphView,
-    nodesubgraph, edgesubgraph,
-    getnode, getedge,
-    nodesiter, edgesiter,
-    neighbors, successors, predecessors,
-    nodecount, edgecount
+    SubgraphView, DiSubgraphView,
+    nodesubgraph, edgesubgraph
 
 
-struct UDSubgraph{T<:UDGraph} <: UndirectedGraphView
+struct SubgraphView{T<:UndirectedGraph} <: GraphView
     graph::T
     nodes::Set{Int}
     edges::Set{Int}
 end
 
 
-struct DSubgraph{T<:DGraph} <: DirectedGraphView
+struct DiSubgraphView{T<:DirectedGraph} <: DiGraphView
     graph::T
     nodes::Set{Int}
     edges::Set{Int}
@@ -27,18 +23,24 @@ end
 
 
 # TODO: use traits
-SubgraphView = Union{UDSubgraph,DSubgraph}
+Subgraph = Union{SubgraphView,DiSubgraphView}
 
 
 """
-    nodesubgraph(graph::AbstractGraph, nodes)
+    nodesubgraph(graph::UndirectedGraph, nodes) -> SubgraphView
+    nodesubgraph(graph::DirectedGraph, nodes) -> DiSubgraphView
 
 Generate node-induced subgraph view.
 """
-nodesubgraph(g::UDGraph, nodes) = UDSubgraph(_nodesubgraph(g, nodes)...)
-nodesubgraph(g::DGraph, nodes) = DSubgraph(_nodesubgraph(g, nodes)...)
+nodesubgraph(
+    graph::UndirectedGraph, nodes
+) = SubgraphView(_nodesubgraph(graph, nodes)...)
+
+nodesubgraph(
+    graph::DirectedGraph, nodes
+) = DiSubgraphView(_nodesubgraph(graph, nodes)...)
+
 function _nodesubgraph(graph, nodes)
-    """ Node induced subgraph"""
     edges = Set{Int}()
     for n in nodes
         for (nbr, e) in neighbors(graph, n)
@@ -52,61 +54,59 @@ end
 
 
 """
-    edgesubgraph(graph::AbstractGraph, edges)
+    edgesubgraph(graph::UndirectedGraph, edges) -> SubgraphView
+    edgesubgraph(graph::DirectedGraph, edges) -> DiSubgraphView
 
 Generate edge-induced subgraph view.
 """
-function edgesubgraph(graph::UDGraph, edges)
-    """ Edge induced subgraph"""
+function edgesubgraph(graph::UndirectedGraph, edges)
     nodes = Set{Int}()
     for e in edges
         eg = getedge(graph, e)
         push!(nodes, eg.u, eg.v)
     end
-    return UDSubgraph(graph, nodes, Set(edges))
+    return SubgraphView(graph, nodes, Set(edges))
 end
 
-function edgesubgraph(graph::DGraph, edges)
-    """ Edge induced subgraph"""
+function edgesubgraph(graph::DirectedGraph, edges)
     nodes = Set{Int}()
     for e in edges
         eg = getedge(graph, e)
         push!(nodes, eg.source, eg.target)
     end
-    return DSubgraph(graph, nodes, Set(edges))
+    return DiSubgraphView(graph, nodes, Set(edges))
 end
 
 
-function getnode(view::SubgraphView, idx)
+function getnode(view::Subgraph, idx)
     (idx in view.nodes) || throw(KeyError(idx))
-    getnode(view.graph, idx)
+    return getnode(view.graph, idx)
 end
 
 
-function getedge(view::SubgraphView, idx)
+function getedge(view::Subgraph, idx)
     (idx in view.edges) || throw(KeyError(idx))
-    getedge(view.graph, idx)
+    return getedge(view.graph, idx)
 end
 
-function getedge(view::SubgraphView, u, v)
+function getedge(view::Subgraph, u, v)
     (u in view.nodes) || throw(KeyError(u))
     (v in view.nodes) || throw(KeyError(v))
-    getedge(view.graph, u, v)
+    return getedge(view.graph, u, v)
 end
 
 
-nodesiter(view::SubgraphView) = (
-    i => getnode(view.graph, i) for i in view.nodes)
-edgesiter(view::SubgraphView) = (
-    e => getedge(view.graph, e) for e in view.edges)
+nodesiter(view::Subgraph) = [i => getnode(view.graph, i) for i in view.nodes]
+edgesiter(view::Subgraph) = [e => getedge(view.graph, e) for e in view.edges]
 
-nodekeys(view::SubgraphView) = collect(view.nodes)
-edgekeys(view::SubgraphView) = collect(view.edges)
+nodekeys(view::Subgraph) = collect(view.nodes)
+edgekeys(view::Subgraph) = collect(view.edges)
 
-nodeset(view::SubgraphView) = copy(view.nodes)
-edgeset(view::SubgraphView) = copy(view.edges)
+nodeset(view::Subgraph) = copy(view.nodes)
+edgeset(view::Subgraph) = copy(view.edges)
 
-function neighbors(view::SubgraphView, idx)
+
+function neighbors(view::Subgraph, idx)
     (idx in view.nodes) || throw(KeyError(idx))
     return Dict(
         n for n in neighbors(view.graph, idx)
@@ -115,23 +115,23 @@ function neighbors(view::SubgraphView, idx)
 end
 
 
-function successors(view::DSubgraph, idx)
+function outneighbors(view::DiSubgraphView, idx)
     (idx in view.nodes) || throw(KeyError(idx))
     return Dict(
-        n for n in successors(view.graph, idx)
+        n for n in outneighbors(view.graph, idx)
         if n.first in view.nodes && n.second in view.edges
     )
 end
 
 
-function predecessors(view::DSubgraph, idx)
+function inneighbors(view::DiSubgraphView, idx)
     (idx in view.nodes) || throw(KeyError(idx))
     return Dict(
-        n for n in predecessors(view.graph, idx)
+        n for n in inneighbors(view.graph, idx)
         if n.first in view.nodes && n.second in view.edges
     )
 end
 
 
-nodecount(view::SubgraphView) = length(view.nodes)
-edgecount(view::SubgraphView) = length(view.edges)
+nodecount(view::Subgraph) = length(view.nodes)
+edgecount(view::Subgraph) = length(view.edges)

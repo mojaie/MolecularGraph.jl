@@ -4,16 +4,11 @@
 #
 
 export
-    SDFileBond,
-    SmilesBond,
-    SmartsBond,
-    connect
+    SDFileBond, SmilesBond, SmartsBond,
+    setorder
 
 
-import ..Graph: similaredge
-
-
-mutable struct SDFileBond <: Bond
+struct SDFileBond <: Bond
     """Bond
     * Notation
         * Single bond
@@ -27,20 +22,24 @@ mutable struct SDFileBond <: Bond
             * 2: u ＝ v (equal length, for terminal bond by default)
             * 3: u × v (Cis-Trans Unknown)
     """
-    u::Union{Int, Nothing}
-    v::Union{Int, Nothing}
+    u::Union{Int,Nothing}
+    v::Union{Int,Nothing}
     order::Int
-    notation::Union{Int, Nothing}
+    notation::Union{Int,Nothing}
 end
 
 SDFileBond(u, v) = SDFileBond(u, v, 1, 0)
 SDFileBond(u, v, order) = SDFileBond(u, v, order, 0)
-similaredge(b::SDFileBond, u, v) = SDFileBond(u, v, b.order, b.notation)
+
+MolecularGraphModel.setnodes(
+    edge::SDFileBond, u, v) = SDFileBond(u, v, edge.order, edge.notation)
+setorder(edge::SDFileBond, order
+    ) = SDFileBond(edge.u, edge.v, order, edge.notation)
 
 
-mutable struct SmilesBond <: Bond
-    u::Union{Int, Nothing}
-    v::Union{Int, Nothing}
+struct SmilesBond <: Bond
+    u::Union{Int,Nothing}
+    v::Union{Int,Nothing}
     order::Int
     isaromatic::Union{Bool, Nothing}
     cistrans::Union{Int, Nothing}
@@ -48,15 +47,20 @@ end
 
 SmilesBond(u, v) = SmilesBond(u, v, 1, false, nothing)
 SmilesBond(u, v, order) = SmilesBond(u, v, order, false, nothing)
-similaredge(b::SmilesBond, u, v) = SmilesBond(
-    u, v, b.order, b.isaromatic, b.cistrans)
+
+MolecularGraphModel.setnodes(edge::SmilesBond, u, v
+    ) = SmilesBond(u, v, edge.order, edge.isaromatic, edge.cistrans)
+setorder(edge::SmilesBond, order
+    ) = SmilesBond(edge.u, edge.v, order, edge.isaromatic, edge.cistrans)
 
 
-mutable struct SmartsBond <: QueryBond
-    u::Union{Int, Nothing}
-    v::Union{Int, Nothing}
+struct SmartsBond <: QueryBond
+    u::Union{Int,Nothing}
+    v::Union{Int,Nothing}
     query::Pair
 end
 
 SmartsBond(u, v) = SmartsBond(u, v, :any=>true)
-similaredge(b::SmartsBond, u, v) = SmartsBond(u, v, b.query)
+
+MolecularGraphModel.setnodes(
+    edge::SmartsBond, u, v) = SmartsBond(u, v, edge.query)

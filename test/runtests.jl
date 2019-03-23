@@ -3,16 +3,16 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
-module UtilTest
+"""
+module MolecularGraphUtilTest
     using Test
-    using MolecularGraph.Util
+    using MolecularGraph.MolecularGraphUtil
     include("./util/iterator.jl")
 end
 
-module GraphTest
+module MolecularGraphModelTest
     using Test
-    using MolecularGraph.Graph
+    using MolecularGraph.MolecularGraphModel
 
     include("./graph/generator.jl")
     include("./graph/planarity.jl")
@@ -39,25 +39,23 @@ module GraphTest
     include("./graph/isomorphism/cliquebased.jl")
 end
 
-module GeometryTest
+module MolecularGraphGeometryTest
     using Test
     using LinearAlgebra
-    using StaticArrays
     using Formatting
-    using MolecularGraph.Geometry
+    using MolecularGraph.MolecularGraphGeometry
 
     include("./geometry/coords2d.jl")
     include("./geometry/coords3d.jl")
     include("./geometry/coordsinternal.jl")
 end
-
+"""
 
 module MolecularGraphTest
     using Test
-    using StaticArrays
     using MolecularGraph
-    using MolecularGraph.Geometry
-    using MolecularGraph.Graph
+    using MolecularGraph.MolecularGraphGeometry
+    using MolecularGraph.MolecularGraphModel
 
     include("./model/atom.jl")
     include("./model/molgraph.jl")

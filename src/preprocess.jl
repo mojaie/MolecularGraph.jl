@@ -6,12 +6,9 @@
 export
     trivialhydrogens,
     all_hydrogens,
-    make_hydrogens_implicit!,
     make_hydrogens_implicit,
-    make_hydrogens_explicit!,
     make_hydrogens_explicit,
     largest_component_nodes,
-    largestcomponent!,
     largestcomponent,
     neutralize_acids!,
     neutralize_oniums!,
@@ -78,29 +75,26 @@ end
 
 
 """
-    make_hydrogens_implicit!(mol::MolGraph) -> GeneralMapMol
+    make_hydrogens_implicit(mol::MolGraph) -> MapMol
 
 Return molecule whose hydrogen nodes are removed. If option `all` is set to
 false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
 """
-function make_hydrogens_implicit!(mol::MolGraph; all=true)
+function make_hydrogens_implicit(mol::MolGraph; all=true)
     hydrogens = all ? all_hydrogens : trivialhydrogens
     ns = setdiff(nodeset(mol), hydrogens(mol))
-    return newgraph(nodesubgraph(mol, ns))
+    return atomsubstr(mol, ns)
 end
-
-make_hydrogens_implicit(m::MolGraph; kwargs...) = make_hydrogens_implicit!(
-    deepcopy(m); kwargs...)
 
 
 """
-    make_hydrogens_explicit(mol::VectorMol) -> GeneralMapMol
+    make_hydrogens_explicit(mol::VectorMol) -> MapMol
 
 Return molecule whose hydrogens are fully attached. If option `all` is set to
 false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
 """
-function make_hydrogens_explicit!(mol::VectorMol)
-    newmol = newgraph(mol)
+function make_hydrogens_explicit(mol::VectorMol)
+    newmol = mapmol(mol)
     ncnt = nodecount(mol)
     ecnt = edgecount(mol)
     for (n, node) in nodesiter(mol)
@@ -114,8 +108,6 @@ function make_hydrogens_explicit!(mol::VectorMol)
     end
     return newmol
 end
-
-make_hydrogens_explicit(m::VectorMol) = make_hydrogens_explicit!(deepcopy(m))
 
 
 """
@@ -133,16 +125,14 @@ end
 
 
 """
-    largestcomponent(mol::MolGraph) -> GeneralMapMol
+    largestcomponent(mol::MolGraph) -> MapMol
 
 Return largest connected component of the molecular graph.
 """
-function largestcomponent!(mol::MolGraph)
+function largestcomponent(mol::MolGraph)
     ns = largest_component_nodes(mol)
-    return newgraph(nodesubgraph(mol, ns))
+    return atomsubstr(mol, ns)
 end
-
-largestcomponent(mol::MolGraph) = largestcomponent!(deepcopy(mol))
 
 
 """
@@ -157,15 +147,15 @@ see [`canonicalize!`](@ref).
 function neutralize_acids!(mol::VectorMol)
     for o in findall((mol[:Symbol] .== :O)
             .* (mol[:Charge] .== -1) .* (mol[:Connectivity] .== 1))
-        nbr = pop!(neighborset(mol, o))
+        nbr = pop!(adjacencies(mol, o))
         if mol[:Pi][nbr] == 1
-            cnbrs = neighborset(mol, nbr)
+            cnbrs = adjacencies(mol, nbr)
             pop!(cnbrs, o)
             for cn in cnbrs
                 if (mol[:Symbol][cn] in (:O, :S)
                         && mol[:Pi][cn] == 1 && mol[:Connectivity][cn] == 1)
-                    oatom = getnode(mol, o)
-                    oatom.charge = 0
+                    oatom = setcharge(getnode(mol, o), 0)
+                    updatenode!(mol, oatom, o)
                     break
                 end
             end
@@ -185,8 +175,8 @@ see [`canonicalize!`](@ref).
 """
 function neutralize_oniums!(mol::VectorMol)
     for o in findall((mol[:Charge] .== 1) .* (mol[:H_Count] .> 0))
-        oatom = getnode(mol, o)
-        oatom.charge = 0
+        oatom = setcharge(getnode(mol, o), 0)
+        updatenode!(mol, oatom, o)
     end
 end
 
@@ -207,12 +197,12 @@ function depolarize!(mol::VectorMol)
         @assert length(nbrs) == 1 "unexpected oxygen degree $(length(nbrs))"
         (nbr, b) = pop!(nbrs)
         if mol[:Charge][nbr] == 1 && !mol[:Aromatic][nbr]
-            oatom = getnode(mol, o)
-            oatom.charge = 0
-            natom = getnode(mol, nbr)
-            natom.charge = 0
-            bond = getedge(mol, b)
-            bond.order = 2
+            oatom = setcharge(getnode(mol, o), 0)
+            updatenode!(mol, oatom, o)
+            natom = setcharge(getnode(mol, nbr), 0)
+            updatenode!(mol, natom, nbr)
+            bond = setorder(getedge(mol, b), 2)
+            updateedge!(mol, bond, b)
         end
     end
 end
@@ -239,13 +229,14 @@ function triplebond_anion!(mol::VectorMol)
             end
             (nbr, nb) = pop!(nbrs)
             if mol[:Charge][nbr] == -1
-                natom = getnode(mol, nbr)
-                natom.charge = 0
-                satom = getnode(mol, s)
-                satom.charge = -1
-                nbond = getedge(mol, nb)
-                nbond.order = 2
-                tbond.order = 2
+                natom = setcharge(getnode(mol, nbr), 0)
+                updatenode!(mol, natom, nbr)
+                satom = setcharge(getnode(mol, s), -1)
+                updatenode!(mol, satom, s)
+                tbond = setorder(getedge(mol, tb), 2)
+                updateedge!(mol, tbond, tb)
+                nbond = setorder(getedge(mol, nb), 2)
+                updateedge!(mol, nbond, nb)
             end
         end
     end

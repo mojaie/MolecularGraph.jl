@@ -4,10 +4,7 @@
 #
 
 export
-    LineGraph,
-    LineGraphNode,
-    LineGraphEdge,
-    linegraph
+    LineGraph, linegraph
 
 
 struct LineGraphNode <: AbstractNode
@@ -22,14 +19,20 @@ struct LineGraphEdge <: UndirectedEdge
     node::Int
 end
 
-LineGraph = MapUDGraph{LineGraphNode, LineGraphEdge}
+
+LineGraph = MapGraph{LineGraphNode,LineGraphEdge}
 
 
-function linegraph(G::UDGraph)
-    L = LineGraph()
+"""
+    linegraph(G::UndirectedGraph) -> MapGraph{LineGraphNode,LineGraphEdge}
+
+Generate line graph.
+"""
+function linegraph(G::UndirectedGraph)
+    L = mapgraph(LineGraphNode, LineGraphEdge)
     for (i, edge) in edgesiter(G)
         L.nodes[i] = LineGraphNode(edge.u, edge.v)
-        L.adjacency[i] = Dict()
+        L.neighbormap[i] = Dict()
     end
     ecnt = 1
     for i in nodekeys(G)
@@ -37,12 +40,12 @@ function linegraph(G::UDGraph)
             continue
         end
         # TODO: is there a stuff like itertools.combination?
-        for e1 in neighboredgeset(G, i)
-            for e2 in neighboredgeset(G, i)
+        for e1 in incidences(G, i)
+            for e2 in incidences(G, i)
                 if e1 < e2
                     L.edges[ecnt] = LineGraphEdge(e1, e2, i)
-                    L.adjacency[e1][e2] = ecnt
-                    L.adjacency[e2][e1] = ecnt
+                    L.neighbormap[e1][e2] = ecnt
+                    L.neighbormap[e2][e1] = ecnt
                     ecnt += 1
                 end
             end

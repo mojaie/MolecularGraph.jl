@@ -2,36 +2,36 @@
 @testset "smarts.bond" begin
 
 @testset "bondsymbol" begin
-    state = ConnectedSmarts("")
+    state = SmartsParser{SMARTS}("", false)
     implicit1 = bondsymbol!(state)
     @test implicit1 === nothing
 
-    state = ConnectedSmarts("-")
+    state = SmartsParser{SMARTS}("-", false)
     explicit1 = bondsymbol!(state)
     @test explicit1 == (:BondOrder => 1)
 
-    state = ConnectedSmarts("\\?")
+    state = SmartsParser{SMARTS}("\\?", false)
     stereo4 = bondsymbol!(state)
     @test stereo4 == (:stereo => 4)
     @test state.pos == 3
 end
 
 @testset "bond" begin
-    state = SmilesParser("#")
+    state = SmartsParser{SMILES}("#", true)
     triple = bond!(state)
     @test triple.order == 3
 
-    state = SmilesParser(":")
+    state = SmartsParser{SMILES}(":", true)
     arom = bond!(state)
     @test arom.isaromatic == true
 end
 
 @testset "smartsbond" begin
-    state = ConnectedSmarts("~")
+    state = SmartsParser{SMARTS}("~", false)
     anyb = bond!(state)
     @test anyb.query == (:any => true)
 
-    state = ConnectedSmarts("-!@")
+    state = SmartsParser{SMARTS}("-!@", false)
     notring = bond!(state)
     @test notring.query == (
         :and => (:BondOrder => 1, :not => (:RingBond => true))

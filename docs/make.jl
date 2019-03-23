@@ -14,9 +14,12 @@ makedocs(
             "Preprocessing" => "moleculargraph/preprocess.md",
             "Structure match" => "moleculargraph/structure.md"
         ],
-        "Graph" => [
+        "GraphModel" => [
+            "Models" => "graph/model.md",
             "Interface" => "graph/interface.md",
-            "Graph generator" => "graph/generator.md",
+            "Generator" => "graph/generator.md",
+            "Shortest path" => "graph/shortestpath.md",
+            "Line graph" => "graph/linegraph.md",
             "Connectivity" => "graph/connectivity.md",
             "Planarity" => "graph/planarity.md",
             "Clique" => "graph/clique.md"

@@ -12,18 +12,18 @@ export
 
 
 """
-    shortestpath(graph::UDGraph, u, v) -> Vector{Int}
+    shortestpath(graph::UndirectedGraph, u, v) -> Vector{Int}
 
 Compute the shortest path between `u` and `v` as a vector of the nodes that
 starts with `u` and ends with`v`. Return nothing if u == v or not reachable.
 """
-function shortestpath(graph::UDGraph, u, v)
+function shortestpath(graph::UndirectedGraph, u, v)
     u == v && return
     queue = [u]
     pred = Dict{Int,Union{Int,Nothing}}(u => nothing)
     while !isempty(queue)
         i = popfirst!(queue)
-        for nbr in neighborset(graph, i)
+        for nbr in adjacencies(graph, i)
             if nbr == v
                 # v found
                 path = [v]
@@ -45,17 +45,17 @@ end
 
 
 """
-    distance(graph::UDGraph, root) -> Dict{Int,Union{Int,Nothing}}
+    distance(graph::UndirectedGraph, root) -> Dict{Int,Union{Int,Nothing}}
 
 Compute the distance from `root` to any other nodes. If the nodes are not
 reachable each other, the value will be `nothing`.
 """
-function distance(graph::UDGraph, root)
+function distance(graph::UndirectedGraph, root)
     queue = [root]
     dist = Dict{Int,Union{Int,Nothing}}(root => 0)
     while !isempty(queue)
         q = popfirst!(queue)
-        for nbr in neighborset(graph, q)
+        for nbr in adjacencies(graph, q)
             if !(nbr in keys(dist))
                 dist[nbr] = dist[q] + 1
                 push!(queue, nbr)
@@ -67,14 +67,14 @@ end
 
 
 """
-    distancematrix(graph::UDGraph) -> Matrix{Float64}
+    distancematrix(graph::UndirectedGraph) -> Matrix{Float64}
 
 Compute the distance among each other nodes.
 
 Note that the type of the generated matrix will be `Float64`. If the nodes are
 not reachable each other, the distance value will be `Inf`.
 """
-function distancematrix(graph::UDGraph)
+function distancematrix(graph::UndirectedGraph)
     ncnt = nodecount(graph)
     distmat = zeros((ncnt, ncnt))
     for s in nodekeys(graph) # TODO: should be ordered
@@ -87,31 +87,31 @@ end
 
 
 """
-    eccentricity(graph::UDGraph, v) => Int
+    eccentricity(graph::UndirectedGraph, v) => Int
 
 Compute the eccentricity of the graph (the largest distance between `v` and
 any other nodes).
 """
-eccentricity(graph::UDGraph, v) = maximum(values(distance(graph, v)))
+eccentricity(graph::UndirectedGraph, v) = maximum(values(distance(graph, v)))
 
 
 """
-    diameter(graph::UDGraph) => Int
+    diameter(graph::UndirectedGraph) => Int
 
 Compute the diameter of the graph (the largest eccentricity of any nodes).
 """
-diameter(graph::UDGraph) = maximum(
+diameter(graph::UndirectedGraph) = maximum(
     eccentricity(graph, n) for n in nodekeys(graph))
 
 
 """
-    longestshortestpath(graph::UDGraph) -> Vector{Int}
+    longestshortestpath(graph::UndirectedGraph) -> Vector{Int}
 
 Compute the longest shortest path in the graph (a path between two arbitrary
 peripheral nodes) as a vector of nodes that starts with one of the
 peripheral node and ends with the other side.
 """
-function longestshortestpath(graph::UDGraph)
+function longestshortestpath(graph::UndirectedGraph)
     otherside = Dict{Int,Int}()
     eccent = Dict{Int,Int}()
     for v in nodekeys(graph)
@@ -126,17 +126,17 @@ end
 
 
 
-# TODO: refactor DGraph methods
+# TODO: refactor DirectedGraph methods
 
 
-function reachablenodes(graph::DGraph, source)
+function reachablenodes(graph::DirectedGraph, source)
     pred = shortestpath(graph, source)
     delete!(pred, source)
     return keys(pred)
 end
 
 
-function pathlength(graph::DGraph, source)
+function pathlength(graph::DirectedGraph, source)
     res = Dict{Int,Int}()
     pred = shortestpath(graph, source)
     for p in keys(pred)
@@ -147,12 +147,12 @@ function pathlength(graph::DGraph, source)
 end
 
 
-function shortestpath(graph::DGraph, source)
+function shortestpath(graph::DirectedGraph, source)
     queue = [source]
     pred = Dict{Int,Union{Int,Nothing}}(source => nothing)
     while !isempty(queue)
         i = popfirst!(queue)
-        for succ in succset(graph, i)
+        for succ in successors(graph, i)
             if !(succ in keys(pred))
                 # New nodes
                 pred[succ] = i

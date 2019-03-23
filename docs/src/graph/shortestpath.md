@@ -1,10 +1,12 @@
 
-# Graph generator
+# Shortest path
 
+
+## Shortest path
 
 ```@autodocs
 Modules = [MolecularGraphModel]
-Pages   = ["graph/generator.jl"]
+Pages   = ["graph/shortestpath.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

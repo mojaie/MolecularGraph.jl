@@ -5,10 +5,6 @@
 
 export
     SmartsParser,
-    SmilesParser,
-    AnySmarts,
-    ConnectedSmarts,
-    DisconnectedSmarts,
     parse,
     smilestomol,
     lookahead,
@@ -20,43 +16,39 @@ export
 import Base: read, parse
 
 
-mutable struct SmartsParser{T<:MapMol}
+mutable struct SmartsParser{T<:Union{MapMol,QueryMol}}
     input::String
+    allow_disconnected::Bool
+
     pos::Int
     done::Bool
     node::Int # No. of current node
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
     ringlabel::Dict
+
     mol::T
 
-    function SmartsParser{T}(smiles) where {T<:MapMol}
-        new(smiles, 1, false, 0, 1, 1, Dict(), T())
+    function SmartsParser{T}(str, disconn) where {T<:Union{MapMol,QueryMol}}
+        new(str, disconn, 1, false, 0, 1, 1, Dict(), T())
     end
 end
 
-SmilesParser = SmartsParser{SMILES}
-AnySmarts = SmartsParser{T} where {T<:QueryMolGraph}
-ConnectedSmarts = SmartsParser{ConnectedSMARTS}
-DisconnectedSmarts = SmartsParser{SMARTS}
-
 
 function parse(::Type{SMILES}, str::AbstractString)
-    state = SmilesParser(str)
-    fragment!(state)
-    return state.mol
-end
-
-
-function parse(::Type{ConnectedSMARTS}, str::AbstractString)
-    state = ConnectedSmarts(str)
+    state = SmartsParser{SMILES}(str, true)
     fragment!(state)
     return state.mol
 end
 
 function parse(::Type{SMARTS}, str::AbstractString)
-    state = DisconnectedSmarts(str)
-    componentquery!(state)
+    if occursin('.', str)
+        state = SmartsParser{SMARTS}(str, true)
+        componentquery!(state)
+    else
+        state = SmartsParser{SMARTS}(str, false)
+        fragment!(state)
+    end
     return state.mol
 end
 

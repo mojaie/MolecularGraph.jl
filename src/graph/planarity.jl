@@ -9,7 +9,7 @@ export
 
 
 struct DFSState
-    graph::UDGraph # TODO: use type parameter
+    graph::UndirectedGraph # TODO: use type parameter
 
     rank::Dict{Int,Int} # tree node n, dfsindex(n)
     isthick::Dict{Int,Bool} # edge e, isthick(e)
@@ -112,7 +112,7 @@ end
 
 
 """
-    is_planar(graph::UDGraph) -> Bool
+    is_planar(graph::UndirectedGraph) -> Bool
 
 Return whether the graph is planar.
 
@@ -122,13 +122,13 @@ Return whether the graph is planar.
    European Journal of Combinatorics, 33(3), 279–293.
    https://doi.org/10.1016/j.ejc.2011.09.012
 """
-function is_planar(graph::UDGraph)
+function is_planar(graph::UndirectedGraph)
     # Fast filter
     edgecount(graph) < 9 && return true
     edgecount(graph) > nodecount(graph) * 3 - 6 && return false
 
     # TODO: if not biconnected, decompose it into biconnected components
-    g = newgraph(graph) # TODO: does this improve performance?
+    g = mapgraph(graph) # TODO: does this improve performance?
     # Do DFS to determine treeedge, cotree, loworder, source, low
     state = DFSState(g)
     dfs!(state)
@@ -151,17 +151,17 @@ end
 
 
 """
-    is_outerplanar(graph::UDGraph) -> Bool
+    is_outerplanar(graph::UndirectedGraph) -> Bool
 
 Return whether the graph is outerplanar. The outerplanarity test is based on
 a planarity test (see [`is_planar`](@ref)).
 """
-function is_outerplanar(graph::UDGraph)
+function is_outerplanar(graph::UndirectedGraph)
     # Fast filter
     edgecount(graph) < 6 && return true
     edgecount(graph) > nodecount(graph) * 2 - 3 && return false
 
-    g = newgraph(graph)
+    g = mapgraph(graph)
     nkeys = nodekeys(g)
     newnode = nodecount(g) + 1
     updatenode!(g, nodetype(g)(), newnode)

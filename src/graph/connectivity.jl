@@ -10,7 +10,7 @@ export
     two_edge_connected, two_edge_membership
 
 
-struct ConnectedComponentState{G<:UDGraph}
+struct ConnectedComponentState{G<:UndirectedGraph}
     graph::G
 
     visited::Set{Int}
@@ -18,7 +18,7 @@ struct ConnectedComponentState{G<:UDGraph}
 
     components::Vector{Vector{Int}}
 
-    function ConnectedComponentState{G}(graph) where {G<:UDGraph}
+    function ConnectedComponentState{G}(graph) where {G<:UndirectedGraph}
         new(graph, Set(), nodeset(graph), [])
     end
 end
@@ -26,7 +26,7 @@ end
 
 function dfs!(state::ConnectedComponentState, n)
     push!(state.visited, n)
-    for nbr in neighborset(state.graph, n)
+    for nbr in adjacencies(state.graph, n)
         if !(nbr in state.visited)
             dfs!(state, nbr)
         end
@@ -45,11 +45,11 @@ end
 
 
 """
-    connected_components(graph::UDGraph) -> Vector{Vector{Int}}
+    connected_components(graph::UndirectedGraph) -> Vector{Vector{Int}}
 
 Compute connectivity and return sets of the connected components.
 """
-function connected_components(graph::G) where {G<:UDGraph}
+function connected_components(graph::G) where {G<:UndirectedGraph}
     hasproperty(graph, :connected) && return graph.property.connected
     state = ConnectedComponentState{G}(graph)
     run!(state)
@@ -60,7 +60,7 @@ function connected_components(graph::G) where {G<:UDGraph}
     return state.components
 end
 
-function connected_membership(graph::UDGraph)
+function connected_membership(graph::UndirectedGraph)
     hasproperty(graph, :connmembership) && return graph.property.connmembership
     mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(connected_components(graph))
@@ -76,7 +76,7 @@ function connected_membership(graph::UDGraph)
 end
 
 
-struct BiconnectedState{G<:UDGraph}
+struct BiconnectedState{G<:UndirectedGraph}
     graph::G
 
     pred::Dict{Int,Int}
@@ -88,7 +88,7 @@ struct BiconnectedState{G<:UDGraph}
     bridges::Vector{Int}
     biconnected::Vector{Vector{Int}}
 
-    function BiconnectedState{G}(graph) where {G<:UDGraph}
+    function BiconnectedState{G}(graph) where {G<:UndirectedGraph}
         new(graph, Dict(), Dict(), Dict(), [], [], [], [])
     end
 end
@@ -123,7 +123,7 @@ function dfs!(state::BiconnectedState, depth::Int, n::Int)
 end
 
 
-function biconnected(graph::G, sym::Symbol) where {G<:UDGraph}
+function biconnected(graph::G, sym::Symbol) where {G<:UndirectedGraph}
     hasproperty(graph, sym) && return getproperty(graph.property, sym)
     state = BiconnectedState{G}(graph)
     nodes = nodeset(graph)
@@ -143,30 +143,30 @@ end
 
 
 """
-    articulation_points(graph::UDGraph) -> Set{Int}
+    articulation_points(graph::UndirectedGraph) -> Set{Int}
 
 Compute biconnectivity and return articulation points.
 """
-articulation_points(graph::UDGraph) = biconnected(graph, :cutvertices)
+articulation_points(graph::UndirectedGraph) = biconnected(graph, :cutvertices)
 
 
 """
-    bridges(graph::UDGraph) -> Set{Int}
+    bridges(graph::UndirectedGraph) -> Set{Int}
 
 Compute biconnectivity and return bridges.
 """
-bridges(graph::UDGraph) = biconnected(graph, :bridges)
+bridges(graph::UndirectedGraph) = biconnected(graph, :bridges)
 
 
 """
-    biconnected_components(graph::UDGraph) -> Vector{Set{Int}}
+    biconnected_components(graph::UndirectedGraph) -> Vector{Set{Int}}
 
 Compute biconnectivity and return sets of biconnected components.
 """
-biconnected_components(graph::UDGraph) = biconnected(graph, :biconnected)
+biconnected_components(graph::UndirectedGraph) = biconnected(graph, :biconnected)
 
 
-function biconnected_membership(graph::UDGraph)
+function biconnected_membership(graph::UndirectedGraph)
     hasproperty(graph, :biconnmembership) && return graph.property.biconnmembership
     mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(biconnected_components(graph))
@@ -183,12 +183,12 @@ end
 
 
 """
-    two_edge_connected(graph::UDGraph) -> Set{Int}
+    two_edge_connected(graph::UndirectedGraph) -> Set{Int}
 
 Compute biconnectivity and return sets of the 2-edge connected components.
 Isolated nodes will be filtered out.
 """
-function two_edge_connected(graph::UDGraph)
+function two_edge_connected(graph::UndirectedGraph)
     hasproperty(graph, :twoedge) && return graph.property.twoedge
     cobr = setdiff(edgeset(graph), bridges(graph))
     comp = connected_components(edgesubgraph(graph, cobr))
@@ -200,7 +200,7 @@ function two_edge_connected(graph::UDGraph)
 end
 
 
-function two_edge_membership(graph::UDGraph)
+function two_edge_membership(graph::UndirectedGraph)
     hasproperty(graph, :twoedgemembership) && return graph.property.twoedgemembership
     mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(two_edge_connected(graph))

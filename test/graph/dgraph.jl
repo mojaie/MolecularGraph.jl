@@ -6,7 +6,7 @@
 @testset "graph.dgraph" begin
 
 @testset "mapdgraph" begin
-    graph = MapDGraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
+    graph = mapdigraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
 
     node = getnode(graph, 4)
     @test isa(node, AbstractNode)
@@ -27,12 +27,12 @@
     @test in(e[1], [1,2,3])  # The access order is not specified
     @test isa(e[2], DirectedEdge)
 
-    succs = successors(graph, 4)
+    succs = outneighbors(graph, 4)
     (s, state) = iterate(succs)
     @test s[1] == 5
     @test s[2] == 3
 
-    preds = successors(graph, 4)
+    preds = outneighbors(graph, 4)
     (p, state) = iterate(preds)
     @test p[1] == 5
     @test p[2] == 3
@@ -60,16 +60,14 @@
     etype = edgetype(graph)
     @test etype <: DirectedEdge
 
-    newgraph = similargraph(graph)
+    newgraph = mapdigraph(Node,Arrow)
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
-    @test typeof(graph) === typeof(newgraph)
 
     # Update node
     node = getnode(graph, 4)
     updatenode!(graph, Node(), 4)
     @test degree(graph, 4) == 2
-    @test node !== getnode(graph, 4)
     # New isolated node
     updatenode!(graph, Node(), 6)
     @test degree(graph, 6) == 0

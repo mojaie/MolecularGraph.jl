@@ -1,6 +1,6 @@
 
 @testset "atom" begin
-    sdfa = SDFileAtom(:Fe, 2, 1, nothing, SVector(1.0, 2.0, 0.0))
+    sdfa = SDFileAtom(:Fe, 2, 1, nothing, [1.0, 2.0, 0.0])
     @test sdfa.symbol == :Fe
     @test sdfa.charge == 2
     @test sdfa.coords == [1.0, 2.0, 0.0]

@@ -48,11 +48,6 @@
     etype = edgetype(subg)
     @test etype <: UndirectedEdge
 
-    newgraph = similargraph(subg)
-    @test nodecount(newgraph) == 0
-    @test edgecount(newgraph) == 0
-    @test isa(newgraph, MapUDGraph)
-
     # Node and edge key accessor should not be destructive
     pop!(nkeys)
     @test nodecount(subg) == 3
@@ -69,12 +64,12 @@
     @test edgecount(subgsubg) == 1
     @test_throws KeyError getedge(subgsubg, 3)
     @test degree(subgsubg, 4) == 1
-    newsubgsubg = similargraph(subgsubg)
-    @test isa(newsubgsubg, MapUDGraph)
+    newsubgsubg = mapgraph(subgsubg)
+    @test isa(newsubgsubg, MapGraph)
 end
 
 @testset "dsubgraph" begin
-    graph = MapDGraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph = mapdigraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
     subg = nodesubgraph(graph, [3, 4, 5])
     @test issetequal(subg.edges, [3, 4])
 
@@ -105,13 +100,13 @@ end
     @test nbr[2] == 3
     @test degree(subg, 3) == 1
 
-    succs = successors(subg, 3)
+    succs = outneighbors(subg, 3)
     (s, state) = iterate(succs)
     @test s[1] == 4
     @test s[2] == 3
     @test indegree(subg, 3) == 0
 
-    preds = predecessors(subg, 5)
+    preds = inneighbors(subg, 5)
     (p, state) = iterate(preds)
     @test p[1] == 4
     @test p[2] == 4
@@ -122,10 +117,6 @@ end
     etype = edgetype(subg)
     @test etype <: DirectedEdge
 
-    newgraph = similargraph(subg)
-    @test nodecount(newgraph) == 0
-    @test edgecount(newgraph) == 0
-    @test isa(newgraph, MapDGraph)
 
     # Edge induced subgraph
     esub = edgesubgraph(graph, [2, 3])
@@ -137,8 +128,8 @@ end
     @test edgecount(subgsubg) == 1
     @test_throws KeyError getedge(subgsubg, 3)
     @test indegree(subgsubg, 4) == 0
-    newsubgsubg = similargraph(subgsubg)
-    @test isa(newsubgsubg, MapDGraph)
+    newsubgsubg = mapdigraph(subgsubg)
+    @test isa(newsubgsubg, MapDiGraph)
 end
 
 end # graph.view.inducedsubgraph

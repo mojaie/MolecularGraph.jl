@@ -4,27 +4,32 @@
 #
 
 export
-    ReverseGraph,
-    getedge,
-    edgesiter,
-    successors, predecessors
+    ReverseGraphView, reversegraph
 
 
-struct ReverseGraph{T<:DGraph} <: DirectedGraphView
+struct ReverseGraphView{T<:DirectedGraph} <: DiGraphView
     graph::T
 end
 
+reversegraph(graph::DirectedGraph) = ReverseGraphView(graph)
 
-function getedge(view::ReverseGraph, idx)
-    e = getedge(view.graph, idx)
-    return similaredge(e, e.target, e.source)
+
+function getedge(view::ReverseGraphView, idx)
+    edge = getedge(view.graph, idx)
+    return reverseedge(edge)
 end
 
-getedge(view::ReverseGraph, s, t) = similaredge(getedge(view.graph, s, t), t, s)
+getedge(
+    view::ReverseGraphView, s, t
+) = getedge(view, outneighbors(view.graph, s)[t])
 
-edgesiter(view::ReverseGraph) = (
-    i => similaredge(e, e.target, e.source) for (i, e) in edgesiter(view.graph))
+edgesiter(
+    view::ReverseGraphView
+) = [i => reverseedge(e) for (i, e) in edgesiter(view.graph)]
 
-successors(view::ReverseGraph, idx) = view.graph.predecessors[idx]
+function reverseedge(edge)
+    return setnodes(edge, edge.target, edge.source)
+end
 
-predecessors(view::ReverseGraph, idx) = view.graph.successors[idx]
+outneighbors(view::ReverseGraphView, idx) = view.graph.inneighbors[idx]
+inneighbors(view::ReverseGraphView, idx) = view.graph.outneighbors[idx]

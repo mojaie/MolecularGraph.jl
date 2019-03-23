@@ -6,18 +6,17 @@
 module MolecularGraph
 
     export
-        Util,
-        Geometry,
-        Graph
+        MolecularGraphUtil,
+        MolecularGraphGeometry,
+        MolecularGraphModel
 
-    module Util
+    module MolecularGraphUtil
         include("./util/meta.jl")
         include("./util/iterator.jl")
     end
 
-    module Graph
-        using StaticArrays
-        using ..Util
+    module MolecularGraphModel
+        using ..MolecularGraphUtil
 
         include("./graph/interface.jl")
 
@@ -50,12 +49,11 @@ module MolecularGraph
         include("./graph/isomorphism/vf2.jl")
     end
 
-    module Geometry
+    module MolecularGraphGeometry
         using Formatting
         using LinearAlgebra
-        using StaticArrays
-        using ..Util
-        using ..Graph
+        using ..MolecularGraphUtil
+        using ..MolecularGraphModel
 
         include("./geometry/interface.jl")
 
@@ -67,12 +65,11 @@ module MolecularGraph
     using LinearAlgebra
     using Printf
     using Formatting
-    using StaticArrays
     using Statistics
     using YAML
-    using ..Util
-    using ..Geometry
-    using ..Graph
+    using ..MolecularGraphUtil
+    using ..MolecularGraphGeometry
+    using ..MolecularGraphModel
 
     include("./annotation/interface.jl")
     include("./model/interface.jl")

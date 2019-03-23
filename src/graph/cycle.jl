@@ -25,7 +25,7 @@ function find_cotree_edge(graph, v, pred, cy)
 end
 
 
-function cotree_edges(graph::UDGraph, root)
+function cotree_edges(graph::UndirectedGraph, root)
     pred = Dict{Int, Union{Int,Nothing}}(root => nothing)
     cy = Int[]
     find_cotree_edge(graph, root, pred, cy)
@@ -34,12 +34,12 @@ end
 
 
 """
-    mincycles(graph::UDGraph) -> Vector{Vector{Int}}
+    mincycles(graph::UndirectedGraph) -> Vector{Vector{Int}}
 
 Calculate minimum cycle basis (also known as Smallest Set of Smallest Rings
 in the context of molecular graph theory).
 """
-function mincycles(graph::UDGraph)
+function mincycles(graph::UndirectedGraph)
     hasproperty(graph, :mincycles) && return graph.property.mincycles
     mincycs = Vector{Int}[]
     for biconn in two_edge_connected(graph)
@@ -56,7 +56,7 @@ function mincycles(graph::UDGraph)
 end
 
 
-function nodes_cycles(graph::UDGraph)
+function nodes_cycles(graph::UndirectedGraph)
     hasproperty(graph, :nodescycles) && return graph.property.nodescycles
     nmap = Dict(n => Int[] for n in nodekeys(graph))
     for (i, cyc) in enumerate(mincycles(graph))
@@ -73,7 +73,7 @@ function nodes_cycles(graph::UDGraph)
 end
 
 
-function edges_cycles(graph::UDGraph)
+function edges_cycles(graph::UndirectedGraph)
     hasproperty(graph, :edgescycles) && return graph.property.edgescycles
     emap = Dict(e => Int[] for e in edgekeys(graph))
     for (i, cyc) in enumerate(mincycles(graph))
@@ -90,7 +90,7 @@ function edges_cycles(graph::UDGraph)
 end
 
 
-function nodes_cyclesizes(graph::UDGraph)
+function nodes_cyclesizes(graph::UndirectedGraph)
     hasproperty(graph, :nodescyclesizes) && return graph.property.nodescyclesizes
     sizes = [Set(length.(mincycles(graph)[cs])) for cs in nodes_cycles(graph)]
     if isdefined(graph, :property)
@@ -102,7 +102,7 @@ end
 
 
 
-function edges_cyclesizes(graph::UDGraph)
+function edges_cyclesizes(graph::UndirectedGraph)
     hasproperty(graph, :edgescyclesizes) && return graph.property.edgescyclesizes
     sizes = [Set(length.(mincycles(graph)[cs])) for cs in edges_cycles(graph)]
     if isdefined(graph, :property)
@@ -124,7 +124,7 @@ edges_cyclecount(graph) = length.(edges_cycles(graph))
 
 
 
-function mincyclebasis(graph::UDGraph)
+function mincyclebasis(graph::UndirectedGraph)
     # de Pina algorithm re-interpreted by Kavitha et al.
     cycles = Vector{Int}[]
     root = pop!(nodeset(graph))
@@ -144,27 +144,26 @@ end
 
 
 function findmincycle(graph, S)
-    gnodes = nodeset(graph)
-    G = UDSubgraph(graph, gnodes, setdiff(edgeset(graph), S))
+    G = mapgraph(edgesubgraph(graph, setdiff(edgeset(graph), S)))
     U, nmap, emap = shallowmerge(G, G)
     nrev = Dict(v => k for (k, v) in nmap)
     for s in S
         e = getedge(graph, s)
-        e1 = similaredge(e, e.u, nmap[e.v])
-        e2 = similaredge(e, e.v, nmap[e.u])
+        e1 = setnodes(e, e.u, nmap[e.v])
+        e2 = setnodes(e, nmap[e.u], e.v)
         maxe = maximum(edgekeys(U))
         updateedge!(U, e1, maxe + 1)
         updateedge!(U, e2, maxe + 2)
     end
     ps = []
     pls = []
-    for n in gnodes
+    for n in nodeset(graph)
         sp = shortestpath(U, n, nmap[n])
         push!(ps, sp)
         push!(pls, length(sp))
     end
     minpath = ps[argmin(pls)]
-    ns = Int[n in gnodes ? n : nrev[n] for n in minpath]
+    ns = Int[n in nodeset(graph) ? n : nrev[n] for n in minpath]
     es = [neighbors(graph, ns[n])[ns[n+1]] for n in 1:(length(ns) - 1)]
     pop!(ns)
     return canonicalize(ns), es

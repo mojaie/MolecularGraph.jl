@@ -47,17 +47,17 @@ end
 end
 
 @testset "connectedquery" begin
-    anyatom = parse(ConnectedSMARTS, "*")
+    anyatom = parse(SMARTS, "*")
     hexane = smilestomol("CCCCCC")
     @test is_querymatch(hexane, anyatom)
 
-    priamine = parse(ConnectedSMARTS, "[NX3;H2]")
+    priamine = parse(SMARTS, "[NX3;H2]")
     aniline = smilestomol("C1=CC=CC=C1N")
     dieamine = smilestomol("CCNCC")
     @test is_querymatch(aniline, priamine)
     @test !is_querymatch(dieamine, priamine)
 
-    alcohol = parse(ConnectedSMARTS, "[#6][OD]")
+    alcohol = parse(SMARTS, "[#6][OD]")
     diether = smilestomol("CCOCC")
     phenol = smilestomol("c1ccccc1O")
     glycerol = smilestomol("OCC(O)CO")
@@ -65,25 +65,25 @@ end
     @test is_querymatch(phenol, alcohol)
     @test is_querymatch(glycerol, alcohol)
 
-    aliphring = parse(ConnectedSMARTS, "*@;!:*")
+    aliphring = parse(SMARTS, "*@;!:*")
     cyclopentane = smilestomol("C1CCCC1")
     pyrrole = smilestomol("N1C=CC=C1")
     @test is_querymatch(cyclopentane, aliphring)
     @test !is_querymatch(pyrrole, aliphring)
 
-    notamide = parse(ConnectedSMARTS, raw"[NX3;!$(NC=O)]")
+    notamide = parse(SMARTS, raw"[NX3;!$(NC=O)]")
     triamine = smilestomol("CCN(CC)CC")
     acetamide = smilestomol("CC(=O)N")
     @test is_querymatch(triamine, notamide)
     @test !is_querymatch(acetamide, notamide)
 
-    peroxide = parse(ConnectedSMARTS, "[OX2][OX2]")
+    peroxide = parse(SMARTS, "[OX2][OX2]")
     po1 = smilestomol("COOC")
     npo1 = smilestomol("COCOCOC")
     @test is_querymatch(po1, peroxide)
     @test !is_querymatch(npo1, peroxide)
 
-    sixmem = parse(ConnectedSMARTS, "[*r6]1[*r6][*r6][*r6][*r6][*r6]1")
+    sixmem = parse(SMARTS, "[*r6]1[*r6][*r6][*r6][*r6][*r6]1")
     pyridine = smilestomol("n1ccccc1")
     pyrrole = smilestomol("n1cccc1")
     @test is_querymatch(pyridine, sixmem)

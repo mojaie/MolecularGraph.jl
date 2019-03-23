@@ -60,7 +60,7 @@ function satisfyHuckel(mol::VectorMol, ring)
     carbonylO = findall(
         (mol[:Symbol] .== :O) .* (mol[:Degree] .== 1) .* (mol[:Pi] .== 1))
     for o in carbonylO
-        c = collect(neighborset(mol.graph, o))[1]
+        c = collect(adjacencies(mol.graph, o))[1]
         if mol[:Symbol][c] == :C
             push!(carbonylC, c)
         end

@@ -1,10 +1,12 @@
 
-# Graph generator
+# Line graph
 
+
+## Line graph
 
 ```@autodocs
 Modules = [MolecularGraphModel]
-Pages   = ["graph/generator.jl"]
+Pages   = ["graph/linegraph.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

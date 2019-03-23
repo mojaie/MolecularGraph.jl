@@ -4,15 +4,10 @@
 #
 
 export
-    PERIODIC_TABLE,
-    H_WEIGHT,
-    SDFileAtom,
-    SmilesAtom,
-    SmartsAtom,
-    atomsymbol,
-    atomnumber,
-    atomname,
-    atomweight
+    PERIODIC_TABLE, H_WEIGHT,
+    SDFileAtom, SmilesAtom, SmartsAtom,
+    setcharge,
+    atomsymbol, atomnumber, atomname, atomweight
 
 
 const PERIODIC_TABLE = YAML.load(open(
@@ -21,12 +16,12 @@ const PERIODIC_TABLE = YAML.load(open(
 const H_WEIGHT = PERIODIC_TABLE["H"]["std_weight"]
 
 
-mutable struct SDFileAtom <: Atom
+struct SDFileAtom <: Atom
     symbol::Symbol
     charge::Int
     multiplicity::Int
     mass::Union{Float64, Nothing}
-    coords::Union{SVector{3}, Nothing}
+    coords::Union{Vector{Float64}, Nothing}
 
     function SDFileAtom(sym, chg, multi, mass, coords)
         if !(string(sym) in keys(PERIODIC_TABLE))
@@ -40,8 +35,11 @@ SDFileAtom() = SDFileAtom(:C, 0, 1, nothing, nothing)
 SDFileAtom(sym) = SDFileAtom(sym, 0, 1, nothing, nothing)
 SDFileAtom(sym, chg) = SDFileAtom(sym, chg, 1, nothing, nothing)
 
+setcharge(a, chg
+    ) = SDFileAtom(a.symbol, chg, a.multiplicity, a.mass, a.coords)
 
-mutable struct SmilesAtom <: Atom
+
+struct SmilesAtom <: Atom
     symbol::Symbol
     charge::Int
     multiplicity::Int
@@ -61,8 +59,11 @@ SmilesAtom() = SmilesAtom(:C, 0, 1, nothing, nothing, nothing)
 SmilesAtom(sym) = SmilesAtom(sym, 0, 1, nothing, nothing, nothing)
 SmilesAtom(sym, chg) = SmilesAtom(sym, chg, 1, nothing, nothing, nothing)
 
+setcharge(a::SmilesAtom, chg) = SmilesAtom(
+    a.symbol, chg, a.multiplicity, a.mass, a.isaromatic, a.stereo)
 
-mutable struct SmartsAtom <: QueryAtom
+
+struct SmartsAtom <: QueryAtom
     query::Pair
 end
 

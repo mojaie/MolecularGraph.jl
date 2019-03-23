@@ -1,5 +1,5 @@
 
-using MolecularGraph.Geometry: _point
+using MolecularGraph.MolecularGraphGeometry: _point
 
 
 @testset "geometry.coords3d" begin

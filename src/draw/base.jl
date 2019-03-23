@@ -127,7 +127,7 @@ function bondnotation2d!(mol::VectorMol; setting=DRAW_SETTING)
     # Or only non-ring bonds to be "="
     if dbnt == :terminal
         for a in findall(mol[:Degree] .== 1)
-            bond = pop!(neighboredgeset(mol, a))
+            bond = pop!(incidences(mol, a))
             if mol[:BondOrder][bond] == 2
                 mol[:BondNotation][bond] = 2
             end

@@ -10,7 +10,8 @@ export
     isomorphism,
     is_querymatch,
     querymatch,
-    querymatchiter,
+    fastquerymatch,
+    fastquerymatchiter,
     isSMARTSgroupmatch,
     atommatch,
     bondmatch,
@@ -73,7 +74,7 @@ function is_querymatch(mol, query; kwargs...)
 end
 
 
-function querymatch(mol::MolGraph, query::QueryMolGraph;
+function querymatch(mol::MolGraph, query::QueryMol;
         atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Accept also disconnected atom but return only the first match
     # Intended for use in SMARTS query search
@@ -94,6 +95,7 @@ function querymatch(mol::MolGraph, query::QueryMolGraph;
             mrem = nodesubgraph(mol.graph, miso)
             qrem = nodesubgraph(query.graph, qiso)
             nmap = maxcardmap(nodeset(mrem), nodeset(qrem), afunc)
+            # TODO: connectivity filter
             if length(nmap) == nodecount(qrem)
                 return (emap, nmap)
             end
@@ -101,6 +103,7 @@ function querymatch(mol::MolGraph, query::QueryMolGraph;
     elseif atomcount(query) != 0
         # Isolated nodes only
         nmap = maxcardmap(mnodeset, qnodeset, afunc)
+        # TODO: connectivity filter
         if length(nmap) == atomcount(query)
             return (Dict(), nmap)
         end
@@ -109,15 +112,17 @@ function querymatch(mol::MolGraph, query::QueryMolGraph;
 end
 
 
-querymatch(
-    mol::MolGraph, query::ConnectedQueryMol; kwargs...
+fastquerymatch(
+    mol::MolGraph, query::QueryMol; kwargs...
 ) = iterate(querymatchiter(mol, query; kwargs...))
 
 
-function querymatchiter(mol::MolGraph, query::ConnectedQueryMol;
+function fastquerymatchiter(mol::MolGraph, query::QueryMol;
         atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Iterate over all possible subgraph isomorphism mappings
     # Intended for use in functional group annotation
+    isempty(query.connectivity) || throw(
+        ErrorException("Component level query is disallowed"))
     afunc = atommatcher(mol, query)
     bfunc = bondmatcher(mol, query)
     if atomcount(query) == 0
@@ -152,10 +157,12 @@ function querymatchiter(mol::MolGraph, query::ConnectedQueryMol;
 end
 
 
-function isSMARTSgroupmatch(mol::MolGraph, query::ConnectedQueryMol, root;
+function isSMARTSgroupmatch(mol::MolGraph, query::QueryMol, root;
                             atommatcher=atommatch, bondmatcher=bondmatch,
                             kwargs...)
     # For recursive SMARTS match
+    isempty(query.connectivity) || throw(
+        ErrorException("Component level query is disallowed"))
     afunc = atommatcher(mol, query)
     bfunc = bondmatcher(mol, query)
     @assert root in nodekeys(mol.graph) "node $(root) does not exist"
@@ -172,7 +179,7 @@ function isSMARTSgroupmatch(mol::MolGraph, query::ConnectedQueryMol, root;
         return false
     else
         # subgraph match
-        for n in neighboredgeset(mol.graph, root)
+        for n in incidences(mol.graph, root)
             if is_edge_subgraph(
                     query.graph, mol.graph,
                     nodematcher=afunc, edgematcher=bfunc,
@@ -196,17 +203,12 @@ function atommatch(mol1::VectorMol, mol2::VectorMol)
     end
 end
 
-function atommatch(mol::VectorMol, querymol::QueryMolGraph)
+function atommatch(mol::VectorMol, querymol::QueryMol)
     return function (a, qa)
         q = getatom(querymol, qa).query
         return querymatchtree(q, mol, a)
     end
 end
-
-atommatch(
-    view::MolGraphView{G,M}, querymol::QueryMolGraph
-) where {G<:SubgraphView,M<:VectorMol} = atommatch(view.molecule, querymol)
-
 
 
 function bondmatch(mol1::VectorMol, mol2::VectorMol)
@@ -214,16 +216,12 @@ function bondmatch(mol1::VectorMol, mol2::VectorMol)
     return (b1, b2) -> true
 end
 
-function bondmatch(mol::VectorMol, querymol::QueryMolGraph)
+function bondmatch(mol::VectorMol, querymol::QueryMol)
     return function (b, qb)
         q = getbond(querymol, qb).query
         return querymatchtree(q, mol, b)
     end
 end
-
-bondmatch(
-    view::MolGraphView{G,M}, querymol::QueryMolGraph
-) where {G<:SubgraphView,M<:VectorMol} = bondmatch(view.molecule, querymol)
 
 
 function querymatchtree(query::Pair, mol::VectorMol, i::Int)
@@ -239,7 +237,7 @@ function querymatchtree(query::Pair, mol::VectorMol, i::Int)
         # TODO: stereo not implemented yet
         return true
     elseif query.first == :recursive
-        subq = parse(ConnectedSMARTS, query.second)
+        subq = parse(SMARTS, query.second)
         return isSMARTSgroupmatch(mol, subq, i)
     else
         if query.first == :RingSize

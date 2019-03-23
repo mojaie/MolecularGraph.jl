@@ -5,8 +5,8 @@
 
 @testset "graph.ugraph" begin
 
-@testset "mapugraph" begin
-    graph = MapUDGraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
+@testset "mapgraph" begin
+    graph = mapgraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
 
     node = getnode(graph, 4)
     @test isa(node, AbstractNode)
@@ -32,19 +32,19 @@
     @test nbr[1] == 4
     @test nbr[2] == 3
 
-    nbrnkeys = neighborset(graph, 5)
+    nbrnkeys = adjacencies(graph, 5)
     (nbrn, state) = iterate(nbrnkeys)
     @test nbrn == 4
 
-    nbrnodes = neighbornodes(graph, 5)
+    nbrnodes = adjacentnodes(graph, 5)
     (nbrnode, state) = iterate(nbrnodes)
     @test isa(nbrnode, AbstractNode)
 
-    nbrekeys = neighboredgeset(graph, 5)
+    nbrekeys = incidences(graph, 5)
     (nbre, state) = iterate(nbrekeys)
     @test nbre == 3
 
-    nbredges = neighboredges(graph, 5)
+    nbredges = incidentedges(graph, 5)
     (nbredge, state) = iterate(nbredges)
     @test isa(nbredge, UndirectedEdge)
 
@@ -64,20 +64,19 @@
     etype = edgetype(graph)
     @test etype <: UndirectedEdge
 
-    newgraph = similargraph(graph)
+    newgraph = mapgraph(Node,Edge)
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
     @test typeof(graph) === typeof(newgraph)
 
-    # Nodes and Edges are mutable
-    @test getnode(graph, 1) !== Node()
-    @test getedge(graph, 1, 2) !== Edge(1, 2)
+    # Nodes and Edges are immutable
+    @test getnode(graph, 1) === Node()
+    @test getedge(graph, 1, 2) === Edge(1, 2)
     edge = getedge(graph, 1, 2)
-    edge.u = 2
-    edge.v = 1
-    @test getedge(graph, 1, 2) === edge
+    reversed = setnodes(edge, 2, 1)
+    @test reversed !== edge
     # Conversion to VectorGrpah
-    vec = VectorUDGraph{Node,Edge}(graph)
+    vec = vectorgraph(graph)
     # Indices are sorted automatically
     vecnodes = nodesiter(vec)
     (n, state) = iterate(vecnodes)
@@ -94,7 +93,6 @@
     node = getnode(graph, 4)
     updatenode!(graph, Node(), 4)
     @test degree(graph, 4) == 2
-    @test node !== getnode(graph, 4)
     # New isolated node
     updatenode!(graph, Node(), 6)
     @test degree(graph, 6) == 0
@@ -116,7 +114,7 @@ end
 
 
 @testset "vectorugraph" begin
-    graph = VectorUDGraph(6, [(1,2), (3,4), (4,5)])
+    graph = vectorgraph(6, [(1,2), (3,4), (4,5)])
 
     node = getnode(graph, 1)
     @test isa(node, AbstractNode)
@@ -136,10 +134,10 @@ end
     @test e[1] == 1
     @test isa(e[2], UndirectedEdge)
 
-    newgraph = similargraph(graph)
+    newgraph = vectorgraph(Node,Edge)
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
-    @test isa(newgraph, MapUDGraph)
+    @test isa(newgraph, VectorGraph)
 end
 
 end # graph.ugraph

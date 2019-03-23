@@ -10,18 +10,18 @@ export
 
 
 """
-    pathgraph(n::Int) -> MapUDGraph{Node,Edge}
+    pathgraph(n::Int) -> MapGraph{Node,Edge}
 
 Generate path graph ``P_n``.
 """
 function pathgraph(n::Int)
     n >= 2 || throw(DomainError(n, "n should be 2 or more"))
-    return MapUDGraph(1:n, (i, i + 1) for i in 1:(n-1))
+    return mapgraph(1:n, (i, i + 1) for i in 1:(n-1))
 end
 
 
 """
-    cyclegraph(length::Int) -> MapUDGraph{Node,Edge}
+    cyclegraph(length::Int) -> MapGraph{Node,Edge}
 
 Generate cycle graph ``C_n``.
 """
@@ -29,12 +29,12 @@ function cyclegraph(n::Int)
     n >= 3 || throw(DomainError(n, "n should be 3 or more"))
     edges = [(i, i + 1) for i in 1:(n-1)]
     push!(edges, (n, 1))
-    return MapUDGraph(1:n, edges)
+    return mapgraph(1:n, edges)
 end
 
 
 """
-    bipartitegraph(m::Int,n::Int) -> MapUDGraph{Node,Edge}
+    bipartitegraph(m::Int,n::Int) -> MapGraph{Node,Edge}
 
 Generate bipartite graph ``K_{m,n}``.
 """
@@ -47,25 +47,25 @@ function bipartitegraph(m::Int,n::Int)
             push!(edges, (i, j))
         end
     end
-    return MapUDGraph(1:n+m, edges)
+    return mapgraph(1:n+m, edges)
 end
 
 
 """
-    completegraph(length::Int) -> MapUDGraph{Node,Edge}
+    completegraph(length::Int) -> MapGraph{Node,Edge}
 
 Generate complete graph ``K_n``.
 """
 function completegraph(n::Int)
     n >= 0 || throw(DomainError(n, "n should not be negative"))
-    n == 0 && return MapUDGraph{Node,Edge}()
-    n == 1 && return MapUDGraph([1], [])
-    return MapUDGraph(1:n, ((u, v) for (u, v) in combinations(1:n)))
+    n == 0 && return mapgraph(Node,Edge)
+    n == 1 && return mapgraph([1], [])
+    return mapgraph(1:n, ((u, v) for (u, v) in combinations(1:n)))
 end
 
 
 """
-    laddergraph(n::Int) -> MapUDGraph{Node,Edge}
+    laddergraph(n::Int) -> MapGraph{Node,Edge}
 
 Generate ladder graph ``L_n``.
 """
@@ -77,12 +77,12 @@ function laddergraph(n::Int)
         push!(edges, (2i-1, 2i+1))
         push!(edges, (2i, 2i+2))
     end
-    return MapUDGraph(1:n*2, edges)
+    return mapgraph(1:n*2, edges)
 end
 
 
 """
-    circularladder(n::Int) -> MapUDGraph{Node,Edge}
+    circularladder(n::Int) -> MapGraph{Node,Edge}
 
 Generate circular ladder graph ``CL_n``.
 """
@@ -97,7 +97,7 @@ end
 
 
 """
-    moebiusladder(n::Int) -> MapUDGraph{Node,Edge}
+    moebiusladder(n::Int) -> MapGraph{Node,Edge}
 
 Generate Möbius ladder graph ``ML_n``.
 """
