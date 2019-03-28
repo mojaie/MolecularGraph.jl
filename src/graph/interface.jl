@@ -15,7 +15,8 @@ export
     neighbors, outneighbors, inneighbors,
     updatenode!, updateedge!, unlinknode!, unlinkedge!,
     nodecount, edgecount, neighborcount, degree, indegree, outdegree,
-    nodetype, edgetype
+    nodetype, edgetype,
+    @cache, clearcache!
 
 
 abstract type AbstractGraph end
@@ -46,30 +47,6 @@ struct Node <: AbstractNode
 end
 
 Node() = Node(nothing)
-
-
-# Precalculated properties
-
-struct GraphPropertyVectors
-    mincycles::Vector{Vector{Int}}
-    nodescycles::Vector{Set{Int}}
-    nodescyclesizes::Vector{Set{Int}}
-    edgescycles::Vector{Set{Int}}
-    edgescyclesizes::Vector{Set{Int}}
-
-    connected::Vector{Vector{Int}}
-    connmembership::Vector{Int}
-    biconnected::Vector{Vector{Int}}
-    biconnmembership::Vector{Union{Int,Nothing}}
-    cutvertices::Vector{Int}
-    bridges::Vector{Int}
-    twoedge::Vector{Vector{Int}}
-    twoedgemembership::Vector{Union{Int,Nothing}}
-
-    GraphPropertyVectors() = new(
-        [], [], [], [], [], [], [], [], [], [],
-        [], [], [])
-end
 
 
 """
@@ -290,3 +267,35 @@ function nodetype end
 Return the edge type of the graph
 """
 function edgetype end
+
+
+# Cached properties
+
+macro cache(ex)
+    func = ex.args[1].args[1]
+    dummy = gensym()
+    ex.args[1].args[1] = dummy
+    return quote
+        $(esc(ex))
+        Core.@__doc__ function $(esc(func))(graph)
+            if !isdefined(graph, :cache)
+                # Cache not available
+                return $(esc(dummy))(graph)
+            end
+            symf = nameof($(esc(func)))
+            if symf in keys(graph.cache)
+                # Return cache
+                return graph.cache[symf]
+            end
+            # Otherwise, set cache
+            graph.cache[symf] = $(esc(dummy))(graph)
+            return graph.cache[symf]
+        end
+    end
+end
+
+
+function clearcache!(graph)
+    empty!(graph.cache)
+    return
+end

@@ -5,10 +5,7 @@
 
 export
     mincycles, circuitrank,
-    nodes_cycles, edges_cycles,
-    nodes_cyclesizes, edges_cyclesizes,
-    nodes_iscyclemember, edges_iscyclemember,
-    nodes_cyclecount, edges_cyclecount
+    node_cyclemem, edge_cyclemem
 
 
 function find_cotree_edge(graph, v, pred, cy)
@@ -39,18 +36,13 @@ end
 Calculate minimum cycle basis (also known as Smallest Set of Smallest Rings
 in the context of molecular graph theory).
 """
-function mincycles(graph::UndirectedGraph)
-    hasproperty(graph, :mincycles) && return graph.property.mincycles
+@cache function mincycles(graph::UndirectedGraph)
     mincycs = Vector{Int}[]
     for biconn in two_edge_connected(graph)
         subg = nodesubgraph(graph, biconn)
         for cyc in mincyclebasis(subg)
             push!(mincycs, cyc)
         end
-    end
-    if isdefined(graph, :property)
-        append!(graph.property.mincycles, mincycs)
-        return graph.property.mincycles
     end
     return mincycs
 end
@@ -59,8 +51,7 @@ end
 circuitrank(graph::UndirectedGraph) = length(mincycles(graph))
 
 
-function nodes_cycles(graph::UndirectedGraph)
-    hasproperty(graph, :nodescycles) && return graph.property.nodescycles
+@cache function node_cyclemem(graph::UndirectedGraph)
     nmap = Dict(n => Int[] for n in nodekeys(graph))
     for (i, cyc) in enumerate(mincycles(graph))
         for n in cyc
@@ -68,16 +59,11 @@ function nodes_cycles(graph::UndirectedGraph)
         end
     end
     nodes = [nmap[n] for n in nodekeys(graph)]
-    if isdefined(graph, :property)
-        append!(graph.property.nodescycles, nodes)
-        return graph.property.nodescycles
-    end
     return nodes
 end
 
 
-function edges_cycles(graph::UndirectedGraph)
-    hasproperty(graph, :edgescycles) && return graph.property.edgescycles
+@cache function edge_cyclemem(graph::UndirectedGraph)
     emap = Dict(e => Int[] for e in edgekeys(graph))
     for (i, cyc) in enumerate(mincycles(graph))
         for e in edgekeys(nodesubgraph(graph, cyc))
@@ -85,46 +71,8 @@ function edges_cycles(graph::UndirectedGraph)
         end
     end
     edges = [emap[e] for e in edgekeys(graph)]
-    if isdefined(graph, :property)
-        append!(graph.property.edgescycles, edges)
-        return graph.property.edgescycles
-    end
     return edges
 end
-
-
-function nodes_cyclesizes(graph::UndirectedGraph)
-    hasproperty(graph, :nodescyclesizes) && return graph.property.nodescyclesizes
-    sizes = [Set(length.(mincycles(graph)[cs])) for cs in nodes_cycles(graph)]
-    if isdefined(graph, :property)
-        append!(graph.property.nodescyclesizes, sizes)
-        return graph.property.nodescyclesizes
-    end
-    return sizes
-end
-
-
-
-function edges_cyclesizes(graph::UndirectedGraph)
-    hasproperty(graph, :edgescyclesizes) && return graph.property.edgescyclesizes
-    sizes = [Set(length.(mincycles(graph)[cs])) for cs in edges_cycles(graph)]
-    if isdefined(graph, :property)
-        append!(graph.property.edgescyclesizes, sizes)
-        return graph.property.edgescyclesizes
-    end
-    return sizes
-end
-
-
-
-nodes_iscyclemember(graph) = .!isempty.(nodes_cycles(graph))
-
-edges_iscyclemember(graph) = .!isempty.(edges_cycles(graph))
-
-nodes_cyclecount(graph) = length.(nodes_cycles(graph))
-
-edges_cyclecount(graph) = length.(edges_cycles(graph))
-
 
 
 function mincyclebasis(graph::UndirectedGraph)

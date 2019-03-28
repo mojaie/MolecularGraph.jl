@@ -26,6 +26,12 @@ end
 Subgraph = Union{SubgraphView,DiSubgraphView}
 
 
+Base.getindex(view::Subgraph, sym::Symbol) = eval(Expr(:call, sym, view.graph))
+Base.getindex(
+    graph::Subgraph, k1::Symbol, k2::Symbol, K::Symbol...
+) = hcat(eval(Expr(:call, sym, view.graph)) for k in [k1, k2, K...])
+
+
 """
     nodesubgraph(graph::UndirectedGraph, nodes) -> SubgraphView
     nodesubgraph(graph::DirectedGraph, nodes) -> DiSubgraphView

@@ -71,7 +71,6 @@ module MolecularGraph
     using ..MolecularGraphGeometry
     using ..MolecularGraphModel
 
-    include("./annotation/interface.jl")
     include("./model/interface.jl")
     include("./draw/interface.jl")
 
@@ -81,18 +80,12 @@ module MolecularGraph
     include("./model/molgraphview.jl")
     include("./model/molgraphutil.jl")
 
-    include("./annotation/base.jl")
-    include("./annotation/topology.jl")
-    include("./annotation/elemental.jl")
-    include("./annotation/rotatable.jl")
-    include("./annotation/aromatic.jl")
-    include("./annotation/wclogp.jl")
-    include("./annotation/funcgroup.jl")
-
-    include("properties.jl")
     include("substructure.jl")
     include("mcs.jl")
     include("preprocess.jl")
+    include("properties.jl")
+    include("wclogp.jl")
+    include("funcgroup.jl")
 
     include("./smarts/base.jl")
     include("./smarts/atom.jl")
@@ -100,8 +93,6 @@ module MolecularGraph
     include("./smarts/logicaloperator.jl")
     include("./smarts/molecule.jl")
 
-    include("./draw/color.jl")
-    include("./draw/base.jl")
     include("./draw/draw2d.jl")
     include("./draw/svg.jl")
 

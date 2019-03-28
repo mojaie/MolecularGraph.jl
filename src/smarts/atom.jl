@@ -38,11 +38,11 @@ function atom!(state::SmartsParser{SMILES})
             prop[a.first] = a.second
         end
         return SmilesAtom(
-            prop[:Symbol],
-            get!(prop, :Charge, 0),
+            prop[:atomsymbol],
+            get!(prop, :charge, 0),
             1,
-            get!(prop, :Mass, nothing),
-            get!(prop, :Aromatic, false),
+            get!(prop, :mass, nothing),
+            get!(prop, :isaromatic, false),
             get!(prop, :stereo, nothing)
         )
     else
@@ -85,24 +85,24 @@ function atomsymbol!(state::SmartsParser)
     """
     if read(state) == 'C' && lookahead(state, 1) == 'l'
         forward!(state, 2)
-        return :and => (:Symbol => :Cl, :Aromatic => false)
+        return :and => (:atomsymbol => :Cl, :isaromatic => false)
     elseif read(state) == 'B' && lookahead(state, 1) == 'r'
         forward!(state, 2)
-        return :and => (:Symbol => :Br, :Aromatic => false)
+        return :and => (:atomsymbol => :Br, :isaromatic => false)
     elseif read(state) in "BCNOPSFI"
         sym = Symbol(read(state))
         forward!(state)
-        return :and => (:Symbol => sym, :Aromatic => false)
+        return :and => (:atomsymbol => sym, :isaromatic => false)
     elseif read(state) in "cnops"
         sym = Symbol(uppercase(read(state)))
         forward!(state)
-        return :and => (:Symbol => sym, :Aromatic => true)
+        return :and => (:atomsymbol => sym, :isaromatic => true)
     elseif read(state) == 'A'
         forward!(state)
-        return :Aromatic => false
+        return :isaromatic => false
     elseif read(state) == 'a'
         forward!(state)
-        return :Aromatic => true
+        return :isaromatic => true
     elseif read(state) == '*'
         forward!(state)
         return :any => true
@@ -111,12 +111,12 @@ end
 
 
 const SMARTS_ATOM_COND_SYMBOL = Dict(
-    'X' => :Connectivity,
-    'D' => :Degree,
-    'v' => :Valence,
-    'H' => :H_Count,
-    'r' => :RingSize,
-    'R' => :RingMemCount
+    'X' => :connectivity,
+    'D' => :nodedegree,
+    'v' => :valence,
+    'H' => :hcount,
+    'r' => :atom_ringsizes,
+    'R' => :atom_ringcount
 )
 
 const SMARTS_CHARGE_SIGN = Dict(
@@ -138,10 +138,10 @@ function atomprop!(state::SmartsParser)
         if string(c, c2, c3) in atomsyms
             # Note: three-letter atoms (U-series) are not supported yet
             forward!(state, 3)
-            return :Symbol => Symbol(c, c2, c3)
+            return :atomsymbol => Symbol(c, c2, c3)
         elseif string(c, c2) in atomsyms
             forward!(state, 2)
-            return :Symbol => Symbol(c, c2)
+            return :atomsymbol => Symbol(c, c2)
         end
     end
     # Organic atoms
@@ -155,11 +155,11 @@ function atomprop!(state::SmartsParser)
         if c2 == ']' && (isdigit(cb) || cb == '[')
             # Hydrogen atom
             forward!(state)
-            return :Symbol => :H
+            return :atomsymbol => :H
         elseif c2 == '+'
             # Proton
             forward!(state)
-            return :and => (:Symbol => :H, :Charge => 1)
+            return :and => (:atomsymbol => :H, :charge => 1)
         end
     end
     # Atom properties
@@ -175,7 +175,7 @@ function atomprop!(state::SmartsParser)
     elseif isuppercase(c) && string(c) in atomsyms
         # Single letter non-organic atoms
         forward!(state, 1)
-        return :Symbol => Symbol(c)
+        return :atomsymbol => Symbol(c)
     elseif c == '#'
         # Atomic number
         forward!(state)
@@ -185,7 +185,7 @@ function atomprop!(state::SmartsParser)
         end
         num = parse(Int, SubString(state.input, start, state.pos))
         forward!(state)
-        return :Symbol => atomsymbol(num)
+        return :atomsymbol => atomsymbol(num)
     elseif c in keys(SMARTS_CHARGE_SIGN)
         # Charge
         forward!(state)
@@ -200,7 +200,7 @@ function atomprop!(state::SmartsParser)
                 chg += 1
             end
         end
-        return :Charge => chg * SMARTS_CHARGE_SIGN[c]
+        return :charge => chg * SMARTS_CHARGE_SIGN[c]
     elseif c == '@'
         # Stereo
         # @ => 1, @@ => 2, @? => 3, @@? => 4
@@ -223,7 +223,7 @@ function atomprop!(state::SmartsParser)
         end
         num = SubString(state.input, start, state.pos)
         forward!(state)
-        return :Mass => parse(Int, num)
+        return :mass => parse(Int, num)
     elseif c == '$' && lookahead(state, 1) == '('
         # Recursive
         forward!(state, 2)

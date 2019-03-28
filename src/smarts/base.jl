@@ -55,9 +55,7 @@ end
 
 function smilestomol(smiles::AbstractString)
     mol = parse(SMILES, smiles)
-    vmol = vectormol(mol)
-    default_annotation!(vmol)
-    return vmol
+    return vectormol(mol)
 end
 
 

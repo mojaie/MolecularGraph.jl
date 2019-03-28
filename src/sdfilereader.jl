@@ -99,9 +99,7 @@ end
 
 
 function defaultpostprocess(mol::SDFile)
-    vmol = vectormol(mol)
-    default_annotation!(vmol)
-    return vmol
+    return vectormol(mol)
 end
 
 

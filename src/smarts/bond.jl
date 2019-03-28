@@ -11,7 +11,7 @@ export
 
 defaultbond(state::SmartsParser{SMILES}) = SmilesBond(nothing, nothing)
 defaultbond(state::SmartsParser{SMARTS}) = SmartsBond(
-    nothing, nothing, :or => (:BondOrder => 1, :AromaticBond => true))
+    nothing, nothing, :or => (:bondorder => 1, :isaromaticbond => true))
 
 
 function bond!(state::SmartsParser{SMILES})
@@ -20,9 +20,9 @@ function bond!(state::SmartsParser{SMILES})
     b = bondsymbol!(state)
     if b === nothing
         return
-    elseif b[1] == :BondOrder
+    elseif b[1] == :bondorder
         return SmilesBond(nothing, nothing, b[2])
-    elseif b[1] == :AromaticBond
+    elseif b[1] == :isaromaticbond
         return SmilesBond(nothing, nothing, 1, true, nothing)
     elseif b[1] == :stereo
         return SmilesBond(nothing, nothing, 1, false, b[2])
@@ -47,11 +47,11 @@ end
 
 
 const SMARTS_BOND_SYMBOL = Dict(
-    '-' => :BondOrder => 1,
-    '=' => :BondOrder => 2,
-    '#' => :BondOrder => 3,
-    '@' => :RingBond => true,
-    ':' => :AromaticBond => true,
+    '-' => :bondorder => 1,
+    '=' => :bondorder => 2,
+    '#' => :bondorder => 3,
+    '@' => :bond_isringmem => true,
+    ':' => :isaromaticbond => true,
     '/' => :stereo => 1,
     '\\' => :stereo => 2
 )

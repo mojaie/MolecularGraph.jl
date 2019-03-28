@@ -31,5 +31,5 @@ function reverseedge(edge)
     return setnodes(edge, edge.target, edge.source)
 end
 
-outneighbors(view::ReverseGraphView, idx) = view.graph.inneighbors[idx]
-inneighbors(view::ReverseGraphView, idx) = view.graph.outneighbors[idx]
+outneighbors(view::ReverseGraphView, idx) = view.graph.inneighbormap[idx]
+inneighbors(view::ReverseGraphView, idx) = view.graph.outneighbormap[idx]

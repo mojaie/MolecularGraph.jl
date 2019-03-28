@@ -9,8 +9,7 @@ export
     adjacencies, successors, predecessors,
     adjacentnodes, successornodes, predecessornodes,
     incidences, in_incidences, outincidences,
-    incidentedges, inedges, outedges,
-    hasproperty
+    incidentedges, inedges, outedges
 
 clone(node::AbstractNode) = node
 
@@ -38,6 +37,3 @@ indegree(g::DirectedGraph, i) = length(inneighbors(g, i))
 
 nodecount(g::Union{DiGraph,Graph}) = length(g.nodes)
 edgecount(g::Union{DiGraph,Graph}) = length(g.edges)
-
-hasproperty(g::AbstractGraph, property::Symbol) = (
-    isdefined(g, property) && !isempty(getproperty(g.property, property)))

@@ -6,7 +6,7 @@
 export
     SvgCanvas,
     tosvg,
-    drawsvg!,
+    drawsvg,
     initcanvas!
 
 
@@ -31,6 +31,7 @@ mutable struct SvgCanvas <: Canvas
     viewboxH::Float64
 
     elements::Vector{String}
+    coords::Cartesian2D
     valid::Bool
 
     function SvgCanvas()
@@ -81,17 +82,49 @@ end
 
 
 """
-    drawsvg!(mol::VectorMol, width::Int, height::Int)
+    drawsvg(mol::VectorMol, width::Int, height::Int)
 
 Generate molecular structure image as a SVG format string.
 
 `width` and `height` specifies the size of the image (width and height
 attribute of svg tag).
 """
-function drawsvg!(mol::VectorMol, width::Int, height::Int)
+function drawsvg(mol::VectorMol, width::Int, height::Int)
     canvas = SvgCanvas()
     draw2d!(canvas, mol)
     tosvg(canvas, width, height)
+end
+
+
+"""
+    boundary(mol::VectorMol) -> (top, left, width, height, unit)
+
+Get boundaries and an appropriate bond length unit for the molecule drawing
+canvas.
+"""
+function boundary(mol::VectorMol)
+    coords = mol[:coords2d]
+    (left, right) = extrema(x_components(coords))
+    (bottom, top) = extrema(y_components(coords))
+    width = right - left
+    height = top - bottom
+    dists = []
+    # Size unit
+    for bond in edgevalues(mol)
+        u = _point(coords, bond.u)
+        v =  _point(coords, bond.v)
+        d = norm(v - u)
+        if d > 0.0001  # Remove overlapped
+            push!(dists, d)
+        end
+    end
+    if isempty(dists)
+        long = max(width, height)
+        unit = long > 0.0001 ? long / sqrt(nodecount(mol)) : 1
+    else
+        unit = median(dists) # Median bond length
+    end
+    return (top, left, width, height, unit)
 end
 
 
@@ -102,10 +135,10 @@ Move and adjust the size of the molecule for drawing.
 """
 function initcanvas!(canvas::Canvas, mol::VectorMol)
     nodecount(mol) == 0 && return
-    coords = rawdata(mol.coords[:Cartesian2D])
+    coords = rawdata(mol[:coords2d])
     (top, left, width, height, unit) = boundary(mol)
     sf = canvas.scalef / unit
-    mol.coords[:Cartesian2D] = cartesian2d(
+    canvas.coords = cartesian2d(
         (coords .- [left top]) .* [1 -1] .* sf
         .+ [canvas.paddingX canvas.paddingY]
     )
@@ -116,113 +149,134 @@ function initcanvas!(canvas::Canvas, mol::VectorMol)
 end
 
 
-function trimbond(canvas, mol, u, v)
-    uvis = mol[:Visible2D][u]
-    vvis = mol[:Visible2D][v]
-    coords = mol.coords[:Cartesian2D]
+function trimbond(canvas, seg, uvis, vvis)
     if uvis && vvis
-        return trim_uv(segment(coords, u, v), canvas.trimoverlapf * 2)
+        return trim_uv(seg, canvas.trimoverlapf * 2)
     elseif uvis
-        return trim_u(segment(coords, u, v), canvas.trimoverlapf)
+        return trim_u(seg, canvas.trimoverlapf)
     elseif vvis
-        return trim_v(segment(coords, u, v), canvas.trimoverlapf)
+        return trim_v(seg, canvas.trimoverlapf)
     end
-    return segment(coords, u, v)
+    return seg
 end
 
 
-function singlebond!(canvas, mol, u, v)
-    seg = trimbond(canvas, mol, u, v)
-    drawline!(canvas, seg, mol[:Color2D][u], mol[:Color2D][v])
+function singlebond!(canvas, coords, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, coords, uvis, vvis)
+    drawline!(canvas, seg, ucolor, vcolor)
     return
 end
 
 
-function wedged!(canvas, mol, u, v)
-    seg = trimbond(canvas, mol, u, v)
-    drawwedge!(canvas, seg, mol[:Color2D][u], mol[:Color2D][v])
+function wedged!(canvas, coords, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, coords, uvis, vvis)
+    drawwedge!(canvas, seg, ucolor, vcolor)
     return
 end
 
 
-function dashedwedged!(canvas, mol, u, v)
-    seg = trimbond(canvas, mol, u, v)
-    drawdashedwedge!(canvas, seg, mol[:Color2D][u], mol[:Color2D][v])
+function dashedwedged!(canvas, coords, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, coords, uvis, vvis)
+    drawdashedwedge!(canvas, seg, ucolor, vcolor)
     return
 end
 
 
-function wavesingle!(canvas, mol, u, v)
-    seg = trimbond(canvas, mol, u, v)
-    drawwave!(canvas, seg, mol[:Color2D][u], mol[:Color2D][v])
+function wavesingle!(canvas, coords, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, coords, uvis, vvis)
+    drawwave!(canvas, seg, ucolor, vcolor)
     return
 end
 
 
-function doublebond!(canvas, mol, u, v)
+function doublebond!(canvas, coords, ucolor, vcolor, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf / 2
-    seg = trimbond(canvas, mol, u, v)
+    seg = trimbond(canvas, coords, uvis, vvis)
     seg1 = translate(seg, pi / 2, dist)
     seg2 = translate(seg, -pi / 2, dist)
-    drawline!(canvas, seg1, mol[:Color2D][u], mol[:Color2D][v])
-    drawline!(canvas, seg2, mol[:Color2D][u], mol[:Color2D][v])
+    drawline!(canvas, seg1, ucolor, vcolor)
+    drawline!(canvas, seg2, ucolor, vcolor)
     return
 end
 
 
-function crossdouble!(canvas, mol, u, v)
+function crossdouble!(canvas, coords, ucolor, vcolor, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf / 2
-    seg = trimbond(canvas, mol, u, v)
+    seg = trimbond(canvas, coords, uvis, vvis)
     seg1 = translate(seg, pi / 2, dist)
     seg2 = translate(seg, -pi / 2, dist)
     buf = point(seg1, 2)
     setcoord!(seg1, point(seg2, 2), 2)
     setcoord!(seg2, buf, 2)
-    drawline!(canvas, seg1, mol[:Color2D][u], mol[:Color2D][v])
-    drawline!(canvas, seg2, mol[:Color2D][u], mol[:Color2D][v])
+    drawline!(canvas, seg1, ucolor, vcolor)
+    drawline!(canvas, seg2, ucolor, vcolor)
     return
 end
 
 
-function ringdouble!(canvas, mol, u, v, direction)
-    seg = trimbond(canvas, mol, u, v)
+function ringdouble!(canvas, coords, ucolor, vcolor, uvis, vvis, direction)
+    seg = trimbond(canvas, coords, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf
     segin = trim_uv(translate(seg, direction, dist), canvas.triminnerf)
-    drawline!(canvas, seg, mol[:Color2D][u], mol[:Color2D][v])
-    drawline!(canvas, segin, mol[:Color2D][u], mol[:Color2D][v])
+    drawline!(canvas, seg, ucolor, vcolor)
+    drawline!(canvas, segin, ucolor, vcolor)
     return
 end
 
 # NOTE: the direction is reversed due to x-axis reflection
-clockwisedouble!(canvas, mol, u, v) = ringdouble!(canvas, mol, u, v, pi / 2)
-counterdouble!(canvas, mol, u, v) = ringdouble!(canvas, mol, u, v, -pi / 2)
+clockwisedouble!(canvas, coords, ucolor, vcolor, uvis, vvis
+    ) = ringdouble!(canvas, coords, ucolor, vcolor, uvis, vvis, pi / 2)
+counterdouble!(canvas, coords, ucolor, vcolor, uvis, vvis
+    ) = ringdouble!(canvas, coords, ucolor, vcolor, uvis, vvis, -pi / 2)
 
 
-function triplebond!(canvas, mol, u, v)
+function triplebond!(canvas, coords, ucolor, vcolor, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf
-    seg = trimbond(canvas, mol, u, v)
+    seg = trimbond(canvas, coords, uvis, vvis)
     seg1 = translate(seg, pi / 2, dist)
     seg2 = translate(seg, -pi / 2, dist)
-    drawline!(canvas, seg, mol[:Color2D][u], mol[:Color2D][v])
-    drawline!(canvas, seg1, mol[:Color2D][u], mol[:Color2D][v])
-    drawline!(canvas, seg2, mol[:Color2D][u], mol[:Color2D][v])
+    drawline!(canvas, seg, ucolor, vcolor)
+    drawline!(canvas, seg1, ucolor, vcolor)
+    drawline!(canvas, seg2, ucolor, vcolor)
     return
 end
 
 
-function atomsymbol!(canvas, mol, i;
+const BOND_DRAWER = Dict(
+    1 => Dict(
+        0 => singlebond!,
+        1 => wedged!,
+        6 => dashedwedged!,
+        4 => wavesingle!
+    ),
+    2 => Dict(
+        0 => clockwisedouble!,
+        1 => counterdouble!,
+        2 => doublebond!,
+        3 => crossdouble!
+    ),
+    3 => Dict(
+        0 => triplebond!
+    )
+)
+
+setbond!(
+    canvas, order, notation, coords, ucolor, vcolor, uvis, vvis
+) = BOND_DRAWER[order][notation](canvas, coords, ucolor, vcolor, uvis, vvis)
+
+
+function atomsymbol!(canvas, coords, atomsymbol, color, implicith, charge;
                      direction=:right, anchor=""" text-anchor="end" """,
                      xoffset=0)
-    pos = _point(mol.coords[:Cartesian2D], i) + [xoffset, canvas.fontsize/2]
+    pos = coords + [xoffset, canvas.fontsize/2]
     (x, y) = fmt.(".2f", pos)
     small = round(Int, canvas.fontsize * 0.7)
-    hcnt = mol[:Connectivity][i] - mol[:Degree][i]
     content = atommarkup(
-        mol[:Symbol][i], mol[:Charge][i], hcnt, direction,
+        atomsymbol, charge, implicith, direction,
         """<tspan baseline-shift="-25%" font-size="$(small)">""", "</tspan>",
         """<tspan baseline-shift="50%" font-size="$(small)">""", "</tspan>"
     )
-    c = format("rgb({:d}, {:d}, {:d})", mol[:Color2D][i])
+    c = format("rgb({:d}, {:d}, {:d})", color)
     elem = """<text x="$(x)" y="$(y)" font-size="$(canvas.fontsize)"
      fill="$(c)"$(anchor)>$(content)</text>
     """
@@ -230,21 +284,32 @@ function atomsymbol!(canvas, mol, i;
     return
 end
 
-atomsymbolright!(canvas, mol, i) = atomsymbol!(
-    canvas, mol, i, direction=:left, xoffset=canvas.fontsize/2)
+setatomright!(
+    canvas, coords, sym, color, hcnt, charge
+) = atomsymbol!(
+    canvas, coords, sym, color, hcnt, charge,
+    direction=:left, xoffset=canvas.fontsize/2
+)
 
-atomsymbolcenter!(canvas, mol, i) = atomsymbol!(
-    canvas, mol, i, anchor=""" text-anchor="middle" """)
+setatomcenter!(
+    canvas, coords, sym, color, hcnt, charge
+) = atomsymbol!(
+    canvas, coords, sym, color, hcnt, charge,
+    anchor=""" text-anchor="middle" """
+)
 
-atomsymbolleft!(canvas, mol, i) = atomsymbol!(
-    canvas, mol, i, anchor=" ", xoffset=canvas.fontsize/-2)
+setatomleft!(
+    canvas, coords, sym, color, hcnt, charge
+) = atomsymbol!(
+    canvas, coords, sym, color, hcnt, charge,
+    anchor=" ", xoffset=canvas.fontsize/-2
+)
 
 
-function atom_annotation!(canvas, mol, i, text, color, bgcolor)
+function setatomnote!(canvas, coords, text, color, bgcolor)
     size = round(Int, canvas.fontsize * canvas.annotsizef)
-    pos = _point(mol.coords[:Cartesian2D], i)
-    (bx, by) = fmt.(".2f", pos)
-    (tx, ty) = fmt.(".2f", pos + [0 size])
+    (bx, by) = fmt.(".2f", coords)
+    (tx, ty) = fmt.(".2f", coords + [0 size])
     c = format("rgb({:d}, {:d}, {:d})", color)
     bc = format("rgb({:d}, {:d}, {:d})", bgcolor)
     elem = """<g>

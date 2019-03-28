@@ -4,25 +4,15 @@
 #
 
 export
-    getindex, haskey, setindex!,
-    getatom, getnode, getbond, getedge,
-    neighbors, neighborcount, degree,
-    nodecount, atomcount, edgecount, bondcount,
-    updatenode!, updateatom!, updatebond!, updatebond!,
-    unlinknode!, unlinkatom!, unlinkedge!, unlinkbond!
+    getindex,
+    getatom, getbond, atomcount, bondcount,
+    updateatom!, updatebond!, unlinkatom!, unlinkbond!
 
 
-Base.getindex(mol::VectorMol, k::Symbol) = mol.vector[k]
+Base.getindex(mol::GeneralMol, sym::Symbol) = eval(Expr(:call, sym, mol))
 Base.getindex(
-    mol::VectorMol, k1::Symbol, k2::Symbol, K::Symbol...
-) = AnnotationArray(
-    hcat([mol.vector[k] for k in [k1, k2, K...]]...), [k1, k2, K...])
-
-Base.haskey(mol::VectorMol, k) = haskey(mol.vector, k)
-
-function Base.setindex!(mol::VectorMol, v, k)
-    mol.vector[k] = v
-end
+    mol::GeneralMol, k1::Symbol, k2::Symbol, K::Symbol...
+) = hcat(eval(Expr(:call, sym, mol)) for k in [k1, k2, K...])
 
 
 # Aliases

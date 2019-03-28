@@ -6,7 +6,7 @@
 export
     Edge, MapGraph, VectorGraph,
     setnodes, mapgraph, vectorgraph,
-    nodevector, edgevector
+    nodevalues, edgevalues
 
 
 struct Edge <: UndirectedEdge
@@ -87,12 +87,18 @@ struct VectorGraph{N<:AbstractNode,E<:UndirectedEdge} <: Graph
     nodes::Vector{N}
     edges::Vector{E}
     neighbormap::Vector{Dict{Int,Int}}
-    property::GraphPropertyVectors
+    cache::Dict{Symbol,Any}
 
     function VectorGraph{N,E}() where {N<:AbstractNode,E<:UndirectedEdge}
-        new([], [], [], GraphPropertyVectors())
+        new([], [], [], Dict())
     end
 end
+
+Base.getindex(graph::VectorGraph, sym::Symbol) = eval(Expr(:call, sym, graph))
+Base.getindex(
+    graph::VectorGraph, k1::Symbol, k2::Symbol, K::Symbol...
+) = hcat(eval(Expr(:call, sym, graph)) for k in [k1, k2, K...])
+
 
 """
     vectorgraph(::Type{N}, ::Type{E}
@@ -165,10 +171,10 @@ hasedge(graph::Graph, u, v) = haskey(graph.neighbormap[u], v)
 # TODO: `enumerate` yields `Tuple` whereas `Dict` yields `Pair`
 nodesiter(graph::VectorGraph) = enumerate(graph.nodes)
 nodesiter(graph::MapGraph) = graph.nodes
-nodevector(graph::VectorGraph) = graph.nodes
+nodevalues(graph::VectorGraph) = graph.nodes
 edgesiter(graph::VectorGraph) = enumerate(graph.edges)
 edgesiter(graph::MapGraph) = graph.edges
-edgevector(graph::VectorGraph) = graph.edges
+edgevalues(graph::VectorGraph) = graph.edges
 
 nodekeys(graph::VectorGraph) = collect(1:nodecount(graph))
 nodekeys(graph::MapGraph) = collect(keys(graph.nodes))
@@ -198,7 +204,11 @@ function updatenode!(graph::MapGraph, node)
 end
 
 function updatenode!(graph::VectorGraph, node, idx)
-    idx > nodecount(graph) && throw(KeyError(idx))
+    idx > nodecount(graph) + 1 && throw(DomainError(idx))
+    if idx == nodecount(graph) + 1
+        updatenode!(graph, node)
+        return
+    end
     graph.nodes[idx] = node
     return
 end

@@ -21,11 +21,11 @@ export
 
 
 """
-    is_identical(mol1::VectorMol, mol2::VectorMol)
+    is_identical(mol1::GeneralMol, mol2::GeneralMol)
 
 Return whether mol1 and mol2 are identical in chemical structure.
 """
-function is_identical(mol1::VectorMol, mol2::VectorMol)
+function is_identical(mol1::GeneralMol, mol2::GeneralMol)
     if !fast_identity_filter(mol1, mol2)
         return false
     end
@@ -34,11 +34,11 @@ end
 
 
 """
-    is_substruct(mol1::VectorMol, mol2::VectorMol)
+    is_substruct(mol1::GeneralMol, mol2::GeneralMol)
 
 Return whether mol1 is a substructure of mol2.
 """
-function is_substruct(mol1::VectorMol, mol2::VectorMol)
+function is_substruct(mol1::GeneralMol, mol2::GeneralMol)
     if !fast_substr_filter(mol2, mol1)
         return false
     end
@@ -54,7 +54,7 @@ Return whether mol1 is a superstructure of mol2.
 is_superstruct(mol1, mol2) = is_substruct(mol2, mol1)
 
 
-function isomorphism(mol1::VectorMol, mol2::VectorMol;
+function isomorphism(mol1::GeneralMol, mol2::GeneralMol;
         mode=:Subgraph, atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Mapping based on edge subgraph isomorphism (ignore disconnected atom)
     # Intended for use in substructure search
@@ -193,17 +193,17 @@ function isSMARTSgroupmatch(mol::MolGraph, query::QueryMol, root;
 end
 
 
-function atommatch(mol1::VectorMol, mol2::VectorMol)
+function atommatch(mol1::GeneralMol, mol2::GeneralMol)
+    sym1 = mol1[:atomsymbol]
+    sym2 = mol2[:atomsymbol]
+    pi1 = mol1[:pielectron]
+    pi2 = mol2[:pielectron]
     return function (a1, a2)
-        sym1 = mol1[:Symbol]
-        sym2 = mol2[:Symbol]
-        pi1 = mol1[:Pi]
-        pi2 = mol2[:Pi]
         sym1[a1] == sym2[a2] && pi1[a1] == pi2[a2]
     end
 end
 
-function atommatch(mol::VectorMol, querymol::QueryMol)
+function atommatch(mol::GeneralMol, querymol::QueryMol)
     return function (a, qa)
         q = getatom(querymol, qa).query
         return querymatchtree(q, mol, a)
@@ -211,12 +211,12 @@ function atommatch(mol::VectorMol, querymol::QueryMol)
 end
 
 
-function bondmatch(mol1::VectorMol, mol2::VectorMol)
+function bondmatch(mol1::GeneralMol, mol2::GeneralMol)
     # TODO: need bond attribute matching?
     return (b1, b2) -> true
 end
 
-function bondmatch(mol::VectorMol, querymol::QueryMol)
+function bondmatch(mol::GeneralMol, querymol::QueryMol)
     return function (b, qb)
         q = getbond(querymol, qb).query
         return querymatchtree(q, mol, b)
@@ -224,7 +224,7 @@ function bondmatch(mol::VectorMol, querymol::QueryMol)
 end
 
 
-function querymatchtree(query::Pair, mol::VectorMol, i::Int)
+function querymatchtree(query::Pair, mol::GeneralMol, i::Int)
     if query.first == :any
         return true
     elseif query.first == :and
@@ -240,7 +240,7 @@ function querymatchtree(query::Pair, mol::VectorMol, i::Int)
         subq = parse(SMARTS, query.second)
         return isSMARTSgroupmatch(mol, subq, i)
     else
-        if query.first == :RingSize
+        if query.first == :atom_ringsizes
             # TODO:
             return query.second in mol[query.first][i]
         else
@@ -250,7 +250,7 @@ function querymatchtree(query::Pair, mol::VectorMol, i::Int)
 end
 
 
-function fast_identity_filter(mol1::VectorMol, mol2::VectorMol)
+function fast_identity_filter(mol1::GeneralMol, mol2::GeneralMol)
     if atomcount(mol1) != atomcount(mol2)
         return false
     elseif bondcount(mol1) != bondcount(mol2)
@@ -262,7 +262,7 @@ function fast_identity_filter(mol1::VectorMol, mol2::VectorMol)
 end
 
 
-function fast_substr_filter(mol1::VectorMol, mol2::VectorMol)
+function fast_substr_filter(mol1::GeneralMol, mol2::GeneralMol)
     if atomcount(mol1) < atomcount(mol2)
         return false
     elseif bondcount(mol1) < bondcount(mol2)

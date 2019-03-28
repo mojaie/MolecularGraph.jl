@@ -4,7 +4,7 @@
 #
 
 export
-    nodevector, edgevector
+    nodevalues, edgevalues
 
 
 GView = Union{GraphView,DiGraphView}
@@ -17,8 +17,8 @@ hasedge(view::GView, u, v) = hasedge(view.graph, u, v)
 nodesiter(view::GView) = nodesiter(view.graph)
 edgesiter(view::GView) = edgesiter(view.graph)
 # TODO: for only VectorGraph
-nodevector(view::GView) = nodevector(view.graph)
-edgevector(view::GView) = edgevector(view.graph)
+nodevalues(view::GView) = nodevalues(view.graph)
+edgevalues(view::GView) = edgevalues(view.graph)
 
 nodekeys(view::GView) = nodekeys(view.graph)
 edgekeys(view::GView) = edgekeys(view.graph)
@@ -36,12 +36,10 @@ nodetype(view::GView) = nodetype(view.graph)
 edgetype(view::GView) = edgetype(view.graph)
 
 updatenode!(view::GView, node, i) = updatenode!(view.graph, node, i)
+updatenode!(view::GView, node) = updatenode!(view.graph, node)
 updateedge!(view::GView, edge, i) = updateedge!(view.graph, edge, i)
+updateedge!(view::GView, edge) = updateedge!(view.graph, edge)
 updateedge!(view::GView, edge, u, v) = updateedge!(view.graph, edge, u, v)
 unlinknode!(view::GView, i) = unlinknode!(view.graph, i)
 unlinkedge!(view::GView, e) = unlinkedge!(view.graph, e)
 unlinkedge!(view::GView, u, v) = unlinkedge!(view.graph, u, v)
-
-hasproperty(view::GView, property::Symbol) = (
-    isdefined(view.graph, property)
-    && !isempty(getproperty(g.property, property)))

@@ -2,7 +2,7 @@
 @testset "preprocess" begin
 
 @testset "all_hydrogens" begin
-    ethanol = parse(SMILES, "[H]C([H])([H])C([H])([H])O")
+    ethanol = smilestomol("[H]C([H])([H])C([H])([H])O")
     @test issetequal(all_hydrogens(ethanol), [1, 3, 4, 6, 7])
     removed = make_hydrogens_implicit(ethanol)
     @test nodecount(removed) == 3
@@ -10,7 +10,7 @@
 end
 
 @testset "trivial_hydrogens" begin
-    ethanol = parse(SMILES, "[H]C([H])([H])C([H])([H])O")
+    ethanol = smilestomol("[H]C([H])([H])C([H])([H])O")
     @test issetequal(trivialhydrogens(ethanol), [1, 3, 4, 6, 7])
     removed = make_hydrogens_implicit(ethanol, all=false)
     @test nodecount(removed) == 3
@@ -25,7 +25,7 @@ end
 end
 
 @testset "largest_component" begin
-    thiols = parse(SMILES, "CCCCS.SCCCCC")
+    thiols = smilestomol("CCCCS.SCCCCC")
     @test issetequal(largest_component_nodes(thiols), 6:11)
     lc = largestcomponent(thiols)
     @test nodecount(lc) == 6

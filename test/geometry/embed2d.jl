@@ -15,7 +15,7 @@
     end
     ASSETS_DIR = joinpath(dirname(@__FILE__), "..", "..", "assets")
     dest = open(joinpath(ASSETS_DIR, "image", "test.svg"), "w")
-    write(dest, drawsvg!(mol, 200, 200))
+    write(dest, drawsvg(mol, 200, 200))
 end
 
 end # geometry.embed2d

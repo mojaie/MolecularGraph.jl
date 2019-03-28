@@ -8,7 +8,7 @@
 
     state = SmartsParser{SMARTS}("-", false)
     explicit1 = bondsymbol!(state)
-    @test explicit1 == (:BondOrder => 1)
+    @test explicit1 == (:bondorder => 1)
 
     state = SmartsParser{SMARTS}("\\?", false)
     stereo4 = bondsymbol!(state)
@@ -34,7 +34,7 @@ end
     state = SmartsParser{SMARTS}("-!@", false)
     notring = bond!(state)
     @test notring.query == (
-        :and => (:BondOrder => 1, :not => (:RingBond => true))
+        :and => (:bondorder => 1, :not => (:bond_isringmem => true))
     )
 end
 

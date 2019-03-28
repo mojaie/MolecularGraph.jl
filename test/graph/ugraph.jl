@@ -140,4 +140,18 @@ end
     @test isa(newgraph, VectorGraph)
 end
 
+@testset "cache" begin
+    graph = vectorgraph(6, [(1,2), (3,4), (4,5)])
+    @cache function hoge(graph)
+        return fill("hoge", (nodecount(graph),))
+    end
+    @test length(hoge(graph)) == 6
+    updatenode!(graph, Node())
+    @test length(hoge(graph)) == 6
+    clearcache!(graph)
+    @test length(hoge(graph)) == 7
+
+
+end
+
 end # graph.ugraph

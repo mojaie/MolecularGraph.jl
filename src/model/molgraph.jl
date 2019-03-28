@@ -9,7 +9,8 @@ export
     SDFile, SMILES, SMARTS
 
 
-struct MapMol{A<:Atom,B<:Bond} <: MolGraph
+struct MapMol{A<:Atom,B<:Bond} <: GeneralMol
+    # TODO: deprecated
     graph::MapGraph{A,B}
     attribute::Dict{Symbol,String}
 
@@ -20,18 +21,8 @@ end
 
 MapMol{A,B}() where {A<:Atom,B<:Bond} = MapMol{A,B}(mapgraph(A,B))
 
-"""
-    mapmol(::Type{A}, ::Type{B}) where {A<:Atom,B<:Bond} -> MapMol{N,E}
-
-Generate empty `MapMol` that has atoms and bonds with the given types.
-"""
 mapmol(::Type{A}, ::Type{B}) where {A<:Atom,B<:Bond} = MapMol{A,B}()
 
-"""
-    mapmol(atoms::Vector{A}, bonds::Vector{B}) -> MapMol{A,B}
-
-Generate `MapMol` that has the given atom objects and edge objects.
-"""
 function mapmol(atoms::Vector{A}, bonds::Vector{B}) where {A<:Atom,B<:Bond}
     mol = MapMol{A,B}()
     for (i, atom) in enumerate(atoms)
@@ -46,13 +37,6 @@ function mapmol(atoms::Vector{A}, bonds::Vector{B}) where {A<:Atom,B<:Bond}
     return mol
 end
 
-
-"""
-    mapmol(mol::MolGraph{A,B}; clone=false) -> MapMol{A,B}
-
-Convert the given molecule into a new `MapMol`. See [`mapgraph`](@ref)
-for the details.
-"""
 function mapmol(mol::MolGraph)
     A = nodetype(mol)
     B = edgetype(mol)
@@ -82,15 +66,13 @@ querymol(::Type{A}, ::Type{B}
     ) where {A<:QueryAtom,B<:QueryBond} = QueryMol{A,B}()
 
 
-struct VectorMol{A<:Atom,B<:Bond} <: MolGraph
+struct VectorMol{A<:Atom,B<:Bond} <: GeneralMol
     graph::VectorGraph{A,B}
-    vector::Dict{Symbol,Vector}
-    annotation::Dict{Symbol,Annotation}
-    coords::Dict{Symbol,Coordinates}
-    attribute::Dict{Symbol,String}
+    attribute::Dict{Symbol,Any}
+    cache::Dict{Symbol,Any}
 
     function VectorMol{A,B}(graph::Graph) where {A<:Atom,B<:Bond}
-        new(graph, Dict(), Dict(), Dict(), Dict())
+        new(graph, Dict(), Dict())
     end
 end
 

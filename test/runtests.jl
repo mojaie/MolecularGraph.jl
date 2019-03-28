@@ -3,20 +3,19 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-"""
+
 module MolecularGraphUtilTest
     using Test
     using MolecularGraph.MolecularGraphUtil
     include("./util/iterator.jl")
 end
 
+
 module MolecularGraphModelTest
     using Test
     using MolecularGraph.MolecularGraphModel
 
     include("./graph/generator.jl")
-    include("./graph/planarity.jl")
-
     include("./graph/ugraph.jl")
     include("./graph/dgraph.jl")
     include("./graph/multigraph.jl")
@@ -34,10 +33,12 @@ module MolecularGraphModelTest
     include("./graph/bipartite.jl")
     include("./graph/connectivity.jl")
     include("./graph/cycle.jl")
+    include("./graph/planarity.jl")
     include("./graph/modularproduct.jl")
     include("./graph/isomorphism/vf2.jl")
     include("./graph/isomorphism/cliquebased.jl")
 end
+
 
 module MolecularGraphGeometryTest
     using Test
@@ -49,7 +50,7 @@ module MolecularGraphGeometryTest
     include("./geometry/coords3d.jl")
     include("./geometry/coordsinternal.jl")
 end
-"""
+
 
 module MolecularGraphTest
     using Test
@@ -74,13 +75,9 @@ module MolecularGraphTest
     include("preprocess.jl")
     include("substructure.jl")
     include("mcs.jl")
-
-    include("./annotation/topology.jl")
-    include("./annotation/elemental.jl")
-    include("./annotation/rotatable.jl")
-    include("./annotation/aromatic.jl")
-    include("./annotation/wclogp.jl")
-    include("./annotation/funcgroup.jl")
+    include("properties.jl")
+    include("wclogp.jl")
+    include("funcgroup.jl")
 
     include("./draw/base.jl")
     include("./draw/svg.jl")

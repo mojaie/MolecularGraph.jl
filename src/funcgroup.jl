@@ -4,16 +4,8 @@
 #
 
 export
-    funcgrouptable,
-    FUNC_GROUP_TABLE,
-    FGTermNode,
-    FGRelationEdge,
     FunctionalGroup,
-    functionalgroup!,
-    fgrouprecord,
-    fgroupcond,
-    fgroupquery,
-    largestcomponents
+    functionalgroup
 
 
 function funcgrouptable()
@@ -23,7 +15,7 @@ function funcgrouptable()
         "ring.yaml",
         "biomolecule.yaml"
     ]
-    dir = joinpath(dirname(@__FILE__), "..", "..", "assets", "funcgroup")
+    dir = joinpath(dirname(@__FILE__), "..", "assets", "funcgroup")
     for f in files
         src = joinpath(dir, f)
         data = YAML.load(open(src))
@@ -48,7 +40,7 @@ struct FGRelationEdge <: DirectedEdge
 end
 
 
-struct FunctionalGroup <: Annotation
+struct FunctionalGroup
     nodeset::Dict{Symbol,Set{Set{Int}}}
     graph::MapDiGraph{FGTermNode,FGRelationEdge}
 
@@ -58,15 +50,13 @@ struct FunctionalGroup <: Annotation
 end
 
 
-function functionalgroup!(mol::VectorMol)
-    haskey(mol.annotation, :FunctionalGroup) && return
-    aromatic!(mol)
-    mol.annotation[:FunctionalGroup] = fg = FunctionalGroup()
+function functionalgroup(mol::VectorMol)
+    fg = FunctionalGroup()
     fggraphidx = Dict{Symbol,Int}()
     ncnt = 0
     ecnt = 0
     for rcd in FUNC_GROUP_TABLE
-        fgset = fgrouprecord(mol, rcd)
+        fgset = fgrouprecord(mol, fg, rcd)
         fgkey = Symbol(rcd["key"])
         fg.nodeset[fgkey] = fgset
         # Update ontology graph
@@ -90,11 +80,12 @@ function functionalgroup!(mol::VectorMol)
             end
         end
     end
+    return fg
 end
 
 
-function fgrouprecord(mol::VectorMol, rcd)
-    fgsetmap = mol.annotation[:FunctionalGroup].nodeset
+function fgrouprecord(mol::VectorMol, fg, rcd)
+    fgsetmap = fg.nodeset
     newset = Set{Set{Int}}()
     # Membership filter
     if "have" in keys(rcd)
@@ -111,7 +102,7 @@ function fgrouprecord(mol::VectorMol, rcd)
             refset = fgsetmap[Symbol(k)]
             eachset = Set{Set{Int}}()
             for s in refset
-                subst = atomsubstr(mol, s)
+                subst = nodesubgraph(mol, s)
                 for (emap, nmap) in fastquerymatchiter(subst, q, mode=:graph)
                     if !isempty(emap) || !isempty(nmap)
                         push!(eachset, s)
