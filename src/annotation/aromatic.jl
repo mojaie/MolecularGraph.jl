@@ -21,13 +21,11 @@ some kind of pharmaceutical researches. Non-classical aromaticity such as
 Moebius aromaticity is not considered.
 """
 function aromatic!(mol::VectorMol)
-    haskey(mol, :Aromatic) && return
-    topology!(mol)
     elemental!(mol)
     # Precalculate carbonyl
     mol[:Aromatic] = falses(atomcount(mol))
     mol[:AromaticBond] = falses(bondcount(mol))
-    for ring in mol.annotation[:Topology].rings
+    for ring in mincycles(mol)
         sub = nodesubgraph(mol.graph, Set(ring))
         if satisfyHuckel(mol, ring)
             mol[:Aromatic][ring] .= true

@@ -12,9 +12,8 @@ export rotatable!
 Assign `:Rotatable` parameter vector to the molecule.
 """
 function rotatable!(mol::VectorMol)
-    haskey(mol, :Rotatable) && return
-    topology!(mol)
     elemental!(mol)
+    
     pred = (e) -> (
         mol[:BondOrder][e[1]] == 1
         && mol[:Degree][e[2].u] != 1

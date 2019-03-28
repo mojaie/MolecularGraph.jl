@@ -255,8 +255,7 @@ function fast_identity_filter(mol1::VectorMol, mol2::VectorMol)
         return false
     elseif bondcount(mol1) != bondcount(mol2)
         return false
-    elseif (length(mol1.annotation[:Topology].rings)
-            != length(mol2.annotation[:Topology].rings))
+    elseif circuitrank(mol1) != circuitrank(mol2)
         return false
     end
     return true
@@ -268,8 +267,7 @@ function fast_substr_filter(mol1::VectorMol, mol2::VectorMol)
         return false
     elseif bondcount(mol1) < bondcount(mol2)
         return false
-    elseif (length(mol1.annotation[:Topology].rings)
-            < length(mol2.annotation[:Topology].rings))
+    elseif circuitrank(mol1) < circuitrank(mol2)
         return false
     end
     return true

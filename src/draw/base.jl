@@ -139,8 +139,7 @@ function bondnotation2d!(mol::VectorMol; setting=DRAW_SETTING)
     end
 
     # Align double bonds alongside the ring
-    rings = mol.annotation[:Topology].rings
-    for ring in sort(rings, by=length, rev=true)
+    for ring in sort(mincycles(mol), by=length, rev=true)
         cw = isclockwise(cyclicpath(mol.coords[:Cartesian2D], ring))
         if cw === nothing
             continue

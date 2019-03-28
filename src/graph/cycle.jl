@@ -4,7 +4,7 @@
 #
 
 export
-    mincycles,
+    mincycles, circuitrank,
     nodes_cycles, edges_cycles,
     nodes_cyclesizes, edges_cyclesizes,
     nodes_iscyclemember, edges_iscyclemember,
@@ -54,6 +54,9 @@ function mincycles(graph::UndirectedGraph)
     end
     return mincycs
 end
+
+
+circuitrank(graph::UndirectedGraph) = length(mincycles(graph))
 
 
 function nodes_cycles(graph::UndirectedGraph)
