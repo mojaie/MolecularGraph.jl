@@ -6,7 +6,7 @@
 @testset "graph.view.reversegraph" begin
 
 @testset "reversegraph" begin
-    graph = digraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph = digraph(5, [(1, 2), (2, 3), (3, 4), (4, 5)])
     rev = reversegraph(graph)
 
     node = getnode(rev, 4)

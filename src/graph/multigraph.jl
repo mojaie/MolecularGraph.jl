@@ -8,12 +8,12 @@ export
 
 
 struct MultiGraph{N<:AbstractNode,E<:UndirectedEdge} <: AbstractGraph
-    nodes::Dict{Int,N}
-    edges::Dict{Int,E}
-    neighbormap::Dict{Int,Dict{Int,Set{Int}}}
+    nodes::Vector{N}
+    edges::Vector{E}
+    neighbormap::Vector{Dict{Int,Set{Int}}}
 
     function MultiGraph{N,E}() where {N<:AbstractNode,E<:UndirectedEdge}
-        new(Dict(), Dict(), Dict())
+        new([], [], [])
     end
 end
 
@@ -34,15 +34,12 @@ Generate `MultiGraph` that have given nodes and edges represented by the
 list of node indices in integer and the list of pairs of node indices,
 respectively.
 """
-function multigraph(nodes, edges)
+function multigraph(size::Int, edges)
     graph = MultiGraph{Node,Edge}()
-    for node in nodes
-        graph.nodes[node] = Node()
-        graph.neighbormap[node] = Dict()
-    end
-    for (i, edge) in enumerate(edges)
-        (u, v) = edge
-        graph.edges[i] = Edge(u, v)
+    append!(graph.nodes, [Node() for i in 1:size])
+    append!(graph.neighbormap, [Dict() for i in 1:size])
+    for (i, (u, v)) in enumerate(edges)
+        push!(graph.edges, Edge(u, v))
         haskey(graph.neighbormap[u], v) || (graph.neighbormap[u][v] = Set())
         haskey(graph.neighbormap[v], u) || (graph.neighbormap[v][u] = Set())
         push!(graph.neighbormap[u][v], i)
@@ -56,12 +53,18 @@ getnode(graph::MultiGraph, idx) = graph.nodes[idx]
 getedge(graph::MultiGraph, idx) = graph.edges[idx]
 hasedge(graph::MultiGraph, u, v) = haskey(graph.neighbormap[u], v)
 
-nodesiter(graph::MultiGraph) = graph.nodes
-edgesiter(graph::MultiGraph) = graph.edges
-nodekeys(graph::MultiGraph) = collect(keys(graph.nodes))
-edgekeys(graph::MultiGraph) = collect(keys(graph.edges))
-nodeset(graph::MultiGraph) = Set(keys(graph.nodes))
-edgeset(graph::MultiGraph) = Set(keys(graph.edges))
+
+nodekeys(graph::MultiGraph) = collect(1:nodecount(graph))
+edgekeys(graph::MultiGraph) = collect(1:edgecount(graph))
+nodevalues(graph::MultiGraph) = graph.nodes
+edgevalues(graph::MultiGraph) = graph.edges
+nodesiter(graph::MultiGraph) = enumerate(graph.nodes)
+edgesiter(graph::MultiGraph) = enumerate(graph.edges)
+nodeset(graph::MultiGraph) = Set(1:nodecount(graph))
+edgeset(graph::MultiGraph) = Set(1:edgecount(graph))
+
+nodecount(graph::MultiGraph) = length(graph.nodes)
+edgecount(graph::MultiGraph) = length(graph.edges)
 
 
 function neighbors(graph::MultiGraph, idx)
@@ -74,90 +77,72 @@ function neighbors(graph::MultiGraph, idx)
     return nbrs
 end
 
+adjacencies(g::MultiGraph, i) = Set([nbr.first for nbr in neighbors(g, i)])
 incidences(g::MultiGraph, i) = Set([nbr.second for nbr in neighbors(g, i)])
 
 
 function updatenode!(graph::MultiGraph, node, idx)
-    graph.nodes[idx] = node
-    if !haskey(graph.neighbormap, idx)
-        graph.neighbormap[idx] = Dict()
+    idx > nodecount(graph) + 1 && throw(DomainError(idx))
+    if idx == nodecount(graph) + 1
+        updatenode!(graph, node)
+        return
     end
+    graph.nodes[idx] = node
     return
 end
 
 function updatenode!(graph::MultiGraph, node)
-    i = maximum(nodeset(graph)) + 1
-    graph.nodes[i] = node
-    graph.neighbormap[i] = Dict()
+    push!(graph.nodes, node)
+    push!(graph.neighbormap, Dict())
     return
 end
 
 
 function updateedge!(graph::MultiGraph, edge, idx)
-    nodes = nodeset(graph)
-    (u, v) = (edge.u, edge.v)
-    (u in nodes) || throw(KeyError(u))
-    (v in nodes) || throw(KeyError(v))
-    if haskey(graph.edges, idx)
-        old = getedge(graph, idx)
-        delete!(graph.neighbormap[old.u][old.v], idx)
-        delete!(graph.neighbormap[old.v][old.u], idx)
-        if isempty(graph.neighbormap[old.u][old.v])
-            delete!(graph.neighbormap[old.u], old.v)
-        end
-        if isempty(graph.neighbormap[old.v][old.u])
-            delete!(graph.neighbormap[old.v], old.u)
-        end
+    idx > edgecount(graph) + 1 && throw(DomainError(idx))
+    if idx == edgecount(graph) + 1
+        updateedge!(graph, edge)
+        return
+    end
+    ncnt = nodecount(graph)
+    edge.u > ncnt && throw(DomainError(edge.u))
+    edge.v > ncnt && throw(DomainError(edge.v))
+    old = getedge(graph, idx)
+    delete!(graph.neighbormap[old.u][old.v], idx)
+    delete!(graph.neighbormap[old.v][old.u], idx)
+    if isempty(graph.neighbormap[old.u][old.v])
+        delete!(graph.neighbormap[old.u], old.v)
+    end
+    if isempty(graph.neighbormap[old.v][old.u])
+        delete!(graph.neighbormap[old.v], old.u)
     end
     graph.edges[idx] = edge
-    if !haskey(graph.neighbormap[u], v)
-        graph.neighbormap[u][v] = Set{Int}()
-    end
-    if !haskey(graph.neighbormap[v], u)
-        graph.neighbormap[v][u] = Set{Int}()
-    end
-    push!(graph.neighbormap[u][v], idx)
-    push!(graph.neighbormap[v][u], idx)
+    haskey(graph.neighbormap[u], v) || (graph.neighbormap[u][v] = Set{Int}())
+    haskey(graph.neighbormap[v], u) || (graph.neighbormap[v][u] = Set{Int}())
+    push!(graph.neighbormap[edge.u][edge.v], idx)
+    push!(graph.neighbormap[edge.v][edge.u], idx)
     return
 end
 
-updateedge!(graph::MultiGraph, edge
-    ) = updateedge!(graph, edge, maximum(edgeset(graph)) + 1)
+function updateedge!(graph::MultiGraph, edge)
+    ncnt = nodecount(graph)
+    edge.u > ncnt && throw(DomainError(edge.u))
+    edge.v > ncnt && throw(DomainError(edge.v))
+    i = edgecount(graph) + 1
+    push!(graph.edges, edge)
+    haskey(graph.neighbormap[u], v) || (graph.neighbormap[u][v] = Set{Int}())
+    haskey(graph.neighbormap[v], u) || (graph.neighbormap[v][u] = Set{Int}())
+    push!(graph.neighbormap[edge.u][edge.v], i)
+    push!(graph.neighbormap[edge.v][edge.u], i)
+    return
+end
 
 function updateedge!(G::MultiGraph, edge, u, v)
     throw(ErrorException(
         "The index of the edge to be updated should be specified."))
 end
 
+# TODO: unlinknodes, unlinkedges
 
-"""
-function unlinknode!(graph::MultiGraph, idx)
-    (idx in nodekeys(graph)) || throw(KeyError(idx))
-    for (n, edges) in neighbors(graph, idx)
-        for e in edges
-            delete!(graph.edges, e)
-        end
-        delete!(graph.neighbormap[n], idx)
-    end
-    delete!(graph.nodes, idx)
-    delete!(graph.neighbormap, idx)
-    return
-end
-
-
-function unlinkedge!(graph::MultiGraph, u, v)
-    throw(ErrorException(
-        "The index of the edge to be deleted should be specified."))
-end
-
-function unlinkedge!(graph::MultiGraph, idx)
-    (idx in keys(graph.edges)) || throw(KeyError(idx))
-    e = getedge(graph, idx)
-    delete!(graph.edges, idx)
-    delete!(graph.neighbormap[e.u][e.v], idx)
-    delete!(graph.neighbormap[e.v][e.u], idx)
-    isempty(graph.neighbormap[e.u]) && delete!(graph.neighbormap, e.u)
-    isempty(graph.neighbormap[e.v]) && delete!(graph.neighbormap, e.v)
-    return
-end
-"""
+nodetype(graph::MultiGraph) = eltype(graph.nodes)
+edgetype(graph::MultiGraph) = eltype(graph.edges)

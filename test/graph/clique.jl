@@ -6,20 +6,20 @@
 @testset "graph.clique" begin
 
 @testset "maxclique" begin
-    nullg = mapgraph(Int[], Tuple{Int,Int}[])
+    nullg = vectorgraph(Node, Edge)
     @test issetequal(maxclique(nullg), [])
 
-    noedges = mapgraph(1:5, Tuple{Int,Int}[])
+    noedges = vectorgraph(5, Tuple{Int,Int}[])
     @test length(maxclique(noedges)) == 1
 
     g1 = cyclegraph(5)
     @test length(maxclique(g1)) == 2
 
-    g2 = mapgraph(1:5, [(1, 2), (2, 3), (3, 1), (3, 4), (4, 5)])
+    g2 = vectorgraph(5, [(1, 2), (2, 3), (3, 1), (3, 4), (4, 5)])
     @test issetequal(maxclique(g2), [1, 2, 3])
 
-    g3 = mapgraph(
-        1:5, [(1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (4, 5)])
+    g3 = vectorgraph(
+        5, [(1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (4, 5)])
     @test issetequal(maxclique(g3), [1, 2, 3, 4])
 end
 

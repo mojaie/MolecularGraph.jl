@@ -152,8 +152,6 @@ end
     @test length(hoge(graph)) == 6
     clearcache!(graph)
     @test length(hoge(graph)) == 7
-
-
 end
 
 end # graph.ugraph

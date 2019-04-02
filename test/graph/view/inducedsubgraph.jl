@@ -64,12 +64,13 @@
     @test edgecount(subgsubg) == 1
     @test_throws KeyError getedge(subgsubg, 3)
     @test degree(subgsubg, 4) == 1
-    newsubgsubg = mapgraph(subgsubg)
-    @test isa(newsubgsubg, MapGraph)
+    newsubgsubg = vectorgraph(subgsubg)
+    @test nodecount(newsubgsubg) == 2
+    @test edgecount(newsubgsubg) == 1
 end
 
 @testset "dsubgraph" begin
-    graph = digraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph = digraph(5, [(1, 2), (2, 3), (3, 4), (4, 5)])
     subg = nodesubgraph(graph, [3, 4, 5])
     @test issetequal(subg.edges, [3, 4])
 
@@ -129,7 +130,8 @@ end
     @test_throws KeyError getedge(subgsubg, 3)
     @test indegree(subgsubg, 4) == 0
     newsubgsubg = digraph(subgsubg)
-    @test isa(newsubgsubg, DiGraph)
+    @test nodecount(subgsubg) == 2
+    @test edgecount(subgsubg) == 1
 end
 
 end # graph.view.inducedsubgraph

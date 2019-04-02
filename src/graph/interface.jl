@@ -14,7 +14,7 @@ export
     nodekeys, edgekeys, nodevalues, edgevalues,
     nodesiter, edgesiter, nodeset, edgeset,
     neighbors, outneighbors, inneighbors,
-    updatenode!, updateedge!, unlinknodes!, unlinkedges,
+    updatenode!, updateedge!, unlinknodes, unlinkedges,
     nodecount, edgecount, neighborcount, degree, indegree, outdegree,
     nodetype, edgetype,
     @cache, clearcache!
@@ -194,11 +194,11 @@ end
 
 
 """
-    unlinknodes!(graph, nodes)
+    unlinknodes(graph, nodes)
 
 Delete given nodes and its incident edges from the graph.
 """
-function unlinknodes! end
+function unlinknodes end
 
 
 """

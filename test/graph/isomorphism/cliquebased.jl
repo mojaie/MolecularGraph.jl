@@ -6,7 +6,7 @@
 @testset "graph.isomorphism.cliquebased" begin
 
 @testset "nodemcsclique" begin
-    nullg = mapgraph(Node,Edge)
+    nullg = vectorgraph(Node,Edge)
     @test isempty(nodemcsclique(nullg, nullg))
 
     g = vectorgraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
@@ -23,7 +23,7 @@
 end
 
 @testset "edgemcsclique" begin
-    nullg = mapgraph(Node,Edge)
+    nullg = vectorgraph(Node,Edge)
     @test isempty(edgemcsclique(nullg, nullg))
 
     g = vectorgraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])

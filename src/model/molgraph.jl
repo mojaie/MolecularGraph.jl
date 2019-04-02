@@ -9,7 +9,7 @@ export
     SubstructureView,
     SDFile, SMILES, SMARTS,
     getatom, getbond, atomcount, bondcount,
-    updateatom!, updatebond!, unlinkatoms!, unlinkbonds!
+    updateatom!, updatebond!, unlinkatoms, unlinkbonds
 
 
 struct VectorMol{A<:Atom,B<:Bond} <: GeneralMol
@@ -162,5 +162,5 @@ atomcount = nodecount
 bondcount = edgecount
 updateatom! = updatenode!
 updatebond! = updateedge!
-unlinkatoms! = unlinknodes!
-unlinkbonds! = unlinkedges
+unlinkatoms = unlinknodes
+unlinkbonds = unlinkedges

@@ -14,17 +14,17 @@ using MolecularGraph.MolecularGraphModel: cotree_edges
     @test isempty(cotree_edges(graph1, 1))
     graph2 = cyclegraph(5)
     @test issetequal(cotree_edges(graph2, 1), [5])
-    graph3 = mapgraph(1:8, [
+    graph3 = vectorgraph(8, [
         (1, 2), (2, 3), (1, 3), (3, 4), (4, 5),
         (5, 6), (4, 6), (5, 7), (7, 8), (8, 6)
     ])
     @test issetequal(cotree_edges(graph3, 1), [3, 6, 7])
-    graph4 = mapgraph(1:9, [
+    graph4 = vectorgraph(9, [
         (1, 2), (2, 3), (3, 4), (4, 5), (4, 6),
         (3, 7), (7, 8), (8, 9), (9, 1)
     ])
     @test issetequal(cotree_edges(graph4, 1), [1])
-    graph5 = mapgraph(1:10, [
+    graph5 = vectorgraph(10, [
         (1, 2), (2, 3), (3, 4), (3, 5), (5, 6),
         (6, 7), (7, 5), (5, 8), (8, 9), (9, 5), (5, 10)
     ])
@@ -38,15 +38,15 @@ end
     @test isempty(mincycles(graph1))
     graph2 = cyclegraph(5)
     @test issetequal(mincycles(graph2)[1], 1:5)
-    graph3 = mapgraph(1:8, [
+    graph3 = vectorgraph(8, [
         (1, 2), (2, 3), (1, 3), (3, 4), (4, 5),
         (5, 6), (4, 6), (5, 7), (7, 8), (8, 6)
     ])
-    graph4 = mapgraph(1:9, [
+    graph4 = vectorgraph(9, [
         (1, 2), (2, 3), (3, 4), (4, 5), (4, 6),
         (3, 7), (7, 8), (8, 9), (9, 1)
     ])
-    graph5 = mapgraph(1:10, [
+    graph5 = vectorgraph(10, [
         (1, 2), (2, 3), (3, 4), (3, 5), (5, 6),
         (6, 7), (7, 5), (5, 8), (8, 9), (9, 5), (5, 10)
     ])

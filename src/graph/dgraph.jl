@@ -17,13 +17,13 @@ setnodes(arrow::Arrow, s, t) = Arrow(s, t)
 
 
 struct DiGraph{N<:AbstractNode,E<:DirectedEdge} <: DirectedGraph
-    nodes::Dict{Int,N}
-    edges::Dict{Int,E}
-    outneighbormap::Dict{Int,Dict{Int,Int}}
-    inneighbormap::Dict{Int,Dict{Int,Int}}
+    nodes::Vector{N}
+    edges::Vector{E}
+    outneighbormap::Vector{Dict{Int,Int}}
+    inneighbormap::Vector{Dict{Int,Int}}
 
     function DiGraph{N,E}() where {N<:AbstractNode,E<:DirectedEdge}
-        new(Dict(), Dict(), Dict(), Dict())
+        new([], [], [], [])
     end
 end
 
@@ -42,42 +42,50 @@ digraph(::Type{N}, ::Type{E}
 Generate `DiGraph` that have given nodes and edges represented by the list of
 node indices in integer and the list of pairs of node indices, respectively.
 """
-function digraph(nodes, edges)
+function digraph(size::Int, edges)
     graph = DiGraph{Node,Arrow}()
-    for node in nodes
-        graph.nodes[node] = Node()
-        graph.outneighbormap[node] = Dict()
-        graph.inneighbormap[node] = Dict()
-    end
-    for (i, edge) in enumerate(edges)
-        graph.edges[i] = Arrow(edge...)
-        graph.outneighbormap[edge[1]][edge[2]] = i
-        graph.inneighbormap[edge[2]][edge[1]] = i
+    append!(graph.nodes, [Node() for i in 1:size])
+    append!(graph.inneighbormap, [Dict() for i in 1:size])
+    append!(graph.outneighbormap, [Dict() for i in 1:size])
+    for (i, (s, t)) in enumerate(edges)
+        push!(graph.edges, Arrow(s, t))
+        graph.outneighbormap[s][t] = i
+        graph.inneighbormap[t][s] = i
     end
     return graph
 end
 
 
 """
-    digraph(graph::DirectedGraph; clone=false) -> DiGraph
+    digraph(graph::DirectedGraph) -> DiGraph
 
 Convert the given graph into a new `DiGraph`. The node type and edge type are
-inherited from the original graph. If the given graph is `DiGraph`, return
-a copy of the graph.
+inherited from the original graph. If the given graph has non-sequential
+indices (ex. subgraph view), node and edge indices are sorted in ascending
+order and are re-indexed.
 
-
+If you really need mutable nodes and edges, and want the graph with fully deepcopied elements, implement `clone` and `setnodes` as deepcopy methods for
+nodes and edges, respectively.
 """
 function digraph(graph::DirectedGraph)
     newg = digraph(nodetype(graph), edgetype(graph))
-    for (i, node) in nodesiter(graph)
-        newg.nodes[i] = clone(node)
-        newg.outneighbormap[i] = Dict()
-        newg.inneighbormap[i] = Dict()
+    nkeys = sort(nodekeys(graph))
+    ekeys = sort(edgekeys(graph))
+    nmap = Dict{Int,Int}()
+    for (i, n) in enumerate(nkeys)
+        nmap[n] = i
+        node = getnode(graph, n)
+        push!(newg.nodes, clone(node))
+        push!(newg.outneighbormap, Dict())
+        push!(newg.inneighbormap, Dict())
     end
-    for (i, edge) in edgesiter(graph)
-        newg.edges[i] = setnodes(edge, edge.source, edge.target)
-        newg.outneighbormap[edge.source][edge.target] = i
-        newg.inneighbormap[edge.target][edge.source] = i
+    for (i, e) in enumerate(ekeys)
+        edge = getedge(graph, e)
+        s = nmap[edge.source]
+        t = nmap[edge.target]
+        push!(newg.edges, setnodes(edge, s, t))
+        newg.outneighbormap[s][t] = i
+        newg.inneighbormap[t][s] = i
     end
     return newg
 end
@@ -90,93 +98,83 @@ hasedge(graph::DiGraph, s, t) = haskey(graph.outneighbormap[s], t)
 outneighbors(graph::DiGraph, i) = graph.outneighbormap[i]
 inneighbors(graph::DiGraph, i) = graph.inneighbormap[i]
 
-nodesiter(graph::DiGraph) = graph.nodes
-edgesiter(graph::DiGraph) = graph.edges
-nodekeys(graph::DiGraph) = collect(keys(graph.nodes))
-edgekeys(graph::DiGraph) = collect(keys(graph.edges))
-nodeset(graph::DiGraph) = Set(keys(graph.nodes))
-edgeset(graph::DiGraph) = Set(keys(graph.edges))
+nodekeys(graph::DiGraph) = collect(1:nodecount(graph))
+edgekeys(graph::DiGraph) = collect(1:edgecount(graph))
+nodevalues(graph::DiGraph) = graph.nodes
+edgevalues(graph::DiGraph) = graph.edges
+nodesiter(graph::DiGraph) = enumerate(graph.nodes)
+edgesiter(graph::DiGraph) = enumerate(graph.edges)
+nodeset(graph::DiGraph) = Set(1:nodecount(graph))
+edgeset(graph::DiGraph) = Set(1:edgecount(graph))
 
 nodecount(graph::DiGraph) = length(graph.nodes)
 edgecount(graph::DiGraph) = length(graph.edges)
 
+
 function updatenode!(graph::DiGraph, node, idx)
-    graph.nodes[idx] = node
-    if !haskey(graph.outneighbormap, idx)
-        graph.outneighbormap[idx] = Dict()
-        graph.inneighbormap[idx] = Dict()
+    idx > nodecount(graph) + 1 && throw(DomainError(idx))
+    if idx == nodecount(graph) + 1
+        updatenode!(graph, node)
+        return
     end
+    graph.nodes[idx] = node
     return
 end
 
 function updatenode!(graph::DiGraph, node)
-    i = maximum(nodeset(graph)) + 1
-    graph.nodes[i] = node
-    graph.outneighbormap[i] = Dict()
-    graph.inneighbormap[i] = Dict()
+    push!(graph.nodes, node)
+    push!(graph.outneighbormap, Dict())
+    push!(graph.inneighbormap, Dict())
     return
 end
 
 
 function updateedge!(graph::DiGraph, edge, idx)
-    nodes = nodeset(graph)
-    (edge.source in nodes) || throw(KeyError(edge.source))
-    (edge.target in nodes) || throw(KeyError(edge.target))
-    if haskey(graph.edges, idx)
-        old = getedge(graph, idx)
-        delete!(graph.outneighbormap[old.source], old.target)
-        delete!(graph.inneighbormap[old.target], old.source)
+    idx > edgecount(graph) + 1 && throw(DomainError(idx))
+    if idx == edgecount(graph) + 1
+        updateedge!(graph, edge)
+        return
     end
+    ncnt = nodecount(graph)
+    edge.source > ncnt && throw(DomainError(edge.source))
+    edge.target > ncnt && throw(DomainError(edge.target))
+    old = getedge(graph, idx)
+    delete!(graph.outneighbormap[old.source], old.target)
+    delete!(graph.inneighbormap[old.target], old.source)
     graph.edges[idx] = edge
     graph.outneighbormap[edge.source][edge.target] = idx
     graph.inneighbormap[edge.target][edge.source] = idx
     return
 end
 
-updateedge!(graph::DiGraph, edge
-    ) = updateedge!(graph, edge, maximum(nodeset(graph)) + 1)
+function updateedge!(graph::DiGraph, edge)
+    ncnt = nodecount(graph)
+    edge.source > ncnt && throw(DomainError(edge.source))
+    edge.target > ncnt && throw(DomainError(edge.target))
+    i = edgecount(graph) + 1
+    push!(graph.edges, edge)
+    graph.outneighbormap[edge.source][edge.target] = i
+    graph.inneighbormap[edge.target][edge.source] = i
+    return
+end
 
 updateedge!(graph::DiGraph, edge, s, t
     ) = updateedge!(graph, edge, outneighbors(graph, s)[t])
 
 
-"""
-function unlinknode!(graph::DiGraph, idx)
-    (idx in nodeset(graph)) || throw(KeyError(idx))
-    for (s, succ) in outneighbors(graph, idx)
-        delete!(graph.edges, succ)
-        delete!(graph.inneighbormap[s], idx)
-    end
-    for (p, pred) in inneighbors(graph, idx)
-        delete!(graph.edges, pred)
-        delete!(graph.outneighbormap[p], idx)
-    end
-    delete!(graph.nodes, idx)
-    delete!(graph.outneighbormap, idx)
-    delete!(graph.inneighbormap, idx)
-    return
+function unlinknodes(graph::DiGraph, nodes)
+    # TODO: costful
+    subg = nodesubgraph(graph, setdiff(nodeset(graph), nodes))
+    return digraph(subg)
 end
 
 
-function unlinkedge!(graph::DiGraph, source, target)
-    ns = nodeset(graph)
-    (source in ns) || throw(KeyError(source))
-    (target in ns) || throw(KeyError(target))
-    delete!(graph.edges, graph.outneighbormap[source][target])
-    delete!(graph.outneighbormap[source], target)
-    delete!(graph.inneighbormap[target], source)
-    return
+function unlinkedges(graph::DiGraph, edges)
+    # TODO: costful
+    subg = DiSubgraphView(graph, nodeset(graph), setdiff(edgeset(graph), edges))
+    return digraph(subg)
 end
 
-function unlinkedge!(graph::DiGraph, idx)
-    (idx in nodeset(graph)) || throw(KeyError(idx))
-    a = getedge(graph, idx)
-    delete!(graph.edges, idx)
-    delete!(graph.outneighbormap[a.source], a.target)
-    delete!(graph.inneighbormap[a.target], a.source)
-    return
-end
-"""
 
-nodetype(graph::DiGraph) = valtype(graph.nodes)
-edgetype(graph::DiGraph) = valtype(graph.edges)
+nodetype(graph::DiGraph) = eltype(graph.nodes)
+edgetype(graph::DiGraph) = eltype(graph.edges)

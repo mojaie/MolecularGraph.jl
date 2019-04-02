@@ -71,17 +71,16 @@ function vectorgraph(size::Int, edges)
 end
 
 """
-    vectorgraph(graph::UndirectedGraph; clone=false) -> VectorGraph
+    vectorgraph(graph::UndirectedGraph) -> VectorGraph
 
 Convert the given graph into a new `VectorGraph`. The node type and edge type
-are inherited from the original graph.
+are inherited from the original graph. If the given graph has non-sequential
+indices (ex. subgraph view), node and edge indices are sorted in ascending
+order and are re-indexed.
 
-Node indices are sorted in ascending order and are re-indexed. This behavior is
-intended for some cannonicalization operations (ex. chirality flag).
-
-If you really need mutable nodes and edges, and want the graph with deepcopied
-elements, implement `clone` and `setnodes` as deepcopy methods for nodes and
-edges, respectively.
+If you really need mutable nodes and edges, and want the graph with fully
+deepcopied elements, implement `clone` and `setnodes` as deepcopy methods for
+nodes and edges, respectively.
 """
 function vectorgraph(graph::UndirectedGraph)
     newg = vectorgraph(nodetype(graph), edgetype(graph))
@@ -129,6 +128,7 @@ edgeset(graph::VectorGraph) = Set(1:edgecount(graph))
 nodecount(graph::UGraph) = length(graph.nodes)
 edgecount(graph::UGraph) = length(graph.edges)
 
+
 function updatenode!(graph::VectorGraph, node, idx)
     idx > nodecount(graph) + 1 && throw(DomainError(idx))
     if idx == nodecount(graph) + 1
@@ -144,6 +144,7 @@ function updatenode!(graph::VectorGraph, node)
     push!(graph.neighbormap, Dict())
     return
 end
+
 
 function updateedge!(graph::VectorGraph, edge, idx)
     idx > edgecount(graph) + 1 && throw(DomainError(idx))
@@ -175,7 +176,7 @@ function updateedge!(graph::VectorGraph, edge)
 end
 
 updateedge!(graph::UGraph, edge, u, v
-    ) = updateedge!(graph, edge, graph.neighbormap[u][v])
+    ) = updateedge!(graph, edge, neighbors(graph, u)[v])
 
 
 function unlinknodes(graph::VectorGraph, nodes)
@@ -190,6 +191,7 @@ function unlinkedges(graph::VectorGraph, edges)
     subg = SubgraphView(graph, nodeset(graph), setdiff(edgeset(graph), edges))
     return vectorgraph(subg)
 end
+
 
 nodetype(graph::VectorGraph) = eltype(graph.nodes)
 edgetype(graph::VectorGraph) = eltype(graph.edges)

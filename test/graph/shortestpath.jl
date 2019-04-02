@@ -6,7 +6,7 @@
 @testset "graph.shortestpath" begin
 
 @testset "shortestpath" begin
-    graph = mapgraph(1:10, [
+    graph = vectorgraph(10, [
         (1, 2), (2, 3), (1, 4), (4, 5), (3, 7),
         (7, 4), (7, 8), (8, 9), (9, 10)
     ])
@@ -17,7 +17,7 @@
 end
 
 @testset "dgraph" begin
-    graph = digraph(1:10, [
+    graph = digraph(10, [
         (1, 4), (2, 4), (3, 7), (4, 5), (4, 6),
         (4, 7), (6, 9), (7, 8), (7, 9), (7, 10)
     ])

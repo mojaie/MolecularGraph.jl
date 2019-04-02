@@ -5,27 +5,14 @@
 
 @testset "graph.dgraph" begin
 
-@testset "mapdgraph" begin
-    graph = digraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
+@testset "digraph" begin
+    graph = digraph(5, [(1,2), (3,4), (4,5)])
 
-    node = getnode(graph, 4)
-    @test isa(node, AbstractNode)
-
-    edge = getedge(graph, 3, 4)
-    @test isa(edge, DirectedEdge)
+    edge = getedge(graph, 2)
     @test edge.source == 3
     @test edge.target == 4
-    @test getedge(graph, 2) === edge
-
-    nodes = nodesiter(graph)
-    (n, state) = iterate(nodes)
-    @test in(n[1], [1,2,3,4,5])  # The access order is not specified
-    @test isa(n[2], AbstractNode)
-
-    edges = edgesiter(graph)
-    (e, state) = iterate(edges)
-    @test in(e[1], [1,2,3])  # The access order is not specified
-    @test isa(e[2], DirectedEdge)
+    @test hasedge(graph, 3, 4)
+    @test !hasedge(graph, 4, 3)
 
     succs = outneighbors(graph, 4)
     (s, state) = iterate(succs)
@@ -37,10 +24,13 @@
     @test p[1] == 5
     @test p[2] == 3
 
-    nbrs = neighbors(graph, 5)
-    (nbr, state) = iterate(nbrs)
-    @test nbr[1] == 4
-    @test nbr[2] == 3
+    nodes = nodesiter(graph)
+    (n, state) = iterate(nodes)
+    @test isa(n, Tuple)
+
+    edges = edgesiter(graph)
+    (e, state) = iterate(edges)
+    @test isa(e, Tuple)
 
     @test indegree(graph, 4) == 1
     @test outdegree(graph, 4) == 1
@@ -64,29 +54,17 @@
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
 
-    # Update node
-    node = getnode(graph, 4)
-    updatenode!(graph, Node(), 4)
-    @test degree(graph, 4) == 2
-    # New isolated node
-    updatenode!(graph, Node(), 6)
+    updatenode!(graph, Node())
     @test degree(graph, 6) == 0
-    # Make new connection
-    updateedge!(graph, Arrow(4, 6), 4)
+    @test_throws DomainError updatenode!(graph, Node(), 8)
+    updateedge!(graph, Arrow(4, 6))
     @test outdegree(graph, 4) == 2
-    # Try to connect invalid node
-    @test_throws KeyError updateedge!(graph, Arrow(4, 8), 5)
+    @test_throws DomainError updateedge!(graph, Arrow(4, 8))
 
-    """
-    # Delete edge
-    unlinkedge!(graph, 1, 2)
-    @test degree(graph, 1) == 0
-    @test_throws KeyError unlinkedge!(graph, 7, 8)
-    # Delete node and adjacent edges
-    unlinknodes!(graph, Set([4]))
-    @test edgecount(graph) == 0
-    @test_throws KeyError unlinknodes!(graph, 8)
-    """
+    nodesremoved = unlinknodes(graph, (4, 6))
+    @test edgecount(nodesremoved) == 1
+    edgesremoved = unlinkedges(graph, (1, 2))
+    @test nodecount(edgesremoved) == 6
 end
 
 end # graph.dgraph
