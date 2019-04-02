@@ -16,7 +16,7 @@ export
 import Base: read, parse
 
 
-mutable struct SmartsParser{T<:Union{MapMol,QueryMol}}
+mutable struct SmartsParser{T<:Union{VectorMol,QueryMol}}
     input::String
     allow_disconnected::Bool
 
@@ -29,7 +29,7 @@ mutable struct SmartsParser{T<:Union{MapMol,QueryMol}}
 
     mol::T
 
-    function SmartsParser{T}(str, disconn) where {T<:Union{MapMol,QueryMol}}
+    function SmartsParser{T}(str, disconn) where {T<:Union{VectorMol,QueryMol}}
         new(str, disconn, 1, false, 0, 1, 1, Dict(), T())
     end
 end
@@ -54,8 +54,7 @@ end
 
 
 function smilestomol(smiles::AbstractString)
-    mol = parse(SMILES, smiles)
-    return vectormol(mol)
+    return parse(SMILES, smiles)
 end
 
 

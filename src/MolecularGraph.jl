@@ -77,8 +77,6 @@ module MolecularGraph
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
-    include("./model/molgraphview.jl")
-    include("./model/molgraphutil.jl")
 
     include("substructure.jl")
     include("mcs.jl")

@@ -74,37 +74,37 @@ function is_querymatch(mol, query; kwargs...)
 end
 
 
-function querymatch(mol::MolGraph, query::QueryMol;
+function querymatch(mol::GeneralMol, query::QueryMol;
         atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Accept also disconnected atom but return only the first match
     # Intended for use in SMARTS query search
-    mnodeset = nodeset(mol.graph)
-    qnodeset = nodeset(query.graph)
+    mnodeset = nodeset(mol)
+    qnodeset = nodeset(query)
     afunc = atommatcher(mol, query)
     bfunc = bondmatcher(mol, query)
-    if bondcount(query) != 0
+    if edgecount(query) != 0
         # Edge induced subgraph mapping
         for emap in edgeisomorphismiter(
                 mol.graph, query.graph, mode=:Subgraph,
                 nodematcher=afunc, edgematcher=bfunc; kwargs...)
             # Isolated node mapping
-            msub = edgesubgraph(mol.graph, keys(emap))
-            qsub = edgesubgraph(query.graph, values(emap))
+            msub = edgesubgraph(mol, keys(emap))
+            qsub = edgesubgraph(query, values(emap))
             miso = setdiff(mnodeset, nodeset(msub))
             qiso = setdiff(qnodeset, nodeset(qsub))
-            mrem = nodesubgraph(mol.graph, miso)
-            qrem = nodesubgraph(query.graph, qiso)
+            mrem = nodesubgraph(mol, miso)
+            qrem = nodesubgraph(query, qiso)
             nmap = maxcardmap(nodeset(mrem), nodeset(qrem), afunc)
             # TODO: connectivity filter
             if length(nmap) == nodecount(qrem)
                 return (emap, nmap)
             end
         end
-    elseif atomcount(query) != 0
+    elseif nodecount(query) != 0
         # Isolated nodes only
         nmap = maxcardmap(mnodeset, qnodeset, afunc)
         # TODO: connectivity filter
-        if length(nmap) == atomcount(query)
+        if length(nmap) == nodecount(query)
             return (Dict(), nmap)
         end
     end
@@ -113,11 +113,11 @@ end
 
 
 fastquerymatch(
-    mol::MolGraph, query::QueryMol; kwargs...
+    mol::GeneralMol, query::QueryMol; kwargs...
 ) = iterate(querymatchiter(mol, query; kwargs...))
 
 
-function fastquerymatchiter(mol::MolGraph, query::QueryMol;
+function fastquerymatchiter(mol::GeneralMol, query::QueryMol;
         atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Iterate over all possible subgraph isomorphism mappings
     # Intended for use in functional group annotation
@@ -125,21 +125,21 @@ function fastquerymatchiter(mol::MolGraph, query::QueryMol;
         ErrorException("Component level query is disallowed"))
     afunc = atommatcher(mol, query)
     bfunc = bondmatcher(mol, query)
-    if atomcount(query) == 0
+    if nodecount(query) == 0
         return ()
-    elseif atomcount(query) == 1
+    elseif nodecount(query) == 1
         # node match
-        qa = nodekeys(query.graph)[1]
+        qa = nodekeys(query)[1]
         match = Iterators.filter(nodekeys(mol.graph)) do ma
             return afunc(ma, qa)
         end
         return ((Dict(), Dict(ma => qa)) for ma in match)
-    elseif bondcount(query) == 1
+    elseif edgecount(query) == 1
         # edge match
         qb = edgekeys(query.graph)[1]
-        qbond = getbond(query, qb)
+        qbond = getedge(query, qb)
         match = Iterators.filter(edgekeys(mol.graph)) do mb
-            mbond = getbond(mol, mb)
+            mbond = getedge(mol, mb)
             return (
                 ((afunc(mbond.u, qbond.u) && afunc(mbond.v, qbond.v))
                 || (afunc(mbond.u, qbond.v) && afunc(mbond.v, qbond.u)))
@@ -157,7 +157,7 @@ function fastquerymatchiter(mol::MolGraph, query::QueryMol;
 end
 
 
-function isSMARTSgroupmatch(mol::MolGraph, query::QueryMol, root;
+function isSMARTSgroupmatch(mol::GeneralMol, query::QueryMol, root;
                             atommatcher=atommatch, bondmatcher=bondmatch,
                             kwargs...)
     # For recursive SMARTS match
@@ -165,13 +165,13 @@ function isSMARTSgroupmatch(mol::MolGraph, query::QueryMol, root;
         ErrorException("Component level query is disallowed"))
     afunc = atommatcher(mol, query)
     bfunc = bondmatcher(mol, query)
-    @assert root in nodekeys(mol.graph) "node $(root) does not exist"
-    if atomcount(query) == 1
+    @assert root in nodekeys(mol) "node $(root) does not exist"
+    if nodecount(query) == 1
         # node match
         return afunc(root, 1)
-    elseif bondcount(query) == 1
+    elseif edgecount(query) == 1
         # edge match
-        for (nbr, b) in neighbors(mol.graph, root)
+        for (nbr, b) in neighbors(mol, root)
             if afunc(root, 1) && afunc(nbr, 2) && bfunc(b, 1)
                 return true
             end
@@ -179,7 +179,7 @@ function isSMARTSgroupmatch(mol::MolGraph, query::QueryMol, root;
         return false
     else
         # subgraph match
-        for n in incidences(mol.graph, root)
+        for n in incidences(mol, root)
             if is_edge_subgraph(
                     query.graph, mol.graph,
                     nodematcher=afunc, edgematcher=bfunc,
@@ -205,7 +205,7 @@ end
 
 function atommatch(mol::GeneralMol, querymol::QueryMol)
     return function (a, qa)
-        q = getatom(querymol, qa).query
+        q = getnode(querymol, qa).query
         return querymatchtree(q, mol, a)
     end
 end
@@ -218,7 +218,7 @@ end
 
 function bondmatch(mol::GeneralMol, querymol::QueryMol)
     return function (b, qb)
-        q = getbond(querymol, qb).query
+        q = getedge(querymol, qb).query
         return querymatchtree(q, mol, b)
     end
 end
@@ -251,9 +251,9 @@ end
 
 
 function fast_identity_filter(mol1::GeneralMol, mol2::GeneralMol)
-    if atomcount(mol1) != atomcount(mol2)
+    if nodecount(mol1) != nodecount(mol2)
         return false
-    elseif bondcount(mol1) != bondcount(mol2)
+    elseif edgecount(mol1) != edgecount(mol2)
         return false
     elseif circuitrank(mol1) != circuitrank(mol2)
         return false
@@ -263,9 +263,9 @@ end
 
 
 function fast_substr_filter(mol1::GeneralMol, mol2::GeneralMol)
-    if atomcount(mol1) < atomcount(mol2)
+    if nodecount(mol1) < nodecount(mol2)
         return false
-    elseif bondcount(mol1) < bondcount(mol2)
+    elseif edgecount(mol1) < edgecount(mol2)
         return false
     elseif circuitrank(mol1) < circuitrank(mol2)
         return false

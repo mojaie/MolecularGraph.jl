@@ -5,33 +5,30 @@
 
 export
     AbstractGraph,
-    Graph, DiGraph, GraphView, DiGraphView,
     UndirectedGraph, DirectedGraph,
+    GraphView, DiGraphView,
     AbstractNode,
     UndirectedEdge, DirectedEdge,
     Node, GraphPropertyVectors,
     getnode, getedge, hasedge,
-    nodesiter, edgesiter, nodekeys, edgekeys, nodeset, edgeset,
+    nodekeys, edgekeys, nodevalues, edgevalues,
+    nodesiter, edgesiter, nodeset, edgeset,
     neighbors, outneighbors, inneighbors,
-    updatenode!, updateedge!, unlinknode!, unlinkedge!,
+    updatenode!, updateedge!, unlinknodes!, unlinkedges,
     nodecount, edgecount, neighborcount, degree, indegree, outdegree,
     nodetype, edgetype,
     @cache, clearcache!
 
 
 abstract type AbstractGraph end
-abstract type Graph <: AbstractGraph end
-abstract type DiGraph <: AbstractGraph end
-abstract type MultiGraph <: AbstractGraph end
-abstract type GraphView <: AbstractGraph end
-abstract type DiGraphView <: AbstractGraph end
+abstract type UndirectedGraph <: AbstractGraph end
+abstract type DirectedGraph <: AbstractGraph end
+abstract type GraphView <: UndirectedGraph end
+abstract type DiGraphView <: DirectedGraph end
 
 # Union types
 # TODO: use traits
 # https://github.com/JuliaLang/julia/issues/2345
-
-UndirectedGraph = Union{Graph,GraphView}
-DirectedGraph = Union{DiGraph,DiGraphView}
 
 
 # Components
@@ -62,7 +59,9 @@ function getnode end
 
 Retrieve the edge object at the given index within the graph.
 """
-function getedge(graph, index) end
+function getedge(graph, index)
+    throw(ErrorException("The method is not implemented for $(typeof(graph))"))
+end
 
 
 """
@@ -70,7 +69,9 @@ function getedge(graph, index) end
 
 Retrieve an edge object which connects the given nodes.
 """
-function getedge(graph, u, v) end
+function getedge(graph, u, v)
+    throw(ErrorException("The method is not implemented for $(typeof(graph))"))
+end
 
 
 """
@@ -176,7 +177,9 @@ function updatenode! end
 Rebind the edge object stored at `e` of the graph by the given edge object.
 If the index does not exist, add new edge to the position `e`.
 """
-function updateedge!(graph, edge, e) end
+function updateedge!(graph, edge, e)
+    throw(ErrorException("The method is not implemented for $(typeof(graph))"))
+end
 
 
 """
@@ -185,31 +188,25 @@ function updateedge!(graph, edge, e) end
 Rebind the edge that connects nodes `u` and `v` by the given edge object.
 If the nodes do not exist, throws `KeyError`.
 """
-function updateedge!(graph, edge, u, v) end
+function updateedge!(graph, edge, u, v)
+    throw(ErrorException("The method is not implemented for $(typeof(graph))"))
+end
 
 
 """
-    unlinknode!(graph, n)
+    unlinknodes!(graph, nodes)
 
-Delete the node at the index of `n` and its incident edges.
+Delete given nodes and its incident edges from the graph.
 """
-function unlinknode! end
-
-
-"""
-    unlinkedge!(graph, e)
-
-Delete the edge at the index of `e`.
-"""
-function unlinkedge!(graph, e) end
+function unlinknodes! end
 
 
 """
-    unlinkedge!(graph, u, v)
+    unlinkedges(graph, edges)
 
-Delete the edge that connect nodes `u` and `v`.
+Delete given edges from the graph.
 """
-function unlinkedge!(graph, u, v) end
+function unlinkedges end
 
 
 """

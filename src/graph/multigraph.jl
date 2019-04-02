@@ -4,38 +4,38 @@
 #
 
 export
-    MapMultiGraph, mapmultigraph
+    MultiGraph, multigraph
 
 
-struct MapMultiGraph{N<:AbstractNode,E<:UndirectedEdge} <: MultiGraph
+struct MultiGraph{N<:AbstractNode,E<:UndirectedEdge} <: AbstractGraph
     nodes::Dict{Int,N}
     edges::Dict{Int,E}
     neighbormap::Dict{Int,Dict{Int,Set{Int}}}
 
-    function MapMultiGraph{N,E}() where {N<:AbstractNode,E<:UndirectedEdge}
+    function MultiGraph{N,E}() where {N<:AbstractNode,E<:UndirectedEdge}
         new(Dict(), Dict(), Dict())
     end
 end
 
 
 """
-    mapmultigraph(::Type{N}, ::Type{E}
-        ) where {N<:AbstractNode,E<:UndirectedEdge} -> MapMultiGraph{N,E}()
+    multigraph(::Type{N}, ::Type{E}
+        ) where {N<:AbstractNode,E<:UndirectedEdge} -> MultiGraph{N,E}()
 
-Generate empty `MapMultiGraph` that have nodes and edges with the given types.
+Generate empty `MultiGraph` that have nodes and edges with the given types.
 """
-mapmultigraph(::Type{N}, ::Type{E}
-    ) where {N<:AbstractNode,E<:UndirectedEdge} = MapMultiGraph{N,E}()
+multigraph(::Type{N}, ::Type{E}
+    ) where {N<:AbstractNode,E<:UndirectedEdge} = MultiGraph{N,E}()
 
 """
-    mapmultigraph(nodes, edges) -> MapMultiGraph{Node,Edge}
+    multigraph(nodes, edges) -> MultiGraph{Node,Edge}
 
-Generate `MapMultiGraph` that have given nodes and edges represented by the
+Generate `MultiGraph` that have given nodes and edges represented by the
 list of node indices in integer and the list of pairs of node indices,
 respectively.
 """
-function mapmultigraph(nodes, edges)
-    graph = MapMultiGraph{Node,Edge}()
+function multigraph(nodes, edges)
+    graph = MultiGraph{Node,Edge}()
     for node in nodes
         graph.nodes[node] = Node()
         graph.neighbormap[node] = Dict()
@@ -130,6 +130,7 @@ function updateedge!(G::MultiGraph, edge, u, v)
 end
 
 
+"""
 function unlinknode!(graph::MultiGraph, idx)
     (idx in nodekeys(graph)) || throw(KeyError(idx))
     for (n, edges) in neighbors(graph, idx)
@@ -159,3 +160,4 @@ function unlinkedge!(graph::MultiGraph, idx)
     isempty(graph.neighbormap[e.v]) && delete!(graph.neighbormap, e.v)
     return
 end
+"""

@@ -4,13 +4,14 @@
 #
 
 export
-    MolGraph, GeneralMol,
+    MolGraph, GeneralMol, GeneralMolView,
     Atom, QueryAtom,
     Bond, QueryBond
 
 
-abstract type MolGraph <: GraphView end
-abstract type GeneralMol <: MolGraph end
+abstract type GraphMol <: GraphView end
+abstract type GeneralMol <: GraphMol end
+abstract type GeneralMolView <: GeneralMol end
 
 # Union types
 # TODO: use traits

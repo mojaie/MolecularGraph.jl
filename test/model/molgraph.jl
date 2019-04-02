@@ -1,12 +1,6 @@
 
 @testset "molgraph" begin
 
-    @testset "mapmol" begin
-        sdf = mapmol(SDFileAtom, SDFileBond)
-        vmol = vectormol(sdf)
-        @test vmol isa VectorMol{SDFileAtom,SDFileBond}
-    end
-
     @testset "vectormol" begin
         mol = vectormol(SDFileAtom, SDFileBond)
         @test nodecount(mol) == 0

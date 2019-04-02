@@ -6,7 +6,7 @@
 @testset "graph.dgraph" begin
 
 @testset "mapdgraph" begin
-    graph = mapdigraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
+    graph = digraph([1,2,3,4,5], [(1,2), (3,4), (4,5)])
 
     node = getnode(graph, 4)
     @test isa(node, AbstractNode)
@@ -60,7 +60,7 @@
     etype = edgetype(graph)
     @test etype <: DirectedEdge
 
-    newgraph = mapdigraph(Node,Arrow)
+    newgraph = digraph(Node,Arrow)
     @test nodecount(newgraph) == 0
     @test edgecount(newgraph) == 0
 
@@ -77,14 +77,16 @@
     # Try to connect invalid node
     @test_throws KeyError updateedge!(graph, Arrow(4, 8), 5)
 
+    """
     # Delete edge
     unlinkedge!(graph, 1, 2)
     @test degree(graph, 1) == 0
     @test_throws KeyError unlinkedge!(graph, 7, 8)
     # Delete node and adjacent edges
-    unlinknode!(graph, 4)
+    unlinknodes!(graph, Set([4]))
     @test edgecount(graph) == 0
-    @test_throws KeyError unlinknode!(graph, 8)
+    @test_throws KeyError unlinknodes!(graph, 8)
+    """
 end
 
 end # graph.dgraph

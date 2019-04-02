@@ -2,61 +2,42 @@
 # Design of molecular graph models
 
 
-## Graph types
-
+## Graph type hierarchy
 
 - (AbstractGraph)
-  - (Graph)
-    - MapGraph
-    - VectorGraph
-  - (DiGraph)
-    - MapDiGraph
-    - VectorDiGraph
-  - (MultiGraph)
-    - MapMultiGraph
-    - VectorMultiGraph
-  - (MultiDiGraph)
-    - MapMultiDiGraph
-    - VectorMultiDiGraph
-  - (GraphView)
-    - SubgraphView
-    - ComplementGraphView
-    - MolGraph
-  - (DiGraphView)
-    - DiSubgraphView
-    - ComplementDiGraphView
-    - ReverseGraphView
   - (UndirectedGraph)
-    - (Graph)
-    - (MultiGraph)
+    - VectorGraph
+    - MapGraph(deprecated)
     - (GraphView)
+      - (GraphMol)
+      - SubgraphView
+      - ComplementGraphView
   - (DirectedGraph)
-    - (DiGraph)
-    - (MultiDiGraph)
+    - DiGraph
     - (DiGraphView)
+      - DiSubgraphView
+      - ComplementDiGraphView
+      - ReverseGraphView
+  - MultiGraph
+  - MultiDiGraph
+  - HyperGraph
+  - (GView) (Union{GraphView,DiGraphView})
 
 
+## Molecule type hierarchy
 
+- (GraphMol)
+  - (GeneralMol)
+    - VectorMol{A<:Atom, B<:Bond}
+      - SDFile (Alias of VectorMol{SDFileAtom, SDFileBond})
+      - SMILES (Alias of VectorMol{SmilesAtom, SmilesBond})
+    - (GeneralMolView)
+      - SubstructureView{T<:VectorGraph}
+  - MapMol(deprecated)
+  - QueryMol
+    - QueryMol{A<:QueryAtom, B<:QueryBond}
+      - SMARTS (Alias of QueryMol{SmartsAtom, SmartsBond})
 
-
-## Molecule
-
-
-- MolGraph
-  - MapMolGraph
-    - GeneralMapMol{A<:Atom, B<:Bond}
-      - SDFile (Alias of GeneralMapMol{SDFileAtom, SDFileBond})
-      - SMILES (Alias of GeneralMapMol{SmilesAtom, SmilesBond})
-  - QueryMolGraph
-    - ConnectedQueryMol{A<:QueryAtom, B<:QueryBond}
-      - ConnectedSMARTS (Alias of ConnectedQueryMol{SmartsAtom, SmartsBond})
-    - DisconnectedQueryMol{A<:QueryAtom, B<:QueryBond}
-      - SMARTS (Alias of DisconnectedQueryMol{SmartsAtom, SmartsBond})
-  - VectorMolGraph
-    - GeneralVectorMol{A<:Atom, B<:Bond}
-  - MapMolView
-  - QueryMolView
-  - VectorMolView
 
 
 #### Methods

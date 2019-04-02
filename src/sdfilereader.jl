@@ -43,7 +43,6 @@ function customsupplier()
     catch e
         throw(ErrorException("incompatible molecule found, aborting..."))
     end
-    return defaultpostprocess(mol)
 end
 
 function sdfilereader(file::IO)
@@ -89,17 +88,11 @@ function nohaltsupplier(block)
     catch e
         if e isa ErrorException
             println("$(e.msg) (#$(i) in sdfilereader)")
-            return mapmol(SDFile)
+            return vectormol(SDFileAtom, SDFileBond)
         else
             throw(e)
         end
     end
-    return defaultpostprocess(mol)
-end
-
-
-function defaultpostprocess(mol::SDFile)
-    return vectormol(mol)
 end
 
 
@@ -122,8 +115,7 @@ sdftomol(path::AbstractString) = sdftomol(open(path))
 
 
 function sdftomol(lines)
-    mol = parse(SDFile, lines)
-    return defaultpostprocess(mol)
+    return parse(SDFile, lines)
 end
 
 
@@ -157,7 +149,7 @@ function sdfmol(lines)
     sdfatomprops!(atoms, propblock)
     aobjs = [SDFileAtom(atom...) for atom in atoms]
     bobjs = [SDFileBond(bond...) for bond in bonds]
-    return mapmol(aobjs, bobjs)
+    return vectormol(aobjs, bobjs)
 end
 
 

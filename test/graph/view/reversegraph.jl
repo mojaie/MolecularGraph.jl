@@ -6,7 +6,7 @@
 @testset "graph.view.reversegraph" begin
 
 @testset "reversegraph" begin
-    graph = mapdigraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
+    graph = digraph([1, 2, 3, 4, 5], [(1, 2), (2, 3), (3, 4), (4, 5)])
     rev = reversegraph(graph)
 
     node = getnode(rev, 4)
@@ -45,10 +45,10 @@
     etype = edgetype(rev)
     @test etype <: DirectedEdge
 
-    mapg = mapdigraph(rev)
+    mapg = digraph(rev)
     @test nodecount(mapg) == 5
     @test edgecount(mapg) == 4
-    @test isa(mapg, MapDiGraph)
+    @test isa(mapg, DiGraph)
 end
 
 end # graph.view.reversegraph

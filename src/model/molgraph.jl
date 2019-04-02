@@ -4,66 +4,12 @@
 #
 
 export
-    MapMol, VectorMol, QueryMol,
-    mapmol, vectormol, querymol,
-    SDFile, SMILES, SMARTS
-
-
-struct MapMol{A<:Atom,B<:Bond} <: GeneralMol
-    # TODO: deprecated
-    graph::MapGraph{A,B}
-    attribute::Dict{Symbol,String}
-
-    function MapMol{A,B}(graph::Graph) where {A<:Atom,B<:Bond}
-        new(graph, Dict())
-    end
-end
-
-MapMol{A,B}() where {A<:Atom,B<:Bond} = MapMol{A,B}(mapgraph(A,B))
-
-mapmol(::Type{A}, ::Type{B}) where {A<:Atom,B<:Bond} = MapMol{A,B}()
-
-function mapmol(atoms::Vector{A}, bonds::Vector{B}) where {A<:Atom,B<:Bond}
-    mol = MapMol{A,B}()
-    for (i, atom) in enumerate(atoms)
-        mol.graph.nodes[i] = atom
-        mol.graph.neighbormap[i] = Dict()
-    end
-    for (i, bond) in enumerate(bonds)
-        mol.graph.edges[i] = bond
-        mol.graph.neighbormap[bond.u][bond.v] = i
-        mol.graph.neighbormap[bond.v][bond.u] = i
-    end
-    return mol
-end
-
-function mapmol(mol::MolGraph)
-    A = nodetype(mol)
-    B = edgetype(mol)
-    newmol = MapMol{A,B}(mapgraph(mol))
-    merge!(newmol.attribute, mol.attribute)
-    return newmol
-end
-
-
-
-struct QueryMol{A<:QueryAtom,B<:QueryBond} <: MolGraph
-    graph::MapGraph{A,B}
-    connectivity::Array{Array{Int}}
-
-    function QueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
-        new(mapgraph(A,B), [])
-    end
-end
-
-"""
-    querymol(::Type{A}, ::Type{B}
-        ) where {A<:QueryAtom,B<:QueryBond} -> QueryMol{N,E}
-
-Generate empty `QueryMol` that has atoms and bonds with the given types.
-"""
-querymol(::Type{A}, ::Type{B}
-    ) where {A<:QueryAtom,B<:QueryBond} = QueryMol{A,B}()
+    VectorMol, QueryMol, MapMol,
+    vectormol, querymol, mapmol,
+    SubstructureView,
+    SDFile, SMILES, SMARTS,
+    getatom, getbond, atomcount, bondcount,
+    updateatom!, updatebond!, unlinkatoms!, unlinkbonds!
 
 
 struct VectorMol{A<:Atom,B<:Bond} <: GeneralMol
@@ -71,7 +17,7 @@ struct VectorMol{A<:Atom,B<:Bond} <: GeneralMol
     attribute::Dict{Symbol,Any}
     cache::Dict{Symbol,Any}
 
-    function VectorMol{A,B}(graph::Graph) where {A<:Atom,B<:Bond}
+    function VectorMol{A,B}(graph::VectorGraph{A,B}) where {A<:Atom,B<:Bond}
         new(graph, Dict(), Dict())
     end
 end
@@ -106,12 +52,12 @@ function vectormol(nodes::Vector{A}, edges::Vector{B}) where {A<:Atom,B<:Bond}
 end
 
 """
-    vectormol(mol::MolGraph; clone=false) -> VectorMol
+    vectormol(mol::GraphMol; clone=false) -> VectorMol
 
 Convert the given molecule into a new `VectorMol`. See [`vectorgraph`](@ref)
 for the details.
 """
-function vectormol(mol::MolGraph)
+function vectormol(mol::GeneralMol)
     A = nodetype(mol)
     B = edgetype(mol)
     newmol = VectorMol{A,B}(vectorgraph(mol))
@@ -120,15 +66,101 @@ function vectormol(mol::MolGraph)
 end
 
 
+
+struct QueryMol{A<:QueryAtom,B<:QueryBond} <: GraphMol
+    graph::MapGraph{A,B}
+    connectivity::Array{Array{Int}}
+
+    function QueryMol{A,B}() where {A<:QueryAtom,B<:QueryBond}
+        new(mapgraph(A,B), [])
+    end
+end
+
+"""
+    querymol(::Type{A}, ::Type{B}
+        ) where {A<:QueryAtom,B<:QueryBond} -> QueryMol{N,E}
+
+Generate empty `QueryMol` that has atoms and bonds with the given types.
+"""
+querymol(::Type{A}, ::Type{B}
+    ) where {A<:QueryAtom,B<:QueryBond} = QueryMol{A,B}()
+
+
+
+struct MapMol{A<:Atom,B<:Bond} <: GraphMol
+    # TODO: deprecated
+    graph::MapGraph{A,B}
+    attribute::Dict{Symbol,String}
+
+    function MapMol{A,B}(graph::MapGraph{A,B}) where {A<:Atom,B<:Bond}
+        new(graph, Dict())
+    end
+end
+
+MapMol{A,B}() where {A<:Atom,B<:Bond} = MapMol{A,B}(mapgraph(A,B))
+
+mapmol(::Type{A}, ::Type{B}) where {A<:Atom,B<:Bond} = MapMol{A,B}()
+
+function mapmol(atoms::Vector{A}, bonds::Vector{B}) where {A<:Atom,B<:Bond}
+    mol = MapMol{A,B}()
+    for (i, atom) in enumerate(atoms)
+        mol.graph.nodes[i] = atom
+        mol.graph.neighbormap[i] = Dict()
+    end
+    for (i, bond) in enumerate(bonds)
+        mol.graph.edges[i] = bond
+        mol.graph.neighbormap[bond.u][bond.v] = i
+        mol.graph.neighbormap[bond.v][bond.u] = i
+    end
+    return mol
+end
+
+function mapmol(mol::GraphMol)
+    A = nodetype(mol)
+    B = edgetype(mol)
+    newmol = MapMol{A,B}(mapgraph(mol))
+    merge!(newmol.attribute, mol.attribute)
+    return newmol
+end
+
+
+
+struct SubstructureView{T<:UndirectedGraph} <: GeneralMolView
+    graph::SubgraphView{T}
+    attribute::Dict{Symbol,Any}
+    cache::Dict{Symbol,Any}
+end
+
+
+function MolecularGraphModel.nodesubgraph(mol::GeneralMol, nodes)
+    subg = nodesubgraph(mol.graph, nodes)
+    return SubstructureView(subg, mol.attribute, mol.cache)
+end
+
+
+function MolecularGraphModel.edgesubgraph(mol::GeneralMol, edges)
+    subg = edgesubgraph(mol.graph, edges)
+    return SubstructureView(subg, mol.attribute, mol.cache)
+end
+
+
+Base.getindex(mol::GraphMol, sym::Symbol) = eval(Expr(:call, sym, mol))
+Base.getindex(
+    mol::GraphMol, k1::Symbol, k2::Symbol, K::Symbol...
+) = hcat(eval(Expr(:call, sym, mol)) for k in [k1, k2, K...])
+
+
 # Aliases
-# TODO: use traits
 
-
-SDFile = MapMol{SDFileAtom,SDFileBond}
-SMILES = MapMol{SmilesAtom,SmilesBond}
+SDFile = VectorMol{SDFileAtom,SDFileBond}
+SMILES = VectorMol{SmilesAtom,SmilesBond}
 SMARTS = QueryMol{SmartsAtom,SmartsBond}
 
-
-mapmol(::Type{T}) where T <: SDFile = mapmol(SDFileAtom,SDFileBond)
-mapmol(::Type{T}) where T <: SMILES = mapmol(SmilesAtom,SmilesBond)
-querymol(::Type{T}) where T <: SMARTS = querymol(SmartsAtom,SmartsBond)
+getatom = getnode
+getbond = getedge
+atomcount = nodecount
+bondcount = edgecount
+updateatom! = updatenode!
+updatebond! = updateedge!
+unlinkatoms! = unlinknodes!
+unlinkbonds! = unlinkedges

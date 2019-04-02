@@ -18,8 +18,7 @@
     @test length(nodemcsclique(g, h)) == 3
 
     g = completegraph(7)
-    h = deepcopy(g)
-    unlinkedge!(h, 12)
+    h = unlinkedges(g, (12,))
     @test length(nodemcsclique(g, h)) == 6
 end
 
@@ -36,8 +35,7 @@ end
     @test length(edgemcsclique(g, h)) == 3
 
     g = completegraph(4)
-    h = deepcopy(g)
-    unlinkedge!(h, 6)
+    h = unlinkedges(g, (6,))
     @test length(edgemcsclique(g, h)) == 5
 end
 

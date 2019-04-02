@@ -4,8 +4,8 @@
 #
 
 export
-    Arrow, MapDiGraph,
-    setnodes, mapdigraph
+    Arrow, DiGraph,
+    setnodes, digraph
 
 
 struct Arrow <: DirectedEdge
@@ -16,34 +16,34 @@ end
 setnodes(arrow::Arrow, s, t) = Arrow(s, t)
 
 
-struct MapDiGraph{N<:AbstractNode,E<:DirectedEdge} <: DiGraph
+struct DiGraph{N<:AbstractNode,E<:DirectedEdge} <: DirectedGraph
     nodes::Dict{Int,N}
     edges::Dict{Int,E}
     outneighbormap::Dict{Int,Dict{Int,Int}}
     inneighbormap::Dict{Int,Dict{Int,Int}}
 
-    function MapDiGraph{N,E}() where {N<:AbstractNode,E<:DirectedEdge}
+    function DiGraph{N,E}() where {N<:AbstractNode,E<:DirectedEdge}
         new(Dict(), Dict(), Dict(), Dict())
     end
 end
 
 """
-    mapdigraph(::Type{N}, ::Type{E}
-        ) where {N<:AbstractNode,E<:DirectedEdge} -> MapDiGraph{N,E}()
+    digraph(::Type{N}, ::Type{E}
+        ) where {N<:AbstractNode,E<:DirectedEdge} -> DiGraph{N,E}()
 
-Generate empty `MapDiGraph` that have nodes and edges with the given types.
+Generate empty `DiGraph` that have nodes and edges with the given types.
 """
-mapdigraph(::Type{N}, ::Type{E}
-    ) where {N<:AbstractNode,E<:DirectedEdge} = MapDiGraph{N,E}()
+digraph(::Type{N}, ::Type{E}
+    ) where {N<:AbstractNode,E<:DirectedEdge} = DiGraph{N,E}()
 
 """
-    mapdigraph(nodes, edges) -> MapDiGraph{Node,Arrow}
+    digraph(nodes, edges) -> DiGraph{Node,Arrow}
 
-Generate `MapDiGraph` that have given nodes and edges represented by the list of
+Generate `DiGraph` that have given nodes and edges represented by the list of
 node indices in integer and the list of pairs of node indices, respectively.
 """
-function mapdigraph(nodes, edges)
-    graph = MapDiGraph{Node,Arrow}()
+function digraph(nodes, edges)
+    graph = DiGraph{Node,Arrow}()
     for node in nodes
         graph.nodes[node] = Node()
         graph.outneighbormap[node] = Dict()
@@ -59,16 +59,16 @@ end
 
 
 """
-    mapdigraph(graph::DirectedGraph; clone=false) -> MapDiGraph
+    digraph(graph::DirectedGraph; clone=false) -> DiGraph
 
-Convert the given graph into a new `MapDiGraph`. The node type and edge type are
-inherited from the original graph. If the given graph is `MapDiGraph`, return
+Convert the given graph into a new `DiGraph`. The node type and edge type are
+inherited from the original graph. If the given graph is `DiGraph`, return
 a copy of the graph.
 
 
 """
-function mapdigraph(graph::DirectedGraph)
-    newg = mapdigraph(nodetype(graph), edgetype(graph))
+function digraph(graph::DirectedGraph)
+    newg = digraph(nodetype(graph), edgetype(graph))
     for (i, node) in nodesiter(graph)
         newg.nodes[i] = clone(node)
         newg.outneighbormap[i] = Dict()
@@ -87,19 +87,20 @@ getnode(graph::DiGraph, idx) = graph.nodes[idx]
 getedge(graph::DiGraph, idx) = graph.edges[idx]
 getedge(graph::DiGraph, s, t) = getedge(graph, graph.outneighbormap[s][t])
 hasedge(graph::DiGraph, s, t) = haskey(graph.outneighbormap[s], t)
-
-nodesiter(graph::MapDiGraph) = graph.nodes
-edgesiter(graph::MapDiGraph) = graph.edges
-nodekeys(graph::MapDiGraph) = collect(keys(graph.nodes))
-edgekeys(graph::MapDiGraph) = collect(keys(graph.edges))
-nodeset(graph::MapDiGraph) = Set(keys(graph.nodes))
-edgeset(graph::MapDiGraph) = Set(keys(graph.edges))
-
 outneighbors(graph::DiGraph, i) = graph.outneighbormap[i]
 inneighbors(graph::DiGraph, i) = graph.inneighbormap[i]
 
+nodesiter(graph::DiGraph) = graph.nodes
+edgesiter(graph::DiGraph) = graph.edges
+nodekeys(graph::DiGraph) = collect(keys(graph.nodes))
+edgekeys(graph::DiGraph) = collect(keys(graph.edges))
+nodeset(graph::DiGraph) = Set(keys(graph.nodes))
+edgeset(graph::DiGraph) = Set(keys(graph.edges))
 
-function updatenode!(graph::MapDiGraph, node, idx)
+nodecount(graph::DiGraph) = length(graph.nodes)
+edgecount(graph::DiGraph) = length(graph.edges)
+
+function updatenode!(graph::DiGraph, node, idx)
     graph.nodes[idx] = node
     if !haskey(graph.outneighbormap, idx)
         graph.outneighbormap[idx] = Dict()
@@ -108,7 +109,7 @@ function updatenode!(graph::MapDiGraph, node, idx)
     return
 end
 
-function updatenode!(graph::MapDiGraph, node)
+function updatenode!(graph::DiGraph, node)
     i = maximum(nodeset(graph)) + 1
     graph.nodes[i] = node
     graph.outneighbormap[i] = Dict()
@@ -117,7 +118,7 @@ function updatenode!(graph::MapDiGraph, node)
 end
 
 
-function updateedge!(graph::MapDiGraph, edge, idx)
+function updateedge!(graph::DiGraph, edge, idx)
     nodes = nodeset(graph)
     (edge.source in nodes) || throw(KeyError(edge.source))
     (edge.target in nodes) || throw(KeyError(edge.target))
@@ -132,14 +133,15 @@ function updateedge!(graph::MapDiGraph, edge, idx)
     return
 end
 
-updateedge!(graph::MapDiGraph, edge
+updateedge!(graph::DiGraph, edge
     ) = updateedge!(graph, edge, maximum(nodeset(graph)) + 1)
 
-updateedge!(graph::MapDiGraph, edge, s, t
+updateedge!(graph::DiGraph, edge, s, t
     ) = updateedge!(graph, edge, outneighbors(graph, s)[t])
 
 
-function unlinknode!(graph::MapDiGraph, idx)
+"""
+function unlinknode!(graph::DiGraph, idx)
     (idx in nodeset(graph)) || throw(KeyError(idx))
     for (s, succ) in outneighbors(graph, idx)
         delete!(graph.edges, succ)
@@ -156,7 +158,7 @@ function unlinknode!(graph::MapDiGraph, idx)
 end
 
 
-function unlinkedge!(graph::MapDiGraph, source, target)
+function unlinkedge!(graph::DiGraph, source, target)
     ns = nodeset(graph)
     (source in ns) || throw(KeyError(source))
     (target in ns) || throw(KeyError(target))
@@ -166,7 +168,7 @@ function unlinkedge!(graph::MapDiGraph, source, target)
     return
 end
 
-function unlinkedge!(graph::MapDiGraph, idx)
+function unlinkedge!(graph::DiGraph, idx)
     (idx in nodeset(graph)) || throw(KeyError(idx))
     a = getedge(graph, idx)
     delete!(graph.edges, idx)
@@ -174,7 +176,7 @@ function unlinkedge!(graph::MapDiGraph, idx)
     delete!(graph.inneighbormap[a.target], a.source)
     return
 end
+"""
 
-
-nodetype(graph::MapDiGraph) = valtype(graph.nodes)
-edgetype(graph::MapDiGraph) = valtype(graph.edges)
+nodetype(graph::DiGraph) = valtype(graph.nodes)
+edgetype(graph::DiGraph) = valtype(graph.edges)

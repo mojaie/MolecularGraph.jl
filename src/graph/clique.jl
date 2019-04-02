@@ -8,9 +8,9 @@ export
     maximalcliques
 
 
-mutable struct FindCliqueState
+mutable struct FindCliqueState{T<:UndirectedGraph}
     # Input
-    graph::UndirectedGraph # TODO: use type parameter
+    graph::T # TODO: use type parameter
     # Optional
     timeout # Int
     c_clique_constraint # Function
@@ -19,7 +19,7 @@ mutable struct FindCliqueState
     expire # nanoseconds, UInt64
     status::Symbol
 
-    function FindCliqueState(graph)
+    function FindCliqueState{T}(graph) where {T<:UndirectedGraph}
         state = new()
         state.graph = graph
         state.Q = Set()
@@ -63,8 +63,8 @@ represented as a `Set` of member nodes.
    https://doi.org/10.1016/j.tcs.2005.09.038
 
 """
-function maximalcliques(graph::UndirectedGraph; kwargs...)
-    state = FindCliqueState(graph)
+function maximalcliques(graph::T; kwargs...) where {T<:UndirectedGraph}
+    state = FindCliqueState{T}(graph)
     if haskey(kwargs, :timeout)
         state.timeout = kwargs[:timeout]::Int
         state.expire = (time_ns() + state.timeout * 1_000_000_000)::UInt64

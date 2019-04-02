@@ -8,7 +8,7 @@ export
 
 
 """
-    sdfilewriter(mols::MolGraph, file::IO)
+    sdfilewriter(mols, file::IO)
 
 Write molecule data to the output stream as a SDFile format file.
 """
@@ -16,9 +16,9 @@ sdfilewriter(io::IO, mols) = molblock.((io,), mols)
 
 
 """
-    sdfilewriter(path::AbstractString)
+    sdfilewriter(path::AbstractString, mols)
 
-Read a SDFile and return a lazy iterator which yields molecule objects.
+Generate SDFile from molecules.
 """
 function sdfilewriter(path::AbstractString, mols)
     f = open(path, "w")
@@ -28,8 +28,7 @@ function sdfilewriter(path::AbstractString, mols)
 end
 
 
-function molblock(io::IO, mol::MolGraph)
-    # TODO: convert to vectormol
+function molblock(io::IO, mol::VectorMol)
     # TODO: 2D coords for SmilesMol
     println(io)
     println(io, "MolecularGraph.jl version $(version())")

@@ -71,7 +71,7 @@ function group!(state::SmartsParser, bond)
             "unexpected token: branch starts with '(' at $(state.pos)"))
     end
     state.node += 1
-    updateatom!(state.mol, a, state.node)
+    updatenode!(state.mol, a, state.node)
     if bond !== nothing
         # Connect branch
         bond = setnodes(bond, state.branch, state.node)

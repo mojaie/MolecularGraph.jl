@@ -42,10 +42,10 @@ end
 
 struct FunctionalGroup
     nodeset::Dict{Symbol,Set{Set{Int}}}
-    graph::MapDiGraph{FGTermNode,FGRelationEdge}
+    graph::DiGraph{FGTermNode,FGRelationEdge}
 
     function FunctionalGroup()
-        new(Dict(), MapDiGraph{FGTermNode,FGRelationEdge}())
+        new(Dict(), DiGraph{FGTermNode,FGRelationEdge}())
     end
 end
 

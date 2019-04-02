@@ -6,7 +6,7 @@
 @testset "graph.multigraph" begin
 
 @testset "multigraph" begin
-    graph = mapmultigraph([1,2,3,4,5], [(1,2), (3,4), (3,4), (4,5)])
+    graph = multigraph([1,2,3,4,5], [(1,2), (3,4), (3,4), (4,5)])
     @test degree(graph, 4) == 3
 
 end

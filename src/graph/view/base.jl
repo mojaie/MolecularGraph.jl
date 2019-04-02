@@ -3,9 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    nodevalues, edgevalues
-
 
 GView = Union{GraphView,DiGraphView}
 
@@ -16,7 +13,6 @@ hasedge(view::GView, u, v) = hasedge(view.graph, u, v)
 
 nodesiter(view::GView) = nodesiter(view.graph)
 edgesiter(view::GView) = edgesiter(view.graph)
-# TODO: for only VectorGraph
 nodevalues(view::GView) = nodevalues(view.graph)
 edgevalues(view::GView) = edgevalues(view.graph)
 
@@ -40,6 +36,5 @@ updatenode!(view::GView, node) = updatenode!(view.graph, node)
 updateedge!(view::GView, edge, i) = updateedge!(view.graph, edge, i)
 updateedge!(view::GView, edge) = updateedge!(view.graph, edge)
 updateedge!(view::GView, edge, u, v) = updateedge!(view.graph, edge, u, v)
-unlinknode!(view::GView, i) = unlinknode!(view.graph, i)
-unlinkedge!(view::GView, e) = unlinkedge!(view.graph, e)
-unlinkedge!(view::GView, u, v) = unlinkedge!(view.graph, u, v)
+unlinknodes!(view::GView, nodes) = unlinknodes!(view.graph, nodes)
+unlinkedges(view::GView, edges) = unlinkedges(view.graph, edges)

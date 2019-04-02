@@ -34,6 +34,3 @@ inedges(g::DirectedGraph, i) = getedge.((g,), in_incidences(g, i))
 neighborcount(g::AbstractGraph, i) = length(neighbors(g, i))
 outdegree(g::DirectedGraph, i) = length(outneighbors(g, i))
 indegree(g::DirectedGraph, i) = length(inneighbors(g, i))
-
-nodecount(g::Union{DiGraph,Graph}) = length(g.nodes)
-edgecount(g::Union{DiGraph,Graph}) = length(g.edges)
