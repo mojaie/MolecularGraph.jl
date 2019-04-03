@@ -5,15 +5,15 @@
 
 export
     trivialhydrogens,
-    all_hydrogens,
-    make_hydrogens_implicit,
-    make_hydrogens_explicit,
-    largest_component_nodes,
-    largestcomponent,
-    neutralize_acids!,
-    neutralize_oniums!,
+    allhydrogens,
+    makehydrogensimplicit,
+    makehydrogensexplicit,
+    largestcomponentnodes,
+    largestcomponentgraph,
+    neutralizeacids!,
+    neutralizeoniums!,
     depolarize!,
-    triplebond_anion!,
+    triplebondanion!,
     canonicalize!,
     canonicalize
 
@@ -26,30 +26,29 @@ export
 
 
 """
-    trivialhydrogens(mol::VectorMol) -> Set{Int}
+    trivialhydrogens(mol::GraphMol) -> Set{Int}
 
 Return a set of trivial hydrogen nodes (light hydrogens which are uncharged,
 non-radical, non-stereospecific and attached to organic heavy atoms)
 """
-function trivialhydrogens(mol::VectorMol)
+function trivialhydrogens(mol::GraphMol)
     hs = Set{Int}()
     organic_heavy = (
         :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I)
-    for (i, a) in nodesiter(mol)
-        if (a.symbol != :H || a.charge != 0 || a.multiplicity != 1
-                || a.mass !== nothing)
+    for (i, atom) in enumerate(nodeattrs(mol))
+        if (atom.symbol != :H || atom.charge != 0 || atom.multiplicity != 1
+                || atom.mass !== nothing)
             continue
-        elseif a isa SmilesAtom && a.stereo !== nothing
-            continue
-        end
-        nbrs = collect(neighbors(mol, i))
-        if length(nbrs) != 1
+        elseif atom isa SmilesAtom && atom.stereo !== nothing
             continue
         end
-        (nbr, bond) = pop!(nbrs)
+        degree(mol, i) == 1 || continue
+        (inc, adj) = iterate(neighbors(mol, i))[1]
+        bond = edgeattr(mol, inc)
+        nbratom = nodeattr(mol, adj)
         if bond isa SDFileBond && (bond.order != 1 || bond.notation != 0)
             continue
-        elseif !in(getnode(mol, nbr).symbol, organic_heavy)
+        elseif !(nbratom.symbol in organic_heavy)
             continue
         end
         push!(hs, i)
@@ -59,14 +58,14 @@ end
 
 
 """
-    all_hydrogens(mol::VectorMol) -> Set{Int}
+    allhydrogens(mol::GraphMol) -> Set{Int}
 
 Return a set of hydrogen nodes.
 """
-function all_hydrogens(mol::VectorMol)
+function allhydrogens(mol::GraphMol)
     hs = Set{Int}()
-    for (i, a) in nodesiter(mol)
-        if a.symbol == :H
+    for (i, atom) in enumerate(nodeattrs(mol))
+        if atom.symbol == :H
             push!(hs, i)
         end
     end
@@ -75,33 +74,31 @@ end
 
 
 """
-    make_hydrogens_implicit(mol::VectorMol) -> VectorMol
+    makehydrogensimplicit(mol::GraphMol) -> SubgraphView{GraphMol}
 
 Return molecule whose hydrogen nodes are removed. If option `all` is set to
 false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
 """
-function make_hydrogens_implicit(mol::VectorMol; all=true)
-    hydrogens = all ? all_hydrogens : trivialhydrogens
+function makehydrogensimplicit(mol::GraphMol; all=true)
+    hydrogens = all ? allhydrogens : trivialhydrogens
     ns = setdiff(nodeset(mol), hydrogens(mol))
     return nodesubgraph(mol, ns)
 end
 
 
 """
-    make_hydrogens_explicit(mol::VectorMol) -> VectorMol
+    makehydrogensexplicit(mol::GraphMol) -> GraphMol
 
 Return molecule whose hydrogens are fully attached. If option `all` is set to
 false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
 """
-function make_hydrogens_explicit(mol::VectorMol)
-    newmol = vectormol(mol)
-    ncnt = nodecount(mol)
-    impl = implicithcount(mol)
-    for (n, node) in nodesiter(mol)
-        for i in 1:impl[n]
-            ncnt += 1
-            updatenode!(newmol, nodetype(mol)(:H), ncnt)
-            updateedge!(newmol, edgetype(mol)(n, ncnt))
+function makehydrogensexplicit(mol::GraphMol)
+    newmol = graphmol(mol)
+    implicithcount_ = implicithcount(mol)
+    for (i, atom) in enumerate(nodeattrs(mol))
+        for j in 1:implicithcount_[i]
+            n = addnode!(newmol, nodeattrtype(mol)(:H))
+            addedge!(newmol, i, n, edgeattrtype(mol)())
         end
     end
     return newmol
@@ -109,32 +106,25 @@ end
 
 
 """
-    largest_component_nodes(mol::VectorMol) -> Set{Int}
+    largestcomponentnodes(mol::GraphMol) -> Set{Int}
 
 Return a set of nodes in the largest connected component.
 """
-function largest_component_nodes(mol::VectorMol)
-    # TODO: better way like python's max(iter, key=cmp)
-    conn = connected_components(mol)
-    sizemax = map(length, conn)
-    largest = conn[argmax(sizemax)]
-    return largest
-end
+largestcomponentnodes(mol::GraphMol
+    ) = sortstablemax(connected_components(mol), by=length, init=Set{Int}())
 
 
 """
-    largestcomponent(mol::VectorMol) -> VectorMol
+    largestcomponentgraph(mol::GraphMol) -> GraphMol
 
 Return largest connected component of the molecular graph.
 """
-function largestcomponent(mol::VectorMol)
-    ns = largest_component_nodes(mol)
-    return nodesubgraph(mol, ns)
-end
+largestcomponentgraph(mol::GraphMol
+    ) = nodesubgraph(mol, largestcomponentnodes(mol))
 
 
 """
-    neutralize_acids!(mol::VectorMol)
+    neutralizeacids!(mol::GraphMol)
 
 Neutralize oxo(thio) acids.
 
@@ -142,20 +132,21 @@ Note that this function edits `Atom` object fields directly. The molecular
 property vector needs recalculation to apply the changes.
 see [`canonicalize!`](@ref).
 """
-function neutralize_acids!(mol::VectorMol)
-    symbols = atomsymbol(mol)
-    charges = charge(mol)
-    conn = connectivity(mol)
-    pies = pielectron(mol)
-    for o in findall((symbols .== :O) .* (charges .== -1) .* (conn .== 1))
-        nbr = pop!(adjacencies(mol, o))
-        if pies[nbr] == 1
+function neutralizeacids!(mol::GraphMol)
+    atomsymbol_ = atomsymbol(mol)
+    charge_ = charge(mol)
+    connectivity_ = connectivity(mol)
+    pielectron_ = pielectron(mol)
+    for o in findall(
+            (atomsymbol_ .== :O) .* (charge_ .== -1) .* (connectivity_ .== 1))
+        nbr = iterate(adjacencies(mol, o))[1]
+        if pielectron_[nbr] == 1
             cnbrs = adjacencies(mol, nbr)
             pop!(cnbrs, o)
             for cn in cnbrs
-                if symbols[cn] in (:O, :S) && pies[cn] == 1 && conn[cn] == 1
-                    oatom = setcharge(getnode(mol, o), 0)
-                    updatenode!(mol, oatom, o)
+                if (atomsymbol_[cn] in (:O, :S) && pielectron_[cn] == 1
+                        && connectivity_[cn] == 1)
+                    setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
                     break
                 end
             end
@@ -165,7 +156,7 @@ end
 
 
 """
-    neutralize_oniums!(mol::VectorMol)
+    neutralizeoniums!(mol::GraphMol)
 
 Neutralize 1-3° oniums. Permanently charged quart-oniums are not neutralized.
 
@@ -173,16 +164,15 @@ Note that this function edits `Atom` object fields directly. The molecular
 property vector needs recalculation to apply the changes.
 see [`canonicalize!`](@ref).
 """
-function neutralize_oniums!(mol::VectorMol)
-    for o in findall((mol[:charge] .== 1) .* (mol[:hcount] .> 0))
-        oatom = setcharge(getnode(mol, o), 0)
-        updatenode!(mol, oatom, o)
+function neutralizeoniums!(mol::GraphMol)
+    for o in findall((charge(mol) .== 1) .* (hcount(mol) .> 0))
+        setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
     end
 end
 
 
 """
-    depolarize!(mol::VectorMol)
+    depolarize!(mol::GraphMol)
 
 Depolarize oxo groups except in the case that polarization is required for
 aromaticity.
@@ -191,28 +181,23 @@ Note that this function edits `Atom` object fields directly. The molecular
 property vector needs recalculation to apply the changes.
 see [`canonicalize!`](@ref).
 """
-function depolarize!(mol::VectorMol)
-    symbols = atomsymbol(mol)
-    charges = charge(mol)
-    isarom = isaromatic(mol)
-    for o in findall((symbols .== :O) .* (charges .== -1))
-        nbrs = collect(neighbors(mol, o))
-        @assert length(nbrs) == 1 "unexpected oxygen degree $(length(nbrs))"
-        (nbr, b) = pop!(nbrs)
-        if charges[nbr] == 1 && !isarom[nbr]
-            oatom = setcharge(getnode(mol, o), 0)
-            updatenode!(mol, oatom, o)
-            natom = setcharge(getnode(mol, nbr), 0)
-            updatenode!(mol, natom, nbr)
-            bond = setorder(getedge(mol, b), 2)
-            updateedge!(mol, bond, b)
+function depolarize!(mol::GraphMol)
+    charge_ = charge(mol)
+    isaromatic_ = isaromatic(mol)
+    for o in findall((atomsymbol(mol) .== :O) .* (charge_ .== -1))
+        @assert degree(mol, o) == 1 "unexpected oxygen degree $(length(nbrs))"
+        (inc, adj) = iterate(neighbors(mol, o))[1]
+        if charge_[adj] == 1 && !isaromatic_[adj]
+            setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
+            setnodeattr!(mol, adj, setcharge(nodeattr(mol, adj), 0))
+            setedgeattr!(mol, inc, setorder(edgeattr(mol, inc), 2))
         end
     end
 end
 
 
 """
-    triplebond_anion!(mol::VectorMol)
+    triplebondanion!(mol::GraphMol)
 
 Canonicalize anions next to triple bonds (ex. [C-][N+]#N -> C=[N+]=[N-]).
 
@@ -220,26 +205,22 @@ Note that this function edits `Atom` object fields directly. The molecular
 property vector needs recalculation to apply the changes.
 see [`canonicalize!`](@ref).
 """
-function triplebond_anion!(mol::VectorMol)
+function triplebondanion!(mol::GraphMol)
     # TODO: better function name
-    for tb in findall(mol[:bondorder] .== 3)
-        tbond = getbond(mol, tb)
-        for (f, s) in ((tbond.u, tbond.v), (tbond.v, tbond.u))
+    charge_ = charge(mol)
+    for tb in findall(bondorder(mol) .== 3)
+        tbond = edgeattr(mol, tb)
+        (u, v) = getedge(mol, tb)
+        for (f, s) in ((u, v), (v, u))
             nbrs = copy(neighbors(mol, f))
-            pop!(nbrs, s)
-            if length(nbrs) != 1
-                continue
-            end
-            (nbr, nb) = pop!(nbrs)
-            if mol[:charge][nbr] == -1
-                natom = setcharge(getnode(mol, nbr), 0)
-                updatenode!(mol, natom, nbr)
-                satom = setcharge(getnode(mol, s), -1)
-                updatenode!(mol, satom, s)
-                tbond = setorder(getedge(mol, tb), 2)
-                updateedge!(mol, tbond, tb)
-                nbond = setorder(getedge(mol, nb), 2)
-                updateedge!(mol, nbond, nb)
+            pop!(nbrs, findedgekey(mol, f, s))
+            length(nbrs) == 1 || continue
+            (inc, adj) = iterate(nbrs)[1]
+            if charge_[adj] == -1
+                setnodeattr!(mol, adj, setcharge(nodeattr(mol, adj), 0))
+                setnodeattr!(mol, s, setcharge(nodeattr(mol, s), -1))
+                setedgeattr!(mol, inc, setorder(edgeattr(mol, inc), 2))
+                setedgeattr!(mol, tb, setorder(edgeattr(mol, tb), 2))
             end
         end
     end
@@ -247,7 +228,7 @@ end
 
 
 """
-    canonicalize!(mol::VectorMol)
+    canonicalize!(mol::GraphMol)
 
 Canonicalize molecule notation and apply the changes to the molecular property
 vector.
@@ -256,7 +237,7 @@ vector.
   case that polarization is required for aromaticity.
 - Canonicalize anions next to triple bonds (ex. [C-][N+]#N -> C=[N+]=[N-])
 """
-function canonicalize!(mol::VectorMol)
+function canonicalize!(mol::GraphMol)
     neutralizeacids!(mol)
     neutralizeoniums!(mol)
     depolarize!(mol)
@@ -264,8 +245,8 @@ function canonicalize!(mol::VectorMol)
     return
 end
 
-function canonicalize(mol::VectorMol)
-    newmol = vectormol(mol)
+function canonicalize(mol::GraphMol)
+    newmol = graphmol(mol)
     canonicalize!(newmol)
     return newmol
 end

@@ -3,15 +3,8 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    componentquery!,
-    component!,
-    fragment!,
-    group!,
-    chain!
 
-
-function componentquery!(state::SmartsParser{SMARTS})
+function componentquery!(state::SmartsParserState)
     """ Start <- Component ('.' Component)*
     """
     if read(state) == '\0'
@@ -26,13 +19,13 @@ function componentquery!(state::SmartsParser{SMARTS})
 end
 
 
-function component!(state::SmartsParser{SMARTS})
+function component!(state::SmartsParserState)
     """ Component <- '(' Fragment ')' / Fragment
     """
     if read(state) == '('
         # Connectivity restriction
         forward!(state)
-        push!(state.mol.connectivity, [state.root])
+        push!(state.connectivity, [state.root])
         fragment!(state)
         c2 = read(state)
         @assert c2 == ')' "unexpected token: $(c2) at $(state.pos)"
@@ -43,7 +36,7 @@ function component!(state::SmartsParser{SMARTS})
 end
 
 
-function fragment!(state::SmartsParser)
+function fragment!(state::SmartsParserState)
     """ Fragment <- Group
     """
     if read(state) == '\0'
@@ -61,7 +54,7 @@ function fragment!(state::SmartsParser)
 end
 
 
-function group!(state::SmartsParser, bond)
+function group!(state::SmartsParserState, bond)
     """ Group <- Atom ((Bond? Group) / Chain)* Chain
     """
     a = atom!(state)
@@ -71,11 +64,11 @@ function group!(state::SmartsParser, bond)
             "unexpected token: branch starts with '(' at $(state.pos)"))
     end
     state.node += 1
-    updatenode!(state.mol, a, state.node)
+    push!(state.nodeattrs, a)
     if bond !== nothing
         # Connect branch
-        bond = setnodes(bond, state.branch, state.node)
-        updateedge!(state.mol, bond, edgecount(state.mol) + 1)
+        push!(state.edges, (state.branch, state.node))
+        push!(state.edgeattrs, bond)
     end
     state.branch = state.node
     while true
@@ -104,7 +97,7 @@ function group!(state::SmartsParser, bond)
 end
 
 
-function chain!(state::SmartsParser)
+function chain!(state::SmartsParserState)
     """ Chain <- (Bond? (Atom / RingLabel))+
     """
     u = state.branch
@@ -133,8 +126,8 @@ function chain!(state::SmartsParser)
                 (v, rb) = state.ringlabel[num]
                 b = something(b, rb, defaultbond(state))
                 delete!(state.ringlabel, num) # Ring label is reusable
-                b = setnodes(b, u, v)
-                updateedge!(state.mol, b, edgecount(state.mol) + 1)
+                push!(state.edges, (u, v))
+                push!(state.edgeattrs, b)
             else
                 state.ringlabel[num] = (u, b)
             end
@@ -153,11 +146,11 @@ function chain!(state::SmartsParser)
             break
         else
             state.node += 1
-            updatenode!(state.mol, a, state.node)
+            push!(state.nodeattrs, a)
         end
         if b == :disconn
-            if state isa SmartsParser{SMARTS}
-                for conn in state.mol.connectivity
+            if state isa SmartsParser
+                for conn in state.connectivity
                     if conn[1] == state.root
                         push!(conn, state.node)
                     end
@@ -165,8 +158,8 @@ function chain!(state::SmartsParser)
             end
         else
             b = something(b, defaultbond(state))
-            b = setnodes(b, u, state.node)
-            updateedge!(state.mol, b, edgecount(state.mol) + 1)
+            push!(state.edges, (u, state.node))
+            push!(state.edgeattrs, b)
         end
         u = state.node
     end

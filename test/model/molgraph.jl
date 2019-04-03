@@ -1,27 +1,27 @@
 
 @testset "molgraph" begin
 
-    @testset "vectormol" begin
-        mol = vectormol(SDFileAtom, SDFileBond)
+    @testset "graphmol" begin
+        mol = graphmol(SDFileAtom, SDFileBond)
         @test nodecount(mol) == 0
+        edges = [(1, 2)]
         atoms = [SDFileAtom(),SDFileAtom(),SDFileAtom()]
-        bonds = [SDFileBond(1, 2)]
-        mol = vectormol(atoms, bonds)
-        newbond = setnodes(getedge(mol, 1), 2, 3)
-        # TODO: updateedge! for vectorgraph
+        bonds = [SDFileBond()]
+        mol = graphmol(edges, atoms, bonds)
+        newbond = addedge!(mol, 2, 3, SDFileBond())
+        @test newbond == 2
+        # TODO: updateedge! for plaingraph
         # updateedge!(mol, newbond, 2)
         # @test edgecount(mol) == 2
     end
 
     @testset "querymol" begin
-        q = SMARTS()
-        a = SmartsAtom(:Any => true)
-        a2 = SmartsAtom(:Any => true)
-        b = SmartsBond(1, 2, :Any => true)
-        updateatom!(q, a, 1)
-        updateatom!(q, a2, 2)
-        updatebond!(q, b, 1)
-        @test atomcount(q) == 2
+        q = querymol(SmartsAtom, SmartsBond)
+        addnode!(q, SmartsAtom(:Any => true))
+        addnode!(q, SmartsAtom(:Any => true))
+        addedge!(q, 1, 2, SmartsBond(:Any => true))
+        @test nodecount(q) == 2
+        @test hasedge(q, 1, 2)
     end
 
 end

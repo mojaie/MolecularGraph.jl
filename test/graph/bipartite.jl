@@ -27,4 +27,4 @@
     @test maxcard(Set(1:4), Set(1:6), relation4) == 2
 end
 
-end # graph.bridge
+end # graph.bipartite

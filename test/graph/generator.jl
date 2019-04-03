@@ -11,7 +11,7 @@
     @test nodecount(P2) == edgecount(P2) + 1
     P100 = pathgraph(100)
     @test nodecount(P100) == edgecount(P100) + 1
-    @test length(shortestpath(P100, 1, 100)) == 100
+    @test distance(P100, 1, 100) == 99
 end
 
 @testset "cyclegraph" begin
@@ -20,17 +20,17 @@ end
     @test nodecount(C3) == edgecount(C3)
     C100 = cyclegraph(100)
     @test nodecount(C100) == edgecount(C100)
-    @test length(shortestpath(C100, 1, 100)) == 2
-    @test length(shortestpath(C100, 1, 50)) == 50
+    @test distance(C100, 1, 100) == 1
+    @test distance(C100, 1, 50) == 49
 end
 
-@testset "bipartitegraph" begin
-    @test_throws DomainError bipartitegraph(0, 1)
-    @test_throws DomainError bipartitegraph(1, 0)
-    K1_1 = bipartitegraph(1, 1)
+@testset "completebipartite" begin
+    @test_throws DomainError completebipartite(0, 1)
+    @test_throws DomainError completebipartite(1, 0)
+    K1_1 = completebipartite(1, 1)
     @test nodecount(K1_1) == 2
     @test edgecount(K1_1) == 1
-    K3_3 = bipartitegraph(3, 3)
+    K3_3 = completebipartite(3, 3)
     @test nodecount(K3_3) == 6
     @test edgecount(K3_3) == 9
 end
@@ -63,7 +63,7 @@ end
     @test edgecount(L3) == 7 # 3n - 2
     L100 = laddergraph(100)
     @test edgecount(L100) == 298 # 3n - 2
-    @test length(shortestpath(L100, 1, 100)) == 51
+    @test distance(L100, 1, 100) == 50
 end
 
 @testset "circularladder" begin
@@ -72,8 +72,8 @@ end
     @test edgecount(CL3) == 9 # 3n
     CL100 = circularladder(100)
     @test edgecount(CL100) == 300 # 3n
-    @test length(shortestpath(CL100, 1, 50)) == 26
-    @test length(shortestpath(CL100, 1, 200)) == 3
+    @test distance(CL100, 1, 50) == 25
+    @test distance(CL100, 1, 200) == 2
 end
 
 @testset "moebiusladder" begin
@@ -82,8 +82,8 @@ end
     @test edgecount(ML3) == 9 # 3n
     ML100 = moebiusladder(100)
     @test edgecount(ML100) == 300 # 3n
-    @test length(shortestpath(ML100, 1, 50)) == 26
-    @test length(shortestpath(ML100, 1, 200)) == 2
+    @test distance(ML100, 1, 50) == 25
+    @test distance(ML100, 1, 200) == 1
 end
 
 end # graph.generator

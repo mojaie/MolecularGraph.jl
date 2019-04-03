@@ -4,30 +4,8 @@
 #
 
 export
-    mincycles, circuitrank,
-    node_cyclemem, edge_cyclemem
-
-
-function find_cotree_edge(graph, v, pred, cy)
-    for (nbr, edge) in neighbors(graph, v)
-        if !(nbr in keys(pred))
-            # New node
-            pred[nbr] = v
-            find_cotree_edge(graph, nbr, pred, cy)
-        elseif nbr != pred[v] && !(edge in cy)
-            # Cycle found
-            push!(cy, edge)
-        end
-    end
-end
-
-
-function cotree_edges(graph::UndirectedGraph, root)
-    pred = Dict{Int, Union{Int,Nothing}}(root => nothing)
-    cy = Int[]
-    find_cotree_edge(graph, root, pred, cy)
-    return cy
-end
+    mincyclenodes, mincycleedges, node_cyclemem, edge_cyclemem,
+    canonicalcycle
 
 
 """
@@ -36,7 +14,7 @@ end
 Calculate minimum cycle basis (also known as Smallest Set of Smallest Rings
 in the context of molecular graph theory).
 """
-@cache function mincycles(graph::UndirectedGraph)
+@cache function mincycleedges(graph::UndirectedGraph)
     mincycs = Vector{Int}[]
     for biconn in two_edge_connected(graph)
         subg = nodesubgraph(graph, biconn)
@@ -47,32 +25,45 @@ in the context of molecular graph theory).
     return mincycs
 end
 
+mincycleedges(view::SubgraphView) = mincycleedges(view.graph)
 
-circuitrank(graph::UndirectedGraph) = length(mincycles(graph))
+
+@cache function mincyclenodes(graph::UndirectedGraph)
+    mincycs = Vector{Int}[]
+    for cyc in mincycleedges(graph)
+        # Base.union maintains order TODO: seems to be not performant
+        push!(mincycs, union([collect(getedge(graph, e)) for e in cyc]...))
+    end
+    return mincycs
+end
+
+mincyclenodes(view::SubgraphView) = mincyclenodes(view.graph)
 
 
-@cache function node_cyclemem(graph::UndirectedGraph)
-    nmap = Dict(n => Int[] for n in nodekeys(graph))
-    for (i, cyc) in enumerate(mincycles(graph))
+@cache function node_cyclemem(graph::OrderedGraph)
+    nodes = [Set{Int}() for n in 1:nodecount(graph)]
+    for (i, cyc) in enumerate(mincyclenodes(graph))
         for n in cyc
-            push!(nmap[n], i)
+            push!(nodes[n], i)
         end
     end
-    nodes = [nmap[n] for n in nodekeys(graph)]
     return nodes
 end
 
+node_cyclemem(view::SubgraphView) = node_cyclemem(view.graph)
 
-@cache function edge_cyclemem(graph::UndirectedGraph)
-    emap = Dict(e => Int[] for e in edgekeys(graph))
-    for (i, cyc) in enumerate(mincycles(graph))
-        for e in edgekeys(nodesubgraph(graph, cyc))
-            push!(emap[e], i)
+
+@cache function edge_cyclemem(graph::OrderedGraph)
+    edges = [Set{Int}() for n in 1:edgecount(graph)]
+    for (i, cyc) in enumerate(mincycleedges(graph))
+        for e in cyc
+            push!(edges[e], i)
         end
     end
-    edges = [emap[e] for e in edgekeys(graph)]
     return edges
 end
+
+edge_cyclemem(view::SubgraphView) = edge_cyclemem(view.graph)
 
 
 function mincyclebasis(graph::UndirectedGraph)
@@ -80,10 +71,10 @@ function mincyclebasis(graph::UndirectedGraph)
     cycles = Vector{Int}[]
     root = pop!(nodeset(graph))
     S = [Set(e) for e in cotree_edges(graph, root)]
-    N = length(S)
+    N = length(S)  # N: circuit rank
     for k in 1:N
-        minnodes, minedges = findmincycle(graph, S[k])
-        push!(cycles, minnodes)
+        minedges = findmincycle(graph, S[k])
+        push!(cycles, minedges)
         for i in (k + 1):N
             if length(intersect(S[i], minedges)) % 2 == 1
                 S[i] = symdiff(S[i], S[k])
@@ -95,33 +86,30 @@ end
 
 
 function findmincycle(graph, S)
-    G = mapgraph(edgesubgraph(graph, setdiff(edgeset(graph), S)))
-    U, nmap, emap = shallowmerge(G, G)
-    nrev = Dict(v => k for (k, v) in nmap)
+    G = edgesubgraph(graph, setdiff(edgeset(graph), S))
+    U = disjointunion(G, G)
     for s in S
-        e = getedge(graph, s)
-        e1 = setnodes(e, e.u, nmap[e.v])
-        e2 = setnodes(e, nmap[e.u], e.v)
-        maxe = maximum(edgekeys(U))
-        updateedge!(U, e1, maxe + 1)
-        updateedge!(U, e2, maxe + 2)
+        (u, v) = getedge(graph, s)
+        u1 = getunionnode(U, 1, u)
+        v1 = getunionnode(U, 1, v)
+        u2 = getunionnode(U, 2, u)
+        v2 = getunionnode(U, 2, v)
+        addedge!(U, u1, v2, DisjointUnionEdge(1, s))
+        addedge!(U, u2, v1, DisjointUnionEdge(1, s))
     end
-    ps = []
-    pls = []
+    paths = []
     for n in nodeset(graph)
-        sp = shortestpath(U, n, nmap[n])
-        push!(ps, sp)
-        push!(pls, length(sp))
+        n1 = getunionnode(U, 1, n)
+        n2 = getunionnode(U, 2, n)
+        sp = shortestpathedges(U, n1, n2)
+        push!(paths, sp)
     end
-    minpath = ps[argmin(pls)]
-    ns = Int[n in nodeset(graph) ? n : nrev[n] for n in minpath]
-    es = [neighbors(graph, ns[n])[ns[n+1]] for n in 1:(length(ns) - 1)]
-    pop!(ns)
-    return canonicalize(ns), es
+    minpath = sortstablemin(paths, by=length)
+    return [getsourceedge(U, e).sourcekey for e in minpath]
 end
 
 
-function canonicalize(nodes)
+function canonicalcycle(nodes::Vector{Int})
     """Align cycle indices to start from lowest index and following one of
     neighbors that have the lower index
     """

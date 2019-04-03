@@ -7,48 +7,8 @@ export
     sdfilewriter
 
 
-"""
-    sdfilewriter(mols, file::IO)
-
-Write molecule data to the output stream as a SDFile format file.
-"""
-sdfilewriter(io::IO, mols) = molblock.((io,), mols)
-
-
-"""
-    sdfilewriter(path::AbstractString, mols)
-
-Generate SDFile from molecules.
-"""
-function sdfilewriter(path::AbstractString, mols)
-    f = open(path, "w")
-    sdfilewriter(f, mols)
-    close(f)
-    return
-end
-
-
-function molblock(io::IO, mol::VectorMol)
-    # TODO: 2D coords for SmilesMol
-    println(io)
-    println(io, "MolecularGraph.jl version $(version())")
-    println(io)
-    chiral_flag = 0 # TODO: deplicated?
-    println(io, format(
-        "{:3d}{:3d}  0  0{:3d}  0  0  0  0  0999 V2000",
-        nodecount(mol), edgecount(mol), chiral_flag
-    ))
-    atomblock(io, mol)
-    bondblock(io, mol)
-    propertyblock(io, mol)
-    println(io, "M  END")
-    datablock(io, mol)
-    return
-end
-
-
-function atomblock(io::IO, mol::VectorMol)
-    for (i, atom) in nodesiter(mol)
+function atomblock(io::IO, mol::GraphMol)
+    for (i, atom) in enumerate(nodeattrs(mol))
         (x, y, z) = fmt.("10.4f", atom.coords)
         sym = fmt("-3s", string(atom.symbol))
         println(io, "$(x)$(y)$(z) $(sym) 0  0  0  0  0  0  0  0  0  0  0  0")
@@ -57,24 +17,25 @@ function atomblock(io::IO, mol::VectorMol)
 end
 
 
-function bondblock(io::IO, mol::VectorMol)
-    for (i, bond) in edgesiter(mol)
-        u = fmt("3d", bond.u)
-        v = fmt("3d", bond.v)
+function bondblock(io::IO, mol::GraphMol)
+    for (i, (u, v)) in enumerate(edgesiter(mol))
+        ustr = fmt("3d", u)
+        vstr = fmt("3d", v)
+        bond = edgeattr(mol, i)
         order = fmt("3d", bond.order)
         # TODO: SmilesBond
         stereo = fmt("3d", bond.notation)
-        println(io, "$(u)$(v)$(order)$(stereo)  0  0  0")
+        println(io, "$(ustr)$(vstr)$(order)$(stereo)  0  0  0")
     end
     return
 end
 
 
-function propertyblock(io::IO, mol::VectorMol)
-    charges = Tuple{Int, Int}[]
-    radicals = Tuple{Int, Int}[]
-    masses = Tuple{Int, Float64}[]
-    for (i, atom) in nodesiter(mol)
+function propertyblock(io::IO, mol::GraphMol)
+    charges = Tuple{Int,Int}[]
+    radicals = Tuple{Int,Int}[]
+    masses = Tuple{Int,Float64}[]
+    for (i, atom) in enumerate(nodeattrs(mol))
         atom.charge == 0 || push!(charges, (i, atom.charge))
         atom.multiplicity == 1 || push!(radicals, (i, atom.multiplicity))
         atom.mass === nothing || push!(masses, (i, atom.mass))
@@ -94,8 +55,9 @@ function propertyblock(io::IO, mol::VectorMol)
     return
 end
 
-function datablock(io::IO, mol::VectorMol)
-    for (key, val) in mol.attribute
+
+function datablock(io::IO, mol::GraphMol)
+    for (key, val) in mol.attributes
         println(io, "> <$(string(key))>")
         println(io, string(val))
         println(io, "")
@@ -103,3 +65,33 @@ function datablock(io::IO, mol::VectorMol)
     println(io, raw"$$$$")
     return
 end
+
+
+function molblock(io::IO, mol::GraphMol)
+    # TODO: 2D coords for SmilesMol
+    println(io)
+    println(io, "MolecularGraph.jl version $(version())")
+    println(io)
+    chiral_flag = 0 # TODO: deplicated?
+    println(io, format(
+        "{:3d}{:3d}  0  0{:3d}  0  0  0  0  0999 V2000",
+        nodecount(mol), edgecount(mol), chiral_flag
+    ))
+    atomblock(io, mol)
+    bondblock(io, mol)
+    propertyblock(io, mol)
+    println(io, "M  END")
+    datablock(io, mol)
+    return
+end
+
+
+"""
+    sdfilewriter(io::IO, mols)
+    sdfilewriter(filename::AbstractString, mols)
+
+Write molecule data to the output stream as a SDFile format file.
+"""
+sdfilewriter(io::IO, mols) = molblock.((io,), mols)
+sdfilewriter(filename::AbstractString, mols
+    ) = sdfilewriter(open(path, "w"), mols)

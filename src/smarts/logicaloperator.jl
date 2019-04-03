@@ -3,18 +3,13 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    lglowand!,
-    lgor!,
-    lghighand!,
-    lgnot!
 
 """ The argument `func` is a parser function which has a parser state as an
 argument, process tokens found in the given text, and returns nothing if no
 valid tokens were found.
 """
 
-function lglowand!(state::SmartsParser{SMARTS}, func)
+function lglowand!(state::SmartsParserState, func)
     """ LogicalLowAnd <- Or (';' Or)*
     """
     cond = []
@@ -38,7 +33,7 @@ function lglowand!(state::SmartsParser{SMARTS}, func)
 end
 
 
-function lgor!(state::SmartsParser{SMARTS}, func)
+function lgor!(state::SmartsParserState, func)
     """ Or <- And (',' And)*
     """
     cond = []
@@ -62,7 +57,7 @@ function lgor!(state::SmartsParser{SMARTS}, func)
 end
 
 
-function lghighand!(state::SmartsParser, func)
+function lghighand!(state::SmartsParserState, func)
     """ And <- Not ('&'? Not)*
     """
     cond = []
@@ -84,7 +79,7 @@ function lghighand!(state::SmartsParser, func)
 end
 
 
-function lgnot!(state::SmartsParser, func)
+function lgnot!(state::SmartsParserState, func)
     """ Not <- '!'? Element
     """
     if read(state) == '!'

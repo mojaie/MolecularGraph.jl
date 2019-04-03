@@ -4,41 +4,30 @@
 #
 
 export
-    ancestors,
-    descendants,
+    descendants, ancestors,
     topologicalsort
 
 
-function ancestors(graph::DirectedGraph, idx::Int)
-    rev = reversegraph(graph)
-    return reachablenodes(rev, idx)
-end
-
-
-function descendants(graph::DirectedGraph, idx::Int)
-    return reachablenodes(graph, idx)
-end
+descendants(graph::DirectedGraph, idx::Int) = reachablenodes(graph, idx)
+ancestors(graph::DirectedGraph, idx::Int) = reversereachablenodes(graph, idx)
 
 
 function topologicalsort(graph::DirectedGraph)
+    # TODO: cache
     result = Int[]
-    stack = [i for i in nodekeys(graph) if indegree(graph, i) == 0]
+    stack = [i for i in nodeset(graph) if indegree(graph, i) == 0]
     used = Set{Int}()
     while !isempty(stack)
         n = pop!(stack)
         push!(result, n)
-        for (s, edge) in outneighbors(graph, n)
-            if edge in used
-                continue
-            end
-            push!(used, edge)
-            if isempty(setdiff(in_incidences(graph, s), used))
-                push!(stack, s)
+        for (ninc, nadj) in outneighbors(graph, n)
+            ninc in used && continue
+            push!(used, ninc)
+            if isempty(setdiff(in_incidences(graph, nadj), used))
+                push!(stack, nadj)
             end
         end
     end
-    if edgecount(graph) != length(used)
-        throw(ErrorException("cycle found"))
-    end
+    edgecount(graph) == length(used) || throw(ErrorException("cycle found"))
     return result
 end

@@ -4,9 +4,7 @@
 #
 
 @testset "graph.dag" begin
-
-@testset "dag" begin
-    graph = digraph(10, [
+    graph = plaindigraph(10, [
         (1, 4), (2, 4), (3, 7), (4, 5), (4, 6),
         (4, 7), (6, 9), (7, 8), (7, 9), (7, 10)
     ])
@@ -14,7 +12,5 @@
     @test issetequal(descendants(graph, 4), [5, 6, 7, 8, 9, 10])
     nodes = topologicalsort(graph)
     @test nodes[4] == 4
-    @test nodes[end] in [8, 9, 10]
-end
-
+    @test nodes[end] in [5, 8, 9, 10]
 end # graph.shortestpath

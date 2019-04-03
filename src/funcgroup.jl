@@ -4,8 +4,8 @@
 #
 
 export
-    FunctionalGroup,
-    functionalgroup
+    FunctionalGroupClassifier,
+    functionalgroupgraph
 
 
 function funcgrouptable()
@@ -34,97 +34,96 @@ end
 
 
 struct FGRelationEdge <: DirectedEdge
-    source::Int
-    target::Int
     relation::Symbol
 end
 
 
-struct FunctionalGroup
-    nodeset::Dict{Symbol,Set{Set{Int}}}
-    graph::DiGraph{FGTermNode,FGRelationEdge}
+struct FunctionalGroupClassifier <: DirectedGraph
+    outneighbormap::Vector{Dict{Int,Int}}
+    inneighbormap::Vector{Dict{Int,Int}}
+    edges::Vector{Tuple{Int,Int}}
+    nodeattrs::Vector{FGTermNode}
+    edgeattrs::Vector{FGRelationEdge}
+    componentmap::Dict{Symbol,Set{Set{Int}}}
 
-    function FunctionalGroup()
-        new(Dict(), DiGraph{FGTermNode,FGRelationEdge}())
-    end
+    FunctionalGroupClassifier() = new([], [], [], [], [], Dict())
+end
+
+FGC = FunctionalGroupClassifier
+
+
+getterm(graph::FGC, term::Symbol) = graph.componentmap[term]
+hasterm(graph::FGC, term::Symbol) = haskey(graph.componentmap, term)
+
+function setterm!(graph::FGC, term::Symbol, component::Set{Set{Int}})
+    graph.componentmap[term] = component
 end
 
 
-function functionalgroup(mol::VectorMol)
-    fg = FunctionalGroup()
-    fggraphidx = Dict{Symbol,Int}()
-    ncnt = 0
-    ecnt = 0
+function functionalgroupgraph(mol::GraphMol)
+    fgc = FunctionalGroupClassifier()
+    termidmap = Dict{Symbol,Int}()
     for rcd in FUNC_GROUP_TABLE
-        fgset = fgrouprecord(mol, fg, rcd)
-        fgkey = Symbol(rcd["key"])
-        fg.nodeset[fgkey] = fgset
-        # Update ontology graph
-        if !isempty(fgset)
-            ncnt += 1
-            fggraphidx[fgkey] = ncnt
-            updatenode!(fg.graph, FGTermNode(fgkey), ncnt)
-            if "have" in keys(rcd)
-                for k in rcd["have"]
-                    ecnt += 1
-                    e = FGRelationEdge(fggraphidx[Symbol(k)], ncnt, :partof)
-                    updateedge!(fg.graph, e, ecnt)
-                end
+        components = fgrouprecord(mol, fgc, rcd)
+        isempty(components) && continue
+        term = Symbol(rcd["key"])
+        setterm!(fgc, term, components)
+        # Update class graph
+        termid = addnode!(fgc, FGTermNode(term))
+        termidmap[term] = termid
+        if haskey(rcd, "have")
+            for k in rcd["have"]
+                parent = termidmap[Symbol(k)]
+                addedge!(fgc, parent, termid, FGRelationEdge(:partof))
             end
-            if "isa" in keys(rcd)
-                for k in rcd["isa"]
-                    ecnt += 1
-                    e = FGRelationEdge(ncnt, fggraphidx[Symbol(k)], :isa)
-                    updateedge!(fg.graph, e, ecnt)
-                end
+        end
+        if haskey(rcd, "isa")
+            for k in rcd["isa"]
+                child = termidmap[Symbol(k)]
+                addedge!(fgc, termid, child, FGRelationEdge(:isa))
             end
         end
     end
-    return fg
+    return fgc
 end
 
 
-function fgrouprecord(mol::VectorMol, fg, rcd)
-    fgsetmap = fg.nodeset
+function fgrouprecord(mol::GraphMol, fgc::FGC, rcd)
     newset = Set{Set{Int}}()
     # Membership filter
-    if "have" in keys(rcd)
+    if haskey(rcd, "have")
         for k in rcd["have"]
-            if isempty(fgsetmap[Symbol(k)])
-                return newset
+            if !hasterm(fgc, Symbol(k))
+                return Set{Set{Int}}()
             end
         end
     end
     # Substructure match
-    if "isa" in keys(rcd)
+    if haskey(rcd, "isa")
         q = parse(SMARTS, rcd["query"])
+        allset = Set{Set{Int}}[]
         for k in rcd["isa"]
-            refset = fgsetmap[Symbol(k)]
+            hasterm(fgc, Symbol(k)) || continue
+            refset = getterm(fgc, Symbol(k))
             eachset = Set{Set{Int}}()
             for s in refset
                 subst = nodesubgraph(mol, s)
-                for (emap, nmap) in fastquerymatchiter(subst, q, mode=:graph)
-                    if !isempty(emap) || !isempty(nmap)
-                        push!(eachset, s)
-                    end
+                if isqueryidentical(subst, q)
+                    push!(eachset, s)
                 end
             end
-            if isempty(newset)
-                union!(newset, eachset)
-            else
-                intersect!(newset, eachset)
-            end
+            push!(allset, eachset)
         end
-    else
-        union!(newset, fgroupcond(mol, rcd))
+        isempty(allset) && return Set{Set{Int}}()
+        return intersect(allset...)
     end
-    return newset
+    return fgroupcond(mol, rcd)
 end
 
 
-function fgroupcond(mol::VectorMol, rcd)
+function fgroupcond(mol::GraphMol, rcd)
     newset = Set{Set{Int}}()
-    if "any" in keys(rcd)
+    if haskey(rcd, "any")
         for query in rcd["any"]
             union!(newset, fgroupquery(mol, query))
         end
@@ -135,12 +134,12 @@ function fgroupcond(mol::VectorMol, rcd)
 end
 
 
-function fgroupquery(mol::VectorMol, query)
+function fgroupquery(mol::GraphMol, query)
     q = parse(SMARTS, query)
     newset = Set{Set{Int}}()
-    for (emap, nmap) in fastquerymatchiter(mol, q)
+    for (emap, nmap) in fastquerymatches(mol, q)
         if !isempty(emap)
-            esub = edgesubgraph(mol.graph, keys(emap))
+            esub = edgesubgraph(mol, Set(keys(emap)))
             push!(newset, nodeset(esub))
         elseif !isempty(nmap)
             push!(newset, keys(nmap))
@@ -151,44 +150,39 @@ end
 
 
 
-function largestcomponents(fg::FunctionalGroup)
+function largestcomponents(fgc::FGC)
     components = Dict{Symbol,Set{Set{Int}}}()
-    ontnodes = topologicalsort(fg.graph)
-    for n in ontnodes
+    nodesinorder = topologicalsort(fgc)
+    for n in nodesinorder
         rmset = Set{Set{Int}}()
-        nterm = getnode(fg.graph, n).term
-        for (s, e) in outneighbors(fg.graph, n)
-            rel = getedge(fg.graph, e)
-            if rel.relation != :partof
-                continue
-            end
-            ansterm = getnode(fg.graph, s).term
-            ansset = union(fg.nodeset[ansterm]...)
-            for nset in fg.nodeset[nterm]
+        nterm = nodeattr(fgc, n).term
+        ncomp = getterm(fgc, nterm)
+        for (oute, succ) in outneighbors(fgc, n)
+            rel = edgeattr(fgc, oute)
+            rel.relation == :partof || continue
+            ansterm = nodeattr(fgc, succ).term
+            ansset = union(getterm(fgc, ansterm)...)
+            for nset in ncomp
                 if isempty(setdiff(nset, ansset))
                     push!(rmset, nset)
                 end
             end
         end
-        components[nterm] = setdiff(fg.nodeset[nterm], rmset)
+        components[nterm] = setdiff(ncomp, rmset)
     end
-    for n in ontnodes
+    for n in nodesinorder
         rmset = Set{Set{Int}}()
-        nterm = getnode(fg.graph, n).term
-        for (s, e) in outneighbors(fg.graph, n)
-            rel = getedge(fg.graph, e)
-            if rel.relation != :isa
-                continue
-            end
-            ansterm = getnode(fg.graph, s).term
+        nterm = nodeattr(fgc, n).term
+        for (oute, succ) in outneighbors(fgc, n)
+            rel = edgeattr(fgc, oute)
+            rel.relation == :isa || continue
+            ansterm = nodeattr(fgc, succ).term
             intersect!(components[nterm], components[ansterm])
         end
-        for (p, e) in inneighbors(fg.graph, n)
-            rel = getedge(fg.graph, e)
-            if rel.relation != :isa
-                continue
-            end
-            descterm = getnode(fg.graph, p).term
+        for (ine, pred) in inneighbors(fgc, n)
+            rel = edgeattr(fgc, ine)
+            rel.relation == :isa || continue
+            descterm = nodeattr(fgc, pred).term
             setdiff!(components[nterm], components[descterm])
         end
     end

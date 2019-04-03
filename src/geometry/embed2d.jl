@@ -61,11 +61,11 @@ end
 
 
 """
-    is_outerplanar(mol::VectorMol) -> Bool
+    is_outerplanar(mol::GraphMol) -> Bool
 
 Return whether the graph is outerplanar or not
 """
-function is_outerplanar(mol::VectorMol)
+function is_outerplanar(mol::GraphMol)
     # TODO: generalize and move to graph.planarity
     # The given graph should be a biconnected graph
 
@@ -143,7 +143,7 @@ function cartesian_embed2d(graph)
 end
 
 
-function coords2d(mol::VectorMol, root)
+function coords2d(mol::GraphMol, root)
     # Requires :Topology
     zmatrix = [
         -2 nothing nothing nothing nothing nothing nothing;

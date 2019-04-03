@@ -82,14 +82,14 @@ end
 
 
 """
-    drawsvg(mol::VectorMol, width::Int, height::Int)
+    drawsvg(mol::GraphMol, width::Int, height::Int)
 
 Generate molecular structure image as a SVG format string.
 
 `width` and `height` specifies the size of the image (width and height
 attribute of svg tag).
 """
-function drawsvg(mol::VectorMol, width::Int, height::Int)
+function drawsvg(mol::GraphMol, width::Int, height::Int)
     canvas = SvgCanvas()
     draw2d!(canvas, mol)
     tosvg(canvas, width, height)
@@ -97,13 +97,13 @@ end
 
 
 """
-    boundary(mol::VectorMol) -> (top, left, width, height, unit)
+    boundary(mol::GraphMol) -> (top, left, width, height, unit)
 
 Get boundaries and an appropriate bond length unit for the molecule drawing
 canvas.
 """
-function boundary(mol::VectorMol)
-    coords = mol[:coords2d]
+function boundary(mol::GraphMol)
+    coords = coords2d(mol)
     (left, right) = extrema(x_components(coords))
     (bottom, top) = extrema(y_components(coords))
     width = right - left
@@ -129,13 +129,13 @@ end
 
 
 """
-    initcanvas!(canvas::Canvas, mol::VectorMol)
+    initcanvas!(canvas::Canvas, mol::GraphMol)
 
 Move and adjust the size of the molecule for drawing.
 """
-function initcanvas!(canvas::Canvas, mol::VectorMol)
+function initcanvas!(canvas::Canvas, mol::GraphMol)
     nodecount(mol) == 0 && return
-    coords = rawdata(mol[:coords2d])
+    coords = rawdata(coords2d(mol))
     (top, left, width, height, unit) = boundary(mol)
     sf = canvas.scalef / unit
     canvas.coords = cartesian2d(

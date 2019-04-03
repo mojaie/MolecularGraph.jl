@@ -6,66 +6,51 @@
 
 - (AbstractGraph)
   - (UndirectedGraph)
-    - VectorGraph
-    - MapGraph(deprecated)
-    - (GraphView)
-      - (GraphMol)
-      - SubgraphView
-      - ComplementGraphView
+    - (OrderedGraph)
+      - PlainGraph
+      - GraphMol{Atom,Bond}
+        - SDFile (Alias of GraphMol{SDFileAtom,SDFileBond})
+        - SMILES (Alias of GraphMol{SmilesAtom,SmilesBond})
+      - QueryMol{QueryAtom,QueryBond}
+        - SMARTS (Alias of QueryMol{SmartsAtom,SmartsBond})
+      - LineGraph{OrderedGraph}
+      - ModularProductGraph{OrderedGraph}
+    - SubgraphView{UndirectedGraph}
   - (DirectedGraph)
-    - DiGraph
-    - (DiGraphView)
-      - DiSubgraphView
-      - ComplementDiGraphView
-      - ReverseGraphView
-  - MultiGraph
-  - MultiDiGraph
+    - (OrderedDiGraph)
+      - DiGraph
+      - FunctionalGroupClassGraph
+    - DiSubgraphView{DirectedGraph}
   - HyperGraph
-  - (GView) (Union{GraphView,DiGraphView})
 
 
-## Molecule type hierarchy
+### AbstractGraph methods
 
-- (GraphMol)
-  - (GeneralMol)
-    - VectorMol{A<:Atom, B<:Bond}
-      - SDFile (Alias of VectorMol{SDFileAtom, SDFileBond})
-      - SMILES (Alias of VectorMol{SmilesAtom, SmilesBond})
-    - (GeneralMolView)
-      - SubstructureView{T<:VectorGraph}
-  - MapMol(deprecated)
-  - QueryMol
-    - QueryMol{A<:QueryAtom, B<:QueryBond}
-      - SMARTS (Alias of QueryMol{SmartsAtom, SmartsBond})
+  - getnode, getedge, hasedge
+  - `neighbors` and its derivatives
+  - nodecount
+  - edgecount
+  - nodeset
+  - edgeset
 
 
+### DirectedGraph methods
 
-#### Methods
-
-- getatom
-- getbond
-- neighbors
-- neighborcount (or degree)
-- atomcount
-- bondcount
-- updateatom!
-- updatebond!
-- unlinkatom!
-- unlinkbond!
+  - `outneighbors` and `inneighbors`
 
 
-### VectorMol
+### OrderedGraph methods
 
-`VectorMol` is vector(array)-based molecular model which is specialized for element-wise fast computation of molecular properties.
+  - nodekeys(values)
+  - edgekeys(values)
+  - nodesiter
+  - edgesiter
 
-`VectorMol` can iterate over atom properties faster than `MapMol`and can store calculated molecular properties and annotation arrays which are suitable for vector computation. On the other hand, `VectorMol` does not have abilities to modify its graph structure (adding or removing elements). `VectorMol` can be converted to `MapMol` but the calculated properties and annotations will be lost.
 
+### OrderedGraph
 
-### MapMol
+`GraphMol` is vector(array)-based molecular model which can be used for element-wise fast computation of molecular properties. This is a subtype of `OrderedGraph`
 
-`MapMol` is used as a molecular model builder for general purpose.
-
-This type inherits `AbstractMapMol`, a molecular graph model which have map(dict)-based structure. The map-based molecular graph can insert and delete elements (atoms and bonds). This can be easily converted to `VectorMol` object by using `vectormol` method
 
 
 ### QueryMol
@@ -74,24 +59,26 @@ This type inherits `AbstractMapMol`, a molecular graph model which have map(dict
 
 
 
-## Atom
+## Node type hierarchy
 
-- AbstractNode
-  - AbstractAtom
-    - Atom
-      - SDFileAtom
-      - SmilesAtom
-    - QueryAtom
-      - SmartsAtom
-
+- (AbstractNode)
+  - (Atom)
+    - SDFileAtom
+    - SmilesAtom
+  - (QueryAtom)
+    - SmartsAtom
 
 
-## Bond
 
-- AbstractEdge
-  - AbstractBond
-    - Bond
+## Edge type hierarchy
+
+- (AbstractEdge)
+  - (UndirectedEdge)
+    - Edge
+    - (Bond)
       - SDFileBond
       - SmilesBond
-    - QueryBond
+    - (QueryBond)
       - SmartsBond
+  - (DirectedEdge)
+    - Arrow

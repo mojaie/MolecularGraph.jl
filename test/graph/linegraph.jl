@@ -4,12 +4,13 @@
 #
 
 @testset "graph.linegraph" begin
-
-@testset "linegraph" begin
-    G = vectorgraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
-    L = linegraph(G)
-    @test nodecount(L) == 5
-    @test edgecount(L) == 7
-end
-
+    p5L = linegraph(pathgraph(5))
+    @test nodecount(p5L) == 4
+    @test edgecount(p5L) == 3
+    c5L = linegraph(cyclegraph(5))
+    @test nodecount(c5L) == 5
+    @test edgecount(c5L) == 5
+    lad5L = linegraph(laddergraph(5))
+    @test nodecount(lad5L) == 13
+    @test edgecount(lad5L) == 22
 end # graph.linegraph

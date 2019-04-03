@@ -4,69 +4,61 @@
 #
 
 export
-    is_planar,
-    is_outerplanar
+    isplanar,
+    isouterplanar
+
+
+DataStructure = Vector{Vector{Vector{Int}}}
 
 
 struct DFSState
-    graph::UndirectedGraph # TODO: use type parameter
+    graph::PlainGraph
 
     rank::Dict{Int,Int} # tree node n, dfsindex(n)
-    isthick::Dict{Int,Bool} # edge e, isthick(e)
     inedge::Dict{Int,Int} # tree node n, inedge(n)
+    isthick::Dict{Int,Bool} # edge e, isthick(e)
 
-    treeedge::Vector{Int} # tree edges in dfs order
-    cotree::Set{Int} # cotree edges
+    source::Dict{Int,Int} # edge e, source node dfsindex
     loworder::Dict{Int,Vector{Int}} # tree edge e, list of outedge o in low(o) order
-    source::Dict{Int,Int} # tree edge, source node dfsindex
-    low::Dict{Int,Int} # cotree edge e, low(e)
+    cotree::Dict{Int,Int} # cotree edge e, low(e)
+    treeedge::Vector{Int} # tree edges in dfs order
 
     function DFSState(graph)
-        new(graph, Dict(), Dict(), Dict(), [], Set(), Dict(), Dict(), Dict())
+        new(graph, Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), [])
     end
 end
 
 
-struct DataStructure
-    alike::Vector{Int}
-    opposite::Vector{Int}
-end
-
-DataStructure() = DataStructure([], [])
-DataStructure(cotree::Int) = DataStructure([cotree], [])
-
-
-dfs!(state::DFSState) = dfs!(state, pop!(nodeset(state.graph)))
+dfs!(state::DFSState) = dfs!(state, 1)
 
 function dfs!(state::DFSState, u::Int)
     state.rank[u] = length(state.rank) + 1
     buckets = Dict{Int,Vector{Int}}() # low(e), edges
     lows = Dict{Int,Int}() # edge, lownode(e)
-    for (v, e) in neighbors(state.graph, u)
-        e == get(state.inedge, u, nothing) && continue # Predecessor
-        e in state.cotree && continue # Visited
-        if !(v in keys(state.rank))
+    for (inc, adj) in neighbors(state.graph, u)
+        inc == get(state.inedge, u, nothing) && continue # Predecessor
+        haskey(state.cotree, inc) && continue # Visited
+        state.source[inc] = state.rank[u]
+        if !haskey(state.rank, adj)
             # Tree node
-            push!(state.treeedge, e)
-            state.source[e] = state.rank[u]
-            state.inedge[v] = e
-            low = dfs!(state, v)
+            push!(state.treeedge, inc)
+            state.inedge[adj] = inc
+            low = dfs!(state, adj)
         else
             # Cotree node
-            low = v
-            push!(state.cotree, e)
-            state.low[e] = state.rank[v]
-            state.isthick[e] = false
+            low = adj
+            state.cotree[inc] = state.rank[adj]
+            state.isthick[inc] = false
         end
-        lows[e] = low
+        lows[inc] = low
         rank = state.rank[low]
-        rank in keys(buckets) || (buckets[rank] = Int[])
-        push!(buckets[rank], e)
+        haskey(buckets, rank) || (buckets[rank] = Int[])
+        push!(buckets[rank], inc)
     end
-    u in keys(state.inedge) || return # Root
+    u == 1 && return # Root
     # low(e) ordering
     inedge = state.inedge[u]
-    fringes = [i for i in values(state.low) if i < state.rank[u]]
+    fringes = [i for i in values(state.cotree) if i < state.rank[u]]
     state.isthick[inedge] = length(unique(fringes)) > 1
     sorted = Int[]
     for k in sort(collect(keys(buckets)))
@@ -77,42 +69,128 @@ function dfs!(state::DFSState, u::Int)
 end
 
 
-function monochromatic(a, b, state)
-    return isempty(a) || isempty(b) || state.low[a[end]] <= state.low[b[1]]
-end
-
-
-function merge!(ds1::DataStructure, ds2::DataStructure, state::DFSState)
-    if isempty(ds1.alike) && isempty(ds1.opposite)
-        # Initialize
-        append!(ds1.alike, ds2.alike)
-        append!(ds1.opposite, ds2.opposite)
+function merge!(ds1::DataStructure, ds2::DataStructure,
+        cotree::Dict{Int,Int}; verbose=false)
+    if isempty(ds1)
+        append!(ds1, ds2)
+        verbose && println("Trunk cells")
         return true
     end
-    if monochromatic(ds1.alike, ds2.alike, state)
-        append!(ds1.alike, ds2.alike)
-        isempty(ds2.opposite) && return true
-    elseif monochromatic(ds1.opposite, ds2.alike, state)
-        append!(ds1.opposite, ds2.alike)
-        isempty(ds2.opposite) && return true
+    monoc(a, b) = cotree[a[end]] <= cotree[b[1]]
+    branch = Int[]
+    rootcells = DataStructure()
+    # Collect branch cells
+    for (alike, oppo) in ds2
+        if !isempty(oppo)
+            verbose && println("Not planer: dichromatic branch found")
+            return false
+        end
+        if length(alike) == 1 && cotree[ds1[1][1][1]] == cotree[alike[1]]
+            c = Vector{Int}[alike, []]
+            verbose && println("Root cell $(c)")
+            push!(rootcells, c)
+        else
+            append!(branch, alike)
+        end
     end
-    return false
+    if isempty(branch)
+        prepend!(ds1, rootcells)
+        return true
+    end
+    # Merge branch into trunk
+    for (i, cell) in enumerate(ds1)
+        (alike, oppo) = cell
+        if monoc(alike, branch)
+            if isempty(oppo) || monoc(oppo, branch)
+                verbose && println("Next cell")
+                continue
+            else
+                append!(alike, branch)
+                verbose && println("Merge alike")
+                prepend!(ds1, rootcells)
+                return true
+            end
+        else
+            if isempty(oppo)
+                # Collect higher trunk cells
+                for (halike, hoppo) in ds1[i:end]
+                    if !isempty(hoppo)
+                        verbose && println("Not planer: dichromatic branch found")
+                        return false
+                    else
+                        append!(oppo, halike)
+                    end
+                end
+                newds = ds1[1:i-1]
+                push!(newds, [branch, oppo])
+                empty!(ds1)
+                append!(ds1, newds)
+                verbose && println("New opposite")
+                prepend!(ds1, rootcells)
+                return true
+            elseif monoc(oppo, branch)
+                append!(oppo, branch)
+                verbose && println("Merge opposite")
+                prepend!(ds1, rootcells)
+                return true
+            else
+                verbose && println("Not planar: trichromatic")
+                return false
+            end
+        end
+    end
+    verbose && println("Next cell")
+    push!(ds1, Vector{Int}[branch, []])
+    prepend!(ds1, rootcells)
+    return true
 end
 
 
-function remove!(ds::DataStructure, state::DFSState, edges)
-    setdiff!(ds.alike, edges)
-    setdiff!(ds.opposite, edges)
-    if (monochromatic(ds.alike, ds.opposite, state)
-            || monochromatic(ds.opposite, ds.alike, state))
-        append!(ds.alike, ds.opposite)
-        empty!(ds.opposite)
+function remove!(ds::DataStructure, edges)
+    newds = DataStructure()
+    for cell in ds
+        (alike, oppo) = cell
+        setdiff!(alike, edges)
+        setdiff!(oppo, edges)
+        if !isempty(alike)
+            push!(newds, cell)
+        end
     end
+    empty!(ds)
+    append!(ds, newds)
+end
+
+
+function planaritytest(graph::OrderedGraph; verbose=false)
+    # Do DFS to determine treeedge, cotree, loworder, source
+    state = DFSState(graph)
+    dfs!(state)
+    verbose && println(state)
+
+    # L-R check
+    ds = Dict(c => Vector{Vector{Int}}[[[c], []]] for c in keys(state.cotree))
+    while !isempty(state.treeedge)
+        e = pop!(state.treeedge)
+        ds[e] = DataStructure()
+        for i in state.loworder[e]
+            verbose && println("stem: $(i), ds: $(ds[i])")
+            if !merge!(ds[e], ds[i], state.cotree, verbose=verbose)
+                empty!(state.treeedge)
+                return false
+            end
+        end
+        verbose && println("inedge: $(e), ds: $(ds[e])")
+        finished = filter(
+            x -> state.cotree[x] == state.source[e], keys(state.cotree))
+        verbose && println("finished: $(finished)\n")
+        remove!(ds[e], finished)
+    end
+    return true
 end
 
 
 """
-    is_planar(graph::UndirectedGraph) -> Bool
+    isplanar(graph::UndirectedGraph) -> Bool
 
 Return whether the graph is planar.
 
@@ -122,53 +200,31 @@ Return whether the graph is planar.
    European Journal of Combinatorics, 33(3), 279–293.
    https://doi.org/10.1016/j.ejc.2011.09.012
 """
-function is_planar(graph::UndirectedGraph)
-    # Fast filter
-    edgecount(graph) < 9 && return true
-    edgecount(graph) > nodecount(graph) * 3 - 6 && return false
-
-    # TODO: if not biconnected, decompose it into biconnected components
-    g = mapgraph(graph) # TODO: does this improve performance?
-    # Do DFS to determine treeedge, cotree, loworder, source, low
-    state = DFSState(g)
-    dfs!(state)
-    # println(state)
-    # L-R check
-    ds = Dict(c => DataStructure(c) for c in state.cotree)
-    for e in reverse(state.treeedge)
-        ds[e] = DataStructure()
-        for i in state.loworder[e]
-            # println("stem: $(i), alike: $(ds[i].alike), oppo: $(ds[i].opposite)")
-            merge!(ds[e], ds[i], state) || return false
-        end
-        # println("head: $(n), arrow: $(e), alike: $(ds[e].alike), oppo: $(ds[e].opposite)")
-        finished = filter(x -> state.low[x] == state.source[e], state.cotree)
-        # println("finished: $(finished)")
-        remove!(ds[e], state, finished)
+function isplanar(graph::UndirectedGraph; fastfilter=true, verbose=false)
+    if fastfilter
+        edgecount(subg) < 9 && return true
+        edgecount(subg) > nodecount(subg) * 3 - 6 && return false
     end
-    return true
+    return planaritytest(plaingraph(graph), verbose=verbose)
 end
 
 
 """
-    is_outerplanar(graph::UndirectedGraph) -> Bool
+    isouterplanar(graph::UndirectedGraph) -> Bool
 
 Return whether the graph is outerplanar. The outerplanarity test is based on
-a planarity test (see [`is_planar`](@ref)).
+a planarity test (see [`isplanar`](@ref)).
 """
-function is_outerplanar(graph::UndirectedGraph)
-    # Fast filter
-    edgecount(graph) < 6 && return true
-    edgecount(graph) > nodecount(graph) * 2 - 3 && return false
-
-    g = mapgraph(graph)
-    nkeys = nodekeys(g)
-    newnode = nodecount(g) + 1
-    updatenode!(g, nodetype(g)(), newnode)
-    ecnt = edgecount(g)
-    for n in nkeys
-        ecnt += 1
-        updateedge!(g, edgetype(g)(newnode, n), ecnt)
+function isouterplanar(graph::UndirectedGraph; fastfilter=true, verbose=false)
+    if fastfilter
+        edgecount(subg) < 6 && return true
+        edgecount(subg) > nodecount(subg) * 2 - 6 && return false
     end
-    return is_planar(g)
+    # Add a node connects all other nodes
+    newg = plaingraph(graph)
+    newnode = addnode!(newg)
+    for n in nodeset(graph)
+        addedge!(newg, newnode, n)
+    end
+    return planaritytest(newg, verbose=verbose)
 end

@@ -11,27 +11,26 @@ module MolecularGraphUtilTest
 end
 
 
+"""
 module MolecularGraphModelTest
     using Test
     using MolecularGraph.MolecularGraphModel
 
+    include("./graph/dfs.jl")
+    include("./graph/shortestpath.jl")
     include("./graph/generator.jl")
-    include("./graph/ugraph.jl")
-    include("./graph/dgraph.jl")
-    include("./graph/multigraph.jl")
 
-    include("./graph/view/inducedsubgraph.jl")
-    include("./graph/view/reversegraph.jl")
-
-    include("./graph/merge.jl")
+    include("./graph/plaingraph.jl")
+    include("./graph/plaindigraph.jl")
+    include("./graph/inducedsubgraph.jl")
+    include("./graph/connectivity.jl")
+    include("./graph/disjointunion.jl")
     include("./graph/linegraph.jl")
     include("./graph/dag.jl")
 
-    include("./graph/shortestpath.jl")
     include("./graph/triangle.jl")
     include("./graph/clique.jl")
     include("./graph/bipartite.jl")
-    include("./graph/connectivity.jl")
     include("./graph/cycle.jl")
     include("./graph/planarity.jl")
     include("./graph/modularproduct.jl")
@@ -50,7 +49,7 @@ module MolecularGraphGeometryTest
     include("./geometry/coords3d.jl")
     include("./geometry/coordsinternal.jl")
 end
-
+"""
 
 module MolecularGraphTest
     using Test
@@ -72,12 +71,12 @@ module MolecularGraphTest
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
-    include("preprocess.jl")
-    include("substructure.jl")
-    include("mcs.jl")
     include("properties.jl")
+    include("preprocess.jl")
     include("wclogp.jl")
+    include("substructure.jl")
     include("funcgroup.jl")
+    include("mcs.jl")
 
     include("./draw/base.jl")
     include("./draw/svg.jl")

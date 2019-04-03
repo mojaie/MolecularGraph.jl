@@ -305,7 +305,7 @@
 - key: Alkylbromide
   isa: [Alkylhalide]
   query: "CBr"
-- key: Alkyliodoide
+- key: Alkyliodide
   isa: [Alkylhalide]
   query: "CI"
 
@@ -320,7 +320,7 @@
 - key: Arylbromide
   isa: [Arylhalide]
   query: "cBr"
-- key: Aryliodoide
+- key: Aryliodide
   isa: [Arylhalide]
   query: "cI"
 
@@ -340,7 +340,7 @@
   isa: [Acylhalide]
   query: "C(=O)Br"
 - key: Acyliodide
-  have: [Alkyliodoide]
+  have: [Alkyliodide]
   isa: [Acylhalide]
   query: "C(=O)I"
 

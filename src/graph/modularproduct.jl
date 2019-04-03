@@ -16,57 +16,56 @@ end
 
 
 struct ModularProductEdge <: UndirectedEdge
-    u::Int
-    v::Int
     hasedge::Bool
 end
 
 
-ModularProduct = MapGraph{ModularProductNode,ModularProductEdge}
+struct ModularProduct <: OrderedGraph
+    neighbormap::Vector{Dict{Int,Int}}
+    edges::Vector{Tuple{Int,Int}}
+    nodeattrs::Vector{ModularProductNode}
+    edgeattrs::Vector{ModularProductEdge}
+    cache::Dict{Symbol,Any}
+end
 
 
 """
-    modularproduct(G::UndirectedGraph, H::UndirectedGraph) -> MapGraph
+    modularproduct(T1::OrderedGraph, T2::OrderedGraph) -> ModularProduct
 
 Return the modular product of graphs G and H.
 """
-function modularproduct(G::UndirectedGraph, H::UndirectedGraph,
-        nodematcher=(g,h)->true, edgefilter=edgefilter(G, H))
-    product = ModularProduct()
+function modularproduct(G::OrderedGraph, H::OrderedGraph,
+            nodematcher=(g,h)->true, edgefilter=edgefilter(G, H)
+        ) where {T1<:OrderedGraph,T2<:OrderedGraph}
+    # TODO: addnode, addedge
+    product = ModularProduct([], [], [], [], Dict())
     ncnt = 0
     ndict = Dict{Int,Dict{Int,Int}}() # Ref to node indices of the product
     # Modular product nodes
-    for g in nodekeys(G)
+    nattrs = ModularProductNode[]
+    for g in 1:nodecount(G)
         ndict[g] = Dict{Int,Int}()
-        for h in nodekeys(H)
-            ncnt += 1
-            n = ModularProductNode(g, h)
-            updatenode!(product, n, ncnt)
-            ndict[g][h] = ncnt
+        for h in 1:nodecount(H)
+            ndict[g][h] = addnode!(product, ModularProductNode(g, h))
         end
     end
-    if nodecount(G) < 2 || nodecount(H) < 2
-        return product
-    end
+    (nodecount(G) < 2 || nodecount(H) < 2) && return product
     # Modular product edges
     ecnt = 0
-    for (g1, g2) in combinations(nodekeys(G))
-        for (h1, h2) in combinations(nodekeys(H))
-            if !edgefilter(g1, g2, h1, h2)
-                continue
-            end
+    for (g1, g2) in combinations(1:nodecount(G))
+        for (h1, h2) in combinations(1:nodecount(H))
+            edgefilter(g1, g2, h1, h2) || continue
             if nodematcher(g1, h1) && nodematcher(g2, h2)
-                # TODO: hasedge
-                e = ModularProductEdge(
-                    ndict[g1][h1], ndict[g2][h2], g2 in adjacencies(G, g1))
-                ecnt += 1
-                updateedge!(product, e, ecnt)
+                addedge!(
+                    product, ndict[g1][h1], ndict[g2][h2],
+                    ModularProductEdge(hasedge(G, g1, g2))
+                )
             end
             if nodematcher(g1, h2) && nodematcher(g2, h1)
-                e = ModularProductEdge(
-                    ndict[g1][h2], ndict[g2][h1], g2 in adjacencies(G, g1))
-                ecnt += 1
-                updateedge!(product, e, ecnt)
+                addedge!(
+                    product, ndict[g1][h2], ndict[g2][h1],
+                    ModularProductEdge(hasedge(G, g1, g2))
+                )
             end
         end
     end
@@ -75,7 +74,5 @@ end
 
 
 function edgefilter(G, H)
-    return function (g1, g2, h1, h2)
-        return (g2 in adjacencies(G, g1)) == (h2 in adjacencies(H, h1))
-    end
+    return (g1, g2, h1, h2) -> hasedge(G, g1, g2) == hasedge(H, h1, h2)
 end

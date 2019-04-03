@@ -1,25 +1,25 @@
 
 @testset "wclogp" begin
 
-@testset "wildman_crippen_logp" begin
+@testset "wclogp" begin
     # Wildman and Crippen 1999, Table.2
     mol1 = smilestomol("C=1C=CC=C(OC)C=1O")
-    @test mol1[:wclogptype] == [
+    @test wclogptype(mol1) == [
         :C18, :C18, :C18, :C18, :C23, :O4, :C3, :C23, :O2
     ]
-    @test wildman_crippen_logp(mol1) == 1.40
+    @test wclogp(mol1) == 1.40
 
     mol2 = smilestomol("C1=CC=CC=C1C2=CC=CC=N2")
-    @test mol2[:wclogptype] == [
+    @test wclogptype(mol2) == [
         :C18, :C18, :C18, :C18, :C18, :C20, :C20,
         :C18, :C18, :C18, :C18, :N11
     ]
-    @test wildman_crippen_logp(mol2) == 2.75
+    @test wclogp(mol2) == 2.75
 
     # Test molecules
     TESTMOL_DIR = joinpath(dirname(@__FILE__), "..", "assets", "test")
     aliphatic = sdftomol(open(joinpath(TESTMOL_DIR, "wctype_C_alip.mol")))
-    @test aliphatic[:wclogptype] == [
+    @test wclogptype(aliphatic) == [
         :C2, :C1, :C7, :C4, :N2, :C3, :N1, :C7, :C5, :O9,
         :C27, :Me1, :C27, :C27, :C27, :H1, :C6, :C26, :C21, :C21,
         :N12, :C18, :C21, :C21, :C11, :O3, :C12, :C1, :C1, :C1,
@@ -27,21 +27,21 @@
     ]
 
     aromatic = sdftomol(open(joinpath(TESTMOL_DIR, "wctype_C_arom.mol")))
-    @test aromatic[:wclogptype] == [
+    @test wclogptype(aromatic) == [
         :C21, :C23, :C22, :C24, :C19, :C19, :C14, :C20, :C25, :O1,
         :O8, :O2, :N3, :S1, :C20, :C15, :C16, :C17, :C13, :C18,
         :Cl, :Br, :I, :C8, :P, :F
     ]
 
     nitrogen = sdftomol(open(joinpath(TESTMOL_DIR, "wctype_N.mol")))
-    @test nitrogen[:wclogptype] == [
+    @test wclogptype(nitrogen) == [
         :N11, :C21, :C22, :C18, :C22, :C22, :N4, :C4, :N8, :C4,
         :N6, :N7, :N5, :C3, :N13, :C3, :C3, :C3, :C3, :N6,
         :N10, :C7, :N9, :N14, :N14
     ]
 
     oands = sdftomol(open(joinpath(TESTMOL_DIR, "wctype_OS.mol")))
-    @test oands[:wclogptype] == [
+    @test wclogptype(oands) == [
         :S2, :C4, :N13, :P, :C4, :O6, :O5, :O7, :C5, :O9,
         :O3, :C5, :O4, :C23, :S3, :C23, :C24, :C21, :O2, :O11,
         :C5, :O12, :O10, :O4, :S1, :O2, :O2

@@ -10,7 +10,7 @@ export
 
 
 """
-    mcssize(mol1::AbstractMol, mol2::AbstractMol, subgraphtype=:EdgeInduced;
+    mcssize(mol1::GraphMol, mol2::GraphMol, subgraphtype=:EdgeInduced;
             atommatcher=atommatch, bondmatcher=bondmatch,
             timeout=60, kwargs...) -> Int
 
@@ -32,17 +32,17 @@ function mcssize(mol1, mol2; subgraphtype=:EdgeInduced,
     afunc = atommatcher(mol1, mol2)
     bfunc = bondmatcher(mol1, mol2)
     mcs = maximumcommonsubgraph(
-        mol1.graph, mol2.graph, subgraphtype=subgraphtype,
+        mol1, mol2, subgraphtype=subgraphtype,
         nodematcher=afunc, edgematcher=bfunc, timeout=timeout; kwargs...)
     return length(mcs)
 end
 
 
 """
-    mcsmol(mol1::AbstractMol, mol2::AbstractMol; mode=:MCES) -> MapMol
+    mcsmol(mol1::GraphMol, mol2::GraphMol; mode=:MCES) -> MapMol
 
 Return maximum common substructure (MCS) as MolGraphView.
 """
 function mcsview(mol1, mol2; kwargs...)
-    mcs = maximumcommonsubgraph(mol1.graph, mol2.graph; kwargs...)
+    mcs = maximumcommonsubgraph(mol1, mol2; kwargs...)
 end

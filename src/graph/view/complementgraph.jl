@@ -3,6 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# TODO: deprecated
 export
     ComplementGraphView, ComplementDiGraphView,
     complementgraph

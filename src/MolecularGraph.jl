@@ -20,22 +20,17 @@ module MolecularGraph
 
         include("./graph/interface.jl")
 
-        include("./graph/ugraph.jl")
-        include("./graph/dgraph.jl")
-        include("./graph/multigraph.jl")
-        include("./graph/graphutil.jl")
-
-        include("./graph/view/base.jl")
-        include("./graph/view/inducedsubgraph.jl")
-        include("./graph/view/complementgraph.jl")
-        include("./graph/view/reversegraph.jl")
+        include("./graph/plaingraph.jl")
+        include("./graph/plaindigraph.jl")
 
         include("./graph/generator.jl")
-        include("./graph/merge.jl")
         include("./graph/linegraph.jl")
         include("./graph/dag.jl")
+        include("./graph/inducedsubgraph.jl")
         include("./graph/modularproduct.jl")
+        include("./graph/disjointunion.jl")
 
+        include("./graph/dfs.jl")
         include("./graph/shortestpath.jl")
         include("./graph/bipartite.jl")
         include("./graph/triangle.jl")

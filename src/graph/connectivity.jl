@@ -9,53 +9,32 @@ export
     two_edge_connected, two_edge_membership
 
 
-struct ConnectedComponentState{G<:UndirectedGraph}
-    graph::G
-
-    visited::Set{Int}
-    remaining::Set{Int}
-
-    components::Vector{Vector{Int}}
-
-    function ConnectedComponentState{G}(graph) where {G<:UndirectedGraph}
-        new(graph, Set(), nodeset(graph), [])
-    end
-end
-
-
-function dfs!(state::ConnectedComponentState, n)
-    push!(state.visited, n)
-    for nbr in adjacencies(state.graph, n)
-        if !(nbr in state.visited)
-            dfs!(state, nbr)
-        end
-    end
-end
-
-
-function run!(state::ConnectedComponentState)
-    while !isempty(state.remaining)
-        dfs!(state, pop!(state.remaining))
-        push!(state.components, collect(state.visited))
-        setdiff!(state.remaining, state.visited)
-        empty!(state.visited)
-    end
-end
-
-
 """
-    connected_components(graph::UndirectedGraph) -> Vector{Vector{Int}}
+    connected_components(graph::UndirectedGraph) -> Vector{Set{Int}}
 
 Compute connectivity and return sets of the connected components.
 """
 @cache function connected_components(graph::UndirectedGraph)
-    G = typeof(graph)
-    state = ConnectedComponentState{G}(graph)
-    run!(state)
-    return state.components
+    nodes = nodeset(graph)
+    components = Set{Int}[]
+    while !isempty(nodes)
+        root = pop!(nodes)
+        tree = dfstree(adjacencies, graph, root)
+        push!(components, union(keys(tree), [root]))
+        setdiff!(nodes, keys(tree))
+    end
+    return components
 end
 
-@cache function connected_membership(graph::UndirectedGraph)
+connected_components(view::SubgraphView) = connected_components(view.graph)
+
+
+"""
+    connected_membership(graph::OrderedGraph) -> Vector{Int}
+
+Return connected component membership array.
+"""
+@cache function connected_membership(graph::OrderedGraph)
     mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(connected_components(graph))
         for c in conn
@@ -65,60 +44,73 @@ end
     return mem
 end
 
+connected_membership(view::SubgraphView) = connected_membership(view.graph)
 
-struct BiconnectedState{G<:UndirectedGraph}
-    graph::G
+
+struct BiconnectedState{T<:UndirectedGraph}
+    graph::T
 
     pred::Dict{Int,Int}
     level::Dict{Int,Int}
     low::Dict{Int,Int}
-    compbuf::Vector{Int}
 
-    cutvertices::Vector{Int}
+    cutvertices::Set{Int}
     bridges::Vector{Int}
-    biconnected::Vector{Vector{Int}}
+    biconnected::Vector{Set{Int}} # biconnected edges
 
-    function BiconnectedState{G}(graph) where {G<:UndirectedGraph}
-        new(graph, Dict(), Dict(), Dict(), [], [], [], [])
+    function BiconnectedState{T}(graph) where {T<:UndirectedGraph}
+        new(graph, Dict(), Dict(), Dict(), Set(), [], [])
     end
 end
 
+
+function dfs!(state::BiconnectedState, n::Int)
+    state.pred[n] = n
+    dfs!(state, 1, n)
+end
 
 function dfs!(state::BiconnectedState, depth::Int, n::Int)
     state.level[n] = depth
     state.low[n] = depth
-    for (nbr, bond) in neighbors(state.graph, n)
-        if n in keys(state.pred) && nbr == state.pred[n]
-            continue # predecessor
-        elseif !(nbr in keys(state.pred))
+    childcnt = 0
+    compbuf = Set{Int}()
+    for (ninc, nadj) in neighbors(state.graph, n)
+        if !haskey(state.level, nadj)
             # New node
-            state.pred[nbr] = n
-            push!(state.compbuf, n)
-            dfs!(state, depth + 1, nbr)
-            if state.low[nbr] >= state.level[n]
+            childcnt += 1
+            state.pred[nadj] = n
+            comp = dfs!(state, depth + 1, nadj)
+            push!(comp, ninc)
+            if state.low[nadj] >= state.level[n]
                 # Articulation point
-                if state.low[nbr] > state.level[n]
-                    push!(state.bridges, bond) # except for bridgehead
+                if state.low[nadj] > state.level[n]
+                    push!(state.bridges, ninc) # except for bridgehead
                 end
+                push!(state.biconnected, comp)
                 push!(state.cutvertices, n)
-                push!(state.biconnected, copy(state.compbuf))
-                empty!(state.compbuf)
+            else
+                union!(compbuf, comp)
             end
-            state.low[n] = min(state.low[n], state.low[nbr])
-        else
+            state.low[n] = min(state.low[n], state.low[nadj])
+        elseif state.pred[n] != nadj
             # Cycle found
-            state.low[n] = min(state.low[n], state.level[nbr])
+            state.low[n] = min(state.low[n], state.level[nadj])
+            state.pred[nadj] = n
+            push!(compbuf, ninc)
         end
     end
+    if depth == 1 && childcnt < 2
+        delete!(state.cutvertices, n)
+    end
+    return compbuf
 end
 
 
-function findbiconnected(
-        graph::G, sym::Symbol) where {G<:UndirectedGraph}
-    state = BiconnectedState{G}(graph)
+function findbiconnected(graph::T, sym::Symbol) where {T<:UndirectedGraph}
+    state = BiconnectedState{T}(graph)
     nodes = nodeset(graph)
     while !isempty(nodes)
-        dfs!(state, 1, pop!(nodes))
+        dfs!(state, pop!(nodes))
         setdiff!(nodes, keys(state.level))
     end
     if isdefined(graph, :cache)
@@ -141,6 +133,8 @@ Compute biconnectivity and return cut vertices (articulation points).
     return findbiconnected(graph, :cutvertices)
 end
 
+cutvertices(view::SubgraphView) = cutvertices(view.graph)
+
 
 """
     bridges(graph::UndirectedGraph) -> Set{Int}
@@ -151,47 +145,51 @@ Compute biconnectivity and return bridges.
     return findbiconnected(graph, :bridges)
 end
 
+bridges(view::SubgraphView) = bridges(view.graph)
+
 
 """
-    biconnected(graph::UndirectedGraph) -> Vector{Set{Int}}
+    biconnected(graph::UndirectedGraph) -> Vector{Vector{Int}}
 
-Compute biconnectivity and return sets of biconnected components.
+Compute sets of biconnected component edges.
 """
 @cache function biconnected_components(graph::UndirectedGraph)
     return findbiconnected(graph, :biconnected_components)
 end
 
+biconnected_components(view::SubgraphView) = biconnected_components(view.graph)
 
-@cache function biconnected_membership(graph::UndirectedGraph)
-    mem = zeros(Int, nodecount(graph))
+
+@cache function biconnected_membership(graph::OrderedGraph)
+    mem = zeros(Int, edgecount(graph))
     for (i, conn) in enumerate(biconnected_components(graph))
-        for c in conn
-            mem[c] = i
-        end
+        mem[conn] .= i
     end
     return mem
 end
 
+biconnected_membership(view::SubgraphView) = biconnected_membership(view.graph)
+
 
 """
-    two_edge_connected(graph::UndirectedGraph) -> Set{Int}
+    two_edge_connected(graph::UndirectedGraph) -> Vector{Set{Int}}
 
-Compute biconnectivity and return sets of the 2-edge connected components.
-Isolated nodes will be filtered out.
+Compute sets of 2-edge connected component nodes.
 """
 @cache function two_edge_connected(graph::UndirectedGraph)
     cobr = setdiff(edgeset(graph), bridges(graph))
-    comp = connected_components(edgesubgraph(graph, cobr))
-    return comp
+    return connected_components(SubgraphView(graph, nodeset(graph), cobr))
 end
 
+two_edge_connected(view::SubgraphView) = two_edge_connected(view.graph)
 
-@cache function two_edge_membership(graph::UndirectedGraph)
+
+@cache function two_edge_membership(graph::OrderedGraph)
     mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(two_edge_connected(graph))
-        for c in conn
-            mem[c] = i
-        end
+        mem[conn] .= i
     end
     return mem
 end
+
+two_edge_membership(view::SubgraphView) = two_edge_membership(view.graph)

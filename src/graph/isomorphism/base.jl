@@ -4,135 +4,212 @@
 #
 
 export
-    is_isomorphic,
-    is_subgraph,
-    is_edge_subgraph,
-    isomorphism,
-    edgeisomorphism,
-    isomorphismiter,
-    edgeisomorphismiter,
-    maximumcommonsubgraph,
-    delta_y_correction!,
-    delta_y_mismatch,
-    lgnodematcher,
-    lgedgematcher,
-    connectivity
+    graphisomorphism,
+    graphmatches, graphmatch, isgraphmatch,
+    subgraphmatches, subgraphmatch, issubgraphmatch,
+    edgesubgraphmatches, edgesubgraphmatch, isedgesubgraphmatch,
+    mcismap, mcissize, mcesmap, mcessize
+
 
 """
-mode: Isomorphism(VF2), Subgraph(VF2), MCS(Clique)
-subgraphtype: NodeInduced, EdgeInduced  # not for Isomorphism
-algorithm: VF2, Clique
-connectivity: Connected, Disconnected  # MCS only
-constraint: TopologicalConstraint, DiameterRestriction  # MCS only
+    graphisomorphism(G::AbstractGraph, H::AbstractGraph;
+        mode=:Subgraph, algorithm=:VF2, subgraphtype=:NodeInduced,
+        kwargs...) -> Bool
 
-# parameters
+Compute (sub)graph isomorphism.
 
-timeout  # get suboptimal result
-threshold  # get suboptimal result
-nodematcher  # atom
-edgematcher  # bond, Isomorph and Subgraph
-connectivity # MCS only
-mandatory  # VF2 only
-forbidden  # VF2 only
-theta  # Topological only
-diameter  # Diameter only
+## Required parameters:
+
+- algorithm: `:VF2`, `:Clique`
+- mode: `:Isomorphism`(VF2), `:Subgraph`(VF2), `:MCS`(Clique)
+- subgraphtype: `:NodeInduced`, `:EdgeInduced` (for mode=:Subgraph)
+- connectivity: `:Connected`, `:Disconnected`  (for mode=:MCS)
+- constraint: `TopologicalConstraint`, `DiameterRestriction` (for mode=:MCS)
+
+## Optional parameters:
+
+- timeout(Int):
+    return suboptimal result when timed out (second).
+- threshold(Int):
+    return suboptimal result when the given threshold achieved.
+- nodematcher(Function):
+    node matcher function that takes two node indices as arguments.
+- edgematcher(Function):
+    edge matcher function that takes two edge indices as arguments.
+- mandatory(Dict{Int,Int}):
+    mandatory node matches (available for only VF2)
+- forbidden(Dict{Int,Int}):
+    forbidden node matches (available for only VF2)
+- theta(Int):
+    distance mismatch tolerance in topologically constrainted MCS
+- diameter(Int):
+    diameter size in MCS with diameter restriction
 """
-
-
-function is_isomorphic(G, H; kwargs...)
-    return isomorphism(
-        G, H; mode=:Isomorphism, algorithm=:VF2, kwargs...) !== nothing
-end
-
-
-function is_subgraph(G, H; kwargs...)
-    """ True if G is an induced subgraph of H"""
-    return isomorphism(
-        H, G; mode=:Subgraph, subgraphtype=:NodeInduced, algorithm=:VF2,
-        kwargs...) !== nothing
-end
-
-
-function is_edge_subgraph(G, H; kwargs...)
-    """ True if G is an induced subgraph of H"""
-    return isomorphism(
-        H, G; mode=:Subgraph, subgraphtype=:EdgeInduced, algorithm=:VF2,
-        kwargs...) !== nothing
-end
-
-
-function isomorphism(G, H;
-        algorithm=:VF2, subgraphtype=:NodeInduced, kwargs...)
+function graphisomorphism(G::AbstractGraph, H::AbstractGraph;
+        algorithm=:VF2, subgraphtype=:NodeInduced, mode=:Isomorphism, kwargs...)
     if algorithm == :VF2
         if subgraphtype == :NodeInduced
-            isomorphismvf2(G, H, subgraphtype=:NodeInduced; kwargs...)
+            return isomorphismitervf2(
+                G, H, subgraphtype=:NodeInduced, mode=mode; kwargs...)
         elseif subgraphtype == :EdgeInduced
-            edgeisomorphismvf2(G, H, subgraphtype=:EdgeInduced; kwargs...)
+            return edgeisomorphismitervf2(
+                G, H, subgraphtype=:EdgeInduced, mode=mode; kwargs...)
         end
+        # TODO: implement MCS
     elseif algorithm == :Clique
-        """
-        # TODO: not implemented yet
-        if subgraphtype == :NodeInduced
-            isomorphismclique(G, H; kwargs...)
-        elseif subgraphtype == :EdgeInduced
-            edgeisomorphismclique(G, H; kwargs...)
+        # TODO: implement subgraphmatch
+        if mode == :MCS
+            if subgraphtype == :NodeInduced
+                return nodemcsclique(G, H, mode=mode; kwargs...)
+            elseif subgraphtype == :EdgeInduced
+                return edgemcsclique(G, H, mode=mode; kwargs...)
+            end
         end
-        """
     end
 end
 
-edgeisomorphism(
-    G, H; kwargs...) = isomorphism(G, H, subgraphtype=:EdgeInduced; kwargs...)
 
 
-function isomorphismiter(G, H;
-        algorithm=:VF2, subgraphtype=:NodeInduced, kwargs...)
-    if algorithm == :VF2
-        if subgraphtype == :NodeInduced
-            isomorphismitervf2(G, H, subgraphtype=:NodeInduced; kwargs...)
-        elseif subgraphtype == :EdgeInduced
-            edgeisomorphismitervf2(G, H, subgraphtype=:EdgeInduced; kwargs...)
-        end
-    elseif algorithm == :Clique
-        # TODO: not implemented yet
-        """
-        if subgraphtype == :NodeInduced
-            isomorphismiterclique(G, H; kwargs...)
-        elseif subgraphtype == :EdgeInduced
-            edgeisomorphismiterclique(G, H; kwargs...)
-        end
-        """
-    end
+# Graph isomorphism
+
+"""
+    graphmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+
+Generate isomorphism mappings between `G` and `H`. If no match found, return
+nothing.
+"""
+graphmatches(G, H; kwargs...) = graphisomorphism(G, H; kwargs...)
+
+"""
+    graphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
+
+Return an isomorphism mapping between `G` and `H`. If no match found, return
+nothing.
+"""
+function graphmatch(G, H; kwargs...)
+    res = iterate(graphmatches(G, H; kwargs...))
+    return res === nothing ? nothing : res[1]
 end
 
-edgeisomorphismiter(G, H; kwargs...) = isomorphismiter(
-    G, H, subgraphtype=:EdgeInduced; kwargs...)
+"""
+    isgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
+
+Return true if `G` and `H` are isomorphic.
+"""
+isgraphmatch(G, H; kwargs...) = graphmatch(G, H; kwargs...) !== nothing
 
 
-function maximumcommonsubgraph(
-        G, H; subgraphtype=:NodeInduced, algorithm=:Clique, kwargs...)
-    if algorithm == :VF2
-        # TODO: not implemented yet
-        """
-        if subgraphtype == :NodeInduced
-            nodemcsvf2(G, H; kwargs...)
-        elseif subgraphtype == :EdgeInduced
-            edgemcsvf2(G, H; kwargs...)
-        end
-        """
-    elseif algorithm == :Clique
-        if subgraphtype == :NodeInduced
-            nodemcsclique(G, H; kwargs...)
-        elseif subgraphtype == :EdgeInduced
-            edgemcsclique(G, H; kwargs...)
-        end
-    end
+
+# Node induced subgraph isomorphism
+
+"""
+    subgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+
+Generate subgraph isomorphism mappings between `G` and `H`.
+"""
+subgraphmatches(G, H; kwargs...
+    ) = graphisomorphism(G, H, mode=:Subgraph; kwargs...)
+
+"""
+    subgraphmatch(
+        G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
+
+Return a subgraph isomorphism mapping between `G` and `H`. If no match found,
+return nothing.
+"""
+function subgraphmatch(G, H; kwargs...)
+    res = iterate(subgraphmatches(G, H; kwargs...))
+    return res === nothing ? nothing : res[1]
 end
+
+"""
+    issubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
+
+Return true if a node induced subgraph of `G` and `H` are isomorphic.
+"""
+issubgraphmatch(G, H; kwargs...) = subgraphmatch(G, H; kwargs...) !== nothing
+
+
+
+# Edge induced subgraph isomorphism
+
+"""
+    edgesubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+
+Generate edge induced subgraph isomorphism mappings between `G` and `H`.
+"""
+edgesubgraphmatches(G, H; kwargs...) = graphisomorphism(
+    G, H, mode=:Subgraph, subgraphtype=:EdgeInduced; kwargs...)
+
+"""
+    edgesubgraphmatch(
+        G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
+
+Return a edge induced subgraph isomorphism mapping between `G` and `H`.
+If no match found, return nothing.
+"""
+function edgesubgraphmatch(G, H; kwargs...)
+    res = iterate(edgesubgraphmatches(G, H; kwargs...))
+    return res === nothing ? nothing : res[1]
+end
+
+"""
+    isedgesubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
+
+Return true if a node induced subgraph of `G` and `H` are isomorphic.
+"""
+isedgesubgraphmatch(G, H; kwargs...
+    ) = edgesubgraphmatch(G, H; kwargs...) !== nothing
+
+
+
+# MCIS
+
+"""
+    mcismap(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
+
+Return a maximum common induced subgraph mapping of `G` and ``H.
+"""
+function mcismap(G, H; kwargs...)
+    res = iterate(
+        graphisomorphism(G, H, algorithm=:Clique, mode=:MCS; kwargs...))
+    return res === nothing ? nothing : res[1]
+end
+
+"""
+    mcissize(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Int
+
+Return the maximum common induced subgraph size (number of nodes).
+"""
+mcissize(G, H; kwargs...) = length(mcismap(G, H; kwargs...))
+
+
+# MCES
+
+"""
+    mcesmap(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
+
+Return a maximum common edge induced subgraph mapping of `G` and ``H.
+"""
+function mcesmap(G, H; kwargs...)
+    res = iterate(graphisomorphism(G, H,
+        algorithm=:Clique, mode=:MCS, subgraphtype=:EdgeInduced; kwargs...))
+    return res === nothing ? nothing : res[1]
+end
+
+"""
+    mcessize(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Int
+
+Return the maximum common induced subgraph size (number of nodes).
+"""
+mcessize(G, H; kwargs...) = length(mcesmap(G, H; kwargs...))
+
+
 
 
 function delta_y_correction!(mapping, G, H)
-    gsub = edgesubgraph(G, keys(mapping))
-    hsub = edgesubgraph(H, values(mapping))
+    gsub = edgesubgraph(G, Set(keys(mapping)))
+    hsub = edgesubgraph(H, Set(values(mapping)))
     revmap = Dict(v => k for (k, v) in mapping)
     for e in delta_y_edges(mapping, gsub, hsub)
         delete!(mapping, e)
@@ -142,11 +219,12 @@ function delta_y_correction!(mapping, G, H)
     end
 end
 
+
 function delta_y_edges(mapping, gsub, hsub)
     dys = Int[]
     for gn in triangles(gsub)
-        g_edges = edgekeys(nodesubgraph(gsub, gn))
-        h_edges = [mapping[e] for e in g_edges]
+        g_edges = edgeset(nodesubgraph(gsub, Set(gn)))
+        h_edges = Set([mapping[e] for e in g_edges])
         if nodecount(edgesubgraph(hsub, h_edges)) != 3
             push!(dys, pop!(g_edges))
         end
@@ -154,10 +232,11 @@ function delta_y_edges(mapping, gsub, hsub)
     return dys
 end
 
+
 function delta_y_mismatch(G, H, mapping)
     # Delta-Y check for edge induced subgraph isomorphism
-    gsub = edgesubgraph(G, keys(mapping))
-    hsub = edgesubgraph(H, values(mapping))
+    gsub = edgesubgraph(G, Set(keys(mapping)))
+    hsub = edgesubgraph(H, Set(values(mapping)))
     revmap = Dict(v => k for (k, v) in mapping)
     return delta_y(gsub, hsub, mapping) || delta_y(hsub, gsub, revmap)
 end
@@ -165,8 +244,8 @@ end
 
 function delta_y(gsub, hsub, mapping)
     for gn in triangles(gsub)
-        g_edges = edgekeys(nodesubgraph(gsub, gn))
-        h_edges = [mapping[e] for e in g_edges]
+        g_edges = edgeset(nodesubgraph(gsub, Set(gn)))
+        h_edges = Set([mapping[e] for e in g_edges])
         if nodecount(edgesubgraph(hsub, h_edges)) != 3
             return true
         end
@@ -178,11 +257,9 @@ end
 function lgnodematcher(G::LineGraph, H::LineGraph,
                        nodematcher::Function, edgematcher::Function)
     return function (g, h)
-        if !edgematcher(g, h)
-            return false
-        end
-        ge = getnode(G, g)
-        he = getnode(H, h)
+        edgematcher(g, h) || return false
+        ge = nodeattr(G, g)
+        he = nodeattr(H, h)
         m1 = nodematcher(ge.n1, he.n1) && nodematcher(ge.n2, he.n2)
         m2 = nodematcher(ge.n1, he.n2) && nodematcher(ge.n2, he.n1)
         return m1 || m2
@@ -191,5 +268,5 @@ end
 
 
 function lgedgematcher(G::LineGraph, H::LineGraph, nodematcher::Function)
-    return (g, h) -> nodematcher(getedge(G, g).node, getedge(H, h).node)
+    return (g, h) -> nodematcher(edgeattr(G, g).node, edgeattr(H, h).node)
 end

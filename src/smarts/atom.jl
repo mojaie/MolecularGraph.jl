@@ -3,16 +3,56 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    atom!,
-    atomsymbol!,
-    atomprop!
-
 
 # TODO: radical
 
 
-function atom!(state::SmartsParser{SMILES})
+const SMARTS_ATOM_COND_SYMBOL = Dict(
+    'X' => :connectivity,
+    'D' => :nodedegree,
+    'v' => :valence,
+    'H' => :hcount,
+    'r' => :atom_sssrsizes,
+    'R' => :atom_sssrcount
+)
+
+const SMARTS_CHARGE_SIGN = Dict(
+    '+' => 1,
+    '-' => -1
+)
+
+
+function atomsymbol!(state::SmartsParserState)
+    """ Atomsymbol <- Br / Cl / [AaBCcNnOoPpSsFI*]
+    """
+    if read(state) == 'C' && lookahead(state, 1) == 'l'
+        forward!(state, 2)
+        return :and => (:atomsymbol => :Cl, :isaromatic => false)
+    elseif read(state) == 'B' && lookahead(state, 1) == 'r'
+        forward!(state, 2)
+        return :and => (:atomsymbol => :Br, :isaromatic => false)
+    elseif read(state) in "BCNOPSFI"
+        sym = Symbol(read(state))
+        forward!(state)
+        return :and => (:atomsymbol => sym, :isaromatic => false)
+    elseif read(state) in "cnops"
+        sym = Symbol(uppercase(read(state)))
+        forward!(state)
+        return :and => (:atomsymbol => sym, :isaromatic => true)
+    elseif read(state) == 'A'
+        forward!(state)
+        return :isaromatic => false
+    elseif read(state) == 'a'
+        forward!(state)
+        return :isaromatic => true
+    elseif read(state) == '*'
+        forward!(state)
+        return :any => true
+    end
+end
+
+
+function atom!(state::SmilesParser)
     """ Atom <- '[' AtomProp+ ']' / AtomSymbol
     """
     c = read(state)
@@ -58,7 +98,7 @@ function atom!(state::SmartsParser{SMILES})
 end
 
 
-function atom!(state::SmartsParser{SMARTS})
+function atom!(state::SmartsParser)
     """ Atom <- '[' (AtomProp / LogicalOperator)+ ']' / AtomSymbol
     """
     c = read(state)
@@ -80,52 +120,7 @@ function atom!(state::SmartsParser{SMARTS})
 end
 
 
-function atomsymbol!(state::SmartsParser)
-    """ Atomsymbol <- Br / Cl / [AaBCcNnOoPpSsFI*]
-    """
-    if read(state) == 'C' && lookahead(state, 1) == 'l'
-        forward!(state, 2)
-        return :and => (:atomsymbol => :Cl, :isaromatic => false)
-    elseif read(state) == 'B' && lookahead(state, 1) == 'r'
-        forward!(state, 2)
-        return :and => (:atomsymbol => :Br, :isaromatic => false)
-    elseif read(state) in "BCNOPSFI"
-        sym = Symbol(read(state))
-        forward!(state)
-        return :and => (:atomsymbol => sym, :isaromatic => false)
-    elseif read(state) in "cnops"
-        sym = Symbol(uppercase(read(state)))
-        forward!(state)
-        return :and => (:atomsymbol => sym, :isaromatic => true)
-    elseif read(state) == 'A'
-        forward!(state)
-        return :isaromatic => false
-    elseif read(state) == 'a'
-        forward!(state)
-        return :isaromatic => true
-    elseif read(state) == '*'
-        forward!(state)
-        return :any => true
-    end
-end
-
-
-const SMARTS_ATOM_COND_SYMBOL = Dict(
-    'X' => :connectivity,
-    'D' => :nodedegree,
-    'v' => :valence,
-    'H' => :hcount,
-    'r' => :atom_ringsizes,
-    'R' => :atom_ringcount
-)
-
-const SMARTS_CHARGE_SIGN = Dict(
-    '+' => 1,
-    '-' => -1
-)
-
-
-function atomprop!(state::SmartsParser)
+function atomprop!(state::SmartsParserState)
     """ AtomProp <- '\$(' RecursiveQuery ')' / Mass / Symbol / AtomNum /
         Stereo / CHG / [DHRrvX]
     """

@@ -25,38 +25,38 @@ const D_BLOCK = (:Fe, :Co, :Cu, :Zn, :Tc, :Cd, :Pt, :Au, :Hg, :Gd)
 
 
 """
-    wclogptype(mol::VectorMol)
+    wclogptype(mol::GraphMol)
 
 Return Wildman-Crippen LogP atom types.
 """
-@cache function wclogptype(mol::VectorMol)
-    atomtypes = fill(:undef, atomcount(mol))
-    symbols = atomsymbol(mol)
-    charges = charge(mol)
-    order = bondorder(mol)
-    degrees = nodedegree(mol)
-    hydcnt = hcount(mol)
-    pies = pielectron(mol)
-    isarom = isaromatic(mol)
-    isarombond = isaromaticbond(mol)
+@cache function wclogptype(mol::GraphMol)
+    atomtypes = fill(:undef, nodecount(mol))
+    atomsymbol_ = atomsymbol(mol)
+    charge_ = charge(mol)
+    bondorder_ = bondorder(mol)
+    nodedegree_ = nodedegree(mol)
+    hcount_ = hcount(mol)
+    pielectron_ = pielectron(mol)
+    isaromatic_ = isaromatic(mol)
+    isaromaticbond_ = isaromaticbond(mol)
     # Carbons
-    for i in findall(symbols .== :C)
-        if pies[i] == 0
+    for i in findall(atomsymbol_ .== :C)
+        if pielectron_[i] == 0
             # Aliphatic (C1-4,8-12,27)
             nbrs = collect(adjacencies(mol, i))
-            if !isempty(setdiff(symbols[nbrs], ALIPH_HETERO))
+            if !isempty(setdiff(atomsymbol_[nbrs], ALIPH_HETERO))
                 atomtypes[i] = :C27 # Adjacent to inorganic atoms
-            elseif all(isarom[nbrs] .== false)
-                if all(symbols[nbrs] .== :C)
+            elseif all(isaromatic_[nbrs] .== false)
+                if all(atomsymbol_[nbrs] .== :C)
                     # Aliphatic carbon (C1,2)
-                    if degrees[i] <= 2
+                    if nodedegree_[i] <= 2
                         atomtypes[i] = :C1
                     else
                         atomtypes[i] = :C2
                     end
                 else
                     # Adjacent to heteroatoms (C3,4)
-                    if degrees[i] <= 2
+                    if nodedegree_[i] <= 2
                         atomtypes[i] = :C3
                     else
                         atomtypes[i] = :C4
@@ -64,22 +64,22 @@ Return Wildman-Crippen LogP atom types.
                 end
             else
                 # Adjacent to aromatic atoms (C8-12)
-                if degrees[i] == 1
+                if nodedegree_[i] == 1
                     nbr = nbrs[1]
-                    if symbols[nbr] == :C
+                    if atomsymbol_[nbr] == :C
                         atomtypes[i] = :C8
                     else
                         atomtypes[i] = :C9
                     end
-                elseif degrees[i] == 2
+                elseif nodedegree_[i] == 2
                     atomtypes[i] = :C10
-                elseif degrees[i] == 3
+                elseif nodedegree_[i] == 3
                     atomtypes[i] = :C11
-                elseif degrees[i] == 4
+                elseif nodedegree_[i] == 4
                     atomtypes[i] = :C12
                 end
             end
-        elseif isarom[i]
+        elseif isaromatic_[i]
             # Aromatic (C13-25)
             if degree(mol, i) == 2
                 atomtypes[i] = :C18 # Aromatic non-substituted
@@ -88,35 +88,35 @@ Return Wildman-Crippen LogP atom types.
             subst = nothing
             substbond = nothing
             aromcnt = 0
-            for (nbr, b) in neighbors(mol, i)
-                if isarombond[b]
+            for (inc, adj) in neighbors(mol, i)
+                if isaromaticbond_[inc]
                     aromcnt += 1
                 else
-                    subst = nbr
-                    substbond = b
+                    subst = adj
+                    substbond = inc
                 end
             end
             if aromcnt == 3
                 atomtypes[i] = :C19 # Bridgehead
-            elseif !haskey(AROM_HETERO, symbols[subst])
+            elseif !haskey(AROM_HETERO, atomsymbol_[subst])
                 atomtypes[i] = :C13 # Inorganic substituent
-            elseif isarom[subst]
+            elseif isaromatic_[subst]
                 atomtypes[i] = :C20 # Aromatic substituent
-            elseif order[substbond] == 2
+            elseif bondorder_[substbond] == 2
                 atomtypes[i] = :C25 # Double bond substituent
             else
                 # Typical substituent (C14-17,21-24)
-                atomtypes[i] = AROM_HETERO[symbols[subst]]
+                atomtypes[i] = AROM_HETERO[atomsymbol_[subst]]
             end
         else
             # Aliphatic multiple bond (C5-7,26)
             nbrs = collect(adjacencies(mol, i))
             bonds = collect(incidences(mol, i))
-            if any(order[bonds] .== 3)
+            if any(bondorder_[bonds] .== 3)
                 atomtypes[i] = :C7 # Alkyne, Nitrile
-            elseif any((pies[nbrs] .> 0) .* (symbols[nbrs] .!= :C))
+            elseif any((pielectron_[nbrs] .> 0) .* (atomsymbol_[nbrs] .!= :C))
                 atomtypes[i] = :C5 # Double bond to non-C
-            elseif any(isarom[nbrs] .== true)
+            elseif any(isaromatic_[nbrs] .== true)
                 atomtypes[i] = :C26 # Adjacent to aromatic
             else
                 atomtypes[i] = :C6 # Double bond to C (including allene)
@@ -128,53 +128,53 @@ Return Wildman-Crippen LogP atom types.
     end
 
     # Nitrogens
-    for i in findall(symbols .== :N)
-        if charges[i] > 0
+    for i in findall(atomsymbol_ .== :N)
+        if charge_[i] > 0
             nbrs = collect(adjacencies(mol, i))
-            if isarom[i]
+            if isaromatic_[i]
                 atomtypes[i] = :N12 # Charged aromatic nitrogen
-            elseif hydcnt[i] == 0
-                if degrees[i] == 2 && all(symbols[nbrs] .== :N)
+            elseif hcount_[i] == 0
+                if nodedegree_[i] == 2 && all(atomsymbol_[nbrs] .== :N)
                     atomtypes[i] = :N14 # Azide is exceptionally N14
                 else
                     atomtypes[i] = :N13 # Quart-ammonium
                 end
-            elseif pies[i] == 0
+            elseif pielectron_[i] == 0
                 atomtypes[i] = :N10 # Protonated amine
             else
                 atomtypes[i] = :N14 # Other charged
             end
-        elseif charges[i] < 0
+        elseif charge_[i] < 0
             atomtypes[i] = :N14 # Neg charged
-        elseif isarom[i]
+        elseif isaromatic_[i]
             atomtypes[i] = :N11 # Neutral aromatic
-        elseif pies[i] == 2
+        elseif pielectron_[i] == 2
             atomtypes[i] = :N9 # Nitrile
-        elseif pies[i] == 1
+        elseif pielectron_[i] == 1
             # Imine (N5,6)
-            if degrees[i] == 1
+            if nodedegree_[i] == 1
                 atomtypes[i] = :N5
-            elseif degrees[i] == 2
+            elseif nodedegree_[i] == 2
                 atomtypes[i] = :N6
             end
         else
             nbrs = collect(adjacencies(mol, i))
-            if all(isarom[nbrs] .== false)
+            if all(isaromatic_[nbrs] .== false)
                 # Aliphatic amine (N1,2,7)
-                if degrees[i] == 1
+                if nodedegree_[i] == 1
                     atomtypes[i] = :N1
-                elseif degrees[i] == 2
+                elseif nodedegree_[i] == 2
                     atomtypes[i] = :N2
-                elseif degrees[i] == 3
+                elseif nodedegree_[i] == 3
                     atomtypes[i] = :N7
                 end
             else
                 # Aromatic amine (N3,4,8)
-                if degrees[i] == 1
+                if nodedegree_[i] == 1
                     atomtypes[i] = :N3
-                elseif degrees[i] == 2
+                elseif nodedegree_[i] == 2
                     atomtypes[i] = :N4
-                elseif degrees[i] == 3
+                elseif nodedegree_[i] == 3
                     atomtypes[i] = :N8
                 end
             end
@@ -186,22 +186,22 @@ Return Wildman-Crippen LogP atom types.
     end
 
     # Oxygens
-    for i in findall(symbols .== :O)
-        if isarom[i]
+    for i in findall(atomsymbol_ .== :O)
+        if isaromatic_[i]
             # Aromatic oxygen (O1)
             atomtypes[i] = :O1
             continue
         end
         nbrs = collect(adjacencies(mol, i))
         bonds = collect(incidences(mol, i))
-        if degrees[i] == 1
+        if nodedegree_[i] == 1
             # Hydroxyl (O2,5-12)
             nbr = nbrs[1]
             bond = bonds[1]
-            if atomtypes[nbr] == :C5 && charges[i] < 0
+            if atomtypes[nbr] == :C5 && charge_[i] < 0
                 # Acid (O12)
                 atomtypes[i] = :O12
-            elseif order[bond] == 2 || charges[i] < 0
+            elseif bondorder_[bond] == 2 || charge_[i] < 0
                 # Carbonyl or oxide (O5-11)
                 if atomtypes[nbr] == :C25
                     atomtypes[i] = :O8 # Aromatic carbonyl
@@ -210,16 +210,16 @@ Return Wildman-Crippen LogP atom types.
                     cnbrs = adjacencies(mol, nbr)
                     pop!(cnbrs, i)
                     cnbrs = collect(cnbrs)
-                    if all(symbols[cnbrs] .!= :C)
+                    if all(atomsymbol_[cnbrs] .!= :C)
                         atomtypes[i] = :O11 # Carbonyl heteroatom
-                    elseif any(isarom[cnbrs] .== true)
+                    elseif any(isaromatic_[cnbrs] .== true)
                         atomtypes[i] = :O10 # Carbonyl aromatic
                     else
                         atomtypes[i] = :O9 # Carbonyl aliphatic
                     end
-                elseif symbols[nbr] in (:O, :N)
+                elseif atomsymbol_[nbr] in (:O, :N)
                     atomtypes[i] = :O5 # O2? or N-oxide
-                elseif symbols[nbr] == :S
+                elseif atomsymbol_[nbr] == :S
                     atomtypes[i] = :O6 # S-oxide
                 else
                     atomtypes[i] = :O7 # Other oxide
@@ -228,9 +228,9 @@ Return Wildman-Crippen LogP atom types.
                 # Alcohol (O2)
                 atomtypes[i] = :O2
             end
-        elseif degrees[i] == 2
+        elseif nodedegree_[i] == 2
             # Ether (O3,4)
-            if all(isarom[nbrs] .== false)
+            if all(isaromatic_[nbrs] .== false)
                 atomtypes[i] = :O3 # Aliphatic ether
             else
                 atomtypes[i] = :O4 # Aromatic ether
@@ -240,28 +240,28 @@ Return Wildman-Crippen LogP atom types.
 
     # Others
     for i in findall(atomtypes .== :undef)
-        if symbols[i] in (:F, :Cl, :Br, :I)
-            if charges[i] == 0
-                atomtypes[i] = symbols[i]
+        if atomsymbol_[i] in (:F, :Cl, :Br, :I)
+            if charge_[i] == 0
+                atomtypes[i] = atomsymbol_[i]
             else
                 atomtypes[i] = :Hal
             end
-        elseif symbols[i] == :P
+        elseif atomsymbol_[i] == :P
             atomtypes[i] = :P
-        elseif symbols[i] == :S
-            if isarom[i]
+        elseif atomsymbol_[i] == :S
+            if isaromatic_[i]
                 atomtypes[i] = :S3
-            elseif charges[i] == 0
+            elseif charge_[i] == 0
                 atomtypes[i] = :S1
             else
                 atomtypes[i] = :S2
             end
-        elseif symbols[i] == :H
-            nbr = pop!(adjacencies(mol, i))
+        elseif atomsymbol_[i] == :H
+            nbr = iterate(adjacencies(mol, i))[1]
             atomtypes[i] = wclogphydrogentype(mol, nbr)
-        elseif symbols[i] in P_BLOCK
+        elseif atomsymbol_[i] in P_BLOCK
             atomtypes[i] = :Me1
-        elseif symbols[i] in D_BLOCK
+        elseif atomsymbol_[i] in D_BLOCK
             atomtypes[i] = :Me2
         end
     end
@@ -269,22 +269,22 @@ Return Wildman-Crippen LogP atom types.
 end
 
 
-function wclogphydrogentype(mol::VectorMol, i)
-    symbols = atomsymbol(mol)
-    pies = pielectron(mol)
-    isarom = isaromatic(mol)
-    if symbols[i] == :C
+function wclogphydrogentype(mol::GraphMol, i)
+    atomsymbol_ = atomsymbol(mol)
+    pielectron_ = pielectron(mol)
+    isaromatic_ = isaromatic(mol)
+    if atomsymbol_[i] == :C
         return :H1 # Hydrocarbon
-    elseif symbols[i] == :N
+    elseif atomsymbol_[i] == :N
         return :H3 # Amine
-    elseif symbols[i] == :O
-        nbr = pop!(adjacencies(mol, i))
-        if symbols[nbr] == :N
+    elseif atomsymbol_[i] == :O
+        nbr = iterate(adjacencies(mol, i))[1]
+        if atomsymbol_[nbr] == :N
             return :H3 # Hydroxyamine
-        elseif symbols[nbr] in (:O, :S)
+        elseif atomsymbol_[nbr] in (:O, :S)
             return :H4 # Peroxide, sulfoxide
-        elseif symbols[nbr] == :C
-            if pies[nbr] == 1 && !isarom[nbr]
+        elseif atomsymbol_[nbr] == :C
+            if pielectron_[nbr] == 1 && !isaromatic_[nbr]
                 return :H4 # Acid
             else
                 return :H2 # Alcohol
@@ -299,15 +299,15 @@ function wclogphydrogentype(mol::VectorMol, i)
 end
 
 
-function wclogpcontrib(mol::VectorMol)
-    contrib = zeros(atomcount(mol))
-    symbols = atomsymbol(mol)
-    hydcnt = hcount(mol)
+function wclogpcontrib(mol::GraphMol)
+    contrib = zeros(nodecount(mol))
+    atomsymbol_ = atomsymbol(mol)
+    hcount_ = hcount(mol)
     atomtypes = wclogptype(mol)
-    for i in nodekeys(mol)
-        hcnt = hydcnt[i]
+    for i in 1:nodecount(mol)
+        hcnt = hcount_[i]
         cont = get(WCLOGP_TABLE, string(atomtypes[i]), 0)
-        if symbols[i] == :H
+        if atomsymbol_[i] == :H
             contrib[i] = 0  # avoid double count
         elseif hcnt == 0
             contrib[i] = cont

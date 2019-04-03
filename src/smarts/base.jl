@@ -4,19 +4,13 @@
 #
 
 export
+    SmilesParser,
     SmartsParser,
-    parse,
     smilestomol,
-    lookahead,
-    read,
-    forward!,
-    backtrack!
+    smartstomol
 
 
-import Base: read, parse
-
-
-mutable struct SmartsParser{T<:Union{VectorMol,QueryMol}}
+mutable struct SmartsParserState{N<:AbstractNode,E<:UndirectedEdge}
     input::String
     allow_disconnected::Bool
 
@@ -25,40 +19,47 @@ mutable struct SmartsParser{T<:Union{VectorMol,QueryMol}}
     node::Int # No. of current node
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
-    ringlabel::Dict
+    ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
 
-    mol::T
+    edges::Vector{Tuple{Int,Int}}
+    nodeattrs::Vector{N}
+    edgeattrs::Vector{E}
+    connectivity::Vector{Vector{Int}}
 
-    function SmartsParser{T}(str, disconn) where {T<:Union{VectorMol,QueryMol}}
-        new(str, disconn, 1, false, 0, 1, 1, Dict(), T())
+    function SmartsParserState{N,E}(str, disconn
+            ) where {N<:AbstractNode,E<:UndirectedEdge}
+        new(str, disconn, 1, false, 0, 1, 1, Dict(), [], [], [], [])
     end
 end
 
+SmilesParser = SmartsParserState{SmilesAtom,SmilesBond}
+SmartsParser = SmartsParserState{SmartsAtom,SmartsBond}
 
-function parse(::Type{SMILES}, str::AbstractString)
-    state = SmartsParser{SMILES}(str, true)
+
+function Base.parse(::Type{SMILES}, str::AbstractString)
+    state = SmilesParser(str, true)
     fragment!(state)
-    return state.mol
+    return graphmol(state.edges, state.nodeattrs, state.edgeattrs)
 end
 
-function parse(::Type{SMARTS}, str::AbstractString)
+function Base.parse(::Type{SMARTS}, str::AbstractString)
     if occursin('.', str)
-        state = SmartsParser{SMARTS}(str, true)
+        state = SmartsParser(str, true)
         componentquery!(state)
     else
-        state = SmartsParser{SMARTS}(str, false)
+        state = SmartsParser(str, false)
         fragment!(state)
     end
-    return state.mol
+    return querymol(
+        state.edges, state.nodeattrs, state.edgeattrs, state.connectivity)
 end
 
 
-function smilestomol(smiles::AbstractString)
-    return parse(SMILES, smiles)
-end
+smilestomol(smiles::AbstractString) = parse(SMILES, smiles)
+smartstomol(smarts::AbstractString) = parse(SMARTS, smarts)
 
 
-function lookahead(state::SmartsParser, pos::Int)
+function lookahead(state::SmartsParserState, pos::Int)
     # Negative pos can be used
     newpos = state.pos + pos
     if newpos > length(state.input) || newpos < 1
@@ -73,10 +74,10 @@ function lookahead(state::SmartsParser, pos::Int)
     end
 end
 
-read(state) = lookahead(state, 0)
+Base.read(state) = lookahead(state, 0)  # TODO: rename
 
 
-function forward!(state::SmartsParser, num::Int)
+function forward!(state::SmartsParserState, num::Int)
     # Negative num can be used
     state.pos += num
     if state.pos > length(state.input)

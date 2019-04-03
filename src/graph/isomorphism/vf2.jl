@@ -4,16 +4,14 @@
 #
 
 export
-    isomorphismvf2,
     isomorphismitervf2,
-    edgeisomorphismvf2,
     edgeisomorphismitervf2
 
 
-mutable struct VF2State
+mutable struct VF2State{T1<:UndirectedGraph,T2<:UndirectedGraph}
     # Input
-    G::UndirectedGraph
-    H::UndirectedGraph
+    G::T1
+    H::T2
     mode::Symbol
     subgraphtype::Symbol
     # Optional
@@ -30,7 +28,8 @@ mutable struct VF2State
     expire # UInt64, nanoseconds
     status::Symbol
 
-    function VF2State(G, H, mode, subg)
+    function VF2State{T1,T2}(G, H, mode, subg
+            ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
         state = new()
         state.G = G
         state.H = H
@@ -46,16 +45,13 @@ mutable struct VF2State
 end
 
 
-function isomorphismvf2(G, H; kwargs...)
-    return iterate(isomorphismitervf2(G, H; kwargs...))
-end
 
-
-function isomorphismitervf2(G, H; kwargs...)
+function isomorphismitervf2(G::T1, H::T2; kwargs...
+        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
     if nodecount(G) == 0 || nodecount(H) == 0
         return ()
     end
-    state = VF2State(G, H, kwargs[:mode], kwargs[:subgraphtype])
+    state = VF2State{T1,T2}(G, H, kwargs[:mode], kwargs[:subgraphtype])
     if haskey(kwargs, :timeout)
         state.timeout = kwargs[:timeout]::Int
         state.expire = (time_ns() + state.timeout * 1_000_000_000)::UInt64
@@ -68,12 +64,8 @@ function isomorphismitervf2(G, H; kwargs...)
         && (state.mandatory = kwargs[:mandatory]::Dict{Int,Int}))
     (haskey(kwargs, :forbidden)
         && (state.forbidden = kwargs[:forbidden]::Dict{Int,Int}))
-    return Channel(c::Channel -> expand!(state, c), ctype=Dict{Int,Int})
-end
-
-
-function edgeisomorphismvf2(G, H; kwargs...)
-    return iterate(edgeisomorphismitervf2(G, H; kwargs...))
+    return Channel(
+        c::Channel -> expand!(state, c; kwargs...), ctype=Dict{Int,Int})
 end
 
 
@@ -91,26 +83,28 @@ function edgeisomorphismitervf2(G, H;
 end
 
 
-function expand!(state::VF2State, channel)
+function expand!(state::VF2State, channel; verbose=false, kwargs...)
     # Recursive
-    # println("depth $(length(state.g_core))")
+    verbose && println("depth $(length(state.g_core))")
     if length(state.g_core) == nodecount(state.H)
-        # println("done $(state.g_core)")
+        verbose && println("done $(state.g_core)")
         put!(channel, copy(state.g_core))
         return
     elseif isdefined(state, :timeout) && time_ns() > state.expire
         state.status = :Timedout
+        verbose && println("Timed out")
         return
     end
     for (g, h) in candidatepairs(state)
-        # println("candidates $(g) $(h)")
-        if !is_feasible(state, g, h) || !is_semantic_feasible(state, g, h)
+        verbose && println("candidates $(g) $(h)")
+        if (!is_feasible(state, g, h, verbose=verbose)
+                || !is_semantic_feasible(state, g, h, verbose=verbose))
             continue
         end
         updatestate!(state, g, h)
-        # println("g_core $(state.g_core)")
-        mp = expand!(state, channel)
-        # println("restored $(state.g_core)")
+        verbose && println("g_core $(state.g_core)")
+        mp = expand!(state, channel, verbose=verbose)
+        verbose && println("restored $(state.g_core)")
         restore!(state, g, h)
     end
     return
@@ -127,7 +121,6 @@ function updatestate!(state::VF2State, g, h)
     if !haskey(state.h_term, h)
         state.h_term[h] = depth
     end
-    # TODO: workaround: union(set::KeySet) causes error
     g_nbrset = union([adjacencies(state.G, n) for n in keys(state.g_core)]...)
     for n in setdiff(g_nbrset, keys(state.g_term))
         state.g_term[n] = depth
@@ -193,52 +186,58 @@ function candidatepairs(state::VF2State)
 end
 
 
-function is_feasible(state::VF2State, g, h)
-    # assume no self loop
-    # Neighbor connectivity
+function is_feasible(state::VF2State, g, h; verbose=false)
+    # TODO: assume no self loop
     g_nbrs = adjacencies(state.G, g)
     h_nbrs = adjacencies(state.H, h)
     for n in intersect(g_nbrs, keys(state.g_core))
         if !(state.g_core[n] in h_nbrs)
+            verbose && println("Infeasible: neighbor connectivity")
             return false
         end
     end
     for n in intersect(h_nbrs, keys(state.h_core))
         if !(state.h_core[n] in g_nbrs)
+            verbose && println("Infeasible: neighbor connectivity")
             return false
         end
     end
-    # Terminal set size
     g_term_count = length(setdiff(keys(state.g_term), keys(state.g_core)))
     h_term_count = length(setdiff(keys(state.h_term), keys(state.h_core)))
     if state.mode == :Isomorphism && g_term_count != h_term_count
+        verbose && println("Infeasible: terminal set size")
         return false
     elseif state.mode == :Subgraph && g_term_count < h_term_count
+        verbose && println("Infeasible: terminal set size")
         return false
     end
-    # Yet unexplored size
     g_new_count = length(setdiff(nodeset(state.G), keys(state.g_term)))
     h_new_count = length(setdiff(nodeset(state.H), keys(state.h_term)))
     if state.mode == :Isomorphism && g_new_count != h_new_count
+        verbose && println("Infeasible: yet unexplored nodes")
         return false
     elseif state.mode == :Subgraph && g_new_count < h_new_count
+        verbose && println("Infeasible: yet unexplored nodes")
         return false
     end
+    verbose && println("Syntactically feasible")
     return true
 end
 
 
-function is_semantic_feasible(state::VF2State, g, h)
+function is_semantic_feasible(state::VF2State, g, h; verbose=false)
     if isdefined(state, :nodematcher)
         if !state.nodematcher(g, h)
+            verbose && println("Infeasible: node attribute mismatch")
             return false
         end
     end
     if isdefined(state, :edgematcher)
         for nbr in intersect(adjacencies(state.G, g), keys(state.g_core))
-            g_edge = neighbors(state.G, g)[nbr]
-            h_edge = neighbors(state.H, h)[state.g_core[nbr]]
+            g_edge = findedgekey(state.G, g, nbr)
+            h_edge = findedgekey(state.H, h, state.g_core[nbr])
             if !state.edgematcher(g_edge, h_edge)
+                verbose && println("Infeasible: edge attribute mismatch")
                 return false
             end
         end

@@ -4,27 +4,34 @@
 #
 
 @testset "graph.shortestpath" begin
-
-@testset "shortestpath" begin
-    graph = vectorgraph(10, [
+    graph = plaingraph(10, [
         (1, 2), (2, 3), (1, 4), (4, 5), (3, 7),
         (7, 4), (7, 8), (8, 9), (9, 10)
     ])
-    @test shortestpath(graph, 1, 10) == [1, 4, 7, 8, 9, 10]
-    @test shortestpath(graph, 5, 8) == [5, 4, 7, 8]
-    @test shortestpath(graph, 1, 1) === nothing
-    @test shortestpath(graph, 1, 6) === nothing
-end
+    @test distance(graph, 1, 10) == 5
+    @test distance(graph, 1, 1) === nothing
+    @test distance(graph, 1, 6) === nothing
+    @test length(reachablenodes(graph, 1)) == 8
+    @test isreachable(graph, 4, 10)
+    @test !isreachable(graph, 6, 1)
+    @test eccentricity(graph, 8) == 3
+    @test diameter(graph) == 5
+    @test count(i->i==Inf, distancematrix(graph)) == 28
+    @test shortestpathnodes(graph, 1, 10) == [1, 4, 7, 8, 9, 10]
+    @test shortestpathnodes(graph, 5, 8) == [5, 4, 7, 8]
+    @test length(longestshortestpathnodes(graph)) == 6
 
-@testset "dgraph" begin
-    graph = digraph(10, [
+    dgraph = plaindigraph(10, [
         (1, 4), (2, 4), (3, 7), (4, 5), (4, 6),
         (4, 7), (6, 9), (7, 8), (7, 9), (7, 10)
     ])
-    @test issetequal(reachablenodes(graph, 4), [5, 6, 7, 8, 9, 10])
-    plen = pathlength(graph, 1)
-    @test plen[6] == 2
-    @test plen[10] == 3
-end
-
+    @test distance(dgraph, 1, 10) == 3
+    @test reversedistance(dgraph, 1, 10) === nothing
+    @test length(reachablenodes(dgraph, 4)) == 6
+    @test !isreachable(dgraph, 3, 6)
+    @test eccentricity(dgraph, 2) == 3
+    @test diameter(dgraph) == 3
+    @test count(i->i==3.0, distancematrix(dgraph)) == 6
+    @test shortestpathnodes(dgraph, 3, 10) == [3, 7, 10]
+    @test reverseshortestpathnodes(dgraph, 10, 3) == [10, 7, 3]
 end # graph.shortestpath

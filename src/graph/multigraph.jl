@@ -3,40 +3,36 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# TODO: deprecated
+
 export
-    MultiGraph, multigraph
+    PlainMultiGraph, multigraph
 
 
-struct MultiGraph{N<:AbstractNode,E<:UndirectedEdge} <: AbstractGraph
-    nodes::Vector{N}
-    edges::Vector{E}
+struct PlainMultiGraph <: AbstractGraph
     neighbormap::Vector{Dict{Int,Set{Int}}}
-
-    function MultiGraph{N,E}() where {N<:AbstractNode,E<:UndirectedEdge}
-        new([], [], [])
-    end
+    edges::Vector{Edge}
 end
 
 
 """
-    multigraph(::Type{N}, ::Type{E}
-        ) where {N<:AbstractNode,E<:UndirectedEdge} -> MultiGraph{N,E}()
+    plainmultigraph() -> PlainMultiGraph()
 
-Generate empty `MultiGraph` that have nodes and edges with the given types.
+Generate empty `MultiGraph`.
 """
-multigraph(::Type{N}, ::Type{E}
-    ) where {N<:AbstractNode,E<:UndirectedEdge} = MultiGraph{N,E}()
+multigraph() = MultiGraph([], [], [])
+
 
 """
-    multigraph(nodes, edges) -> MultiGraph{Node,Edge}
+    multigraph(size::Int, edges) -> MultiGraph
 
 Generate `MultiGraph` that have given nodes and edges represented by the
 list of node indices in integer and the list of pairs of node indices,
 respectively.
 """
 function multigraph(size::Int, edges)
-    graph = MultiGraph{Node,Edge}()
-    append!(graph.nodes, [Node() for i in 1:size])
+    graph = MultiGraph()
+    append!(graph.nodes, [PlainNode() for i in 1:size])
     append!(graph.neighbormap, [Dict() for i in 1:size])
     for (i, (u, v)) in enumerate(edges)
         push!(graph.edges, Edge(u, v))

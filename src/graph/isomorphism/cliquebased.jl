@@ -52,20 +52,19 @@ function mcscliques(G, H, nodematcher, edgematcher; kwargs...)
     prod = modularproduct(G, H, nodematcher, flt)
     clq = maximalcliques(prod; kwargs...)
     return map(clq) do nodes
-        return Dict(getnode(prod, n).g => getnode(prod, n).h for n in nodes)
+        return Dict(nodeattr(prod, n).g => nodeattr(prod, n).h for n in nodes)
     end
 end
 
 
 function modprodedgefilter(G, H, edgematcher)
     return function (g1, g2, h1, h2)
-        # TODO: hasedge
-        if (g2 in adjacencies(G, g1)) != (h2 in adjacencies(H, h1))
+        if hasedge(G, g1, g2) != hasedge(H, h1, h2)
             return false
-        elseif !(g2 in adjacencies(G, g1)) && !(h2 in adjacencies(H, h1))
+        elseif !hasedge(G, g1, g2) && !hasedge(H, h1, h2)
             return true
         else
-            return edgematcher(neighbors(G, g1)[g2], neighbors(H, h1)[h2])
+            return edgematcher(findedgekey(G, g1, g2), findedgekey(H, h1, h2))
         end
     end
 end

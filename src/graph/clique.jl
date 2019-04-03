@@ -4,13 +4,13 @@
 #
 
 export
-    maxclique,
+    maximumclique,
     maximalcliques
 
 
 mutable struct FindCliqueState{T<:UndirectedGraph}
     # Input
-    graph::T # TODO: use type parameter
+    graph::T
     # Optional
     timeout # Int
     c_clique_constraint # Function
@@ -30,20 +30,14 @@ end
 
 
 """
-    maxclique(graph::UndirectedGraph; kwargs...) -> Set{Int}
+    maximumclique(graph::UndirectedGraph; kwargs...) -> Set{Int}
 
 Compute maximum clique of the graph. For details, see [`maximalcliques`](@ref).
 """
-function maxclique(graph::UndirectedGraph; kwargs...)
-    # TODO: better way like python's max(iter, key=cmp)
-    maxclq = Set{Int}()
-    for c in maximalcliques(graph; kwargs...)
-        if length(c) > length(maxclq)
-            maxclq = c
-        end
-    end
-    return maxclq
-end
+maximumclique(
+    graph::UndirectedGraph; kwargs...
+) = sortstablemax(
+    collect(maximalcliques(graph; kwargs...)), by=length, init=[])
 
 
 """
@@ -88,15 +82,10 @@ function expand!(state::FindCliqueState, subg, cand, channel)
     elseif isdefined(state, :timeout) && time_ns() > state.expire
         return
     end
-    # Pivot
-    # TODO: better way like python's max(iter, key=cmp)
-    arr = collect(subg)
-    deg = map(arr) do n
-        length(intersect(cand, adjacencies(state.graph, n)))
-    end
-    pv = arr[argmax(deg)]
+    candnbrcnt(n) = length(intersect(cand, adjacencies(state.graph, n)))
+    pivot = sortstablemax(subg, by=candnbrcnt)
 
-    for q in setdiff(cand, adjacencies(state.graph, pv))
+    for q in setdiff(cand, adjacencies(state.graph, pivot))
         push!(state.Q, q)
         qnbrs = adjacencies(state.graph, q)
         subgq = intersect(subg, qnbrs)
@@ -108,7 +97,8 @@ function expand!(state::FindCliqueState, subg, cand, channel)
 end
 
 
-function expand!(state::FindCliqueState, subg, cand, qual, channel)
+function expand!(
+        state::FindCliqueState{ModularProduct}, subg, cand, qual, channel)
     # c-clique version
     if isempty(subg)
         # Report max clique
@@ -117,23 +107,18 @@ function expand!(state::FindCliqueState, subg, cand, qual, channel)
     elseif isdefined(state, :timeout) && time_ns() > state.expire
         return
     end
-    # Pivot
-    # TODO: better way like python's max(iter, key=cmp)
-    arr = collect(subg)
-    deg = map(arr) do n
-        length(intersect(cand, adjacencies(state.graph, n)))
-    end
-    pv = arr[argmax(deg)]
+    candnbrcnt(n) = length(intersect(cand, adjacencies(state.graph, n)))
+    pivot = sortstablemax(subg, by=candnbrcnt)
 
-    for q in setdiff(cand, adjacencies(state.graph, pv))
+    for q in setdiff(cand, adjacencies(state.graph, pivot))
         push!(state.Q, q)
         qconnbrs = Set{Int}()
         qdisnbrs = Set{Int}()
-        for (n, nbr) in neighbors(state.graph, q)
-            if getedge(state.graph, nbr).hasedge
-                push!(qconnbrs, n)
+        for (inc, adj) in neighbors(state.graph, q)
+            if getedgeattr(state.graph, inc).hasedge
+                push!(qconnbrs, adj)
             else
-                push!(qdisnbrs, n)
+                push!(qdisnbrs, adj)
             end
         end
         qnbrs = adjacencies(state.graph, q)

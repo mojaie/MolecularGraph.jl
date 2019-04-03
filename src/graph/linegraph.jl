@@ -14,41 +14,64 @@ end
 
 
 struct LineGraphEdge <: UndirectedEdge
-    u::Int
-    v::Int
     node::Int
 end
 
 
-LineGraph = MapGraph{LineGraphNode,LineGraphEdge}
+struct LineGraph <: OrderedGraph
+    neighbormap::Vector{Dict{Int,Int}}
+    edges::Vector{Tuple{Int,Int}}
+    nodeattrs::Vector{LineGraphNode}
+    edgeattrs::Vector{LineGraphEdge}
+    cache::Dict{Symbol,Any}
+end
 
 
 """
-    linegraph(G::UndirectedGraph) -> MapGraph{LineGraphNode,LineGraphEdge}
+    linegraph(G::AbstractGraph) -> LineGraph
 
 Generate line graph.
 """
-function linegraph(G::UndirectedGraph)
-    L = mapgraph(LineGraphNode, LineGraphEdge)
-    for (i, edge) in edgesiter(G)
-        L.nodes[i] = LineGraphNode(edge.u, edge.v)
-        L.neighbormap[i] = Dict()
+function linegraph(G::AbstractGraph)
+    L = LineGraph([], [], [], [], Dict())
+    nmap = Dict{Int,Int}()
+    for (i, e) in enumerate(edgeset(G))
+        (u, v) = getedge(G, e)
+        push!(L.nodeattrs, LineGraphNode(u, v))
+        push!(L.neighbormap, Dict())
+        nmap[e] = i
     end
     ecnt = 1
-    for i in nodekeys(G)
-        if degree(G, i) <= 1
-            continue
+    for n in nodeset(G)
+        degree(G, n) < 2 && continue
+        for (e1, e2) in combinations(incidences(G, n))
+            ne1 = nmap[e1]
+            ne2 = nmap[e2]
+            push!(L.edges, (ne1, ne2))
+            push!(L.edgeattrs, LineGraphEdge(n))
+            L.neighbormap[ne1][ecnt] = ne2
+            L.neighbormap[ne2][ecnt] = ne1
+            ecnt += 1
         end
-        # TODO: is there a stuff like itertools.combination?
-        for e1 in incidences(G, i)
-            for e2 in incidences(G, i)
-                if e1 < e2
-                    L.edges[ecnt] = LineGraphEdge(e1, e2, i)
-                    L.neighbormap[e1][e2] = ecnt
-                    L.neighbormap[e2][e1] = ecnt
-                    ecnt += 1
-                end
-            end
+    end
+    return L
+end
+
+function linegraph(G::OrderedGraph)
+    L = LineGraph([], [], [], [], Dict())
+    for (i, edge) in enumerate(edgesiter(G))
+        push!(L.nodeattrs, LineGraphNode(edge...))
+        push!(L.neighbormap, Dict())
+    end
+    ecnt = 1
+    for i in 1:nodecount(G)
+        degree(G, i) < 2 && continue
+        for (e1, e2) in combinations(incidences(G, i))
+            push!(L.edges, (e1, e2))
+            push!(L.edgeattrs, LineGraphEdge(i))
+            L.neighbormap[e1][ecnt] = e2
+            L.neighbormap[e2][ecnt] = e1
+            ecnt += 1
         end
     end
     return L

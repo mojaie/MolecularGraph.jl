@@ -6,56 +6,64 @@
 @testset "graph.isomorphism.vf2" begin
 
 @testset "subgraph" begin
-    g = vectorgraph(6, [(1,2), (2,3), (2,4), (2,5), (5,6)])
-    h = vectorgraph(6, [(1,2), (2,3), (3,4), (3,5), (3,6)])
-    @test is_subgraph(h, g)
-    @test is_isomorphic(g, h)
+    p5 = pathgraph(5)
+    k5 = completegraph(5)
+    k6 = completegraph(6)
+    @test !issubgraphmatch(p5, k5)
+    @test issubgraphmatch(k6, k5)
+    @test !issubgraphmatch(k5, k6)
+    @test isgraphmatch(k5, k5)
+    @test !isgraphmatch(k6, k5)
 
-    h2 = vectorgraph(7, [(1,2), (2,3), (3,4), (3,5), (3,6), (6,7)])
-    @test is_subgraph(g, h2)
-    @test !is_isomorphic(h2, g)
+    p7 = pathgraph(7)
+    disconn1 = plaingraph(6, [(1,2), (2,3), (4,5), (5,6)])
+    @test issubgraphmatch(p7, disconn1)
+    disconn2 = plaingraph(6, [(1,2), (3,4), (5,6)])
+    @test !issubgraphmatch(p7, disconn2)
 
-    h3 = vectorgraph(6, [(1,2), (2,3), (3,4), (3,5), (3,6), (6,1)])
-    @test !is_subgraph(g, h3)
+    cd6 = circularladder(6)
+    mb6 = moebiusladder(6)
+    @test !isgraphmatch(cd6, mb6)
+    # TODO: relabeled mb6
+    # @test isgraphmatch(rmb6, mb6)
 end
 
 @testset "edgesubgraph" begin
-    g = vectorgraph(5, [(1,2), (2,3), (2,4), (2,5)])
-    h = vectorgraph(4, [(1,2), (2,3), (2,4)])
-    @test is_edge_subgraph(h, g)
+    c4 = cyclegraph(4)
+    k4 = completegraph(4)
+    star = plaingraph(6, [(1,2), (1,3), (1,4), (1,5), (1,6)])
+    @test isedgesubgraphmatch(k4, c4)
+    @test !isedgesubgraphmatch(k4, star)
 
-    h2 = vectorgraph(5, [(1,2), (2,3), (2,4), (2,5), (5,1)])
-    @test is_edge_subgraph(g, h2)
+    p4 = pathgraph(4)
+    disconn1 = plaingraph(4, [(1,2), (3,4)])
+    @test isedgesubgraphmatch(p4, disconn1)
+    disconn2 = plaingraph(5, [(1,2), (3,4), (4,5)])
+    @test !isedgesubgraphmatch(p4, disconn2)
 
-    h3 = vectorgraph(5, [(1,2), (2,3), (2,4), (3,5)])
-    @test !is_edge_subgraph(g, h3)
-end
-
-@testset "deltaY" begin
+    # Delta-Y exchange
     tri = cyclegraph(3)
-    star = vectorgraph(4, [(1,2), (1,3), (1,4)])
-    @test is_edge_subgraph(tri, tri)
-    @test is_edge_subgraph(star, star)
-    @test !is_edge_subgraph(tri, star)
-    @test !is_edge_subgraph(star, tri)
+    star = plaingraph(4, [(1,2), (1,3), (1,4)])
+    @test isedgesubgraphmatch(tri, tri)
+    @test isedgesubgraphmatch(star, star)
+    @test !isedgesubgraphmatch(tri, star)
+    @test !isedgesubgraphmatch(star, tri)
 
-    tetra = vectorgraph(4, [(1,2), (1,3), (1,4), (2,3), (2,4), (3,4)])
-    butt = vectorgraph(5, [(1,2), (2,3), (1,3), (3,4), (4,5), (5,3)])
-    @test !is_edge_subgraph(butt, tetra)
-
-    diam = vectorgraph(4, [(1,2), (1,3), (2,3), (2,4), (3,4)])
-    eiso = edgeisomorphismiter(tetra, diam, mode=:Subgraph)
-    @test length(collect(eiso)) == 24
+    k4 = completegraph(4)
+    〼 = plaingraph(4, [(1,2), (2,3), (1,3), (3,4), (4,2)])
+    butterfly = plaingraph(5, [(1,2), (2,3), (1,3), (3,4), (4,5), (5,3)])
+    @test !isedgesubgraphmatch(k4, butterfly)
+    matches = edgesubgraphmatches(k4, 〼)
+    @test length(collect(matches)) == 24
 end
 
 @testset "mandatory" begin
     path = pathgraph(7)
     subp = pathgraph(3)
-    eiso = edgeisomorphismiter(path, subp, mode=:Subgraph)
+    eiso = edgesubgraphmatches(path, subp)
     @test length(collect(eiso)) == 10
 
-    restricted = edgeisomorphismiter(
-        path, subp, mode=:Subgraph, mandatory=Dict(3 => 1))
+    restricted = edgesubgraphmatches(path, subp, mandatory=Dict(3 => 1))
     @test length(collect(restricted)) == 2
 end
 
