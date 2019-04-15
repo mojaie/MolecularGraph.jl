@@ -5,8 +5,7 @@
 
 export
     ModularProduct,
-    modularproduct,
-    edgefilter
+    modularproduct
 
 
 struct ModularProductNode <: AbstractNode
@@ -29,17 +28,17 @@ struct ModularProduct <: OrderedGraph
 end
 
 
+edgefilter(G, H) = (g1, g2, h1, h2) -> hasedge(G, g1, g2) == hasedge(H, h1, h2)
+
+
 """
     modularproduct(T1::OrderedGraph, T2::OrderedGraph) -> ModularProduct
 
 Return the modular product of graphs G and H.
 """
-function modularproduct(G::OrderedGraph, H::OrderedGraph,
-            nodematcher=(g,h)->true, edgefilter=edgefilter(G, H)
-        ) where {T1<:OrderedGraph,T2<:OrderedGraph}
-    # TODO: addnode, addedge
+function modularproduct(G::OrderedGraph, H::OrderedGraph;
+            nodematcher=(g,h)->true, edgefilter=edgefilter(G, H))
     product = ModularProduct([], [], [], [], Dict())
-    ncnt = 0
     ndict = Dict{Int,Dict{Int,Int}}() # Ref to node indices of the product
     # Modular product nodes
     nattrs = ModularProductNode[]
@@ -51,7 +50,6 @@ function modularproduct(G::OrderedGraph, H::OrderedGraph,
     end
     (nodecount(G) < 2 || nodecount(H) < 2) && return product
     # Modular product edges
-    ecnt = 0
     for (g1, g2) in combinations(1:nodecount(G))
         for (h1, h2) in combinations(1:nodecount(H))
             edgefilter(g1, g2, h1, h2) || continue
@@ -70,9 +68,4 @@ function modularproduct(G::OrderedGraph, H::OrderedGraph,
         end
     end
     return product
-end
-
-
-function edgefilter(G, H)
-    return (g1, g2, h1, h2) -> hasedge(G, g1, g2) == hasedge(H, h1, h2)
 end

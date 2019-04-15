@@ -110,10 +110,10 @@ function boundary(mol::GraphMol)
     height = top - bottom
     dists = []
     # Size unit
-    for bond in edgevalues(mol)
-        u = _point(coords, bond.u)
-        v =  _point(coords, bond.v)
-        d = norm(v - u)
+    for (u, v) in edgesiter(mol)
+        upos = _point(coords, u)
+        vpos =  _point(coords, v)
+        d = norm(vpos - upos)
         if d > 0.0001  # Remove overlapped
             push!(dists, d)
         end
@@ -147,6 +147,10 @@ function initcanvas!(canvas::Canvas, mol::GraphMol)
     canvas.valid = true
     return
 end
+
+initcanvas!(canvas::Canvas, view::SubgraphView
+    ) = initcanvas!(canvas, view.graph)
+
 
 
 function trimbond(canvas, seg, uvis, vvis)

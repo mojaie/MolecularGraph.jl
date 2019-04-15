@@ -11,7 +11,6 @@ module MolecularGraphUtilTest
 end
 
 
-"""
 module MolecularGraphModelTest
     using Test
     using MolecularGraph.MolecularGraphModel
@@ -49,7 +48,7 @@ module MolecularGraphGeometryTest
     include("./geometry/coords3d.jl")
     include("./geometry/coordsinternal.jl")
 end
-"""
+
 
 module MolecularGraphTest
     using Test

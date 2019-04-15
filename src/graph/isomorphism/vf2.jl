@@ -4,81 +4,42 @@
 #
 
 export
-    isomorphismitervf2,
-    edgeisomorphismitervf2
+    isomorphismitervf2, edgeisomorphismitervf2,
+    graphmatches, graphmatch, isgraphmatch,
+    subgraphmatches, subgraphmatch, issubgraphmatch,
+    edgesubgraphmatches, edgesubgraphmatch, isedgesubgraphmatch
 
 
 mutable struct VF2State{T1<:UndirectedGraph,T2<:UndirectedGraph}
-    # Input
     G::T1
     H::T2
     mode::Symbol
-    subgraphtype::Symbol
-    # Optional
     timeout # Int
     nodematcher # Function
     edgematcher # Function
     mandatory # Dict{Int,Int}
     forbidden # Dict{Int,Int}
-    # States
+
+    expire # UInt64, nanoseconds
+
     g_core::Dict{Int,Int}
     h_core::Dict{Int,Int}
     g_term::Dict{Int,Int}
     h_term::Dict{Int,Int}
-    expire # UInt64, nanoseconds
     status::Symbol
 
-    function VF2State{T1,T2}(G, H, mode, subg
+    function VF2State{T1,T2}(G::T1, H::T2, mode
             ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
         state = new()
         state.G = G
         state.H = H
         state.mode = mode
-        state.subgraphtype = subg
         state.g_core = Dict()
         state.h_core = Dict()
         state.g_term = Dict()
         state.h_term = Dict()
         state.status = :Ready
         return state
-    end
-end
-
-
-
-function isomorphismitervf2(G::T1, H::T2; kwargs...
-        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
-    if nodecount(G) == 0 || nodecount(H) == 0
-        return ()
-    end
-    state = VF2State{T1,T2}(G, H, kwargs[:mode], kwargs[:subgraphtype])
-    if haskey(kwargs, :timeout)
-        state.timeout = kwargs[:timeout]::Int
-        state.expire = (time_ns() + state.timeout * 1_000_000_000)::UInt64
-    end
-    (haskey(kwargs, :nodematcher)
-        && (state.nodematcher = kwargs[:nodematcher]::Function))
-    (haskey(kwargs, :edgematcher)
-        && (state.edgematcher = kwargs[:edgematcher]::Function))
-    (haskey(kwargs, :mandatory)
-        && (state.mandatory = kwargs[:mandatory]::Dict{Int,Int}))
-    (haskey(kwargs, :forbidden)
-        && (state.forbidden = kwargs[:forbidden]::Dict{Int,Int}))
-    return Channel(
-        c::Channel -> expand!(state, c; kwargs...), ctype=Dict{Int,Int})
-end
-
-
-function edgeisomorphismitervf2(G, H;
-        nodematcher=(g,h)->true, edgematcher=(g,h)->true, kwargs...)
-    lg = linegraph(G)
-    lh = linegraph(H)
-    nmatch = lgnodematcher(lg, lh, nodematcher, edgematcher)
-    ematch = lgedgematcher(lg, lh, nodematcher)
-    results = isomorphismitervf2(lg, lh,
-        nodematcher=nmatch, edgematcher=ematch; kwargs...)
-    return Iterators.filter(results) do mapping
-        return !delta_y_mismatch(G, H, mapping)
     end
 end
 
@@ -233,10 +194,10 @@ function is_semantic_feasible(state::VF2State, g, h; verbose=false)
         end
     end
     if isdefined(state, :edgematcher)
-        for nbr in intersect(adjacencies(state.G, g), keys(state.g_core))
-            g_edge = findedgekey(state.G, g, nbr)
-            h_edge = findedgekey(state.H, h, state.g_core[nbr])
-            if !state.edgematcher(g_edge, h_edge)
+        for (inc, adj) in neighbors(state.G, g)
+            haskey(state.g_core, adj) || continue
+            hinc = findedgekey(state.H, h, state.g_core[adj])
+            if !state.edgematcher(inc, hinc)
                 verbose && println("Infeasible: edge attribute mismatch")
                 return false
             end
@@ -244,3 +205,165 @@ function is_semantic_feasible(state::VF2State, g, h; verbose=false)
     end
     return true
 end
+
+
+
+function isomorphismitervf2(G::T1, H::T2; kwargs...
+        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
+    (nodecount(G) == 0 || nodecount(H) == 0) && return ()
+    state = VF2State{T1,T2}(G, H, kwargs[:mode])
+    if haskey(kwargs, :nodematcher)
+        state.nodematcher = kwargs[:nodematcher]::Function
+    end
+    if haskey(kwargs, :edgematcher)
+        state.edgematcher = kwargs[:edgematcher]::Function
+    end
+    if haskey(kwargs, :mandatory)
+        state.mandatory = kwargs[:mandatory]::Dict{Int,Int}
+    end
+    if haskey(kwargs, :forbidden)
+        state.forbidden = kwargs[:forbidden]::Dict{Int,Int}
+    end
+    if haskey(kwargs, :timeout)
+        state.timeout = kwargs[:timeout]::Int
+        state.expire = (time_ns() + state.timeout * 1_000_000_000)::UInt64
+    end
+    return Channel(
+        c::Channel -> expand!(state, c; kwargs...), ctype=Dict{Int,Int})
+end
+
+
+
+function edgeisomorphismitervf2(G::T1, H::T2; kwargs...
+        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
+    (edgecount(G) == 0 || edgecount(H) == 0) && return ()
+    lg = linegraph(G)
+    lh = linegraph(H)
+    state = VF2State{LineGraph,LineGraph}(lg, lh, kwargs[:mode])
+    if haskey(kwargs, :nodematcher)
+        state.edgematcher = lgedgematcher(lg, lh, kwargs[:nodematcher])
+        if haskey(kwargs, :edgematcher)
+            state.nodematcher = lgnodematcher(
+                lg, lh, kwargs[:nodematcher], kwargs[:edgematcher])
+        end
+    end
+    if haskey(kwargs, :mandatory)
+        state.mandatory = kwargs[:mandatory]::Dict{Int,Int}
+    end
+    if haskey(kwargs, :forbidden)
+        state.forbidden = kwargs[:forbidden]::Dict{Int,Int}
+    end
+    if haskey(kwargs, :timeout)
+        state.timeout = kwargs[:timeout]::Int
+        state.expire = (time_ns() + state.timeout * 1_000_000_000)::UInt64
+    end
+    results = Channel(
+        c::Channel -> expand!(state, c; kwargs...), ctype=Dict{Int,Int})
+    return Iterators.filter(results) do mapping
+        return !delta_y_mismatch(G, H, mapping)
+    end
+end
+
+
+
+# Graph isomorphism
+
+"""
+    graphmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+
+Generate isomorphism mappings between `G` and `H`. If no match found, return
+nothing.
+"""
+graphmatches(G, H; kwargs...
+    ) = isomorphismitervf2(G, H, mode=:Isomorphism; kwargs...)
+
+"""
+    graphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
+
+Return an isomorphism mapping between `G` and `H`. If no match found, return
+nothing.
+"""
+function graphmatch(G, H; kwargs...)
+    res = iterate(graphmatches(G, H; kwargs...))
+    return res === nothing ? nothing : res[1]
+end
+
+"""
+    isgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
+
+Return true if `G` and `H` are isomorphic.
+"""
+isgraphmatch(G, H; kwargs...) = graphmatch(G, H; kwargs...) !== nothing
+
+
+
+# Node induced subgraph isomorphism
+
+"""
+    subgraphmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+
+Generate subgraph isomorphism mappings between `G` and `H`.
+
+# Keyword arguments
+
+- nodematcher(Function): node matcher function that takes two node indices as
+arguments.
+- edgematcher(Function): edge matcher function that takes two edge indices as
+arguments.
+- mandatory(Dict{Int,Int}): mandatory node matches (available for only VF2)
+- forbidden(Dict{Int,Int}):
+    forbidden node matches (available for only VF2)
+"""
+subgraphmatches(G, H; kwargs...
+    ) = isomorphismitervf2(G, H, mode=:Subgraph; kwargs...)
+
+"""
+    subgraphmatch(
+        G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
+
+Return a subgraph isomorphism mapping between `G` and `H`. If no match found,
+return nothing.
+"""
+function subgraphmatch(G, H; kwargs...)
+    res = iterate(subgraphmatches(G, H; kwargs...))
+    return res === nothing ? nothing : res[1]
+end
+
+"""
+    issubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
+
+Return true if a node induced subgraph of `G` and `H` are isomorphic.
+"""
+issubgraphmatch(G, H; kwargs...) = subgraphmatch(G, H; kwargs...) !== nothing
+
+
+
+# Edge induced subgraph isomorphism
+
+"""
+    edgesubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+
+Generate edge induced subgraph isomorphism mappings between `G` and `H`.
+"""
+edgesubgraphmatches(G, H; kwargs...
+    ) = edgeisomorphismitervf2(G, H, mode=:Subgraph; kwargs...)
+
+"""
+    edgesubgraphmatch(
+        G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
+
+Return a edge induced subgraph isomorphism mapping between `G` and `H`.
+If no match found, return nothing.
+"""
+function edgesubgraphmatch(G, H; kwargs...)
+    res = iterate(edgesubgraphmatches(G, H; kwargs...))
+    return res === nothing ? nothing : res[1]
+end
+
+"""
+    isedgesubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
+
+Return true if a node induced subgraph of `G` and `H` are isomorphic.
+"""
+isedgesubgraphmatch(G, H; kwargs...
+    ) = edgesubgraphmatch(G, H; kwargs...) !== nothing

@@ -53,7 +53,7 @@ const DRAW_SETTING = Dict(
 
 
 """
-    atomcolor(mol::GraphMol; setting=DRAW_SETTING)
+    atomcolor(mol::GraphMol; setting=DRAW_SETTING) -> Vector{Color}
 
 Return atom colors for molecule 2D drawing
 """
@@ -63,7 +63,14 @@ function atomcolor(mol::GraphMol; setting=DRAW_SETTING)
     return [get(atomc, sym, dfc) for sym in atomsymbol(mol)]
 end
 
+atomcolor(view::SubgraphView) = atomcolor(view.graph)
 
+
+"""
+    isatomvisible(mol::GraphMol; setting=DRAW_SETTING) -> Vector{Bool}
+
+Return whether the atom is visible in the 2D drawing.
+"""
 function isatomvisible(mol::GraphMol; setting=DRAW_SETTING)
     termc = setting[:display_terminal_carbon]
     vec = Bool[]
@@ -74,21 +81,27 @@ function isatomvisible(mol::GraphMol; setting=DRAW_SETTING)
     return vec
 end
 
+isatomvisible(view::SubgraphView) = isatomvisible(view.graph)
+
+
 
 @cache function coords2d(mol::GraphMol; recalculate=false)
     recalculate && return compute2dcoords(mol)
-    nodetype(mol) === SmilesAtom && return compute2dcoords(mol)
+    nodeattrtype(mol) === SmilesAtom && return compute2dcoords(mol)
     matrix = zeros(Float64, nodecount(mol), 2)
-    for (i, node) in nodesiter(mol)
+    for (i, node) in enumerate(nodeattrs(mol))
         matrix[i, :] = node.coords[1:2]
     end
     return cartesian2d(matrix)
 end
 
+coords2d(view::SubgraphView) = coords2d(view.graph)
+
+
 
 function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
-    if nodetype(mol) === SDFileAtom
-        notation = getproperty.(edgevalues(mol), :notation)
+    if nodeattrtype(mol) === SDFileAtom
+        notation = getproperty.(edgeattrs(mol), :notation)
     else
         notation = zeros(Int, edgecount(mol))
     end
@@ -105,13 +118,13 @@ function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
     # Or only non-ring bonds to be "="
     if dbnt == :terminal
         for i in findall(nodedegree(mol) .== 1)
-            b = pop!(incidences(mol, i))
+            b = iterate(incidences(mol, i))[1]
             if bondorder_[b] == 2
                 notation[b] = 2
             end
         end
     elseif dbnt == :chain
-        for b in findall(.!bond_isringmem(mol) .* (bondorder_ .== 2))
+        for b in findall(.!isringbond(mol) .* (bondorder_ .== 2))
             notation[b] = 2
         end
     end
@@ -126,15 +139,18 @@ function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
             succ[ordered[n]] = ordered[n+1]
         end
         succ[ordered[end]] = ordered[1]
-        rsub = nodesubgraph(mol.graph, ring)
-        for (i, e) in edgesiter(rsub)
-            if bondorder_[i] == 2 && succ[e.u] != e.v
+        rsub = nodesubgraph(mol, Set(ring))
+        for i in edgeset(rsub)
+            (u, v) = getedge(rsub, i)
+            if bondorder_[i] == 2 && succ[u] != [v]
                 notation[i] = 1
             end
         end
     end
     return notation
 end
+
+bondnotation(view::SubgraphView) = bondnotation(view.graph)
 
 
 """
@@ -172,12 +188,12 @@ atomhtml(
 
 
 """
-    draw2d!(canvas::Canvas, mol::GraphMol;
+    draw2d!(canvas::Canvas, mol::UndirectedGraph;
             setting=copy(DRAW_SETTING), recalculate=false)
 
 Draw molecular image to the canvas.
 """
-function draw2d!(canvas::Canvas, mol::GraphMol;
+function draw2d!(canvas::Canvas, mol::UndirectedGraph;
                  setting=copy(DRAW_SETTING), recalculate=false)
     # Canvas settings
     initcanvas!(canvas, mol)
@@ -193,25 +209,26 @@ function draw2d!(canvas::Canvas, mol::GraphMol;
     implicithcount_ = implicithcount(mol)
 
     # Draw bonds
-    for (i, bond) in edgesiter(mol)
+    for i in edgeset(mol)
+        (u, v) = getedge(mol, i)
         setbond!(
             canvas, bondorder_[i], bondnotation_[i],
-            segment(canvas.coords, bond.u, bond.v),
-            atomcolor_[bond.u], atomcolor_[bond.v],
-            isatomvisible_[bond.u], isatomvisible_[bond.v]
+            segment(canvas.coords, u, v),
+            atomcolor_[u], atomcolor_[v],
+            isatomvisible_[u], isatomvisible_[v]
         )
     end
 
     # Draw atoms
-    for i in 1:atomcount(mol)
+    for i in nodeset(mol)
         isatomvisible_[i] || continue
         pos = _point(canvas.coords, i)
         # Determine text direction
         if implicithcount_[i] > 0
             cosnbrs = []
             hrzn = [pos[1] + 1.0, pos[2]]
-            for nbr in adjacencies(mol, i)
-                posnbr = _point(canvas.coords, nbr)
+            for adj in adjacencies(mol, i)
+                posnbr = _point(canvas.coords, adj)
                 dist = norm(posnbr - pos)
                 if dist > 0
                     dp = dot(hrzn - pos, posnbr - pos)
@@ -244,10 +261,10 @@ function draw2d!(canvas::Canvas, mol::GraphMol;
 end
 
 
-function drawatomindex!(canvas::Canvas, mol::GraphMol;
+function drawatomindex!(canvas::Canvas, mol::UndirectedGraph;
                         color=Color(0, 0, 0), bgcolor=Color(240, 240, 255))
     isatomvisible_ = isatomvisible(mol)
-    for i in 1:atomcount(mol)
+    for i in nodeset(mol)
         offset = isatomvisible_[i] ? [0 canvas.fontsize/2] : [0 0]
         pos = _point(canvas.coords, i) + offset
         setatomnote!(canvas, pos, string(i), color, bgcolor)

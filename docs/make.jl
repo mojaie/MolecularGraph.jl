@@ -9,20 +9,20 @@ makedocs(
         "MolecularGraph" => [
             "I/O" => "moleculargraph/io.md",
             "Structure drawing" => "moleculargraph/draw.md",
-            "Basic chemical properties" => "moleculargraph/properties.md",
-            "Molecular descriptor" => "moleculargraph/descriptor.md",
+            "Chemical properties" => "moleculargraph/properties.md",
             "Preprocessing" => "moleculargraph/preprocess.md",
-            "Structure match" => "moleculargraph/structure.md"
+            "Substructure match" => "moleculargraph/substructure.md",
+            "MCS" => "moleculargraph/mcs.md",
+            "Functional group detection" => "moleculargraph/funcgroup.md"
         ],
         "GraphModel" => [
-            "Models" => "graph/model.md",
             "Interface" => "graph/interface.md",
             "Generator" => "graph/generator.md",
-            "Shortest path" => "graph/shortestpath.md",
-            "Line graph" => "graph/linegraph.md",
-            "Connectivity" => "graph/connectivity.md",
-            "Planarity" => "graph/planarity.md",
-            "Clique" => "graph/clique.md"
+            "Traversal" => "graph/traversal.md",
+            "Topology" => "graph/topology.md",
+            "Operations" => "graph/operation.md",
+            "Clique" => "graph/clique.md",
+            "Isomorphism" => "graph/isomorphism.md"
         ],
         "Python interface" => "python.md",
         "Design of molecular graph models" => "design.md"

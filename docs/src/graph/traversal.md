@@ -1,12 +1,12 @@
 
-# Line graph
+# Graph traversal
 
 
-## Line graph
+## Shortest path
 
 ```@autodocs
 Modules = [MolecularGraphModel]
-Pages   = ["graph/linegraph.jl"]
+Pages   = ["graph/shortestpath.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

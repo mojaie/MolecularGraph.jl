@@ -1,31 +1,32 @@
 
-# Graph models
+# Graph operations
 
 
-## Undirected graph
+## Disjoint union
 
 ```@autodocs
 Modules = [MolecularGraphModel]
-Pages   = ["graph/ugraph.jl"]
+Pages   = ["graph/disjointunion.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```
 
 
-## Directed graph
+## Line graph
 
 ```@autodocs
 Modules = [MolecularGraphModel]
-Pages   = ["graph/dgraph.jl"]
+Pages   = ["graph/linegraph.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```
 
-## Multi graph
+
+## Modular product
 
 ```@autodocs
 Modules = [MolecularGraphModel]
-Pages   = ["graph/multigraph.jl"]
+Pages   = ["graph/modularproduct.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

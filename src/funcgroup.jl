@@ -60,6 +60,12 @@ function setterm!(graph::FGC, term::Symbol, component::Set{Set{Int}})
 end
 
 
+"""
+    functionalgroupgraph(mol::GraphMol) -> FunctionalGroupClassifier
+
+Generate functional group graph that is a directed acyclic graph similar to
+an ontology graph.
+"""
 function functionalgroupgraph(mol::GraphMol)
     fgc = FunctionalGroupClassifier()
     termidmap = Dict{Symbol,Int}()

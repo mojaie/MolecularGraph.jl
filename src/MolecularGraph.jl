@@ -39,9 +39,9 @@ module MolecularGraph
         include("./graph/cycle.jl")
         include("./graph/planarity.jl")
 
-        include("./graph/isomorphism/base.jl")
-        include("./graph/isomorphism/cliquebased.jl")
+        include("./graph/isomorphism/edgeinduced.jl")
         include("./graph/isomorphism/vf2.jl")
+        include("./graph/isomorphism/cliquemcs.jl")
     end
 
     module MolecularGraphGeometry

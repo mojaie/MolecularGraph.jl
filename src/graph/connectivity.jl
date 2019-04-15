@@ -178,7 +178,8 @@ Compute sets of 2-edge connected component nodes.
 """
 @cache function two_edge_connected(graph::UndirectedGraph)
     cobr = setdiff(edgeset(graph), bridges(graph))
-    return connected_components(SubgraphView(graph, nodeset(graph), cobr))
+    subg = plaingraph(SubgraphView(graph, nodeset(graph), cobr))
+    return connected_components(subg)
 end
 
 two_edge_connected(view::SubgraphView) = two_edge_connected(view.graph)

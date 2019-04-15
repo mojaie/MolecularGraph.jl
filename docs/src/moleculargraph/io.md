@@ -20,3 +20,13 @@ Pages   = ["sdfilewriter.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```
+
+
+## SMILES/SMARTS
+
+```@autodocs
+Modules = [MolecularGraph]
+Pages   = ["smarts/base.jl"]
+Private = false
+Order   = [:constant, :function, :type]
+```

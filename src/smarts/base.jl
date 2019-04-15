@@ -55,8 +55,21 @@ function Base.parse(::Type{SMARTS}, str::AbstractString)
 end
 
 
+"""
+    smilestomol(smiles::AbstractString) -> GraphMol{SmilesAtom,SmilesBond}
+
+Parse SMILES string into `GraphMol` object.
+"""
 smilestomol(smiles::AbstractString) = parse(SMILES, smiles)
+
+
+"""
+    smartstomol(smarts::AbstractString) -> QueryMol{SmartsAtom,SmartsBond}
+
+Parse SMARTS string into `QueryMol` object.
+"""
 smartstomol(smarts::AbstractString) = parse(SMARTS, smarts)
+
 
 
 function lookahead(state::SmartsParserState, pos::Int)

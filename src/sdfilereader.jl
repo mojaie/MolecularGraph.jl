@@ -72,7 +72,7 @@ function sdfoptions(lines)
         # Some inappropriate signs are accepted for practical use
         m = match(r">.*?<([\w -.%=]+)>", line)
         if m !== nothing
-            data[m[1]] = lines[i + 1]
+            data[Symbol(m[1])] = lines[i + 1]
         end
     end
     return data
