@@ -41,7 +41,6 @@ end
 module MolecularGraphGeometryTest
     using Test
     using LinearAlgebra
-    using Formatting
     using MolecularGraph.MolecularGraphGeometry
 
     include("./geometry/coords2d.jl")

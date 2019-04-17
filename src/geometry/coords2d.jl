@@ -83,6 +83,8 @@ point(x::Float64, y::Float64) = Point2D([x y], 1)
 
 segment(coords::Cartesian2D, u, v) = Segment2D(rawdata(coords), u, v)
 segment(coords::Matrix{Float64}) = Segment2D(coords, 1, 2)
+segment(u::Point2D, v::Point2D
+    ) = segment(vcat(transpose(rawdata(u)), transpose(rawdata(v))))
 
 cyclicpath(coords::Cartesian2D, nodes) = CyclicPath2D(rawdata(coords), nodes)
 cyclicpath(coords::Matrix{Float64}) = CyclicPath2D(coords, 1:size(coords, 1))
@@ -93,6 +95,8 @@ y(point::Point2D) = point.coords[point.i, 2]
 
 _u(segment::Segment2D) = segment.coords[segment.u, :]
 _v(segment::Segment2D) = segment.coords[segment.v, :]
+u(segment::Segment2D) = point(_u(segment)...)
+v(segment::Segment2D) = point(_v(segment)...)
 ux(segment::Segment2D) = segment.coords[segment.u, 1]
 uy(segment::Segment2D) = segment.coords[segment.u, 2]
 vx(segment::Segment2D) = segment.coords[segment.v, 1]
@@ -112,15 +116,6 @@ y_components(coords::Cartesian2D) = coords.coords[:, 2]
 # +(a::Point2D, b::Point2D) = Point2D(rawdata(a) - rawdata(b), 1)
 # -(a::Point2D, b::Point2D) = Point2D(rawdata(a) - rawdata(b), 1)
 # *(a::Point2D, f::Float64) = Point2D(rawdata(a) * f, 1)
-
-Formatting.fmt(expr::String, s::Point2D) = (fmt(expr, x(s)), fmt(expr, y(s)))
-
-function Formatting.fmt(expr::String, s::Segment2D)
-    return (
-        (fmt(expr, ux(s)), fmt(expr, uy(s))),
-        (fmt(expr, vx(s)), fmt(expr, vy(s)))
-    )
-end
 
 
 _vector(segment::Segment2D) = _v(segment) - _u(segment)

@@ -106,17 +106,6 @@ y_components(coords::Cartesian3D) = coords.coords[:, 2]
 z_components(coords::Cartesian3D) = coords.coords[:, 3]
 
 
-Formatting.fmt(s::Point3D, expr::String) = (
-    fmt(expr, x(s)), fmt(expr, y(s)), fmt(expr, z(s)))
-
-function Formatting.fmt(s::Segment3D, expr::String)
-    return (
-        (fmt(expr, ux(s)), fmt(expr, _uy(s)), fmt(expr, _uz(s))),
-        (fmt(expr, vx(s)), fmt(expr, _vy(s)), fmt(expr, _vz(s)))
-    )
-end
-
-
 _vector(segment::Segment3D) = _v(segment) - _u(segment)
 vector(segment::Segment3D) = Point3D(_vector(segment)...)
 

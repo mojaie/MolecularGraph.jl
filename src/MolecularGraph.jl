@@ -45,7 +45,6 @@ module MolecularGraph
     end
 
     module MolecularGraphGeometry
-        using Formatting
         using LinearAlgebra
         using ..MolecularGraphUtil
         using ..MolecularGraphModel
@@ -58,8 +57,6 @@ module MolecularGraph
     end
 
     using LinearAlgebra
-    using Printf
-    using Formatting
     using Statistics
     using YAML
     using ..MolecularGraphUtil

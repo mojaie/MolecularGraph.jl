@@ -29,8 +29,6 @@ struct Color
     b::Int
 end
 
-Formatting.format(expr::String, c::Color) = format(expr, c.r, c.g, c.b)
-
 
 abstract type Canvas end
 

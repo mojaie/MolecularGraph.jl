@@ -54,12 +54,6 @@ version = "0.21.1"
 [[FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
-[[Formatting]]
-deps = ["Compat"]
-git-tree-sha1 = "289003271ce9c8194c1ce56a3c433f1c51841125"
-uuid = "59287772-0a20-5a39-b81b-1366585eb4c0"
-version = "0.3.5"
-
 [[IJulia]]
 deps = ["Base64", "Conda", "Dates", "InteractiveUtils", "JSON", "Markdown", "MbedTLS", "Pkg", "Printf", "REPL", "Random", "SoftGlobalScope", "Test", "UUIDs", "ZMQ"]
 git-tree-sha1 = "d2e3182d2ad6644bd05fbd75468d4114b39ac923"

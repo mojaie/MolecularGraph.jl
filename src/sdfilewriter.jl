@@ -9,9 +9,10 @@ export
 
 function atomblock(io::IO, mol::GraphMol)
     for (i, atom) in enumerate(nodeattrs(mol))
-        (x, y, z) = fmt.("10.4f", atom.coords)
-        sym = fmt("-3s", string(atom.symbol))
-        println(io, "$(x)$(y)$(z) $(sym) 0  0  0  0  0  0  0  0  0  0  0  0")
+        # TODO: SMILES coords
+        (x, y, z) = atom.coords
+        xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atom.symbol)
+        println(io, "$(xyzsym) 0  0  0  0  0  0  0  0  0  0  0  0")
     end
     return
 end
@@ -19,13 +20,10 @@ end
 
 function bondblock(io::IO, mol::GraphMol)
     for (i, (u, v)) in enumerate(edgesiter(mol))
-        ustr = fmt("3d", u)
-        vstr = fmt("3d", v)
         bond = edgeattr(mol, i)
-        order = fmt("3d", bond.order)
         # TODO: SmilesBond
-        stereo = fmt("3d", bond.notation)
-        println(io, "$(ustr)$(vstr)$(order)$(stereo)  0  0  0")
+        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v bond.order bond.notation
+        println(io, uv)
     end
     return
 end
@@ -41,16 +39,31 @@ function propertyblock(io::IO, mol::GraphMol)
         atom.mass === nothing || push!(masses, (i, atom.mass))
     end
     if !isempty(charges)
-        rcds = (format(" {:3d} {:3d}", i, chg) for (i, chg) in charges)
-        println(io, format("M  CHG{:3d}{}", length(charges), join(rcds, "")))
+        head = @sprintf "M  CHG%3d" length(charges)
+        print(io, head)
+        for (i, chg) in charges
+            rcd = @sprintf " %3d %3d" i chg
+            print(io, rcd)
+        end
+        println(io)
     end
     if !isempty(radicals)
-        rcds = (format(" {:3d} {:3d}", i, rad) for (i, rad) in radicals)
-        println(io, format("M  RAD{:3d}{}", length(radicals), join(rcds, "")))
+        head = @sprintf "M  RAD%3d" length(radicals)
+        print(io, head)
+        for (i, rad) in radicals
+            rcd = @sprintf " %3d %3d" i rad
+            print(io, rcd)
+        end
+        println(io)
     end
     if !isempty(masses)
-        rcds = (format(" {:3d} {:3d}", i, iso) for (i, iso) in masses)
-        println(io, format("M  ISO{:3d}{}", length(masses), join(rcds, "")))
+        head = @sprintf "M  ISO%3d" length(masses)
+        print(io, head)
+        for (i, iso) in masses
+            rcd = @sprintf " %3d %3d" i iso
+            print(io, rcd)
+        end
+        println(io)
     end
     return
 end
@@ -72,11 +85,10 @@ function molblock(io::IO, mol::GraphMol)
     println(io)
     println(io, "MolecularGraph.jl version $(version())")
     println(io)
-    chiral_flag = 0 # TODO: deplicated?
-    println(io, format(
-        "{:3d}{:3d}  0  0{:3d}  0  0  0  0  0999 V2000",
-        nodecount(mol), edgecount(mol), chiral_flag
-    ))
+    ncnt = nodecount(mol)
+    ecnt = edgecount(mol)
+    header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
+    println(io, header)
     atomblock(io, mol)
     bondblock(io, mol)
     propertyblock(io, mol)

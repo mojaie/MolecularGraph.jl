@@ -9,6 +9,8 @@ export
     drawsvg,
     initcanvas!
 
+using Printf
+
 
 mutable struct SvgCanvas <: Canvas
     fontweight::String
@@ -59,10 +61,19 @@ mutable struct SvgCanvas <: Canvas
 end
 
 
+svgcolor(c::Color) = @sprintf "rgb(%d, %d, %d)" c.r c.g c.b
+svgcoords(s::Point2D) = @sprintf "x=\"%.2f\" y=\"%.2f\"" x(s) y(s)
+svgcoords(
+    s::Segment2D
+) = @sprintf "x1=\"%.2f\" y1=\"%.2f\" x2=\"%.2f\" y2=\"%.2f\"" ux(s) uy(s) vx(s) vy(s)
+svgtransform(tf::Array{Float64,2}
+    ) = @sprintf "%.2f %.2f %.2f %.2f %.2f %.2f" tf[1] tf[2] tf[4] tf[5] tf[7] tf[8]
+
+
 function tosvg(canvas::Canvas, width::Int, height::Int)
-    vbWf = fmt(".2f", canvas.viewboxW)
-    vbHf = fmt(".2f", canvas.viewboxH)
-    bgc = format("rgb({:d}, {:d}, {:d})", canvas.bgcolor)
+    vbWf = @sprintf "%.2f" canvas.viewboxW
+    vbHf = @sprintf "%.2f" canvas.viewboxH
+    bgc = svgcolor(canvas.bgcolor)
     header = """<svg xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
      version="1.2" baseProfile="tiny"
@@ -273,15 +284,15 @@ function atomsymbol!(canvas, coords, atomsymbol, color, implicith, charge;
                      direction=:right, anchor=""" text-anchor="end" """,
                      xoffset=0)
     pos = coords + [xoffset, canvas.fontsize/2]
-    (x, y) = fmt.(".2f", pos)
+    xy = svgcoords(point(pos...))
     small = round(Int, canvas.fontsize * 0.7)
     content = atommarkup(
         atomsymbol, charge, implicith, direction,
         """<tspan baseline-shift="-25%" font-size="$(small)">""", "</tspan>",
         """<tspan baseline-shift="50%" font-size="$(small)">""", "</tspan>"
     )
-    c = format("rgb({:d}, {:d}, {:d})", color)
-    elem = """<text x="$(x)" y="$(y)" font-size="$(canvas.fontsize)"
+    c = svgcolor(color)
+    elem = """<text $(xy)" font-size="$(canvas.fontsize)"
      fill="$(c)"$(anchor)>$(content)</text>
     """
     push!(canvas.elements, elem)
@@ -312,13 +323,13 @@ setatomleft!(
 
 function setatomnote!(canvas, coords, text, color, bgcolor)
     size = round(Int, canvas.fontsize * canvas.annotsizef)
-    (bx, by) = fmt.(".2f", coords)
-    (tx, ty) = fmt.(".2f", coords + [0 size])
-    c = format("rgb({:d}, {:d}, {:d})", color)
-    bc = format("rgb({:d}, {:d}, {:d})", bgcolor)
+    bxy = svgcoords(point(coords))
+    txy = svgcoords(point(coords + [0 size]))
+    c = svgcolor(color)
+    bc = svgcolor(bgcolor)
     elem = """<g>
-     <rect x="$(bx)" y="$(by)" width="$(size)" height="$(size)" rx="$(size/2)" ry="$(size/2)" fill="$(bc)" />
-     <text x="$(tx)" y="$(ty)" font-size="$(size)" fill="$(c)">$(text)</text>
+     <rect $(bxy) width="$(size)" height="$(size)" rx="$(size/2)" ry="$(size/2)" fill="$(bc)" />
+     <text $(txy) font-size="$(size)" fill="$(c)">$(text)</text>
     </g>
     """
     push!(canvas.elements, elem)
@@ -329,9 +340,9 @@ end
 
 function drawline!(canvas, seg, color; isdashed=false)
     option = isdashed ? """ stroke-dasharray="10,10" """ : " "
-    ((ux, uy), (vx, vy)) = fmt(".2f", seg)
-    c = format("rgb({:d}, {:d}, {:d})", color)
-    elem = """<line x1="$(ux)" y1="$(uy)" x2="$(vx)" y2="$(vy)" stroke="$(c)"$(option)/>"""
+    segcrds = svgcoords(seg)
+    c = svgcolor(color)
+    elem = """<line $(segcrds) stroke="$(c)"$(option)/>"""
     push!(canvas.elements, elem)
     return
 end
@@ -342,12 +353,13 @@ function drawline!(canvas, seg, ucolor, vcolor; isdashed=false)
         return
     end
     option = isdashed ? """ stroke-dasharray="10,10" """ : " "
-    ((ux, uy), (vx, vy)) = fmt(".2f", seg)
-    (mx, my) = fmt(".2f", midpoint(seg))
-    uc = format("rgb({:d}, {:d}, {:d})", ucolor)
-    vc = format("rgb({:d}, {:d}, {:d})", vcolor)
-    elem = """<line x1="$(ux)" y1="$(uy)" x2="$(mx)" y2="$(my)" stroke="$(uc)"$(option)/>
-    <line x1="$(mx)" y1="$(my)" x2="$(vx)" y2="$(vy)" stroke="$(vc)"$(option)/>
+    mid = midpoint(seg)
+    segcrds1 = svgcoords(segment(u(seg), mid))
+    segcrds2 = svgcoords(segment(mid, v(seg)))
+    uc = svgcolor(ucolor)
+    vc = svgcolor(vcolor)
+    elem = """<line $(segcrds1)" stroke="$(uc)"$(option)/>
+    <line $(segcrds2)" stroke="$(vc)"$(option)/>
     """
     push!(canvas.elements, elem)
     return
@@ -365,9 +377,9 @@ function drawwedge!(canvas, seg, color)
         point(normalize(_vector(seg))...),
         point(_u(seg)...)
     )
-    mat = join(fmt.(".2f", tf[[1, 2, 4, 5, 7, 8]]), " ")
-    c = format("rgb({:d}, {:d}, {:d})", color)
-    elem = """<polygon points="0,0 1,1 1,-1" fill="$(c)" transform="matrix($(mat))"/>
+    svgtf = svgtransform(tf)
+    c = svgcolor(color)
+    elem = """<polygon points="0,0 1,1 1,-1" fill="$(c)" transform="matrix($(svgtf))"/>
     """
     push!(canvas.elements, elem)
     return
@@ -385,10 +397,10 @@ function drawwedge!(canvas, seg, ucolor, vcolor)
         point(normalize(_vector(seg))...),
         point(_u(seg)...)
     )
-    mat = join(fmt.(".2f", tf[[1, 2, 4, 5, 7, 8]]), " ")
-    uc = format("rgb({:d}, {:d}, {:d})", ucolor)
-    vc = format("rgb({:d}, {:d}, {:d})", vcolor)
-    elem = """<g stroke-width="0.3" transform="matrix($(mat))">
+    svgtf = svgtransform(tf)
+    uc = svgcolor(ucolor)
+    vc = svgcolor(vcolor)
+    elem = """<g stroke-width="0.3" transform="matrix($(svgtf))">
      <polygon points="0,0 0.5,-0.5 0.5,0.5" fill="$(uc)"/>
      <polygon points="0.5,-0.5 0.5,0.5 1,1 1,-1" fill="$(vc)"/>
      </g>
@@ -406,9 +418,9 @@ function drawdashedwedge!(canvas, seg, color)
         point(normalize(_vector(seg))...),
         point(_u(seg)...)
     )
-    mat = join(fmt.(".2f", tf[[1, 2, 4, 5, 7, 8]]), " ")
-    c = format("rgb({:d}, {:d}, {:d})", color)
-    elem = """<g stroke="$(c)" stroke-width="0.3" transform="matrix($(mat))">
+    svgtf = svgtransform(tf)
+    c = svgcolor(color)
+    elem = """<g stroke="$(c)" stroke-width="0.3" transform="matrix($(svgtf))">
      <line x1="0" y1="1" x2="0" y2="-1" />
      <line x1="1" y1="2" x2="1" y2="-2" />
      <line x1="2" y1="3" x2="2" y2="-3" />
@@ -435,10 +447,10 @@ function drawdashedwedge!(canvas, seg, ucolor, vcolor)
         point(normalize(_vector(seg))...),
         point(_u(seg)...)
     )
-    mat = join(fmt.(".2f", tf[[1, 2, 4, 5, 7, 8]]), " ")
-    uc = format("rgb({:d}, {:d}, {:d})", ucolor)
-    vc = format("rgb({:d}, {:d}, {:d})", vcolor)
-    elem = """<g stroke-width="0.3" transform="matrix($(mat))">
+    svgtf = svgtransform(tf)
+    uc = svgcolor(ucolor)
+    vc = svgcolor(vcolor)
+    elem = """<g stroke-width="0.3" transform="matrix($(svgtf))">
      <line x1="0" y1="1" x2="0" y2="-1" stroke="$(uc)" />
      <line x1="1" y1="2" x2="1" y2="-2" stroke="$(uc)" />
      <line x1="2" y1="3" x2="2" y2="-3" stroke="$(uc)" />
@@ -461,10 +473,10 @@ function drawwave!(canvas, seg, color)
         point(normalize(_vector(seg))...),
         point(_u(seg)...)
     )
-    mat = join(fmt.(".2f", tf[[1, 2, 4, 5, 7, 8]]), " ")
-    c = format("rgb({:d}, {:d}, {:d})", color)
+    svgtf = svgtransform(tf)
+    c = svgcolor(color)
     elem = """<polyline points="0,0 0.5,0 1,1 2,-1 3,1 4,-1 5,1 6,-1 6.5,0 7,0"
-     stroke="$(c)" stroke-width="0.2" fill="none" transform="matrix($(mat))"/>
+     stroke="$(c)" stroke-width="0.2" fill="none" transform="matrix($(svgtf))"/>
     """
     push!(canvas.elements, elem)
     return
@@ -481,10 +493,10 @@ function drawwave!(canvas, seg, ucolor, vcolor)
         point(normalize(_vector(seg))...),
         point(_u(seg)...)
     )
-    mat = join(fmt.(".2f", tf[[1, 2, 4, 5, 7, 8]]), " ")
-    uc = format("rgb({:d}, {:d}, {:d})", ucolor)
-    vc = format("rgb({:d}, {:d}, {:d})", vcolor)
-    elem = """<g stroke-width="0.2" fill="none" transform="matrix($(mat))">
+    svgtf = svgtransform(tf)
+    uc = svgcolor(ucolor)
+    vc = svgcolor(vcolor)
+    elem = """<g stroke-width="0.2" fill="none" transform="matrix($(svgtf))">
      <polyline points="0,0 0.5,0 1,1 2,-1 3,1 3.5,0" stroke="$(uc)" />
      <polyline points="3.5,0 4,-1 5,1 6,-1 6.5,0 7,0" stroke="$(vc)" />
      </g>

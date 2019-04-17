@@ -21,10 +21,6 @@ end
     @test y(p2) == -4.6
     @test x(p1) == 5
 
-    (x1, y1) = Formatting.fmt("05.2f", p2)
-    @test x1 == "01.20"
-    @test y1 == "-4.60"
-
     @test isapprox(cross(p1, point(coords, 4)), -2)
 
     v = point(3.0, 0.0)
@@ -47,9 +43,6 @@ end
     @test vx(seg1) == 7
     @test vy(seg2) == 7.9
 
-    ((x1, y1), (x2, y2)) = Formatting.fmt("05.2f", seg2)
-    @test y1 == "04.50"
-    @test x2 == "03.40"
     @test isapprox(_vector(seg2), [2.2, 3.4])
     @test isapprox(_midpoint(seg2), [2.3, 6.2])
     @test isapprox(_translate(seg1, -pi / 2, sqrt(2) / 2), [3.5 3.5; 7.5 7.5])
