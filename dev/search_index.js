@@ -49,43 +49,19 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "moleculargraph/io/#Base.parse-Tuple{Type{MapMol{SDFileAtom,SDFileBond}},Any}",
-    "page": "I/O",
-    "title": "Base.parse",
-    "category": "method",
-    "text": "parse(::Type{SDFile}, lines)\n\nParse lines of a SDFile mol block data into a molecule object.\n\n\n\n\n\n"
-},
-
-{
-    "location": "moleculargraph/io/#MolecularGraph.sdfilereader-Tuple{AbstractString}",
-    "page": "I/O",
-    "title": "MolecularGraph.sdfilereader",
-    "category": "method",
-    "text": "sdfilereader(path::AbstractString)\n\nRead a SDFile and return a lazy iterator which yields molecule objects.\n\n\n\n\n\n"
-},
-
-{
     "location": "moleculargraph/io/#MolecularGraph.sdfilereader-Tuple{IO}",
     "page": "I/O",
     "title": "MolecularGraph.sdfilereader",
     "category": "method",
-    "text": "sdfilereader(file::IO)\n\nRead SDFile data from input stream and return a lazy iterator which yields molecule objects.\n\nsdfilereader does not stop and raise errors when an erroneous or incompatible SDFile block is read but produces an error message and yields an empty molecule. If this behavior is not desirable, you can use the customized supplier function instead of default supplier nohaltsupplier\n\nfunction customsupplier()\n    mol = try\n        parse(SDFile, block)\n    catch e\n        throw(ErrorException(\"incompatible molecule found, aborting...\"))\n    end\n    return defaultpostprocess(mol)\nend\n\nfunction sdfilereader(file::IO)\n    return SDFileReader(eachline(file), customsupplier)\nend\n\n\n\n\n\n"
+    "text": "sdfilereader(file::IO)\nsdfilereader(path::AbstractString)\n\nRead SDFile data from input stream (or a file path as a string) and return a lazy iterator that yields molecule objects.\n\nsdfilereader does not stop and raise errors when an erroneous or incompatible SDFile block is read but produces an error message and yields an empty molecule. If this behavior is not desirable, you can use the customized supplier function instead of default supplier nohaltsupplier\n\nfunction customsupplier()\n    mol = try\n        parse(SDFile, block)\n    catch e\n        throw(ErrorException(\"incompatible molecule found, aborting...\"))\n    end\nend\n\nfunction sdfilereader(file::IO)\n    return SDFileReader(eachline(file), customsupplier)\nend\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/io/#MolecularGraph.sdftomol-Tuple{AbstractString}",
+    "location": "moleculargraph/io/#MolecularGraph.sdftomol-Tuple{Any}",
     "page": "I/O",
     "title": "MolecularGraph.sdftomol",
     "category": "method",
-    "text": "sdftomol(path::AbstractString)\n\nRead a SDFile and parse it into a molecule object. Single mol block files without optional information are often provided as a .mol file.\n\n\n\n\n\n"
-},
-
-{
-    "location": "moleculargraph/io/#MolecularGraph.sdftomol-Tuple{IO}",
-    "page": "I/O",
-    "title": "MolecularGraph.sdftomol",
-    "category": "method",
-    "text": "sdftomol(file::IO)\n\nRead a SDFile mol block from the input stream and parse it into a molecule object.\n\n\n\n\n\n"
+    "text": "sdftomol(lines) -> GraphMol{SDFileAtom,SDFileBond}\nsdftomol(file::IO) -> GraphMol{SDFileAtom,SDFileBond}\nsdftomol(path::AbstractString) -> GraphMol{SDFileAtom,SDFileBond}\n\nRead a SDFile(.sdf or .mol) and parse it into a molecule object. The given argument should be a file input stream, a file path as a string or an iterator that yields each sdfile text lines.\n\n\n\n\n\n"
 },
 
 {
@@ -97,19 +73,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "moleculargraph/io/#MolecularGraph.sdfilewriter-Tuple{AbstractString,Any}",
-    "page": "I/O",
-    "title": "MolecularGraph.sdfilewriter",
-    "category": "method",
-    "text": "sdfilewriter(path::AbstractString)\n\nRead a SDFile and return a lazy iterator which yields molecule objects.\n\n\n\n\n\n"
-},
-
-{
     "location": "moleculargraph/io/#MolecularGraph.sdfilewriter-Tuple{IO,Any}",
     "page": "I/O",
     "title": "MolecularGraph.sdfilewriter",
     "category": "method",
-    "text": "sdfilewriter(mols::MolGraph, file::IO)\n\nWrite molecule data to the output stream as a SDFile format file.\n\n\n\n\n\n"
+    "text": "sdfilewriter(io::IO, mols)\nsdfilewriter(filename::AbstractString, mols)\n\nWrite molecule data to the output stream as a SDFile format file.\n\n\n\n\n\n"
 },
 
 {
@@ -118,6 +86,30 @@ var documenterSearchIndex = {"docs": [
     "title": "SDFile writer",
     "category": "section",
     "text": "Modules = [MolecularGraph]\nPages   = [\"sdfilewriter.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
+},
+
+{
+    "location": "moleculargraph/io/#MolecularGraph.smartstomol-Tuple{AbstractString}",
+    "page": "I/O",
+    "title": "MolecularGraph.smartstomol",
+    "category": "method",
+    "text": "smartstomol(smarts::AbstractString) -> QueryMol{SmartsAtom,SmartsBond}\n\nParse SMARTS string into QueryMol object.\n\n\n\n\n\n"
+},
+
+{
+    "location": "moleculargraph/io/#MolecularGraph.smilestomol-Tuple{AbstractString}",
+    "page": "I/O",
+    "title": "MolecularGraph.smilestomol",
+    "category": "method",
+    "text": "smilestomol(smiles::AbstractString) -> GraphMol{SmilesAtom,SmilesBond}\n\nParse SMILES string into GraphMol object.\n\n\n\n\n\n"
+},
+
+{
+    "location": "moleculargraph/io/#SMILES/SMARTS-1",
+    "page": "I/O",
+    "title": "SMILES/SMARTS",
+    "category": "section",
+    "text": "Modules = [MolecularGraph]\nPages   = [\"smarts/base.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
 },
 
 {
@@ -137,11 +129,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "moleculargraph/draw/#MolecularGraph.atomcolor-Tuple{VectorMol}",
+    "location": "moleculargraph/draw/#MolecularGraph.atomcolor-Tuple{GraphMol}",
     "page": "Structure drawing",
     "title": "MolecularGraph.atomcolor",
     "category": "method",
-    "text": "atomcolor(mol::VectorMol; setting=DRAW_SETTING)\n\nReturn atom colors for molecule 2D drawing\n\n\n\n\n\n"
+    "text": "atomcolor(mol::GraphMol; setting=DRAW_SETTING) -> Vector{Color}\n\nReturn atom colors for molecule 2D drawing\n\n\n\n\n\n"
 },
 
 {
@@ -153,27 +145,35 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "moleculargraph/draw/#MolecularGraph.draw2d!-Tuple{Canvas,VectorMol}",
+    "location": "moleculargraph/draw/#MolecularGraph.draw2d!-Tuple{Canvas,MolecularGraph.MolecularGraphModel.UndirectedGraph}",
     "page": "Structure drawing",
     "title": "MolecularGraph.draw2d!",
     "category": "method",
-    "text": "draw2d!(canvas::Canvas, mol::VectorMol;\n        setting=copy(DRAW_SETTING), recalculate=false)\n\nDraw molecular image to the canvas.\n\n\n\n\n\n"
+    "text": "draw2d!(canvas::Canvas, mol::UndirectedGraph;\n        setting=copy(DRAW_SETTING), recalculate=false)\n\nDraw molecular image to the canvas.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/draw/#MolecularGraph.drawsvg-Tuple{VectorMol,Int64,Int64}",
+    "location": "moleculargraph/draw/#MolecularGraph.isatomvisible-Tuple{GraphMol}",
+    "page": "Structure drawing",
+    "title": "MolecularGraph.isatomvisible",
+    "category": "method",
+    "text": "isatomvisible(mol::GraphMol; setting=DRAW_SETTING) -> Vector{Bool}\n\nReturn whether the atom is visible in the 2D drawing.\n\n\n\n\n\n"
+},
+
+{
+    "location": "moleculargraph/draw/#MolecularGraph.drawsvg-Tuple{GraphMol,Int64,Int64}",
     "page": "Structure drawing",
     "title": "MolecularGraph.drawsvg",
     "category": "method",
-    "text": "drawsvg(mol::VectorMol, width::Int, height::Int)\n\nGenerate molecular structure image as a SVG format string.\n\nwidth and height specifies the size of the image (width and height attribute of svg tag).\n\n\n\n\n\n"
+    "text": "drawsvg(mol::GraphMol, width::Int, height::Int)\n\nGenerate molecular structure image as a SVG format string.\n\nwidth and height specifies the size of the image (width and height attribute of svg tag).\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/draw/#MolecularGraph.initcanvas!-Tuple{Canvas,VectorMol}",
+    "location": "moleculargraph/draw/#MolecularGraph.initcanvas!-Tuple{Canvas,GraphMol}",
     "page": "Structure drawing",
     "title": "MolecularGraph.initcanvas!",
     "category": "method",
-    "text": "initcanvas!(canvas::Canvas, mol::VectorMol)\n\nMove and adjust the size of the molecule for drawing.\n\n\n\n\n\n"
+    "text": "initcanvas!(canvas::Canvas, mol::GraphMol)\n\nMove and adjust the size of the molecule for drawing.\n\n\n\n\n\n"
 },
 
 {
@@ -186,82 +186,58 @@ var documenterSearchIndex = {"docs": [
 
 {
     "location": "moleculargraph/properties/#",
-    "page": "Basic chemical properties",
-    "title": "Basic chemical properties",
+    "page": "Chemical properties",
+    "title": "Chemical properties",
     "category": "page",
     "text": ""
 },
 
 {
-    "location": "moleculargraph/properties/#MolecularGraph.hydrogen_acceptor_count-Tuple{VectorMol}",
-    "page": "Basic chemical properties",
-    "title": "MolecularGraph.hydrogen_acceptor_count",
+    "location": "moleculargraph/properties/#MolecularGraph.hacceptorcount-Tuple{GraphMol}",
+    "page": "Chemical properties",
+    "title": "MolecularGraph.hacceptorcount",
     "category": "method",
-    "text": "hydrogen_acceptor_count(mol::VectorMol) -> Int\n\nReturn the number of hydrogen bond acceptors (N, O and F).\n\n\n\n\n\n"
+    "text": "hacceptorcount(mol::GraphMol) -> Int\n\nReturn the number of hydrogen bond acceptors (N, O and F).\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/properties/#MolecularGraph.hydrogen_donor_count-Tuple{VectorMol}",
-    "page": "Basic chemical properties",
-    "title": "MolecularGraph.hydrogen_donor_count",
+    "location": "moleculargraph/properties/#MolecularGraph.hdonorcount-Tuple{GraphMol}",
+    "page": "Chemical properties",
+    "title": "MolecularGraph.hdonorcount",
     "category": "method",
-    "text": "hydrogen_donor_count(mol::VectorMol) -> Int\n\nReturn the number of hydrogen bond donors (O and N attached to hydrogens).\n\n\n\n\n\n"
+    "text": "hdonorcount(mol::GraphMol) -> Int\n\nReturn the number of hydrogen bond donors (O and N attached to hydrogens).\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/properties/#MolecularGraph.molweight-Tuple{VectorMol}",
-    "page": "Basic chemical properties",
+    "location": "moleculargraph/properties/#MolecularGraph.molweight-Tuple{GraphMol}",
+    "page": "Chemical properties",
     "title": "MolecularGraph.molweight",
     "category": "method",
-    "text": "molweight(mol::VectorMol; digits=2) -> Float64\n\nReturn standard molecular weight.\n\n\n\n\n\n"
+    "text": "molweight(mol::GraphMol; digits=2) -> Float64\n\nReturn standard molecular weight.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/properties/#MolecularGraph.rotatable_count-Tuple{VectorMol}",
-    "page": "Basic chemical properties",
-    "title": "MolecularGraph.rotatable_count",
+    "location": "moleculargraph/properties/#MolecularGraph.rotatablecount-Tuple{GraphMol}",
+    "page": "Chemical properties",
+    "title": "MolecularGraph.rotatablecount",
     "category": "method",
-    "text": "rotatable_count(mol::VectorMol) -> Int\n\nReturn the number of rotatable bonds.\n\n\n\n\n\n"
+    "text": "rotatablecount(mol::GraphMol) -> Int\n\nReturn the number of rotatable bonds.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/properties/#MolecularGraph.wildman_crippen_logp-Tuple{VectorMol}",
-    "page": "Basic chemical properties",
-    "title": "MolecularGraph.wildman_crippen_logp",
+    "location": "moleculargraph/properties/#MolecularGraph.wclogp-Tuple{GraphMol}",
+    "page": "Chemical properties",
+    "title": "MolecularGraph.wclogp",
     "category": "method",
-    "text": "wildman_crippen_logp(mol::VectorMol) -> Float64\n\nReturn predicted logP value calculated by using Wildman and Crippen method.\n\nReference\n\nWildman, S. A. and Crippen, G. M. (1999). Prediction of Physicochemical Parameters by Atomic Contributions. Journal of Chemical Information and Modeling, 39(5), 868–873. https://doi.org/10.1021/ci990307l\n\n\n\n\n\n"
+    "text": "wclogp(mol::GraphMol) -> Float64\n\nReturn predicted logP value calculated by using Wildman and Crippen method.\n\nReference\n\nWildman, S. A. and Crippen, G. M. (1999). Prediction of Physicochemical Parameters by Atomic Contributions. Journal of Chemical Information and Modeling, 39(5), 868–873. https://doi.org/10.1021/ci990307l\n\n\n\n\n\n"
 },
 
 {
     "location": "moleculargraph/properties/#Molecular-properties-1",
-    "page": "Basic chemical properties",
+    "page": "Chemical properties",
     "title": "Molecular properties",
     "category": "section",
     "text": "Modules = [MolecularGraph]\nPages   = [\"properties.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
-},
-
-{
-    "location": "moleculargraph/descriptor/#",
-    "page": "Molecular descriptor",
-    "title": "Molecular descriptor",
-    "category": "page",
-    "text": ""
-},
-
-{
-    "location": "moleculargraph/descriptor/#Molecular-descriptor-1",
-    "page": "Molecular descriptor",
-    "title": "Molecular descriptor",
-    "category": "section",
-    "text": ""
-},
-
-{
-    "location": "moleculargraph/descriptor/#Property-vector-1",
-    "page": "Molecular descriptor",
-    "title": "Property vector",
-    "category": "section",
-    "text": "Modules = [MolecularGraph]\nPages   = [\n  \"./annotation/base.jl\", \"./annotation/aromatic.jl\",\n  \"./annotation/elemental.jl\", \"./annotation/rotatable.jl\",\n  \"./annotation/topology.jl\", \"./annotation/wclogp.jl\"\n]\nPrivate = false\nOrder   = [:constant, :function, :type]"
 },
 
 {
@@ -273,91 +249,91 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.all_hydrogens-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.allhydrogens-Tuple{GraphMol}",
     "page": "Preprocessing",
-    "title": "MolecularGraph.all_hydrogens",
+    "title": "MolecularGraph.allhydrogens",
     "category": "method",
-    "text": "all_hydrogens(mol::VectorMol) -> Set{Int}\n\nReturn a set of hydrogen nodes.\n\n\n\n\n\n"
+    "text": "allhydrogens(mol::GraphMol) -> Set{Int}\n\nReturn a set of hydrogen nodes.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.canonicalize!-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.canonicalize!-Tuple{GraphMol}",
     "page": "Preprocessing",
     "title": "MolecularGraph.canonicalize!",
     "category": "method",
-    "text": "canonicalize!(mol::VectorMol)\n\nCanonicalize molecule notation and apply the changes to the molecular property vector.\n\nNeutralize oxo acid, 1-3° ammonium and polarized carbonyls except in the case that polarization is required for aromaticity.\nCanonicalize anions next to triple bonds (ex. [C-][N+]#N -> C=[N+]=[N-])\n\n\n\n\n\n"
+    "text": "canonicalize!(mol::GraphMol)\n\nCanonicalize molecule notation and apply the changes to the molecular property vector.\n\nNeutralize oxo acid, 1-3° ammonium and polarized carbonyls except in the case that polarization is required for aromaticity.\nCanonicalize anions next to triple bonds (ex. [C-][N+]#N -> C=[N+]=[N-])\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.depolarize!-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.depolarize!-Tuple{GraphMol}",
     "page": "Preprocessing",
     "title": "MolecularGraph.depolarize!",
     "category": "method",
-    "text": "depolarize!(mol::VectorMol)\n\nDepolarize oxo groups except in the case that polarization is required for aromaticity.\n\nNote that this function edits Atom object fields directly. The molecular property vector needs recalculation to apply the changes. see canonicalize!.\n\n\n\n\n\n"
+    "text": "depolarize!(mol::GraphMol)\n\nDepolarize oxo groups except in the case that polarization is required for aromaticity.\n\nNote that this function edits Atom object fields directly. The molecular property vector needs recalculation to apply the changes. see canonicalize!.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.largest_component_nodes-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.largestcomponentgraph-Tuple{GraphMol}",
     "page": "Preprocessing",
-    "title": "MolecularGraph.largest_component_nodes",
+    "title": "MolecularGraph.largestcomponentgraph",
     "category": "method",
-    "text": "largest_component_nodes(mol::VectorMol) -> Set{Int}\n\nReturn a set of nodes in the largest connected component.\n\n\n\n\n\n"
+    "text": "largestcomponentgraph(mol::GraphMol) -> GraphMol\n\nReturn largest connected component of the molecular graph.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.largestcomponent-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.largestcomponentnodes-Tuple{GraphMol}",
     "page": "Preprocessing",
-    "title": "MolecularGraph.largestcomponent",
+    "title": "MolecularGraph.largestcomponentnodes",
     "category": "method",
-    "text": "largestcomponent(mol::VectorMol) -> VectorMol\n\nReturn largest connected component of the molecular graph.\n\n\n\n\n\n"
+    "text": "largestcomponentnodes(mol::GraphMol) -> Set{Int}\n\nReturn a set of nodes in the largest connected component.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.make_hydrogens_explicit-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.makehydrogensexplicit-Tuple{GraphMol}",
     "page": "Preprocessing",
-    "title": "MolecularGraph.make_hydrogens_explicit",
+    "title": "MolecularGraph.makehydrogensexplicit",
     "category": "method",
-    "text": "make_hydrogens_explicit(mol::VectorMol) -> VectorMol\n\nReturn molecule whose hydrogens are fully attached. If option all is set to false, only trivial hydrogens are removed (see trivialhydrogens).\n\n\n\n\n\n"
+    "text": "makehydrogensexplicit(mol::GraphMol) -> GraphMol\n\nReturn molecule whose hydrogens are fully attached. If option all is set to false, only trivial hydrogens are removed (see trivialhydrogens).\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.make_hydrogens_implicit-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.makehydrogensimplicit-Tuple{GraphMol}",
     "page": "Preprocessing",
-    "title": "MolecularGraph.make_hydrogens_implicit",
+    "title": "MolecularGraph.makehydrogensimplicit",
     "category": "method",
-    "text": "make_hydrogens_implicit(mol::VectorMol) -> VectorMol\n\nReturn molecule whose hydrogen nodes are removed. If option all is set to false, only trivial hydrogens are removed (see trivialhydrogens).\n\n\n\n\n\n"
+    "text": "makehydrogensimplicit(mol::GraphMol) -> SubgraphView{GraphMol}\n\nReturn molecule whose hydrogen nodes are removed. If option all is set to false, only trivial hydrogens are removed (see trivialhydrogens).\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.neutralize_acids!-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.neutralizeacids!-Tuple{GraphMol}",
     "page": "Preprocessing",
-    "title": "MolecularGraph.neutralize_acids!",
+    "title": "MolecularGraph.neutralizeacids!",
     "category": "method",
-    "text": "neutralize_acids!(mol::VectorMol)\n\nNeutralize oxo(thio) acids.\n\nNote that this function edits Atom object fields directly. The molecular property vector needs recalculation to apply the changes. see canonicalize!.\n\n\n\n\n\n"
+    "text": "neutralizeacids!(mol::GraphMol)\n\nNeutralize oxo(thio) acids.\n\nNote that this function edits Atom object fields directly. The molecular property vector needs recalculation to apply the changes. see canonicalize!.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.neutralize_oniums!-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.neutralizeoniums!-Tuple{GraphMol}",
     "page": "Preprocessing",
-    "title": "MolecularGraph.neutralize_oniums!",
+    "title": "MolecularGraph.neutralizeoniums!",
     "category": "method",
-    "text": "neutralize_oniums!(mol::VectorMol)\n\nNeutralize 1-3° oniums. Permanently charged quart-oniums are not neutralized.\n\nNote that this function edits Atom object fields directly. The molecular property vector needs recalculation to apply the changes. see canonicalize!.\n\n\n\n\n\n"
+    "text": "neutralizeoniums!(mol::GraphMol)\n\nNeutralize 1-3° oniums. Permanently charged quart-oniums are not neutralized.\n\nNote that this function edits Atom object fields directly. The molecular property vector needs recalculation to apply the changes. see canonicalize!.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.triplebond_anion!-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.triplebondanion!-Tuple{GraphMol}",
     "page": "Preprocessing",
-    "title": "MolecularGraph.triplebond_anion!",
+    "title": "MolecularGraph.triplebondanion!",
     "category": "method",
-    "text": "triplebond_anion!(mol::VectorMol)\n\nCanonicalize anions next to triple bonds (ex. [C-][N+]#N -> C=[N+]=[N-]).\n\nNote that this function edits Atom object fields directly. The molecular property vector needs recalculation to apply the changes. see canonicalize!.\n\n\n\n\n\n"
+    "text": "triplebondanion!(mol::GraphMol)\n\nCanonicalize anions next to triple bonds (ex. [C-][N+]#N -> C=[N+]=[N-]).\n\nNote that this function edits Atom object fields directly. The molecular property vector needs recalculation to apply the changes. see canonicalize!.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/preprocess/#MolecularGraph.trivialhydrogens-Tuple{VectorMol}",
+    "location": "moleculargraph/preprocess/#MolecularGraph.trivialhydrogens-Tuple{GraphMol}",
     "page": "Preprocessing",
     "title": "MolecularGraph.trivialhydrogens",
     "category": "method",
-    "text": "trivialhydrogens(mol::VectorMol) -> Set{Int}\n\nReturn a set of trivial hydrogen nodes (light hydrogens which are uncharged, non-radical, non-stereospecific and attached to organic heavy atoms)\n\n\n\n\n\n"
+    "text": "trivialhydrogens(mol::GraphMol) -> Set{Int}\n\nReturn a set of trivial hydrogen nodes (light hydrogens which are uncharged, non-radical, non-stereospecific and attached to organic heavy atoms)\n\n\n\n\n\n"
 },
 
 {
@@ -369,179 +345,115 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "moleculargraph/structure/#",
-    "page": "Structure match",
-    "title": "Structure match",
+    "location": "moleculargraph/substructure/#",
+    "page": "Substructure match",
+    "title": "Substructure match",
     "category": "page",
     "text": ""
 },
 
 {
-    "location": "moleculargraph/structure/#MolecularGraph.is_identical-Tuple{GeneralMol,GeneralMol}",
-    "page": "Structure match",
-    "title": "MolecularGraph.is_identical",
+    "location": "moleculargraph/substructure/#MolecularGraph.fastquerymatches-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,QueryMol}",
+    "page": "Substructure match",
+    "title": "MolecularGraph.fastquerymatches",
     "category": "method",
-    "text": "is_identical(mol1::GeneralMol, mol2::GeneralMol)\n\nReturn whether mol1 and mol2 are identical in chemical structure.\n\n\n\n\n\n"
+    "text": "fastquerymatches(mol::UndirectedGraph, query::QueryMol; kwargs...\n    ) -> Dict{Int,Int}\n\nGenerate query match mappings between mol and query. If no match found, return nothing.\n\nThe query should not have any component level expression that means it should not have any dots (.). This is intended for use in functional group detection.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/structure/#MolecularGraph.is_querymatch-Tuple{Any,Any}",
-    "page": "Structure match",
-    "title": "MolecularGraph.is_querymatch",
+    "location": "moleculargraph/substructure/#MolecularGraph.isquerymatch-Tuple{Any,Any}",
+    "page": "Substructure match",
+    "title": "MolecularGraph.isquerymatch",
     "category": "method",
-    "text": "is_querymatch(mol, query; kwargs...)\n\nReturn whether mol matches with the query.\n\n\n\n\n\n"
+    "text": "isquerymatch(mol, query; kwargs...)\n\nReturn whether mol matches with the query.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/structure/#MolecularGraph.is_substruct-Tuple{GeneralMol,GeneralMol}",
-    "page": "Structure match",
-    "title": "MolecularGraph.is_substruct",
+    "location": "moleculargraph/substructure/#MolecularGraph.querymatch-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,QueryMol}",
+    "page": "Substructure match",
+    "title": "MolecularGraph.querymatch",
     "category": "method",
-    "text": "is_substruct(mol1::GeneralMol, mol2::GeneralMol)\n\nReturn whether mol1 is a substructure of mol2.\n\n\n\n\n\n"
+    "text": "querymatch(mol::UndirectedGraph, query::QueryMol; kwargs...) -> Dict{Int,Int}\n\nGenerate substructure match mappings between mol1 and mol2. If no match found, return nothing.\n\nThis accepts also disconnected single atom but returns only the first match. This function is intended for use in SMARTS query search\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/structure/#MolecularGraph.is_superstruct-Tuple{Any,Any}",
-    "page": "Structure match",
-    "title": "MolecularGraph.is_superstruct",
+    "location": "moleculargraph/substructure/#MolecularGraph.structmatches-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,MolecularGraph.MolecularGraphModel.UndirectedGraph}",
+    "page": "Substructure match",
+    "title": "MolecularGraph.structmatches",
     "category": "method",
-    "text": "is_superstruct(mol1, mol2)\n\nReturn whether mol1 is a superstructure of mol2.\n\n\n\n\n\n"
+    "text": "structmatches(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...) -> Iterator\n\nGenerate molecular graph match mappings between mol1 and mol2. If no match found, return nothing.\n\n\n\n\n\n"
 },
 
 {
-    "location": "moleculargraph/structure/#Structure-match-1",
-    "page": "Structure match",
+    "location": "moleculargraph/substructure/#MolecularGraph.substructmatches-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,MolecularGraph.MolecularGraphModel.UndirectedGraph}",
+    "page": "Substructure match",
+    "title": "MolecularGraph.substructmatches",
+    "category": "method",
+    "text": "substructmatches(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...) -> Iterator\n\nGenerate substructure match mappings between mol1 and mol2. If no match found, return nothing.\n\nThe mapping is based on only edge induced subgraph isomorphism and therefore it does not care disconnected single atom matches. This function is intended for use in substructure search. If you need single atom SMARTS match (ex. [#16;X2;!R]), see querymatch.\n\n\n\n\n\n"
+},
+
+{
+    "location": "moleculargraph/substructure/#Structure-match-1",
+    "page": "Substructure match",
     "title": "Structure match",
     "category": "section",
     "text": "Modules = [MolecularGraph]\nPages   = [\"substructure.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
 },
 
 {
-    "location": "graph/model/#",
-    "page": "Models",
-    "title": "Models",
+    "location": "moleculargraph/mcs/#",
+    "page": "MCS",
+    "title": "MCS",
     "category": "page",
     "text": ""
 },
 
 {
-    "location": "graph/model/#Graph-models-1",
-    "page": "Models",
-    "title": "Graph models",
+    "location": "moleculargraph/mcs/#MolecularGraph.mcesmol-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,MolecularGraph.MolecularGraphModel.UndirectedGraph}",
+    "page": "MCS",
+    "title": "MolecularGraph.mcesmol",
+    "category": "method",
+    "text": "mcesmol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...\n    ) -> MCSResults\n\nCompute maximum common edge induced substructure (MCES) of mol1 and mol2.\n\n\n\n\n\n"
+},
+
+{
+    "location": "moleculargraph/mcs/#MolecularGraph.mcismol-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,MolecularGraph.MolecularGraphModel.UndirectedGraph}",
+    "page": "MCS",
+    "title": "MolecularGraph.mcismol",
+    "category": "method",
+    "text": "mcismol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...\n    ) -> MCSResults\n\nCompute maximum common induced substructure (MCIS) of mol1 and mol2.\n\nKeyword arguments\n\ntimeout(Int): abort calculation and return suboptimal results if the execution\n\ntime exceeded the value (default=60, in seconds)\n\nccliqueconstraint(Bool): if true, calculate connected MCS.\n\n\n\n\n\n"
+},
+
+{
+    "location": "moleculargraph/mcs/#Structure-match-1",
+    "page": "MCS",
+    "title": "Structure match",
     "category": "section",
+    "text": "Modules = [MolecularGraph]\nPages   = [\"mcs.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
+},
+
+{
+    "location": "moleculargraph/funcgroup/#",
+    "page": "Functional group detection",
+    "title": "Functional group detection",
+    "category": "page",
     "text": ""
 },
 
 {
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.mapgraph-Tuple{Any,Any}",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.mapgraph",
+    "location": "moleculargraph/funcgroup/#MolecularGraph.functionalgroupgraph-Tuple{GraphMol}",
+    "page": "Functional group detection",
+    "title": "MolecularGraph.functionalgroupgraph",
     "category": "method",
-    "text": "mapgraph(nodes, edges) -> MapGraph{Node,Edge}\n\nGenerate map graph that has given nodes and edges represented by the list of node indices in integer and the list of pairs of node indices, respectively.\n\n\n\n\n\n"
+    "text": "functionalgroupgraph(mol::GraphMol) -> FunctionalGroupClassifier\n\nGenerate functional group graph that is a directed acyclic graph similar to an ontology graph.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.mapgraph-Tuple{Union{Graph, GraphView}}",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.mapgraph",
-    "category": "method",
-    "text": "mapgraph(graph::UndirectedGraph; clone=false) -> MapGraph\n\nConvert the given graph into a new MapGraph. The node type and edge type are inherited from the original graph. If the given graph is MapGraph, return a copy of the graph.\n\nIf you really need mutable nodes and edges, and want the graph with deepcopied elements, implement clone and setnodes as deepcopy methods for nodes and edges, respectively.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.mapgraph-Union{Tuple{E}, Tuple{N}, Tuple{Type{N},Type{E}}} where E<:MolecularGraph.MolecularGraphModel.UndirectedEdge where N<:MolecularGraph.MolecularGraphModel.AbstractNode",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.mapgraph",
-    "category": "method",
-    "text": "mapgraph(::Type{N}, ::Type{E}\n    ) where {N<:AbstractNode,E<:UndirectedEdge} -> MapGraph{N,E}()\n\nGenerate empty map graph that has nodes and edges with the given types.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.vectorgraph-Tuple{Int64,Any}",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.vectorgraph",
-    "category": "method",
-    "text": "vectorgraph(nodes, edges) -> VectorGraph{Node,Edge}\n\nGenerate vector graph that have given nodes and edges represented by the list of node indices in integer and the list of pairs of node indices, respectively.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.vectorgraph-Tuple{Union{Graph, GraphView}}",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.vectorgraph",
-    "category": "method",
-    "text": "vectorgraph(graph::UndirectedGraph; clone=false) -> VectorGraph\n\nConvert the given graph into a new VectorGraph. The node type and edge type are inherited from the original graph.\n\nNode indices are sorted in ascending order and are re-indexed. This behavior is intended for some cannonicalization operations (ex. chirality flag).\n\nIf you really need mutable nodes and edges, and want the graph with deepcopied elements, implement clone and setnodes as deepcopy methods for nodes and edges, respectively.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.vectorgraph-Union{Tuple{E}, Tuple{N}, Tuple{Type{N},Type{E}}} where E<:MolecularGraph.MolecularGraphModel.UndirectedEdge where N<:MolecularGraph.MolecularGraphModel.AbstractNode",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.vectorgraph",
-    "category": "method",
-    "text": "vectorgraph(::Type{N}, ::Type{E}\n    ) where {N<:AbstractNode,E<:UndirectedEdge} -> VectorGraph{N,E}()\n\nGenerate empty vector graph that have nodes and edges with the given types.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/model/#Undirected-graph-1",
-    "page": "Models",
-    "title": "Undirected graph",
+    "location": "moleculargraph/funcgroup/#Functional-group-detection-1",
+    "page": "Functional group detection",
+    "title": "Functional group detection",
     "category": "section",
-    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/ugraph.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
-},
-
-{
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.mapdigraph-Tuple{Any,Any}",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.mapdigraph",
-    "category": "method",
-    "text": "mapdigraph(nodes, edges) -> MapDiGraph{Node,Arrow}\n\nGenerate MapDiGraph that have given nodes and edges represented by the list of node indices in integer and the list of pairs of node indices, respectively.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.mapdigraph-Tuple{Union{DiGraph, DiGraphView}}",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.mapdigraph",
-    "category": "method",
-    "text": "mapdigraph(graph::DirectedGraph; clone=false) -> MapDiGraph\n\nConvert the given graph into a new MapDiGraph. The node type and edge type are inherited from the original graph. If the given graph is MapDiGraph, return a copy of the graph.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.mapdigraph-Union{Tuple{E}, Tuple{N}, Tuple{Type{N},Type{E}}} where E<:MolecularGraph.MolecularGraphModel.DirectedEdge where N<:MolecularGraph.MolecularGraphModel.AbstractNode",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.mapdigraph",
-    "category": "method",
-    "text": "mapdigraph(::Type{N}, ::Type{E}\n    ) where {N<:AbstractNode,E<:DirectedEdge} -> MapDiGraph{N,E}()\n\nGenerate empty MapDiGraph that have nodes and edges with the given types.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/model/#Directed-graph-1",
-    "page": "Models",
-    "title": "Directed graph",
-    "category": "section",
-    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/dgraph.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
-},
-
-{
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.mapmultigraph-Tuple{Any,Any}",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.mapmultigraph",
-    "category": "method",
-    "text": "mapmultigraph(nodes, edges) -> MapMultiGraph{Node,Edge}\n\nGenerate MapMultiGraph that have given nodes and edges represented by the list of node indices in integer and the list of pairs of node indices, respectively.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/model/#MolecularGraph.MolecularGraphModel.mapmultigraph-Union{Tuple{E}, Tuple{N}, Tuple{Type{N},Type{E}}} where E<:MolecularGraph.MolecularGraphModel.UndirectedEdge where N<:MolecularGraph.MolecularGraphModel.AbstractNode",
-    "page": "Models",
-    "title": "MolecularGraph.MolecularGraphModel.mapmultigraph",
-    "category": "method",
-    "text": "mapmultigraph(::Type{N}, ::Type{E}\n    ) where {N<:AbstractNode,E<:UndirectedEdge} -> MapMultiGraph{N,E}()\n\nGenerate empty MapMultiGraph that have nodes and edges with the given types.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/model/#Multi-graph-1",
-    "page": "Models",
-    "title": "Multi graph",
-    "category": "section",
-    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/multigraph.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
+    "text": "Modules = [MolecularGraph]\nPages   = [\"funcgroup.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
 },
 
 {
@@ -561,211 +473,195 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgecount",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.addnode!-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,MolecularGraph.MolecularGraphModel.AbstractNode}",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.addnode!",
+    "category": "method",
+    "text": "addnode!(graph) -> Int\naddnode!(graph, attr) -> Int\n\nAdd new node and return the node index. If the node attribute type is required, specify the node attribute object by node keyword.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgeattr-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph,Int64,Int64}",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.edgeattr",
+    "category": "method",
+    "text": "edgeattr(graph::AbstractGraph, u::Int, v::Int\n    ) -> Union{AbstractEdge,Nothing}\n\nReturn the attribute object of an edge that connects u and v. If not found, return nothing.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgeattr-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph,Int64}",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.edgeattr",
+    "category": "method",
+    "text": "edgeattr(graph::AbstractGraph, i::Int) -> AbstractEdge\n\nReturn the attribute object of edge i.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgeattrs-Tuple{Union{OrderedDiGraph, OrderedGraph}}",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.edgeattrs",
+    "category": "method",
+    "text": "edgeattrs(graph::Union{OrderedGraph,OrderedDiGraph}) -> Vector{AbstractEdge}\n\nReturn graph edge attributes.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgeattrtype-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph}",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.edgeattrtype",
+    "category": "method",
+    "text": "edgeattrtype(graph) -> Type\n\nReturn edge attribute type.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgecount-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.edgecount",
-    "category": "function",
-    "text": "edgecount(graph) -> Int\n\nReturn the number of graph edges.\n\n\n\n\n\n"
+    "category": "method",
+    "text": "edgecount(graph::AbstractGraph) -> Int\n\nReturn the number of graph edges.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgekeys",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.edgekeys",
-    "category": "function",
-    "text": "edgekeys(graph) -> Vector{Int}\n\nReturn graph edge keys. If the given graph is a vector graph, the keys are in ascending order, whereas the order of indices in map graph is not guaranteed.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgeset",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgeset-Tuple{Union{OrderedDiGraph, OrderedGraph}}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.edgeset",
-    "category": "function",
-    "text": "edgeset(graph) -> Set{Int}\n\nReturn the set of edge keys.\n\n\n\n\n\n"
+    "category": "method",
+    "text": "edgeset(graph::Union{OrderedGraph,OrderedDiGraph}) -> Set{Int}\n\nReturn the set of edge keys.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgesiter",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.edgesiter",
-    "category": "function",
-    "text": "edgesiter(graph)\n\nAn iterator that yields (i, e) where i is the edge index, and e is the edge object at the index i within the graph.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgetype",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.edgetype",
-    "category": "function",
-    "text": "edgetype(graph)\n\nReturn the edge type of the graph\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.getedge-Tuple{Any,Any,Any}",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.getedge-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph,Int64}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.getedge",
     "category": "method",
-    "text": "getedge(graph, u, v) -> AbstractEdge\n\nRetrieve an edge object which connects the given nodes.\n\n\n\n\n\n"
+    "text": "getedge(graph::AbstractGraph, i::Int) -> Tuple{Int,Int}\n\nReturn an edge tuple.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.getedge-Tuple{Any,Any}",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.getedge",
-    "category": "method",
-    "text": "getedge(graph, index) -> AbstractEdge\n\nRetrieve the edge object at the given index within the graph.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.getnode",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.getnode",
-    "category": "function",
-    "text": "getnode(graph, index) -> AbstractNode\n\nRetrieve the node object at the given index within the graph.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.hasedge",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.hasedge-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph,Int64,Int64}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.hasedge",
-    "category": "function",
-    "text": "hasedge(graph, u, v) -> AbstractEdge\n\nReturn whether the given two nodes are connected by at least one edge.\n\n\n\n\n\n"
+    "category": "method",
+    "text": "hasedge(graph::UndirectedGraph, u::Int, v::Int) -> Bool\nhasedge(graph::DirectedGraph, source::Int, target::Int) -> Bool\n\nReturn whether the given two nodes are connected by at least one edge.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.indegree",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.indegree-Tuple{MolecularGraph.MolecularGraphModel.DirectedGraph,Int64}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.indegree",
-    "category": "function",
-    "text": "indegree(graph, n) -> Int\n\nReturn the number of inneighbors of the node \'n\'.\n\n\n\n\n\n"
+    "category": "method",
+    "text": "indegree(graph::DirectedGraph, n::Int) -> Int\n\nReturn the number of inneighbors of the node \'n\'.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.inneighbors",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.inneighbors-Tuple{MolecularGraph.MolecularGraphModel.DirectedGraph,Int64}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.inneighbors",
-    "category": "function",
-    "text": "inneighbors(graph, n) -> Dict{Int,Int}\n\nReturn the mapping of predecessor node keys and in edge keys connected to the given node.\n\n\n\n\n\n"
+    "category": "method",
+    "text": "inneighbors(graph::DirectedGraph, i::Int) -> Dict{Int,Int}\n\nReturn the mapping of predecessor node keys and in edge keys connected to the given node.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.neighborcount",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.neighborcount-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph,Int64}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.neighborcount",
-    "category": "function",
-    "text": "neighborcount(graph, n) -> Int\ndegree(graph, n) -> Int\n\nReturn the number of adjacent nodes of the node \'n\'.\n\n\n\n\n\n"
+    "category": "method",
+    "text": "neighborcount(graph::AbstractGraph, n::Int) -> Int\ndegree(graph::AbstractGraph, n::Int) -> Int\n\nReturn the number of adjacent nodes of the node \'n\'.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.neighbors",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.neighbors-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,Int64}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.neighbors",
-    "category": "function",
-    "text": "neighbors(graph, n) -> Dict{Int,Int}\n\nReturn the mapping of adjacent node keys and incident edge keys connected to the given node. If the graph is directed graph, both outneighbors and inneighbors are mapped.\n\n\n\n\n\n"
+    "category": "method",
+    "text": "neighbors(graph, i) -> Dict{Int,Int}\n\nReturn the mapping of incident edges and adjacent nodes of node i. If the graph is directed graph, both outneighbors and inneighbors are mapped.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodecount",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodeattr-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph,Int64}",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.nodeattr",
+    "category": "method",
+    "text": "nodeattr(graph::AbstractGraph, i::Int) -> AbstractNode\n\nReturn the attribute object of node i.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodeattrs-Tuple{Union{OrderedDiGraph, OrderedGraph}}",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.nodeattrs",
+    "category": "method",
+    "text": "nodeattrs(graph::Union{OrderedGraph,OrderedDiGraph}) -> Vector{AbstractNode}\n\nReturn graph node attributes.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodeattrtype-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph}",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.nodeattrtype",
+    "category": "method",
+    "text": "nodeattrtype(graph) -> Type\n\nReturn node attribute type.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodecount-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.nodecount",
-    "category": "function",
-    "text": "nodecount(graph) -> Int\n\nReturn the number of graph nodes.\n\n\n\n\n\n"
+    "category": "method",
+    "text": "nodecount(graph::AbstractGraph) -> Int\n\nReturn the number of graph nodes.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodekeys",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.nodekeys",
-    "category": "function",
-    "text": "nodekeys(graph) -> Vector{Int}\n\nReturn graph node keys. If the given graph is a vector graph, the keys are in ascending order, whereas the order of indices in map graph is not guaranteed.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodeset",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodeset-Tuple{Union{OrderedDiGraph, OrderedGraph}}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.nodeset",
-    "category": "function",
-    "text": "nodeset(graph) -> Set{Int}\n\nReturn the set of node keys.\n\n\n\n\n\n"
+    "category": "method",
+    "text": "nodeset(graph::Union{OrderedGraph,OrderedDiGraph}) -> Set{Int}\n\nReturn the set of node keys.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodesiter",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.nodesiter",
-    "category": "function",
-    "text": "nodesiter(graph)\n\nAn iterator that yields (i, n) where i is the node index, and n is the node object at the index i within the graph.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodetype",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.nodetype",
-    "category": "function",
-    "text": "nodetype(graph)\n\nReturn the node type of the graph\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.outdegree",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.outdegree-Tuple{MolecularGraph.MolecularGraphModel.DirectedGraph,Int64}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.outdegree",
-    "category": "function",
-    "text": "outdegree(graph, n) -> Int\n\nReturn the number of outneighbors of the node \'n\'.\n\n\n\n\n\n"
+    "category": "method",
+    "text": "outdegree(graph::DirectedGraph, n::Int) -> Int\n\nReturn the number of outneighbors of the node \'n\'.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.outneighbors",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.outneighbors-Tuple{MolecularGraph.MolecularGraphModel.DirectedGraph,Int64}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.outneighbors",
+    "category": "method",
+    "text": "outneighbors(graph::DirectedGraph, i::Int) -> Dict{Int,Int}\n\nReturn the mapping of successor node keys and out edge keys connected to the given node.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.setedgeattr!-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph,Int64,MolecularGraph.MolecularGraphModel.AbstractEdge}",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.setedgeattr!",
+    "category": "method",
+    "text": "setedgeattr!(graph::AbstractGraph, i::Int, attr::AbstractNode)\n\nUpdate the edge attribute.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.setnodeattr!-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph,Int64,MolecularGraph.MolecularGraphModel.AbstractNode}",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.setnodeattr!",
+    "category": "method",
+    "text": "setnodeattr!(graph::AbstractGraph, i::Int, attr::AbstractNode)\n\nUpdate the node attribute.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.unlinkedges",
+    "page": "Interface",
+    "title": "MolecularGraph.MolecularGraphModel.unlinkedges",
     "category": "function",
-    "text": "outneighbors(graph, n) -> Dict{Int,Int}\n\nReturn the mapping of successor node keys and out edge keys connected to the given node.\n\n\n\n\n\n"
+    "text": "unlinkedges(graph, edges)\n\nDelete given edges from the graph.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.unlinkedge!-Tuple{Any,Any,Any}",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.unlinknodes",
     "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.unlinkedge!",
-    "category": "method",
-    "text": "unlinkedge!(graph, u, v)\n\nDelete the edge that connect nodes u and v.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.unlinkedge!-Tuple{Any,Any}",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.unlinkedge!",
-    "category": "method",
-    "text": "unlinkedge!(graph, e)\n\nDelete the edge at the index of e.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.unlinknode!",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.unlinknode!",
+    "title": "MolecularGraph.MolecularGraphModel.unlinknodes",
     "category": "function",
-    "text": "unlinknode!(graph, n)\n\nDelete the node at the index of n and its incident edges.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.updateedge!-NTuple{4,Any}",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.updateedge!",
-    "category": "method",
-    "text": "updateedge!(graph, edge, u, v)\n\nRebind the edge that connects nodes u and v by the given edge object. If the nodes do not exist, throws KeyError.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.updateedge!-Tuple{Any,Any,Any}",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.updateedge!",
-    "category": "method",
-    "text": "updateedge!(graph, edge, e)\n\nRebind the edge object stored at e of the graph by the given edge object. If the index does not exist, add new edge to the position e.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.updatenode!",
-    "page": "Interface",
-    "title": "MolecularGraph.MolecularGraphModel.updatenode!",
-    "category": "function",
-    "text": "updatenode!(graph, node, n)\n\nRebind the node object stored at n of the graph by the given node object. If the index does not exist, add new node to the position n.\n\n\n\n\n\n"
+    "text": "unlinknodes(graph, nodes)\n\nDelete given nodes and its incident edges from the graph.\n\n\n\n\n\n"
 },
 
 {
@@ -785,19 +681,19 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "graph/generator/#MolecularGraph.MolecularGraphModel.bipartitegraph-Tuple{Int64,Int64}",
-    "page": "Generator",
-    "title": "MolecularGraph.MolecularGraphModel.bipartitegraph",
-    "category": "method",
-    "text": "bipartitegraph(m::Int,n::Int) -> MapGraph{Node,Edge}\n\nGenerate bipartite graph K_mn.\n\n\n\n\n\n"
-},
-
-{
     "location": "graph/generator/#MolecularGraph.MolecularGraphModel.circularladder-Tuple{Int64}",
     "page": "Generator",
     "title": "MolecularGraph.MolecularGraphModel.circularladder",
     "category": "method",
-    "text": "circularladder(n::Int) -> MapGraph{Node,Edge}\n\nGenerate circular ladder graph CL_n.\n\n\n\n\n\n"
+    "text": "circularladder(n::Int; mutable=false) -> PlainGraph\n\nGenerate circular ladder graph CL_n.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/generator/#MolecularGraph.MolecularGraphModel.completebipartite-Tuple{Int64,Int64}",
+    "page": "Generator",
+    "title": "MolecularGraph.MolecularGraphModel.completebipartite",
+    "category": "method",
+    "text": "completebipartite(m::Int,n::Int; mutable=false) -> PlainGraph\n\nGenerate bipartite graph K_mn.\n\n\n\n\n\n"
 },
 
 {
@@ -805,7 +701,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Generator",
     "title": "MolecularGraph.MolecularGraphModel.completegraph",
     "category": "method",
-    "text": "completegraph(length::Int) -> MapGraph{Node,Edge}\n\nGenerate complete graph K_n.\n\n\n\n\n\n"
+    "text": "completegraph(length::Int; mutable=false) -> PlainGraph\n\nGenerate complete graph K_n.\n\n\n\n\n\n"
 },
 
 {
@@ -813,7 +709,15 @@ var documenterSearchIndex = {"docs": [
     "page": "Generator",
     "title": "MolecularGraph.MolecularGraphModel.cyclegraph",
     "category": "method",
-    "text": "cyclegraph(length::Int) -> MapGraph{Node,Edge}\n\nGenerate cycle graph C_n.\n\n\n\n\n\n"
+    "text": "cyclegraph(length::Int; mutable=false) -> PlainGraph\n\nGenerate cycle graph C_n.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/generator/#MolecularGraph.MolecularGraphModel.generalizedpetersen-Tuple{Int64,Int64}",
+    "page": "Generator",
+    "title": "MolecularGraph.MolecularGraphModel.generalizedpetersen",
+    "category": "method",
+    "text": "generalizedpetersen(n::Int, k::Int; mutable=false) -> PlainGraph\n\nGenerate generalized petersen graph G(nk).\n\n\n\n\n\n"
 },
 
 {
@@ -821,7 +725,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Generator",
     "title": "MolecularGraph.MolecularGraphModel.laddergraph",
     "category": "method",
-    "text": "laddergraph(n::Int) -> MapGraph{Node,Edge}\n\nGenerate ladder graph L_n.\n\n\n\n\n\n"
+    "text": "laddergraph(n::Int; mutable=false) -> PlainGraph\n\nGenerate ladder graph L_n.\n\n\n\n\n\n"
 },
 
 {
@@ -829,7 +733,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Generator",
     "title": "MolecularGraph.MolecularGraphModel.moebiusladder",
     "category": "method",
-    "text": "moebiusladder(n::Int) -> MapGraph{Node,Edge}\n\nGenerate Möbius ladder graph ML_n.\n\n\n\n\n\n"
+    "text": "moebiusladder(n::Int; mutable=false) -> PlainGraph\n\nGenerate Möbius ladder graph ML_n.\n\n\n\n\n\n"
 },
 
 {
@@ -837,7 +741,15 @@ var documenterSearchIndex = {"docs": [
     "page": "Generator",
     "title": "MolecularGraph.MolecularGraphModel.pathgraph",
     "category": "method",
-    "text": "pathgraph(n::Int) -> MapGraph{Node,Edge}\n\nGenerate path graph P_n.\n\n\n\n\n\n"
+    "text": "pathgraph(n::Int; mutable=false) -> PlainGraph\n\nGenerate path graph P_n.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/generator/#MolecularGraph.MolecularGraphModel.squaregrid-Tuple{Int64,Int64}",
+    "page": "Generator",
+    "title": "MolecularGraph.MolecularGraphModel.squaregrid",
+    "category": "method",
+    "text": "squaregrid(m::Int,n::Int; mutable=false) -> PlainGraph\n\nGenerate m times n square grid graph.\n\nUse cartesianproduct for higher dimensional grid graphs.\n\n\n\n\n\n"
 },
 
 {
@@ -849,155 +761,235 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "graph/shortestpath/#",
-    "page": "Shortest path",
-    "title": "Shortest path",
+    "location": "graph/traversal/#",
+    "page": "Traversal",
+    "title": "Traversal",
     "category": "page",
     "text": ""
 },
 
 {
-    "location": "graph/shortestpath/#Shortest-path-1",
-    "page": "Shortest path",
-    "title": "Shortest path",
+    "location": "graph/traversal/#Graph-traversal-1",
+    "page": "Traversal",
+    "title": "Graph traversal",
     "category": "section",
     "text": ""
 },
 
 {
-    "location": "graph/shortestpath/#MolecularGraph.MolecularGraphModel.diameter-Tuple{Union{Graph, GraphView}}",
-    "page": "Shortest path",
+    "location": "graph/traversal/#MolecularGraph.MolecularGraphModel.diameter-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph}",
+    "page": "Traversal",
     "title": "MolecularGraph.MolecularGraphModel.diameter",
     "category": "method",
-    "text": "diameter(graph::UndirectedGraph) => Int\n\nCompute the diameter of the graph (the largest eccentricity of any nodes).\n\n\n\n\n\n"
+    "text": "diameter(graph::AbstractGraph) -> Int\n\nCompute the diameter of the graph (the largest eccentricity of any nodes).\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/shortestpath/#MolecularGraph.MolecularGraphModel.distance-Tuple{Union{Graph, GraphView},Any}",
-    "page": "Shortest path",
+    "location": "graph/traversal/#MolecularGraph.MolecularGraphModel.distance-Tuple{Function,Any,Any,Any}",
+    "page": "Traversal",
     "title": "MolecularGraph.MolecularGraphModel.distance",
     "category": "method",
-    "text": "distance(graph::UndirectedGraph, root) -> Dict{Int,Union{Int,Nothing}}\n\nCompute the distance from root to any other nodes. If the nodes are not reachable each other, the value will be nothing.\n\n\n\n\n\n"
+    "text": "distance(graph::AbstractGraph, source::Int, target::Int) -> Int\nreversedistance(graph::DirectedGraph, source::Int, target::Int) -> Int\n\nCompute the distance (shortest path length) from source to target. If the nodes are not reachable each other, the value will be nothing.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/shortestpath/#MolecularGraph.MolecularGraphModel.distancematrix-Tuple{Union{Graph, GraphView}}",
-    "page": "Shortest path",
+    "location": "graph/traversal/#MolecularGraph.MolecularGraphModel.distancematrix-Tuple{Function,Any}",
+    "page": "Traversal",
     "title": "MolecularGraph.MolecularGraphModel.distancematrix",
     "category": "method",
-    "text": "distancematrix(graph::UndirectedGraph) -> Matrix{Float64}\n\nCompute the distance among each other nodes.\n\nNote that the type of the generated matrix will be Float64. If the nodes are not reachable each other, the distance value will be Inf.\n\n\n\n\n\n"
+    "text": "distancematrix(graph::OrderedGraph) -> Matrix{Float64}\n\nGenerate the distance matrix of the graph.\n\nNote that the type of the generated matrix will be Float64. If the nodes are not reachable each other, the distance value will be Inf.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/shortestpath/#MolecularGraph.MolecularGraphModel.eccentricity-Tuple{Union{Graph, GraphView},Any}",
-    "page": "Shortest path",
+    "location": "graph/traversal/#MolecularGraph.MolecularGraphModel.eccentricity-Tuple{Function,Any,Any}",
+    "page": "Traversal",
     "title": "MolecularGraph.MolecularGraphModel.eccentricity",
     "category": "method",
-    "text": "eccentricity(graph::UndirectedGraph, v) => Int\n\nCompute the eccentricity of the graph (the largest distance between v and any other nodes).\n\n\n\n\n\n"
+    "text": "eccentricity(graph::UndirectedGraph, v::Int) -> Int\n\nCompute the eccentricity of the graph (the largest distance between v and any other nodes).\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/shortestpath/#MolecularGraph.MolecularGraphModel.longestshortestpath-Tuple{Union{Graph, GraphView}}",
-    "page": "Shortest path",
-    "title": "MolecularGraph.MolecularGraphModel.longestshortestpath",
+    "location": "graph/traversal/#MolecularGraph.MolecularGraphModel.isreachable-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,Int64,Int64}",
+    "page": "Traversal",
+    "title": "MolecularGraph.MolecularGraphModel.isreachable",
     "category": "method",
-    "text": "longestshortestpath(graph::UndirectedGraph) -> Vector{Int}\n\nCompute the longest shortest path in the graph (a path between two arbitrary peripheral nodes) as a vector of nodes that starts with one of the peripheral node and ends with the other side.\n\n\n\n\n\n"
+    "text": "reachablenodes(graph::AbstractGraph, u::Int, v::Int) -> Bool\nreversereachablenodes(graph::DirectedGraph, u::Int, v::Int) -> Bool\n\nReturn whether the node v is reachable from u.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/shortestpath/#MolecularGraph.MolecularGraphModel.shortestpath-Tuple{Union{Graph, GraphView},Any,Any}",
-    "page": "Shortest path",
-    "title": "MolecularGraph.MolecularGraphModel.shortestpath",
+    "location": "graph/traversal/#MolecularGraph.MolecularGraphModel.longestshortestpathnodes-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph}",
+    "page": "Traversal",
+    "title": "MolecularGraph.MolecularGraphModel.longestshortestpathnodes",
     "category": "method",
-    "text": "shortestpath(graph::UndirectedGraph, u, v) -> Vector{Int}\n\nCompute the shortest path between u and v as a vector of the nodes that starts with u and ends withv. Return nothing if u == v or not reachable.\n\n\n\n\n\n"
+    "text": "longestshortestpathnodes(graph::UndirectedGraph) -> Vector{Int}\n\nCompute the longest shortest path in the graph (a path between two arbitrary peripheral nodes) as a vector of nodes that starts with one of the peripheral node and ends with the other side.\n\n\n\n\n\n"
 },
 
 {
-    "location": "graph/shortestpath/#Shortest-path-2",
-    "page": "Shortest path",
+    "location": "graph/traversal/#MolecularGraph.MolecularGraphModel.reachablenodes-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,Int64}",
+    "page": "Traversal",
+    "title": "MolecularGraph.MolecularGraphModel.reachablenodes",
+    "category": "method",
+    "text": "reachablenodes(graph::AbstractGraph, node::Int) -> Set{Int}\nreversereachablenodes(graph::DirectedGraph, node::Int) -> Set{Int}\n\nReturn the set of reachable nodes from node.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/traversal/#MolecularGraph.MolecularGraphModel.shortestpathedges-Tuple{Function,Any,Any,Any}",
+    "page": "Traversal",
+    "title": "MolecularGraph.MolecularGraphModel.shortestpathedges",
+    "category": "method",
+    "text": "shortestpathedges(graph::UndirectedGraph, u::Int, v::Int) -> Vector{Int}\n\nCompute the shortest path between u and v as a vector of the edges that forms the path. Return nothing if not reachable.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/traversal/#MolecularGraph.MolecularGraphModel.shortestpathnodes-Tuple{Function,Any,Any,Any}",
+    "page": "Traversal",
+    "title": "MolecularGraph.MolecularGraphModel.shortestpathnodes",
+    "category": "method",
+    "text": "shortestpathnodes(graph::UndirectedGraph, u::Int, v::Int) -> Vector{Int}\n\nCompute the shortest path between u and v as a vector of the nodes that forms the path. Return nothing if not reachable.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/traversal/#Shortest-path-1",
+    "page": "Traversal",
     "title": "Shortest path",
     "category": "section",
     "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/shortestpath.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
 },
 
 {
-    "location": "graph/linegraph/#",
-    "page": "Line graph",
-    "title": "Line graph",
+    "location": "graph/topology/#",
+    "page": "Topology",
+    "title": "Topology",
     "category": "page",
     "text": ""
 },
 
 {
-    "location": "graph/linegraph/#Line-graph-1",
-    "page": "Line graph",
-    "title": "Line graph",
+    "location": "graph/topology/#Graph-topology-1",
+    "page": "Topology",
+    "title": "Graph topology",
     "category": "section",
     "text": ""
 },
 
 {
-    "location": "graph/linegraph/#MolecularGraph.MolecularGraphModel.linegraph-Tuple{Union{Graph, GraphView}}",
-    "page": "Line graph",
-    "title": "MolecularGraph.MolecularGraphModel.linegraph",
-    "category": "method",
-    "text": "linegraph(G::UndirectedGraph) -> MapGraph{LineGraphNode,LineGraphEdge}\n\nGenerate line graph.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/linegraph/#Line-graph-2",
-    "page": "Line graph",
-    "title": "Line graph",
+    "location": "graph/topology/#Cycle-1",
+    "page": "Topology",
+    "title": "Cycle",
     "category": "section",
-    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/linegraph.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
+    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/cycle.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
 },
 
 {
-    "location": "graph/connectivity/#",
-    "page": "Connectivity",
-    "title": "Connectivity",
-    "category": "page",
-    "text": ""
-},
-
-{
-    "location": "graph/connectivity/#Connectivity-1",
-    "page": "Connectivity",
+    "location": "graph/topology/#Connectivity-1",
+    "page": "Topology",
     "title": "Connectivity",
     "category": "section",
     "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/connectivity.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
 },
 
 {
-    "location": "graph/planarity/#",
-    "page": "Planarity",
+    "location": "graph/topology/#MolecularGraph.MolecularGraphModel.isouterplanar-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph}",
+    "page": "Topology",
+    "title": "MolecularGraph.MolecularGraphModel.isouterplanar",
+    "category": "method",
+    "text": "isouterplanar(graph::UndirectedGraph) -> Bool\n\nReturn whether the graph is outerplanar. The outerplanarity test is based on a planarity test (see isplanar).\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/topology/#MolecularGraph.MolecularGraphModel.isplanar-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph}",
+    "page": "Topology",
+    "title": "MolecularGraph.MolecularGraphModel.isplanar",
+    "category": "method",
+    "text": "isplanar(graph::UndirectedGraph) -> Bool\n\nReturn whether the graph is planar.\n\nReference\n\nde Fraysseix, H., & Ossona de Mendez, P. (2012). Trémaux trees and planarity. European Journal of Combinatorics, 33(3), 279–293. https://doi.org/10.1016/j.ejc.2011.09.012\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/topology/#Planarity-1",
+    "page": "Topology",
     "title": "Planarity",
+    "category": "section",
+    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/planarity.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
+},
+
+{
+    "location": "graph/operation/#",
+    "page": "Operations",
+    "title": "Operations",
     "category": "page",
     "text": ""
 },
 
 {
-    "location": "graph/planarity/#MolecularGraph.MolecularGraphModel.is_outerplanar-Tuple{Union{Graph, GraphView}}",
-    "page": "Planarity",
-    "title": "MolecularGraph.MolecularGraphModel.is_outerplanar",
-    "category": "method",
-    "text": "is_outerplanar(graph::UndirectedGraph) -> Bool\n\nReturn whether the graph is outerplanar. The outerplanarity test is based on a planarity test (see is_planar).\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/planarity/#MolecularGraph.MolecularGraphModel.is_planar-Tuple{Union{Graph, GraphView}}",
-    "page": "Planarity",
-    "title": "MolecularGraph.MolecularGraphModel.is_planar",
-    "category": "method",
-    "text": "is_planar(graph::UndirectedGraph) -> Bool\n\nReturn whether the graph is planar.\n\nReference\n\nde Fraysseix, H., & Ossona de Mendez, P. (2012). Trémaux trees and planarity. European Journal of Combinatorics, 33(3), 279–293. https://doi.org/10.1016/j.ejc.2011.09.012\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/planarity/#Planarity-1",
-    "page": "Planarity",
-    "title": "Planarity",
+    "location": "graph/operation/#Graph-operations-1",
+    "page": "Operations",
+    "title": "Graph operations",
     "category": "section",
-    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/planarity.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
+    "text": ""
+},
+
+{
+    "location": "graph/operation/#MolecularGraph.MolecularGraphModel.disjointunion!-Union{Tuple{T}, Tuple{T,T,Vararg{T,N} where N}} where T<:MolecularGraph.MolecularGraphModel.OrderedGraph",
+    "page": "Operations",
+    "title": "MolecularGraph.MolecularGraphModel.disjointunion!",
+    "category": "method",
+    "text": "disjointunion!(g1::T, g2::T, G::T...) where {T<:OrderedGraph} -> T\n\nGenerate disjoint union graph of given graphs. g1 will be overwritten by the union graph. Unlike non-destructive disjointunion, g1 does not retain any information about other given graphs but a bit faster.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/operation/#MolecularGraph.MolecularGraphModel.disjointunion-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,MolecularGraph.MolecularGraphModel.UndirectedGraph,Vararg{MolecularGraph.MolecularGraphModel.UndirectedGraph,N} where N}",
+    "page": "Operations",
+    "title": "MolecularGraph.MolecularGraphModel.disjointunion",
+    "category": "method",
+    "text": "disjointunion(g1::UndirectedGraph, g2::UndirectedGraph,\n    G::UndirectedGraph...) -> DisjointUnionGraph\n\nGenerate disjoint union graph of given graphs. The new graph with type DisjointUnionGraph retains mapping to the original graphs as nodes and edges attributes.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/operation/#Disjoint-union-1",
+    "page": "Operations",
+    "title": "Disjoint union",
+    "category": "section",
+    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/disjointunion.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
+},
+
+{
+    "location": "graph/operation/#MolecularGraph.MolecularGraphModel.linegraph-Tuple{MolecularGraph.MolecularGraphModel.AbstractGraph}",
+    "page": "Operations",
+    "title": "MolecularGraph.MolecularGraphModel.linegraph",
+    "category": "method",
+    "text": "linegraph(G::AbstractGraph) -> LineGraph\n\nGenerate line graph.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/operation/#Line-graph-1",
+    "page": "Operations",
+    "title": "Line graph",
+    "category": "section",
+    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/linegraph.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
+},
+
+{
+    "location": "graph/operation/#MolecularGraph.MolecularGraphModel.cartesianproduct-Tuple{MolecularGraph.MolecularGraphModel.OrderedGraph,MolecularGraph.MolecularGraphModel.OrderedGraph}",
+    "page": "Operations",
+    "title": "MolecularGraph.MolecularGraphModel.cartesianproduct",
+    "category": "method",
+    "text": "cartesianproduct(G::OrderedGraph, H::OrderedGraph) -> CartesianProduct\n\nReturn the cartesian product of graphs G and H.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/operation/#MolecularGraph.MolecularGraphModel.modularproduct-Tuple{MolecularGraph.MolecularGraphModel.OrderedGraph,MolecularGraph.MolecularGraphModel.OrderedGraph}",
+    "page": "Operations",
+    "title": "MolecularGraph.MolecularGraphModel.modularproduct",
+    "category": "method",
+    "text": "modularproduct(G::OrderedGraph, H::OrderedGraph) -> ModularProduct\n\nReturn the modular product of graphs G and H.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/operation/#Product-of-graphs-1",
+    "page": "Operations",
+    "title": "Product of graphs",
+    "category": "section",
+    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/product.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
 },
 
 {
@@ -1017,19 +1009,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "graph/clique/#MolecularGraph.MolecularGraphModel.maxclique-Tuple{Union{Graph, GraphView}}",
+    "location": "graph/clique/#MolecularGraph.MolecularGraphModel.maximumclique-Union{Tuple{T}, Tuple{T}} where T<:MolecularGraph.MolecularGraphModel.UndirectedGraph",
     "page": "Clique",
-    "title": "MolecularGraph.MolecularGraphModel.maxclique",
+    "title": "MolecularGraph.MolecularGraphModel.maximumclique",
     "category": "method",
-    "text": "maxclique(graph::UndirectedGraph; kwargs...) -> Set{Int}\n\nCompute maximum clique of the graph. For details, see maximalcliques.\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/clique/#MolecularGraph.MolecularGraphModel.maximalcliques-Tuple{Union{Graph, GraphView}}",
-    "page": "Clique",
-    "title": "MolecularGraph.MolecularGraphModel.maximalcliques",
-    "category": "method",
-    "text": "maximalcliques(graph::UndirectedGraph; kwargs...)\n\nReturn Channel which generates maximal cliques of the graph. Each cliques are represented as a Set of member nodes.\n\nReference\n\nTomita, E., Tanaka, A., & Takahashi, H. (2006). The worst-case time complexity for generating all maximal cliques and computational experiments. Theoretical Computer Science, 363(1), 28–42. https://doi.org/10.1016/J.TCS.2006.06.015\nCazals, F., & Karande, C. (2005). An algorithm for reporting maximal c-cliques. Theoretical Computer Science, 349(3), 484–490. https://doi.org/10.1016/j.tcs.2005.09.038\n\n\n\n\n\n"
+    "text": "maximumclique(graph::UndirectedGraph; kwargs...) -> Set{Int}\n\nReturn a set of maximum clique nodes.\n\nReference\n\nTomita, E., Tanaka, A., & Takahashi, H. (2006). The worst-case time complexity for generating all maximal cliques and computational experiments. Theoretical Computer Science, 363(1), 28–42. https://doi.org/10.1016/J.TCS.2006.06.015\nCazals, F., & Karande, C. (2005). An algorithm for reporting maximal c-cliques. Theoretical Computer Science, 349(3), 484–490. https://doi.org/10.1016/j.tcs.2005.09.038\n\n\n\n\n\n"
 },
 
 {
@@ -1038,6 +1022,142 @@ var documenterSearchIndex = {"docs": [
     "title": "Clique",
     "category": "section",
     "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/clique.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
+},
+
+{
+    "location": "graph/isomorphism/#",
+    "page": "Isomorphism",
+    "title": "Isomorphism",
+    "category": "page",
+    "text": ""
+},
+
+{
+    "location": "graph/isomorphism/#Graph-isomorphism-1",
+    "page": "Isomorphism",
+    "title": "Graph isomorphism",
+    "category": "section",
+    "text": ""
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.edgesubgraphmatch-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.edgesubgraphmatch",
+    "category": "method",
+    "text": "edgesubgraphmatch(\n    G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}\n\nReturn a edge induced subgraph isomorphism mapping between G and H. If no match found, return nothing.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.edgesubgraphmatches-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.edgesubgraphmatches",
+    "category": "method",
+    "text": "edgesubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator\n\nGenerate edge induced subgraph isomorphism mappings between G and H.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.graphmatch-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.graphmatch",
+    "category": "method",
+    "text": "graphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}\n\nReturn an isomorphism mapping between G and H. If no match found, return nothing.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.graphmatches-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.graphmatches",
+    "category": "method",
+    "text": "graphmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator\n\nGenerate isomorphism mappings between G and H. If no match found, return nothing.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.isedgesubgraphmatch-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.isedgesubgraphmatch",
+    "category": "method",
+    "text": "isedgesubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool\n\nReturn true if a node induced subgraph of G and H are isomorphic.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.isgraphmatch-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.isgraphmatch",
+    "category": "method",
+    "text": "isgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool\n\nReturn true if G and H are isomorphic.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.issubgraphmatch-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.issubgraphmatch",
+    "category": "method",
+    "text": "issubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool\n\nReturn true if a node induced subgraph of G and H are isomorphic.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.subgraphmatch-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.subgraphmatch",
+    "category": "method",
+    "text": "subgraphmatch(\n    G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}\n\nReturn a subgraph isomorphism mapping between G and H. If no match found, return nothing.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.subgraphmatches-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.subgraphmatches",
+    "category": "method",
+    "text": "subgraphmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator\n\nGenerate subgraph isomorphism mappings between G and H.\n\nKeyword arguments\n\nnodematcher(Function): node matcher function that takes two node indices as\n\narguments.\n\nedgematcher(Function): edge matcher function that takes two edge indices as\n\narguments.\n\nmandatory(Dict{Int,Int}): mandatory node matches (available for only VF2)\nforbidden(Dict{Int,Int}):   forbidden node matches (available for only VF2)\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#Subgraph-match-(VF2-algorithm)-1",
+    "page": "Isomorphism",
+    "title": "Subgraph match (VF2 algorithm)",
+    "category": "section",
+    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/isomorphism/vf2.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.findmces-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,MolecularGraph.MolecularGraphModel.UndirectedGraph}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.findmces",
+    "category": "method",
+    "text": "findmces(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> MCSResult\n\nCompute maximum common edge induced subgraph between G and H.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.findmcis-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,MolecularGraph.MolecularGraphModel.UndirectedGraph}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.findmcis",
+    "category": "method",
+    "text": "findmcis(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> MCSResult\n\nCompute maximum common induced subgraph between G and H.\n\nKeyword arguments:\n\nconnectivity: :Connected, :Disconnected  (for mode=:MCS)\nconstraint: TopologicalConstraint, DiameterRestriction (for mode=:MCS)\ntimeout(Int): return suboptimal result so far if the execution time exceeded\n\nthe given value (in second).\n\nthreshold(Int): return suboptimal result so far if the given mcs size\n\nachieved.\n\nnodematcher(Function): node matcher function that takes two node indices as\n\narguments.\n\nedgematcher(Function): edge matcher function that takes two edge indices as\n\narguments.\n\ntheta(Int):   distance mismatch tolerance in topologically constrainted MCS\ndiameter(Int):   diameter size in MCS with diameter restriction\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.mcessize-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.mcessize",
+    "category": "method",
+    "text": "mcessize(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Int\n\nReturn the maximum common edge induced subgraph size (number of edges).\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#MolecularGraph.MolecularGraphModel.mcissize-Tuple{Any,Any}",
+    "page": "Isomorphism",
+    "title": "MolecularGraph.MolecularGraphModel.mcissize",
+    "category": "method",
+    "text": "mcissize(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Int\n\nReturn the maximum common induced subgraph size (number of nodes).\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/isomorphism/#Maximum-common-subgraph-(Clique-detection-based-algorithm)-1",
+    "page": "Isomorphism",
+    "title": "Maximum common subgraph (Clique detection based algorithm)",
+    "category": "section",
+    "text": "Modules = [MolecularGraphModel]\nPages   = [\"graph/isomorphism/cliquemcs.jl\"]\nPrivate = false\nOrder   = [:constant, :function, :type]"
 },
 
 {
@@ -1073,43 +1193,43 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "design/#Graph-types-1",
+    "location": "design/#Graph-type-hierarchy-1",
     "page": "Design of molecular graph models",
-    "title": "Graph types",
+    "title": "Graph type hierarchy",
     "category": "section",
-    "text": "(AbstractGraph)\n(Graph)\nMapGraph\nVectorGraph\n(DiGraph)\nMapDiGraph\nVectorDiGraph\n(MultiGraph)\nMapMultiGraph\nVectorMultiGraph\n(MultiDiGraph)\nMapMultiDiGraph\nVectorMultiDiGraph\n(GraphView)\nSubgraphView\nComplementGraphView\nMolGraph\n(DiGraphView)\nDiSubgraphView\nComplementDiGraphView\nReverseGraphView\n(UndirectedGraph)\n(Graph)\n(MultiGraph)\n(GraphView)\n(DirectedGraph)\n(DiGraph)\n(MultiDiGraph)\n(DiGraphView)"
+    "text": "(AbstractGraph)\n(UndirectedGraph)\n(OrderedGraph)\nPlainGraph\nImmutablePlainGraph\nGraphMol{Atom,Bond}\nSDFile (Alias of GraphMol{SDFileAtom,SDFileBond})\nSMILES (Alias of GraphMol{SmilesAtom,SmilesBond})\nQueryMol{QueryAtom,QueryBond}\nSMARTS (Alias of QueryMol{SmartsAtom,SmartsBond})\nLineGraph\nCartesianProductGraph\nModularProductGraph\nSubgraphView{UndirectedGraph}\n(DirectedGraph)\n(OrderedDiGraph)\nPlainDiGraph\nFunctionalGroupClassGraph\nDiSubgraphView{DirectedGraph}\nHyperGraph?"
 },
 
 {
-    "location": "design/#Molecule-1",
+    "location": "design/#AbstractGraph-methods-1",
     "page": "Design of molecular graph models",
-    "title": "Molecule",
+    "title": "AbstractGraph methods",
     "category": "section",
-    "text": "MolGraph\nMapMolGraph\nGeneralMapMol{A<:Atom, B<:Bond}\nSDFile (Alias of GeneralMapMol{SDFileAtom, SDFileBond})\nSMILES (Alias of GeneralMapMol{SmilesAtom, SmilesBond})\nQueryMolGraph\nConnectedQueryMol{A<:QueryAtom, B<:QueryBond}\nConnectedSMARTS (Alias of ConnectedQueryMol{SmartsAtom, SmartsBond})\nDisconnectedQueryMol{A<:QueryAtom, B<:QueryBond}\nSMARTS (Alias of DisconnectedQueryMol{SmartsAtom, SmartsBond})\nVectorMolGraph\nGeneralVectorMol{A<:Atom, B<:Bond}\nMapMolView\nQueryMolView\nVectorMolView"
+    "text": "getnode, getedge, hasedge\nneighbors and its derivatives\nnodecount\nedgecount\nnodeset\nedgeset"
 },
 
 {
-    "location": "design/#Methods-1",
+    "location": "design/#DirectedGraph-methods-1",
     "page": "Design of molecular graph models",
-    "title": "Methods",
+    "title": "DirectedGraph methods",
     "category": "section",
-    "text": "getatom\ngetbond\nneighbors\nneighborcount (or degree)\natomcount\nbondcount\nupdateatom!\nupdatebond!\nunlinkatom!\nunlinkbond!"
+    "text": "outneighbors and inneighbors"
 },
 
 {
-    "location": "design/#VectorMol-1",
+    "location": "design/#OrderedGraph-methods-1",
     "page": "Design of molecular graph models",
-    "title": "VectorMol",
+    "title": "OrderedGraph methods",
     "category": "section",
-    "text": "VectorMol is vector(array)-based molecular model which is specialized for element-wise fast computation of molecular properties.VectorMol can iterate over atom properties faster than MapMoland can store calculated molecular properties and annotation arrays which are suitable for vector computation. On the other hand, VectorMol does not have abilities to modify its graph structure (adding or removing elements). VectorMol can be converted to MapMol but the calculated properties and annotations will be lost."
+    "text": "nodesiter\nedgesiter\nnodeattrs\nedgeattrs"
 },
 
 {
-    "location": "design/#MapMol-1",
+    "location": "design/#OrderedGraph-1",
     "page": "Design of molecular graph models",
-    "title": "MapMol",
+    "title": "OrderedGraph",
     "category": "section",
-    "text": "MapMol is used as a molecular model builder for general purpose.This type inherits AbstractMapMol, a molecular graph model which have map(dict)-based structure. The map-based molecular graph can insert and delete elements (atoms and bonds). This can be easily converted to VectorMol object by using vectormol method"
+    "text": "OrderedGraph consists of vectors of neighborhood map (incident edge => adjacent node) and edge (tuple of node index pair) vector."
 },
 
 {
@@ -1117,23 +1237,23 @@ var documenterSearchIndex = {"docs": [
     "page": "Design of molecular graph models",
     "title": "QueryMol",
     "category": "section",
-    "text": "QueryMol consists of QueryAtoms and QueryBonds that represents molecular query (ex. atom symbol is \'O\' and charge is -1, bond order is 1 and not in rings, ...). This type of objects typically built from SMARTS query."
+    "text": "QueryMol consists of QueryAtom and QueryBond that represent molecular query (ex. atom symbol is \'O\' and charge is -1, bond order is 1 and not in rings, ...). This type of objects typically built from SMARTS query."
 },
 
 {
-    "location": "design/#Atom-1",
+    "location": "design/#Node-type-hierarchy-1",
     "page": "Design of molecular graph models",
-    "title": "Atom",
+    "title": "Node type hierarchy",
     "category": "section",
-    "text": "AbstractNode\nAbstractAtom\nAtom\nSDFileAtom\nSmilesAtom\nQueryAtom\nSmartsAtom"
+    "text": "(AbstractNode)\n(Atom)\nSDFileAtom\nSmilesAtom\n(QueryAtom)\nSmartsAtom"
 },
 
 {
-    "location": "design/#Bond-1",
+    "location": "design/#Edge-type-hierarchy-1",
     "page": "Design of molecular graph models",
-    "title": "Bond",
+    "title": "Edge type hierarchy",
     "category": "section",
-    "text": "AbstractEdge\nAbstractBond\nBond\nSDFileBond\nSmilesBond\nQueryBond\nSmartsBond"
+    "text": "(AbstractEdge)\n(UndirectedEdge)\nEdge\n(Bond)\nSDFileBond\nSmilesBond\n(QueryBond)\nSmartsBond\n(DirectedEdge)\nArrow"
 },
 
 ]}
