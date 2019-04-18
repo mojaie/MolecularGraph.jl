@@ -22,11 +22,11 @@ Order   = [:constant, :function, :type]
 ```
 
 
-## Modular product
+## Product of graphs
 
 ```@autodocs
 Modules = [MolecularGraphModel]
-Pages   = ["graph/modularproduct.jl"]
+Pages   = ["graph/product.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

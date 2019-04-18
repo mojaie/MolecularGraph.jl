@@ -35,8 +35,8 @@
     @test nodecount(emp) == 0
 
     imm = immutableplaingraph(5, [(1, 2), (3, 4), (4, 5)])
-    @test_throws MethodError addnode!(imm)
-    @test_throws MethodError addedge!(imm, 4, 6)
+    @test_throws ErrorException addnode!(imm)
+    @test_throws ErrorException addedge!(imm, 4, 6)
 
     # TODO build from attributed graph
     # TODO unlink -> graph.inducedsubgraph

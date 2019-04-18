@@ -85,22 +85,6 @@ function plaindigraph(graph::DirectedGraph)
 end
 
 
-function addnode!(graph::PlainDiGraph)
-    push!(graph.outneighbormap, Dict())
-    push!(graph.inneighbormap, Dict())
-    return length(graph.outneighbormap)
-end
-
-
-function addedge!(graph::PlainDiGraph, s, t)
-    push!(graph.edges, (s, t))
-    i = edgecount(graph)
-    graph.outneighbormap[s][i] = t
-    graph.inneighbormap[t][i] = s
-    return i
-end
-
-
 function unlinknodes(graph::PlainDiGraph, nodes)
     # TODO: costful
     subg = nodesubgraph(graph, setdiff(nodeset(graph), nodes))

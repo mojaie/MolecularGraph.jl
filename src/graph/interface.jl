@@ -285,10 +285,23 @@ function addnode!(graph::UndirectedGraph, attr::AbstractNode)
     return length(graph.neighbormap)
 end
 
+function addnode!(graph::UndirectedGraph)
+    isdefined(graph, :nodeattrs) && throw(ErrorException("nodeattr required"))
+    push!(graph.neighbormap, Dict())
+    return length(graph.neighbormap)
+end
+
 function addnode!(graph::DirectedGraph, attr::AbstractNode)
     push!(graph.outneighbormap, Dict())
     push!(graph.inneighbormap, Dict())
     push!(graph.nodeattrs, attr)
+    return length(graph.outneighbormap)
+end
+
+function addnode!(graph::DirectedGraph)
+    isdefined(graph, :nodeattrs) && throw(ErrorException("nodeattr required"))
+    push!(graph.outneighbormap, Dict())
+    push!(graph.inneighbormap, Dict())
     return length(graph.outneighbormap)
 end
 
@@ -300,22 +313,40 @@ end
 Add new edge and return the edge index. If the edge attribute type is required,
 specify the edge attribute object by `attr` keyword.
 """
-function addedge!(graph::UndirectedGraph, u::Int, v::Int, attr::AbstractEdge)
+function _addedge!(graph::UndirectedGraph, u::Int, v::Int)
     push!(graph.edges, (u, v))
-    push!(graph.edgeattrs, attr)
     i = edgecount(graph)
     graph.neighbormap[u][i] = v
     graph.neighbormap[v][i] = u
     return i
 end
 
-function addedge!(graph::DirectedGraph, s::Int, t::Int, attr::AbstractEdge)
-    push!(graph.edges, (s, t))
+function addedge!(graph::UndirectedGraph, u::Int, v::Int, attr::AbstractEdge)
     push!(graph.edgeattrs, attr)
+    return _addedge!(graph, u, v)
+end
+
+function addedge!(graph::UndirectedGraph, u::Int, v::Int)
+    isdefined(graph, :edgeattrs) && throw(ErrorException("edgeattr required"))
+    return _addedge!(graph, u, v)
+end
+
+function _addedge!(graph::DirectedGraph, s::Int, t::Int)
+    push!(graph.edges, (s, t))
     i = edgecount(graph)
     graph.outneighbormap[s][i] = s
     graph.inneighbormap[t][i] = t
     return i
+end
+
+function addedge!(graph::DirectedGraph, s::Int, t::Int, attr::AbstractEdge)
+    push!(graph.edgeattrs, attr)
+    return _addedge!(graph, s, t)
+end
+
+function addedge!(graph::DirectedGraph, s::Int, t::Int)
+    isdefined(graph, :edgeattrs) && throw(ErrorException("edgeattr required"))
+    return _addedge!(graph, s, t)
 end
 
 

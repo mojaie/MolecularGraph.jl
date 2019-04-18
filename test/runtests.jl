@@ -32,7 +32,7 @@ module MolecularGraphModelTest
     include("./graph/bipartite.jl")
     include("./graph/cycle.jl")
     include("./graph/planarity.jl")
-    include("./graph/modularproduct.jl")
+    include("./graph/product.jl")
     include("./graph/isomorphism/vf2.jl")
     include("./graph/isomorphism/cliquebased.jl")
 end

@@ -111,19 +111,12 @@ function immutableplaingraph(graph::UndirectedGraph)
 end
 
 
-
-function addnode!(graph::PlainGraph)
-    push!(graph.neighbormap, Dict())
-    return length(graph.neighbormap)
+function addnode!(graph::ImmutablePlainGraph)
+    throw(ErrorException("Immutable"))
 end
 
-
-function addedge!(graph::PlainGraph, u::Int, v::Int)
-    push!(graph.edges, (u, v))
-    i = edgecount(graph)
-    graph.neighbormap[u][i] = v
-    graph.neighbormap[v][i] = u
-    return i
+function addedge!(graph::ImmutablePlainGraph, u::Int, v::Int)
+    throw(ErrorException("Immutable"))
 end
 
 

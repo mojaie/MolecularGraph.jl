@@ -86,4 +86,24 @@ end
     @test distance(ML100, 1, 200) == 1
 end
 
+@testset "squaregrid" begin
+    @test_throws DomainError squaregrid(1, 0)
+    @test_throws DomainError squaregrid(0, 1)
+    single = squaregrid(1, 1)
+    @test nodecount(single) == 1
+    @test edgecount(single) == 0
+    hundred = squaregrid(10, 10)
+    @test nodecount(hundred) == 100
+    @test edgecount(hundred) == 180
+end
+
+@testset "petersen" begin
+    @test_throws DomainError generalizedpetersen(2, 1)
+    @test_throws DomainError generalizedpetersen(3, 2)
+    p = petersengraph()
+    @test edgecount(p) == 15 # 3n
+    d = dodecahedralgraph()
+    @test edgecount(d) == 30 # 3n
+end
+
 end # graph.generator

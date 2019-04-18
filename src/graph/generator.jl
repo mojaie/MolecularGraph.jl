@@ -6,7 +6,9 @@
 export
     pathgraph, cyclegraph,
     completebipartite, completegraph,
-    laddergraph, circularladder, moebiusladder
+    laddergraph, circularladder, moebiusladder,
+    squaregrid,
+    generalizedpetersen, petersengraph, dodecahedralgraph
 
 
 """
@@ -118,3 +120,48 @@ function moebiusladder(n::Int; mutable=false)
     end
     return graph
 end
+
+
+"""
+    squaregrid(m::Int,n::Int; mutable=false) -> PlainGraph
+
+Generate ``m \\times n`` square grid graph.
+
+Use `cartesianproduct` for higher dimensional grid graphs.
+"""
+function squaregrid(m::Int, n::Int; mutable=false)
+    m >= 1 || throw(DomainError(m, "m should not be 1 or more"))
+    n >= 1 || throw(DomainError(n, "n should not be 1 or more"))
+    edges = Tuple{Int,Int}[]
+    for i in 1:(m*n-1)
+        mod(i, n) == 0 && continue
+        push!(edges, (i, i + 1))
+    end
+    for i in 1:((m-1)*n)
+        push!(edges, (i, i + n))
+    end
+    f = mutable ? plaingraph : immutableplaingraph
+    return f(n * m, edges)
+end
+
+
+"""
+    generalizedpetersen(n::Int, k::Int; mutable=false) -> PlainGraph
+
+Generate generalized petersen graph ``G(n,k)``.
+"""
+function generalizedpetersen(n::Int, k::Int; mutable=false)
+    n >= 3 || throw(DomainError(n, "n should be 3 or more"))
+    k < n / 2 || throw(DomainError(n, "k should be less than n/2"))
+    edges = Tuple{Int,Int}[]
+    for i in 0:(n-1)
+        push!(edges, (i + 1, mod(i + 1, n) + 1))
+        push!(edges, (i + 1, i + n + 1))
+        push!(edges, (i + n + 1, mod(i + n + k, n) + n + 1))
+    end
+    f = mutable ? plaingraph : immutableplaingraph
+    return f(2n, edges)
+end
+
+petersengraph(; kwargs...) = generalizedpetersen(5, 2; kwargs...)
+dodecahedralgraph(; kwargs...) = generalizedpetersen(10, 2; kwargs...)

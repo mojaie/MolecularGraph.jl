@@ -27,7 +27,7 @@ module MolecularGraph
         include("./graph/linegraph.jl")
         include("./graph/dag.jl")
         include("./graph/inducedsubgraph.jl")
-        include("./graph/modularproduct.jl")
+        include("./graph/product.jl")
         include("./graph/disjointunion.jl")
 
         include("./graph/dfs.jl")

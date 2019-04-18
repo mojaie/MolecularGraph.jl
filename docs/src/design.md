@@ -8,20 +8,22 @@
   - (UndirectedGraph)
     - (OrderedGraph)
       - PlainGraph
+      - ImmutablePlainGraph
       - GraphMol{Atom,Bond}
         - SDFile (Alias of GraphMol{SDFileAtom,SDFileBond})
         - SMILES (Alias of GraphMol{SmilesAtom,SmilesBond})
       - QueryMol{QueryAtom,QueryBond}
         - SMARTS (Alias of QueryMol{SmartsAtom,SmartsBond})
-      - LineGraph{OrderedGraph}
-      - ModularProductGraph{OrderedGraph}
+      - LineGraph
+      - CartesianProductGraph
+      - ModularProductGraph
     - SubgraphView{UndirectedGraph}
   - (DirectedGraph)
     - (OrderedDiGraph)
-      - DiGraph
+      - PlainDiGraph
       - FunctionalGroupClassGraph
     - DiSubgraphView{DirectedGraph}
-  - HyperGraph
+  - HyperGraph?
 
 
 ### AbstractGraph methods
@@ -41,21 +43,21 @@
 
 ### OrderedGraph methods
 
-  - nodekeys(values)
-  - edgekeys(values)
   - nodesiter
   - edgesiter
+  - nodeattrs
+  - edgeattrs
 
 
 ### OrderedGraph
 
-`GraphMol` is vector(array)-based molecular model which can be used for element-wise fast computation of molecular properties. This is a subtype of `OrderedGraph`
+`OrderedGraph` consists of vectors of neighborhood map (incident edge => adjacent node) and edge (tuple of node index pair) vector.
 
 
 
 ### QueryMol
 
-`QueryMol` consists of `QueryAtom`s and `QueryBond`s that represents molecular query (ex. atom symbol is 'O' and charge is -1, bond order is 1 and not in rings, ...). This type of objects typically built from SMARTS query.
+`QueryMol` consists of `QueryAtom` and `QueryBond` that represent molecular query (ex. atom symbol is 'O' and charge is -1, bond order is 1 and not in rings, ...). This type of objects typically built from SMARTS query.
 
 
 
