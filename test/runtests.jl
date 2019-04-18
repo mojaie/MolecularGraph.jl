@@ -21,16 +21,18 @@ module MolecularGraphModelTest
 
     include("./graph/plaingraph.jl")
     include("./graph/plaindigraph.jl")
-    include("./graph/inducedsubgraph.jl")
+
+    include("./graph/multigraph.jl")
+    include("./graph/dag.jl")
+    include("./graph/cycle.jl")
     include("./graph/connectivity.jl")
+    include("./graph/inducedsubgraph.jl")
     include("./graph/disjointunion.jl")
     include("./graph/linegraph.jl")
-    include("./graph/dag.jl")
 
     include("./graph/triangle.jl")
     include("./graph/clique.jl")
     include("./graph/bipartite.jl")
-    include("./graph/cycle.jl")
     include("./graph/planarity.jl")
     include("./graph/product.jl")
     include("./graph/isomorphism/vf2.jl")

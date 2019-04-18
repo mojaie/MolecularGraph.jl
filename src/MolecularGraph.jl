@@ -24,11 +24,12 @@ module MolecularGraph
         include("./graph/plaindigraph.jl")
 
         include("./graph/generator.jl")
-        include("./graph/linegraph.jl")
+        include("./graph/multigraph.jl")
         include("./graph/dag.jl")
         include("./graph/inducedsubgraph.jl")
         include("./graph/product.jl")
         include("./graph/disjointunion.jl")
+        include("./graph/linegraph.jl")
 
         include("./graph/dfs.jl")
         include("./graph/shortestpath.jl")
