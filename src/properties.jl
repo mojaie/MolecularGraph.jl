@@ -262,7 +262,7 @@ ishacceptor(view::SubgraphView) = ishacceptor(view.graph)
 
 
 function stdweight(mol::GraphMol)
-    weight = (atom, imh) -> atomweight(atom) + H_WEIGHT * h
+    weight = (atom, imh) -> atomweight(atom) + H_WEIGHT * imh
     return weight.(nodeattrs(mol), implicithcount(mol))
 end
 
@@ -280,9 +280,11 @@ Return whether the bonds are rotatable or not.
 @cache function isrotatable(mol::GraphMol)
     nodedegree_ = nodedegree(mol)
     isringbond_ = isringbond(mol)
+    bondorder_ = bondorder(mol)
     vec = Bool[]
     for (i, (u, v)) in enumerate(edgesiter(mol))
-        rot = (!isringbond_[i] && nodedegree_[u] != 1 && nodedegree_[v] != 1)
+        rot = (!isringbond_[i] && bondorder_[i] == 1
+            && nodedegree_[u] != 1 && nodedegree_[v] != 1)
         push!(vec, rot)
     end
     return vec
