@@ -145,3 +145,11 @@ function Base.getindex(graph::GraphMol, sym::Symbol)
         return eval(Expr(:call, sym, graph))
     end
 end
+
+function Base.getindex(view::SubgraphView, sym::Symbol)
+    if haskey(view.graph.cache, sym)
+        return view.graph.cache[sym]
+    else
+        return eval(Expr(:call, sym, view.graph))
+    end
+end
