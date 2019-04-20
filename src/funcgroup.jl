@@ -5,7 +5,8 @@
 
 export
     FunctionalGroupClassifier,
-    functionalgroupgraph
+    functionalgroupgraph,
+    largestcomponents
 
 
 function funcgrouptable()
@@ -38,7 +39,7 @@ struct FGRelationEdge <: DirectedEdge
 end
 
 
-struct FunctionalGroupClassifier <: DirectedGraph
+struct FunctionalGroupClassifier <: OrderedDiGraph
     outneighbormap::Vector{Dict{Int,Int}}
     inneighbormap::Vector{Dict{Int,Int}}
     edges::Vector{Tuple{Int,Int}}

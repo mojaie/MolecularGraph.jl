@@ -131,19 +131,14 @@ function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
 
     # Align double bonds alongside the ring
     for ring in sort(sssr(mol), by=length, rev=true)
-        cw = isclockwise(cyclicpath(coords2d(mol), ring))
+        cw = isclockwise(cartesian2d(coords2d(mol), ring))
         cw === nothing && continue
-        succ = Dict()
         ordered = cw ? ring : reverse(ring)
-        for n in 1:length(ring)-1
-            succ[ordered[n]] = ordered[n+1]
-        end
-        succ[ordered[end]] = ordered[1]
-        rsub = nodesubgraph(mol, Set(ring))
-        for i in edgeset(rsub)
-            (u, v) = getedge(rsub, i)
-            if bondorder_[i] == 2 && succ[u] != [v]
-                notation[i] = 1
+        rr = vcat(ordered, ordered)
+        for i in 1:length(ordered)
+            e = findedgekey(mol, rr[i], rr[i + 1])
+            if bondorder_[e] == 2 && rr[i] > rr[i + 1]
+                notation[e] = 1
             end
         end
     end
@@ -222,13 +217,13 @@ function draw2d!(canvas::Canvas, mol::UndirectedGraph;
     # Draw atoms
     for i in nodeset(mol)
         isatomvisible_[i] || continue
-        pos = _point(canvas.coords, i)
+        pos = point(canvas.coords, i)
         # Determine text direction
         if implicithcount_[i] > 0
             cosnbrs = []
-            hrzn = [pos[1] + 1.0, pos[2]]
+            hrzn = pos + (1.0, 0.0)
             for adj in adjacencies(mol, i)
-                posnbr = _point(canvas.coords, adj)
+                posnbr = point(canvas.coords, adj)
                 dist = norm(posnbr - pos)
                 if dist > 0
                     dp = dot(hrzn - pos, posnbr - pos)
@@ -265,8 +260,8 @@ function drawatomindex!(canvas::Canvas, mol::UndirectedGraph;
                         color=Color(0, 0, 0), bgcolor=Color(240, 240, 255))
     isatomvisible_ = isatomvisible(mol)
     for i in nodeset(mol)
-        offset = isatomvisible_[i] ? [0 canvas.fontsize/2] : [0 0]
-        pos = _point(canvas.coords, i) + offset
+        offset = isatomvisible_[i] ? (0.0, canvas.fontsize/2.0) : (0.0, 0.0)
+        pos = point(canvas.coords, i) + offset
         setatomnote!(canvas, pos, string(i), color, bgcolor)
     end
     return

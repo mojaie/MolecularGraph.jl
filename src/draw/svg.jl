@@ -33,7 +33,7 @@ mutable struct SvgCanvas <: Canvas
     viewboxH::Float64
 
     elements::Vector{String}
-    coords::Cartesian2D
+    coords::Cartesian2D{Matrix{Float64}}
     valid::Bool
 
     function SvgCanvas()
@@ -88,7 +88,7 @@ function tosvg(canvas::Canvas, width::Int, height::Int)
      fill="$(bgc)" opacity="$(canvas.opacity)"/>
     """
     endsvg = "</svg>\n"
-    join([header, bg, canvas.elements..., endsvg], "")
+    return join([header, bg, canvas.elements..., endsvg], "")
 end
 
 
@@ -100,10 +100,10 @@ Generate molecular structure image as a SVG format string.
 `width` and `height` specifies the size of the image (width and height
 attribute of svg tag).
 """
-function drawsvg(mol::GraphMol, width::Int, height::Int)
+function drawsvg(mol::UndirectedGraph, width::Int, height::Int)
     canvas = SvgCanvas()
     draw2d!(canvas, mol)
-    tosvg(canvas, width, height)
+    return tosvg(canvas, width, height)
 end
 
 
@@ -114,16 +114,16 @@ Get boundaries and an appropriate bond length unit for the molecule drawing
 canvas.
 """
 function boundary(mol::GraphMol)
-    coords = coords2d(mol)
-    (left, right) = extrema(x_components(coords))
-    (bottom, top) = extrema(y_components(coords))
+    c2d = coords2d(mol)
+    (left, right) = extrema(x_components(c2d))
+    (bottom, top) = extrema(y_components(c2d))
     width = right - left
     height = top - bottom
     dists = []
     # Size unit
     for (u, v) in edgesiter(mol)
-        upos = _point(coords, u)
-        vpos =  _point(coords, v)
+        upos = point(c2d, u)
+        vpos = point(c2d, v)
         d = norm(vpos - upos)
         if d > 0.0001  # Remove overlapped
             push!(dists, d)
@@ -146,11 +146,11 @@ Move and adjust the size of the molecule for drawing.
 """
 function initcanvas!(canvas::Canvas, mol::GraphMol)
     nodecount(mol) == 0 && return
-    coords = rawdata(coords2d(mol))
+    c2d = coords2d(mol)
     (top, left, width, height, unit) = boundary(mol)
     sf = canvas.scalef / unit
     canvas.coords = cartesian2d(
-        (coords .- [left top]) .* [1 -1] .* sf
+        (c2d.coords .- [left top]) .* [1 -1] .* sf
         .+ [canvas.paddingX canvas.paddingY]
     )
     canvas.viewboxW = width * sf + canvas.paddingX * 2
@@ -218,11 +218,10 @@ end
 function crossdouble!(canvas, coords, ucolor, vcolor, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf / 2
     seg = trimbond(canvas, coords, uvis, vvis)
-    seg1 = translate(seg, pi / 2, dist)
-    seg2 = translate(seg, -pi / 2, dist)
-    buf = point(seg1, 2)
-    setcoord!(seg1, point(seg2, 2), 2)
-    setcoord!(seg2, buf, 2)
+    cw = translate(seg, pi / 2, dist)
+    ccw = translate(seg, -pi / 2, dist)
+    seg1 = segment(u(cw), v(ccw))
+    seg2 = segment(u(ccw), v(cw))
     drawline!(canvas, seg1, ucolor, vcolor)
     drawline!(canvas, seg2, ucolor, vcolor)
     return
@@ -283,8 +282,7 @@ setbond!(
 function atomsymbol!(canvas, coords, atomsymbol, color, implicith, charge;
                      direction=:right, anchor=""" text-anchor="end" """,
                      xoffset=0)
-    pos = coords + [xoffset, canvas.fontsize/2]
-    xy = svgcoords(point(pos...))
+    xy = svgcoords(coords + (xoffset, canvas.fontsize/2))
     small = round(Int, canvas.fontsize * 0.7)
     content = atommarkup(
         atomsymbol, charge, implicith, direction,
@@ -323,8 +321,8 @@ setatomleft!(
 
 function setatomnote!(canvas, coords, text, color, bgcolor)
     size = round(Int, canvas.fontsize * canvas.annotsizef)
-    bxy = svgcoords(point(coords))
-    txy = svgcoords(point(coords + [0 size]))
+    bxy = svgcoords(coords)
+    txy = svgcoords(coords + (0, size))
     c = svgcolor(color)
     bc = svgcolor(bgcolor)
     elem = """<g>
@@ -348,10 +346,7 @@ function drawline!(canvas, seg, color; isdashed=false)
 end
 
 function drawline!(canvas, seg, ucolor, vcolor; isdashed=false)
-    if ucolor == vcolor
-        drawline!(canvas, seg, ucolor, isdashed=isdashed)
-        return
-    end
+    ucolor == vcolor && return drawline!(canvas, seg, ucolor, isdashed=isdashed)
     option = isdashed ? """ stroke-dasharray="10,10" """ : " "
     mid = midpoint(seg)
     segcrds1 = svgcoords(segment(u(seg), mid))
@@ -371,13 +366,11 @@ drawdashedline!(canvas, seg, ucolor, vcolor) = drawline!(
 
 function drawwedge!(canvas, seg, color)
     """ u ◀︎ v """
-    uvlen = norm(_vector(seg))
-    tf = transformmatrix(
-        point(uvlen, uvlen / 2 * canvas.wedgewidthf),
-        point(normalize(_vector(seg))...),
-        point(_u(seg)...)
-    )
-    svgtf = svgtransform(tf)
+    uvlen = norm(vector(seg))
+    scalef = point(uvlen, uvlen / 2 * canvas.wedgewidthf)
+    rotatef = normalize(vector(seg))
+    translf = u(seg)
+    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     c = svgcolor(color)
     elem = """<polygon points="0,0 1,1 1,-1" fill="$(c)" transform="matrix($(svgtf))"/>
     """
@@ -387,17 +380,12 @@ end
 
 function drawwedge!(canvas, seg, ucolor, vcolor)
     """ u ◀︎ v """
-    if ucolor == vcolor
-        drawwedge!(canvas, seg, ucolor)
-        return
-    end
-    uvlen = norm(_vector(seg))
-    tf = transformmatrix(
-        point(uvlen, uvlen / 2 * canvas.wedgewidthf),
-        point(normalize(_vector(seg))...),
-        point(_u(seg)...)
-    )
-    svgtf = svgtransform(tf)
+    ucolor == vcolor && return drawwedge!(canvas, seg, ucolor)
+    uvlen = norm(vector(seg))
+    scalef = point(uvlen, uvlen / 2 * canvas.wedgewidthf)
+    rotatef = normalize(vector(seg))
+    translf = u(seg)
+    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     uc = svgcolor(ucolor)
     vc = svgcolor(vcolor)
     elem = """<g stroke-width="0.3" transform="matrix($(svgtf))">
@@ -412,13 +400,11 @@ end
 
 function drawdashedwedge!(canvas, seg, color)
     """ u ◁ v """
-    uvlen = norm(_vector(seg))
-    tf = transformmatrix(
-        point(uvlen / 7, uvlen / 14 * canvas.wedgewidthf),
-        point(normalize(_vector(seg))...),
-        point(_u(seg)...)
-    )
-    svgtf = svgtransform(tf)
+    uvlen = norm(vector(seg))
+    scalef = point(uvlen / 7, uvlen / 14 * canvas.wedgewidthf)
+    rotatef = normalize(vector(seg))
+    translf = u(seg)
+    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     c = svgcolor(color)
     elem = """<g stroke="$(c)" stroke-width="0.3" transform="matrix($(svgtf))">
      <line x1="0" y1="1" x2="0" y2="-1" />
@@ -437,17 +423,12 @@ end
 
 function drawdashedwedge!(canvas, seg, ucolor, vcolor)
     """ u ◁ v """
-    if ucolor == vcolor
-        drawdashedwedge!(canvas, seg, ucolor)
-        return
-    end
-    uvlen = norm(_vector(seg))
-    tf = transformmatrix(
-        point(uvlen / 7, uvlen / 14 * canvas.wedgewidthf),
-        point(normalize(_vector(seg))...),
-        point(_u(seg)...)
-    )
-    svgtf = svgtransform(tf)
+    ucolor == vcolor && return drawdashedwedge!(canvas, seg, ucolor)
+    uvlen = norm(vector(seg))
+    scalef = point(uvlen / 7, uvlen / 14 * canvas.wedgewidthf)
+    rotatef = normalize(vector(seg))
+    translf = u(seg)
+    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     uc = svgcolor(ucolor)
     vc = svgcolor(vcolor)
     elem = """<g stroke-width="0.3" transform="matrix($(svgtf))">
@@ -467,13 +448,11 @@ end
 
 
 function drawwave!(canvas, seg, color)
-    uvlen = norm(_vector(seg))
-    tf = transformmatrix(
-        point(uvlen / 7, uvlen / 2 * canvas.wedgewidthf),
-        point(normalize(_vector(seg))...),
-        point(_u(seg)...)
-    )
-    svgtf = svgtransform(tf)
+    uvlen = norm(vector(seg))
+    scalef = point(uvlen / 7, uvlen / 2 * canvas.wedgewidthf)
+    rotatef = normalize(vector(seg))
+    translf = u(seg)
+    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     c = svgcolor(color)
     elem = """<polyline points="0,0 0.5,0 1,1 2,-1 3,1 4,-1 5,1 6,-1 6.5,0 7,0"
      stroke="$(c)" stroke-width="0.2" fill="none" transform="matrix($(svgtf))"/>
@@ -483,17 +462,12 @@ function drawwave!(canvas, seg, color)
 end
 
 function drawwave!(canvas, seg, ucolor, vcolor)
-    if ucolor == vcolor
-        drawwave!(canvas, seg, ucolor)
-        return
-    end
-    uvlen = norm(_vector(seg))
-    tf = transformmatrix(
-        point(uvlen / 7, uvlen / 2 * canvas.wedgewidthf),
-        point(normalize(_vector(seg))...),
-        point(_u(seg)...)
-    )
-    svgtf = svgtransform(tf)
+    ucolor == vcolor && return drawwave!(canvas, seg, ucolor)
+    uvlen = norm(vector(seg))
+    scalef = point(uvlen / 7, uvlen / 2 * canvas.wedgewidthf)
+    rotatef = normalize(vector(seg))
+    translf = u(seg)
+    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     uc = svgcolor(ucolor)
     vc = svgcolor(vcolor)
     elem = """<g stroke-width="0.2" fill="none" transform="matrix($(svgtf))">

@@ -334,8 +334,8 @@ end
 function _addedge!(graph::DirectedGraph, s::Int, t::Int)
     push!(graph.edges, (s, t))
     i = edgecount(graph)
-    graph.outneighbormap[s][i] = s
-    graph.inneighbormap[t][i] = t
+    graph.outneighbormap[s][i] = t
+    graph.inneighbormap[t][i] = s
     return i
 end
 

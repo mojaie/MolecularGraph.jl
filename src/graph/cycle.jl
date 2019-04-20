@@ -30,9 +30,15 @@ mincycleedges(view::SubgraphView) = mincycleedges(view.graph)
 
 @cache function mincyclenodes(graph::UndirectedGraph)
     mincycs = Vector{Int}[]
-    for cyc in mincycleedges(graph)
-        # Base.union maintains order TODO: seems to be not performant
-        push!(mincycs, union([collect(getedge(graph, e)) for e in cyc]...))
+    for cy in mincycleedges(graph)
+        cycy = vcat(cy, cy)
+        nodes = Int[]
+        for i in 1:length(cy)
+            a = getedge(graph, cycy[i])
+            b = getedge(graph, cycy[i + 1])
+            push!(nodes, iterate(intersect(a, b))[1])
+        end
+        push!(mincycs, nodes)
     end
     return mincycs
 end

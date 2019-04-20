@@ -62,7 +62,7 @@ function graphmol(graph::GraphMol{A,B}) where {A<:Atom,B<:Bond}
 end
 
 """
-    graphmol(mol::Union{GraphMol,SubgraphView{GraphMol}}) -> GraphMol
+    graphmol(mol::SubgraphView{GraphMol}) -> GraphMol
 
 Generate a new `GraphMol` from a substructure view.
 

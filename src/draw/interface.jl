@@ -20,8 +20,6 @@ export
     atom_annotation!
 
 
-using MolecularGraph.MolecularGraphGeometry: Segment2D, _point, _vector, _u, _v
-
 
 struct Color
     r::Int

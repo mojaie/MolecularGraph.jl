@@ -74,7 +74,7 @@ end
 
 
 """
-    makehydrogensimplicit(mol::GraphMol) -> SubgraphView{GraphMol}
+    makehydrogensimplicit(mol::GraphMol) -> GraphMol
 
 Return molecule whose hydrogen nodes are removed. If option `all` is set to
 false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
@@ -82,7 +82,7 @@ false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
 function makehydrogensimplicit(mol::GraphMol; all=true)
     hydrogens = all ? allhydrogens : trivialhydrogens
     ns = setdiff(nodeset(mol), hydrogens(mol))
-    return nodesubgraph(mol, ns)
+    return graphmol(nodesubgraph(mol, ns))
 end
 
 
