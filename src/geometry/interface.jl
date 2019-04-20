@@ -4,25 +4,19 @@
 #
 
 export
-    Coordinates, Cartesian2D, Cartesian3D, InternalCoords
+    Coordinates,
+    cartesian2d, cartesian3d, internalcoords,
+    point, segment,
+    x, y, z, u, v, ux, uy, uz, vx, vy, vz,
+    vector, distance,
+    setcoord!,
+    x_components, y_components, z_components,
+    radiantophase
 
 
 abstract type Coordinates end
 
 # TODO: Matrix shape (node-wise or coordinate-wise?)
 
-mutable struct Cartesian2D <: Coordinates
-    coords::Matrix{Float64}
-end
 
-
-mutable struct Cartesian3D <: Coordinates
-    coords::Matrix{Float64}
-end
-
-
-mutable struct InternalCoords <: Coordinates
-    labels::Matrix{Union{Int,Nothing}} # atom1, atom2 and atom3
-    geometry::Matrix{Union{Float64,Nothing}} # distance, angle and dihedral
-    nodekeys::Dict{Int,Int} # labels, graph node keys
-end
+radiantophase(angle) = mod((angle + 2pi) / 2pi)

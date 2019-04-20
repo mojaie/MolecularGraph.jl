@@ -1,10 +1,9 @@
 
-using MolecularGraph.MolecularGraphGeometry: _angle
 
 @testset "geometry.coordsinternal" begin
 
 @testset "internalcoords" begin
-    emptycoords = internalcoords(10)
+    emptycoords = InternalCoords(10)
     @test length(emptycoords) == 10
     coords = internalcoords([
         nothing nothing nothing;
@@ -22,7 +21,7 @@ using MolecularGraph.MolecularGraphGeometry: _angle
     @test label2(coords, 3) == 1
     @test label3(coords, 4) == 1
     @test distance(coords, 2) == 1.0
-    @test _angle(coords, 3) == 2 / 3
+    @test angle(coords, 3) == 2 / 3
     @test dihedral(coords, 4) == 0.0
 end
 

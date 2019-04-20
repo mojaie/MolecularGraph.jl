@@ -4,156 +4,95 @@
 #
 
 export
-    Point2D, Segment2D, PointSet2D, CyclicPath2D,
-    rawdata, setcoord!, cartesian2d, point, segment, cyclicpath,
-    x, y, u, v, ux, uy, vx, vy,
-    x_components, y_components,
-    vector, interiorangle, translate,
+    Cartesian2D, Point2D, Segment2D,
+    interiorangle, translate,
     midpoint, trim_u, trim_v, trim_uv,
-    transformmatrix, isclockwise, radiantophase
+    transformmatrix, isclockwise
 
 
-# import Base: +, -, *
-
-
-struct Point2D
-    coords::Matrix{Float64}
-    i::Int
+struct Cartesian2D{T<:AbstractMatrix{Float64}} <: Coordinates
+    coords::T
 end
 
 
-struct Segment2D
-    coords::Matrix{Float64}
-    u::Int
-    v::Int
+struct Segment2D{T<:AbstractMatrix{Float64}}
+    coords::T
 end
 
 
-struct CyclicPath2D
-    coords::Matrix{Float64}
-    nodes::Vector{Int}
+struct Point2D{T<:AbstractVector{Float64}}
+    pos::T
 end
 
 
-"""
-    rawdata(coords) -> Matrix{Float64}
+cartesian2d(data::AbstractMatrix{Float64}) = Cartesian2D(data)
+cartesian2d(c2d::Cartesian2D, vertices::Vector{Int}
+    ) = Cartesian2D(@view c2d.coords[vertices, :])
 
-Get raw data matrix of the coordinate.
-"""
-rawdata
-rawdata(coords::Cartesian2D) = coords.coords
-rawdata(point::Point2D) = point.coords[point.i, :]
-rawdata(segment::Segment2D) = segment.coords[[segment.u, segment.v], :]
-rawdata(path::CyclicPath2D) = segment.coords[path.nodes, :]
+segment(c2d::Cartesian2D, u, v) = Segment2D(@view c2d.coords[[u, v], :])
+segment(u::Point2D, v::Point2D) = Segment2D(transpose(hcat(u.pos, v.pos)))
 
+point(c2d::Cartesian2D, i::Int) = Point2D(@view c2d.coords[i, :])
+point(x::Real, y::Real) = Point2D([float(x), float(y)])
 
-"""
-    cartesian2d(coords::Matrix{Float64}) -> Cartesian2D
+Base.length(c2d::Cartesian2D) = size(c2d.coords, 1)
 
-Construct a new `Cartesian2D` object from `Array{Float64,2}`. The size of the
-array along the second dimension should be two, or it throws `DimensionMismatch`.
-"""
-function cartesian2d(coords::Matrix{Float64})
-    size(coords, 2) == 2 || throw(
-        DimensionMismatch("Unexpected matrix size $(size(coords))"))
-    return Cartesian2D(coords)
-end
+Base.:+(u::Point2D, v::Point2D) = Point2D(u.pos + v.pos)
+Base.:-(u::Point2D, v::Point2D) = Point2D(u.pos - v.pos)
+Base.:+(u::Point2D, v::Tuple{Real,Real}) = Point2D(u.pos + collect(v))
+Base.:-(u::Point2D, v::Tuple{Real,Real}) = Point2D(u.pos - collect(v))
+Base.:*(p::Point2D, f::Float64) = Point2D(p.pos * f)
 
+Base.:+(seg::Segment2D, t::Point2D) = Segment2D(seg.coords .+ transpose(t.pos))
+Base.:-(seg::Segment2D, t::Point2D) = Segment2D(seg.coords .- transpose(t.pos))
+Base.:*(seg::Segment2D, f::Float64) = Segment2D(seg.coords * f)
 
-"""
-    cartesian2d(coords::InternalCoords) -> Cartesian2D
-
-Embed `InternalCoords` into `Cartesian2D`.
-"""
-cartesian2d(coords::InternalCoords) = cartesian2d(cartesian3d(coords))
-
-"""
-    cartesian2d(coords::Cartesian3D) -> Cartesian2D
-
-Embed `Cartesian3D` into `Cartesian2D` by just removing z-axis component.
-"""
-cartesian2d(coords::Cartesian3D) = Cartesian2D(rawdata(coords)[:, 1:2])
-
-
-_point(coords::Cartesian2D, i::Int) = coords.coords[i, :]
-_point(segment::Segment2D, i::Int) = segment.coords[i, :]
-point(coords::Cartesian2D, i::Int) = Point2D(rawdata(coords), i)
-point(segment::Segment2D, i::Int) = Point2D(rawdata(segment), i)
-point(x::Float64, y::Float64) = Point2D([x y], 1)
-
-segment(coords::Cartesian2D, u, v) = Segment2D(rawdata(coords), u, v)
-segment(coords::Matrix{Float64}) = Segment2D(coords, 1, 2)
-segment(u::Point2D, v::Point2D
-    ) = segment(vcat(transpose(rawdata(u)), transpose(rawdata(v))))
-
-cyclicpath(coords::Cartesian2D, nodes) = CyclicPath2D(rawdata(coords), nodes)
-cyclicpath(coords::Matrix{Float64}) = CyclicPath2D(coords, 1:size(coords, 1))
-
-
-x(point::Point2D) = point.coords[point.i, 1]
-y(point::Point2D) = point.coords[point.i, 2]
-
-_u(segment::Segment2D) = segment.coords[segment.u, :]
-_v(segment::Segment2D) = segment.coords[segment.v, :]
-u(segment::Segment2D) = point(_u(segment)...)
-v(segment::Segment2D) = point(_v(segment)...)
-ux(segment::Segment2D) = segment.coords[segment.u, 1]
-uy(segment::Segment2D) = segment.coords[segment.u, 2]
-vx(segment::Segment2D) = segment.coords[segment.v, 1]
-vy(segment::Segment2D) = segment.coords[segment.v, 2]
-
-
-
-
-function setcoord!(segment::Segment2D, point::Point2D, i::Int)
-    segment.coords[i, :] = rawdata(point)
-end
-
-
-x_components(coords::Cartesian2D) = coords.coords[:, 1]
-y_components(coords::Cartesian2D) = coords.coords[:, 2]
-
-# +(a::Point2D, b::Point2D) = Point2D(rawdata(a) - rawdata(b), 1)
-# -(a::Point2D, b::Point2D) = Point2D(rawdata(a) - rawdata(b), 1)
-# *(a::Point2D, f::Float64) = Point2D(rawdata(a) * f, 1)
-
-
-_vector(segment::Segment2D) = _v(segment) - _u(segment)
-vector(segment::Segment2D) = point(_vector(segment)...)
-
-distance(segment::Segment2D) = norm(_vector(segment))
-
-
+LinearAlgebra.norm(p::Point2D) = norm(p.pos)
+LinearAlgebra.normalize(p::Point2D) = Point2D(normalize(p.pos))
+LinearAlgebra.dot(u::Point2D, v::Point2D) = dot(u.pos, v.pos)
 LinearAlgebra.cross(u::Point2D, v::Point2D) = x(u) * y(v) - y(u) * x(v)
-LinearAlgebra.cross(s::Segment2D) = ux(s) * vy(s) - uy(s) * vx(s)
-
-interiorangle(u::Point2D, v::Point2D) = acos(
-    dot(rawdata(u), rawdata(v)) / (norm(rawdata(u)) * norm(rawdata(v))))
-interiorangle(s::Segment2D) = acos(
-    dot(_u(s), _v(s)) / (norm(_u(s)) * norm(_v(s))))
 
 
-function _translate(s::Segment2D, angle, dist)
-    rotation = [cos(angle) -sin(angle); sin(angle) cos(angle)]
-    move = rotation * normalize(_v(s) - _u(s)) * dist
-    return rawdata(s) .+ transpose(move)
+x(point::Point2D) = point.pos[1]
+y(point::Point2D) = point.pos[2]
+
+u(segment::Segment2D) = Point2D(@view segment.coords[1, :])
+v(segment::Segment2D) = Point2D(@view segment.coords[2, :])
+ux(segment::Segment2D) = segment.coords[1]
+uy(segment::Segment2D) = segment.coords[3]
+vx(segment::Segment2D) = segment.coords[2]
+vy(segment::Segment2D) = segment.coords[4]
+
+
+
+vector(segment::Segment2D) = v(segment) - u(segment)
+distance(segment::Segment2D) = norm(vector(segment))
+interiorangle(u::Point2D, v::Point2D) = acos(dot(u, v) / (norm(u) * norm(v)))
+
+
+function translate(s::Segment2D, ang, dist)
+    rotation = [cos(ang) -sin(ang); sin(ang) cos(ang)]
+    move = Point2D(rotation * normalize(vector(s)).pos * dist)
+    return s + move
 end
 
-translate(s::Segment2D, a, d) = segment(_translate(s, a, d))
+
+midpoint(s::Segment2D) = (u(s) + v(s)) * 0.5
+
+trim_u(s::Segment2D, k) = segment(u(s) + vector(s) * k, v(s))
+trim_v(s::Segment2D, k) = segment(u(s), v(s) + vector(s) * -k)
+trim_uv(s::Segment2D, k
+    ) = segment(u(s) + vector(s) * 0.5k, v(s) + vector(s) * -0.5k)
 
 
-_midpoint(s::Segment2D) = (_u(s) + _v(s)) / 2
-midpoint(s::Segment2D) = point(_midpoint(s)...)
+function setcoord!(segment::Segment2D, i::Int, point::Point2D)
+    segment.coords[i, :] = point.pos
+    return
+end
 
-_trim_u(s::Segment2D, k) = rawdata(s) + [transpose((_v(s) - _u(s)) * k); 0 0]
-trim_u(s::Segment2D, k)  = segment(_trim_u(s, k))
 
-_trim_v(s::Segment2D, k) = rawdata(s) + [0 0; transpose((_v(s) - _u(s)) * -k)]
-trim_v(s::Segment2D, k)  = segment(_trim_v(s, k))
-
-_trim_uv(s::Segment2D, k) = rawdata(s) + [
-    transpose((_v(s) - _u(s)) * k / 2); transpose((_v(s) - _u(s)) * -k / 2)]
-trim_uv(s::Segment2D, k)  = segment(_trim_uv(s, k))
+x_components(c2d::Cartesian2D) = @view c2d.coords[:, 1]
+y_components(c2d::Cartesian2D) = @view c2d.coords[:, 2]
 
 
 
@@ -165,17 +104,17 @@ function transformmatrix(scale::Point2D, rotate::Point2D, translate::Point2D)
 end
 
 
-function isclockwise(path::CyclicPath2D)
-    vlen = length(path.nodes)
+function isclockwise(vertices::Cartesian2D)
+    vlen = length(vertices)
     clockwise = 0
     counter = 0
-    cycpath = cat(path.nodes, path.nodes, dims=1)
+    cycpath = vcat(vertices.coords, vertices.coords)
     for i in 1:vlen
-        p = transpose(path.coords[cycpath[i], :])
-        q = transpose(path.coords[cycpath[i+1], :])
-        r = transpose(path.coords[cycpath[i+2], :])
-        cp = cross(segment(vcat(q, r) .- p))
-        intangle = interiorangle(segment(vcat(p, r) .- q))
+        p = Point2D(cycpath[i, :])
+        q = Point2D(cycpath[i+1, :])
+        r = Point2D(cycpath[i+2, :])
+        cp = cross(q - p, r - p)
+        intangle = interiorangle(p - q, r - q)
         if cp < 0
             clockwise += intangle
             counter += 2pi - intangle
@@ -191,6 +130,3 @@ function isclockwise(path::CyclicPath2D)
     end
     return # overlapped
 end
-
-
-radiantophase(angle) = mod((angle + 2pi) / 2pi)

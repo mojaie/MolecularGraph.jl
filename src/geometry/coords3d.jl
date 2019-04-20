@@ -4,110 +4,63 @@
 #
 
 export
-    rawdata, cartesian3d, point, segment,
-    x, y, z, u, v, ux, uy, uz, vx, vy, vz,
-    coord, x_components, y_components, z_components,
-    vector,
-    rotationmatrix
+    Cartesian3D, Segment3D, Point3D,
+    rotation
 
 
-struct Point3D
-    coords::Matrix{Float64}
-    i::Int
+struct Cartesian3D{T<:AbstractMatrix{Float64}} <: Coordinates
+    coords::T
 end
 
 
-struct Segment3D
-    coords::Matrix{Float64}
-    u::Int
-    v::Int
+struct Segment3D{T<:AbstractMatrix{Float64}}
+    coords::T
 end
 
 
-rawdata(coords::Cartesian3D) = coords.coords
-rawdata(point::Point3D) = point.coords[point.i, :]
-rawdata(segment::Segment3D) = segment.coords[[segment.u, segment.v], :]
-
-
-"""
-    cartesian3d(coords::Matrix{Float64}) -> Cartesian3D
-
-Construct a new `Cartesian3D` object from `Array{Float64,2}`. The size of the
-array along the second dimension should be 3, or it throws `DimensionMismatch`.
-"""
-function cartesian3d(coords::Matrix{Float64})
-    size(coords, 2) == 3 || throw(
-        DimensionMismatch("Unexpected matrix size $(size(coords))"))
-    return Cartesian3D(coords)
-end
-
-"""
-    cartesian3d(coords::InternalCoords) -> Cartesian3D
-
-Embed `InternalCoords` into `Cartesian3D`.
-"""
-function cartesian3d(coords::InternalCoords)
-    rcds = Vector{Float64}[]
-    push!(rcds, [0.0, 0.0, 0.0])
-    push!(rcds, [distance(coords, 2), 0.0, 0.0])
-    ang = pi - angle(coords, 3)
-    push!(rcds, [sin(ang), cos(ang), 0.0] * distance(coords, 3) + rcds[2])
-    for i in 4:length(coords)
-        p1 = rcds[label1(coords, i)]
-        p2 = rcds[label2(coords, i)]
-        p3 = rcds[label3(coords, i)]
-        v1 = p1 - p2
-        v2 = p3 - p2
-        v1u = normalize(v1)
-        normalv = normalize(cross(v1, v2))
-        rot1 = rotation(point(normalv...), pi - angle(coords, i))
-        rot2 = rotation(point(v1u...), dihedral(coords, i))
-        dist = distance(coords, i)
-        push!(rcds, rot2 * rot1 * v1u * dist + p1)
-    end
-    c3d = zeros(Float64, length(coords.nodekeys), 3)
-    for (i, rcd) in enumerate(rcds)
-        if i in keys(coords.nodekeys)
-            c3d[coords.nodekeys[i], :] = rcd
-        end
-    end
-    return Cartesian3D(c3d)
+struct Point3D{T<:AbstractVector{Float64}}
+    pos::T
 end
 
 
-_point(coords::Cartesian3D, i::Int) = coords.coords[i, :]
-_point(segment::Segment3D, i::Int) = segment.coords[i, :]
-point(coords::Cartesian3D, i) = Point3D(rawdata(coords), i)
-point(x::Float64, y::Float64, z::Float64) = Point3D([x y z], 1)
 
-segment(coords::Cartesian3D, u, v) = Segment3D(rawdata(coords), u, v)
+cartesian3d(data::AbstractMatrix{Float64}) = Cartesian3D(data)
+cartesian3d(c3d::Cartesian3D, vertices::Vector{Int}
+    ) = Cartesian3D(@view c3d.coords[vertices, :])
 
+"""
+    cartesian2d(coords::Cartesian3D) -> Cartesian2D
 
-x(point::Point3D) = point.coords[point.i, 1]
-y(point::Point3D) = point.coords[point.i, 2]
-z(point::Point3D) = point.coords[point.i, 3]
+Embed `Cartesian3D` into `Cartesian2D` by just removing z-axis component.
+"""
+cartesian2d(c3d::Cartesian3D) = cartesian2d(@view c3d.coords[:, 1:2])
 
-_u(segment::Segment3D) = segment.coords[segment.u, :]
-_v(segment::Segment3D) = segment.coords[segment.v, :]
-u(segment::Segment3D) = Point3D(_u(segment)...)
-v(segment::Segment3D) = Point3D(_v(segment)...)
-ux(segment::Segment3D) = segment.coords[segment.u, 1]
-uy(segment::Segment3D) = segment.coords[segment.u, 2]
-uz(segment::Segment3D) = segment.coords[segment.u, 3]
-vx(segment::Segment3D) = segment.coords[segment.v, 1]
-vy(segment::Segment3D) = segment.coords[segment.v, 2]
-vz(segment::Segment3D) = segment.coords[segment.v, 3]
+segment(c3d::Cartesian3D, u, v) = Segment3D(@view c3d.coords[[u, v], :])
+segment(u::Point3D, v::Point3D) = Segment3D(transpose(hcat(u.pos, v.pos)))
 
-_coord(coords::Cartesian3D, i::Int) = coords.coords[i, :]
-coord(coords::Cartesian3D, i::Int) = Point3D(_coord(coords, i)...)
-
-x_components(coords::Cartesian3D) = coords.coords[:, 1]
-y_components(coords::Cartesian3D) = coords.coords[:, 2]
-z_components(coords::Cartesian3D) = coords.coords[:, 3]
+point(c3d::Cartesian3D, i::Int) = Point3D(@view c3d.coords[i, :])
 
 
-_vector(segment::Segment3D) = _v(segment) - _u(segment)
-vector(segment::Segment3D) = Point3D(_vector(segment)...)
+
+x(point::Point3D) = point.pos[1]
+y(point::Point3D) = point.pos[2]
+z(point::Point3D) = point.pos[3]
+
+u(segment::Segment3D) = Point3D(@view segment.coords[1, :])
+v(segment::Segment3D) = Point3D(@view segment.coords[2, :])
+ux(segment::Segment3D) = segment.coords[1]
+uy(segment::Segment3D) = segment.coords[3]
+uz(segment::Segment3D) = segment.coords[5]
+vx(segment::Segment3D) = segment.coords[2]
+vy(segment::Segment3D) = segment.coords[4]
+vz(segment::Segment3D) = segment.coords[6]
+
+x_components(c3d::Cartesian3D) = c3d.coords[:, 1]
+y_components(c3d::Cartesian3D) = c3d.coords[:, 2]
+z_components(c3d::Cartesian3D) = c3d.coords[:, 3]
+
+
+vector(segment::Segment3D) = v(segment) - u(segment)
 
 
 function rotation(axis::Point3D, angle)
