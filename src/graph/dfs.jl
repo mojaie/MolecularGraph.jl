@@ -62,6 +62,11 @@ function circuitrank(graph::UndirectedGraph)
     if isdefined(graph, :cache) && haskey(graph.cache, :mincycles)
         return length(graph.cache[:mincycles])
     end
-    root = pop!(nodeset(graph))
-    return length(cotree_edges(graph, root))
+    treesize = 0
+    for conn in connected_components(graph)
+        root = iterate(conn)[1]
+        edges = dfstree_edges(neighbors, graph, root)
+        treesize += length(edges)
+    end
+    return edgecount(graph) - treesize
 end

@@ -16,6 +16,8 @@
     @test circuitrank(lad5) == 4
     k5 = completegraph(5)
     @test circuitrank(k5) == 6
+    disconn = disjointunion(c5, c5, c5)
+    @test circuitrank(disconn) == 3
     # TODO: cached mincycles
     # TODO: subgraphview
 end
