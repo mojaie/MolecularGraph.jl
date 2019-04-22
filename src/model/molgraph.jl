@@ -136,3 +136,12 @@ end
 SDFile = GraphMol{SDFileAtom,SDFileBond}
 SMILES = GraphMol{SmilesAtom,SmilesBond}
 SMARTS = QueryMol{SmartsAtom,SmartsBond}
+
+
+function Base.getindex(graph::GraphMol, sym::Symbol)
+    if haskey(graph.cache, sym)
+        return graph.cache[sym]
+    else
+        return eval(Expr(:call, sym, graph))
+    end
+end

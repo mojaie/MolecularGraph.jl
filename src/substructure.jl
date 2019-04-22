@@ -261,7 +261,7 @@ function querymatchtree(query::Pair, mol::UndirectedGraph, i::Int)
         if query.first == :atom_sssrsizes
             return query.second in atom_sssrsizes(mol)[i]
         else
-            return eval(Expr(:call, query.first, mol))[i] == query.second
+            return mol[query.first][i] == query.second
         end
     end
 end

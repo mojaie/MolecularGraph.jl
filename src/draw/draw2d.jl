@@ -137,7 +137,8 @@ function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
         rr = vcat(ordered, ordered)
         for i in 1:length(ordered)
             e = findedgekey(mol, rr[i], rr[i + 1])
-            if bondorder_[e] == 2 && rr[i] > rr[i + 1]
+            (u, v) = getedge(mol, e)
+            if bondorder_[e] == 2 && u != rr[i]
                 notation[e] = 1
             end
         end

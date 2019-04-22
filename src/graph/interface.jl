@@ -44,11 +44,13 @@ abstract type DirectedEdge <: AbstractEdge end
 
 # Indexing
 
-Base.getindex(graph::AbstractGraph, sym::Symbol) = eval(Expr(:call, sym, graph))
-Base.getindex(
-    graph::AbstractGraph, k1::Symbol, k2::Symbol, K::Symbol...
-) = hcat(eval(Expr(:call, sym, graph)) for k in [k1, k2, K...])
-
+function Base.getindex(graph::AbstractGraph, sym::Symbol)
+    if haskey(graph.cache, sym)
+        return graph.cache[sym]
+    else
+        return eval(Expr(:call, sym, graph))
+    end
+end
 
 
 # Cached properties
