@@ -163,7 +163,7 @@ end
 
 function planaritytest(graph::OrderedGraph; verbose=false)
     # Do DFS to determine treeedge, cotree, loworder, source
-    state = DFSState(graph)
+    state = DFSState(plaingraph(graph))
     dfs!(state)
     verbose && println(state)
 
@@ -189,6 +189,17 @@ function planaritytest(graph::OrderedGraph; verbose=false)
 end
 
 
+function outerplanaritytest(graph::UndirectedGraph; verbose=false)
+    # Add a node connects all other nodes
+    newg = plaingraph(graph)
+    newnode = addnode!(newg)
+    for n in nodeset(graph)
+        addedge!(newg, newnode, n)
+    end
+    return planaritytest(newg, verbose=verbose)
+end
+
+
 """
     isplanar(graph::UndirectedGraph) -> Bool
 
@@ -200,12 +211,13 @@ Return whether the graph is planar.
    European Journal of Combinatorics, 33(3), 279–293.
    https://doi.org/10.1016/j.ejc.2011.09.012
 """
-function isplanar(graph::UndirectedGraph; fastfilter=true, verbose=false)
-    if fastfilter
-        edgecount(subg) < 9 && return true
-        edgecount(subg) > nodecount(subg) * 3 - 6 && return false
+@cache function isplanar(graph::UndirectedGraph)
+    if isdefined(graph, :cache) && haskey(graph.cache, :isouterplanar)
+        graph.cache[:isouterplanar] && return true
     end
-    return planaritytest(plaingraph(graph), verbose=verbose)
+    edgecount(graph) < 9 && return true
+    edgecount(graph) > nodecount(graph) * 3 - 6 && return false
+    return planaritytest(graph, verbose=verbose)
 end
 
 
@@ -215,16 +227,11 @@ end
 Return whether the graph is outerplanar. The outerplanarity test is based on
 a planarity test (see [`isplanar`](@ref)).
 """
-function isouterplanar(graph::UndirectedGraph; fastfilter=true, verbose=false)
-    if fastfilter
-        edgecount(subg) < 6 && return true
-        edgecount(subg) > nodecount(subg) * 2 - 6 && return false
+@cache function isouterplanar(graph::UndirectedGraph)
+    if isdefined(graph, :cache) && haskey(graph.cache, :isplanar)
+        graph.cache[:isplanar] || return false
     end
-    # Add a node connects all other nodes
-    newg = plaingraph(graph)
-    newnode = addnode!(newg)
-    for n in nodeset(graph)
-        addedge!(newg, newnode, n)
-    end
-    return planaritytest(newg, verbose=verbose)
+    edgecount(graph) < 6 && return true
+    edgecount(graph) > nodecount(graph) * 2 - 6 && return false
+    return outerplanaritytest(graph, verbose=verbose)
 end

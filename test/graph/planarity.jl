@@ -3,7 +3,8 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using MolecularGraph.MolecularGraphModel: merge!, remove!
+using MolecularGraph.MolecularGraphModel:
+    merge!, remove!, planaritytest, outerplanaritytest
 
 @testset "graph.planarity" begin
 
@@ -76,24 +77,26 @@ end
 
 
 @testset "isplanar" begin
-    @test isplanar(completebipartite(2,3), fastfilter=false)
-    @test !isplanar(completebipartite(3,3), fastfilter=false)
-    @test isplanar(completegraph(4), fastfilter=false)
-    @test !isplanar(completegraph(5), fastfilter=false)
-    @test isplanar(laddergraph(5), fastfilter=false)
-    @test isplanar(circularladder(5), fastfilter=false)
-    @test !isplanar(moebiusladder(5), fastfilter=false)
+    @test planaritytest(completebipartite(2,3))
+    @test !planaritytest(completebipartite(3,3))
+    @test planaritytest(completegraph(4))
+    @test !planaritytest(completegraph(5))
+    @test planaritytest(laddergraph(5))
+    @test planaritytest(circularladder(5))
+    @test !planaritytest(moebiusladder(5))
     # TODO non-biconnected cases (ex. berbell graph)
 end
 
 @testset "isouterplanar" begin
-    @test isouterplanar(completebipartite(2,2), fastfilter=false)
-    @test !isouterplanar(completebipartite(2,3), fastfilter=false)
-    @test isouterplanar(completegraph(3), fastfilter=false)
-    @test !isouterplanar(completegraph(4), fastfilter=false)
-    @test isouterplanar(laddergraph(5), fastfilter=false)
-    # @test isouterplanar(laddergraph(200), fastfilter=false)
-    @test !isouterplanar(circularladder(5), fastfilter=false)
+    @test outerplanaritytest(completebipartite(2,2))
+    @test !outerplanaritytest(completebipartite(2,3))
+    @test outerplanaritytest(completegraph(3))
+    @test !outerplanaritytest(completegraph(4))
+    @test outerplanaritytest(laddergraph(5))
+    # @test outerplanaritytest(laddergraph(200))
+    @test !outerplanaritytest(circularladder(5))
 end
+
+# TODO: test cache
 
 end # graph.planarity
