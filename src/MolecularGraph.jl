@@ -22,6 +22,7 @@ module MolecularGraph
 
         include("./graph/plaingraph.jl")
         include("./graph/plaindigraph.jl")
+        include("./graph/plainhypergraph.jl")
 
         include("./graph/generator.jl")
         include("./graph/multigraph.jl")

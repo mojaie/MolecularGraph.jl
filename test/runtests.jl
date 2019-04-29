@@ -21,6 +21,7 @@ module MolecularGraphModelTest
 
     include("./graph/plaingraph.jl")
     include("./graph/plaindigraph.jl")
+    include("./graph/plainhypergraph.jl")
 
     include("./graph/multigraph.jl")
     include("./graph/dag.jl")
