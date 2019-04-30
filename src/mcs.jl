@@ -16,9 +16,14 @@ Compute maximum common induced substructure (MCIS) of mol1 and mol2.
 
 ## Keyword arguments
 
+- connected(Bool): if true, apply connected MCS constraint.
+- topological(Bool): if true, apply topological constraint.
+- diameter(Int): distance cutoff for topological constraint.
+- tolerance(Int): distance mismatch tolerance for topological constraint.
 - timeout(Int): abort calculation and return suboptimal results if the execution
-time exceeded the value (default=60, in seconds)
-- c_clique_constraint(Bool): if true, calculate connected MCS.
+time has reached the given value (default=60, in seconds).
+- targetsize(Int): abort calculation and return suboptimal result so far if the
+given mcs size achieved.
 """
 function mcismol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...)
     afunc = atommatch(mol1, mol2)
@@ -29,6 +34,7 @@ end
 
 mcismolsize(mol1, mol2; kwargs...
     ) = length(mcismol(mol1, mol2; kwargs...).mapping)
+
 
 
 """

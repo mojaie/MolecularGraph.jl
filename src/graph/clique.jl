@@ -9,63 +9,55 @@ export
 
 mutable struct FindCliqueState{T<:UndirectedGraph}
     graph::T
-    timeout # Int
-    targetsize # Int
-    c_clique_constraint # Function
+    targetsize::Union{Int,Nothing} # Int
 
-    expire # nanoseconds, UInt64
-
+    adjacencies::Dict{Int,Set{Int}}
+    expire::Union{UInt64,Nothing} # UInt64, nanoseconds
     Q::Set{Int}
-    channel::Channel
+
+    cliques::Vector{Set{Int}}
     status::Symbol
 
-    function FindCliqueState{T}(graph; kwargs...) where {T<:UndirectedGraph}
-        state = new()
-        state.graph = graph
-        state.Q = Set()
-        state.status = :ready
-        if haskey(kwargs, :timeout)
-            state.timeout = kwargs[:timeout]::Int
-            state.expire = (time_ns() + state.timeout * 1_000_000_000)::UInt64
-        end
-        if haskey(kwargs, :targetsize)
-            state.targetsize = kwargs[:targetsize]
-        end
-        if haskey(kwargs, :c_clique_constraint)
-            state.c_clique = kwargs[:c_clique_constraint]::Function
-            ch = c::Channel -> expand!(
-                state, nodeset(graph), nodeset(graph), nodeset(graph), c)
+    function FindCliqueState{T}(graph; timeout=nothing, targetsize=nothing,
+                kwargs...) where {T<:UndirectedGraph}
+        if timeout !== nothing
+            expire = (time_ns() + timeout * 1_000_000_000)::UInt64
         else
-            ch = c::Channel -> expand!(
-                state, nodeset(graph), nodeset(graph), c)
+            expire = nothing
         end
-        state.channel = Channel(ch, ctype=Set{Int})
-        return state
+        # fast adjacency access
+        adj = Dict{Int,Set{Int}}()
+        for n in nodeset(graph)
+            adj[n] = adjacencies(graph, n)
+        end
+        new(graph, targetsize, adj, expire, Set(), [], :ready)
     end
 end
 
 
-function expand!(state::FindCliqueState, subg, cand, channel)
+function expand!(state::FindCliqueState, subg, cand)
+    (state.status == :timedout || state.status == :targetreached) && return
     if isempty(subg)
         # Report max clique
-        put!(channel, copy(state.Q))
+        push!(state.cliques, copy(state.Q))
         return
-    elseif isdefined(state, :timeout) && time_ns() > state.expire
+    elseif state.expire !== nothing && time_ns() > state.expire
         state.status = :timedout
         return
-    elseif isdefined(state, :targetsize) && length(state.Q) > state.targetsize
+    elseif state.targetsize !== nothing && length(state.Q) >= state.targetsize
         state.status = :targetreached
+        push!(state.cliques, copy(state.Q))
         return
     end
-    candnbrcnt(n) = length(intersect(cand, adjacencies(state.graph, n)))
+    candnbrcnt(n) = length(intersect(cand, state.adjacencies[n]))
     pivot = sortstablemax(subg, by=candnbrcnt)
 
-    for q in setdiff(cand, adjacencies(state.graph, pivot))
+    for q in setdiff(cand, state.adjacencies[pivot])
         push!(state.Q, q)
-        qnbrs = adjacencies(state.graph, q)
+        qnbrs = state.adjacencies[q]
         subgq = intersect(subg, qnbrs)
         candq = intersect(cand, qnbrs)
-        expand!(state, subgq, candq, channel)
+        expand!(state, subgq, candq)
         pop!(state.Q, q) # Revert
     end
     return
@@ -73,38 +65,40 @@ end
 
 
 function expand!(
-        state::FindCliqueState{ModularProduct}, subg, cand, qual, channel)
+        state::FindCliqueState{ModularProduct}, subg, cand, qual)
     # c-clique version
+    (state.status == :timedout || state.status == :targetreached) && return
     if isempty(subg)
         # Report max clique
-        put!(channel, copy(state.Q))
+        push!(state.cliques, copy(state.Q))
         return
-    elseif isdefined(state, :timeout) && time_ns() > state.expire
+    elseif state.expire !== nothing && time_ns() > state.expire
         state.status = :timedout
         return
-    elseif isdefined(state, :targetsize) && length(state.Q) > state.targetsize
+    elseif state.targetsize !== nothing && length(state.Q) >= state.targetsize
         state.status = :targetreached
+        push!(state.cliques, copy(state.Q))
         return
     end
-    candnbrcnt(n) = length(intersect(cand, adjacencies(state.graph, n)))
+    candnbrcnt(n) = length(intersect(cand, state.adjacencies[n]))
     pivot = sortstablemax(subg, by=candnbrcnt)
 
-    for q in setdiff(cand, adjacencies(state.graph, pivot))
+    for q in setdiff(cand, state.adjacencies[pivot])
         push!(state.Q, q)
         qconnbrs = Set{Int}()
         qdisnbrs = Set{Int}()
         for (inc, adj) in neighbors(state.graph, q)
-            if getedgeattr(state.graph, inc).hasedge
+            if edgeattr(state.graph, inc).hasedge
                 push!(qconnbrs, adj)
             else
                 push!(qdisnbrs, adj)
             end
         end
-        qnbrs = adjacencies(state.graph, q)
+        qnbrs = state.adjacencies[q]
         subgq = union(intersect(subg, qnbrs), intersect(qual, qconnbrs))
         candq = union(intersect(cand, qnbrs), intersect(qual, qconnbrs))
         qualq = intersect(qual, qdisnbrs)
-        expand!(state, subgq, candq, qualq, channel)
+        expand!(state, subgq, candq, qualq)
         pop!(state.Q, q) # Revert
     end
     return
@@ -129,5 +123,6 @@ Return a set of maximum clique nodes.
 """
 function maximumclique(graph::T; kwargs...) where {T<:UndirectedGraph}
     state = FindCliqueState{T}(graph; kwargs...)
-    return sortstablemax(collect(state.channel), by=length, init=[])
+    expand!(state, nodeset(graph), nodeset(graph))
+    return sortstablemax(collect(state.cliques), by=length, init=[])
 end
