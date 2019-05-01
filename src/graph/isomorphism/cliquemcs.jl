@@ -9,17 +9,9 @@ export
 
 
 
-mutable struct MCSResult
-    mapping::Dict{Int,Int}
-    isvalidinput::Bool
-    istimedout::Bool
-    istargetreached::Bool
-end
-
-
-
 """
-    findmcis(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> MCSResult
+    findmcis(G::UndirectedGraph, H::UndirectedGraph; kwargs...
+        ) -> Tuple{Dict{Int,Int},Symbol}
 
 Compute maximum common induced subgraph between `G` and `H`.
 
@@ -41,9 +33,9 @@ arguments.
 """
 function findmcis(G::UndirectedGraph, H::UndirectedGraph;
         nodematcher=(g,h)->true, edgematcher=(g,h)->true, kwargs...)
-    res = MCSResult(Dict{Int,Int}(), false, false, false)
-    (nodecount(G) == 0 || nodecount(H) == 0) && return res
-    res.isvalidinput = true
+    mapping = Dict{Int,Int}()
+    status = :invalidinput
+    (nodecount(G) == 0 || nodecount(H) == 0) && return (mapping, status)
     # Generate modular product
     if haskey(kwargs, :topological) && kwargs[:topological]
         eflt = tpconstraintfilter(G, H, edgematcher; kwargs...)
@@ -53,35 +45,30 @@ function findmcis(G::UndirectedGraph, H::UndirectedGraph;
     prod = modularproduct(
         G, H, nodematcher=nodematcher, edgefilter=eflt; kwargs...)
     # Clique detection
-    state = FindCliqueState{ModularProduct}(prod; kwargs...)
     if haskey(kwargs, :connected) && kwargs[:connected]
-        expand!(state, nodeset(prod), nodeset(prod), nodeset(prod))
+        (cliques, status) = maximalconncliques(prod; kwargs...)
     else
-        expand!(state, nodeset(prod), nodeset(prod))
+        (cliques, status) = maximalcliques(prod; kwargs...)
     end
-    for nodes in state.cliques
-        if length(nodes) > length(res.mapping)
-            res.mapping = Dict(
-                nodeattr(prod, n).g => nodeattr(prod, n).h for n in nodes)
-        end
-    end
-    res.istimedout = state.status == :timedout
-    res.istargetreached = state.status == :targetreached
-    return res
+    maxclique = sortstablemax(collect(cliques), by=length, init=[])
+    mapping = Dict(
+        nodeattr(prod, n).g => nodeattr(prod, n).h for n in maxclique)
+    return (mapping, status)
 end
 
 
 
 """
-    findmces(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> MCSResult
+    findmces(G::UndirectedGraph, H::UndirectedGraph; kwargs...
+        ) -> Tuple{Dict{Int,Int},Symbol}
 
 Compute maximum common edge induced subgraph between `G` and `H`.
 """
 function findmces(G::UndirectedGraph, H::UndirectedGraph;
         nodematcher=(g,h)->true, edgematcher=(g,h)->true, kwargs...)
-    res = MCSResult(Dict{Int,Int}(), false, false, false)
-    (edgecount(G) == 0 || edgecount(H) == 0) && return res
-    res.isvalidinput = true
+    mapping = Dict{Int,Int}()
+    status = :invalidinput
+    (edgecount(G) == 0 || edgecount(H) == 0) && return (mapping, status)
     lg = linegraph(G)
     lh = linegraph(H)
     ematch = lgedgematcher(lg, lh, nodematcher)
@@ -94,23 +81,20 @@ function findmces(G::UndirectedGraph, H::UndirectedGraph;
     end
     prod = modularproduct(lg, lh, nodematcher=nmatch, edgefilter=eflt)
     # Clique detection
-    state = FindCliqueState{ModularProduct}(prod; kwargs...)
     if haskey(kwargs, :connected) && kwargs[:connected]
-        expand!(state, nodeset(prod), nodeset(prod), nodeset(prod))
+        (cliques, status) = maximalconncliques(prod; kwargs...)
     else
-        expand!(state, nodeset(prod), nodeset(prod))
+        (cliques, status) = maximalcliques(prod; kwargs...)
     end
-    for edges in state.cliques
-        length(edges) > length(res.mapping) || continue
+    for edges in cliques
+        length(edges) > length(mapping) || continue
         mp = Dict(nodeattr(prod, e).g => nodeattr(prod, e).h for e in edges)
         delta_y_correction!(mp, G, H)
-        if length(mp) > length(res.mapping)
-            res.mapping = mp
+        if length(mp) > length(mapping)
+            mapping = mp
         end
     end
-    res.istimedout = state.status == :timedout
-    res.istargetreached = state.status == :targetreached
-    return res
+    return (mapping, status)
 end
 
 
@@ -144,7 +128,7 @@ end
 
 Return the maximum common induced subgraph size (number of nodes).
 """
-mcissize(G, H; kwargs...) = length(findmcis(G, H; kwargs...).mapping)
+mcissize(G, H; kwargs...) = length(findmcis(G, H; kwargs...)[1])
 
 
 """
@@ -152,4 +136,4 @@ mcissize(G, H; kwargs...) = length(findmcis(G, H; kwargs...).mapping)
 
 Return the maximum common edge induced subgraph size (number of edges).
 """
-mcessize(G, H; kwargs...) = length(findmces(G, H; kwargs...).mapping)
+mcessize(G, H; kwargs...) = length(findmces(G, H; kwargs...)[1])

@@ -39,4 +39,13 @@ end
     @test mcessize(g, h) == 5
 end
 
+
+@testset "connected" begin
+    g = disjointunion(completegraph(5), completegraph(4))
+    h = disjointunion(completegraph(4), completegraph(3))
+    @test mcissize(g, h, connected=false) == 7
+    @test mcissize(g, h, connected=true) == 4
+end
+
+
 end # graph.isomorphism.cliquebased

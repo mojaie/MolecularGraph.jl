@@ -10,7 +10,7 @@ export
 
 """
     mcismol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...
-        ) -> MCSResults
+        ) -> Tuple{Dict{Int,Int},Symbol}
 
 Compute maximum common induced substructure (MCIS) of mol1 and mol2.
 
@@ -32,14 +32,13 @@ function mcismol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...)
         mol1, mol2, nodematcher=afunc, edgematcher=bfunc; kwargs...)
 end
 
-mcismolsize(mol1, mol2; kwargs...
-    ) = length(mcismol(mol1, mol2; kwargs...).mapping)
+mcismolsize(mol1, mol2; kwargs...) = length(mcismol(mol1, mol2; kwargs...)[1])
 
 
 
 """
     mcesmol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...
-        ) -> MCSResults
+        ) -> Tuple{Dict{Int,Int},Symbol}
 
 Compute maximum common edge induced substructure (MCES) of mol1 and mol2.
 """
@@ -50,7 +49,6 @@ function mcesmol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...)
         mol1, mol2, nodematcher=afunc, edgematcher=bfunc; kwargs...)
 end
 
-mcesmolsize(mol1, mol2; kwargs...
-    ) = length(mcesmol(mol1, mol2; kwargs...).mapping)
+mcesmolsize(mol1, mol2; kwargs...) = length(mcesmol(mol1, mol2; kwargs...)[1])
 
 # TODO: subgraphview
