@@ -31,7 +31,8 @@ mutable struct SvgCanvas <: Canvas
 
     viewboxW::Float64
     viewboxH::Float64
-
+    
+    bgelements::Vector{String}
     elements::Vector{String}
     coords::Cartesian2D{Matrix{Float64}}
     valid::Bool
@@ -54,6 +55,7 @@ mutable struct SvgCanvas <: Canvas
         canvas.paddingX = 30.0
         canvas.paddingY = 30.0
 
+        canvas.bgelements = []
         canvas.elements = []
         canvas.valid = false
         return canvas
@@ -63,6 +65,7 @@ end
 
 svgcolor(c::Color) = @sprintf "rgb(%d, %d, %d)" c.r c.g c.b
 svgcoords(s::Point2D) = @sprintf "x=\"%.2f\" y=\"%.2f\"" x(s) y(s)
+svgcirclecoords(s::Point2D) = @sprintf "cx=\"%.2f\" cy=\"%.2f\"" x(s) y(s)
 svgcoords(
     s::Segment2D
 ) = @sprintf "x1=\"%.2f\" y1=\"%.2f\" x2=\"%.2f\" y2=\"%.2f\"" ux(s) uy(s) vx(s) vy(s)
@@ -88,7 +91,7 @@ function tosvg(canvas::Canvas, width::Int, height::Int)
      fill="$(bgc)" opacity="$(canvas.opacity)"/>
     """
     endsvg = "</svg>\n"
-    return join([header, bg, canvas.elements..., endsvg], "")
+    return join([header, bg, canvas.bgelements..., canvas.elements..., endsvg], "")
 end
 
 
@@ -100,9 +103,15 @@ Generate molecular structure image as a SVG format string.
 `width` and `height` specifies the size of the image (width and height
 attribute of svg tag).
 """
-function drawsvg(mol::UndirectedGraph, width::Int, height::Int)
+function drawsvg(mol::UndirectedGraph, width::Int, height::Int; kwargs...)
     canvas = SvgCanvas()
     draw2d!(canvas, mol)
+    if haskey(kwargs, :highlight)
+        sethighlight!(canvas, kwargs[:highlight])
+    end
+    if haskey(kwargs, :atomindex) && kwargs[:atomindex]
+        drawatomindex!(canvas, mol)
+    end
     return tosvg(canvas, width, height)
 end
 
@@ -279,6 +288,17 @@ setbond!(
 ) = BOND_DRAWER[order][notation](canvas, coords, ucolor, vcolor, uvis, vvis)
 
 
+function setbondhighlight!(canvas, seg, color)
+    segcrds = svgcoords(seg)
+    c = svgcolor(color)
+    elem = """<line $(segcrds) stroke="$(c)" stroke-width="10" stroke-linecap="round"/>
+    """
+    push!(canvas.bgelements, elem)
+    return
+end
+
+
+
 function atomsymbol!(canvas, coords, atomsymbol, color, implicith, charge;
                      direction=:right, anchor=""" text-anchor="end" """,
                      xoffset=0)
@@ -290,7 +310,7 @@ function atomsymbol!(canvas, coords, atomsymbol, color, implicith, charge;
         """<tspan baseline-shift="50%" font-size="$(small)">""", "</tspan>"
     )
     c = svgcolor(color)
-    elem = """<text $(xy)" font-size="$(canvas.fontsize)"
+    elem = """<text $(xy) font-size="$(canvas.fontsize)"
      fill="$(c)"$(anchor)>$(content)</text>
     """
     push!(canvas.elements, elem)
@@ -334,6 +354,16 @@ function setatomnote!(canvas, coords, text, color, bgcolor)
     return
 end
 
+function setatomhighlight!(canvas, coords, color)
+    size = round(Int, canvas.fontsize * 1.2)
+    xy = svgcoords(coords - (size / 2, size / 2))
+    c = svgcolor(color)
+    elem = """
+     <rect $(xy) width="$(size)" height="$(size)" rx="$(size/2)" ry="$(size/2)" fill="$(c)" />
+    """
+    push!(canvas.bgelements, elem)
+    return
+end
 
 
 function drawline!(canvas, seg, color; isdashed=false)
