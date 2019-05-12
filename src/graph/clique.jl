@@ -44,7 +44,6 @@ mutable struct FindConnCliqueState{T<:ModularProduct}
     connected::Dict{Int,Set{Int}}
     disconn::Dict{Int,Set{Int}}
     expire::Union{UInt64,Nothing} # UInt64, nanoseconds
-    Q::Vector{Int}
 
     cliques::Vector{Set{Int}}
     status::Symbol
@@ -73,7 +72,7 @@ mutable struct FindConnCliqueState{T<:ModularProduct}
                 end
             end
         end
-        new(graph, targetsize, adj, conn, disconn, expire, [], [], :ongoing)
+        new(graph, targetsize, adj, conn, disconn, expire, [], :ongoing)
     end
 end
 
@@ -109,32 +108,33 @@ function expand!(state::FindCliqueState, subg, cand)
     return
 end
 
-
-function expandconn!(state::FindConnCliqueState, subg, cand, disc)
-    # c-clique
+function expandconn!(state::FindConnCliqueState, R, P, Q, X, Y)
     (state.status == :timedout || state.status == :targetreached) && return
-    if isempty(subg)
+    if isempty(P) && isempty(X)
         # Report max clique
-        push!(state.cliques, Set(state.Q))
+        push!(state.cliques, copy(R))
         return
     elseif state.expire !== nothing && time_ns() > state.expire
         state.status = :timedout
         return
-    elseif state.targetsize !== nothing && length(state.Q) >= state.targetsize
+    elseif state.targetsize !== nothing && length(R) >= state.targetsize
         state.status = :targetreached
-        push!(state.cliques, Set(state.Q))
+        push!(state.cliques, copy(R))
         return
     end
-    for q in copy(cand)
-        push!(state.Q, q)
-        qnbrs = state.adjacencies[q]
-        connq = intersect(disc, state.connected[q])
-        subgq = union(intersect(subg, qnbrs), connq)
-        candq = union(intersect(cand, qnbrs), connq)
-        discq = intersect(disc, state.disconn[q])
-        expandconn!(state, subgq, candq, discq)
-        pop!(cand, q)
-        pop!(state.Q)
+    while !isempty(P)
+        n = pop!(P)
+        Rnew = union(R, [n])
+        Qnew = intersect(Q, state.disconn[n])
+        Pnew = union(
+            intersect(P, state.adjacencies[n]),
+            intersect(Q, state.connected[n]))
+        Ynew = intersect(Y, state.disconn[n])
+        Xnew = union(
+            intersect(X, state.adjacencies[n]),
+            intersect(Y, state.connected[n]))
+        expandconn!(state, Rnew, Pnew, Qnew, Xnew, Ynew)
+        push!(X, n)
     end
     return
 end
@@ -192,17 +192,18 @@ Return maximal connected cliques.
    https://doi.org/10.1016/j.tcs.2005.09.038
 
 """
-function maximalconncliques(graph::T; kwargs...) where {T<:ModularProduct}
+function maximalconncliques(graph::T; kwargs...) where {T<:UndirectedGraph}
     state = FindConnCliqueState{T}(graph; kwargs...)
+    nodes = nodeset(graph)
     done = Set{Int}()
-    for n in nodeset(graph)
-        push!(state.Q, n)
-        subg = intersect(setdiff(nodeset(graph), done), state.connected[n])
-        cand = intersect(setdiff(nodeset(graph), done), state.connected[n])
-        disc = intersect(state.disconn[n], done)
-        expandconn!(state, subg, cand, disc)
+    for n in nodes
+        R = Set([n])
+        P = intersect(setdiff(nodes, done), state.connected[n])
+        Q = intersect(setdiff(nodes, done), state.disconn[n])
+        X = intersect(state.connected[n], done)
+        Y = intersect(state.disconn[n], done)
+        expandconn!(state, R, P, Q, X, Y)
         push!(done, n)
-        pop!(state.Q)
     end
     if state.status == :ongoing
         state.status = :done

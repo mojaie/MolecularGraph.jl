@@ -8,6 +8,7 @@ MolecularGraph.jl
 
 <img src="./assets/image/demo.svg" width="200"/><img src="./assets/image/Acetohexamide.svg" width="200"/><img src="./assets/image/Bivalirudin.svg" width="200"/><img src="./assets/image/Cefmenoxime.svg" width="200"/><img src="./assets/image/Succinic acid.svg" width="200"/><img src="./assets/image/Quinacrine.svg" width="200"/><img src="./assets/image/Docetaxel.svg" width="200"/><img src="./assets/image/FerrocenylethylMaleimide.svg" width="200"/>
 
+<img src="./assets/image/mcsdemo.png" width="400"/>
 
 **MolecularGraph.jl** is a graph-based molecule modeling and chemoinformatics analysis toolkit which is fully implemented in Julia.
 
