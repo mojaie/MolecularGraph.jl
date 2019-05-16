@@ -161,7 +161,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "moleculargraph/draw/#MolecularGraph.drawsvg-Tuple{GraphMol,Int64,Int64}",
+    "location": "moleculargraph/draw/#MolecularGraph.drawsvg-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph,Int64,Int64}",
     "page": "Structure drawing",
     "title": "MolecularGraph.drawsvg",
     "category": "method",
@@ -301,7 +301,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Preprocessing",
     "title": "MolecularGraph.makehydrogensimplicit",
     "category": "method",
-    "text": "makehydrogensimplicit(mol::GraphMol) -> SubgraphView{GraphMol}\n\nReturn molecule whose hydrogen nodes are removed. If option all is set to false, only trivial hydrogens are removed (see trivialhydrogens).\n\n\n\n\n\n"
+    "text": "makehydrogensimplicit(mol::GraphMol) -> GraphMol\n\nReturn molecule whose hydrogen nodes are removed. If option all is set to false, only trivial hydrogens are removed (see trivialhydrogens).\n\n\n\n\n\n"
 },
 
 {
@@ -413,7 +413,7 @@ var documenterSearchIndex = {"docs": [
     "page": "MCS",
     "title": "MolecularGraph.mcesmol",
     "category": "method",
-    "text": "mcesmol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...\n    ) -> MCSResults\n\nCompute maximum common edge induced substructure (MCES) of mol1 and mol2.\n\n\n\n\n\n"
+    "text": "mcesmol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...\n    ) -> Tuple{Dict{Int,Int},Symbol}\n\nCompute maximum common edge induced substructure (MCES) of mol1 and mol2.\n\n\n\n\n\n"
 },
 
 {
@@ -421,7 +421,7 @@ var documenterSearchIndex = {"docs": [
     "page": "MCS",
     "title": "MolecularGraph.mcismol",
     "category": "method",
-    "text": "mcismol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...\n    ) -> MCSResults\n\nCompute maximum common induced substructure (MCIS) of mol1 and mol2.\n\nKeyword arguments\n\ntimeout(Int): abort calculation and return suboptimal results if the execution\n\ntime exceeded the value (default=60, in seconds)\n\nccliqueconstraint(Bool): if true, calculate connected MCS.\n\n\n\n\n\n"
+    "text": "mcismol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...\n    ) -> Tuple{Dict{Int,Int},Symbol}\n\nCompute maximum common induced substructure (MCIS) of mol1 and mol2.\n\nKeyword arguments\n\nconnected(Bool): if true, apply connected MCS constraint.\ntopological(Bool): if true, apply topological constraint.\ndiameter(Int): distance cutoff for topological constraint.\ntolerance(Int): distance mismatch tolerance for topological constraint.\ntimeout(Int): abort calculation and return suboptimal results if the execution\n\ntime has reached the given value (default=60, in seconds).\n\ntargetsize(Int): abort calculation and return suboptimal result so far if the\n\ngiven mcs size achieved.\n\n\n\n\n\n"
 },
 
 {
@@ -497,7 +497,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgeattrs-Tuple{Union{OrderedDiGraph, OrderedGraph}}",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgeattrs-Tuple{Union{OrderedDiGraph, OrderedGraph, OrderedHyperGraph}}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.edgeattrs",
     "category": "method",
@@ -521,7 +521,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgeset-Tuple{Union{OrderedDiGraph, OrderedGraph}}",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.edgeset-Tuple{Union{OrderedDiGraph, OrderedGraph, OrderedHyperGraph}}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.edgeset",
     "category": "method",
@@ -533,7 +533,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.getedge",
     "category": "method",
-    "text": "getedge(graph::AbstractGraph, i::Int) -> Tuple{Int,Int}\n\nReturn an edge tuple.\n\n\n\n\n\n"
+    "text": "getedge(graph::AbstractGraph, i::Int) -> Tuple{Int,Int}\ngetedge(graph::HyperGraph, i::Int) -> Set{Int}\n\nReturn an edge.\n\n\n\n\n\n"
 },
 
 {
@@ -585,7 +585,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodeattrs-Tuple{Union{OrderedDiGraph, OrderedGraph}}",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodeattrs-Tuple{Union{OrderedDiGraph, OrderedGraph, OrderedHyperGraph}}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.nodeattrs",
     "category": "method",
@@ -609,7 +609,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodeset-Tuple{Union{OrderedDiGraph, OrderedGraph}}",
+    "location": "graph/interface/#MolecularGraph.MolecularGraphModel.nodeset-Tuple{Union{OrderedDiGraph, OrderedGraph, OrderedHyperGraph}}",
     "page": "Interface",
     "title": "MolecularGraph.MolecularGraphModel.nodeset",
     "category": "method",
@@ -889,22 +889,6 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "graph/topology/#MolecularGraph.MolecularGraphModel.isouterplanar-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph}",
-    "page": "Topology",
-    "title": "MolecularGraph.MolecularGraphModel.isouterplanar",
-    "category": "method",
-    "text": "isouterplanar(graph::UndirectedGraph) -> Bool\n\nReturn whether the graph is outerplanar. The outerplanarity test is based on a planarity test (see isplanar).\n\n\n\n\n\n"
-},
-
-{
-    "location": "graph/topology/#MolecularGraph.MolecularGraphModel.isplanar-Tuple{MolecularGraph.MolecularGraphModel.UndirectedGraph}",
-    "page": "Topology",
-    "title": "MolecularGraph.MolecularGraphModel.isplanar",
-    "category": "method",
-    "text": "isplanar(graph::UndirectedGraph) -> Bool\n\nReturn whether the graph is planar.\n\nReference\n\nde Fraysseix, H., & Ossona de Mendez, P. (2012). Trémaux trees and planarity. European Journal of Combinatorics, 33(3), 279–293. https://doi.org/10.1016/j.ejc.2011.09.012\n\n\n\n\n\n"
-},
-
-{
     "location": "graph/topology/#Planarity-1",
     "page": "Topology",
     "title": "Planarity",
@@ -1009,11 +993,35 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "graph/clique/#MolecularGraph.MolecularGraphModel.maximalcliques-Union{Tuple{T}, Tuple{T}} where T<:MolecularGraph.MolecularGraphModel.UndirectedGraph",
+    "page": "Clique",
+    "title": "MolecularGraph.MolecularGraphModel.maximalcliques",
+    "category": "method",
+    "text": "maximalcliques(graph::UndirectedGraph; kwargs...\n    ) -> Tuple{Vector{Set{Int}}, Symbol}\n\nReturn maximal cliques.\n\nReference\n\nTomita, E., Tanaka, A., & Takahashi, H. (2006). The worst-case time complexity for generating all maximal cliques and computational experiments. Theoretical Computer Science, 363(1), 28–42. https://doi.org/10.1016/J.TCS.2006.06.015\nCazals, F., & Karande, C. (2008). A note on the problem of reporting maximal cliques. Theoretical Computer Science, 407(1–3), 564–568. https://doi.org/10.1016/j.tcs.2008.05.010\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/clique/#MolecularGraph.MolecularGraphModel.maximalconncliques-Union{Tuple{T}, Tuple{T}} where T<:MolecularGraph.MolecularGraphModel.UndirectedGraph",
+    "page": "Clique",
+    "title": "MolecularGraph.MolecularGraphModel.maximalconncliques",
+    "category": "method",
+    "text": "maximalconncliques(graph::ModularProduct; kwargs...\n    ) -> Tuple{Vector{Set{Int}}, Symbol}\n\nReturn maximal connected cliques.\n\nReference\n\nCazals, F., & Karande, C. (2005). An algorithm for reporting maximal c-cliques. Theoretical Computer Science, 349(3), 484–490. https://doi.org/10.1016/j.tcs.2005.09.038\n\n\n\n\n\n"
+},
+
+{
     "location": "graph/clique/#MolecularGraph.MolecularGraphModel.maximumclique-Union{Tuple{T}, Tuple{T}} where T<:MolecularGraph.MolecularGraphModel.UndirectedGraph",
     "page": "Clique",
     "title": "MolecularGraph.MolecularGraphModel.maximumclique",
     "category": "method",
-    "text": "maximumclique(graph::UndirectedGraph; kwargs...) -> Set{Int}\n\nReturn a set of maximum clique nodes.\n\nReference\n\nTomita, E., Tanaka, A., & Takahashi, H. (2006). The worst-case time complexity for generating all maximal cliques and computational experiments. Theoretical Computer Science, 363(1), 28–42. https://doi.org/10.1016/J.TCS.2006.06.015\nCazals, F., & Karande, C. (2005). An algorithm for reporting maximal c-cliques. Theoretical Computer Science, 349(3), 484–490. https://doi.org/10.1016/j.tcs.2005.09.038\n\n\n\n\n\n"
+    "text": "maximumclique(graph::UndirectedGraph; kwargs...) -> Tuple{Set{Int}, Symbol}\n\nReturn a maximum clique.\n\n\n\n\n\n"
+},
+
+{
+    "location": "graph/clique/#MolecularGraph.MolecularGraphModel.maximumconnclique-Union{Tuple{T}, Tuple{T}} where T<:MolecularGraph.MolecularGraphModel.ModularProduct",
+    "page": "Clique",
+    "title": "MolecularGraph.MolecularGraphModel.maximumconnclique",
+    "category": "method",
+    "text": "maximumconnclique(graph::ModularProduct; kwargs...\n    ) -> Tuple{Set{Int}, Symbol}\n\nReturn a maximum connected clique.\n\n\n\n\n\n"
 },
 
 {
@@ -1125,7 +1133,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Isomorphism",
     "title": "MolecularGraph.MolecularGraphModel.findmces",
     "category": "method",
-    "text": "findmces(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> MCSResult\n\nCompute maximum common edge induced subgraph between G and H.\n\n\n\n\n\n"
+    "text": "findmces(G::UndirectedGraph, H::UndirectedGraph; kwargs...\n    ) -> Tuple{Dict{Int,Int},Symbol}\n\nCompute maximum common edge induced subgraph between G and H.\n\n\n\n\n\n"
 },
 
 {
@@ -1133,7 +1141,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Isomorphism",
     "title": "MolecularGraph.MolecularGraphModel.findmcis",
     "category": "method",
-    "text": "findmcis(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> MCSResult\n\nCompute maximum common induced subgraph between G and H.\n\nKeyword arguments:\n\nconnectivity: :Connected, :Disconnected  (for mode=:MCS)\nconstraint: TopologicalConstraint, DiameterRestriction (for mode=:MCS)\ntimeout(Int): return suboptimal result so far if the execution time exceeded\n\nthe given value (in second).\n\nthreshold(Int): return suboptimal result so far if the given mcs size\n\nachieved.\n\nnodematcher(Function): node matcher function that takes two node indices as\n\narguments.\n\nedgematcher(Function): edge matcher function that takes two edge indices as\n\narguments.\n\ntheta(Int):   distance mismatch tolerance in topologically constrainted MCS\ndiameter(Int):   diameter size in MCS with diameter restriction\n\n\n\n\n\n"
+    "text": "findmcis(G::UndirectedGraph, H::UndirectedGraph; kwargs...\n    ) -> Tuple{Dict{Int,Int},Symbol}\n\nCompute maximum common induced subgraph between G and H.\n\nKeyword arguments:\n\nconnected(Bool): if true, apply connected MCS constraint.\ntopological(Bool): if true, apply topological constraint.\ndiameter(Int): distance cutoff for topological constraint.\ntolerance(Int): distance mismatch tolerance for topological constraint.\ntimeout(Int): abort calculation and return suboptimal results so far if the\n\nexecution time has reached the given value (default=60, in seconds).\n\ntargetsize(Int): abort calculation and return suboptimal result so far if the\n\ngiven mcs size achieved.\n\nnodematcher(Function): node matcher function that takes two node indices as\n\narguments.\n\nedgematcher(Function): edge matcher function that takes two edge indices as\n\narguments.\n\n\n\n\n\n"
 },
 
 {
