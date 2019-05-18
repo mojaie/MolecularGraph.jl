@@ -80,7 +80,8 @@ end
     disjointunion!(g1::T, g2::T, G::T...) where {T<:OrderedGraph} -> T
 
 Generate disjoint union graph of given graphs. `g1` will be overwritten by the
-union graph. Unlike non-destructive `disjointunion`, `g1` does not retain any information about other given graphs but a bit faster.
+union graph. Unlike non-destructive `disjointunion`, `g1` does not retain any
+information about other given graphs but a bit faster.
 """
 function disjointunion!(g1::T, g2::T, G::T...) where {T<:OrderedGraph}
     for g in [g2, G...]

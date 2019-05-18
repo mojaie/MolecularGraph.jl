@@ -24,6 +24,13 @@ Compute maximum common induced substructure (MCIS) of mol1 and mol2.
 time has reached the given value (default=60, in seconds).
 - targetsize(Int): abort calculation and return suboptimal result so far if the
 given mcs size achieved.
+
+# References
+
+1. Kawabata, T. (2011). Build-Up Algorithm for Atomic Correspondence between
+Chemical Structures. Journal of Chemical Information and Modeling, 51(8),
+1775–1787. https://doi.org/10.1021/ci2001023
+1. https://www.jstage.jst.go.jp/article/ciqs/2017/0/2017_P4/_article/-char/en
 """
 function mcismol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...)
     afunc = atommatch(mol1, mol2)
@@ -50,5 +57,3 @@ function mcesmol(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...)
 end
 
 mcesmolsize(mol1, mol2; kwargs...) = length(mcesmol(mol1, mol2; kwargs...)[1])
-
-# TODO: subgraphview
