@@ -122,10 +122,20 @@
   isa: [SixMemberedRing]
   query: "n1ccccc1"
 
+- key: Pyrazine
+  have: [AromaticNitrogen]
+  isa: [SixMemberedRing]
+  query: "n1ccncc1"
+
 - key: Pyrimidine
   have: [AromaticNitrogen]
   isa: [SixMemberedRing]
   query: "n1cnccc1"
+
+- key: Pyridazine
+  have: [AromaticNitrogen]
+  isa: [SixMemberedRing]
+  query: "n1ncccc1"
 
 - key: Morpholine
   have: [CyclicEther, CyclicAmine]
@@ -204,10 +214,18 @@
   have: [Benzene, Pyrrole]
   query: "c1cccc2c1ncc2"
 
-- key: Acridine
+- key: Quinoline
   have: [Benzene, Pyridine]
+  query: "c1cccc2c1nccc2"
+
+- key: Acridine
+  have: [Quinoline]
   query: "c1cccc2c1nc1ccccc1c2"
 
 - key: Purine
   have: [Pyrimidine, Imidazole]
   query: "n1cncc2c1ncn2"
+
+- key: Pteridin
+  have: [Pyrimidine, Pyrazine]
+  query: "n1ccnc2c1cncn2"
