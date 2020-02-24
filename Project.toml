@@ -1,7 +1,7 @@
 name = "MolecularGraph"
 uuid = "6c89ec66-9cd8-5372-9f91-fabc50dd27fd"
-authors = ["Seiji Matsuoka <mojaie@aol.com>"]
-version = "0.3.1"
+authors = ["Seiji Matsuoka <ms0ae8ti1sj2ui@gmail.com"]
+version = "0.3.2"
 
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
@@ -10,3 +10,8 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
+
+[compat]
+julia = "1.0"
+Documenter = "0.22.4"
+YAML = "0.3.2"
