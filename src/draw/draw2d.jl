@@ -86,8 +86,8 @@ isatomvisible(view::SubgraphView) = isatomvisible(view.graph)
 
 
 @cache function coords2d(mol::GraphMol; recalculate=false)
-    recalculate && return compute2dcoords(mol)
-    nodeattrtype(mol) === SmilesAtom && return compute2dcoords(mol)
+    recalculate && return coordgen(mol)
+    nodeattrtype(mol) === SmilesAtom && return coordgen(mol)
     matrix = zeros(Float64, nodecount(mol), 2)
     for (i, node) in enumerate(nodeattrs(mol))
         matrix[i, :] = node.coords[1:2]
