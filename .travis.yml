@@ -1,6 +1,6 @@
 language: julia
 julia:
-    - 1.0
+    - 1
 branches:
   only:
     - master
@@ -8,7 +8,7 @@ branches:
 jobs:
   include:
     - stage: "Documentation"
-      julia: 1.0
+      julia: 1
       os:
         - linux
         - osx
