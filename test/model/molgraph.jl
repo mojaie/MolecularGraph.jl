@@ -3,25 +3,28 @@
 
     @testset "graphmol" begin
         mol = graphmol(SDFileAtom, SDFileBond)
-        @test nodecount(mol) == 0
+        @test atomcount(mol) == 0
+        @test bondcount(mol) == 0
         edges = [(1, 2)]
         atoms = [SDFileAtom(),SDFileAtom(),SDFileAtom()]
         bonds = [SDFileBond()]
         mol = graphmol(edges, atoms, bonds)
-        newbond = addedge!(mol, 2, 3, SDFileBond())
+        newbond = addbond!(mol, 2, 3, SDFileBond())
         @test newbond == 2
-        # TODO: updateedge! for plaingraph
-        # updateedge!(mol, newbond, 2)
-        # @test edgecount(mol) == 2
+        setatom!(mol, 1, SDFileAtom(:O))
+        setbond!(mol, 1, SDFileBond(2))
+        @test getatom(mol, 1).symbol == :O
+        @test getbond(mol, 1).order == 2
     end
 
     @testset "querymol" begin
         q = querymol(SmartsAtom, SmartsBond)
-        addnode!(q, SmartsAtom(:Any => true))
-        addnode!(q, SmartsAtom(:Any => true))
-        addedge!(q, 1, 2, SmartsBond(:Any => true))
-        @test nodecount(q) == 2
-        @test hasedge(q, 1, 2)
+        addatom!(q, SmartsAtom(:Any => true))
+        addatom!(q, SmartsAtom(:Any => true))
+        addbond!(q, 1, 2, SmartsBond(:Any => true))
+        @test atomcount(q) == 2
+        @test bondcount(q) == 1
+        @test hasbond(q, 1, 2)
     end
 
 end
