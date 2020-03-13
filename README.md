@@ -8,23 +8,19 @@ MolecularGraph.jl
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://mojaie.github.io/MolecularGraph.jl/dev)
 
 
+**MolecularGraph.jl** is a graph-based molecule modeling and chemoinformatics analysis toolkit fully implemented in Julia.
+
+
 <img src="./assets/image/demo.svg" width="200"/><img src="./assets/image/Acetohexamide.svg" width="200"/><img src="./assets/image/Bivalirudin.svg" width="200"/><img src="./assets/image/Cefmenoxime.svg" width="200"/><img src="./assets/image/Succinic acid.svg" width="200"/><img src="./assets/image/Quinacrine.svg" width="200"/><img src="./assets/image/Docetaxel.svg" width="200"/><img src="./assets/image/FerrocenylethylMaleimide.svg" width="200"/>
 
 <img src="./assets/image/mcsdemo.png" width="400"/>
 
-**MolecularGraph.jl** is a graph-based molecule modeling and chemoinformatics analysis toolkit which is fully implemented in Julia.
 
-
-## Installation
-
-```
- (v1.0) pkg> add MolecularGraph
-```
 
 
 ## Usage
 
-- Try examples and tutorials in the [notebook directory](./notebook)
+- [Try it with Jupyter notebook tutorials](https://github.com/mojaie/MolecularGraph.jl_notebook)
 - [Documentation and API Reference](https://mojaie.github.io/MolecularGraph.jl/dev)
 
 
@@ -69,4 +65,4 @@ MolecularGraph.jl
 
 ## Copyright
 
-(C) 2018-2019 Seiji Matsuoka
+(C) 2018-2020 Seiji Matsuoka
