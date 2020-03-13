@@ -383,8 +383,8 @@ function drawline!(canvas, seg, ucolor, vcolor; isdashed=false)
     segcrds2 = svgcoords(segment(mid, v(seg)))
     uc = svgcolor(ucolor)
     vc = svgcolor(vcolor)
-    elem = """<line $(segcrds1)" stroke="$(uc)"$(option)/>
-    <line $(segcrds2)" stroke="$(vc)"$(option)/>
+    elem = """<line $(segcrds1) stroke="$(uc)"$(option)/>
+    <line $(segcrds2) stroke="$(vc)"$(option)/>
     """
     push!(canvas.elements, elem)
     return
