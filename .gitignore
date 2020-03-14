@@ -1,7 +1,2 @@
 
-.ipynb_checkpoints
-__pycache__
-
-notebook/*.jl
-notebook/*.py
-_resources
+.DS_Store
