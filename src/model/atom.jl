@@ -6,7 +6,7 @@
 export
     PERIODIC_TABLE, H_WEIGHT,
     SDFileAtom, SmilesAtom, SmartsAtom,
-    setcharge,
+    setcharge, setstereo,
     atomsymbol, atomnumber, atomname, atomweight
 
 
@@ -61,6 +61,9 @@ SmilesAtom(sym, chg) = SmilesAtom(sym, chg, 1, nothing, nothing, :unspecified)
 
 setcharge(a::SmilesAtom, chg) = SmilesAtom(
     a.symbol, chg, a.multiplicity, a.mass, a.isaromatic, a.stereo)
+
+setstereo(a::SmilesAtom, direction) = SmilesAtom(
+    a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, direction)
 
 
 struct SmartsAtom <: QueryAtom

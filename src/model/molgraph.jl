@@ -5,7 +5,8 @@
 
 export
     GraphMol, QueryMol,
-    graphmol, querymol, clone,
+    graphmol, clone, remapnodes,
+    querymol, 
     SDFile, SMILES, SMARTS,
     getatom, getbond, hasbond,
     setatom!, setbond!, addatom!, addbond!,
@@ -98,6 +99,20 @@ function graphmol(view::SubgraphView)
     return newg
 end
 
+
+function remapnodes(graph::GraphMol, mapping::Dict{Int,Int})
+    newg = graphmol(nodeattrtype(graph), edgeattrtype(graph))
+    for i in 1:nodecount(graph)
+        push!(newg.nodeattrs, graph.nodeattrs[mapping[i]])
+        d = Dict(k => mapping[v] for (k, v) in graph.neighbormap[mapping[i]])
+        push!(newg.neighbormap, d)
+    end
+    for (u, v) in graph.edges
+        push!(newg.edges, (mapping[u], mapping[v]))
+    end
+    append!(newg.edgeattrs, graph.edgeattrs)
+    return newg
+end
 
 
 struct QueryMol{A<:QueryAtom,B<:QueryBond} <: OrderedGraph

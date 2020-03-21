@@ -84,6 +84,7 @@ module MolecularGraph
     include("./smarts/bond.jl")
     include("./smarts/logicaloperator.jl")
     include("./smarts/molecule.jl")
+    include("./smarts/stereo.jl")
     
     include("coordgen.jl")
     include("./draw/draw2d.jl")
