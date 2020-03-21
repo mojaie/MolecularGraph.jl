@@ -15,6 +15,12 @@
         setbond!(mol, 1, SDFileBond(2))
         @test getatom(mol, 1).symbol == :O
         @test getbond(mol, 1).order == 2
+        mol.cache[:test] = [1, 1, 1]
+        cp = graphmol(mol)
+        @test !haskey(cp.cache, :test)
+        cl = clone(mol)
+        @test length(cl.cache[:test]) == 3
+        @test length(mol.cache[:test]) == 3
     end
 
     @testset "querymol" begin

@@ -5,7 +5,7 @@
 
 export
     GraphMol, QueryMol,
-    graphmol, querymol,
+    graphmol, querymol, clone,
     SDFile, SMILES, SMARTS,
     getatom, getbond, hasbond,
     setatom!, setbond!, addatom!, addbond!,
@@ -47,11 +47,12 @@ function graphmol(
 end
 
 """
-    graphmol(mol::GraphMol) -> GraphMol
+    graphmol(mol::GraphMol; clearcache=true) -> GraphMol
 
-Copy `GraphMol`.
+Copy `GraphMol`. Cached properties will be removed.
 """
-function graphmol(graph::GraphMol{A,B}) where {A<:Atom,B<:Bond}
+function graphmol(graph::GraphMol{A,B}; clearcache=true
+        ) where {A<:Atom,B<:Bond}
     newg = graphmol(A, B)
     for nbr in graph.neighbormap
         push!(newg.neighbormap, copy(nbr))
@@ -59,10 +60,14 @@ function graphmol(graph::GraphMol{A,B}) where {A<:Atom,B<:Bond}
     append!(newg.edges, graph.edges)
     append!(newg.nodeattrs, graph.nodeattrs)
     append!(newg.edgeattrs, graph.edgeattrs)
-    merge!(newg.cache, graph.cache)
+    clearcache || merge!(newg.cache, graph.cache)
     merge!(newg.attributes, graph.attributes)
     return newg
 end
+
+
+clone(mol::GraphMol) = graphmol(mol, clearcache=false)
+
 
 """
     graphmol(mol::SubgraphView{GraphMol}) -> GraphMol

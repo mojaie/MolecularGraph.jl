@@ -7,14 +7,17 @@
     removed = makehydrogensimplicit(ethanol)
     @test nodecount(removed) == 3
     @test edgecount(removed) == 2
+    @test length(removed.cache) == 0
 end
 
 @testset "trivial_hydrogens" begin
+    # TODO:
     ethanol = smilestomol("[H]C([H])([H])C([H])([H])O")
     @test issetequal(trivialhydrogens(ethanol), [1, 3, 4, 6, 7])
     removed = makehydrogensimplicit(ethanol, all=false)
     @test nodecount(removed) == 3
     @test edgecount(removed) == 2
+    @test length(removed.cache) == 0
 end
 
 @testset "hydrogens_explicit" begin
@@ -22,6 +25,7 @@ end
     added = makehydrogensexplicit(neop)
     @test nodecount(added) == 18
     @test edgecount(added) == 17
+    @test length(added.cache) == 0
 end
 
 @testset "largest_component" begin

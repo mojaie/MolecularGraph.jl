@@ -242,11 +242,12 @@ function canonicalize!(mol::GraphMol)
     neutralizeoniums!(mol)
     depolarize!(mol)
     triplebondanion!(mol)
+    clearcache!(mol)
     return
 end
 
 function canonicalize(mol::GraphMol)
-    newmol = graphmol(mol)
+    newmol = clone(mol)
     canonicalize!(newmol)
     return newmol
 end
