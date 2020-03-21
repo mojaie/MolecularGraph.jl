@@ -77,12 +77,12 @@ end
 
     state = SmartsParser("@+", false)
     stereo1 = atomprop!(state)
-    @test stereo1 == (:stereo => 1)
+    @test stereo1 == (:stereo => :anticlockwise)
     @test state.pos == 2
 
     state = SmartsParser("@@?", false)
     stereo4 = atomprop!(state)
-    @test stereo4 == (:stereo => 4)
+    @test stereo4 == (:not => (:stereo => :anticlockwise))
     @test state.pos == 4
 
     state = SmartsParser("\$([CH2]=*)", false)
@@ -101,7 +101,7 @@ end
     @test iso.symbol == :C
     @test iso.mass == 14
     @test iso.isaromatic
-    @test iso.stereo == 2
+    @test iso.stereo == :clockwise
     @test state.pos == 9
 
     state = SmilesParser("[Zn++]", true)

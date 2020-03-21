@@ -104,10 +104,10 @@ end
     # TODO: optical isomers
     LAla = parse(SMILES, "N[C@H](C)C(=O)O")
     @test degree(LAla, 2) == 3
-    @test nodeattr(LAla, 2).stereo == 1
+    @test nodeattr(LAla, 2).stereo == :anticlockwise
     DAla = parse(SMILES, "N[C@@H](C)C(=O)O")
     @test degree(DAla, 2) == 3
-    @test nodeattr(DAla, 2).stereo == 2
+    @test nodeattr(DAla, 2).stereo == :clockwise
 end
 
 @testset "aromatic" begin

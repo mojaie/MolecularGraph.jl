@@ -83,7 +83,7 @@ function atom!(state::SmilesParser)
             1,
             get!(prop, :mass, nothing),
             get!(prop, :isaromatic, false),
-            get!(prop, :stereo, nothing)
+            get!(prop, :stereo, :unspecified)
         )
     else
         a = atomsymbol!(state)
@@ -92,7 +92,7 @@ function atom!(state::SmilesParser)
         else
             sym = a.second[1].second
             arom = a.second[2].second
-            return SmilesAtom(sym, 0, 1, nothing, arom, nothing)
+            return SmilesAtom(sym, 0, 1, nothing, arom, :unspecified)
         end
     end
 end
@@ -198,18 +198,19 @@ function atomprop!(state::SmartsParserState)
         return :charge => chg * SMARTS_CHARGE_SIGN[c]
     elseif c == '@'
         # Stereo
-        # @ => 1, @@ => 2, @? => 3, @@? => 4
-        s = 1
-        if lookahead(state, 1) == '@'
-            forward!(state)
-            s = 2
-        end
-        if lookahead(state, 1) == '?'
-            forward!(state)
-            s += 2
-        end
+        # @ -> anticlockwise, @@ -> clockwise, ? -> or not specified
         forward!(state)
-        return :stereo => s
+        cw = false
+        if read(state) == '@'
+            forward!(state)
+            cw = true
+        end
+        if read(state) == '?'
+            forward!(state)
+            return :not => (:stereo => cw ? :anticlockwise : :clockwise)
+        else
+            return :stereo => cw ? :clockwise : :anticlockwise
+        end
     elseif isdigit(c)
         # Isotope
         start = state.pos

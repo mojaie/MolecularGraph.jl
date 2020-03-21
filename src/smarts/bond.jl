@@ -10,8 +10,8 @@ const SMARTS_BOND_SYMBOL = Dict(
     '#' => :bondorder => 3,
     '@' => :isringbond => true,
     ':' => :isaromaticbond => true,
-    '/' => :stereo => 1,
-    '\\' => :stereo => 2
+    '/' => :stereo => :up,
+    '\\' => :stereo => :down
 )
 
 
@@ -27,10 +27,12 @@ function bondsymbol!(state::SmartsParserState)
     if c in keys(SMARTS_BOND_SYMBOL)
         cond = SMARTS_BOND_SYMBOL[c]
         forward!(state)
-        if c in ('/', '\\') && read(state) == '?'
+        if c == '/' && read(state) == '?'
             forward!(state)
-            # '/?' => 3, '\?' => 4
-            return :stereo => cond.second + 2
+            return :not => (:stereo => :down)
+        elseif c == '\\' && read(state) == '?'
+            forward!(state)
+            return :not => (:stereo => :up)
         else
             return cond
         end
@@ -49,7 +51,7 @@ function bond!(state::SmilesParser)
     elseif b[1] == :bondorder
         return SmilesBond(b[2])
     elseif b[1] == :isaromaticbond
-        return SmilesBond(1, true, nothing)
+        return SmilesBond(1, true, :unspecified)
     elseif b[1] == :stereo
         return SmilesBond(1, false, b[2])
     end

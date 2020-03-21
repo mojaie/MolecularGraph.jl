@@ -45,7 +45,7 @@ struct SmilesAtom <: Atom
     multiplicity::Int
     mass::Union{Float64, Nothing}
     isaromatic::Union{Bool, Nothing}
-    stereo::Union{Int, Nothing}
+    stereo::Symbol
 
     function SmilesAtom(sym, chg, multi, mass, aromatic, stereo)
         if !(string(sym) in keys(PERIODIC_TABLE))
@@ -55,9 +55,9 @@ struct SmilesAtom <: Atom
     end
 end
 
-SmilesAtom() = SmilesAtom(:C, 0, 1, nothing, nothing, nothing)
-SmilesAtom(sym) = SmilesAtom(sym, 0, 1, nothing, nothing, nothing)
-SmilesAtom(sym, chg) = SmilesAtom(sym, chg, 1, nothing, nothing, nothing)
+SmilesAtom() = SmilesAtom(:C, 0, 1, nothing, nothing, :unspecified)
+SmilesAtom(sym) = SmilesAtom(sym, 0, 1, nothing, nothing, :unspecified)
+SmilesAtom(sym, chg) = SmilesAtom(sym, chg, 1, nothing, nothing, :unspecified)
 
 setcharge(a::SmilesAtom, chg) = SmilesAtom(
     a.symbol, chg, a.multiplicity, a.mass, a.isaromatic, a.stereo)

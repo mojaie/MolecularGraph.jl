@@ -15,7 +15,7 @@ using MolecularGraph: bondsymbol!, bond!
 
     state = SmartsParser("\\?", false)
     stereo4 = bondsymbol!(state)
-    @test stereo4 == (:stereo => 4)
+    @test stereo4 == (:not => (:stereo => :up))
     @test state.pos == 3
 end
 

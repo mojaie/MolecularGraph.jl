@@ -35,11 +35,11 @@ setorder(edge::SDFileBond, order) = SDFileBond(order, edge.notation)
 struct SmilesBond <: Bond
     order::Int
     isaromatic::Union{Bool, Nothing}
-    cistrans::Union{Int, Nothing}
+    cistrans::Symbol
 end
 
-SmilesBond() = SmilesBond(1, false, nothing)
-SmilesBond(order) = SmilesBond(order, false, nothing)
+SmilesBond() = SmilesBond(1, false, :unspecified)
+SmilesBond(order) = SmilesBond(order, false, :unspecified)
 
 setorder(edge::SmilesBond, order
     ) = SmilesBond(order, edge.isaromatic, edge.cistrans)

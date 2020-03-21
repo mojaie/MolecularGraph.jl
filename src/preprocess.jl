@@ -39,7 +39,7 @@ function trivialhydrogens(mol::GraphMol)
         if (atom.symbol != :H || atom.charge != 0 || atom.multiplicity != 1
                 || atom.mass !== nothing)
             continue
-        elseif atom isa SmilesAtom && atom.stereo !== nothing
+        elseif atom isa SmilesAtom && atom.stereo !== :unspecified
             continue
         end
         degree(mol, i) == 1 || continue
