@@ -22,21 +22,27 @@ struct SDFileAtom <: Atom
     multiplicity::Int
     mass::Union{Float64, Nothing}
     coords::Union{Vector{Float64}, Nothing}
+    stereo::Symbol
 
-    function SDFileAtom(sym, chg, multi, mass, coords)
+    function SDFileAtom(sym, chg, multi, mass, coords, stereo)
         if !(string(sym) in keys(PERIODIC_TABLE))
             throw(ErrorException("unsupported symbol: $(sym)"))
         end
-        new(sym, chg, multi, mass, coords)
+        new(sym, chg, multi, mass, coords, stereo)
     end
 end
 
 SDFileAtom() = SDFileAtom(:C, 0, 1, nothing, nothing)
 SDFileAtom(sym) = SDFileAtom(sym, 0, 1, nothing, nothing)
 SDFileAtom(sym, chg) = SDFileAtom(sym, chg, 1, nothing, nothing)
+SDFileAtom(sym, chg, multi, mass, coords
+    ) = SDFileAtom(sym, chg, multi, mass, coords, :unspecified)
 
-setcharge(a, chg
+setcharge(a::SDFileAtom, chg
     ) = SDFileAtom(a.symbol, chg, a.multiplicity, a.mass, a.coords)
+
+setstereo(a::SDFileAtom, direction) = SDFileAtom(
+    a.symbol, a.charge, a.multiplicity, a.mass, a.coords, direction)
 
 
 struct SmilesAtom <: Atom
