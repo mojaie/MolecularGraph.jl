@@ -5,7 +5,7 @@
 
 export
     SDFileBond, SmilesBond, SmartsBond,
-    setorder
+    setorder, setstereo
 
 
 struct SDFileBond <: Bond
@@ -23,26 +23,40 @@ struct SDFileBond <: Bond
             * 3: u × v (Cis-Trans Unknown)
     """
     order::Int
-    notation::Union{Int,Nothing}
+    notation::Int
+    stereo::Symbol
 end
 
-SDFileBond() = SDFileBond(1, 0)
-SDFileBond(order) = SDFileBond(order, 0)
+SDFileBond() = SDFileBond(1, 0, :unspecified)
+SDFileBond(order) = SDFileBond(order, 0, :unspecified)
+SDFileBond(order, notation) = SDFileBond(order, notation, :unspecified)
 
-setorder(edge::SDFileBond, order) = SDFileBond(order, edge.notation)
+
+setorder(edge::SDFileBond, order
+    ) = SDFileBond(order, edge.notation, edge.stereo)
+    
+setstereo(edge::SDFileBond, cistrans
+    ) = SDFileBond(edge.order, edge.notation, cistrans)
 
 
 struct SmilesBond <: Bond
     order::Int
-    isaromatic::Union{Bool, Nothing}
+    isaromatic::Bool
+    direction::Symbol
     stereo::Symbol
 end
 
-SmilesBond() = SmilesBond(1, false, :unspecified)
-SmilesBond(order) = SmilesBond(order, false, :unspecified)
+SmilesBond() = SmilesBond(1, false, :unspecified, :unspecified)
+SmilesBond(order) = SmilesBond(order, false, :unspecified, :unspecified)
+SmilesBond(order, isaromatic, direction
+    ) = SmilesBond(order, isaromatic, direction, :unspecified)
+
 
 setorder(edge::SmilesBond, order
-    ) = SmilesBond(order, edge.isaromatic, edge.stereo)
+    ) = SmilesBond(order, edge.isaromatic, edge.direction, edge.stereo)
+
+setstereo(edge::SmilesBond, cistrans
+    ) = SmilesBond(edge.order, edge.isaromatic, edge.direction, cistrans)
 
 
 struct SmartsBond <: QueryBond

@@ -55,18 +55,24 @@ end
     @test chiralcenter4_[2] == (1, 3, 4, 7)
 end
 
-@testset "diastereobond" begin
-    cis = parse(SMILES, "C\\C([H])=C([H])/C")
-    diastereo_ = diastereobond(cis)
-    @test diastereo_[3] == (1, 5, :cis)
+@testset "setdiastereo" begin
+    mol1 = parse(SMILES, "C/C=C\\C")
+    setdiastereo!(mol1)
+    @test mol1.edgeattrs[2].stereo === :cis
 
-    trans = parse(SMILES, "C\\C([H])=C([H])\\C")
-    diastereo2_ = diastereobond(trans)
-    @test diastereo2_[3] == (1, 5, :trans)
+    mol2 = parse(SMILES, "C/C=C/C")
+    setdiastereo!(mol2)
+    @test mol2.edgeattrs[2].stereo === :trans
 
-    trans2 = parse(SMILES, "C/C([H])=C([H])/C")
-    diastereo3_ = diastereobond(trans2)
-    @test diastereo3_[3] == (1, 5, :trans)
+    mol3 = parse(SMILES, "C\\C([H])=C([H])/C")
+    setdiastereo!(mol3)
+    @test mol3.edgeattrs[3].stereo === :trans
+
+    mol4 = parse(SMILES, "C/C=C(\\C=C)/C=C(/C)C")
+    setdiastereo!(mol4)
+    @test mol4.edgeattrs[2].stereo === :cis
+    @test mol4.edgeattrs[4].stereo === :unspecified
+    @test mol4.edgeattrs[6].stereo === :trans
 end
 
 end # smarts.stereo

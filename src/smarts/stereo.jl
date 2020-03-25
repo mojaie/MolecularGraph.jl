@@ -5,7 +5,7 @@
 
 export
     addchiralhydrogens, removechiralhydrogens,
-    chiralcenter, diastereobond
+    chiralcenter, setdiastereo!
 
 
 """
@@ -80,6 +80,7 @@ end
 Atom mapping for chirality information (chiral center => tuple of four nodes). `:unspecified`: no chirality information, `:clockwise` and `:anticlockwise`: If we see the chiral center from the 1st node, 2-4th nodes are placed clockwise/anticlockwise. If there is an implicit hydrogen, it will be shown as the pseudo node index of -1.
 """
 @cache function chiralcenter(mol::SMILES)
+    # TODO: unnecessary?
     dict = Dict{Int,NTuple{4,Int}}()
     atoms = nodeattrs(mol)
     implicith_ = implicithcount(mol)
@@ -105,36 +106,39 @@ end
 
 
 """
-    diastereobond(mol::SMILES) -> SMILES
+    setdiastereo!(mol::SMILES) -> SMILES
 
-Bond mapping for diastereomeric bond information (diastereo bond => tuple of two edges and a symbol (`:unspecified`, `:cis` or `:trans`).
+Set diastereomer infomation to double bonds.
+
+`:unspecified`, `:cis` or `:trans` will be assigned according to configurations of bonds labeled by lower indices. (ex. SMILES `C/C=C(C)/C` have 4 explicit bonds 1:`C/C`, 2:'C=C', 3:`C(C)` and 4:`C/C`. 1st bond is prior to the other implicit hydrogen attached to 2nd atom, and 3rd bond is prior to 4th bond in index label order. 1st and 3th atom are in ``cis`` position, so `Bond.stereo` of 2nd bond will be set to `:cis`.)
 """
-@cache function diastereobond(mol::SMILES)
-    dict = Dict{Int,Tuple{Int,Int,Symbol}}()
+function setdiastereo!(mol::SMILES)
     edges = edgeattrs(mol)
+    hcount_ = hcount(mol)
     for i in 1:edgecount(mol)
         edges[i].order == 2 || continue
-        u, v = mol.edges[i]
-        ui = -1
-        us = :unspecified
-        for i in incidences(mol, u)
-            edges[i].stereo === :unspecified && continue
-            ui = i
-            us = edges[i].stereo
-            break
+        d = Symbol[]
+        for n in mol.edges[i]
+            inc = incidences(mol, n)
+            if length(inc) == 3
+                f, s = sort([e for e in inc if e != i])
+                if edges[f].direction !== :unspecified
+                    push!(d, edges[f].direction)
+                elseif edges[s].direction !== :unspecified
+                    push!(d, edges[s].direction === :up ? :down : :up)
+                end
+            elseif length(inc) == 2 && hcount_[n] == 1
+                f = [e for e in inc if e != i][1]
+                if edges[f].direction !== :unspecified
+                    push!(d, edges[f].direction)
+                end
+            end
+            # TODO: axial chirality
         end
-        us === :unspecified && continue
-        vi = -1
-        vs = :unspecified
-        for i in incidences(mol, v)
-            edges[i].stereo === :unspecified && continue
-            vi = i
-            vs = edges[i].stereo
-            break
+        if length(d) == 2
+            stereo = d[1] === d[2] ? :trans : :cis
+            bond = setstereo(edges[i], stereo)
+            setedgeattr!(mol, i, bond)
         end
-        vs === :unspecified && continue
-        cistrans = us === vs ? :trans : :cis
-        dict[i] = (ui, vi, cistrans)
     end
-    return dict
 end
