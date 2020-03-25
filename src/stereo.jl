@@ -5,7 +5,7 @@
 
 export
     addchiralhydrogens, removechiralhydrogens,
-    chiralcenter, setdiastereo!
+    chiralcenter, setdiastereo!, setchiralcenter!
 
 
 """
@@ -140,5 +140,94 @@ function setdiastereo!(mol::SMILES)
             bond = setstereo(edges[i], stereo)
             setedgeattr!(mol, i, bond)
         end
+    end
+end
+
+
+
+function setdiastereo!(mol::SDFile)
+    nodes = nodeattrs(mol)
+    edges = edgeattrs(mol)
+    hcount_ = hcount(mol)
+    coords_ = coords2d(mol)
+    for i in 1:edgecount(mol)
+        edges[i].order == 2 || continue
+        edges[i].notation == 3 && continue  # stereochem unspecified
+        # Get lower indexed edges connected to each side of the bond
+        ns = Int[]
+        for n in mol.edges[i]
+            incs = incidences(mol, n)
+            length(incs) in (2, 3) || continue
+            f = sort([e for e in incs if e != i])[1]
+            push!(ns, neighbors(mol, n)[f])
+        end
+        length(ns) == 2 || continue
+        # Check coordinates
+        d1, d2 = [point(coords_, n) for n in mol.edges[i]]
+        n1, n2 = [point(coords_, n) for n in ns]
+        cond(a, b) = (x(d1)-x(d2)) * (b-y(d1)) + (y(d1)-y(d2)) * (x(d1)-a)
+        n1p = cond(x(n1), y(n1))
+        n2p = cond(x(n2), y(n2))
+        if n1p * n2p < 0
+            stereo = :trans
+        elseif n1p * n2p > 0
+            stereo = :cis
+        else
+            stereo = :unspecified
+        end
+        bond = setstereo(edges[i], stereo)
+        setedgeattr!(mol, i, bond)
+    end
+end
+
+
+function setchiralcenter!(mol::SDFile)
+    nodes = nodeattrs(mol)
+    edges = edgeattrs(mol)
+    coords_ = coords2d(mol)
+    for i in 1:nodecount(mol)
+        adjs = Int[]
+        upadjs = Int[]
+        downadjs = Int[]
+        for (inc, adj) in neighbors(mol, i)
+            push!(adjs, adj)
+            mol.edges[inc][1] == i || continue
+            if edges[inc].notation == 1
+                push!(upadjs, adj)
+            elseif edges[inc].notation == 6
+                push!(downadjs, adj)
+            end
+        end
+        (isempty(upadjs) && isempty(downadjs)) && continue  # unspecified
+        if length(adjs) != 4
+            # TODO: hypervalent, syn/anti or axial chirality
+            a = setstereo(nodes[i], :atypical)
+            setnodeattr!(mol, i, a)
+            continue
+        end
+        # Select a pivot
+        rev = false
+        if !isempty(upadjs)
+            pivot = upadjs[1]
+        elseif length(downadjs) == 1
+            pivot = downadjs[1]
+            rev = true
+        else
+            pivot = setdiff(adjs, downadjs)[1]
+        end
+        # Remove pivot and check direction
+        sadjs = sort(adjs, by=p->p[1])
+        triplet = setdiff(sadjs, [pivot])
+        cw = isclockwise(cartesian2d(coords_, triplet))
+        if rev
+            cw = !cw
+        end
+        # Arrange the configuration so that the lowest index node is the pivot.
+        pividx = findfirst(isequal(pivot), sadjs)
+        if pividx in (2, 4)
+            cw = !cw
+        end
+        a = setstereo(nodes[i], cw ? :clockwise : :anticlockwise)
+        setnodeattr!(mol, i, a)
     end
 end

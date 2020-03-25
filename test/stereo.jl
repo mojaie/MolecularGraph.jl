@@ -1,5 +1,5 @@
 
-@testset "smarts.stereo" begin
+@testset "stereo" begin
 
 @testset "addchiralhydrogens" begin
     LAla = parse(SMILES, "N[C@H](C)C(=O)O")
@@ -55,7 +55,7 @@ end
     @test chiralcenter4_[2] == (1, 3, 4, 7)
 end
 
-@testset "setdiastereo" begin
+@testset "setdiastereosmiles" begin
     mol1 = parse(SMILES, "C/C=C\\C")
     setdiastereo!(mol1)
     @test mol1.edgeattrs[2].stereo === :cis
@@ -75,4 +75,81 @@ end
     @test mol4.edgeattrs[6].stereo === :trans
 end
 
-end # smarts.stereo
+@testset "setdiastereosdfile" begin
+    bonds = [
+        SDFileBond(1), SDFileBond(2), SDFileBond(3),
+    ]
+    
+    atoms = [
+        SDFileAtom(:C, 0, 1, nothing, [-0.5, 1.41]),
+        SDFileAtom(:C, 0, 1, nothing, [0.0, 0.0]),
+        SDFileAtom(:C, 0, 1, nothing, [1.0, 0.0]),
+        SDFileAtom(:C, 0, 1, nothing, [1.5, 1.41])
+    ]
+    mol1 = graphmol([(1,2), (2,3), (3,4)], atoms, bonds)
+    setdiastereo!(mol1)
+    @test mol1.edgeattrs[2].stereo === :cis
+
+    atoms[4] = SDFileAtom(:C, 0, 1, nothing, [1.5, -1.41])
+    mol2 = graphmol([(1,2), (2,3), (3,4)], atoms, bonds)
+    setdiastereo!(mol2)
+    @test mol2.edgeattrs[2].stereo === :trans
+
+    atoms[4] = SDFileAtom(:C, 0, 1, nothing, [2.0, 0.0])
+    mol3 = graphmol([(1,2), (2,3), (3,4)], atoms, bonds)
+    setdiastereo!(mol3)
+    @test mol3.edgeattrs[2].stereo === :unspecified
+end
+
+@testset "setchiralcenter" begin
+    atoms = [
+        SDFileAtom(:C, 0, 1, nothing, [0.0, 0.0]),
+        SDFileAtom(:C, 0, 1, nothing, [-1.41, 0.5]),
+        SDFileAtom(:C, 0, 1, nothing, [1.41, 0.5]),
+        SDFileAtom(:C, 0, 1, nothing, [-0.5, -1.41]),
+        SDFileAtom(:C, 0, 1, nothing, [0.5, -1.41])
+    ]
+    bonds = [
+        SDFileBond(1, 0), SDFileBond(1, 0), SDFileBond(1, 1), SDFileBond(1, 6)
+    ]
+    mol1 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
+    setchiralcenter!(mol1)
+    @test mol1.nodeattrs[1].stereo === :clockwise
+
+    bonds = [
+        SDFileBond(1, 1), SDFileBond(1, 0), SDFileBond(1, 6), SDFileBond(1, 0)
+    ]
+    mol2 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
+    setchiralcenter!(mol2)
+    @test mol2.nodeattrs[1].stereo === :anticlockwise
+
+    bonds = [
+        SDFileBond(1, 1), SDFileBond(1, 0), SDFileBond(1, 0), SDFileBond(1, 1)
+    ]
+    mol3 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
+    setchiralcenter!(mol3)
+    @test mol3.nodeattrs[1].stereo === :anticlockwise
+
+    bonds = [
+        SDFileBond(1, 6), SDFileBond(1, 0), SDFileBond(1, 0), SDFileBond(1, 6)
+    ]
+    mol4 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
+    setchiralcenter!(mol4)
+    @test mol4.nodeattrs[1].stereo === :clockwise
+
+    bonds = [
+        SDFileBond(1, 0), SDFileBond(1, 1), SDFileBond(1, 0), SDFileBond(1, 0)
+    ]
+    mol5 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
+    setchiralcenter!(mol5)
+    @test mol5.nodeattrs[1].stereo === :clockwise
+
+    bonds = [
+        SDFileBond(1, 0), SDFileBond(1, 0), SDFileBond(1, 6), SDFileBond(1, 0)
+    ]
+    mol6 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
+    setchiralcenter!(mol6)
+    @test mol6.nodeattrs[1].stereo === :anticlockwise
+end
+
+end # stereo
