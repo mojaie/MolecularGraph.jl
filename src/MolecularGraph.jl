@@ -76,6 +76,7 @@ module MolecularGraph
     include("mcs.jl")
     include("preprocess.jl")
     include("properties.jl")
+    include("stereo.jl")
     include("wclogp.jl")
     include("funcgroup.jl")
 
@@ -84,7 +85,6 @@ module MolecularGraph
     include("./smarts/bond.jl")
     include("./smarts/logicaloperator.jl")
     include("./smarts/molecule.jl")
-    include("./smarts/stereo.jl")
     
     include("coordgen.jl")
     include("./draw/draw2d.jl")

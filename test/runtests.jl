@@ -69,12 +69,12 @@ module MolecularGraphTest
     include("./smarts/atom.jl")
     include("./smarts/bond.jl")
     include("./smarts/molecule.jl")
-    include("./smarts/stereo.jl")
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
     include("properties.jl")
     include("preprocess.jl")
+    include("stereo.jl")
     include("wclogp.jl")
     include("substructure.jl")
     include("funcgroup.jl")
