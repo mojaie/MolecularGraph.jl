@@ -5,7 +5,7 @@
 
 export
     SDFileBond, SmilesBond, SmartsBond,
-    setorder, setstereo
+    setorder, setnotation, setstereo
 
 
 struct SDFileBond <: Bond
@@ -34,9 +34,13 @@ SDFileBond(order, notation) = SDFileBond(order, notation, :unspecified)
 
 setorder(edge::SDFileBond, order
     ) = SDFileBond(order, edge.notation, edge.stereo)
-    
+
+setnotation(edge::SDFileBond, notation
+    ) = SDFileBond(edge.order, notation, edge.stereo)
+
 setstereo(edge::SDFileBond, cistrans
     ) = SDFileBond(edge.order, edge.notation, cistrans)
+
 
 
 struct SmilesBond <: Bond
