@@ -4,7 +4,7 @@
 #
 
 export
-    @cache, clearcache!,
+    @cache, clearcache!, clone,
     AbstractGraph,
     UndirectedGraph, DirectedGraph, HyperGraph,
     OrderedGraph, OrderedDiGraph, OrderedHyperGraph,
@@ -83,10 +83,25 @@ macro cache(ex)
 end
 
 
+"""
+    clearcache!(graph::AbstractGraph) -> nothing
+
+Clear calculated property caches.
+
+Calling `clearcache!` is recommended when the graph nodes/edges are added, removed or reindexed. You can [`MolecularGraphModel.clone`](@ref) the graph before destructive operation instead.
+"""
 function clearcache!(graph::AbstractGraph)
     empty!(graph.cache)
     return
 end
+
+
+"""
+    clone(graph::AbstractGraph) -> AbstractGraph
+
+Return deep copy of the graph.
+"""
+function clone end
 
 
 

@@ -2,7 +2,7 @@
 # Graph isomorphism
 
 
-# Subgraph match (VF2 algorithm)
+## Subgraph match (VF2 algorithm)
 
 ```@autodocs
 Modules = [MolecularGraphModel]
@@ -12,7 +12,7 @@ Order   = [:constant, :function, :type]
 ```
 
 
-# Maximum common subgraph (Clique detection based algorithm)
+## Maximum common subgraph (Clique detection based algorithm)
 
 ```@autodocs
 Modules = [MolecularGraphModel]

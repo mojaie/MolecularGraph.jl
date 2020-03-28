@@ -2,9 +2,6 @@
 # Interface
 
 
-## Interface
-
-
 ```@autodocs
 Modules = [MolecularGraphModel]
 Pages   = ["graph/interface.jl"]

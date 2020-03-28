@@ -5,7 +5,7 @@
 
 export
     GraphMol, QueryMol,
-    graphmol, clone, remapnodes,
+    graphmol, remapnodes,
     querymol, 
     SDFile, SMILES, SMARTS,
     getatom, getbond, hasbond,

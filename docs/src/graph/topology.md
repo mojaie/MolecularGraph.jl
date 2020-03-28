@@ -22,7 +22,7 @@ Order   = [:constant, :function, :type]
 ```
 
 
-# Planarity
+## Planarity
 
 ```@autodocs
 Modules = [MolecularGraphModel]

@@ -23,9 +23,7 @@ makedocs(
             "Operations" => "graph/operation.md",
             "Clique" => "graph/clique.md",
             "Isomorphism" => "graph/isomorphism.md"
-        ],
-        "Python interface" => "python.md",
-        "Design of molecular graph models" => "design.md"
+        ]
     ]
 )
 

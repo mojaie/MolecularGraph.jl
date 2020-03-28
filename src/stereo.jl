@@ -79,7 +79,7 @@ end
 
 Set diastereomerism flags to `Bond.stereo` fields of double bonds.
 
-`:unspecified`, `:cis` or `:trans` will be assigned according to configurations of bonds labeled by lower indices. (ex. SMILES `C/C=C(C)/C` have 4 explicit bonds 1:`C/C`, 2:'C=C', 3:`C(C)` and 4:`C/C`. 1st bond is prior to the other implicit hydrogen attached to 2nd atom, and 3rd bond is prior to 4th bond in index label order. 1st and 3th atom are in ``cis`` position, so `Bond.stereo` of 2nd bond will be set to `:cis`.)
+`:unspecified`, `:cis` or `:trans` will be assigned according to configurations of bonds labeled by lower indices. (ex. SMILES `C/C=C(C)/C` have 4 explicit bonds 1:`C/C`, 2:`C=C`, 3:`C(C)` and 4:`C/C`. 1st bond is prior to the other implicit hydrogen attached to 2nd atom, and 3rd bond is prior to 4th bond in index label order. 1st and 3th atom are in ``cis`` position, so `Bond.stereo` of 2nd bond will be set to `:cis`.)
 """
 function setdiastereo!(mol::SMILES)
     edges = edgeattrs(mol)

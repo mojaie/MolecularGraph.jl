@@ -1,8 +1,5 @@
 
-# Clique
-
-
-## Clique
+# Maximum clique
 
 
 ```@autodocs
