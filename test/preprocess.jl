@@ -4,28 +4,25 @@
 @testset "all_hydrogens" begin
     ethanol = smilestomol("[H]C([H])([H])C([H])([H])O")
     @test issetequal(allhydrogens(ethanol), [1, 3, 4, 6, 7])
-    removed = makehydrogensimplicit(ethanol)
+    removed = removehydrogens(ethanol)
     @test nodecount(removed) == 3
     @test edgecount(removed) == 2
-    @test length(removed.cache) == 0
 end
 
 @testset "trivial_hydrogens" begin
     # TODO:
     ethanol = smilestomol("[H]C([H])([H])C([H])([H])O")
     @test issetequal(trivialhydrogens(ethanol), [1, 3, 4, 6, 7])
-    removed = makehydrogensimplicit(ethanol, all=false)
+    removed = removehydrogens(ethanol, all=false)
     @test nodecount(removed) == 3
     @test edgecount(removed) == 2
-    @test length(removed.cache) == 0
 end
 
-@testset "hydrogens_explicit" begin
+@testset "addhydrogens" begin
     neop = smilestomol("CC(C)(C)CO")
-    added = makehydrogensexplicit(neop)
-    @test nodecount(added) == 18
-    @test edgecount(added) == 17
-    @test length(added.cache) == 0
+    addhydrogens!(neop)
+    @test nodecount(neop) == 18
+    @test edgecount(neop) == 17
 end
 
 @testset "largest_component" begin
@@ -56,9 +53,9 @@ end
     @test edgeattr(acetone, 2).order == 2
 end
 
-@testset "triplebond_anion" begin
+@testset "toallenelike" begin
     me_azide = smilestomol("C[N-][N+]#N")
-    triplebondanion!(me_azide)
+    toallenelike!(me_azide)
     @test nodeattr(me_azide, 2).charge == 0
     @test nodeattr(me_azide, 4).charge == -1
     @test edgeattr(me_azide, 2).order == 2

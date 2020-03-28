@@ -4,18 +4,11 @@
 #
 
 export
-    trivialhydrogens,
-    allhydrogens,
-    makehydrogensimplicit,
-    makehydrogensexplicit,
-    largestcomponentnodes,
-    largestcomponentgraph,
-    neutralizeacids!,
-    neutralizeoniums!,
-    depolarize!,
-    triplebondanion!,
-    canonicalize!,
-    canonicalize
+    trivialhydrogens, allhydrogens,
+    removehydrogens, addhydrogens!,
+    largestcomponentnodes, largestcomponentgraph,
+    neutralizeacids!, neutralizeoniums!, depolarize!, toallenelike!,
+    preprocess!
 
 # TODO: large conjugated system
 # TODO: salts and waters should detected by functional group analysis
@@ -74,12 +67,15 @@ end
 
 
 """
-    makehydrogensimplicit(mol::GraphMol) -> GraphMol
+    removehydrogens(mol::GraphMol) -> GraphMol
 
-Return molecule whose hydrogen nodes are removed. If option `all` is set to
-false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
+Return molecule whose hydrogen nodes are removed.
+
+If option `all` is set to false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)). If you want to keep stereochemistry, remove hydrogens with `all`=false, and do [`removestereohydrogens`](@ref).
+
+If 
 """
-function makehydrogensimplicit(mol::GraphMol; all=true)
+function removehydrogens(mol::GraphMol; all=true)
     hydrogens = all ? allhydrogens : trivialhydrogens
     ns = setdiff(nodeset(mol), hydrogens(mol))
     return graphmol(nodesubgraph(mol, ns))
@@ -87,21 +83,20 @@ end
 
 
 """
-    makehydrogensexplicit(mol::GraphMol) -> GraphMol
+    addhydrogens!(mol::GraphMol) -> GraphMol
 
-Return molecule whose hydrogens are fully attached. If option `all` is set to
-false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)).
+Add hydrogen nodes to the molecular graph explicitly.
+
+Note that this function edits `Atom` and `Bond` object fields directly (see [`clone!`](@ref) and [`clearcache!`](@ref).
 """
-function makehydrogensexplicit(mol::GraphMol)
-    newmol = graphmol(mol)
+function addhydrogens!(mol::GraphMol)
     implicithcount_ = implicithcount(mol)
-    for (i, atom) in enumerate(nodeattrs(mol))
+    for i in 1:nodecount(mol)
         for j in 1:implicithcount_[i]
-            n = addnode!(newmol, nodeattrtype(mol)(:H))
-            addedge!(newmol, i, n, edgeattrtype(mol)())
+            n = addnode!(mol, nodeattrtype(mol)(:H))
+            addedge!(mol, i, n, edgeattrtype(mol)())
         end
     end
-    return newmol
 end
 
 
@@ -115,9 +110,9 @@ largestcomponentnodes(mol::GraphMol
 
 
 """
-    largestcomponentgraph(mol::GraphMol) -> GraphMol
+    largestcomponentgraph(mol::GraphMol) -> SubgraphView
 
-Return largest connected component of the molecular graph.
+Return largest connected component view of the molecular graph.
 """
 largestcomponentgraph(mol::GraphMol
     ) = nodesubgraph(mol, largestcomponentnodes(mol))
@@ -128,9 +123,7 @@ largestcomponentgraph(mol::GraphMol
 
 Neutralize oxo(thio) acids.
 
-Note that this function edits `Atom` object fields directly. The molecular
-property vector needs recalculation to apply the changes.
-see [`canonicalize!`](@ref).
+Note that this function edits `Atom` object fields directly (see [`clone!`](@ref) and [`clearcache!`](@ref).
 """
 function neutralizeacids!(mol::GraphMol)
     atomsymbol_ = atomsymbol(mol)
@@ -158,11 +151,9 @@ end
 """
     neutralizeoniums!(mol::GraphMol)
 
-Neutralize 1-3° oniums. Permanently charged quart-oniums are not neutralized.
+Neutralize 1-3° oniums. Permanently charged quart-oniums will not be neutralized.
 
-Note that this function edits `Atom` object fields directly. The molecular
-property vector needs recalculation to apply the changes.
-see [`canonicalize!`](@ref).
+Note that this function edits `Atom` object fields directly (see [`clone!`](@ref) and [`clearcache!`](@ref).
 """
 function neutralizeoniums!(mol::GraphMol)
     for o in findall((charge(mol) .== 1) .* (hcount(mol) .> 0))
@@ -177,9 +168,7 @@ end
 Depolarize oxo groups except in the case that polarization is required for
 aromaticity.
 
-Note that this function edits `Atom` object fields directly. The molecular
-property vector needs recalculation to apply the changes.
-see [`canonicalize!`](@ref).
+Note that this function edits `Atom` and `Bond` object fields directly (see [`clone!`](@ref) and [`clearcache!`](@ref).
 """
 function depolarize!(mol::GraphMol)
     charge_ = charge(mol)
@@ -197,16 +186,13 @@ end
 
 
 """
-    triplebondanion!(mol::GraphMol)
+    toallenelike!(mol::GraphMol)
 
-Canonicalize anions next to triple bonds (ex. [C-][N+]#N -> C=[N+]=[N-]).
+Convert triple bonds with charges into allene-like structure (ex. [C-][N+]#N -> C=[N+]=[N-]).
 
-Note that this function edits `Atom` object fields directly. The molecular
-property vector needs recalculation to apply the changes.
-see [`canonicalize!`](@ref).
+Note that this function edits `Atom` and `Bond` object fields directly (see [`clone!`](@ref) and [`clearcache!`](@ref).
 """
-function triplebondanion!(mol::GraphMol)
-    # TODO: better function name
+function toallenelike!(mol::GraphMol)
     charge_ = charge(mol)
     for tb in findall(bondorder(mol) .== 3)
         tbond = edgeattr(mol, tb)
@@ -228,26 +214,20 @@ end
 
 
 """
-    canonicalize!(mol::GraphMol)
+    preprocess!(mol::GraphMol)
 
-Canonicalize molecule notation and apply the changes to the molecular property
-vector.
+Default molecular preprocessing method.
 
-- Neutralize oxo acid, 1-3° ammonium and polarized carbonyls except in the
-  case that polarization is required for aromaticity.
-- Canonicalize anions next to triple bonds (ex. [C-][N+]#N -> C=[N+]=[N-])
+- Ionized acids and oniums will be neutralized ([`newtralizeacids!`](@ref) and [`neutralizeoniums!`](@ref)).
+- If there is several possible resonance structures, the one which have less total charge (if they are even, the one which have less maximum bond order) will be selected ([`depolarize!`](@ref) and [`toallenelike!`](@ref)).
+
+For further preprocessing, following [`removehydrogens!`](@ref), [`removestereohydrogens!`](@ref) and [`largestcomponentgraph!`](@ref) would work well.
+
+Note that this function edits `Atom` and `Bond` object fields directly (see [`clone!`](@ref) and [`clearcache!`](@ref)).
 """
-function canonicalize!(mol::GraphMol)
+function preprocess!(mol::GraphMol)
     neutralizeacids!(mol)
     neutralizeoniums!(mol)
     depolarize!(mol)
-    triplebondanion!(mol)
-    clearcache!(mol)
-    return
-end
-
-function canonicalize(mol::GraphMol)
-    newmol = clone(mol)
-    canonicalize!(newmol)
-    return newmol
+    toallenelike!(mol)
 end
