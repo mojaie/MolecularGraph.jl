@@ -5,18 +5,13 @@
 
 module MolecularGraph
 
-    export
-        MolecularGraphUtil,
-        MolecularGraphGeometry,
-        MolecularGraphModel
-
-    module MolecularGraphUtil
+    module Util
         include("./util/meta.jl")
         include("./util/iterator.jl")
     end
 
-    module MolecularGraphModel
-        using ..MolecularGraphUtil
+    module Graph
+        using ..Util
 
         include("./graph/interface.jl")
 
@@ -46,10 +41,9 @@ module MolecularGraph
         include("./graph/isomorphism/cliquemcs.jl")
     end
 
-    module MolecularGraphGeometry
+    module Geometry
         using LinearAlgebra
-        using ..MolecularGraphUtil
-        using ..MolecularGraphModel
+        using ..Util
 
         include("./geometry/interface.jl")
 
@@ -61,9 +55,11 @@ module MolecularGraph
     using LinearAlgebra
     using Statistics
     using YAML
-    using ..MolecularGraphUtil
-    using ..MolecularGraphGeometry
-    using ..MolecularGraphModel
+    using .Util
+    using .Graph
+    using .Geometry
+    
+    export Util, Graph, Geometry
 
     include("./model/interface.jl")
     include("./draw/interface.jl")

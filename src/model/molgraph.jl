@@ -67,7 +67,7 @@ function graphmol(graph::GraphMol{A,B}; clearcache=true
 end
 
 
-clone(mol::GraphMol) = graphmol(mol, clearcache=false)
+Graph.clone(mol::GraphMol) = graphmol(mol, clearcache=false)
 
 
 """

@@ -6,14 +6,14 @@
 
 module MolecularGraphUtilTest
     using Test
-    using MolecularGraph.MolecularGraphUtil
+    using MolecularGraph.Util
     include("./util/iterator.jl")
 end
 
 
-module MolecularGraphModelTest
+module MolecularGraphGraphTest
     using Test
-    using MolecularGraph.MolecularGraphModel
+    using MolecularGraph.Graph
 
     include("./graph/dfs.jl")
     include("./graph/shortestpath.jl")
@@ -44,7 +44,7 @@ end
 module MolecularGraphGeometryTest
     using Test
     using LinearAlgebra
-    using MolecularGraph.MolecularGraphGeometry
+    using MolecularGraph.Geometry
 
     include("./geometry/coords2d.jl")
     include("./geometry/coords3d.jl")
@@ -55,8 +55,7 @@ end
 module MolecularGraphTest
     using Test
     using MolecularGraph
-    using MolecularGraph.MolecularGraphGeometry
-    using MolecularGraph.MolecularGraphModel
+    using MolecularGraph.Graph
 
     include("./model/atom.jl")
     include("./model/molgraph.jl")

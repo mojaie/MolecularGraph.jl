@@ -1,5 +1,5 @@
 
-using MolecularGraph.MolecularGraphModel: lgnodematcher, lgedgematcher
+using MolecularGraph.Graph: lgnodematcher, lgedgematcher
 using MolecularGraph:
     fastidentityfilter, fastsubstrfilter,
     atommatch, bondmatch

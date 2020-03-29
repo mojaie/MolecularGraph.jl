@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using MolecularGraph.MolecularGraphModel:
+using MolecularGraph.Graph:
     merge!, remove!, planaritytest, outerplanaritytest
 
 @testset "graph.planarity" begin
