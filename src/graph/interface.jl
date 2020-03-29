@@ -88,7 +88,7 @@ end
 
 Clear calculated property caches.
 
-Calling `clearcache!` is recommended when the graph nodes/edges are added, removed or reindexed. You can [`MolecularGraphModel.clone`](@ref) the graph before destructive operation instead.
+Calling `clearcache!` is recommended when the graph nodes/edges are added, removed or reindexed. You can [`Graph.clone`](@ref) the graph before destructive operation instead.
 """
 function clearcache!(graph::AbstractGraph)
     empty!(graph.cache)

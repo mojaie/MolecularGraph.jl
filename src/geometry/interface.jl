@@ -4,19 +4,12 @@
 #
 
 export
-    Coordinates,
-    cartesian2d, cartesian3d, internalcoords,
-    point, segment,
-    x, y, z, u, v, ux, uy, uz, vx, vy, vz,
-    vector, distance,
-    setcoord!,
-    x_components, y_components, z_components,
+    Point, Coordinates,
     radiantophase
 
 
+abstract type Point end
 abstract type Coordinates end
-
-# TODO: Matrix shape (node-wise or coordinate-wise?)
 
 
 radiantophase(angle) = mod((angle + 2pi) / 2pi)

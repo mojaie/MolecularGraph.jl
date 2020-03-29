@@ -92,7 +92,7 @@ isatomvisible(view::SubgraphView) = isatomvisible(view.graph)
     for (i, node) in enumerate(nodeattrs(mol))
         matrix[i, :] = node.coords[1:2]
     end
-    return cartesian2d(matrix)
+    return matrix
 end
 
 coords2d(view::SubgraphView) = coords2d(view.graph)
@@ -131,7 +131,7 @@ function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
 
     # Align double bonds alongside the ring
     for ring in sort(sssr(mol), by=length, rev=true)
-        cw = isclockwise(cartesian2d(coords2d(mol), ring))
+        cw = isclockwise(toarray(coords2d(mol), ring))
         cw === nothing && continue
         ordered = cw ? ring : reverse(ring)
         rr = vcat(ordered, ordered)
@@ -209,7 +209,7 @@ function draw2d!(canvas::Canvas, mol::UndirectedGraph;
         (u, v) = getedge(mol, i)
         setbond!(
             canvas, bondorder_[i], bondnotation_[i],
-            segment(canvas.coords, u, v),
+            Segment{Point2D}(canvas.coords, u, v),
             atomcolor_[u], atomcolor_[v],
             isatomvisible_[u], isatomvisible_[v]
         )
@@ -218,14 +218,14 @@ function draw2d!(canvas::Canvas, mol::UndirectedGraph;
     # Draw atoms
     for i in nodeset(mol)
         isatomvisible_[i] || continue
-        pos = point(canvas.coords, i)
+        pos = Point2D(canvas.coords, i)
         # Determine text direction
         if implicithcount_[i] > 0
             cosnbrs = []
             hrzn = pos + (1.0, 0.0)
             for adj in adjacencies(mol, i)
-                posnbr = point(canvas.coords, adj)
-                dist = norm(posnbr - pos)
+                posnbr = Point2D(canvas.coords, adj)
+                dist = Geometry.distance(pos, posnbr)
                 if dist > 0
                     dp = dot(hrzn - pos, posnbr - pos)
                     push!(cosnbrs, dp / dist)
@@ -262,7 +262,7 @@ function drawatomindex!(canvas::Canvas, mol::UndirectedGraph;
     isatomvisible_ = isatomvisible(mol)
     for i in nodeset(mol)
         offset = isatomvisible_[i] ? (0.0, canvas.fontsize/2.0) : (0.0, 0.0)
-        pos = point(canvas.coords, i) + offset
+        pos = Point2D(canvas.coords, i) + offset
         setatomnote!(canvas, pos, string(i), color, bgcolor)
     end
     return
@@ -274,11 +274,11 @@ function sethighlight!(
     isatomvisible_ = isatomvisible(substr)
     for i in edgeset(substr)
         (u, v) = getedge(substr, i)
-        setbondhighlight!(canvas, segment(canvas.coords, u, v), color)
+        setbondhighlight!(canvas, Segment{Point2D}(canvas.coords, u, v), color)
     end
     for i in nodeset(substr)
         isatomvisible_[i] || continue
-        pos = point(canvas.coords, i)
+        pos = Point2D(canvas.coords, i)
         setatomhighlight!(canvas, pos, color)
     end
     return

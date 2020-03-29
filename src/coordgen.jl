@@ -37,5 +37,5 @@ function coordgen(mol::GraphMol)
         py = @cxx p->y()
         coords[i, :] = [px, py]
     end
-    return cartesian2d(coords)
+    return coords
 end

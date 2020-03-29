@@ -46,9 +46,8 @@ module MolecularGraphGeometryTest
     using LinearAlgebra
     using MolecularGraph.Geometry
 
-    include("./geometry/coords2d.jl")
-    include("./geometry/coords3d.jl")
-    include("./geometry/coordsinternal.jl")
+    include("./geometry/cartesian.jl")
+    include("./geometry/internal.jl")
 end
 
 

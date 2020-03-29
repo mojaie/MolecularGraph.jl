@@ -1,10 +1,10 @@
 
-# Graph generator
+# Cartesian
 
 
 ```@autodocs
-Modules = [Graph]
-Pages   = ["graph/generator.jl"]
+Modules = [Geometry]
+Pages   = ["geometry/cartesian.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

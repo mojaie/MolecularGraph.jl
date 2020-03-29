@@ -34,7 +34,7 @@ mutable struct SvgCanvas <: Canvas
     
     bgelements::Vector{String}
     elements::Vector{String}
-    coords::Cartesian2D{Matrix{Float64}}
+    coords::Matrix{Float64}
     valid::Bool
 
     function SvgCanvas()
@@ -64,11 +64,10 @@ end
 
 
 svgcolor(c::Color) = @sprintf "rgb(%d, %d, %d)" c.r c.g c.b
-svgcoords(s::Point2D) = @sprintf "x=\"%.2f\" y=\"%.2f\"" x(s) y(s)
-svgcirclecoords(s::Point2D) = @sprintf "cx=\"%.2f\" cy=\"%.2f\"" x(s) y(s)
-svgcoords(
-    s::Segment2D
-) = @sprintf "x1=\"%.2f\" y1=\"%.2f\" x2=\"%.2f\" y2=\"%.2f\"" ux(s) uy(s) vx(s) vy(s)
+svgcoords(p::Point2D) = @sprintf "x=\"%.2f\" y=\"%.2f\"" p.x p.y
+svgcirclecoords(p::Point2D) = @sprintf "cx=\"%.2f\" cy=\"%.2f\"" p.x p.y
+svgcoords(s::Segment
+    ) = @sprintf "x1=\"%.2f\" y1=\"%.2f\" x2=\"%.2f\" y2=\"%.2f\"" s.u.x s.u.y s.v.x s.v.y
 svgtransform(tf::Array{Float64,2}
     ) = @sprintf "%.2f %.2f %.2f %.2f %.2f %.2f" tf[1] tf[2] tf[4] tf[5] tf[7] tf[8]
 
@@ -123,17 +122,15 @@ Get boundaries and an appropriate bond length unit for the molecule drawing
 canvas.
 """
 function boundary(mol::GraphMol)
-    c2d = coords2d(mol)
-    (left, right) = extrema(x_components(c2d))
-    (bottom, top) = extrema(y_components(c2d))
+    coords = coords2d(mol)
+    (left, right) = extrema(x_components(coords))
+    (bottom, top) = extrema(y_components(coords))
     width = right - left
     height = top - bottom
     dists = []
     # Size unit
     for (u, v) in edgesiter(mol)
-        upos = point(c2d, u)
-        vpos = point(c2d, v)
-        d = norm(vpos - upos)
+        d = Geometry.distance(Point2D(coords, u), Point2D(coords, v))
         if d > 0.0001  # Remove overlapped
             push!(dists, d)
         end
@@ -155,13 +152,11 @@ Move and adjust the size of the molecule for drawing.
 """
 function initcanvas!(canvas::Canvas, mol::GraphMol)
     nodecount(mol) == 0 && return
-    c2d = coords2d(mol)
+    coords = coords2d(mol)
     (top, left, width, height, unit) = boundary(mol)
     sf = canvas.scalef / unit
-    canvas.coords = cartesian2d(
-        (c2d.coords .- [left top]) .* [1 -1] .* sf
-        .+ [canvas.paddingX canvas.paddingY]
-    )
+    pd = [canvas.paddingX canvas.paddingY]
+    canvas.coords = (coords .- [left top]) .* [1 -1] .* sf .+ pd
     canvas.viewboxW = width * sf + canvas.paddingX * 2
     canvas.viewboxH = height * sf + canvas.paddingY * 2
     canvas.valid = true
@@ -185,80 +180,78 @@ function trimbond(canvas, seg, uvis, vvis)
 end
 
 
-function singlebond!(canvas, coords, ucolor, vcolor, uvis, vvis)
-    seg = trimbond(canvas, coords, uvis, vvis)
-    drawline!(canvas, seg, ucolor, vcolor)
+function singlebond!(canvas, seg, ucolor, vcolor, uvis, vvis)
+    seg_ = trimbond(canvas, seg, uvis, vvis)
+    drawline!(canvas, seg_, ucolor, vcolor)
     return
 end
 
 
-function wedged!(canvas, coords, ucolor, vcolor, uvis, vvis)
-    seg = trimbond(canvas, coords, uvis, vvis)
-    drawwedge!(canvas, seg, ucolor, vcolor)
+function wedged!(canvas, seg, ucolor, vcolor, uvis, vvis)
+    seg_ = trimbond(canvas, seg, uvis, vvis)
+    drawwedge!(canvas, seg_, ucolor, vcolor)
     return
 end
 
 
-function dashedwedged!(canvas, coords, ucolor, vcolor, uvis, vvis)
-    seg = trimbond(canvas, coords, uvis, vvis)
-    drawdashedwedge!(canvas, seg, ucolor, vcolor)
+function dashedwedged!(canvas, seg, ucolor, vcolor, uvis, vvis)
+    seg_ = trimbond(canvas, seg, uvis, vvis)
+    drawdashedwedge!(canvas, seg_, ucolor, vcolor)
     return
 end
 
 
-function wavesingle!(canvas, coords, ucolor, vcolor, uvis, vvis)
-    seg = trimbond(canvas, coords, uvis, vvis)
-    drawwave!(canvas, seg, ucolor, vcolor)
+function wavesingle!(canvas, seg, ucolor, vcolor, uvis, vvis)
+    seg_ = trimbond(canvas, seg, uvis, vvis)
+    drawwave!(canvas, seg_, ucolor, vcolor)
     return
 end
 
 
-function doublebond!(canvas, coords, ucolor, vcolor, uvis, vvis)
+function doublebond!(canvas, seg, ucolor, vcolor, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf / 2
-    seg = trimbond(canvas, coords, uvis, vvis)
-    seg1 = translate(seg, pi / 2, dist)
-    seg2 = translate(seg, -pi / 2, dist)
+    seg_ = trimbond(canvas, seg, uvis, vvis)
+    seg1 = translate(seg_, pi / 2, dist)
+    seg2 = translate(seg_, -pi / 2, dist)
     drawline!(canvas, seg1, ucolor, vcolor)
     drawline!(canvas, seg2, ucolor, vcolor)
     return
 end
 
 
-function crossdouble!(canvas, coords, ucolor, vcolor, uvis, vvis)
+function crossdouble!(canvas, seg, ucolor, vcolor, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf / 2
-    seg = trimbond(canvas, coords, uvis, vvis)
-    cw = translate(seg, pi / 2, dist)
-    ccw = translate(seg, -pi / 2, dist)
-    seg1 = segment(u(cw), v(ccw))
-    seg2 = segment(u(ccw), v(cw))
-    drawline!(canvas, seg1, ucolor, vcolor)
-    drawline!(canvas, seg2, ucolor, vcolor)
+    seg_ = trimbond(canvas, seg, uvis, vvis)
+    cw = translate(seg_, pi / 2, dist)
+    ccw = translate(seg_, -pi / 2, dist)
+    drawline!(canvas, Segment(cw.u, ccw.v), ucolor, vcolor)
+    drawline!(canvas, Segment(ccw.u, cw.v), ucolor, vcolor)
     return
 end
 
 
-function ringdouble!(canvas, coords, ucolor, vcolor, uvis, vvis, direction)
-    seg = trimbond(canvas, coords, uvis, vvis)
+function ringdouble!(canvas, seg, ucolor, vcolor, uvis, vvis, direction)
+    seg_ = trimbond(canvas, seg, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf
-    segin = trim_uv(translate(seg, direction, dist), canvas.triminnerf)
-    drawline!(canvas, seg, ucolor, vcolor)
+    segin = trim_uv(translate(seg_, direction, dist), canvas.triminnerf)
+    drawline!(canvas, seg_, ucolor, vcolor)
     drawline!(canvas, segin, ucolor, vcolor)
     return
 end
 
 # NOTE: the direction is reversed due to x-axis reflection
-clockwisedouble!(canvas, coords, ucolor, vcolor, uvis, vvis
-    ) = ringdouble!(canvas, coords, ucolor, vcolor, uvis, vvis, pi / 2)
-counterdouble!(canvas, coords, ucolor, vcolor, uvis, vvis
-    ) = ringdouble!(canvas, coords, ucolor, vcolor, uvis, vvis, -pi / 2)
+clockwisedouble!(canvas, seg, ucolor, vcolor, uvis, vvis
+    ) = ringdouble!(canvas, seg, ucolor, vcolor, uvis, vvis, pi / 2)
+counterdouble!(canvas, seg, ucolor, vcolor, uvis, vvis
+    ) = ringdouble!(canvas, seg, ucolor, vcolor, uvis, vvis, -pi / 2)
 
 
-function triplebond!(canvas, coords, ucolor, vcolor, uvis, vvis)
+function triplebond!(canvas, seg, ucolor, vcolor, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf
-    seg = trimbond(canvas, coords, uvis, vvis)
-    seg1 = translate(seg, pi / 2, dist)
-    seg2 = translate(seg, -pi / 2, dist)
-    drawline!(canvas, seg, ucolor, vcolor)
+    seg_ = trimbond(canvas, seg, uvis, vvis)
+    seg1 = translate(seg_, pi / 2, dist)
+    seg2 = translate(seg_, -pi / 2, dist)
+    drawline!(canvas, seg_, ucolor, vcolor)
     drawline!(canvas, seg1, ucolor, vcolor)
     drawline!(canvas, seg2, ucolor, vcolor)
     return
@@ -284,14 +277,14 @@ const BOND_DRAWER = Dict(
 )
 
 setbond!(
-    canvas, order, notation, coords, ucolor, vcolor, uvis, vvis
-) = BOND_DRAWER[order][notation](canvas, coords, ucolor, vcolor, uvis, vvis)
+    canvas, order, notation, seg, ucolor, vcolor, uvis, vvis
+) = BOND_DRAWER[order][notation](canvas, seg, ucolor, vcolor, uvis, vvis)
 
 
 function setbondhighlight!(canvas, seg, color)
-    segcrds = svgcoords(seg)
+    cds = svgcoords(seg)
     c = svgcolor(color)
-    elem = """<line $(segcrds) stroke="$(c)" stroke-width="10" stroke-linecap="round"/>
+    elem = """<line $(cds) stroke="$(c)" stroke-width="10" stroke-linecap="round"/>
     """
     push!(canvas.bgelements, elem)
     return
@@ -299,10 +292,10 @@ end
 
 
 
-function atomsymbol!(canvas, coords, atomsymbol, color, implicith, charge;
+function atomsymbol!(canvas, pos, atomsymbol, color, implicith, charge;
                      direction=:right, anchor=""" text-anchor="end" """,
                      xoffset=0)
-    xy = svgcoords(coords + (xoffset, canvas.fontsize/2))
+    xy = svgcoords(pos + (xoffset, canvas.fontsize/2))
     small = round(Int, canvas.fontsize * 0.7)
     content = atommarkup(
         atomsymbol, charge, implicith, direction,
@@ -317,32 +310,24 @@ function atomsymbol!(canvas, coords, atomsymbol, color, implicith, charge;
     return
 end
 
-setatomright!(
-    canvas, coords, sym, color, hcnt, charge
-) = atomsymbol!(
-    canvas, coords, sym, color, hcnt, charge,
+setatomright!(canvas, pos, sym, color, hcnt, charge) = atomsymbol!(
+    canvas, pos, sym, color, hcnt, charge,
     direction=:left, xoffset=canvas.fontsize/2
 )
 
-setatomcenter!(
-    canvas, coords, sym, color, hcnt, charge
-) = atomsymbol!(
-    canvas, coords, sym, color, hcnt, charge,
-    anchor=""" text-anchor="middle" """
-)
+setatomcenter!(canvas, pos, sym, color, hcnt, charge) = atomsymbol!(
+    canvas, pos, sym, color, hcnt, charge, anchor=""" text-anchor="middle" """)
 
-setatomleft!(
-    canvas, coords, sym, color, hcnt, charge
-) = atomsymbol!(
-    canvas, coords, sym, color, hcnt, charge,
+setatomleft!(canvas, pos, sym, color, hcnt, charge) = atomsymbol!(
+    canvas, pos, sym, color, hcnt, charge,
     anchor=" ", xoffset=canvas.fontsize/-2
 )
 
 
-function setatomnote!(canvas, coords, text, color, bgcolor)
+function setatomnote!(canvas, pos, text, color, bgcolor)
     size = round(Int, canvas.fontsize * canvas.annotsizef)
-    bxy = svgcoords(coords)
-    txy = svgcoords(coords + (0, size))
+    bxy = svgcoords(pos)
+    txy = svgcoords(pos + (0, size))
     c = svgcolor(color)
     bc = svgcolor(bgcolor)
     elem = """<g>
@@ -354,9 +339,9 @@ function setatomnote!(canvas, coords, text, color, bgcolor)
     return
 end
 
-function setatomhighlight!(canvas, coords, color)
+function setatomhighlight!(canvas, pos, color)
     size = round(Int, canvas.fontsize * 1.2)
-    xy = svgcoords(coords - (size / 2, size / 2))
+    xy = svgcoords(pos - (size / 2, size / 2))
     c = svgcolor(color)
     elem = """
      <rect $(xy) width="$(size)" height="$(size)" rx="$(size/2)" ry="$(size/2)" fill="$(c)" />
@@ -368,9 +353,9 @@ end
 
 function drawline!(canvas, seg, color; isdashed=false)
     option = isdashed ? """ stroke-dasharray="10,10" """ : " "
-    segcrds = svgcoords(seg)
+    coords = svgcoords(seg)
     c = svgcolor(color)
-    elem = """<line $(segcrds) stroke="$(c)"$(option)/>"""
+    elem = """<line $(coords) stroke="$(c)"$(option)/>"""
     push!(canvas.elements, elem)
     return
 end
@@ -379,12 +364,12 @@ function drawline!(canvas, seg, ucolor, vcolor; isdashed=false)
     ucolor == vcolor && return drawline!(canvas, seg, ucolor, isdashed=isdashed)
     option = isdashed ? """ stroke-dasharray="10,10" """ : " "
     mid = midpoint(seg)
-    segcrds1 = svgcoords(segment(u(seg), mid))
-    segcrds2 = svgcoords(segment(mid, v(seg)))
+    coords1 = svgcoords(Segment(seg.u, mid))
+    coords2 = svgcoords(Segment(mid, seg.v))
     uc = svgcolor(ucolor)
     vc = svgcolor(vcolor)
-    elem = """<line $(segcrds1) stroke="$(uc)"$(option)/>
-    <line $(segcrds2) stroke="$(vc)"$(option)/>
+    elem = """<line $(coords1) stroke="$(uc)"$(option)/>
+    <line $(coords2) stroke="$(vc)"$(option)/>
     """
     push!(canvas.elements, elem)
     return
@@ -396,10 +381,10 @@ drawdashedline!(canvas, seg, ucolor, vcolor) = drawline!(
 
 function drawwedge!(canvas, seg, color)
     """ u ◀︎ v """
-    uvlen = norm(vector(seg))
-    scalef = point(uvlen, uvlen / 2 * canvas.wedgewidthf)
-    rotatef = normalize(vector(seg))
-    translf = u(seg)
+    d = Geometry.distance(seg)
+    scalef = Point2D(d, d / 2 * canvas.wedgewidthf)
+    rotatef = unitvector(seg)
+    translf = seg.u
     svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     c = svgcolor(color)
     elem = """<polygon points="0,0 1,1 1,-1" fill="$(c)" transform="matrix($(svgtf))"/>
@@ -411,10 +396,10 @@ end
 function drawwedge!(canvas, seg, ucolor, vcolor)
     """ u ◀︎ v """
     ucolor == vcolor && return drawwedge!(canvas, seg, ucolor)
-    uvlen = norm(vector(seg))
-    scalef = point(uvlen, uvlen / 2 * canvas.wedgewidthf)
-    rotatef = normalize(vector(seg))
-    translf = u(seg)
+    d = Geometry.distance(seg)
+    scalef = Point2D(d, d / 2 * canvas.wedgewidthf)
+    rotatef = unitvector(seg)
+    translf = seg.u
     svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     uc = svgcolor(ucolor)
     vc = svgcolor(vcolor)
@@ -430,10 +415,10 @@ end
 
 function drawdashedwedge!(canvas, seg, color)
     """ u ◁ v """
-    uvlen = norm(vector(seg))
-    scalef = point(uvlen / 7, uvlen / 14 * canvas.wedgewidthf)
-    rotatef = normalize(vector(seg))
-    translf = u(seg)
+    d = Geometry.distance(seg)
+    scalef = Point2D(d / 7, d / 14 * canvas.wedgewidthf)
+    rotatef = unitvector(seg)
+    translf = seg.u
     svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     c = svgcolor(color)
     elem = """<g stroke="$(c)" stroke-width="0.3" transform="matrix($(svgtf))">
@@ -454,10 +439,10 @@ end
 function drawdashedwedge!(canvas, seg, ucolor, vcolor)
     """ u ◁ v """
     ucolor == vcolor && return drawdashedwedge!(canvas, seg, ucolor)
-    uvlen = norm(vector(seg))
-    scalef = point(uvlen / 7, uvlen / 14 * canvas.wedgewidthf)
-    rotatef = normalize(vector(seg))
-    translf = u(seg)
+    d = Geometry.distance(seg)
+    scalef = Point2D(d / 7, d / 14 * canvas.wedgewidthf)
+    rotatef = unitvector(seg)
+    translf = seg.u
     svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     uc = svgcolor(ucolor)
     vc = svgcolor(vcolor)
@@ -478,10 +463,10 @@ end
 
 
 function drawwave!(canvas, seg, color)
-    uvlen = norm(vector(seg))
-    scalef = point(uvlen / 7, uvlen / 2 * canvas.wedgewidthf)
-    rotatef = normalize(vector(seg))
-    translf = u(seg)
+    d = Geometry.distance(seg)
+    scalef = Point2D(d / 7, d / 2 * canvas.wedgewidthf)
+    rotatef = unitvector(seg)
+    translf = seg.u
     svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     c = svgcolor(color)
     elem = """<polyline points="0,0 0.5,0 1,1 2,-1 3,1 4,-1 5,1 6,-1 6.5,0 7,0"
@@ -493,10 +478,10 @@ end
 
 function drawwave!(canvas, seg, ucolor, vcolor)
     ucolor == vcolor && return drawwave!(canvas, seg, ucolor)
-    uvlen = norm(vector(seg))
-    scalef = point(uvlen / 7, uvlen / 2 * canvas.wedgewidthf)
-    rotatef = normalize(vector(seg))
-    translf = u(seg)
+    d = Geometry.distance(seg)
+    scalef = Point2D(d / 7, d / 2 * canvas.wedgewidthf)
+    rotatef = unitvector(seg)
+    translf = seg.u
     svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
     uc = svgcolor(ucolor)
     vc = svgcolor(vcolor)

@@ -131,11 +131,11 @@ function setdiastereo!(mol::SDFile)
         end
         length(ns) == 2 || continue
         # Check coordinates
-        d1, d2 = [point(coords_, n) for n in mol.edges[i]]
-        n1, n2 = [point(coords_, n) for n in ns]
-        cond(a, b) = (x(d1)-x(d2)) * (b-y(d1)) + (y(d1)-y(d2)) * (x(d1)-a)
-        n1p = cond(x(n1), y(n1))
-        n2p = cond(x(n2), y(n2))
+        d1, d2 = [Point2D(coords_, n) for n in mol.edges[i]]
+        n1, n2 = [Point2D(coords_, n) for n in ns]
+        cond(a, b) = (d1.x - d2.x) * (b - d1.y) + (d1.y - d2.y) * (d1.x - a)
+        n1p = cond(n1.x, n1.y)
+        n2p = cond(n2.x, n2.y)
         if n1p * n2p < 0
             stereo = :trans
         elseif n1p * n2p > 0
@@ -153,14 +153,14 @@ end
 function angeval(u::Point2D, v::Point2D)
     # 0deg -> 1, 90deg -> 0, 180deg -> -1, 270deg-> -2, 360deg -> -3
     uv = dot(u, v) / (norm(u) * norm(v))
-    return cross(u, v) >= 0 ? uv : -2 - uv
+    return cross2d(u, v) >= 0 ? uv : -2 - uv
 end
 
 
 function anglesort(coords, center, ref, vertices)
-    c = point(coords, center)
-    r = point(coords, ref)
-    ps = [point(coords, v) for v in vertices]
+    c = Point2D(coords, center)
+    r = Point2D(coords, ref)
+    ps = [Point2D(coords, v) for v in vertices]
     vs = [p - c for p in ps]
     per = sortperm([angeval(r, v) for v in vs])
     return vertices[per]
@@ -232,9 +232,9 @@ function optimizewedges!(mol::SDFile)
                         coords_, i, badjs[1],
                         [badjs[2], upadjs[1], downadjs[1]]
                     )
-                    u = point(coords_, badjs[1])
-                    v = point(coords_, badjs[2])
-                    d = cross(u, v)
+                    u = Point2D(coords_, badjs[1])
+                    v = Point2D(coords_, badjs[2])
+                    d = cross2d(u, v)
                     if findfirst(isequal(badjs[2]), ordered) == 2
                         # if d == 0, stereochem is ambigious
                         if d > 0
@@ -322,7 +322,7 @@ function setstereocenter!(mol::SDFile)
             end
         end
         if stereo === :unspecified
-            cw = isclockwise(cartesian2d(coords_, sort(tri)))
+            cw = isclockwise(toarray(coords_, sort(tri)))
             if rev
                 cw = !cw
             end

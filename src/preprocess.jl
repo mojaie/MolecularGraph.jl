@@ -87,7 +87,7 @@ end
 
 Add hydrogen nodes to the molecular graph explicitly.
 
-Note that this function edits `Atom` and `Bond` object fields directly (see [`MolecularGraphModel.clone`](@ref) and [`MolecularGraphModel.clearcache!`](@ref).
+Note that this function edits `Atom` and `Bond` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
 """
 function addhydrogens!(mol::GraphMol)
     implicithcount_ = implicithcount(mol)
@@ -123,7 +123,7 @@ largestcomponentgraph(mol::GraphMol
 
 Neutralize oxo(thio) acids.
 
-Note that this function edits `Atom` object fields directly (see [`MolecularGraphModel.clone`](@ref) and [`MolecularGraphModel.clearcache!`](@ref).
+Note that this function edits `Atom` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
 """
 function neutralizeacids!(mol::GraphMol)
     atomsymbol_ = atomsymbol(mol)
@@ -153,7 +153,7 @@ end
 
 Neutralize 1-3° oniums. Permanently charged quart-oniums will not be neutralized.
 
-Note that this function edits `Atom` object fields directly (see [`MolecularGraphModel.clone`](@ref) and [`MolecularGraphModel.clearcache!`](@ref).
+Note that this function edits `Atom` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
 """
 function neutralizeoniums!(mol::GraphMol)
     for o in findall((charge(mol) .== 1) .* (hcount(mol) .> 0))
@@ -168,7 +168,7 @@ end
 Depolarize oxo groups except in the case that polarization is required for
 aromaticity.
 
-Note that this function edits `Atom` and `Bond` object fields directly (see [`MolecularGraphModel.clone`](@ref) and [`MolecularGraphModel.clearcache!`](@ref).
+Note that this function edits `Atom` and `Bond` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
 """
 function depolarize!(mol::GraphMol)
     charge_ = charge(mol)
@@ -190,7 +190,7 @@ end
 
 Convert triple bonds with charges into allene-like structure (ex. [C-][N+]#N -> C=[N+]=[N-]).
 
-Note that this function edits `Atom` and `Bond` object fields directly (see [`MolecularGraphModel.clone`](@ref) and [`MolecularGraphModel.clearcache!`](@ref).
+Note that this function edits `Atom` and `Bond` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
 """
 function toallenelike!(mol::GraphMol)
     charge_ = charge(mol)
@@ -223,7 +223,7 @@ Default molecular preprocessing method.
 
 For further preprocessing, following [`removehydrogens`](@ref), [`removestereohydrogens`](@ref) and [`largestcomponentgraph`](@ref) would work well.
 
-Note that this function edits `Atom` and `Bond` object fields directly (see [`MolecularGraphModel.clone`](@ref) and [`MolecularGraphModel.clearcache!`](@ref)).
+Note that this function edits `Atom` and `Bond` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref)).
 """
 function preprocess!(mol::GraphMol)
     neutralizeacids!(mol)

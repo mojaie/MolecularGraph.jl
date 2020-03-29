@@ -15,7 +15,7 @@ makedocs(
             "MCS" => "moleculargraph/mcs.md",
             "Functional group detection" => "moleculargraph/funcgroup.md"
         ],
-        "GraphModel" => [
+        "MolecularGraph.Graph" => [
             "Interface" => "graph/interface.md",
             "Generator" => "graph/generator.md",
             "Traversal" => "graph/traversal.md",
@@ -23,6 +23,9 @@ makedocs(
             "Operations" => "graph/operation.md",
             "Clique" => "graph/clique.md",
             "Isomorphism" => "graph/isomorphism.md"
+        ],
+        "MolecularGraph.Geometry" => [
+            "Cartesian" => "geometry/cartesian.md"
         ]
     ]
 )

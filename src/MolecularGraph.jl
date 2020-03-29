@@ -47,9 +47,8 @@ module MolecularGraph
 
         include("./geometry/interface.jl")
 
-        include("./geometry/coords2d.jl")
-        include("./geometry/coords3d.jl")
-        include("./geometry/coordsinternal.jl")
+        include("./geometry/cartesian.jl")
+        include("./geometry/internal.jl")
     end
 
     using LinearAlgebra

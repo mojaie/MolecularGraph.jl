@@ -5,7 +5,7 @@
 ## Shortest path
 
 ```@autodocs
-Modules = [MolecularGraphModel]
+Modules = [Graph]
 Pages   = ["graph/shortestpath.jl"]
 Private = false
 Order   = [:constant, :function, :type]

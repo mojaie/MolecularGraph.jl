@@ -5,6 +5,7 @@
 
 export
     InternalCoords,
+    internalcoords,
     label1, label2, label3, distance, angle, dihedral
 
 
@@ -22,14 +23,6 @@ function InternalCoords(size::Int)
 end
 
 internalcoords(labels, geometry) = InternalCoords(labels, geometry)
-
-
-"""
-    cartesian2d(coords::InternalCoords) -> Cartesian2D
-
-Embed `InternalCoords` into `Cartesian2D`.
-"""
-cartesian2d(cint::InternalCoords) = cartesian2d(cartesian3d(cint))
 
 
 """
@@ -62,7 +55,7 @@ function cartesian3d(cint::InternalCoords, mapping::Dict{Int,Int})
             c3d[cint.nodekeys[i], :] = rcd
         end
     end
-    return Cartesian3D(c3d)
+    return c3d
 end
 
 

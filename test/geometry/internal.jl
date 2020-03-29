@@ -1,6 +1,6 @@
 
 
-@testset "geometry.coordsinternal" begin
+@testset "geometry.internal" begin
 
 @testset "internalcoords" begin
     emptycoords = InternalCoords(10)
@@ -25,4 +25,4 @@
     @test dihedral(coords, 4) == 0.0
 end
 
-end # geometry.coordsinternal
+end # geometry.internal

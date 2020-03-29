@@ -18,4 +18,4 @@
 
 ## Usage
 
-- [Jupyter notebook tutorials](https://github.com/mojaie/MolecularGraph.jl/tree/master/notebook)
+- [Jupyter notebook tutorials](https://github.com/mojaie/MolecularGraph.jl_notebook/tree/master/notebook)
