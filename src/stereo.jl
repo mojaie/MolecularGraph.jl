@@ -246,16 +246,16 @@ function optimizewedges!(mol::SDFile)
                 end
             end
         elseif length(incs) == 3
-            if length(upinc) == 3
+            if length(upincs) == 3
                 append!(newbonds, [(inc, 0) for inc in upincs[1:2]])
             elseif length(downincs) == 3
                 append!(newbonds, [(inc, 0) for inc in downincs[1:2]])
-            elseif length(upinc) == 2
+            elseif length(upincs) == 2
                 downb = (setdiff(incs, upincs)[1], 6)
                 others = [(inc, 0) for inc in upincs]
                 push!(newbonds, downb)
                 append!(newbonds, others)
-            elseif length(downinc) == 2
+            elseif length(downincs) == 2
                 upb = (setdiff(incs, downincs)[1], 1)
                 others = [(inc, 0) for inc in downincs]
                 push!(newbonds, upb)
