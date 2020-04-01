@@ -62,4 +62,16 @@ end
     @test edgeattr(me_azide, 3).order == 2
 end
 
+@testset "kekulize" begin
+    furan = smilestomol("o1cccc1")
+    kekulize!(furan)
+    @test edgeattr(furan, 2).order == 2
+    @test edgeattr(furan, 4).order == 2
+
+    pyrene = smilestomol("c1cc2cccc3ccc4cccc1c4c32")
+    kekulize!(pyrene)
+    @test sum(bondorder(pyrene) .== 1) == 11
+    @test sum(bondorder(pyrene) .== 2) == 8
+end
+
 end # preprocess

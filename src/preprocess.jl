@@ -8,6 +8,7 @@ export
     removehydrogens, addhydrogens!,
     largestcomponentnodes, largestcomponentgraph,
     neutralizeacids!, neutralizeoniums!, depolarize!, toallenelike!,
+    kekulize!,
     preprocess!
 
 # TODO: large conjugated system
@@ -209,6 +210,35 @@ function toallenelike!(mol::GraphMol)
                 setedgeattr!(mol, tb, setorder(edgeattr(mol, tb), 2))
             end
         end
+    end
+end
+
+
+"""
+    kekulize!(mol::SMILES)
+
+Convert SMILES aromatic atoms (Organic atoms in lower case) into double bond representation.
+
+Note that this function edits `Atom` and `Bond` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
+"""
+function kekulize!(mol::SMILES)
+    nodes = Set{Int}()
+    for i in 1:nodecount(mol)
+        nodeattr(mol, i).isaromatic === true || continue
+        if atomsymbol(mol)[i] === :C
+            push!(nodes, i)
+        elseif atomsymbol(mol)[i] in (:N, :P, :As) && hcount(mol)[i] == 0
+            push!(nodes, i)
+        end
+    end
+    subg = nodesubgraph(mol, nodes)
+    a, b = twocoloring(subg)
+    adjmap = Dict{Int,Set{Int}}(
+        i => adjacencies(subg, i) for i in nodeset(subg))
+    mapping = maxcardmap(a, b, adjmap)
+    for (u, v) in mapping
+        e = findedgekey(mol, u, v)
+        setedgeattr!(mol, e, setorder(edgeattr(mol, e), 2))
     end
 end
 
