@@ -6,7 +6,7 @@
 export
     trivialhydrogens, allhydrogens,
     removehydrogens, addhydrogens!,
-    largestcomponentnodes, largestcomponentgraph,
+    largestcomponentnodes, extractlargestcomponent,
     neutralizeacids!, neutralizeoniums!, depolarize!, toallenelike!,
     kekulize!,
     preprocess!
@@ -22,28 +22,27 @@ export
 """
     trivialhydrogens(mol::GraphMol) -> Set{Int}
 
-Return a set of trivial hydrogen nodes (light hydrogens which are uncharged,
-non-radical, non-stereospecific and attached to organic heavy atoms)
+Return a set of trivial hydrogen nodes.
+
+"Trivial" means not charged, no unpaired electron, no specific mass, non-stereospecific and attached to organic heavy atoms. Note that stereochemstry of SDFile molecules will not be considered until `setstereocenter!` is applied.
 """
 function trivialhydrogens(mol::GraphMol)
     hs = Set{Int}()
     organic_heavy = (
         :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I)
     for (i, atom) in enumerate(nodeattrs(mol))
-        if (atom.symbol != :H || atom.charge != 0 || atom.multiplicity != 1
-                || atom.mass !== nothing)
-            continue
-        elseif atom isa SmilesAtom && atom.stereo !== :unspecified
-            continue
-        end
+        atom.symbol == :H || continue
+        atom.charge == 0 || continue
+        atom.multiplicity == 1 || continue
+        atom.mass === nothing || continue
+        @assert atom.stereo === :unspecified
         degree(mol, i) == 1 || continue
         (inc, adj) = iterate(neighbors(mol, i))[1]
-        bond = edgeattr(mol, inc)
-        nbratom = nodeattr(mol, adj)
-        if bond isa SDFileBond && (bond.order != 1 || bond.notation != 0)
-            continue
-        elseif !(nbratom.symbol in organic_heavy)
-            continue
+        nodeattr(mol, adj).symbol in organic_heavy || continue
+        edgeattr(mol, inc).order == 1 || continue
+        nodeattr(mol, adj).stereo === :unspecified || continue
+        if nodeattr(mol, adj) isa SmilesAtom
+            @assert !nodeattr(mol, adj).isaromatic
         end
         push!(hs, i)
     end
@@ -54,14 +53,13 @@ end
 """
     allhydrogens(mol::GraphMol) -> Set{Int}
 
-Return a set of hydrogen nodes.
+Return a set of all hydrogen nodes.
 """
 function allhydrogens(mol::GraphMol)
     hs = Set{Int}()
     for (i, atom) in enumerate(nodeattrs(mol))
-        if atom.symbol == :H
-            push!(hs, i)
-        end
+        atom.symbol == :H || continue
+        push!(hs, i)
     end
     return hs
 end
@@ -70,11 +68,10 @@ end
 """
     removehydrogens(mol::GraphMol) -> GraphMol
 
-Return molecule whose hydrogen nodes are removed.
+A convenient method that returns the molecule with hydrogen nodes removed.
 
-If option `all` is set to false, only trivial hydrogens are removed (see [`trivialhydrogens`](@ref)). If you want to keep stereochemistry, remove hydrogens with `all`=false, and do [`removestereohydrogens`](@ref).
+If option `all` is set to true (default), all hydrogens will be removed, otherwise only trivial hydrogens will be removed (see [`trivialhydrogens`](@ref)).
 
-If 
 """
 function removehydrogens(mol::GraphMol; all=true)
     hydrogens = all ? allhydrogens : trivialhydrogens
@@ -111,12 +108,14 @@ largestcomponentnodes(mol::GraphMol
 
 
 """
-    largestcomponentgraph(mol::GraphMol) -> SubgraphView
+    extractlargestcomponent(mol::GraphMol) -> SubgraphView
 
-Return largest connected component view of the molecular graph.
+Return largest connected component of the molecular graph.
+
+This should be useful when you want to remove salt and water molecules from the molecular graph simply. On the other hand, this can remove important components from the mixture so carefully apply this preprocess method.
 """
-largestcomponentgraph(mol::GraphMol
-    ) = nodesubgraph(mol, largestcomponentnodes(mol))
+extractlargestcomponent(mol::GraphMol
+    ) = graphmol(nodesubgraph(mol, largestcomponentnodes(mol)))
 
 
 """

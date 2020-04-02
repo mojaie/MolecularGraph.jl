@@ -69,9 +69,9 @@ module MolecularGraph
 
     include("substructure.jl")
     include("mcs.jl")
+    include("stereo.jl")
     include("preprocess.jl")
     include("properties.jl")
-    include("stereo.jl")
     include("wclogp.jl")
     include("funcgroup.jl")
 

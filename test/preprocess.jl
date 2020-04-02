@@ -1,7 +1,7 @@
 
 @testset "preprocess" begin
 
-@testset "all_hydrogens" begin
+@testset "allhydrogens" begin
     ethanol = smilestomol("[H]C([H])([H])C([H])([H])O")
     @test issetequal(allhydrogens(ethanol), [1, 3, 4, 6, 7])
     removed = removehydrogens(ethanol)
@@ -9,13 +9,14 @@
     @test edgecount(removed) == 2
 end
 
-@testset "trivial_hydrogens" begin
-    # TODO:
-    ethanol = smilestomol("[H]C([H])([H])C([H])([H])O")
-    @test issetequal(trivialhydrogens(ethanol), [1, 3, 4, 6, 7])
-    removed = removehydrogens(ethanol, all=false)
-    @test nodecount(removed) == 3
-    @test edgecount(removed) == 2
+@testset "trivialhydrogens" begin
+    ethanold3 = smilestomol("[2H]C([2H])([2H])C([H])([H])O")
+    @test issetequal(trivialhydrogens(ethanold3), [6, 7])
+    removed = removehydrogens(ethanold3, all=false)
+    @test nodecount(removed) == 6
+    @test edgecount(removed) == 5
+    LAla = parse(SMILES, "[H]N([H])[C@][H](C)C(=O)O")
+    @test issetequal(trivialhydrogens(LAla), [1, 3])
 end
 
 @testset "addhydrogens" begin
@@ -25,10 +26,10 @@ end
     @test edgecount(neop) == 17
 end
 
-@testset "largest_component" begin
+@testset "largestcomponent" begin
     thiols = smilestomol("CCCCS.SCCCCC")
     @test issetequal(largestcomponentnodes(thiols), 6:11)
-    lc = largestcomponentgraph(thiols)
+    lc = extractlargestcomponent(thiols)
     @test nodecount(lc) == 6
     @test edgecount(lc) == 5
 end
