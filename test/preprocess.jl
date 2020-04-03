@@ -73,6 +73,10 @@ end
     kekulize!(pyrene)
     @test sum(bondorder(pyrene) .== 1) == 11
     @test sum(bondorder(pyrene) .== 2) == 8
+    
+    pyridineoxide = smilestomol("[n+]1(O-)ccccc1")
+    kekulize!(pyridineoxide)
+    @test sum(bondorder(pyridineoxide) .== 2) == 3
 end
 
 end # preprocess

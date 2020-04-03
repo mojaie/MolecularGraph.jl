@@ -226,8 +226,11 @@ function kekulize!(mol::SMILES)
         nodeattr(mol, i).isaromatic === true || continue
         if atomsymbol(mol)[i] === :C
             push!(nodes, i)
-        elseif atomsymbol(mol)[i] in (:N, :P, :As) && hcount(mol)[i] == 0
-            push!(nodes, i)
+        elseif atomsymbol(mol)[i] in (:N, :P, :As)
+            if (degree(mol, i) == 2 ||
+                (degree(mol, i) == 3 && nodeattr(mol, i).charge == 1))
+                push!(nodes, i)
+            end
         end
     end
     subg = nodesubgraph(mol, nodes)
