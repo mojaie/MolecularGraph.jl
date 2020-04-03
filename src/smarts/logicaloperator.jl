@@ -96,3 +96,16 @@ function lgnot!(state::SmartsParserState, func)
         return func(state)
     end
 end
+
+
+function collectand(cond::Pair)
+    res = Dict{Symbol,Any}()
+    if cond.first === :and
+        for s in cond.second
+            merge!(res, collectand(s))
+        end
+    else
+        res[cond.first] = cond.second
+    end
+    return res
+end

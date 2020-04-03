@@ -62,37 +62,33 @@ function atom!(state::SmilesParser)
         ca = read(state)
         @assert ca == ']' "(atom!) unexpected token: $(ca)"
         forward!(state)
-        prop = Dict()
-        # TODO: merge logical operator
-        if a.first == :and
-            for p in a.second
-                if p.first == :and
-                    for p2 in p.second
-                        prop[p2.first] = p2.second
-                    end
-                else
-                    prop[p.first] = p.second
-                end
-            end
-        else
-            prop[a.first] = a.second
-        end
-        return SmilesAtom(
-            prop[:atomsymbol],
-            get!(prop, :charge, 0),
+        prop = collectand(a)
+        @assert haskey(prop, :atomsymbol) || prop[:hcount] >= 1
+        atoms = [SmilesAtom(
+            get(prop, :atomsymbol, :H),
+            get(prop, :charge, 0),
             1,
-            get!(prop, :mass, nothing),
-            get!(prop, :isaromatic, false),
-            get!(prop, :stereo, :unspecified)
-        )
+            get(prop, :mass, nothing),
+            get(prop, :isaromatic, false),
+            get(prop, :stereo, :unspecified)
+        )]
+        hcnt = get(prop, :hcount, 0)
+        if !haskey(prop, :atomsymbol)
+            hcnt -= 1
+        end
+        for h in 1:hcnt
+            push!(atoms, SmilesAtom(:H))
+        end
+            
+        return atoms
     else
         a = atomsymbol!(state)
         if a === nothing
-            return
+            return SmilesAtom[]
         else
             sym = a.second[1].second
             arom = a.second[2].second
-            return SmilesAtom(sym, 0, 1, nothing, arom, :unspecified)
+            return [SmilesAtom(sym, 0, 1, nothing, arom, :unspecified)]
         end
     end
 end
@@ -108,13 +104,13 @@ function atom!(state::SmartsParser)
         cq = read(state)
         @assert cq == ']' "(atomquery!) unexpected token: $(cq)"
         forward!(state)
-        return SmartsAtom(q)
+        return [SmartsAtom(q)]
     else
         a = atomsymbol!(state)
         if a === nothing
-            return
+            return SmartsAtom[]
         else
-            return SmartsAtom(a)
+            return [SmartsAtom(a)]
         end
     end
 end
@@ -126,50 +122,43 @@ function atomprop!(state::SmartsParserState)
     """
     c = read(state)
     c2 = lookahead(state, 1)
-    atomsyms = keys(PERIODIC_TABLE)
-    if isuppercase(c)
-        # Non-organic atoms
-        c3 = lookahead(state, 2)
-        if string(c, c2, c3) in atomsyms
-            # Note: three-letter atoms (U-series) are not supported yet
-            forward!(state, 3)
-            return :atomsymbol => Symbol(c, c2, c3)
-        elseif string(c, c2) in atomsyms
-            forward!(state, 2)
-            return :atomsymbol => Symbol(c, c2)
+    if haskey(PERIODIC_TABLE, string(uppercase(c), c2))
+        # Two letter atoms
+        forward!(state, 2)
+        if string(uppercase(c), c2) in ("As", "Se")
+            return :and => (
+                :atomsymbol => Symbol(uppercase(c), c2),
+                :isaromatic => islowercase(c)
+            )
         end
-    end
-    # Organic atoms
-    a = atomsymbol!(state)
-    if a !== nothing
-        return a
-    end
-    # Hydrogen special cases
-    if c == 'H'
-        cb = lookahead(state, -1)
-        if c2 == ']' && (isdigit(cb) || cb == '[')
-            # Hydrogen atom
-            forward!(state)
-            return :atomsymbol => :H
-        elseif c2 == '+'
-            # Proton
-            forward!(state)
-            return :and => (:atomsymbol => :H, :charge => 1)
-        end
-    end
-    # Atom properties
-    if c in keys(SMARTS_ATOM_COND_SYMBOL)
+        @assert isuppercase(c)
+        return :atomsymbol => Symbol(c, c2)
+    elseif haskey(SMARTS_ATOM_COND_SYMBOL, c)
+        # Neighbor and ring conditions
         forward!(state)
         if isdigit(c2)
             num = parse(Int, c2)
             forward!(state)
         else
+            c in (:r, :R) && return :not => (:atom_sssrcount => 0)
             num = 1
         end
         return SMARTS_ATOM_COND_SYMBOL[c] => num
-    elseif isuppercase(c) && string(c) in atomsyms
-        # Single letter non-organic atoms
-        forward!(state, 1)
+    elseif c in ('A', 'a', '*')
+        forward!(state)
+        c == 'A' && return :isaromatic => false
+        c == 'a' && return :isaromatic => true
+        c == '*' && return :any => true
+    elseif haskey(PERIODIC_TABLE, string(uppercase(c)))
+        # Single letter atoms
+        forward!(state)
+        if uppercase(c) in "BCNOPS"
+            return :and => (
+                :atomsymbol => Symbol(uppercase(c)),
+                :isaromatic => islowercase(c)
+            )
+        end
+        @assert isuppercase(c)
         return :atomsymbol => Symbol(c)
     elseif c == '#'
         # Atomic number

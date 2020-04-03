@@ -58,19 +58,26 @@ function group!(state::SmartsParserState, bond)
     """ Group <- Atom ((Bond? Group) / Chain)* Chain
     """
     a = atom!(state)
-    if a === nothing
+    if isempty(a)
         # ex. CC((C)C)C should be CC(CC)C
         throw(ErrorException(
             "unexpected token: branch starts with '(' at $(state.pos)"))
     end
     state.node += 1
-    push!(state.nodeattrs, a)
+    push!(state.nodeattrs, popfirst!(a))
     if bond !== nothing
         # Connect branch
         push!(state.edges, (state.branch, state.node))
         push!(state.edgeattrs, bond)
     end
-    state.branch = state.node
+    center = state.node
+    for h in a
+        state.node += 1
+        push!(state.nodeattrs, h)
+        push!(state.edges, (center, state.node))
+        push!(state.edgeattrs, SmilesBond())
+    end
+    state.branch = center
     while true
         if read(state) == '('
             forward!(state)
@@ -87,8 +94,8 @@ function group!(state::SmartsParserState, bond)
                     "unexpected token: branch ends with ')' at $(state.pos)"))
             end
         else
-            chain!(state)
-            state.branch = state.node
+            ccen = chain!(state)
+            state.branch = ccen
             if state.done || read(state) in ")."
                 break
             end
@@ -136,7 +143,7 @@ function chain!(state::SmartsParserState)
 
         # Atom
         a = atom!(state)
-        if a === nothing
+        if isempty(a)
             c = read(state)
             @assert c in "().\0" "unexpected token: $(c) at $(state.pos)"
             if b == :disconn
@@ -146,7 +153,7 @@ function chain!(state::SmartsParserState)
             break
         else
             state.node += 1
-            push!(state.nodeattrs, a)
+            push!(state.nodeattrs, popfirst!(a))
         end
         if b == :disconn
             if state isa SmartsParser
@@ -161,6 +168,14 @@ function chain!(state::SmartsParserState)
             push!(state.edges, (u, state.node))
             push!(state.edgeattrs, b)
         end
-        u = state.node
+        center = state.node
+        for h in a
+            state.node += 1
+            push!(state.edges, (center, state.node))
+            push!(state.edgeattrs, SmilesBond())
+            push!(state.nodeattrs, h)
+        end
+        u = center
     end
+    return u
 end

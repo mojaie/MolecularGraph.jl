@@ -1,37 +1,32 @@
 
 @testset "stereo" begin
 
-@testset "addstereohydrogens" begin
-    LAla = parse(SMILES, "N[C@H](C)C(=O)O")
-    @test nodecount(LAla) == 6
-    LAla_ = addstereohydrogens(LAla)
-    @test nodecount(LAla_) == 7
-    @test LAla_.nodeattrs[2].stereo == :anticlockwise
-    @test LAla_.nodeattrs[3].symbol == :H
-end
-
-@testset "removestereohydrogens" begin
-    LAla1 = parse(SMILES, "N[C@@]([H])(C)C(=O)O")
+@testset "stereohydrogens" begin
+    LAla1 = parse(SMILES, "N[C@@H](C)C(=O)O")
     @test LAla1.nodeattrs[2].stereo == :clockwise
-    LAla1_ = removestereohydrogens(LAla1)
-    @test nodecount(LAla1_) == 6
-    @test LAla1_.nodeattrs[2].stereo == :clockwise
-    @test LAla1_.nodeattrs[3].symbol == :C
-    
+    LAla1 = removestereohydrogens(LAla1)
+    @test nodecount(LAla1) == 6
+    @test LAla1.nodeattrs[2].stereo == :clockwise
+    @test LAla1.nodeattrs[3].symbol == :C
+    LAla1 = addstereohydrogens(LAla1)
+    @test nodecount(LAla1) == 7
+    @test LAla1.nodeattrs[2].stereo == :clockwise
+    @test LAla1.nodeattrs[3].symbol == :H
+
     LAla2 = parse(SMILES, "N[C@@](C)([H])C(=O)O")
-    LAla2_ = removestereohydrogens(LAla2)
-    @test nodecount(LAla2_) == 6
-    @test LAla2_.nodeattrs[2].stereo == :anticlockwise
+    LAla2 = removestereohydrogens(LAla2)
+    @test nodecount(LAla2) == 6
+    @test LAla2.nodeattrs[2].stereo == :anticlockwise
     
     LAla3 = parse(SMILES, "[H][C@@](C)(N)C(=O)O")
-    LAla3_ = removestereohydrogens(LAla3)
-    @test nodecount(LAla3_) == 6
-    @test LAla3_.nodeattrs[1].stereo == :clockwise
+    LAla3 = removestereohydrogens(LAla3)
+    @test nodecount(LAla3) == 6
+    @test LAla3.nodeattrs[1].stereo == :clockwise
 
     LAla4 = parse(SMILES, "N[C@@](C)(C(=O)O)[H]")
-    LAla4_ = removestereohydrogens(LAla4)
-    @test nodecount(LAla4_) == 6
-    @test LAla4_.nodeattrs[2].stereo == :clockwise
+    LAla4 = removestereohydrogens(LAla4)
+    @test nodecount(LAla4) == 6
+    @test LAla4.nodeattrs[2].stereo == :clockwise
 end
 
 @testset "setdiastereosmiles" begin
