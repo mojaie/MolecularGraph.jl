@@ -85,9 +85,7 @@ isatomvisible(view::SubgraphView) = isatomvisible(view.graph)
 
 
 
-@cache function coords2d(mol::GraphMol; recalculate=false)
-    recalculate && return coordgen(mol)
-    nodeattrtype(mol) === SmilesAtom && return coordgen(mol)
+@cache function coords2d(mol::GraphMol)
     matrix = zeros(Float64, nodecount(mol), 2)
     for (i, node) in enumerate(nodeattrs(mol))
         matrix[i, :] = node.coords[1:2]
@@ -99,11 +97,11 @@ coords2d(view::SubgraphView) = coords2d(view.graph)
 
 
 
-function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
+@cache function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
     if nodeattrtype(mol) === SDFileAtom
         notation = getproperty.(edgeattrs(mol), :notation)
     else
-        notation = zeros(Int, edgecount(mol))
+        notation = mol.cache[:coordgenbond]
     end
     dbnt = setting[:double_bond_notation]
     bondorder_ = bondorder(mol)
@@ -191,6 +189,8 @@ Draw molecular image to the canvas.
 """
 function draw2d!(canvas::Canvas, mol::UndirectedGraph;
                  setting=copy(DRAW_SETTING), recalculate=false)
+    recalculate && coordgen!(mol)
+    nodeattrtype(mol) === SmilesAtom && coordgen!(mol)
     # Canvas settings
     initcanvas!(canvas, mol)
     canvas.valid || return
