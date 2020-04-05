@@ -9,40 +9,40 @@ export
 
 
 """
-    addstereohydrogens(mol::SMILES) -> SMILES
+    addstereohydrogens(mol::GraphMol) -> GraphMol
 
 Return new molecule with explicit hydrogen nodes attached to stereocenters.
 """
-function addstereohydrogens(mol::SMILES)
+function addstereohydrogens(mol::GraphMol)
     """
     [C@@H](C)(C)C -> [C@@]([H])(C)(C)C
     C[C@@H](C)C -> C[C@@]([H])(C)C
     """
     atoms = nodeattrs(mol)
     hcount_ = hcount(mol)
-    cpmol = graphmol(mol)
-    mapper = Dict{Int,Int}()
+    newmol = clone(mol)
+    mapper = Dict{Int,Int}() 
     offset = 0
     for i in 1:nodecount(mol)
-        mapper[i + offset] = i
+        mapper[i] = i + offset
         atoms[i].stereo === :unspecified && continue
         degree(mol, i) == 3 || continue
         hcount_[i] == 1 || continue
-        n = addnode!(cpmol, nodeattrtype(mol)(:H))
-        addedge!(cpmol, i, n, edgeattrtype(mol)())
+        n = addnode!(newmol, nodeattrtype(mol)(:H))
+        addedge!(newmol, i, n, edgeattrtype(mol)())
         offset += 1
-        mapper[i + offset] = n
+        mapper[n] = i + offset
     end
-    return remapnodes(cpmol, mapper)
+    return remapnodes(newmol, mapper)
 end
 
 
 """
-    removestereohydrogens(mol::SMILES) -> SMILES
+    removestereohydrogens(mol::GraphMol) -> GraphMol
 
-Return new molecule without explicit hydrogen nodes attached to the stereocenters.
+Return new molecule without explicit hydrogen nodes attached to stereocenters.
 """
-function removestereohydrogens(mol::SMILES)
+function removestereohydrogens(mol::GraphMol)
     """
     [C@@]([H])(C)(N)O -> [C@@H](C)(N)O
     ([H])[C@@](C)(N)O -> [C@@H](C)(N)O
@@ -50,27 +50,35 @@ function removestereohydrogens(mol::SMILES)
     C[C@@](N)([H])O -> C[C@H](N)O (reverse direction)
     C[C@@](N)(O)[H] -> C[C@@H](N)O
     """
-    cpmol = clone(mol)
-    hcount_ = hcount(cpmol)
-    atoms = nodeattrs(cpmol)
-    to_be_removed = Int[]
-    rev = Dict(:clockwise => :anticlockwise, :anticlockwise => :clockwise)
-    for c in 1:nodecount(cpmol)
+    atoms = nodeattrs(mol)
+    nodes_to_rm = Int[]
+    nodes_to_rev = Int[]
+    for c in 1:nodecount(mol)
         atoms[c].stereo === :unspecified && continue
-        degree(cpmol, c) == 4 || continue
-        hcount_[c] == 1 || continue
-        for (i, adj) in enumerate(sort(collect(adjacencies(cpmol, c))))
+        adjs = adjacencies(mol, c)
+        length(adjs) == 4 || continue
+        hs = Int[]
+        rev = false
+        for (i, adj) in enumerate(sort(collect(adjs)))
             if atoms[adj].symbol === :H
                 if i == 3
-                    a = setstereo(atoms[c], rev[atoms[c].stereo])
-                    setnodeattr!(cpmol, c, a)
+                    rev = true
                 end
-                push!(to_be_removed, adj)
+                push!(hs, adj)
             end
         end
+        length(hs) == 1 || continue
+        append!(nodes_to_rm, hs)
+        rev && push!(nodes_to_rev, c)
     end
-    ns = setdiff(nodeset(cpmol), to_be_removed)
-    return graphmol(nodesubgraph(cpmol, ns))
+    newmol = clone(mol)
+    for c in nodes_to_rev
+        a = setstereo(atoms[c],
+            atoms[c].stereo === :clockwise ? :anticlockwise : :clockwise)
+        setnodeattr!(newmol, c, a)
+    end
+    ns = setdiff(nodeset(mol), nodes_to_rm)
+    return graphmol(nodesubgraph(newmol, ns))
 end
 
 
@@ -173,10 +181,11 @@ end
 Optimize dashes and wedges representations. Typical stereocenters can be drawn as four bonds including only a wedge and/or a dash, so if there are too many dashes and wedges, some of them will be converted to normal single bond without changing any stereochemistry.
 """
 function optimizewedges!(mol::SDFile)
+    # TODO: no longer used
     edges = edgeattrs(mol)
     coords_ = coords2d(mol)
     for i in 1:nodecount(mol)
-        incs = incidences(mol, i)
+        incs = sort(collect(incidences(mol, i)))
         length(incs) in (3, 4) || continue
         upincs = Int[]
         downincs = Int[]
@@ -191,12 +200,12 @@ function optimizewedges!(mol::SDFile)
         newbonds = Tuple{Int,Int}[]
         if length(incs) == 4
             if length(upincs) == 3
-                downb = (setdiff(incs, upincs)[1], 6)
+                downb = (pop!(setdiff(incs, upincs)), 6)
                 others = [(inc, 0) for inc in upincs]
                 push!(newbonds, downb)
                 append!(newbonds, others)
             elseif length(downincs) == 3
-                upb = (setdiff(incs, downincs)[1], 1)
+                upb = (pop!(setdiff(incs, downincs)), 1)
                 others = [(inc, 0) for inc in downincs]
                 push!(newbonds, upb)
                 append!(newbonds, others)
@@ -251,18 +260,21 @@ function optimizewedges!(mol::SDFile)
             elseif length(downincs) == 3
                 append!(newbonds, [(inc, 0) for inc in downincs[1:2]])
             elseif length(upincs) == 2
-                downb = (setdiff(incs, upincs)[1], 6)
+                downb = (pop!(setdiff(incs, upincs)), 6)
                 others = [(inc, 0) for inc in upincs]
                 push!(newbonds, downb)
                 append!(newbonds, others)
             elseif length(downincs) == 2
-                upb = (setdiff(incs, downincs)[1], 1)
+                upb = (pop!(setdiff(incs, downincs)), 1)
                 others = [(inc, 0) for inc in downincs]
                 push!(newbonds, upb)
                 append!(newbonds, others)
             end
         end
         for (inc, notation) in newbonds
+            if mol.edges[inc][2] == i
+                mol.edges[inc] = (i, mol.edges[inc][1])  # Reverse edge
+            end
             b = setnotation(edges[inc], notation)
             setedgeattr!(mol, inc, b)
         end
@@ -275,64 +287,73 @@ end
     setstereocenter!(mol::SDFile)
 
 Set stereocenter information to Atom.stereo (`:unspecified`, `:clockwise`, `:anticlockwise` or `:atypical`). Clockwise/anticlockwise means the configuration of 2-4th nodes in index label order when we see the chiral center from the node labeled by the lowest index. If there is an implicit hydrogen, its index label will be regarded as the same as the stereocenter atom.
-
-Note that `setstereocenter!` will optimize dashes and wedges by using `optimizewedges!` inside it. If you do not want to change the bond notation, `clone` the molecule before running `setstereocenter!`.
 """
 function setstereocenter!(mol::SDFile)
-    optimizewedges!(mol)
     nodes = nodeattrs(mol)
     edges = edgeattrs(mol)
     coords_ = coords2d(mol)
     for i in 1:nodecount(mol)
+        nbrs = neighbors(mol, i)
+        length(nbrs) < 3 && continue # atoms attached to the chiral center
         adjs = Int[]
         upadjs = Int[]
         downadjs = Int[]
-        for (inc, adj) in neighbors(mol, i)
+        for (inc, adj) in nbrs
             push!(adjs, adj)
-            if edges[inc].notation == 1
-                push!(mol.edges[inc][1] == i ? upadjs : downadjs, adj)
-            elseif edges[inc].notation == 6
+            if edges[inc].notation == 1 && mol.edges[inc][1] == i
+                push!(upadjs, adj)
+            elseif edges[inc].notation == 6 && mol.edges[inc][1] == i
                 push!(downadjs, adj)
             end
         end
         (isempty(upadjs) && isempty(downadjs)) && continue  # unspecified
-        length(adjs) < 3 && continue # atoms attached to the chiral center
-        stereo = :unspecified
-        if length(adjs) > 4  # Hypervalent
-            stereo = :atypical
-        elseif length(adjs) == 4
-            if length(upadjs) > 1 || length(downadjs) > 1
-                stereo = :atypical  # Not pyramidal
-            else
-                # Select a pivot
-                pivot = isempty(upadjs) ? downadjs[1] : upadjs[1]
-                tri = setdiff(adjs, [pivot])
-                quad = adjs
-                rev = isempty(upadjs) ? true : false
+        if (length(adjs) > 4 ||
+            length(adjs) - length(upadjs) - length(downadjs) < 2)
+            # Hypervalent, not sp3, axial chirality or wrong wedges
+            a = setstereo(nodes[i], :atypical)
+            setnodeattr!(mol, i, a)
+            continue
+        end
+        if length(adjs) == 4
+            # Select a pivot
+            pivot = isempty(upadjs) ? downadjs[1] : upadjs[1]
+            tri = setdiff(adjs, [pivot])
+            quad = adjs
+            rev = isempty(upadjs) ? true : false
+            # Check wedges
+            if length(downadjs) == 2 || length(upadjs) == 2
+                ordered = anglesort(coords_, i, pivot, tri)
+                sec = isempty(upadjs) ? downadjs[2] : upadjs[2]
+                if findfirst(isequal(sec), ordered) != 2
+                    a = setstereo(nodes[i], :atypical)
+                    setnodeattr!(mol, i, a)
+                    continue
+                end
+            elseif length(downadjs) == 1 && length(upadjs) == 1
+                ordered = anglesort(coords_, i, pivot, tri)
+                if findfirst(isequal(downadjs[1]), ordered) == 2
+                    a = setstereo(nodes[i], :atypical)
+                    setnodeattr!(mol, i, a)
+                    continue
+                end
             end
         elseif length(adjs) == 3
-            if length(upadjs) + length(downadjs) > 1
-                stereo = :atypical  # Axial chirality?
-            else
-                # Implicit hydrogen is the pivot
-                pivot = i
-                tri = adjs
-                quad = union(adjs, [i])
-                rev = isempty(upadjs) ? true : false
-            end
+            # Implicit hydrogen is the pivot
+            pivot = i
+            tri = adjs
+            quad = union(adjs, [i])
+            rev = isempty(upadjs) ? false : true
         end
-        if stereo === :unspecified
-            cw = isclockwise(toarray(coords_, sort(tri)))
-            if rev
-                cw = !cw
-            end
-            # Arrange the configuration so that the lowest index node is the pivot.
-            pividx = findfirst(isequal(pivot), sort(quad))
-            if pividx in (2, 4)
-                cw = !cw
-            end
-            stereo = cw ? :clockwise : :anticlockwise
+        cw = isclockwise(toarray(coords_, sort(tri)))
+        if rev
+            cw = !cw
         end
+        # Arrange the configuration so that the lowest index node is the pivot.
+        pividx = findfirst(isequal(pivot), sort(quad))
+        if pividx in (2, 4)
+            cw = !cw
+        end
+        stereo = cw ? :clockwise : :anticlockwise
         a = setstereo(nodes[i], stereo)
         setnodeattr!(mol, i, a)
     end

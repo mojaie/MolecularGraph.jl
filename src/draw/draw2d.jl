@@ -98,10 +98,10 @@ coords2d(view::SubgraphView) = coords2d(view.graph)
 
 
 @cache function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
-    if nodeattrtype(mol) === SDFileAtom
-        notation = getproperty.(edgeattrs(mol), :notation)
-    else
+    if haskey(mol.cache, :coordgenbond)
         notation = mol.cache[:coordgenbond]
+    elseif nodeattrtype(mol) === SDFileAtom
+        notation = getproperty.(edgeattrs(mol), :notation)
     end
     dbnt = setting[:double_bond_notation]
     bondorder_ = bondorder(mol)
@@ -188,8 +188,8 @@ atomhtml(
 Draw molecular image to the canvas.
 """
 function draw2d!(canvas::Canvas, mol::UndirectedGraph;
-                 setting=copy(DRAW_SETTING), recalculate=false)
-    recalculate && coordgen!(mol)
+                 setting=copy(DRAW_SETTING), recalculatecoords=false)
+    recalculatecoords && coordgen!(mol)
     nodeattrtype(mol) === SmilesAtom && coordgen!(mol)
     # Canvas settings
     initcanvas!(canvas, mol)

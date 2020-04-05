@@ -40,7 +40,16 @@ function coordgen!(mol::GraphMol)
         nattr = nodeattr(mol, i)
         nattr.stereo in (:clockwise, :anticlockwise) || continue
         direction = nattr.stereo === :clockwise
-        f, s, t, _ = sort(collect(adjacencies(mol, i)))
+        if degree(mol, i) == 4
+            f, s, t, _ = sort(collect(adjacencies(mol, i)))
+        elseif degree(mol, i) == 3
+            f, s, t = sort(collect(adjacencies(mol, i)))
+            if i < f || (i > s && i < t) # implicit H is the 1st or 3rd
+                direction = !direction
+            end
+        else
+            continue
+        end
         cxx"""
             sketcherMinimizerAtomChiralityInfo getchiralityinfo(
                 sketcherMinimizerAtom* lookingFrom,
@@ -98,17 +107,17 @@ function coordgen!(mol::GraphMol)
     end
     notation = Int[]
     for i in 1:edgecount(mol)
-        w = @cxx bonds[i]->isWedge
-        r = @cxx bonds[i]->isReversed
-        e = mol.edges[i]
-        if !w
+        hasstereo = @cxx bonds[i]->hasStereochemistryDisplay
+        if !hasstereo
             push!(notation, 0)
-        else
-            push!(notation, 1)
-            # TODO: reconsider bond notation
-            if r
-                mol.edges[i] = (e[2], e[1])
-            end
+            continue
+        end
+        iswedge = @cxx bonds[i]->isWedge
+        isrev = @cxx bonds[i]->isReversed
+        push!(notation, iswedge ? 1 : 6)
+        u, v = mol.edges[i]
+        if isrev
+            mol.edges[i] = (v, u)
         end
     end
     mol.cache[:coords2d] = coords

@@ -101,16 +101,17 @@ end
 
 
 function remapnodes(graph::GraphMol, mapping::Dict{Int,Int})
-    newg = graphmol(nodeattrtype(graph), edgeattrtype(graph))
+    newg = graphmol(graph)
     for i in 1:nodecount(graph)
-        push!(newg.nodeattrs, graph.nodeattrs[mapping[i]])
-        d = Dict(k => mapping[v] for (k, v) in graph.neighbormap[mapping[i]])
-        push!(newg.neighbormap, d)
+        newg.nodeattrs[mapping[i]] = graph.nodeattrs[i]
+        newg.neighbormap[mapping[i]] = Dict(
+            k => mapping[v] for (k, v) in graph.neighbormap[i])
     end
-    for (u, v) in graph.edges
-        push!(newg.edges, (mapping[u], mapping[v]))
+    for i in 1:edgecount(graph)
+        u, v = graph.edges[i]
+        newg.edges[i] = (mapping[u], mapping[v])
+        newg.edgeattrs[i] = graph.edgeattrs[i]
     end
-    append!(newg.edgeattrs, graph.edgeattrs)
     return newg
 end
 

@@ -104,7 +104,7 @@ attribute of svg tag).
 """
 function drawsvg(mol::UndirectedGraph, width::Int, height::Int; kwargs...)
     canvas = SvgCanvas()
-    draw2d!(canvas, mol)
+    draw2d!(canvas, mol; kwargs...)
     if haskey(kwargs, :highlight)
         sethighlight!(canvas, kwargs[:highlight])
     end
