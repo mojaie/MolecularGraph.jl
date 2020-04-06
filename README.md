@@ -42,13 +42,17 @@ MolecularGraph.jl
   - Ring, scaffold, connectivity
   - Graph traversal
 
+- 2D geometry
+  - Stereochemistry drawing
+  - Coordinates generation ([coordgenlibs](https://github.com/schrodinger/coordgenlibs))
+
 - Sub(super)structure
   - Library search by using SMARTS query
   - Subgraph isomorphism detection with VF2 algorithm
   - Node-induced and edge-induced
   - Constraints (mandatory/forbidden mapping)
 
-- Ontology-based functional group detection/analysis
+- SMARTS and terminology graph-based functional group analysis
 
 - Maximum common substructure (MCS)
   - By clique detection algorithm
