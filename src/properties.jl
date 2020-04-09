@@ -79,7 +79,7 @@ bond_sssrcount(view::SubgraphView) = bond_sssrcount(view.graph)
 """
     atomsymbol(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of atom symbols within the molecule that have `n`
+Return the size ``n`` vector of atom symbols within the molecule that have ``n``
 atoms.
 """
 @cache atomsymbol(mol::GraphMol) = getproperty.(nodeattrs(mol), :symbol)
@@ -89,7 +89,7 @@ atomsymbol(view::SubgraphView) = atomsymbol(view.graph)
 """
     charge(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of atom charges within the molecule that have `n`
+Return the size ``n`` vector of atom charges within the molecule that have ``n``
 atoms.
 """
 @cache charge(mol::GraphMol) = getproperty.(nodeattrs(mol), :charge)
@@ -99,8 +99,8 @@ charge(view::SubgraphView) = charge(view.graph)
 """
     multiplicity(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of the atom multiplicity within the molecule that
-have `n` atoms (1: non-radical, 2: radical, 3: biradical).
+Return the size ``n`` vector of atom multiplicities within the molecule that
+have ``n`` atoms (1: non-radical, 2: radical, 3: biradical).
 """
 @cache multiplicity(mol::GraphMol) = getproperty.(nodeattrs(mol), :multiplicity)
 multiplicity(view::SubgraphView) = multiplicity(view.graph)
@@ -109,7 +109,7 @@ multiplicity(view::SubgraphView) = multiplicity(view.graph)
 """
     bondorder(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of the bond order within the molecule that have `n`
+Return the size ``n`` vector of bond orders within the molecule that have ``n``
 bonds.
 """
 @cache bondorder(mol::GraphMol) = getproperty.(edgeattrs(mol), :order)
@@ -119,8 +119,8 @@ bondorder(view::SubgraphView) = bondorder(view.graph)
 """
     nodedegree(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of the node degree within the molecular graph that
-have `n` atom nodes.
+Return the size ``n`` vector of node degrees within the molecular graph that
+have ``n`` atom nodes.
 
 `nodedegree` values correspond to SMARTS `D` property.
 """
@@ -128,60 +128,17 @@ have `n` atom nodes.
 nodedegree(view::SubgraphView) = nodedegree(view.graph)
 
 
-"""
-    apparentvalence(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of the apparent valence (the sum of incident bond
-order) within the molecule that have `n` atoms.
-"""
-function apparentvalence(mol::GraphMol)
-    vec = zeros(Int, nodecount(mol))
-    bondorder_ = bondorder(mol)
-    for i in 1:nodecount(mol)
-        for inc in incidences(mol, i)
-            vec[i] += bondorder_[inc]
-        end
-    end
-    return vec
-end
-
-apparentvalence(view::SubgraphView) = apparentvalence(view.graph)
-
-
-"""
-    valence(mol::GraphMol) -> Vector{Union{Int,Nothing}}
-
-Return the size `n` vector of the intrinsic valence (with considering implicit
-hydrogens) within the molecule that have `n` atoms.
-
-`valence` values correspond to SMARTS `v` property. Note that implicit hydrogens are available for only organic atoms. `valence` values of inorganic atoms would be `nothing`.
-"""
-@cache function valence(mol::GraphMol)
-    defs = Dict(
-        :H => 1, :B => 3, :C => 4, :N => 3, :O => 2, :F => 1,
-        :Si => 4, :P => 3, :S => 2, :Cl => 1,
-        :As => 3, :Se => 2, :Br => 1, :I => 1
-    )
-    vec = Union{Int,Nothing}[]
-    for (sym, chg) in zip(atomsymbol(mol), charge(mol))
-        num = get(defs, sym, nothing)
-        v = num === nothing ? nothing : num + chg
-        push!(vec, v)
-    end
-    return vec
-end
-
-valence(view::SubgraphView) = valence(view.graph)
-
+# Valence
 
 """
     lonepair(mol::GraphMol) -> Vector{Union{Int,Nothing}}
 
-Return the size `n` vector of the number of lone pairs within the molecule that
-have `n` atoms.
+Return the size ``n`` vector of the number of lone pairs within the molecule that
+have ``n`` atoms.
 
 Note that implicit hydrogens are available for only organic atoms. The lonepair
-value of inorganic atoms would be `nothing`.
+value of inorganic atoms would be `nothing`. The result can take negative value if the atom has empty valence shells.
 """
 function lonepair(mol::GraphMol)
     defs = Dict(
@@ -201,11 +158,51 @@ end
 lonepair(view::SubgraphView) = lonepair(view.graph)
 
 
+function apparentvalence(mol::GraphMol)
+    vec = zeros(Int, nodecount(mol))
+    bondorder_ = bondorder(mol)
+    for i in 1:nodecount(mol)
+        for inc in incidences(mol, i)
+            vec[i] += bondorder_[inc]
+        end
+    end
+    return vec
+end
+
+apparentvalence(view::SubgraphView) = apparentvalence(view.graph)
+
+
+"""
+    valence(mol::GraphMol) -> Vector{Union{Int,Nothing}}
+
+Return the size ``n`` vector of intrinsic valences (with considering implicit
+hydrogens) within the molecule that have ``n`` atoms.
+
+`valence` values correspond to SMARTS `v` property. `valence` values of inorganic atoms would be `nothing`.
+"""
+@cache function valence(mol::GraphMol)
+    vec = Union{Int,Nothing}[]
+    atomsymbol_ = atomsymbol(mol)
+    lonepair_ = lonepair(mol)
+    for i in 1:nodecount(mol)
+        if lonepair_[i] === nothing
+            push!(vec, nothing)
+        elseif atomsymbol_[i] === :H
+            push!(vec, 1)
+        else
+            push!(vec, 4 - abs(lonepair_[i]))
+        end
+    end
+    return vec
+end
+
+valence(view::SubgraphView) = valence(view.graph)
+
+
 """
     explicithcount(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of the number of adjacent explicit hydrogen nodes within
-the molecule that have `n` atoms.
+Return the size ``n`` vector of the number of adjacent explicit hydrogen nodes within the molecule that have ``n`` atoms.
 """
 @cache function explicithcount(mol::GraphMol)
     vec = zeros(Int, nodecount(mol))
@@ -226,8 +223,8 @@ explicithcount(view::SubgraphView) = explicithcount(view.graph)
 """
     implicithcount(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of the number of implicit hydrogens within
-the molecule that have `n` atoms.
+Return the size ``n`` vector of the number of implicit hydrogens within
+the molecule that have ``n`` atoms.
 """
 @cache function implicithcount(mol::GraphMol)
     hcnt = (v, av) -> v === nothing ? 0 : max(0, v - av)
@@ -240,8 +237,8 @@ implicithcount(view::SubgraphView) = implicithcount(view.graph)
 """
     heavyatomcount(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of the number of adjacent non-hydrogen atoms within
-the molecule that have `n` atoms.
+Return the size ``n`` vector of the number of adjacent non-hydrogen atoms within
+the molecule that have ``n`` atoms.
 """
 heavyatomcount(mol::GraphMol) = nodedegree(mol) - explicithcount(mol)
 heavyatomcount(view::SubgraphView) = heavyatomcount(view.graph)
@@ -250,7 +247,7 @@ heavyatomcount(view::SubgraphView) = heavyatomcount(view.graph)
 """
     hcount(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of the total number of hydrogens attached to the atom within the molecule that have `n` atoms.
+Return the size ``n`` vector of the total number of hydrogens attached to the atom within the molecule that have ``n`` atoms.
 
 `hcount` values correspond to SMARTS `H` property.
 """
@@ -261,7 +258,7 @@ hcount(view::SubgraphView) = hcount(view.graph)
 """
     connectivity(mol::GraphMol) -> Vector{Int}
 
-Return the size `n` vector of the total number of adjacent atoms (including implicit hydrogens) within the molecule that have `n` atoms.
+Return the size ``n`` vector of the total number of adjacent atoms (including implicit hydrogens) within the molecule that have ``n`` atoms.
 
 `connectivity` values correspond to SMARTS `X` property.
 """
@@ -269,8 +266,23 @@ Return the size `n` vector of the total number of adjacent atoms (including impl
 connectivity(view::SubgraphView) = connectivity(view.graph)
 
 
+
 # Hybridization
 
+"""
+    pielectron(mol::GraphMol) -> Vector{Int}
+
+Return the size ``n`` vector of the number of ``\\pi`` electrons (including implicit hydrogens) within the molecule that have ``n`` atoms.
+
+The ``\\pi`` electron enumelation is based on the following simple rules.
+
+- Any atom incident to a double bond -> +1
+- Any atom incident to two double bond -> +2
+- Any atom incident to a triple bond -> +1
+- Uncharged N and O not incident to any multiple bonds and adjacent to atoms described above -> +2
+
+These rules are applied for only typical organic atoms. The values for inorganic atoms will be 0.
+"""
 @cache function pielectron(mol::GraphMol)
     atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)
@@ -280,7 +292,7 @@ connectivity(view::SubgraphView) = connectivity(view.graph)
         vec[i] = pie_[i]
         atomsymbol_[i] in (:N, :O) || continue
         for adj in adjacencies(mol, i)
-            if pie_[i] == 0 && pie_[adj] == 1 && charge_[i] == 0
+            if pie_[i] == 0 && pie_[adj] > 0 && charge_[i] == 0
                 vec[i] = 2
                 break
             end
@@ -292,6 +304,13 @@ end
 pielectron(view::SubgraphView) = pielectron(view.graph)
 
 
+"""
+    hybridization(mol::GraphMol) -> Vector{Int}
+
+Return the size ``n`` vector of orbital hybridization symbols (`:sp3`, `:sp2`, `:sp`, `:none`) within the molecule that have ``n`` atoms.
+
+These hybridizations are for only typical organic atoms. Inorganic atoms and other orbitals like s, sp3d and sp3d2 will be `:none`.
+"""
 @cache function hybridization(mol::GraphMol)
     atomsymbol_ = atomsymbol(mol)
     connectivity_ = connectivity(mol)

@@ -39,6 +39,11 @@ end
     @test valence(pyridineoxide) == [4, 1, 4, 4, 4, 4, 4]
     @test lonepair(pyridineoxide) == [0, 3, 0, 0, 0, 0, 0]
     @test implicithcount(pyridineoxide) == [0, 0, 1, 1, 1, 1, 1]
+    
+    trifluoroborate = smilestomol("C[B-](F)(F)F")
+    @test valence(trifluoroborate) == [4, 4, 1, 1, 1]
+    @test lonepair(trifluoroborate) == [0, 0, 3, 3, 3]
+    @test implicithcount(trifluoroborate) == [3, 0, 0, 0, 0]
 
     etmacl = smilestomol("[H]C([H])([H])C[Mg][Cl]")
     @test valence(etmacl) == [1, 4, 1, 1, 4, nothing, 1]
