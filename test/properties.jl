@@ -13,20 +13,59 @@
     @test !isringbond(biphenyl)[7]
 end
 
+@testset "elements" begin
+    sodiumsulfate = smilestomol("O=S(=O)([O-])[O-].[Na+].[Na+]")
+    @test atomsymbol(sodiumsulfate) == [:O, :S, :O, :O, :O, :Na, :Na]
+    @test bondorder(sodiumsulfate) == [2, 2, 1, 1]
+    @test charge(sodiumsulfate) == [0, 0, 0, -1, -1, 1, 1]
+    @test nodedegree(sodiumsulfate) == [1, 4, 1, 1, 1, 0, 0]
 
-@testset "elemental" begin
+    isocyanurate = smilestomol("ClN1C(=O)N(Cl)C(=O)N(Cl)C1=O")
+    @test atomsymbol(isocyanurate) == [
+        :Cl, :N, :C, :O, :N, :Cl, :C, :O, :N, :Cl, :C, :O]
+    @test bondorder(isocyanurate) == [
+        1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 2]
+    @test all(charge(isocyanurate) .== 0)
+    @test nodedegree(isocyanurate) == [1, 3, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1]
+end
+
+@testset "valence" begin
+    atoms = smilestomol("B.C.N.O.F.[Si].P.S.Cl.[As].[Se].Br.I")
+    @test valence(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
+    @test lonepair(atoms) == [-1, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 3]
+    @test implicithcount(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
+    
+    pyridineoxide = smilestomol("[N+]1([O-])=CC=CC=C1")
+    @test valence(pyridineoxide) == [4, 1, 4, 4, 4, 4, 4]
+    @test lonepair(pyridineoxide) == [0, 3, 0, 0, 0, 0, 0]
+    @test implicithcount(pyridineoxide) == [0, 0, 1, 1, 1, 1, 1]
+
+    etmacl = smilestomol("[H]C([H])([H])C[Mg][Cl]")
+    @test valence(etmacl) == [1, 4, 1, 1, 4, nothing, 1]
+    @test lonepair(etmacl) == [0, 0, 0, 0, 0, nothing, 3]
+    @test implicithcount(etmacl) == [0, 0, 0, 0, 2, 0, 0]
+    @test explicithcount(etmacl) == [0, 3, 0, 0, 0, 0, 0]
+    @test hcount(etmacl) == [0, 3, 0, 0, 2, 0, 0]
+    @test heavyatomcount(etmacl) == [1, 1, 1, 1, 2, 2, 1]
+    @test connectivity(etmacl) == [1, 4, 1, 1, 4, 2, 1]
+end
+
+@testset "hybridization" begin
     alkyne = smilestomol("CC=CC#C")
     @test pielectron(alkyne) == [0, 1, 1, 2, 2]
-    pyrrole = smilestomol("C1=CC=CN1")
-    @test pielectron(pyrrole) == [1, 1, 1, 1, 0]
-    azide = smilestomol("CC(=O)N=N=N")
+    @test hybridization(alkyne) == [:sp3, :sp2, :sp2, :sp, :sp]
+    
+    anilinium = smilestomol("C1=CC=CC=C1[N+]")
+    @test pielectron(anilinium) == [1, 1, 1, 1, 1, 1, 0]
+    @test hybridization(anilinium) == [:sp2, :sp2, :sp2, :sp2, :sp2, :sp2, :sp3]
+
+    azide = smilestomol("CC(=O)N=[N+]=[N-]")
     @test pielectron(azide) == [0, 1, 1, 1, 2, 1]
-    amide = smilestomol("CCC(=O)N")
-    @test ishacceptor(amide) == [0, 0, 0, 1, 1]
-    @test ishdonor(amide) == [0, 0, 0, 0, 1]
-    fluoro = smilestomol("CCN(CO)CF")
-    @test ishacceptor(fluoro) == [0, 0, 1, 0, 1, 0, 1]
-    @test ishdonor(fluoro) == [0, 0, 0, 0, 1, 0, 0]
+    @test hybridization(azide) == [:sp3, :sp2, :sp2, :sp2, :sp, :sp2]
+
+    pyrrole = smilestomol("C1=CC=CN1")
+    @test pielectron(pyrrole) == [1, 1, 1, 1, 2]
+    @test hybridization(pyrrole) == [:sp2, :sp2, :sp2, :sp2, :sp2]
 end
 
 @testset "rotatable" begin
@@ -104,6 +143,18 @@ end
 
     pyromellitimide = smilestomol("C1(=O)NC(=O)C=2C1=CC=3C(=O)NC(=O)C=3C=2")
     @test count(isaromatic(pyromellitimide)) == 6
+    
+    # TODO: how to deal with tautomerism
+    isocyanurate = smilestomol("ClN1C(=O)N(Cl)C(=O)N(Cl)C1=O")
+end
+
+@testset "properties" begin
+    amide = smilestomol("CCC(=O)N")
+    @test hacceptorcount(amide) == 2
+    @test hdonorcount(amide) == 1
+    fluoro = smilestomol("CCN(CO)CF")
+    @test hacceptorcount(fluoro) == 3
+    @test hdonorcount(fluoro) == 1
 end
 
 end # properties

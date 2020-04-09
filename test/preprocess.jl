@@ -1,6 +1,22 @@
 
 @testset "preprocess" begin
 
+@testset "kekulize" begin
+    furan = smilestomol("o1cccc1")
+    furan = kekulize(furan)
+    @test edgeattr(furan, 2).order == 2
+    @test edgeattr(furan, 4).order == 2
+
+    pyrene = smilestomol("c1cc2cccc3ccc4cccc1c4c32")
+    pyrene = kekulize(pyrene)
+    @test sum(bondorder(pyrene) .== 1) == 11
+    @test sum(bondorder(pyrene) .== 2) == 8
+    
+    pyridineoxide = smilestomol("[n+]1([O-])ccccc1")
+    pyridineoxide = kekulize(pyridineoxide)
+    @test sum(bondorder(pyridineoxide) .== 2) == 3
+end
+
 @testset "allhydrogens" begin
     ethanol = smilestomol("[H]C([H])([H])C([H])([H])O")
     @test issetequal(allhydrogens(ethanol), [1, 3, 4, 6, 7])
@@ -21,7 +37,7 @@ end
 
 @testset "addhydrogens" begin
     neop = smilestomol("CC(C)(C)CO")
-    addhydrogens!(neop)
+    neop = addhydrogens(neop)
     @test nodecount(neop) == 18
     @test edgecount(neop) == 17
 end
@@ -34,49 +50,92 @@ end
     @test edgecount(lc) == 5
 end
 
-@testset "neutralize_acids" begin
+@testset "protonateacids" begin
     AcOH = smilestomol("CC(=O)[O-]")
-    neutralizeacids!(AcOH)
+    AcOH = protonateacids(AcOH)
     @test nodeattr(AcOH, 4).charge == 0
+
+    thiol = smilestomol("CC[S-]")
+    thiol = protonateacids(thiol)
+    @test nodeattr(thiol, 3).charge == 0
+
+    noxide = smilestomol("[n+]1([O-])ccccc1")
+    noxide = protonateacids(noxide)
+    @test nodeattr(noxide, 1).charge == 1
 end
 
-@testset "neutralize_oniums" begin
+@testset "deprotonateoniums" begin
     pyrrolidinium = smilestomol("C1[N+]CCC1")
-    neutralizeoniums!(pyrrolidinium)
+    pyrrolidinium = deprotonateoniums(pyrrolidinium)
     @test nodeattr(pyrrolidinium, 2).charge == 0
+
+    oxonium = smilestomol("[H][O+]([H])[H]")
+    oxonium = deprotonateoniums(oxonium)
+    @test nodeattr(oxonium, 2).charge == 0
+
+    ammonium = smilestomol("C[N+](C)(C)C")
+    ammonium = deprotonateoniums(ammonium)
+    @test nodeattr(ammonium, 2).charge == 1
 end
 
-@testset "depolarize" begin
+@testset "polarize" begin
     acetone = smilestomol("C[C+]([O-])C")
-    depolarize!(acetone)
+    acetone = depolarize(acetone)
     @test nodeattr(acetone, 2).charge == 0
     @test nodeattr(acetone, 3).charge == 0
     @test edgeattr(acetone, 2).order == 2
+    acetone = polarize(acetone)
+    @test nodeattr(acetone, 2).charge == 0
+    @test nodeattr(acetone, 3).charge == 0
+    @test edgeattr(acetone, 2).order == 2
+
+    phosphorylCl = smilestomol("[O-][P+](Cl)(Cl)Cl")
+    phosphorylCl = depolarize(phosphorylCl)
+    @test nodeattr(phosphorylCl, 1).charge == 0
+    @test nodeattr(phosphorylCl, 1).charge == 0
+    @test edgeattr(phosphorylCl, 1).order == 2
+    phosphorylCl = polarize(phosphorylCl)
+    @test nodeattr(phosphorylCl, 1).charge == 0
+    @test nodeattr(phosphorylCl, 1).charge == 0
+    @test edgeattr(phosphorylCl, 1).order == 2
+
+    noxide = smilestomol("[n]1(=O)ccccc1")
+    noxide = polarize(noxide)
+    @test nodeattr(noxide, 1).charge == 1
+    @test nodeattr(noxide, 2).charge == -1
+    @test edgeattr(noxide, 1).order == 1
+    noxide = depolarize(noxide)
+    @test nodeattr(noxide, 1).charge == 1
+    @test nodeattr(noxide, 2).charge == -1
+    @test edgeattr(noxide, 1).order == 1
+    
+    dmso = smilestomol("CS(=O)C")
+    dmso = polarize(dmso)
+    @test nodeattr(dmso, 2).charge == 1
+    @test nodeattr(dmso, 3).charge == -1
+    @test edgeattr(dmso, 2).order == 1
+    dmso = depolarize(dmso)
+    @test nodeattr(dmso, 2).charge == 1
+    @test nodeattr(dmso, 3).charge == -1
+    @test edgeattr(dmso, 2).order == 1
+    dmso = depolarize(dmso, positive=[:S])
+    @test nodeattr(dmso, 2).charge == 0
+    @test nodeattr(dmso, 3).charge == 0
+    @test edgeattr(dmso, 2).order == 2
 end
 
-@testset "toallenelike" begin
+@testset "13dipole" begin
     me_azide = smilestomol("C[N-][N+]#N")
-    toallenelike!(me_azide)
+    me_azide = toallenelike(me_azide)
     @test nodeattr(me_azide, 2).charge == 0
     @test nodeattr(me_azide, 4).charge == -1
     @test edgeattr(me_azide, 2).order == 2
     @test edgeattr(me_azide, 3).order == 2
-end
-
-@testset "kekulize" begin
-    furan = smilestomol("o1cccc1")
-    kekulize!(furan)
-    @test edgeattr(furan, 2).order == 2
-    @test edgeattr(furan, 4).order == 2
-
-    pyrene = smilestomol("c1cc2cccc3ccc4cccc1c4c32")
-    kekulize!(pyrene)
-    @test sum(bondorder(pyrene) .== 1) == 11
-    @test sum(bondorder(pyrene) .== 2) == 8
-    
-    pyridineoxide = smilestomol("[n+]1(O-)ccccc1")
-    kekulize!(pyridineoxide)
-    @test sum(bondorder(pyridineoxide) .== 2) == 3
+    me_azide = totriplebond(me_azide)
+    @test nodeattr(me_azide, 2).charge == -1
+    @test nodeattr(me_azide, 4).charge == 0
+    @test edgeattr(me_azide, 2).order == 1
+    @test edgeattr(me_azide, 3).order == 3
 end
 
 end # preprocess

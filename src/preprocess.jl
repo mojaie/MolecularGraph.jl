@@ -4,12 +4,13 @@
 #
 
 export
+    kekulize,
     trivialhydrogens, allhydrogens,
-    removehydrogens, addhydrogens!,
+    removehydrogens, addhydrogens,
     largestcomponentnodes, extractlargestcomponent,
-    neutralizeacids!, neutralizeoniums!, depolarize!, toallenelike!,
-    kekulize!,
-    preprocess!
+    protonateacids, deprotonateoniums,
+    depolarize, polarize, totriplebond, toallenelike
+
 
 # TODO: large conjugated system
 # TODO: salts and waters should detected by functional group analysis
@@ -17,6 +18,42 @@ export
 # maleate, fumarate, succinate, citrate, tartrate, oxalate,
 # mesylate, tosylate, besylate,
 # benzoate, gluconate
+
+
+"""
+    kekulize(mol::SMILES) -> SMILES
+
+Return the molecule with SMILES aromatic bonds kekulized.
+
+SMILES allows aromatic atoms in small letters - b, c, n, o, p, s, [as] and [se]. Once these are stored in `SmilesAtom.isaromatic` field, then `kekulize` will place double bonds to satisfy valences.
+
+Kekulization should be applied for molecules parsed from SMILES. Otherwise, some bond valence and implicit hydrogen properties would be wrong.
+"""
+function kekulize(mol::SMILES)
+    nodes = Set{Int}()
+    for i in 1:nodecount(mol)
+        nodeattr(mol, i).isaromatic || continue
+        if atomsymbol(mol)[i] === :C
+            push!(nodes, i)
+        elseif atomsymbol(mol)[i] in (:N, :P, :As)
+            if (degree(mol, i) == 2 ||
+                (degree(mol, i) == 3 && nodeattr(mol, i).charge == 1))
+                push!(nodes, i)
+            end
+        end
+    end
+    subg = nodesubgraph(mol, nodes)
+    a, b = twocoloring(subg)
+    adjmap = Dict{Int,Set{Int}}(
+        i => adjacencies(subg, i) for i in nodeset(subg))
+    mapping = maxcardmap(a, b, adjmap)
+    newmol = graphmol(mol)
+    for (u, v) in mapping
+        e = findedgekey(mol, u, v)
+        setedgeattr!(newmol, e, setorder(edgeattr(newmol, e), 2))
+    end
+    return newmol
+end
 
 
 """
@@ -68,10 +105,9 @@ end
 """
     removehydrogens(mol::GraphMol) -> GraphMol
 
-A convenient method that returns the molecule with hydrogen nodes removed.
+Return the molecule with hydrogen nodes removed.
 
 If option `all` is set to true (default), all hydrogens will be removed, otherwise only trivial hydrogens will be removed (see [`trivialhydrogens`](@ref)).
-
 """
 function removehydrogens(mol::GraphMol; all=true)
     hydrogens = all ? allhydrogens : trivialhydrogens
@@ -81,20 +117,19 @@ end
 
 
 """
-    addhydrogens!(mol::GraphMol) -> GraphMol
+    addhydrogens(mol::GraphMol) -> GraphMol
 
-Add hydrogen nodes to the molecular graph explicitly.
-
-Note that this function edits `Atom` and `Bond` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
+Return the molecule with all hydrogen nodes explicitly attached.
 """
-function addhydrogens!(mol::GraphMol)
+function addhydrogens(mol::GraphMol{A,B}) where {A<:Atom,B<:Bond}
     implicithcount_ = implicithcount(mol)
+    newmol = graphmol(mol)
     for i in 1:nodecount(mol)
         for j in 1:implicithcount_[i]
-            n = addnode!(mol, nodeattrtype(mol)(:H))
-            addedge!(mol, i, n, edgeattrtype(mol)())
+            addedge!(newmol, i, addnode!(newmol, A(:H)), B())
         end
     end
+    return newmol
 end
 
 
@@ -108,9 +143,9 @@ largestcomponentnodes(mol::GraphMol
 
 
 """
-    extractlargestcomponent(mol::GraphMol) -> SubgraphView
+    extractlargestcomponent(mol::GraphMol) -> GraphMol
 
-Return largest connected component of the molecular graph.
+Return the largest connected component of the molecular graph.
 
 This should be useful when you want to remove salt and water molecules from the molecular graph simply. On the other hand, this can remove important components from the mixture so carefully apply this preprocess method.
 """
@@ -119,147 +154,147 @@ extractlargestcomponent(mol::GraphMol
 
 
 """
-    neutralizeacids!(mol::GraphMol)
+    protonateacids(mol::GraphMol) -> GraphMol
 
-Neutralize oxo(thio) acids.
-
-Note that this function edits `Atom` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
+Return the molecule with its oxo(thio) anion groups protonated.
 """
-function neutralizeacids!(mol::GraphMol)
+function protonateacids(mol::GraphMol)
     atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)
     connectivity_ = connectivity(mol)
-    pielectron_ = pielectron(mol)
-    for o in findall(
-            (atomsymbol_ .== :O) .* (charge_ .== -1) .* (connectivity_ .== 1))
-        nbr = iterate(adjacencies(mol, o))[1]
-        if pielectron_[nbr] == 1
-            cnbrs = adjacencies(mol, nbr)
-            pop!(cnbrs, o)
-            for cn in cnbrs
-                if (atomsymbol_[cn] in (:O, :S) && pielectron_[cn] == 1
-                        && connectivity_[cn] == 1)
-                    setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
-                    break
-                end
-            end
-        end
+    newmol = graphmol(mol)
+    for o in findall(charge_ .== -1)
+        atomsymbol_[o] in (:O, :S) || continue
+        @assert connectivity_[o] == 1
+        nbr = pop!(adjacencies(mol, o))
+        charge_[nbr] == 1 && continue  # polarized double bond
+        setnodeattr!(newmol, o, setcharge(nodeattr(newmol, o), 0))
     end
+    return newmol
 end
 
 
 """
-    neutralizeoniums!(mol::GraphMol)
+    deprotonateoniums(mol::GraphMol) -> GraphMol
 
-Neutralize 1-3° oniums. Permanently charged quart-oniums will not be neutralized.
-
-Note that this function edits `Atom` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
+Return the molecule with its onium groups are deprotonated.
 """
-function neutralizeoniums!(mol::GraphMol)
-    for o in findall((charge(mol) .== 1) .* (hcount(mol) .> 0))
-        setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
-    end
-end
-
-
-"""
-    depolarize!(mol::GraphMol)
-
-Depolarize oxo groups except in the case that polarization is required for
-aromaticity.
-
-Note that this function edits `Atom` and `Bond` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
-"""
-function depolarize!(mol::GraphMol)
+function deprotonateoniums(mol::GraphMol)
+    hcount_ = hcount(mol)
     charge_ = charge(mol)
+    newmol = graphmol(mol)
+    for o in findall(charge_ .== 1)
+        hcount_[o] > 0 || continue
+        setnodeattr!(newmol, o, setcharge(nodeattr(newmol, o), 0))
+    end
+    return newmol
+end
+
+
+"""
+    depolarize(mol::GraphMol; negative=:O, positive=[:C, :P]) -> GraphMol
+
+Return the molecule with its dipole double bonds are depolarized.
+"""
+function depolarize(mol::GraphMol; negative=:O, positive=[:C, :P])
+    atomsymbol_ = atomsymbol(mol)
+    charge_ = charge(mol)
+    connectivity_ = connectivity(mol)
     isaromatic_ = isaromatic(mol)
-    for o in findall((atomsymbol(mol) .== :O) .* (charge_ .== -1))
-        @assert degree(mol, o) == 1 "unexpected oxygen degree $(length(nbrs))"
+    newmol = graphmol(mol)
+    for o in findall(charge_ .== -1)
+        atomsymbol_[o] === negative || continue
+        @assert connectivity_[o] == 1
         (inc, adj) = iterate(neighbors(mol, o))[1]
-        if charge_[adj] == 1 && !isaromatic_[adj]
-            setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
-            setnodeattr!(mol, adj, setcharge(nodeattr(mol, adj), 0))
-            setedgeattr!(mol, inc, setorder(edgeattr(mol, inc), 2))
-        end
+        atomsymbol_[adj] in positive || continue
+        charge_[adj] == 1 || continue
+        isaromatic_[adj] && continue
+        setnodeattr!(newmol, o, setcharge(nodeattr(newmol, o), 0))
+        setnodeattr!(newmol, adj, setcharge(nodeattr(newmol, adj), 0))
+        setedgeattr!(newmol, inc, setorder(edgeattr(newmol, inc), 2))
     end
+    return newmol
 end
 
 
 """
-    toallenelike!(mol::GraphMol)
+    polarize(mol::GraphMol; negative=:O, positive=[:N, :S]) -> GraphMol
 
-Convert triple bonds with charges into allene-like structure (ex. [C-][N+]#N -> C=[N+]=[N-]).
-
-Note that this function edits `Atom` and `Bond` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
+Return the molecule with its dipole double bonds are polarized.
 """
-function toallenelike!(mol::GraphMol)
+function polarize(mol::GraphMol, negative=:O, positive=[:N, :S])
+    atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)
-    for tb in findall(bondorder(mol) .== 3)
-        tbond = edgeattr(mol, tb)
-        (u, v) = getedge(mol, tb)
-        for (f, s) in ((u, v), (v, u))
-            nbrs = copy(neighbors(mol, f))
-            pop!(nbrs, findedgekey(mol, f, s))
-            length(nbrs) == 1 || continue
-            (inc, adj) = iterate(nbrs)[1]
-            if charge_[adj] == -1
-                setnodeattr!(mol, adj, setcharge(nodeattr(mol, adj), 0))
-                setnodeattr!(mol, s, setcharge(nodeattr(mol, s), -1))
-                setedgeattr!(mol, inc, setorder(edgeattr(mol, inc), 2))
-                setedgeattr!(mol, tb, setorder(edgeattr(mol, tb), 2))
-            end
-        end
+    bondorder_ = bondorder(mol)
+    connectivity_ = connectivity(mol)
+    newmol = graphmol(mol)
+    for o in findall(connectivity_ .== 1)
+        atomsymbol_[o] === negative || continue
+        charge_[o] == 0 || continue
+        (inc, adj) = iterate(neighbors(mol, o))[1]
+        atomsymbol_[adj] in positive || continue
+        charge_[adj] == 0 || continue
+        bondorder_[inc] == 2 || continue
+        setnodeattr!(newmol, o, setcharge(nodeattr(newmol, o), -1))
+        setnodeattr!(newmol, adj, setcharge(nodeattr(newmol, adj), 1))
+        setedgeattr!(newmol, inc, setorder(edgeattr(newmol, inc), 1))
     end
+    return newmol
+end
+
+
+function find13dipoles(mol::GraphMol)
+    charge_ = charge(mol)
+    pie_ = apparentvalence(mol) - nodedegree(mol)
+    triads = Tuple{Int,Int,Int}[]
+    for c in findall((pie_ .== 2) .* (charge_ .== 1))
+        negs = Int[]
+        notnegs = Int[]
+        for (inc, adj) in neighbors(mol, c)
+            push!(charge_[adj] == -1 ? negs : notnegs, adj)
+        end
+        (length(negs) == 1 && length(notnegs) == 1) || continue
+        push!(triads, (negs[1], c, notnegs[1]))
+    end
+    return triads
 end
 
 
 """
-    kekulize!(mol::SMILES)
+    totriplebond(mol::GraphMol) -> GraphMol
 
-Convert SMILES aromatic atoms (Organic atoms in lower case) into double bond representation.
-
-Note that this function edits `Atom` and `Bond` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref).
+Return the molecule with its 1,3-dipole groups described in triple bond resonance structure (ex. Diazo group C=[N+]=[N-] -> [C-][N+]#N).
 """
-function kekulize!(mol::SMILES)
-    nodes = Set{Int}()
-    for i in 1:nodecount(mol)
-        nodeattr(mol, i).isaromatic === true || continue
-        if atomsymbol(mol)[i] === :C
-            push!(nodes, i)
-        elseif atomsymbol(mol)[i] in (:N, :P, :As)
-            if (degree(mol, i) == 2 ||
-                (degree(mol, i) == 3 && nodeattr(mol, i).charge == 1))
-                push!(nodes, i)
-            end
-        end
+function totriplebond(mol::GraphMol)
+    newmol = graphmol(mol)
+    for (first, center, third) in find13dipoles(mol)
+        fe = findedgekey(mol, first, center)
+        te = findedgekey(mol, center, third)
+        edgeattr(mol, fe).order == 2 || continue
+        setnodeattr!(newmol, first, setcharge(nodeattr(mol, first), 0))
+        setnodeattr!(newmol, third, setcharge(nodeattr(mol, third), -1))
+        setedgeattr!(newmol, fe, setorder(edgeattr(mol, fe), 3))
+        setedgeattr!(newmol, te, setorder(edgeattr(mol, te), 1))
     end
-    subg = nodesubgraph(mol, nodes)
-    a, b = twocoloring(subg)
-    adjmap = Dict{Int,Set{Int}}(
-        i => adjacencies(subg, i) for i in nodeset(subg))
-    mapping = maxcardmap(a, b, adjmap)
-    for (u, v) in mapping
-        e = findedgekey(mol, u, v)
-        setedgeattr!(mol, e, setorder(edgeattr(mol, e), 2))
-    end
+    return newmol
 end
 
 
 """
-    preprocess!(mol::GraphMol)
+    toallenelike(mol::GraphMol) -> GraphMol
 
-Default molecular preprocessing method.
-
-- Ionized acids and oniums will be neutralized ([`neutralizeacids!`](@ref) and [`neutralizeoniums!`](@ref)).
-- If there is several possible resonance structures, the one which have less total charge (if they are even, the one which have less maximum bond order) will be selected ([`depolarize!`](@ref) and [`toallenelike!`](@ref)).
-
-For further preprocessing, following [`removehydrogens`](@ref), [`removestereohydrogens`](@ref) and [`largestcomponentgraph`](@ref) would work well.
-
-Note that this function edits `Atom` and `Bond` object fields directly (see [`Graph.clone`](@ref) and [`Graph.clearcache!`](@ref)).
+Return the molecule with its 1,3-dipole groups described in allene-like resonance structure (ex. Diazo group [C-][N+]#N -> C=[N+]=[N-]).
 """
-function preprocess!(mol::GraphMol)
-    neutralizeacids!(mol)
-    neutralizeoniums!(mol)
-    depolarize!(mol)
-    toallenelike!(mol)
+function toallenelike(mol::GraphMol)
+    newmol = graphmol(mol)
+    for (first, center, third) in find13dipoles(mol)
+        fe = findedgekey(mol, first, center)
+        te = findedgekey(mol, center, third)
+        edgeattr(mol, fe).order == 1 || continue
+        setnodeattr!(newmol, first, setcharge(nodeattr(mol, first), 0))
+        setnodeattr!(newmol, third, setcharge(nodeattr(mol, third), -1))
+        setedgeattr!(newmol, fe, setorder(edgeattr(mol, fe), 2))
+        setedgeattr!(newmol, te, setorder(edgeattr(mol, te), 2))
+    end
+    return newmol
 end
