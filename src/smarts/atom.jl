@@ -122,7 +122,7 @@ function atomprop!(state::SmartsParserState)
     """
     c = read(state)
     c2 = lookahead(state, 1)
-    if haskey(PERIODIC_TABLE, string(uppercase(c), c2))
+    if haskey(ATOMSYMBOLMAP, string(uppercase(c), c2))
         # Two letter atoms
         forward!(state, 2)
         if string(uppercase(c), c2) in ("As", "Se")
@@ -149,7 +149,7 @@ function atomprop!(state::SmartsParserState)
         c == 'A' && return :isaromatic => false
         c == 'a' && return :isaromatic => true
         c == '*' && return :any => true
-    elseif haskey(PERIODIC_TABLE, string(uppercase(c)))
+    elseif haskey(ATOMSYMBOLMAP, string(uppercase(c)))
         # Single letter atoms
         forward!(state)
         if uppercase(c) in "BCNOPS"

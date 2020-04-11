@@ -4,30 +4,29 @@
 #
 
 export
-    PERIODIC_TABLE, H_WEIGHT,
     SDFileAtom, SmilesAtom, SmartsAtom,
-    setcharge, setstereo,
-    atomsymbol, atomnumber, atomname, atomweight
+    setcharge, setstereo, atomnumber
 
 
-const PERIODIC_TABLE = YAML.load(open(
-    joinpath(dirname(@__FILE__), "..", "..", "assets", "const", "periodictable.yaml")
+const ATOMTABLE = YAML.load(open(
+    joinpath(dirname(@__FILE__), "../../assets/const/atomicweights.yaml")
 ))
-const H_WEIGHT = PERIODIC_TABLE["H"]["std_weight"]
+
+const ATOMSYMBOLMAP = YAML.load(open(
+    joinpath(dirname(@__FILE__), "../../assets/const/symboltonumber.yaml")
+))
+
 
 
 struct SDFileAtom <: Atom
     symbol::Symbol
     charge::Int
     multiplicity::Int
-    mass::Union{Float64, Nothing}
+    mass::Union{Int, Nothing}
     coords::Union{Vector{Float64}, Nothing}
     stereo::Symbol
 
     function SDFileAtom(sym, chg, multi, mass, coords, stereo)
-        if !(string(sym) in keys(PERIODIC_TABLE))
-            throw(ErrorException("unsupported symbol: $(sym)"))
-        end
         new(sym, chg, multi, mass, coords, stereo)
     end
 end
@@ -54,9 +53,6 @@ struct SmilesAtom <: Atom
     stereo::Symbol
 
     function SmilesAtom(sym, chg, multi, mass, aromatic, stereo)
-        if !(string(sym) in keys(PERIODIC_TABLE))
-            throw(ErrorException("unsupported symbol: $(sym)"))
-        end
         new(sym, chg, multi, mass, aromatic, stereo)
     end
 end
@@ -77,25 +73,21 @@ struct SmartsAtom <: QueryAtom
 end
 
 
-function atomsymbol(number::Int)
-    for (sym, atom) in PERIODIC_TABLE
-        if atom["number"] == number
-            return Symbol(sym)
-        end
-    end
-    throw(ErrorException("invalid atomic number $(number)"))
-end
+
+"""
+    atomnumber(atomsymbol::Symbol) -> Int
+    atomnumber(atom::Atom) -> Int
+
+Return atom number.
+"""
+atomnumber(atomsymbol::Symbol) = ATOMSYMBOLMAP[string(atomsymbol)]
+atomnumber(atom::Atom) = atomnumber(atom.symbol)
 
 
-atomnumber(symbol::Symbol) = PERIODIC_TABLE[string(symbol)]["number"]
-atomnumber(atom::Atom) = PERIODIC_TABLE[string(atom.symbol)]["number"]
 
+"""
+    atomsymbol(n::Int) -> Symbol
 
-atomname(symbol::Symbol) = PERIODIC_TABLE[string(symbol)]["name"]
-atomname(atom::Atom) = PERIODIC_TABLE[string(atom.symbol)]["name"]
-
-
-function atomweight(atom::Atom)
-    stdweight = PERIODIC_TABLE[string(atom.symbol)]["std_weight"]
-    atom.mass === nothing ? stdweight : atom.mass
-end
+Return atom symbol of given atomic number.
+"""
+atomsymbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])

@@ -73,6 +73,7 @@ module MolecularGraphTest
     include("properties.jl")
     include("preprocess.jl")
     include("stereo.jl")
+    include("mass.jl")
     include("wclogp.jl")
     include("substructure.jl")
     include("funcgroup.jl")
