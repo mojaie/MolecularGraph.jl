@@ -44,9 +44,11 @@ function linegraph(G::AbstractGraph)
     ecnt = 1
     for n in nodeset(G)
         degree(G, n) < 2 && continue
-        for (e1, e2) in combinations(incidences(G, n))
-            ne1 = nmap[e1]
-            ne2 = nmap[e2]
+        incs = collect(incidences(G, n))
+        for (e1, e2) in combinations(length(incs))
+            u, v = (incs[e1], incs[e2])
+            ne1 = nmap[u]
+            ne2 = nmap[v]
             push!(L.edges, (ne1, ne2))
             push!(L.edgeattrs, LineGraphEdge(n))
             L.neighbormap[ne1][ecnt] = ne2
@@ -66,11 +68,13 @@ function linegraph(G::OrderedGraph)
     ecnt = 1
     for i in 1:nodecount(G)
         degree(G, i) < 2 && continue
-        for (e1, e2) in combinations(incidences(G, i))
-            push!(L.edges, (e1, e2))
+        incs = collect(incidences(G, i))
+        for (e1, e2) in combinations(length(incs))
+            u, v = (incs[e1], incs[e2])
+            push!(L.edges, (u, v))
             push!(L.edgeattrs, LineGraphEdge(i))
-            L.neighbormap[e1][ecnt] = e2
-            L.neighbormap[e2][ecnt] = e1
+            L.neighbormap[u][ecnt] = v
+            L.neighbormap[v][ecnt] = u
             ecnt += 1
         end
     end

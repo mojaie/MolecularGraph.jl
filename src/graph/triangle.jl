@@ -10,9 +10,10 @@ export
 function triangles(graph::UndirectedGraph)
     triads = Set()
     for n in nodeset(graph)
-        nkeys = adjacencies(graph, n)
-        length(nkeys) < 2 && continue
-        for (u, v) in combinations(nkeys)
+        adjs = collect(adjacencies(graph, n))
+        length(adjs) < 2 && continue
+        for (e1, e2) in combinations(length(adjs))
+            u, v = (adjs[e1], adjs[e2])
             if hasedge(graph, u, v)
                 push!(triads, tuple(sort([n, u, v])...))
             end

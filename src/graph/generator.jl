@@ -66,7 +66,7 @@ function completegraph(n::Int; mutable=false)
     f = mutable ? plaingraph : immutableplaingraph
     n == 0 && return f()
     n == 1 && return f(1, [])
-    return f(n, ((u, v) for (u, v) in combinations(1:n)))
+    return f(n, ((u, v) for (u, v) in combinations(n)))
 end
 
 

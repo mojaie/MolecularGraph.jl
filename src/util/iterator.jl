@@ -9,69 +9,64 @@ export
 
 ## combinations
 
-struct Combinations{T}
-    collection::Vector{T}
+struct Combinations
+    n::Int
+    k::Int
     indice::Vector{Int}
 end
 
 function Base.iterate(cmb::Combinations, state=nothing)
-    lastidx = lastindex(cmb.collection)
-    idcsize = length(cmb.indice)
-    if cmb.indice[end] == lastidx
-        if idcsize == 1
-            return
+    if cmb.indice[end] == cmb.n
+        cmb.k == 1 && return
+        i = 1
+        while cmb.indice[end - i] == cmb.n - i
+            i += 1
+            i == cmb.k && return
         end
-        n = 1
-        while cmb.indice[end - n] == lastidx - n
-            n += 1
-            if n == idcsize
-                return
-            end
-        end
-        cmb.indice[idcsize - n] += 1
-        for i in (idcsize - n + 1):idcsize
-            cmb.indice[i] = cmb.indice[i - 1] + 1
+        cmb.indice[cmb.k - i] += 1
+        for j in (cmb.k - i + 1):cmb.k
+            cmb.indice[j] = cmb.indice[j - 1] + 1
         end
     else
         cmb.indice[end] += 1
     end
-    return (cmb.collection[cmb.indice], state)
+    return (cmb.indice, state)
 end
 
-Base.eltype(::Type{Combinations{T}}) where {T} = Vector{T}
+Base.eltype(::Type{<:Combinations}) = Vector{Int}
 Base.IteratorSize(::Type{<:Combinations}) = Base.SizeUnknown()
 
-"""
-    combinations(iter, k::Int=2)
 
-An iterator that yields `k`-combinations (card. k subsets of the collection)
 """
-function combinations(iter, k::Int=2)
-    col = collect(iter)
-    T = eltype(col)
+    combinations(n::Int, k::Int=2)
+
+An iterator that yields ``k``-combinations (cardinality ``k`` subsets of the cardinality ``n`` set) as an array of integers.
+"""
+function combinations(n::Int, k::Int=2)
     if k < 0
         throw(DomainError(k, "k should not be negative"))
-    elseif k > length(col)
-        throw(ErrorException("$(k) is larger than the collection size"))
+    elseif k > n
+        throw(ErrorException("$(k) should be equal or less than the collection size"))
     elseif k == 0
         return (Int[],)
     else
         idc = collect(1:k)
         idc[end] -= 1
-        return Combinations{T}(col, idc)
+        return Combinations(n, k, idc)
     end
 end
 
 
+
 function sortstablemax(iter; by=identity, kwargs...)
     isempty(iter) && return kwargs[:init]
-    cmp(x, y) = ifelse(by(x) < by(y), y, x)
+    cmp(x, y) = by(x) < by(y) ? y : x
     return reduce(cmp, iter)
 end
 
 
 function sortstablemin(iter; by=identity, kwargs...)
     isempty(iter) && return kwargs[:init]
-    cmp(x, y) = ifelse(by(x) > by(y), y, x)
+    cmp(x, y) = by(x) > by(y) ? y : x
     return reduce(cmp, iter)
 end

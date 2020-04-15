@@ -52,8 +52,8 @@ function modularproduct(G::OrderedGraph, H::OrderedGraph;
     end
     (nodecount(G) < 2 || nodecount(H) < 2) && return product
     # Modular product edges
-    for (g1, g2) in combinations(1:nodecount(G))
-        for (h1, h2) in combinations(1:nodecount(H))
+    for (g1, g2) in combinations(nodecount(G))
+        for (h1, h2) in combinations(nodecount(H))
             edgefilter(g1, g2, h1, h2) || continue
             if nodematcher(g1, h1) && nodematcher(g2, h2)
                 addedge!(
