@@ -32,11 +32,15 @@ MolecularGraph.jl
   - SMILES/SMARTS parser
 
 - Basic descriptors
-  - Molecular weight, composition and formula
   - H-bond donor/acceptor
   - rotatable bonds
   - Aromaticity
   - Wildman-Crippen logP
+
+- Atomic mass
+  - standard atomic/molecular weight
+  - relative atomic/molecular mass
+  - isotopic composition
 
 - Molecular graph topology
   - Ring, scaffold, connectivity
