@@ -29,6 +29,19 @@ end
     @test nodedegree(isocyanurate) == [1, 3, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1]
 end
 
+@testset "formula" begin
+    hexose = smilestomol("OCC(O)C(O)C(O)C(O)C=O")
+    @test molecularformula(hexose) == "C6H12O6"
+    @test empiricalformula(hexose) == "CH2O"
+
+    sulfalicacid = smilestomol("O=S(=O)(O)O")
+    @test molecularformula(sulfalicacid) == "H2O4S"
+    @test empiricalformula(sulfalicacid) == "H2O4S"
+
+    order = smilestomol("[Na].[Ba].B.Br.B.[Ar].Br")
+    @test molecularformula(order) == "ArB2BaBr2H8Na"
+end
+
 @testset "valence" begin
     atoms = smilestomol("B.C.N.O.F.[Si].P.S.Cl.[As].[Se].Br.I")
     @test valence(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]

@@ -11,8 +11,9 @@ export
     scaffoldmem, componentmem,
     atomsymbol, charge, multiplicity, bondorder,
     nodedegree, valence, lonepair, heavyatomcount,
-    explicithcount, implicithcount, hcount,
-    connectivity, ishdonor, ishacceptor, stdweight,
+    explicithcount, implicithcount, hcount, connectivity,
+    countatoms, molecularformula, empiricalformula,
+    ishdonor, ishacceptor, stdweight,
     isrotatable, pielectron, hybridization,
     isaromaticring, isaromatic, isaromaticbond,
     molweight, hacceptorcount, hdonorcount,
@@ -264,6 +265,84 @@ Return the size ``n`` vector of the total number of adjacent atoms (including im
 """
 @cache connectivity(mol::GraphMol) = nodedegree(mol) + implicithcount(mol)
 connectivity(view::SubgraphView) = connectivity(view.graph)
+
+
+
+# Composition
+
+"""
+    countatoms(mol::GraphMol) -> Dict{Symbol,Int}
+
+Count the number of atoms and return symbol => count dict.
+"""
+function countatoms(mol::GraphMol)
+    counter = Dict{Symbol,Int}()
+    for sym in atomsymbol(mol)
+        if !haskey(counter, sym)
+            counter[sym] = 1
+        else
+            counter[sym] += 1
+        end
+    end
+    hcnt = reduce(+, implicithcount(mol); init=0)
+    if hcnt > 0
+        if !haskey(counter, :H)
+            counter[:H] = hcnt
+        else
+            counter[:H] += hcnt
+        end
+    end
+    return counter
+end
+
+
+function writeformula(counter::Dict{Symbol,Int})
+    strs = []
+    if haskey(counter, :C)
+        push!(strs, "C")
+        c = pop!(counter, :C)
+        c > 1 && push!(strs, string(c))
+        if haskey(counter, :H)
+            push!(strs, "H")
+            h = pop!(counter, :H)
+            h > 1 && push!(strs, string(h))
+        end
+    end
+    for sym in sort(collect(keys(counter)))
+        push!(strs, string(sym))
+        cnt = counter[sym]
+        cnt > 1 && push!(strs, string(cnt))
+    end
+    return join(strs)
+end
+
+
+"""
+    molecularformula(mol::GraphMol) -> String
+
+Return the molecular formula in Hill system.
+"""
+function molecularformula(mol::GraphMol)
+    counter = countatoms(mol)
+    return writeformula(counter)
+end
+
+
+"""
+    empiricalformula(mol::GraphMol) -> String
+
+Return the empirical formula in Hill system.
+"""
+function empiricalformula(mol::GraphMol)
+    counter = countatoms(mol)
+    if length(counter) > 1
+        dv = reduce(gcd, values(counter))
+        for k in keys(counter)
+            counter[k] = div(counter[k], dv)
+        end
+    end
+    return writeformula(counter)
+end
 
 
 
