@@ -8,6 +8,7 @@ module MolecularGraph
     module Util
         include("./util/meta.jl")
         include("./util/iterator.jl")
+        include("./util/math.jl")
     end
 
     module Graph

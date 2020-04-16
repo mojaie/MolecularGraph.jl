@@ -4,7 +4,8 @@
 #
 
 export
-    monoisotopicmass, nominalmass, exactmass, standardweight
+    monoisotopicmass, nominalmass, exactmass, standardweight,
+    isotopiccomposition, simulatemassspec
 
 
 const DEFAULT_WEIGHT_DIGITS = 2
@@ -210,4 +211,85 @@ function standardweight(::Type{Float64}, mol::GraphMol)
     wt, unc = molecularmass(mol, standardweight, standardweight)
     wt === NaN && return NaN
     return round(wt, digits=DEFAULT_WEIGHT_DIGITS)
+end
+
+
+
+"""
+    isotopiccomposition(atomsymbol::Symbol, number::Int; threshold=0.001
+        ) -> Vector{Tuple{Float64,Float64}}
+    isotopiccomposition(mol::GraphMol; threshold=0.001
+        ) -> Vector{Tuple{Float64,Float64}}
+
+Return isotopic composition of the atoms/molecule as a vector of tuples of mass and composition.
+
+Records that have lower abundance than the given threshold will be filtered out (default 0.001 = 0.1%)
+"""
+function isotopiccomposition(atomsymbol::Symbol, number::Int; threshold=0.001)
+    z = atomnumber(atomsymbol)
+    isotopes = []
+    for iso in ATOMTABLE[z]["Isotopes"]
+        cmp = iso["Composition"]
+        cmp === NaN && continue
+        push!(isotopes, iso)
+    end
+    isocnt = length(isotopes)
+    data = Tuple{Float64,Float64}[]
+    for seps in combinations(number + isocnt - 1, isocnt - 1)
+        nums = Int[]
+        prev = 0
+        for sep in seps
+            push!(nums, sep - prev - 1)
+            prev = sep
+        end
+        push!(nums, number + isocnt - prev - 1)
+        mass = 0.0
+        dups = [logfactorial(n) for n in nums]
+        comp = exp(reduce(-, dups; init=logfactorial(number)))
+        for (i, iso) in enumerate(isotopes)
+            mass += isotopes[i]["Mass"] * nums[i]
+            comp *= isotopes[i]["Composition"] ^ nums[i]
+        end
+        comp > threshold && push!(data, (mass, comp))
+    end
+    return data
+end
+
+
+function isotopiccomposition(mol::GraphMol; threshold=0.001)
+    data = Tuple{Float64,Float64}[]
+    for tup in Iterators.product(
+            (isotopiccomposition(sym, cnt; threshold=threshold)
+            for (sym, cnt) in countatoms(mol))...)
+        mass = 0.0
+        comp = 1.0
+        for t in tup
+            mass += t[1]
+            comp *= t[2]
+        end
+        comp > threshold && push!(data, (mass, comp))
+    end
+    return sort(data, by=x->x[1])
+end
+
+
+
+"""
+    simulatemassspec(mol::GraphMol; threshold=0.001
+        ) -> Vector{Tuple{Float64,Float64}}
+
+Return the simulated mass spectrum of the molecule as a vector of tuples of mass and relative intensity (base peak intensity = 100).
+
+Records that have lower abundance (not peak intensity) than the given threshold will be filtered out (default 0.001 = 0.1%)
+"""
+function simulatemassspec(mol::GraphMol; threshold=0.001)
+    isocomp = isotopiccomposition(mol; threshold=threshold)
+    bp = maximum(x->x[2], isocomp)
+    res = Tuple{Float64,Float64}[]
+    for (mass, comp) in isocomp
+        mass = round(mass, digits=DEFAULT_MASS_DIGITS)
+        rint = round(comp / bp * 100, digits=ceil(Int, -log(10, threshold))-2)
+        push!(res, (mass, rint))
+    end
+    return res
 end

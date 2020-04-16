@@ -32,4 +32,11 @@
     @test isapprox(iso[2], 7.1e-10, atol=1e-10)
 end
 
+@testset "isotopiccomposition" begin
+    @test length(isotopiccomposition(:C, 100; threshold=0.01)) == 5
+    @test length(isotopiccomposition(:H, 1000; threshold=0.01)) == 2
+    @test length(isotopiccomposition(smilestomol("CCl"))) == 4
+    # display(simulatemassspec(smilestomol("CCl")))
+end
+
 end  # mass

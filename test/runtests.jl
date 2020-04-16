@@ -8,6 +8,7 @@ module MolecularGraphUtilTest
     using Test
     using MolecularGraph.Util
     include("./util/iterator.jl")
+    include("./util/math.jl")
 end
 
 
