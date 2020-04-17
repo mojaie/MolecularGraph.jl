@@ -16,8 +16,8 @@ function molecularmass(mol::GraphMol, massfunc, implicithfunc)
     mass = 0.0
     unc = 0.0
     hm, hu = implicithfunc(:H)
-    for (sym, hcnt) in zip(atomsymbol(mol), implicithcount(mol))
-        m, u = massfunc(sym)
+    for (atom, hcnt) in zip(nodeattrs(mol), implicithcount(mol))
+        m, u = massfunc(atom)
         mass += m + hm * hcnt
         unc += u + hu * hcnt
     end
@@ -101,7 +101,7 @@ nominalmass(mol::GraphMol) = monoisotopicmass(Int, mol)
     exactmass(atom::Atom) -> Tuple{Float64,Float64}
     exactmass(mol::GraphMol) -> Tuple{Float64,Float64}
 
-Return a tuple of calculated exact mass (relative atomic mass) and its uncertainty.
+Return a tuple of calculated exact mass and its uncertainty.
 
 If `number` is not given or `Atom.mass` is not specified, monoisotopic mass will be used instead.
 """
@@ -130,7 +130,7 @@ exactmass(mol::GraphMol) = molecularmass(mol, exactmass, monoisotopicmass)
     exactmass(::Type{Float64}, atom::Atom) -> Float64
     exactmass(::Type{Float64}, mol::GraphMol) -> Float64
 
-Return calculated exact mass (relative atomic mass) rounded to `digit=6`.
+Return calculated exact mass rounded to `digit=6`.
 """
 exactmass(::Type{Float64}, atomsymbol::Symbol
     ) = monoisotopicmass(Float64, atomsymbol)
@@ -159,9 +159,9 @@ end
     standardweight(atom::Atom) -> Tuple{Float64,Float64}
     standardweight(mol::GraphMol) -> Tuple{Float64,Float64}
 
-Return a tuple of standard atomic/molecular weight (average weight based on natural abundance) and its uncertainty.
+Return a tuple of standard atomic weight (or molecular weight) and its uncertainty.
 
-If `Atom.mass` is specified, relative atomic mass will be used instead of standard weight. 
+If `Atom.mass` is specified, calculated exact mass of the atom will be used instead. 
 """
 function standardweight(atomsymbol::Symbol)
     num = atomnumber(atomsymbol)
@@ -194,7 +194,7 @@ standardweight(mol::GraphMol
     standardweight(atom::Atom) -> Float64
     standardweight(mol::GraphMol) -> Float64
 
-Return standard atomic/molecular weight (average weight based on natural abundance) rounded to `digit=2`.
+Return standard atomic weight (or molecular weight) rounded to `digit=2`.
 """
 function standardweight(::Type{Float64}, atomsymbol::Symbol)
     wt, unc = standardweight(atomsymbol)
@@ -276,7 +276,7 @@ end
 
 """
     simulatemassspec(mol::GraphMol; threshold=0.001
-        ) -> Vector{Tuple{Float64,Float64}}
+        ) -> Matrix{Float64}
 
 Return the simulated mass spectrum of the molecule as a vector of tuples of mass and relative intensity (base peak intensity = 100).
 
@@ -285,11 +285,11 @@ Records that have lower abundance (not peak intensity) than the given threshold 
 function simulatemassspec(mol::GraphMol; threshold=0.001)
     isocomp = isotopiccomposition(mol; threshold=threshold)
     bp = maximum(x->x[2], isocomp)
-    res = Tuple{Float64,Float64}[]
-    for (mass, comp) in isocomp
+    data = zeros(Float64, length(isocomp), 2)
+    for (i, (mass, comp)) in enumerate(isocomp)
         mass = round(mass, digits=DEFAULT_MASS_DIGITS)
         rint = round(comp / bp * 100, digits=ceil(Int, -log(10, threshold))-2)
-        push!(res, (mass, rint))
+        data[i, :] = [mass rint]
     end
-    return res
+    return data
 end

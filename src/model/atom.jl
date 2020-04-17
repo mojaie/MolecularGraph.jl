@@ -48,7 +48,7 @@ struct SmilesAtom <: Atom
     symbol::Symbol
     charge::Int
     multiplicity::Int
-    mass::Union{Float64, Nothing}
+    mass::Union{Int, Nothing}
     isaromatic::Union{Bool, Nothing}
     stereo::Symbol
 

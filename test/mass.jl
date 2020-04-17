@@ -30,6 +30,11 @@
     ex = exactmass(etoh)
     @test isapprox(iso[1], 46.0418648130, atol=1e-10)
     @test isapprox(iso[2], 7.1e-10, atol=1e-10)
+
+    etohd6 = smilestomol("[2H]C([2H])([2H])C([2H])([2H])O[2H]")
+    @test standardweight(Float64, etohd6) == 52.11
+    @test monoisotopicmass(Float64, etohd6) == 46.041865
+    @test exactmass(Float64, etohd6) == 52.079525
 end
 
 @testset "isotopiccomposition" begin
