@@ -12,12 +12,11 @@ export
     atomsymbol, charge, multiplicity, bondorder,
     nodedegree, valence, lonepair, heavyatomcount,
     explicithcount, implicithcount, hcount, connectivity,
+    ishdonor, hacceptorcount, ishacceptor, hdonorcount,
+    isrotatable, rotatablecount,
     countatoms, molecularformula, empiricalformula,
-    ishdonor, ishacceptor, stdweight,
-    isrotatable, pielectron, hybridization,
-    isaromaticring, isaromatic, isaromaticbond,
-    molweight, hacceptorcount, hdonorcount,
-    wclogp, rotatablecount
+    pielectron, hybridization,
+    isaromaticring, isaromatic, isaromaticbond
 
 
 
@@ -268,6 +267,73 @@ connectivity(view::SubgraphView) = connectivity(view.graph)
 
 
 
+# Hydrogen bond donor/acceptor
+
+function ishacceptor(mol::GraphMol)
+    ac = (sym, lp) -> lp === nothing ? false : sym in (:N, :O, :F) && lp > 0
+    return ac.(atomsymbol(mol), lonepair(mol))
+end
+
+ishacceptor(view::SubgraphView) = ishacceptor(view.graph)
+
+
+"""
+    hacceptorcount(mol::GraphMol) -> Int
+
+Return the number of hydrogen bond acceptors (N, O and F).
+"""
+hacceptorcount(mol::GraphMol) = reduce(+, ishacceptor(mol); init=0)
+
+
+function ishdonor(mol::GraphMol)
+    dc = (sym, h) -> sym in (:N, :O) && h > 0
+    return dc.(atomsymbol(mol), hcount(mol))
+end
+
+ishdonor(view::SubgraphView) = ishdonor(view.graph)
+
+
+"""
+    hdonorcount(mol::GraphMol) -> Int
+
+Return the number of hydrogen bond donors (O and N attached to hydrogens).
+"""
+hdonorcount(mol::GraphMol) = reduce(+, ishdonor(mol); init=0)
+
+
+
+# Rotatable bonds
+
+"""
+    isrotatable(mol::GraphMol)
+
+Return whether the bonds are rotatable or not.
+"""
+@cache function isrotatable(mol::GraphMol)
+    nodedegree_ = nodedegree(mol)
+    isringbond_ = isringbond(mol)
+    bondorder_ = bondorder(mol)
+    vec = Bool[]
+    for (i, (u, v)) in enumerate(edgesiter(mol))
+        rot = (!isringbond_[i] && bondorder_[i] == 1
+            && nodedegree_[u] != 1 && nodedegree_[v] != 1)
+        push!(vec, rot)
+    end
+    return vec
+end
+
+isrotatable(view::SubgraphView) = isrotatable(view.graph)
+
+
+"""
+    rotatablecount(mol::GraphMol) -> Int
+
+Return the number of rotatable bonds.
+"""
+rotatablecount(mol::GraphMol) = reduce(+, isrotatable(mol); init=0)
+
+
+
 # Composition
 
 """
@@ -424,38 +490,6 @@ hybridization(view::SubgraphView) = hybridization(view.graph)
 
 
 
-# Rotatable bonds
-
-"""
-    isrotatable(mol::GraphMol)
-
-Return whether the bonds are rotatable or not.
-"""
-@cache function isrotatable(mol::GraphMol)
-    nodedegree_ = nodedegree(mol)
-    isringbond_ = isringbond(mol)
-    bondorder_ = bondorder(mol)
-    vec = Bool[]
-    for (i, (u, v)) in enumerate(edgesiter(mol))
-        rot = (!isringbond_[i] && bondorder_[i] == 1
-            && nodedegree_[u] != 1 && nodedegree_[v] != 1)
-        push!(vec, rot)
-    end
-    return vec
-end
-
-isrotatable(view::SubgraphView) = isrotatable(view.graph)
-
-
-"""
-    rotatablecount(mol::GraphMol) -> Int
-
-Return the number of rotatable bonds.
-"""
-rotatablecount(mol::GraphMol) = reduce(+, isrotatable(mol); init=0)
-
-
-
 # Aromatic rings
 
 function satisfyhuckel(mol::GraphMol, ring)
@@ -545,55 +579,3 @@ isaromatic(view::SubgraphView) = isaromatic(view.graph)
 end
 
 isaromaticbond(view::SubgraphView) = isaromaticbond(view.graph)
-
-
-
-# Molecular properties
-
-function stdweight(mol::GraphMol)
-    weight = (atom, imh) -> atomweight(atom) + H_WEIGHT * imh
-    return weight.(nodeattrs(mol), implicithcount(mol))
-end
-
-stdweight(view::SubgraphView) = stdweight(view.graph)
-
-
-"""
-    molweight(mol::GraphMol; digits=2) -> Float64
-
-Return standard molecular weight.
-"""
-molweight(mol::GraphMol; digits=2
-    ) = round(reduce(+, stdweight(mol); init=0), digits=digits)
-
-
-function ishacceptor(mol::GraphMol)
-    ac = (sym, lp) -> lp === nothing ? false : sym in (:N, :O, :F) && lp > 0
-    return ac.(atomsymbol(mol), lonepair(mol))
-end
-
-ishacceptor(view::SubgraphView) = ishacceptor(view.graph)
-
-
-"""
-    hacceptorcount(mol::GraphMol) -> Int
-
-Return the number of hydrogen bond acceptors (N, O and F).
-"""
-hacceptorcount(mol::GraphMol) = reduce(+, ishacceptor(mol); init=0)
-
-
-function ishdonor(mol::GraphMol)
-    dc = (sym, h) -> sym in (:N, :O) && h > 0
-    return dc.(atomsymbol(mol), hcount(mol))
-end
-
-ishdonor(view::SubgraphView) = ishdonor(view.graph)
-
-
-"""
-    hdonorcount(mol::GraphMol) -> Int
-
-Return the number of hydrogen bond donors (O and N attached to hydrogens).
-"""
-hdonorcount(mol::GraphMol) = reduce(+, ishdonor(mol); init=0)

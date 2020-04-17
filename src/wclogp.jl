@@ -4,9 +4,8 @@
 #
 
 export
-    wclogptype,
-    wclogphydrogentype,
-    wclogpcontrib
+    wclogptype, wclogphydrogentype,
+    wclogpcontrib, wclogp
 
 
 const WCLOGP_TABLE = YAML.load(open(
