@@ -11,6 +11,7 @@ makedocs(
             "Structure drawing" => "moleculargraph/draw.md",
             "Chemical properties" => "moleculargraph/properties.md",
             "Preprocessing" => "moleculargraph/preprocess.md",
+            "Moleclar mass/weight" => "moleculargraph/mass.md",
             "Substructure match" => "moleculargraph/substructure.md",
             "MCS" => "moleculargraph/mcs.md",
             "Functional group detection" => "moleculargraph/funcgroup.md"

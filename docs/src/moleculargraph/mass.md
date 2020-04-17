@@ -1,10 +1,10 @@
 
-# Maximum common substructure
+# Molecular mass/weight
 
 
 ```@autodocs
 Modules = [MolecularGraph]
-Pages   = ["mcs.jl"]
+Pages   = ["mass.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```
