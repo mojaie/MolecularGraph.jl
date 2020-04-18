@@ -5,7 +5,7 @@
 
 export
     monoisotopicmass, nominalmass, exactmass, standardweight,
-    isotopiccomposition, simulatemassspec
+    isotopiccomposition, massspecpeaks, simulatemassspec
 
 
 const DEFAULT_WEIGHT_DIGITS = 2
@@ -190,9 +190,9 @@ standardweight(mol::GraphMol
 
 
 """
-    standardweight(atomsymbol::Symbol) -> Float64
-    standardweight(atom::Atom) -> Float64
-    standardweight(mol::GraphMol) -> Float64
+    standardweight(::Type{Float64}, atomsymbol::Symbol) -> Float64
+    standardweight(::Type{Float64}, atom::Atom) -> Float64
+    standardweight(::Type{Float64}, mol::GraphMol) -> Float64
 
 Return standard atomic weight (or molecular weight) rounded to `digit=2`.
 """
@@ -275,21 +275,67 @@ end
 
 
 """
-    simulatemassspec(mol::GraphMol; threshold=0.001
-        ) -> Matrix{Float64}
+    massspecpeaks(mol::GraphMol; threshold=0.001) -> Matrix{Float64}
 
-Return the simulated mass spectrum of the molecule as a vector of tuples of mass and relative intensity (base peak intensity = 100).
+Return a vector of tuples of each isotopic masses and their relative intensity in the simulated mass spectrum (base peak intensity = 100).
 
 Records that have lower abundance (not peak intensity) than the given threshold will be filtered out (default 0.001 = 0.1%)
 """
-function simulatemassspec(mol::GraphMol; threshold=0.001)
+function massspecpeaks(mol::GraphMol; threshold=0.001)
     isocomp = isotopiccomposition(mol; threshold=threshold)
     bp = maximum(x->x[2], isocomp)
-    data = zeros(Float64, length(isocomp), 2)
-    for (i, (mass, comp)) in enumerate(isocomp)
+    data = Tuple{Float64,Float64}[]
+    for (mass, comp) in isocomp
         mass = round(mass, digits=DEFAULT_MASS_DIGITS)
         rint = round(comp / bp * 100, digits=ceil(Int, -log(10, threshold))-2)
-        data[i, :] = [mass rint]
+        push!(data, (mass, rint))
     end
     return data
 end
+
+
+function gaussianpeak(mass::Float64, intensity::Float64, resolution::Int)
+    fwhm = mass / resolution
+    s = fwhm / (2 * sqrt(2 * log(2)))
+    return x -> exp(- (x - mass)^2 / (2 * s^2)) * intensity
+end
+
+
+"""
+    simulatemassspec(peaks::Vector{Tuple{Float64,Float64}};
+        resolution=10000, rate=0.01) -> Matrix{Float64}
+    simulatemassspec(mol::GraphMol;
+        threshold=0.001, resolution=10000, rate=0.01) -> Matrix{Float64}
+
+Return a matrix of simulate mass spectrum (dim 1: datapoints, dim 2: mass and intensity).
+
+# Usage (with Plot.jl)
+```julia
+using MolecularGraph
+using Plots
+gr()
+Plots.GRBackend()
+
+mol = smilestomol("CCO")
+data = simulatemassspec(mol)
+plot(
+    data[:, 1], data[:, 2],
+    leg=false, xlabel = "Mass", ylabel = "Intensity"
+)
+```
+"""
+function simulatemassspec(
+        peaks::Vector{Tuple{Float64,Float64}}; resolution=10000, rate=0.001)
+    fs = Function[]
+    for (mass, intensity) in peaks
+        push!(fs, gaussianpeak(mass, intensity, resolution))
+    end
+    superposed(x) = reduce(+, [f(x) for f in fs]; init=0.0)
+    xleft = round(Int, minimum(x->x[1], peaks) - 1)
+    xright = round(Int, maximum(x->x[1], peaks) + 1)
+    arr = collect(xleft:rate:xright)
+    return hcat(arr, superposed.(arr))
+end
+
+simulatemassspec(mol::GraphMol; kwargs...
+    ) =  simulatemassspec(massspecpeaks(mol; kwargs...); kwargs...)
