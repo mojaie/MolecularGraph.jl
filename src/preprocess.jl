@@ -32,6 +32,7 @@ Kekulization should be applied for molecules parsed from SMILES. Otherwise, some
 function kekulize(mol::SMILES)
     nodes = Set{Int}()
     for i in 1:nodecount(mol)
+        nodeattr(mol, i).isaromatic === nothing && continue
         nodeattr(mol, i).isaromatic || continue
         if atomsymbol(mol)[i] === :C
             push!(nodes, i)

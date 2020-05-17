@@ -6,35 +6,38 @@
 export
     coordgen!
 
-using Libdl
-using Cxx
 using coordgenlibs_jll
 
+
 function coordgen!(mol::GraphMol)
-    Libdl.dlopen(libcoordgen, Libdl.RTLD_GLOBAL)
-    adir = joinpath(coordgenlibs_jll.artifact_dir, "include/coordgen")
-    addHeaderDir(adir)
-    # TODO: pass vectors to cpp function
-    # @cxx hoge(convert(cxxt"std::vector<int32_t>", [1,2,3,4,5]))
-    cxxinclude("sketcherMinimizer.h")
-    min_mol = @cxxnew sketcherMinimizerMolecule()
-    atoms = []
-    bonds = []
+    minmol = ccall((:getSketcherMinimizer, libcoordgen), Ptr{Cvoid}, ())
+    atoms = Ptr{Cvoid}[]
+    bonds = Ptr{Cvoid}[]
+
     # Atoms
     for nattr in nodeattrs(mol)
-        atom = @cxx min_mol->addNewAtom()
-        @cxx atom->setAtomicNumber(atomnumber(nattr))
+        atom = ccall(
+            (:setAtom, libcoordgen), Ptr{Cvoid},
+            (Ptr{Cvoid}, Int), minmol, atomnumber(nattr)
+        )
         push!(atoms, atom)
     end
+
     # Bonds
     for (i, (u, v)) in enumerate(edgesiter(mol))
-        bond = @cxx min_mol->addNewBond(atoms[u], atoms[v])
-        @cxx bond->setBondOrder(edgeattr(mol, i).order)
+        bond = ccall(
+            (:setBond, libcoordgen), Ptr{Cvoid},
+            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
+            minmol, atoms[u], atoms[v], edgeattr(mol, i).order
+        )
         push!(bonds, bond)
     end
-    catoms = @cxx min_mol->getAtoms()
-    cbonds = @cxx min_mol->getBonds()
-    @cxx min_mol->assignBondsAndNeighbors(catoms, cbonds)
+
+    ccall(
+        (:assignBondsAndNeighbors, libcoordgen), Cvoid,
+        (Ptr{Cvoid},), minmol
+    )
+
     # Stereocenter
     for i in 1:nodecount(mol)
         nattr = nodeattr(mol, i)
@@ -50,22 +53,13 @@ function coordgen!(mol::GraphMol)
         else
             continue
         end
-        cxx"""
-            sketcherMinimizerAtomChiralityInfo getchiralityinfo(
-                sketcherMinimizerAtom* lookingFrom,
-                sketcherMinimizerAtom* atom1,
-                sketcherMinimizerAtom* atom2,
-                bool direction
-            ) {
-                sketcherMinimizerAtomChiralityInfo::sketcherMinimizerChirality d = direction ? sketcherMinimizerAtomChiralityInfo::clockwise : sketcherMinimizerAtomChiralityInfo::counterClockwise;
-                return sketcherMinimizerAtomChiralityInfo {
-                    lookingFrom, atom1, atom2, d};
-            }
-        """
-        ci = @cxx getchiralityinfo(atoms[f], atoms[s], atoms[t], direction)
-        @cxx atoms[i]->setStereoChemistry(ci)
-        @cxx atoms[i]->setAbsoluteStereoFromChiralityInfo()
+        ccall(
+            (:setStereoCenter, libcoordgen), Cvoid,
+            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
+            atoms[i], atoms[f], atoms[s], atoms[t], direction
+        )
     end
+
     # StereoBond
     for (i, (u, v)) in enumerate(edgesiter(mol))
         eattr = edgeattr(mol, i)
@@ -79,41 +73,41 @@ function coordgen!(mol::GraphMol)
             end
             push!(fs, sort(incs)[1])
         end
-        cxx"""
-            sketcherMinimizerBondStereoInfo getstereoinfo(
-                sketcherMinimizerAtom* atom1,
-                sketcherMinimizerAtom* atom2,
-                bool iscis
-            ) {
-                sketcherMinimizerBondStereoInfo::sketcherMinimizerBondStereo c = iscis ? sketcherMinimizerBondStereoInfo::cis : sketcherMinimizerBondStereoInfo::trans;
-                return sketcherMinimizerBondStereoInfo {atom1, atom2, c};
-            }
-        """
-        si = @cxx getstereoinfo(atoms[fs[1]], atoms[fs[2]], iscis)
-        @cxx bonds[i]->setStereoChemistry(si)
-        @cxx bonds[i]->setAbsoluteStereoFromStereoInfo()
+        ccall(
+            (:setStereoBond, libcoordgen), Cvoid,
+            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
+            bonds[i], atoms[fs[1]], atoms[fs[2]], iscis
+        )
     end
+
     # Optimize
-    minimizer = @cxxnew sketcherMinimizer()
-    @cxx minimizer->initialize(min_mol)
-    @cxx minimizer->runGenerateCoordinates()
+    ccall(
+        (:runGenerateCoordinates, libcoordgen), Cvoid,
+        (Ptr{Cvoid},), minmol
+    )
+
     # Output
     coords = zeros(Float64, nodecount(mol), 2)
     for i in 1:nodecount(mol)
-        p = @cxx atoms[i]->getCoordinates()
-        px = @cxx p->x()
-        py = @cxx p->y()
+        px = ccall(
+            (:getAtomX, libcoordgen), Float32, (Ptr{Cvoid},), atoms[i])
+        py = ccall(
+            (:getAtomY, libcoordgen), Float32, (Ptr{Cvoid},), atoms[i])
         coords[i, :] = [px, py]
     end
     notation = Int[]
     for i in 1:edgecount(mol)
-        hasstereo = @cxx bonds[i]->hasStereochemistryDisplay
+        hasstereo = ccall(
+            (:hasStereochemistryDisplay, libcoordgen), Bool,
+            (Ptr{Cvoid},), bonds[i])
         if !hasstereo
             push!(notation, 0)
             continue
         end
-        iswedge = @cxx bonds[i]->isWedge
-        isrev = @cxx bonds[i]->isReversed
+        iswedge = ccall(
+            (:isWedge, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
+        isrev = ccall(
+            (:isReversed, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
         push!(notation, iswedge ? 1 : 6)
         u, v = mol.edges[i]
         if isrev
