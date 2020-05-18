@@ -38,6 +38,10 @@ end
     setdiastereo!(mol2)
     @test mol2.edgeattrs[2].stereo === :trans
 
+    cis = parse(SMILES, "C(/C)=C/C")
+    setdiastereo!(cis)
+    @test cis.edgeattrs[2].stereo === :cis
+
     mol3 = parse(SMILES, "C\\C([H])=C([H])/C")
     setdiastereo!(mol3)
     @test mol3.edgeattrs[3].stereo === :trans

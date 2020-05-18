@@ -61,22 +61,16 @@ function coordgen!(mol::GraphMol)
     end
 
     # StereoBond
-    for (i, (u, v)) in enumerate(edgesiter(mol))
+    for (i, (n1, n2)) in enumerate(edgesiter(mol))
         eattr = edgeattr(mol, i)
         eattr.stereo in (:cis, :trans) || continue
         iscis = eattr.stereo === :cis
-        fs = Int[]
-        for n in (u, v)
-            incs = [inc for inc in incidences(mol, n) if inc != i]
-            if length(incs) == 1 && incs[1] > i  # lower indexed implicit H
-                iscis = !iscis
-            end
-            push!(fs, sort(incs)[1])
-        end
+        u = sort([adj for adj in adjacencies(mol, n1) if adj != n2])[1]
+        v = sort([adj for adj in adjacencies(mol, n2) if adj != n1])[1]
         ccall(
             (:setStereoBond, libcoordgen), Cvoid,
             (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-            bonds[i], atoms[fs[1]], atoms[fs[2]], iscis
+            bonds[i], atoms[u], atoms[v], iscis
         )
     end
 

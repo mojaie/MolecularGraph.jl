@@ -87,33 +87,44 @@ end
 
 Set diastereomerism flags to `Bond.stereo` fields of double bonds.
 
-`:unspecified`, `:cis` or `:trans` will be assigned according to configurations of bonds labeled by lower indices. (ex. SMILES `C/C=C(C)/C` have 4 explicit bonds 1:`C/C`, 2:`C=C`, 3:`C(C)` and 4:`C/C`. 1st bond is prior to the other implicit hydrogen attached to 2nd atom, and 3rd bond is prior to 4th bond in index label order. 1st and 3th atom are in ``cis`` position, so `Bond.stereo` of 2nd bond will be set to `:cis`.)
+`Bond.stereo::Symbol` indicates whether the lower index nodes attached to each sides of the double bond is in `:cis`, `:trans` or `:unspecified` configuration. 
 """
 function setdiastereo!(mol::SMILES)
     edges = edgeattrs(mol)
-    hcount_ = hcount(mol)
     for i in 1:edgecount(mol)
         edges[i].order == 2 || continue
-        d = Symbol[]
-        for n in mol.edges[i]
-            inc = incidences(mol, n)
-            if length(inc) == 3
-                f, s = sort([e for e in inc if e != i])
-                if edges[f].direction !== :unspecified
-                    push!(d, edges[f].direction)
-                elseif edges[s].direction !== :unspecified
-                    push!(d, edges[s].direction === :up ? :down : :up)
+        ds = Symbol[]
+        n1, n2 = mol.edges[i]
+        for (u, v) in [(n1, n2), (n2, n1)]
+            adjs = setdiff(adjacencies(mol, u), [v])
+            if length(adjs) == 2
+                f, s = sort(collect(adjs))
+                fe = findedgekey(mol, u, f)
+                se = findedgekey(mol, u, s)
+                if edges[fe].direction !== :unspecified
+                    if f < u
+                        push!(ds, edges[fe].direction === :up ? :down : :up)
+                    else
+                        push!(ds, edges[fe].direction)
+                    end
+                elseif edges[se].direction !== :unspecified
+                    push!(ds, edges[se].direction === :up ? :down : :up)
                 end
-            elseif length(inc) == 2 && hcount_[n] == 1
-                f = [e for e in inc if e != i][1]
-                if edges[f].direction !== :unspecified
-                    push!(d, edges[f].direction)
+            elseif length(adjs) == 1
+                f = collect(adjs)[1]
+                fe = findedgekey(mol, u, f)
+                if edges[fe].direction !== :unspecified
+                    if f < u
+                        push!(ds, edges[fe].direction === :up ? :down : :up)
+                    else
+                        push!(ds, edges[fe].direction)
+                    end
                 end
             end
             # TODO: axial chirality
         end
-        if length(d) == 2
-            stereo = d[1] === d[2] ? :trans : :cis
+        if length(ds) == 2
+            stereo = ds[1] === ds[2] ? :cis : :trans
             bond = setstereo(edges[i], stereo)
             setedgeattr!(mol, i, bond)
         end
@@ -124,7 +135,6 @@ end
 function setdiastereo!(mol::SDFile)
     nodes = nodeattrs(mol)
     edges = edgeattrs(mol)
-    hcount_ = hcount(mol)
     coords_ = coords2d(mol)
     for i in 1:edgecount(mol)
         edges[i].order == 2 || continue
