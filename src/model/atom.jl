@@ -5,7 +5,7 @@
 
 export
     SDFileAtom, SmilesAtom, SmartsAtom,
-    setcharge, setstereo, atomnumber
+    setcharge, setstereo, atomnumber, todict
 
 
 const ATOMTABLE = YAML.load(open(
@@ -37,11 +37,29 @@ SDFileAtom(sym, chg) = SDFileAtom(sym, chg, 1, nothing, nothing)
 SDFileAtom(sym, chg, multi, mass, coords
     ) = SDFileAtom(sym, chg, multi, mass, coords, :unspecified)
 
+SDFileAtom(data::Dict{String,Any}) = SDFileAtom(
+    Symbol(data["symbol"]),
+    data["charge"],
+    data["multiplicity"],
+    data["mass"],
+    data["coords"],
+    Symbol(data["stereo"])
+)
+
+function todict(a::SDFileAtom)
+    data = Dict{String,Any}()
+    for field in fieldnames(SDFileAtom)
+        data[string(field)] = getfield(a, field)
+    end
+    return data
+end
+
 setcharge(a::SDFileAtom, chg
     ) = SDFileAtom(a.symbol, chg, a.multiplicity, a.mass, a.coords)
 
 setstereo(a::SDFileAtom, direction) = SDFileAtom(
     a.symbol, a.charge, a.multiplicity, a.mass, a.coords, direction)
+
 
 
 struct SmilesAtom <: Atom
@@ -61,11 +79,29 @@ SmilesAtom() = SmilesAtom(:C, 0, 1, nothing, nothing, :unspecified)
 SmilesAtom(sym) = SmilesAtom(sym, 0, 1, nothing, nothing, :unspecified)
 SmilesAtom(sym, chg) = SmilesAtom(sym, chg, 1, nothing, nothing, :unspecified)
 
+SmilesAtom(data::Dict{String,Any}) = SmilesAtom(
+    Symbol(data["symbol"]),
+    data["charge"],
+    data["multiplicity"],
+    data["mass"],
+    data["isaromatic"],
+    Symbol(data["stereo"])
+)
+
+function todict(a::SmilesAtom)
+    data = Dict{String,Any}()
+    for field in fieldnames(SmilesAtom)
+        data[string(field)] = getfield(a, field)
+    end
+    return data
+end
+
 setcharge(a::SmilesAtom, chg) = SmilesAtom(
     a.symbol, chg, a.multiplicity, a.mass, a.isaromatic, a.stereo)
 
 setstereo(a::SmilesAtom, direction) = SmilesAtom(
     a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, direction)
+
 
 
 struct SmartsAtom <: QueryAtom

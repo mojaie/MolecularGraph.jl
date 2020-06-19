@@ -5,7 +5,7 @@
 
 export
     SDFileBond, SmilesBond, SmartsBond,
-    setorder, setnotation, setstereo
+    setorder, setnotation, setstereo, todict
 
 
 struct SDFileBond <: Bond
@@ -31,6 +31,19 @@ SDFileBond() = SDFileBond(1, 0, :unspecified)
 SDFileBond(order) = SDFileBond(order, 0, :unspecified)
 SDFileBond(order, notation) = SDFileBond(order, notation, :unspecified)
 
+SDFileBond(data::Dict{String,Any}) = SDFileBond(
+    data["order"],
+    data["notation"],
+    Symbol(data["stereo"])
+)
+
+function todict(b::SDFileBond)
+    data = Dict{String,Any}()
+    for field in fieldnames(SDFileBond)
+        data[string(field)] = getfield(b, field)
+    end
+    return data
+end
 
 setorder(edge::SDFileBond, order
     ) = SDFileBond(order, edge.notation, edge.stereo)
@@ -55,6 +68,20 @@ SmilesBond(order) = SmilesBond(order, false, :unspecified, :unspecified)
 SmilesBond(order, isaromatic, direction
     ) = SmilesBond(order, isaromatic, direction, :unspecified)
 
+SmilesBond(data::Dict{String,Any}) = SmilesBond(
+    data["order"],
+    data["isaromatic"],
+    Symbol(data["direction"]),
+    Symbol(data["stereo"])
+)
+
+function todict(b::SmilesBond)
+    data = Dict{String,Any}()
+    for field in fieldnames(SmilesBond)
+        data[string(field)] = getfield(b, field)
+    end
+    return data
+end
 
 setorder(edge::SmilesBond, order
     ) = SmilesBond(order, edge.isaromatic, edge.direction, edge.stereo)

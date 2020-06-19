@@ -5,13 +5,14 @@
 
 export
     GraphMol, QueryMol,
-    graphmol, remapnodes,
+    graphmol, remapnodes, todict,
     querymol, 
     SDFile, SMILES, SMARTS,
     getatom, getbond, hasbond,
     setatom!, setbond!, addatom!, addbond!,
     atomcount, bondcount
 
+import JSON
 
 struct GraphMol{A<:Atom,B<:Bond} <: OrderedGraph
     neighbormap::Vector{Dict{Int,Int}}
@@ -114,6 +115,51 @@ function remapnodes(graph::GraphMol, mapping::Dict{Int,Int})
     end
     return newg
 end
+
+
+"""
+    todict(graph::GraphMol) -> Dict{String,Any}
+
+Convert molecule object into JSON compatible dictionary.
+"""
+todict(graph::GraphMol) = Dict(
+        "edges" => graph.edges,
+        "nodetype" => string(nodeattrtype(graph)),
+        "edgetype" => string(edgeattrtype(graph)),
+        "nodeattrs" => [todict(atom) for atom in graph.nodeattrs],
+        "edgeattrs" => [todict(bond) for bond in graph.edgeattrs],
+        "cache" => Dict(string(k) => v for (k, v) in graph.cache),
+        "attributes" => Dict(string(k) => v for (k, v) in graph.attributes)
+)
+
+tojson(graph::GraphMol) = JSON.json(todict(graph))
+
+
+function graphmol(data::Dict{String,Any})
+    atomtype = eval(Meta.parse(data["nodetype"]))
+    bondtype = eval(Meta.parse(data["edgetype"]))
+    mol = graphmol(atomtype, bondtype)
+    for a in data["nodeattrs"]
+        push!(mol.nodeattrs, atomtype(a))
+        push!(mol.neighbormap, Dict())
+    end
+    for (i, (u, v)) in enumerate(data["edges"])
+        mol.neighbormap[u][v] = i
+        mol.neighbormap[v][u] = i
+        push!(mol.edgeattrs, bondtype(data["edgeattrs"][i]))
+        push!(mol.edges, (u, v))
+    end
+    for (k, v) in data["cache"]
+        mol.cache[Symbol(k)] = v
+    end
+    for (k, v) in data["attributes"]
+        mol.attributes[Symbol(k)] = v
+    end
+    return mol
+end
+
+graphmol(json::String) = graphmol(JSON.parse(json))
+
 
 
 struct QueryMol{A<:QueryAtom,B<:QueryBond} <: OrderedGraph
