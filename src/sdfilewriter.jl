@@ -4,7 +4,7 @@
 #
 
 export
-    sdfilewriter
+    molblock, sdfblock, sdfilewriter
 
 
 function atomblock(io::IO, mol::GraphMol)
@@ -75,7 +75,6 @@ function datablock(io::IO, mol::GraphMol)
         println(io, string(val))
         println(io, "")
     end
-    println(io, raw"$$$$")
     return
 end
 
@@ -93,7 +92,14 @@ function molblock(io::IO, mol::GraphMol)
     bondblock(io, mol)
     propertyblock(io, mol)
     println(io, "M  END")
+    return
+end
+
+
+function sdfblock(io::IO, mol::GraphMol)
+    molblock(io, mol)
     datablock(io, mol)
+    println(io, raw"$$$$")
     return
 end
 
@@ -104,6 +110,6 @@ end
 
 Write molecule data to the output stream as a SDFile format file.
 """
-sdfilewriter(io::IO, mols) = molblock.((io,), mols)
+sdfilewriter(io::IO, mols) = sdfblock.((io,), mols)
 sdfilewriter(filename::AbstractString, mols
     ) = sdfilewriter(open(path, "w"), mols)

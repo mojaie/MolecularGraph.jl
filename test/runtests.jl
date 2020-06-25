@@ -79,6 +79,7 @@ module MolecularGraphTest
     include("substructure.jl")
     include("funcgroup.jl")
     include("mcs.jl")
+    include("inchi.jl")
 
     include("./draw/base.jl")
     include("./draw/svg.jl")

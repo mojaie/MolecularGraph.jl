@@ -115,3 +115,9 @@ deps = ["Libdl", "Pkg"]
 git-tree-sha1 = "95b76590b9a558b69566b59cc64415b29618113b"
 uuid = "f6050b86-aaaf-512f-8549-0afff1b4d57f"
 version = "1.4.0+0"
+
+[[libinchi_jll]]
+deps = ["Libdl", "Pkg"]
+git-tree-sha1 = "63e5bdbfc6fd1b4a14dda769dfad40a2e78baaeb"
+uuid = "172afb32-8f1c-513b-968f-184fcd77af72"
+version = "1.5.0+0"
