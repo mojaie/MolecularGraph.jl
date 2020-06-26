@@ -30,6 +30,10 @@ MolecularGraph.jl
   - SDFile import/export (.sdf, .mol)
   - SMILES/SMARTS parser
 
+- Database
+  - InChI
+  - Serialization (molecule object <-> JSON)
+
 - Basic descriptors
   - H-bond donor/acceptor
   - rotatable bonds
