@@ -20,8 +20,9 @@ end
 
 """
     inchi(molblock::String) -> String
+    inchi(mol::GraphMol) -> String
 
-Generate InChI string from molblock
+Generate InChI string from molblock string or molecule
 """
 function inchi(molblock::String)
     output = inchi_Output()
@@ -30,7 +31,18 @@ function inchi(molblock::String)
         Int32,
         (Cstring, Cstring, Ref{inchi_Output}),
         molblock, "-W60", output)
-    res = unsafe_string(output.szInChI)
+    if output.szInChI == C_NULL
+        println("InChI error with $(molblock)")
+        if output.szMessage != C_NULL
+            println("message: ", unsafe_string(output.szMessage))
+        end
+        if output.szLog != C_NULL
+            println("log: ", unsafe_string(output.szLog))
+        end
+        res = nothing
+    else
+        res = unsafe_string(output.szInChI)
+    end
     # Free string buffers allocated by MakeINCHIFromMolfileText
     ccall(
         (:FreeINCHI, libinchi),
@@ -41,25 +53,23 @@ function inchi(molblock::String)
     return res
 end
 
-
-"""
-    inchi(mol::GraphMol) -> String
-
-Generate InChI string from GraphMol
-"""
 function inchi(mol::GraphMol)
     buf = IOBuffer(write=true)
     molblock(buf, mol)
-    return inchi(String(take!(buf)))
+    mb = String(take!(buf))
+    close(buf)
+    return inchi(mb)
 end
 
 
 """
     inchikey(inchi::String) -> String
+    inchikey(mol::GraphMol) -> String
 
-Generate InChI key from InChI
+Generate InChI key from InChI string or molecule
 """
-function inchikey(inchi::String)
+function inchikey(inchi::Union{String,Nothing})
+    inchi === nothing && return nothing
     ikeybuf = pointer(Vector{UInt8}(undef, 256))
     # TODO: need extra buffer?
     xtra1buf = pointer(Vector{UInt8}(undef, 256))
@@ -71,3 +81,5 @@ function inchikey(inchi::String)
         inchi, 1, 1, ikeybuf, xtra1buf, xtra2buf)
     return unsafe_string(ikeybuf)
 end
+
+inchikey(mol::GraphMol) = inchikey(inchi(mol))

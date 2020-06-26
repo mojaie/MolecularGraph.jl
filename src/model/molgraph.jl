@@ -5,7 +5,7 @@
 
 export
     GraphMol, QueryMol,
-    graphmol, remapnodes, todict,
+    graphmol, remapnodes, todict, tojson,
     querymol, 
     SDFile, SMILES, SMARTS,
     getatom, getbond, hasbond,

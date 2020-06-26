@@ -82,7 +82,7 @@ end
 function molblock(io::IO, mol::GraphMol)
     # TODO: 2D coords for SmilesMol
     println(io)
-    println(io, "MolecularGraph.jl version $(version())")
+    println(io, "MolecularGraph.jl version $(Util.VERSION)")
     println(io)
     ncnt = nodecount(mol)
     ecnt = edgecount(mol)

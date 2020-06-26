@@ -4,14 +4,16 @@
 #
 
 export
-    version
+    VERSION
 
-
-function version()
+const VERSION = begin
     project = joinpath(dirname(@__FILE__), "..", "..", "Project.toml")
+    v = []
     for line in eachline(project)
         if startswith(line, "version")
-            return strip(strip(split(line, " = ")[2]), ['"'])
+            push!(v, strip(strip(split(line, " = ")[2]), ['"']))
+            break
         end
     end
+    v[1]
 end
