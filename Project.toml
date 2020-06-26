@@ -16,6 +16,7 @@ libinchi_jll = "172afb32-8f1c-513b-968f-184fcd77af72"
 
 [compat]
 Documenter = "0"
+JSON = "0.21"
 YAML = "0"
 coordgenlibs_jll = "1.4"
 julia = "1.3"
