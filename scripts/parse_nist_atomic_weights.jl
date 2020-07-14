@@ -1,5 +1,5 @@
-# import Pkg
-# Pkg.add("YAML")
+import Pkg
+Pkg.add("YAML")
 import YAML
 
 const CONVENTIONAL_WEIGHT = Dict{Int,Float64}(
@@ -18,7 +18,7 @@ const CONVENTIONAL_WEIGHT = Dict{Int,Float64}(
 )
 
 const path = joinpath(
-    dirname(@__FILE__), "../assets/raw/nist_atomic_weights20200410.txt")
+    dirname(@__FILE__), "../assets/raw/nist_atomic_weights_full20200714.txt")
 const dest = joinpath(
     dirname(@__FILE__), "../assets/const/atomicweights.yaml")
 const revdest = joinpath(
@@ -96,13 +96,16 @@ function run()
         end
         revdict[rcd["Symbol"]] = rcd["Number"]
         if length(data) + 1 == rcd["Number"]
+            # new atom record
             if !isempty(data)
+                # finalize previous atom record
                 e = data[end]
                 # Monoisotopic mass
                 comp = [
-                    r["Composition"] for r in e["Isotopes"]
-                    if r["Composition"] !== NaN]
-                if !isempty(comp)
+                    r["Composition"] === NaN ? 0 : r["Composition"]
+                    for r in e["Isotopes"]
+                ]
+                if sum(comp) != 0
                     val, i = findmax(comp)
                     e["Monoisotopic"] = e["Isotopes"][i]["Mass"]
                     e["MonoisotopicUncertainty"
@@ -112,31 +115,34 @@ function run()
                     e["MonoisotopicUncertainty"] = NaN
                 end
             end
+            # initialize new atom record
             rcd["Isotopes"] = [iso]
             push!(data, rcd)
-            # New entry
-            if next === nothing
-                e = data[end]
-                # Monoisotopic mass
-                comp = [
-                    r["Composition"] for r in e["Isotopes"]
-                    if r["Composition"] !== NaN]
-                if !isempty(comp)
-                    val, i = findmax(comp)
-                    e["Monoisotopic"] = e["Isotopes"][i]["Mass"]
-                    e["MonoisotopicUncertainty"
-                        ] = e["Isotopes"][i]["MassUncertainty"]
-                else
-                    e["Monoisotopic"] = NaN
-                    e["MonoisotopicUncertainty"] = NaN
-                end
-                break
-            end
         else
+            # iso record to current atom record
             if rcd["Symbol"] != data[end]["Symbol"]
                 iso["Symbol"] = rcd["Symbol"]
             end
             push!(data[end]["Isotopes"], iso)
+        end
+        if next === nothing
+            # no new, finalize current atom record
+            e = data[end]
+            # Monoisotopic mass
+            comp = [
+                r["Composition"] === NaN ? 0 : r["Composition"]
+                for r in e["Isotopes"]
+            ]
+            if sum(comp) != 0
+                val, i = findmax(comp)
+                e["Monoisotopic"] = e["Isotopes"][i]["Mass"]
+                e["MonoisotopicUncertainty"
+                    ] = e["Isotopes"][i]["MassUncertainty"]
+            else
+                e["Monoisotopic"] = NaN
+                e["MonoisotopicUncertainty"] = NaN
+            end
+            break
         end
         next = iterate(lines, state)
     end

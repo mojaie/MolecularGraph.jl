@@ -111,6 +111,8 @@ function exactmass(atomsymbol::Symbol, number::Int)
     pred = rcd -> rcd["Number"] == number
     iso = ATOMTABLE[atomnumber(atomsymbol)]["Isotopes"]
     k = findfirst(pred.(iso))
+    k === nothing && throw(
+        ErrorException("No isotope data for $(number)$(atomsymbol)"))
     mass = iso[k]["Mass"]
     unc = iso[k]["MassUncertainty"]
     return (mass, unc)
