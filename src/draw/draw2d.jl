@@ -97,7 +97,7 @@ coords2d(view::SubgraphView) = coords2d(view.graph)
 
 
 
-@cache function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
+function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
     if haskey(mol.cache, :coordgenbond)
         notation = mol.cache[:coordgenbond]
     elseif nodeattrtype(mol) === SDFileAtom

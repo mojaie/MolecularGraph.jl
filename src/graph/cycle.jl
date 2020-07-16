@@ -46,7 +46,7 @@ end
 mincyclenodes(view::SubgraphView) = mincyclenodes(view.graph)
 
 
-@cache function node_cyclemem(graph::OrderedGraph)
+function node_cyclemem(graph::OrderedGraph)
     nodes = [Set{Int}() for n in 1:nodecount(graph)]
     for (i, cyc) in enumerate(mincyclenodes(graph))
         for n in cyc
@@ -59,7 +59,7 @@ end
 node_cyclemem(view::SubgraphView) = node_cyclemem(view.graph)
 
 
-@cache function edge_cyclemem(graph::OrderedGraph)
+function edge_cyclemem(graph::OrderedGraph)
     edges = [Set{Int}() for n in 1:edgecount(graph)]
     for (i, cyc) in enumerate(mincycleedges(graph))
         for e in cyc

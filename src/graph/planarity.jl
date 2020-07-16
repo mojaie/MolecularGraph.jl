@@ -211,13 +211,13 @@ Return whether the graph is planar.
    European Journal of Combinatorics, 33(3), 279–293.
    https://doi.org/10.1016/j.ejc.2011.09.012
 """
-@cache function isplanar(graph::UndirectedGraph)
+function isplanar(graph::UndirectedGraph)
     if isdefined(graph, :cache) && haskey(graph.cache, :isouterplanar)
         graph.cache[:isouterplanar] && return true
     end
     edgecount(graph) < 9 && return true
     edgecount(graph) > nodecount(graph) * 3 - 6 && return false
-    return planaritytest(graph, verbose=verbose)
+    return planaritytest(graph)
 end
 
 
@@ -227,11 +227,11 @@ end
 Return whether the graph is outerplanar. The outerplanarity test is based on
 a planarity test (see [`isplanar`](@ref)).
 """
-@cache function isouterplanar(graph::UndirectedGraph)
+function isouterplanar(graph::UndirectedGraph)
     if isdefined(graph, :cache) && haskey(graph.cache, :isplanar)
         graph.cache[:isplanar] || return false
     end
     edgecount(graph) < 6 && return true
     edgecount(graph) > nodecount(graph) * 2 - 6 && return false
-    return outerplanaritytest(graph, verbose=verbose)
+    return outerplanaritytest(graph)
 end

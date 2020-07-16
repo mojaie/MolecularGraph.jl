@@ -7,7 +7,7 @@ export
     hasselfloop, hasmultiedge, issimplegraph
 
 
-@cache function hasselfloop(graph::Union{OrderedGraph,OrderedDiGraph})
+function hasselfloop(graph::Union{OrderedGraph,OrderedDiGraph})
     for (u, v) in edgesiter(graph)
         u == v && return true
     end
@@ -15,7 +15,7 @@ export
 end
 
 
-@cache function hasmultiedge(graph::Union{OrderedGraph,OrderedDiGraph})
+function hasmultiedge(graph::Union{OrderedGraph,OrderedDiGraph})
     for nbr in neighborsiter(graph)
         length(nbr) == length(Set(values(nbr))) || return true
     end
@@ -23,5 +23,5 @@ end
 end
 
 
-@cache issimplegraph(graph::Union{OrderedGraph,OrderedDiGraph}
+issimplegraph(graph::Union{OrderedGraph,OrderedDiGraph}
     ) = !hasselfloop(graph) && !hasmultiedge(graph)
