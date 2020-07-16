@@ -45,7 +45,7 @@ function setbond! end
 """
     setatomright!(
         canvas::Canvas, coords::Array{Float64,2}, atomsymbol::Symbol,
-        color::Color, implicithcount::Int, charge::Int
+        color::Color, implicithconnected::Int, charge::Int
     )
 
 Interface for atom drawing.

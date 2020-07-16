@@ -16,7 +16,7 @@ function molecularmass(mol::GraphMol, massfunc, implicithfunc)
     mass = 0.0
     unc = 0.0
     hm, hu = implicithfunc(:H)
-    for (atom, hcnt) in zip(nodeattrs(mol), implicithcount(mol))
+    for (atom, hcnt) in zip(nodeattrs(mol), implicithconnected(mol))
         m, u = massfunc(atom)
         mass += m + hm * hcnt
         unc += u + hu * hcnt
@@ -262,7 +262,7 @@ function isotopiccomposition(mol::GraphMol; threshold=0.001)
     data = Tuple{Float64,Float64}[]
     for tup in Iterators.product(
             (isotopiccomposition(sym, cnt; threshold=threshold)
-            for (sym, cnt) in countatoms(mol))...)
+            for (sym, cnt) in atomcounter(mol))...)
         mass = 0.0
         comp = 1.0
         for t in tup

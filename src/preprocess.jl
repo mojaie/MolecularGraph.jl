@@ -123,10 +123,10 @@ end
 Return the molecule with all hydrogen nodes explicitly attached.
 """
 function addhydrogens(mol::GraphMol{A,B}) where {A<:Atom,B<:Bond}
-    implicithcount_ = implicithcount(mol)
+    implicithconnected_ = implicithconnected(mol)
     newmol = graphmol(mol)
     for i in 1:nodecount(mol)
-        for j in 1:implicithcount_[i]
+        for j in 1:implicithconnected_[i]
             addedge!(newmol, i, addnode!(newmol, A(:H)), B())
         end
     end
@@ -181,11 +181,11 @@ end
 Return the molecule with its onium groups are deprotonated.
 """
 function deprotonateoniums(mol::GraphMol)
-    hcount_ = hcount(mol)
+    hydrogenconnected_ = hydrogenconnected(mol)
     charge_ = charge(mol)
     newmol = graphmol(mol)
     for o in findall(charge_ .== 1)
-        hcount_[o] > 0 || continue
+        hydrogenconnected_[o] > 0 || continue
         setnodeattr!(newmol, o, setcharge(nodeattr(newmol, o), 0))
     end
     return newmol

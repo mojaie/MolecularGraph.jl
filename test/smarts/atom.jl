@@ -30,7 +30,7 @@ end
 
     state = SmartsParser("H41", false)
     H4 = atomprop!(state)
-    @test H4 == (:hcount => 4)
+    @test H4 == (:hydrogenconnected => 4)
     @test state.pos == 3
 
     state = SmartsParser("X2", false)

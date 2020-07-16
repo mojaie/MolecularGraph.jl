@@ -10,11 +10,12 @@ export
     atom_sssrcount, bond_sssrcount,
     scaffoldmem, componentmem,
     atomsymbol, charge, multiplicity, bondorder,
-    nodedegree, valence, lonepair, heavyatomcount,
-    explicithcount, implicithcount, hcount, connectivity,
+    nodedegree, valence, lonepair,
+    heavyatomconnected, heavyatomcount,
+    explicithconnected, implicithconnected, hydrogenconnected, connectivity,
     ishdonor, hacceptorcount, ishacceptor, hdonorcount,
     isrotatable, rotatablecount,
-    countatoms, molecularformula, empiricalformula,
+    atomcounter, molecularformula, empiricalformula,
     pielectron, hybridization,
     isaromaticring, isaromatic, isaromaticbond
 
@@ -200,11 +201,11 @@ valence(view::SubgraphView) = valence(view.graph)
 
 
 """
-    explicithcount(mol::GraphMol) -> Vector{Int}
+    explicithconnected(mol::GraphMol) -> Vector{Int}
 
 Return the size ``n`` vector of the number of adjacent explicit hydrogen nodes within the molecule that have ``n`` atoms.
 """
-@cache function explicithcount(mol::GraphMol)
+@cache function explicithconnected(mol::GraphMol)
     vec = zeros(Int, nodecount(mol))
     atomsymbol_ = atomsymbol(mol)
     for i in 1:nodecount(mol)
@@ -217,42 +218,42 @@ Return the size ``n`` vector of the number of adjacent explicit hydrogen nodes w
     return vec
 end
 
-explicithcount(view::SubgraphView) = explicithcount(view.graph)
+explicithconnected(view::SubgraphView) = explicithconnected(view.graph)
 
 
 """
-    implicithcount(mol::GraphMol) -> Vector{Int}
+    implicithconnected(mol::GraphMol) -> Vector{Int}
 
 Return the size ``n`` vector of the number of implicit hydrogens within
 the molecule that have ``n`` atoms.
 """
-@cache function implicithcount(mol::GraphMol)
+@cache function implicithconnected(mol::GraphMol)
     hcnt = (v, av) -> v === nothing ? 0 : max(0, v - av)
     return hcnt.(valence(mol), apparentvalence(mol))
 end
 
-implicithcount(view::SubgraphView) = implicithcount(view.graph)
+implicithconnected(view::SubgraphView) = implicithconnected(view.graph)
 
 
 """
-    heavyatomcount(mol::GraphMol) -> Vector{Int}
+    heavyatomconnected(mol::GraphMol) -> Vector{Int}
 
 Return the size ``n`` vector of the number of adjacent non-hydrogen atoms within
 the molecule that have ``n`` atoms.
 """
-heavyatomcount(mol::GraphMol) = nodedegree(mol) - explicithcount(mol)
-heavyatomcount(view::SubgraphView) = heavyatomcount(view.graph)
-
+heavyatomconnected(mol::GraphMol) = nodedegree(mol) - explicithconnected(mol)
+heavyatomconnected(view::SubgraphView) = heavyatomconnected(view.graph)
+# TODO: rename
 
 """
-    hcount(mol::GraphMol) -> Vector{Int}
+    hydrogenconnected(mol::GraphMol) -> Vector{Int}
 
 Return the size ``n`` vector of the total number of hydrogens attached to the atom within the molecule that have ``n`` atoms.
 
-`hcount` values correspond to SMARTS `H` property.
+`hydrogenconnected` values correspond to SMARTS `H` property.
 """
-@cache hcount(mol::GraphMol) = explicithcount(mol) + implicithcount(mol)
-hcount(view::SubgraphView) = hcount(view.graph)
+@cache hydrogenconnected(mol::GraphMol) = explicithconnected(mol) + implicithconnected(mol)
+hydrogenconnected(view::SubgraphView) = hydrogenconnected(view.graph)
 
 
 """
@@ -262,7 +263,7 @@ Return the size ``n`` vector of the total number of adjacent atoms (including im
 
 `connectivity` values correspond to SMARTS `X` property.
 """
-@cache connectivity(mol::GraphMol) = nodedegree(mol) + implicithcount(mol)
+@cache connectivity(mol::GraphMol) = nodedegree(mol) + implicithconnected(mol)
 connectivity(view::SubgraphView) = connectivity(view.graph)
 
 
@@ -287,7 +288,7 @@ hacceptorcount(mol::GraphMol) = reduce(+, ishacceptor(mol); init=0)
 
 function ishdonor(mol::GraphMol)
     dc = (sym, h) -> sym in (:N, :O) && h > 0
-    return dc.(atomsymbol(mol), hcount(mol))
+    return dc.(atomsymbol(mol), hydrogenconnected(mol))
 end
 
 ishdonor(view::SubgraphView) = ishdonor(view.graph)
@@ -337,11 +338,11 @@ rotatablecount(mol::GraphMol) = reduce(+, isrotatable(mol); init=0)
 # Composition
 
 """
-    countatoms(mol::GraphMol) -> Dict{Symbol,Int}
+    atomcounter(mol::GraphMol) -> Dict{Symbol,Int}
 
 Count the number of atoms and return symbol => count dict.
 """
-function countatoms(mol::GraphMol)
+function atomcounter(mol::GraphMol)
     counter = Dict{Symbol,Int}()
     for sym in atomsymbol(mol)
         if !haskey(counter, sym)
@@ -350,7 +351,7 @@ function countatoms(mol::GraphMol)
             counter[sym] += 1
         end
     end
-    hcnt = reduce(+, implicithcount(mol); init=0)
+    hcnt = reduce(+, implicithconnected(mol); init=0)
     if hcnt > 0
         if !haskey(counter, :H)
             counter[:H] = hcnt
@@ -389,7 +390,7 @@ end
 Return the molecular formula in Hill system.
 """
 function molecularformula(mol::GraphMol)
-    counter = countatoms(mol)
+    counter = atomcounter(mol)
     return writeformula(counter)
 end
 
@@ -400,7 +401,7 @@ end
 Return the empirical formula in Hill system.
 """
 function empiricalformula(mol::GraphMol)
-    counter = countatoms(mol)
+    counter = atomcounter(mol)
     if length(counter) > 1
         dv = reduce(gcd, values(counter))
         for k in keys(counter)

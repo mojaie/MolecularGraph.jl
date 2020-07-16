@@ -19,7 +19,7 @@ function addstereohydrogens(mol::GraphMol)
     C[C@@H](C)C -> C[C@@]([H])(C)C
     """
     atoms = nodeattrs(mol)
-    hcount_ = hcount(mol)
+    hydrogenconnected_ = hydrogenconnected(mol)
     newmol = clone(mol)
     mapper = Dict{Int,Int}() 
     offset = 0
@@ -27,7 +27,7 @@ function addstereohydrogens(mol::GraphMol)
         mapper[i] = i + offset
         atoms[i].stereo === :unspecified && continue
         degree(mol, i) == 3 || continue
-        hcount_[i] == 1 || continue
+        hydrogenconnected_[i] == 1 || continue
         n = addnode!(newmol, nodeattrtype(mol)(:H))
         addedge!(newmol, i, n, edgeattrtype(mol)())
         offset += 1

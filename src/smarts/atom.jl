@@ -11,7 +11,7 @@ const SMARTS_ATOM_COND_SYMBOL = Dict(
     'X' => :connectivity,
     'D' => :nodedegree,
     'v' => :valence,
-    'H' => :hcount,
+    'H' => :hydrogenconnected,
     'r' => :atom_sssrsizes,
     'R' => :atom_sssrcount
 )
@@ -63,7 +63,7 @@ function atom!(state::SmilesParser)
         @assert ca == ']' "(atom!) unexpected token: $(ca)"
         forward!(state)
         prop = collectand(a)
-        @assert haskey(prop, :atomsymbol) || prop[:hcount] >= 1
+        @assert haskey(prop, :atomsymbol) || prop[:hydrogenconnected] >= 1
         atoms = [SmilesAtom(
             get(prop, :atomsymbol, :H),
             get(prop, :charge, 0),
@@ -72,7 +72,7 @@ function atom!(state::SmilesParser)
             get(prop, :isaromatic, false),
             get(prop, :stereo, :unspecified)
         )]
-        hcnt = get(prop, :hcount, 0)
+        hcnt = get(prop, :hydrogenconnected, 0)
         if !haskey(prop, :atomsymbol)
             hcnt -= 1
         end

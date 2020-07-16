@@ -160,12 +160,12 @@ function chargesign(charge::Int)
 end
 
 
-function atommarkup(symbol, charge, hcount, direction,
+function atommarkup(symbol, charge, hydrogenconnected, direction,
                     substart, subend, supstart, supend)
-    if hcount == 1
+    if hydrogenconnected == 1
         hs = "H"
-    elseif hcount > 1
-        hs = string("H", substart, hcount, subend)
+    elseif hydrogenconnected > 1
+        hs = string("H", substart, hydrogenconnected, subend)
     else
         hs = ""
     end
@@ -176,9 +176,9 @@ end
 
 
 atomhtml(
-    symbol, charge, hcount, direction
+    symbol, charge, hydrogenconnected, direction
 ) = atommarkup(
-    symbol, charge, hcount, direction, "<sub>", "</sub>", "<sup>", "</sup>")
+    symbol, charge, hydrogenconnected, direction, "<sub>", "</sub>", "<sup>", "</sup>")
 
 
 """
@@ -202,7 +202,7 @@ function draw2d!(canvas::Canvas, mol::UndirectedGraph;
     isatomvisible_ = isatomvisible(mol)
     bondorder_ = bondorder(mol)
     bondnotation_ = bondnotation(mol)
-    implicithcount_ = implicithcount(mol)
+    implicithconnected_ = implicithconnected(mol)
 
     # Draw bonds
     for i in edgeset(mol)
@@ -220,7 +220,7 @@ function draw2d!(canvas::Canvas, mol::UndirectedGraph;
         isatomvisible_[i] || continue
         pos = Point2D(canvas.coords, i)
         # Determine text direction
-        if implicithcount_[i] > 0
+        if implicithconnected_[i] > 0
             cosnbrs = []
             hrzn = pos + (1.0, 0.0)
             for adj in adjacencies(mol, i)
@@ -235,14 +235,14 @@ function draw2d!(canvas::Canvas, mol::UndirectedGraph;
                 # [atom]< or isolated node(ex. H2O, HCl)
                 setatomright!(
                     canvas, pos, atomsymbol_[i], atomcolor_[i],
-                    implicithcount_[i], charge_[i]
+                    implicithconnected_[i], charge_[i]
                 )
                 continue
             elseif maximum(cosnbrs) < 0
                 # >[atom]
                 setatomleft!(
                     canvas, pos, atomsymbol_[i], atomcolor_[i],
-                    implicithcount_[i], charge_[i]
+                    implicithconnected_[i], charge_[i]
                 )
                 continue
             end
@@ -250,7 +250,7 @@ function draw2d!(canvas::Canvas, mol::UndirectedGraph;
         # -[atom]- or no hydrogens
         setatomcenter!(
             canvas, pos, atomsymbol_[i], atomcolor_[i],
-            implicithcount_[i], charge_[i]
+            implicithconnected_[i], charge_[i]
         )
     end
     return

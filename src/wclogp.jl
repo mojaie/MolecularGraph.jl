@@ -33,8 +33,8 @@ Return Wildman-Crippen LogP atom types.
     atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)
     bondorder_ = bondorder(mol)
-    heavyatomcount_ = heavyatomcount(mol)
-    hcount_ = hcount(mol)
+    heavyatomconnected_ = heavyatomconnected(mol)
+    hydrogenconnected_ = hydrogenconnected(mol)
     pielectron_ = pielectron(mol)
     hybridization_ = hybridization(mol)
     isaromatic_ = isaromatic(mol)
@@ -49,26 +49,26 @@ Return Wildman-Crippen LogP atom types.
             elseif all(isaromatic_[nbrs] .=== false)
                 if all(atomsymbol_[nbrs] .=== :C)
                     # Aliphatic carbon (C1,2)
-                    atomtypes[i] = heavyatomcount_[i] < 3 ? :C1 : :C2
+                    atomtypes[i] = heavyatomconnected_[i] < 3 ? :C1 : :C2
                 else
                     # Adjacent to heteroatoms (C3,4)
-                    atomtypes[i] = heavyatomcount_[i] < 3 ? :C3 : :C4
+                    atomtypes[i] = heavyatomconnected_[i] < 3 ? :C3 : :C4
                 end
             else
                 # Adjacent to aromatic atoms (C8-12)
-                if heavyatomcount_[i] == 1
+                if heavyatomconnected_[i] == 1
                     atomtypes[i] = atomsymbol_[nbrs[1]] === :C ? :C8 : :C9
-                elseif heavyatomcount_[i] == 2
+                elseif heavyatomconnected_[i] == 2
                     atomtypes[i] = :C10
-                elseif heavyatomcount_[i] == 3
+                elseif heavyatomconnected_[i] == 3
                     atomtypes[i] = :C11
-                elseif heavyatomcount_[i] == 4
+                elseif heavyatomconnected_[i] == 4
                     atomtypes[i] = :C12
                 end
             end
         elseif isaromatic_[i]
             # Aromatic (C13-25)
-            if hcount_[i] == 1
+            if hydrogenconnected_[i] == 1
                 atomtypes[i] = :C18  # Aromatic non-substituted
                 continue
             end
@@ -132,18 +132,18 @@ Return Wildman-Crippen LogP atom types.
         if hybridization_[i] === :sp3
             if charge_[i] > 0
                 # Ammonium (N10, N13)
-                if heavyatomcount_[i] == 4
+                if heavyatomconnected_[i] == 4
                     atomtypes[i] = :N13  # Quart-ammonium
-                elseif heavyatomcount_[i] < 4
+                elseif heavyatomconnected_[i] < 4
                     atomtypes[i] = :N10  # Protonated amine
                 end
             elseif charge_[i] == 0
                 # Aliphatic amine (N1,2,7)
-                if heavyatomcount_[i] == 1
+                if heavyatomconnected_[i] == 1
                     atomtypes[i] = :N1
-                elseif heavyatomcount_[i] == 2
+                elseif heavyatomconnected_[i] == 2
                     atomtypes[i] = :N2
-                elseif heavyatomcount_[i] == 3
+                elseif heavyatomconnected_[i] == 3
                     atomtypes[i] = :N7
                 end
             end
@@ -159,20 +159,20 @@ Return Wildman-Crippen LogP atom types.
                 adjs = collect(adjacencies(mol, i))
                 if any(isaromatic_[adjs])
                     # Amine adjacent to aromatic (N3,4,8)
-                    if heavyatomcount_[i] == 1
+                    if heavyatomconnected_[i] == 1
                         atomtypes[i] = :N3
-                    elseif heavyatomcount_[i] == 2
+                    elseif heavyatomconnected_[i] == 2
                         atomtypes[i] = :N4
-                    elseif heavyatomcount_[i] == 3
+                    elseif heavyatomconnected_[i] == 3
                         atomtypes[i] = :N8
                     end
                 else
                     # Aliphatic amine (N1,2,7)
-                    if heavyatomcount_[i] == 1
+                    if heavyatomconnected_[i] == 1
                         atomtypes[i] = :N1
-                    elseif heavyatomcount_[i] == 2
+                    elseif heavyatomconnected_[i] == 2
                         atomtypes[i] = :N2
-                    elseif heavyatomcount_[i] == 3
+                    elseif heavyatomconnected_[i] == 3
                         atomtypes[i] = :N7
                     end
                 end
@@ -181,9 +181,9 @@ Return Wildman-Crippen LogP atom types.
                 if charge_[i] > 0
                     atomtypes[i] = :N13  # Quart-ammonium
                 elseif charge_[i] == 0
-                    if heavyatomcount_[i] == 1
+                    if heavyatomconnected_[i] == 1
                         atomtypes[i] = :N5
-                    elseif heavyatomcount_[i] == 2
+                    elseif heavyatomconnected_[i] == 2
                         atomtypes[i] = :N6
                     end
                 end
@@ -212,11 +212,11 @@ Return Wildman-Crippen LogP atom types.
     # Oxygens
     for i in findall(atomsymbol_ .=== :O)
         if hybridization_[i] === :sp3
-            if hcount_[i] > 0
+            if hydrogenconnected_[i] > 0
                 atomtypes[i] = :O2  # Alcohol (O2)
-            elseif charge_[i] == 0 && heavyatomcount_[i] == 2
+            elseif charge_[i] == 0 && heavyatomconnected_[i] == 2
                 atomtypes[i] = :O3  # Aliphatic ether
-            elseif charge_[i] < 0 && heavyatomcount_[i] == 1
+            elseif charge_[i] < 0 && heavyatomconnected_[i] == 1
                 # Oxide (O5,6,7,12)
                 adj = pop!(adjacencies(mol, i))
                 if atomsymbol_[adj] in (:O, :N)
@@ -237,7 +237,7 @@ Return Wildman-Crippen LogP atom types.
         elseif isaromatic_[i]
             atomtypes[i] = :O1  # Aromatic oxygen (O1)
         elseif hybridization_[i] === :sp2 && charge_[i] == 0
-            if heavyatomcount_[i] == 2
+            if heavyatomconnected_[i] == 2
                 adjs = collect(adjacencies(mol, i))
                 if any(isaromatic_[adjs])
                     atomtypes[i] = :O4  # Aromatic ether
@@ -339,17 +339,17 @@ end
 function wclogpcontrib(mol::GraphMol)
     contrib = zeros(nodecount(mol))
     atomsymbol_ = atomsymbol(mol)
-    hcount_ = hcount(mol)
+    hydrogenconnected_ = hydrogenconnected(mol)
     atomtypes = wclogptype(mol)
     for i in 1:nodecount(mol)
         cont = get(WCLOGP_TABLE, string(atomtypes[i]), 0)
         if atomsymbol_[i] == :H
             contrib[i] = 0  # avoid double count
-        elseif hcount_[i] == 0
+        elseif hydrogenconnected_[i] == 0
             contrib[i] = cont
         else
             htype = wclogphydrogentype(mol, i)
-            hcont = WCLOGP_TABLE[string(htype)] * hcount_[i]
+            hcont = WCLOGP_TABLE[string(htype)] * hydrogenconnected_[i]
             contrib[i] = cont + hcont
         end
     end

@@ -46,25 +46,25 @@ end
     atoms = smilestomol("B.C.N.O.F.[Si].P.S.Cl.[As].[Se].Br.I")
     @test valence(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
     @test lonepair(atoms) == [-1, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 3]
-    @test implicithcount(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
+    @test implicithconnected(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
     
     pyridineoxide = smilestomol("[N+]1([O-])=CC=CC=C1")
     @test valence(pyridineoxide) == [4, 1, 4, 4, 4, 4, 4]
     @test lonepair(pyridineoxide) == [0, 3, 0, 0, 0, 0, 0]
-    @test implicithcount(pyridineoxide) == [0, 0, 1, 1, 1, 1, 1]
+    @test implicithconnected(pyridineoxide) == [0, 0, 1, 1, 1, 1, 1]
     
     trifluoroborate = smilestomol("C[B-](F)(F)F")
     @test valence(trifluoroborate) == [4, 4, 1, 1, 1]
     @test lonepair(trifluoroborate) == [0, 0, 3, 3, 3]
-    @test implicithcount(trifluoroborate) == [3, 0, 0, 0, 0]
+    @test implicithconnected(trifluoroborate) == [3, 0, 0, 0, 0]
 
     etmacl = smilestomol("[H]C([H])([H])C[Mg][Cl]")
     @test valence(etmacl) == [1, 4, 1, 1, 4, nothing, 1]
     @test lonepair(etmacl) == [0, 0, 0, 0, 0, nothing, 3]
-    @test implicithcount(etmacl) == [0, 0, 0, 0, 2, 0, 0]
-    @test explicithcount(etmacl) == [0, 3, 0, 0, 0, 0, 0]
-    @test hcount(etmacl) == [0, 3, 0, 0, 2, 0, 0]
-    @test heavyatomcount(etmacl) == [1, 1, 1, 1, 2, 2, 1]
+    @test implicithconnected(etmacl) == [0, 0, 0, 0, 2, 0, 0]
+    @test explicithconnected(etmacl) == [0, 3, 0, 0, 0, 0, 0]
+    @test hydrogenconnected(etmacl) == [0, 3, 0, 0, 2, 0, 0]
+    @test heavyatomconnected(etmacl) == [1, 1, 1, 1, 2, 2, 1]
     @test connectivity(etmacl) == [1, 4, 1, 1, 4, 2, 1]
 end
 
