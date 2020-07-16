@@ -246,6 +246,14 @@ heavyatomconnected(view::SubgraphView) = heavyatomconnected(view.graph)
 
 
 """
+    heavyatomcount(mol::GraphMol) -> Int
+
+Return the total number of non-hydrogen atoms.
+"""
+heavyatomcount(mol::GraphMol) = reduce(+, heavyatomconnected(mol); init=0)
+
+
+"""
     hydrogenconnected(mol::GraphMol) -> Vector{Int}
 
 Return the size ``n`` vector of the total number of hydrogens attached to the atom within the molecule that have ``n`` atoms.
