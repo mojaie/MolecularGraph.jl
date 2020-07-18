@@ -26,7 +26,6 @@
 
     dump = todict(mol)
     loaded = graphmol(dump)
-    display(loaded)
     @test loaded.neighbormap[3][2] == 2
     @test length(loaded.edges) == 2
     @test length(loaded.cache[:test]) == 3

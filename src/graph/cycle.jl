@@ -16,6 +16,7 @@ in the context of molecular graph theory).
 """
 @cache function mincycleedges(graph::UndirectedGraph)
     mincycs = Vector{Int}[]
+    # TODO: two_edge_connected may not improve performance significantlly
     for biconn in two_edge_connected(graph)
         subg = nodesubgraph(graph, biconn)
         for cyc in mincyclebasis(subg)
@@ -119,6 +120,7 @@ function canonicalcycle(nodes::Vector{Int})
     """Align cycle indices to start from lowest index and following one of
     neighbors that have the lower index
     """
+    # TODO: not used
     (fst, fstidx) = findmin(nodes)
     succidx = fstidx == lastindex(nodes) ? 1 : fstidx + 1
     succ = nodes[succidx]
