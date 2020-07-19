@@ -8,13 +8,13 @@
 @testset "minimumcycles" begin
     # TODO: canonical cycle indexing
     p5 = pathgraph(5)
-    @test isempty(mincycleedges(p5))
+    @test isempty(edgemincycles(p5))
     c5 = cyclegraph(5)
-    @test length(mincycleedges(c5)[1]) == 5
+    @test length(edgemincycles(c5)[1]) == 5
     k44 = completebipartite(3, 3)
-    @test sum(map(length, mincycleedges(k44))) == 16
+    @test sum(map(length, edgemincycles(k44))) == 16
     k5 = completegraph(5)
-    @test sum(map(length, mincycleedges(k5))) == 18
+    @test sum(map(length, edgemincycles(k5))) == 18
 end
 
 end # graph.cycle

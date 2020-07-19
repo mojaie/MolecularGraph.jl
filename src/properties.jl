@@ -4,11 +4,11 @@
 #
 
 export
-    sssr, atom_sssrmem, bond_sssrmem,
-    atom_sssrsizes, bond_sssrsizes,
+    connectedcomponents, biconnectedcomponents, fusedrings, sssr,
+    componentmembership, biconnectedmembership,
+    fusedringmembership, sssrmembership,
+    sssrsizes, sssrcount,
     isringatom, isringbond,
-    atom_sssrcount, bond_sssrcount,
-    scaffoldmem, componentmem,
     atomsymbol, charge, multiplicity, bondorder,
     nodedegree, valence, lonepair,
     heavyatomconnected, heavyatomcount,
@@ -22,56 +22,31 @@ export
 
 
 # Molecular graph topology
+connectedcomponents = Graph.connectedcomponents
+biconnectedcomponents = Graph.biconnectedcomponents
+fusedrings = Graph.twoedgeconnectedcomponents
+sssr = Graph.mincycles
+componentmembership = Graph.connectedmembership
+biconnectedmembership = Graph.biconnectedmembership
+fusedringmembership = Graph.twoedgemembership
+sssrmembership = Graph.mincyclemembership
 
-sssr = mincyclenodes
-atom_sssrmem = node_cyclemem
-bond_sssrmem = edge_cyclemem
-scaffoldmem = two_edge_membership
-componentmem = connected_membership
+sssrsizes(mol, n
+    ) = [length(sssr(mol)[r]) for r in sssrmembership(mol)[n]]
 
-
-function atom_sssrsizes(mol::UndirectedGraph)
-    vec = [Set{Int}() for i in 1:nodecount(mol)]
-    rings = sssr(mol)
-    for (i, cs) in enumerate(atom_sssrmem(mol))
-        for c in cs
-            push!(vec[i], length(rings[c]))
-        end
-    end
-    return vec
-end
-
-atom_sssrsizes(view::SubgraphView) = atom_sssrsizes(view.graph)
-
-
-function bond_sssrsizes(mol::UndirectedGraph)
-    vec = [Set{Int}() for i in 1:edgecount(mol)]
-    rings = sssr(mol)
-    for (i, cs) in enumerate(bond_sssrmem(mol))
-        for c in cs
-            push!(vec[i], length(rings[c]))
-        end
-    end
-    return vec
-end
-
-bond_sssrsizes(view::SubgraphView) = bond_sssrsizes(view.graph)
+sssrcount(mol, n) = length(sssrmembership(mol)[n])
 
 
 # TODO: waiting for fix #28992
-# atom_isringmem(mol) = .!isempty.(node_cyclemem(mol))
-isringatom(mol::UndirectedGraph) = [!i for i in isempty.(atom_sssrmem(mol))]
+# atom_isringmem(mol) = .!isempty.(mincyclemembership(mol))
+isringatom(mol::UndirectedGraph) = [!i for i in isempty.(sssrmembership(mol))]
 isringatom(view::SubgraphView) = isringatom(view.graph)
 
-# bond_isringmem(mol) = .!isempty.(node_cyclemem(mol))
-isringbond(mol::UndirectedGraph) = [!i for i in isempty.(bond_sssrmem(mol))]
+# bond_isringmem(mol) = .!isempty.(mincyclemembership(mol))
+isringbond(mol::UndirectedGraph
+    ) = [!i for i in isempty.(Graph.edgemincyclemembership(mol))]
 isringbond(view::SubgraphView) = isringbond(view.graph)
 
-atom_sssrcount(mol::UndirectedGraph) = length.(atom_sssrmem(mol))
-atom_sssrcount(view::SubgraphView) = atom_sssrcount(view.graph)
-
-bond_sssrcount(mol::UndirectedGraph) = length.(bond_sssrmem(mol))
-bond_sssrcount(view::SubgraphView) = bond_sssrcount(view.graph)
 
 
 

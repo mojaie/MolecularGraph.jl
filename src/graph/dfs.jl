@@ -63,7 +63,7 @@ function circuitrank(graph::UndirectedGraph)
         return length(graph.cache[:mincycles])
     end
     treesize = 0
-    for conn in connected_components(graph)
+    for conn in connectedcomponents(graph)
         root = iterate(conn)[1]
         edges = dfstree_edges(neighbors, graph, root)
         treesize += length(edges)

@@ -3,10 +3,8 @@
 
 @testset "topology" begin
     cubane = smilestomol("C12C3C4C1C1C4C3C12")
-    @test iterate(atom_sssrsizes(cubane)[1])[1] == 4
-    @test iterate(bond_sssrsizes(cubane)[8])[1] == 4
-    @test count(x->x==2, atom_sssrcount(cubane)) == 4
-    @test count(x->x==2, bond_sssrcount(cubane)) == 8
+    @test pop!(sssrsizes(cubane, 1)) == 4
+    @test sssrcount(cubane, 6) == 3
     biphenyl = smilestomol("C1CCCCC1C1CCCCC1")
     @test isringatom(biphenyl)[6]
     @test isringatom(biphenyl)[7]

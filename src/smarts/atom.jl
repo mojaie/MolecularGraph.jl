@@ -12,8 +12,8 @@ const SMARTS_ATOM_COND_SYMBOL = Dict(
     'D' => :nodedegree,
     'v' => :valence,
     'H' => :hydrogenconnected,
-    'r' => :atom_sssrsizes,
-    'R' => :atom_sssrcount
+    'r' => :sssrsizes,
+    'R' => :sssrcount
 )
 
 const SMARTS_CHARGE_SIGN = Dict(
@@ -140,7 +140,7 @@ function atomprop!(state::SmartsParserState)
             num = parse(Int, c2)
             forward!(state)
         else
-            c in (:r, :R) && return :not => (:atom_sssrcount => 0)
+            c in (:r, :R) && return :not => (:sssrcount => 0)
             num = 1
         end
         return SMARTS_ATOM_COND_SYMBOL[c] => num

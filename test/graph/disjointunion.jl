@@ -11,7 +11,7 @@
     disjointunion!(G, H, I)
     @test nodecount(G) == 15
     @test edgecount(G) == 13
-    (g, h, i) = connected_components(G)
+    (g, h, i) = connectedcomponents(G)
     @test length(g) == 5
     @test length(h) == 5
     @test length(i) == 5
@@ -20,7 +20,7 @@
     U = disjointunion(gsub, H, I)
     @test nodecount(U) == 15
     @test edgecount(U) == 13
-    @test length(connected_components(U)) == 3
+    @test length(connectedcomponents(U)) == 3
     @test getunionnode(U, 3, 1) == 11
     @test getunionedge(U, 3, 1) == 9
     @test getsourcenode(U, 15).source == 3
@@ -33,6 +33,6 @@
     U = disjointunion(k5sub, k5sub)
     @test nodecount(U) == 8
     @test edgecount(U) == 12
-    @test length(connected_components(U)) == 2
+    @test length(connectedcomponents(U)) == 2
 
 end # graph.disjointunion

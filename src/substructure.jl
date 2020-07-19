@@ -258,8 +258,10 @@ function querymatchtree(query::Pair, mol::UndirectedGraph, i::Int)
         subq = parse(SMARTS, query.second)
         return issmartsgroupmatch(mol, subq, i)
     else
-        if query.first == :atom_sssrsizes
-            return query.second in atom_sssrsizes(mol)[i]
+        if query.first == :sssrsizes
+            return query.second in sssrsizes(mol, i)
+        elseif query.first == :sssrcount
+            return sssrcount(mol, i) == query.second
         else
             return mol[query.first][i] == query.second
         end

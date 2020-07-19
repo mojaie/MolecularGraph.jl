@@ -4,7 +4,7 @@
 #
 
 export
-    mincyclenodes, mincycleedges, node_cyclemem, edge_cyclemem,
+    mincycles, edgemincycles, mincyclemembership, edgemincyclemembership,
     canonicalcycle
 
 
@@ -14,10 +14,10 @@ export
 Calculate minimum cycle basis (also known as Smallest Set of Smallest Rings
 in the context of molecular graph theory).
 """
-@cache function mincycleedges(graph::UndirectedGraph)
+@cache function edgemincycles(graph::UndirectedGraph)
     mincycs = Vector{Int}[]
-    # TODO: two_edge_connected may not improve performance significantlly
-    for biconn in two_edge_connected(graph)
+    # TODO: twoedgeconnectedcomponents may not improve performance significantlly
+    for biconn in twoedgeconnectedcomponents(graph)
         subg = nodesubgraph(graph, biconn)
         for cyc in mincyclebasis(subg)
             push!(mincycs, cyc)
@@ -26,12 +26,12 @@ in the context of molecular graph theory).
     return mincycs
 end
 
-mincycleedges(view::SubgraphView) = mincycleedges(view.graph)
+edgemincycles(view::SubgraphView) = edgemincycles(view.graph)
 
 
-@cache function mincyclenodes(graph::UndirectedGraph)
+@cache function mincycles(graph::UndirectedGraph)
     mincycs = Vector{Int}[]
-    for cy in mincycleedges(graph)
+    for cy in edgemincycles(graph)
         cycy = vcat(cy, cy)
         nodes = Int[]
         for i in 1:length(cy)
@@ -44,12 +44,12 @@ mincycleedges(view::SubgraphView) = mincycleedges(view.graph)
     return mincycs
 end
 
-mincyclenodes(view::SubgraphView) = mincyclenodes(view.graph)
+mincycles(view::SubgraphView) = mincycles(view.graph)
 
 
-function node_cyclemem(graph::OrderedGraph)
+function mincyclemembership(graph::OrderedGraph)
     nodes = [Set{Int}() for n in 1:nodecount(graph)]
-    for (i, cyc) in enumerate(mincyclenodes(graph))
+    for (i, cyc) in enumerate(mincycles(graph))
         for n in cyc
             push!(nodes[n], i)
         end
@@ -57,12 +57,12 @@ function node_cyclemem(graph::OrderedGraph)
     return nodes
 end
 
-node_cyclemem(view::SubgraphView) = node_cyclemem(view.graph)
+mincyclemembership(view::SubgraphView) = mincyclemembership(view.graph)
 
 
-function edge_cyclemem(graph::OrderedGraph)
+function edgemincyclemembership(graph::OrderedGraph)
     edges = [Set{Int}() for n in 1:edgecount(graph)]
-    for (i, cyc) in enumerate(mincycleedges(graph))
+    for (i, cyc) in enumerate(edgemincycles(graph))
         for e in cyc
             push!(edges[e], i)
         end
@@ -70,7 +70,7 @@ function edge_cyclemem(graph::OrderedGraph)
     return edges
 end
 
-edge_cyclemem(view::SubgraphView) = edge_cyclemem(view.graph)
+edgemincyclemembership(view::SubgraphView) = edgemincyclemembership(view.graph)
 
 
 function mincyclebasis(graph::UndirectedGraph)

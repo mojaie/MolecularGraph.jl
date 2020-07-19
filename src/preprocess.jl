@@ -140,7 +140,7 @@ end
 Return a set of nodes in the largest connected component.
 """
 largestcomponentnodes(mol::GraphMol
-    ) = sortstablemax(connected_components(mol), by=length, init=Set{Int}())
+    ) = sortstablemax(connectedcomponents(mol), by=length, init=Set{Int}())
 
 
 """
