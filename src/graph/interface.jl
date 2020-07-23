@@ -4,11 +4,11 @@
 #
 
 export
-    @cache, clearcache!, clone,
     AbstractGraph,
     UndirectedGraph, DirectedGraph, HyperGraph,
     OrderedGraph, OrderedDiGraph, OrderedHyperGraph,
     AbstractNode, AbstractEdge, UndirectedEdge, DirectedEdge,
+    @cachefirst, @cache, hascache, clearcache!, clone,
     neighbors, outneighbors, inneighbors,
     findedgekey, findalledgekeys, getedge, hasedge, nodeattr, edgeattr,
     adjacencies, successors, predecessors,
@@ -45,42 +45,44 @@ abstract type DirectedEdge <: AbstractEdge end # TODO: unnecessary?
 
 
 
-# Indexing
+"""
+    @cachefirst expression
 
-function Base.getindex(graph::AbstractGraph, sym::Symbol)
-    if haskey(graph.cache, sym)
-        return graph.cache[sym]
-    else
-        return eval(Expr(:call, sym, graph))
-    end
-end
-
-
-
-# Cached properties
-
-macro cache(ex)
+A macro for molecular descriptor array cache mechanism.
+"""
+macro cachefirst(ex)
     func = ex.args[1].args[1]
     dummy = gensym()
     ex.args[1].args[1] = dummy
-    return quote
-        $(esc(ex))
-        Core.@__doc__ function $(esc(func))(graph)
-            if !isdefined(graph, :cache)
-                # Cache not available
-                return $(esc(dummy))(graph)
-            end
-            symf = nameof($(esc(func)))
-            if symf in keys(graph.cache)
+    return esc(quote
+        $ex
+        Core.@__doc__ function $func(graph)
+            if isdefined(graph, :cache)
                 # Return cache
-                return graph.cache[symf]
+                symf = nameof($func)
+                symf in keys(graph.cache) && return graph.cache[symf]
             end
-            # Otherwise, set cache
-            graph.cache[symf] = $(esc(dummy))(graph)
-            return graph.cache[symf]
+            return $dummy(graph)
         end
-    end
+    end)
 end
+
+
+"""
+    @cache expression
+
+A macro that enables to force recalculate and set cache of descriptor arrays.
+"""
+macro cache(ex)
+    func = ex.args[1]
+    graph = ex.args[2]
+    return esc(quote
+        $graph.cache[nameof($func)] = $func($graph)
+    end)
+end
+
+
+hascache(graph, key) = isdefined(graph, :cache) && haskey(graph.cache, key)
 
 
 """

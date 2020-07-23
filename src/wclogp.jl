@@ -28,7 +28,7 @@ const D_BLOCK = (:Fe, :Co, :Cu, :Zn, :Tc, :Cd, :Pt, :Au, :Hg, :Gd)
 
 Return Wildman-Crippen LogP atom types.
 """
-function wclogptype(mol::GraphMol)
+@cachefirst function wclogptype(mol::GraphMol)
     atomtypes = fill(:undef, nodecount(mol))
     atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)

@@ -85,7 +85,7 @@ isatomvisible(view::SubgraphView) = isatomvisible(view.graph)
 
 
 
-@cache function coords2d(mol::GraphMol)
+@cachefirst function coords2d(mol::GraphMol)
     matrix = zeros(Float64, nodecount(mol), 2)
     for (i, node) in enumerate(nodeattrs(mol))
         matrix[i, :] = node.coords[1:2]
@@ -97,7 +97,7 @@ coords2d(view::SubgraphView) = coords2d(view.graph)
 
 
 
-function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
+@cachefirst function bondnotation(mol::GraphMol; setting=DRAW_SETTING)
     if haskey(mol.cache, :coordgenbond)
         notation = mol.cache[:coordgenbond]
     elseif nodeattrtype(mol) === SDFileAtom

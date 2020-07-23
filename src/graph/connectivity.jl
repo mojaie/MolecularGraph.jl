@@ -14,7 +14,7 @@ export
 
 Compute connectivity and return sets of the connected components.
 """
-function connectedcomponents(graph::UndirectedGraph)
+@cachefirst function connectedcomponents(graph::UndirectedGraph)
     nodes = nodeset(graph)
     components = Set{Int}[]
     while !isempty(nodes)
@@ -34,7 +34,7 @@ connectedcomponents(view::SubgraphView) = connectedcomponents(view.graph)
 
 Return connected component membership array.
 """
-function connectedmembership(graph::OrderedGraph)
+@cachefirst function connectedmembership(graph::OrderedGraph)
     mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(connectedcomponents(graph))
         for c in conn
@@ -122,7 +122,7 @@ end
 
 Compute biconnectivity and return cut vertices (articulation points).
 """
-function cutvertices(graph::UndirectedGraph)
+@cachefirst function cutvertices(graph::UndirectedGraph)
     return findbiconnected(graph, :cutvertices)
 end
 
@@ -134,7 +134,7 @@ cutvertices(view::SubgraphView) = cutvertices(view.graph)
 
 Compute biconnectivity and return bridges.
 """
-function bridges(graph::UndirectedGraph)
+@cachefirst function bridges(graph::UndirectedGraph)
     return findbiconnected(graph, :bridges)
 end
 
@@ -146,15 +146,15 @@ bridges(view::SubgraphView) = bridges(view.graph)
 
 Compute sets of biconnected component edges.
 """
-function biconnectedcomponents(graph::UndirectedGraph)
+@cachefirst function biconnectedcomponents(graph::UndirectedGraph)
     return findbiconnected(graph, :biconnected)
 end
 
 biconnectedcomponents(view::SubgraphView) = biconnectedcomponents(view.graph)
 
 
-function biconnectedmembership(graph::OrderedGraph)
-    mem = zeros(Int, edgecount(graph))
+@cachefirst function biconnectedmembership(graph::OrderedGraph)
+    mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(biconnectedcomponents(graph))
         mem[conn] .= i
     end
@@ -169,7 +169,7 @@ biconnectedmembership(view::SubgraphView) = biconnectedmembership(view.graph)
 
 Compute sets of 2-edge connected component nodes.
 """
-function twoedgeconnectedcomponents(graph::UndirectedGraph)
+@cachefirst function twoedgeconnectedcomponents(graph::UndirectedGraph)
     cobr = setdiff(edgeset(graph), bridges(graph))
     subg = plaingraph(SubgraphView(graph, nodeset(graph), cobr))
     return connectedcomponents(subg)
@@ -179,7 +179,7 @@ twoedgeconnectedcomponents(view::SubgraphView
     ) = twoedgeconnectedcomponents(view.graph)
 
 
-function twoedgemembership(graph::OrderedGraph)
+@cachefirst function twoedgemembership(graph::OrderedGraph)
     mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(twoedgeconnectedcomponents(graph))
         mem[conn] .= i

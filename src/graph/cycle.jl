@@ -14,7 +14,7 @@ export
 Calculate minimum cycle basis (also known as Smallest Set of Smallest Rings
 in the context of molecular graph theory).
 """
-@cache function edgemincycles(graph::UndirectedGraph)
+@cachefirst function edgemincycles(graph::UndirectedGraph)
     mincycs = Vector{Int}[]
     # TODO: twoedgeconnectedcomponents may not improve performance significantlly
     for biconn in twoedgeconnectedcomponents(graph)
@@ -29,7 +29,7 @@ end
 edgemincycles(view::SubgraphView) = edgemincycles(view.graph)
 
 
-@cache function mincycles(graph::UndirectedGraph)
+@cachefirst function mincycles(graph::UndirectedGraph)
     mincycs = Vector{Int}[]
     for cy in edgemincycles(graph)
         cycy = vcat(cy, cy)
@@ -47,7 +47,7 @@ end
 mincycles(view::SubgraphView) = mincycles(view.graph)
 
 
-function mincyclemembership(graph::OrderedGraph)
+@cachefirst function mincyclemembership(graph::OrderedGraph)
     nodes = [Set{Int}() for n in 1:nodecount(graph)]
     for (i, cyc) in enumerate(mincycles(graph))
         for n in cyc
@@ -60,7 +60,7 @@ end
 mincyclemembership(view::SubgraphView) = mincyclemembership(view.graph)
 
 
-function edgemincyclemembership(graph::OrderedGraph)
+@cachefirst function edgemincyclemembership(graph::OrderedGraph)
     edges = [Set{Int}() for n in 1:edgecount(graph)]
     for (i, cyc) in enumerate(edgemincycles(graph))
         for e in cyc
