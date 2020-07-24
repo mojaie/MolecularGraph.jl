@@ -4,9 +4,9 @@
 #
 
 export
-    connectedcomponents, biconnectedcomponents, fusedrings, sssr,
-    connectedmembership, biconnectedmembership,
-    fusedringmembership, sssrmembership,
+    connectedcomponents, connectedmembership,
+    sssr, sssrmembership,
+    fusedrings, fusedringmembership, 
     sssrsizes, sssrcount,
     isringatom, isringbond,
     atomsymbol, charge, multiplicity, bondorder,
@@ -17,19 +17,40 @@ export
     isrotatable, rotatablecount,
     atomcounter, heavyatomcount, molecularformula, empiricalformula,
     pielectron, hybridization,
-    isaromaticring, isaromatic, isaromaticbond
-
+    isaromaticring, isaromatic, isaromaticbond,
+    calcdesc!
 
 
 # Molecular graph topology
 connectedcomponents = Graph.connectedcomponents
-biconnectedcomponents = Graph.biconnectedcomponents
-fusedrings = Graph.twoedgeconnectedcomponents
-sssr = Graph.mincycles
 connectedmembership = Graph.connectedmembership
-biconnectedmembership = Graph.biconnectedmembership
-fusedringmembership = Graph.twoedgemembership
+sssr = Graph.mincycles
 sssrmembership = Graph.mincyclemembership
+
+
+"""
+    fusedrings(mol::UndirectedGraph) -> Vector{Set{Int}}
+
+Return the size ``n`` vector of ring labels within the molecule that have ``n``
+fused rings.
+"""
+@cachefirst function fusedrings(mol::UndirectedGraph)
+    cobr = setdiff(edgeset(mol), bridges(mol))
+    subg = plaingraph(edgesubgraph(mol, cobr))
+    return Graph.connectedcomponents(subg)
+end
+
+
+@cachefirst function fusedringmembership(mol::UndirectedGraph)
+    arr = [Set{Int}() for i in 1:nodecount(mol)]
+    for (i, conn) in enumerate(fusedrings(mol))
+        for n in conn
+            push!(arr[n], i)
+        end
+    end
+    return arr
+end
+
 
 sssrsizes(mol, n
     ) = [length(sssr(mol)[r]) for r in sssrmembership(mol)[n]]
@@ -573,3 +594,19 @@ isaromatic(view::SubgraphView) = isaromatic(view.graph)
 end
 
 isaromaticbond(view::SubgraphView) = isaromaticbond(view.graph)
+
+
+
+function calcdesc!(mol::GraphMol)
+    @cache atomsymbol(mol)
+    @cache charge(mol)
+    @cache bondorder(mol)
+    @cache sssr(mol)
+    @cache sssrmembership(mol)
+    @cache valence(mol)
+    @cache isaromatic(mol)
+    @cache isringatom(mol)
+    @cache isringbond(mol)
+    @cache connectivity(mol)
+    return nothing
+end

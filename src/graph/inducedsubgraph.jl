@@ -35,6 +35,7 @@ supergraph(view::AllSubgraphView) = view.graph
 Generate node-induced subgraph view.
 """
 function nodesubgraph(graph::AbstractGraph, nodes::Set{Int})
+    # TODO: test for updating in nodes
     edges = Set{Int}()
     for n in nodes
         for (ninc, nadj) in neighbors(graph, n)
@@ -44,9 +45,9 @@ function nodesubgraph(graph::AbstractGraph, nodes::Set{Int})
         end
     end
     if graph isa UndirectedGraph
-        return SubgraphView(graph, nodes, edges)
+        return SubgraphView(graph, Set(nodes), edges)
     elseif graph isa DirectedGraph
-        return DiSubgraphView(graph, nodes, edges)
+        return DiSubgraphView(graph, Set(nodes), edges)
     end
 end
 
@@ -58,14 +59,15 @@ end
 Generate edge-induced subgraph view.
 """
 function edgesubgraph(graph::AbstractGraph, edges::Set{Int})
+    # TODO: test for updating in edges
     nodes = Set{Int}()
     for e in edges
         union!(nodes, getedge(graph, e))
     end
     if graph isa UndirectedGraph
-        return SubgraphView(graph, nodes, edges)
+        return SubgraphView(graph, nodes, Set(edges))
     elseif graph isa DirectedGraph
-        return DiSubgraphView(graph, nodes, edges)
+        return DiSubgraphView(graph, nodes, Set(edges))
     end
 end
 

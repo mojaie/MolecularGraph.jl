@@ -11,10 +11,13 @@
     p5 = pathgraph(5)
     @test circuitrank(p5) == 0
     c5 = cyclegraph(5)
+    @test length(cotree_edges(c5)) == 1
     @test circuitrank(c5) == 1
     lad5 = laddergraph(5)
+    @test length(cotree_edges(lad5)) == 4
     @test circuitrank(lad5) == 4
     k5 = completegraph(5)
+    @test length(cotree_edges(k5)) == 6
     @test circuitrank(k5) == 6
     disconn = disjointunion(c5, c5, c5)
     @test circuitrank(disconn) == 3

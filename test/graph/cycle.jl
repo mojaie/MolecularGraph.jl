@@ -15,6 +15,8 @@
     @test sum(map(length, edgemincycles(k44))) == 16
     k5 = completegraph(5)
     @test sum(map(length, edgemincycles(k5))) == 18
+    cycs = plaingraph(6, [(1, 2), (2, 3), (3, 1), (3, 4), (4, 5), (5, 6), (6, 4)])
+    @test length(edgemincycles(cycs)) == 2
 end
 
 end # graph.cycle

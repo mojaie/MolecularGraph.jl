@@ -5,8 +5,7 @@
 
 export
     connectedcomponents, connectedmembership,
-    cutvertices, bridges, biconnectedcomponents, biconnectedmembership,
-    twoedgeconnectedcomponents, twoedgemembership
+    cutvertices, bridges, edgebiconnectedcomponents
 
 
 """
@@ -19,9 +18,9 @@ Compute connectivity and return sets of the connected components.
     components = Set{Int}[]
     while !isempty(nodes)
         root = pop!(nodes)
-        tree = dfstree(adjacencies, graph, root)
-        push!(components, union(keys(tree), [root]))
-        setdiff!(nodes, keys(tree))
+        tree = Set(keys(dfstree(adjacencies, graph, root)))
+        push!(components, tree)
+        setdiff!(nodes, tree)
     end
     return components
 end
@@ -37,8 +36,8 @@ Return connected component membership array.
 @cachefirst function connectedmembership(graph::OrderedGraph)
     mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(connectedcomponents(graph))
-        for c in conn
-            mem[c] = i
+        for n in conn
+            mem[n] = i
         end
     end
     return mem
@@ -142,49 +141,13 @@ bridges(view::SubgraphView) = bridges(view.graph)
 
 
 """
-    biconnected(graph::UndirectedGraph) -> Vector{Vector{Int}}
+    edgebiconnectedcomponents(graph::UndirectedGraph) -> Vector{Vector{Int}}
 
 Compute sets of biconnected component edges.
 """
-@cachefirst function biconnectedcomponents(graph::UndirectedGraph)
+@cachefirst function edgebiconnectedcomponents(graph::UndirectedGraph)
     return findbiconnected(graph, :biconnected)
 end
 
-biconnectedcomponents(view::SubgraphView) = biconnectedcomponents(view.graph)
-
-
-@cachefirst function biconnectedmembership(graph::OrderedGraph)
-    mem = zeros(Int, nodecount(graph))
-    for (i, conn) in enumerate(biconnectedcomponents(graph))
-        mem[conn] .= i
-    end
-    return mem
-end
-
-biconnectedmembership(view::SubgraphView) = biconnectedmembership(view.graph)
-
-
-"""
-    twoedgeconnectedcomponents(graph::UndirectedGraph) -> Vector{Set{Int}}
-
-Compute sets of 2-edge connected component nodes.
-"""
-@cachefirst function twoedgeconnectedcomponents(graph::UndirectedGraph)
-    cobr = setdiff(edgeset(graph), bridges(graph))
-    subg = plaingraph(SubgraphView(graph, nodeset(graph), cobr))
-    return connectedcomponents(subg)
-end
-
-twoedgeconnectedcomponents(view::SubgraphView
-    ) = twoedgeconnectedcomponents(view.graph)
-
-
-@cachefirst function twoedgemembership(graph::OrderedGraph)
-    mem = zeros(Int, nodecount(graph))
-    for (i, conn) in enumerate(twoedgeconnectedcomponents(graph))
-        mem[conn] .= i
-    end
-    return mem
-end
-
-twoedgemembership(view::SubgraphView) = twoedgemembership(view.graph)
+edgebiconnectedcomponents(view::SubgraphView
+    ) = edgebiconnectedcomponents(view.graph)
