@@ -14,8 +14,10 @@ struct SDFileBond <: Bond
         * Single bond
             * 0: u - v
             * 1: u ◀ v (Up-arrow)
+            * 2: v ◀ u
             * 4: u ~ v (Up or down)
             * 6: u ◁ v (Down-arrow)
+            * 7: v ◁ u
         * Double bond
             * 0: v ニ u (clockwise, default)
             * 1: u ニ v (counter-clockwise)

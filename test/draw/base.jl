@@ -10,16 +10,17 @@
         @test isatomvisible(mol)[8] === true
     end
 
-    @testset "bondnotation" begin
+    @testset "bondstyle" begin
         ASSET_DIR = joinpath(dirname(@__FILE__), "..", "..", "assets", "test")
         mol = sdftomol(open(joinpath(ASSET_DIR, "demo.mol")))
-        @test bondnotation(mol)[1] == 0  # 2 ニ 1
-        @test bondnotation(mol)[21] == 1 # 17 ニ 18
-        @test bondnotation(mol)[8] == 2  # 10 = 13
-        @test bondnotation(mol)[25] == 0 # 27 ≡ 28
-        @test bondnotation(mol)[15] == 1 # 3 ◀ 7
-        @test bondnotation(mol)[5] == 6  # 4 ◁ 8
-        @test bondnotation(mol)[28] == 4 # 5 ~ 11
+        coords_, styles_ = coords2d(mol)
+        @test styles_[1] == 0  # 2 ニ 1
+        @test styles_[21] == 1 # 17 ニ 18
+        @test styles_[8] == 2  # 10 = 13
+        @test styles_[25] == 0 # 27 ≡ 28
+        @test styles_[15] == 1 # 3 ◀ 7
+        @test styles_[5] == 6  # 4 ◁ 8
+        @test styles_[28] == 4 # 5 ~ 11
     end
 
     @testset "atomhtml" begin

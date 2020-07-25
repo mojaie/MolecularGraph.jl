@@ -4,12 +4,12 @@
 #
 
 export
-    coordgen!
+    coordgen
 
 using coordgenlibs_jll
 
 
-function coordgen!(mol::GraphMol)
+@cachefirst function coordgen(mol::GraphMol)
     minmol = ccall((:getSketcherMinimizer, libcoordgen), Ptr{Cvoid}, ())
     atoms = Ptr{Cvoid}[]
     bonds = Ptr{Cvoid}[]
@@ -89,25 +89,20 @@ function coordgen!(mol::GraphMol)
             (:getAtomY, libcoordgen), Float32, (Ptr{Cvoid},), atoms[i])
         coords[i, :] = [px, py]
     end
-    notation = Int[]
+    styles = Int[]
     for i in 1:edgecount(mol)
         hasstereo = ccall(
             (:hasStereochemistryDisplay, libcoordgen), Bool,
             (Ptr{Cvoid},), bonds[i])
         if !hasstereo
-            push!(notation, 0)
+            push!(styles, 0)
             continue
         end
         iswedge = ccall(
             (:isWedge, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
         isrev = ccall(
             (:isReversed, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
-        push!(notation, iswedge ? 1 : 6)
-        u, v = mol.edges[i]
-        if isrev
-            mol.edges[i] = (v, u)
-        end
+        push!(styles, (iswedge ? 1 : 6) + (isrev ? 1 : 0))
     end
-    mol.cache[:coords2d] = coords
-    mol.cache[:coordgenbond] = notation
+    return coords, styles
 end

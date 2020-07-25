@@ -116,13 +116,13 @@ end
 
 
 """
-    boundary(mol::GraphMol) -> (top, left, width, height, unit)
+    boundary(mol::GraphMol, coords::AbstractArray{Float64}
+        ) -> (top, left, width, height, unit)
 
 Get boundaries and an appropriate bond length unit for the molecule drawing
 canvas.
 """
-function boundary(mol::GraphMol)
-    coords = coords2d(mol)
+function boundary(mol::GraphMol, coords::AbstractArray{Float64})
     (left, right) = extrema(x_components(coords))
     (bottom, top) = extrema(y_components(coords))
     width = right - left
@@ -144,16 +144,19 @@ function boundary(mol::GraphMol)
     return (top, left, width, height, unit)
 end
 
+boundary(view::SubgraphView, coords::AbstractArray{Float64}
+    ) = boundary(view.graph, coords)
+
 
 """
-    initcanvas!(canvas::Canvas, mol::GraphMol)
+    initcanvas!(canvas::Canvas, coords::AbstractArray{Float64}, boundary::Tuple)
 
 Move and adjust the size of the molecule for drawing.
 """
-function initcanvas!(canvas::Canvas, mol::GraphMol)
-    nodecount(mol) == 0 && return
-    coords = coords2d(mol)
-    (top, left, width, height, unit) = boundary(mol)
+function initcanvas!(
+        canvas::Canvas, coords::AbstractArray{Float64}, boundary::Tuple)
+    isempty(coords) && return
+    (top, left, width, height, unit) = boundary
     sf = canvas.scalef / unit
     pd = [canvas.paddingX canvas.paddingY]
     canvas.coords = (coords .- [left top]) .* [1 -1] .* sf .+ pd
@@ -162,9 +165,6 @@ function initcanvas!(canvas::Canvas, mol::GraphMol)
     canvas.valid = true
     return
 end
-
-initcanvas!(canvas::Canvas, view::SubgraphView
-    ) = initcanvas!(canvas, view.graph)
 
 
 

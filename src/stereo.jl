@@ -135,7 +135,7 @@ end
 function setdiastereo!(mol::SDFile)
     nodes = nodeattrs(mol)
     edges = edgeattrs(mol)
-    coords_ = coords2d(mol)
+    coords_ = sdfcoords2d(mol)
     for i in 1:edgecount(mol)
         edges[i].order == 2 || continue
         edges[i].notation == 3 && continue  # stereochem unspecified
@@ -193,7 +193,7 @@ Optimize dashes and wedges representations. Typical stereocenters can be drawn a
 function optimizewedges!(mol::SDFile)
     # TODO: no longer used
     edges = edgeattrs(mol)
-    coords_ = coords2d(mol)
+    coords_ = sdfcoords2d(mol)
     for i in 1:nodecount(mol)
         incs = sort(collect(incidences(mol, i)))
         length(incs) in (3, 4) || continue
@@ -301,7 +301,7 @@ Set stereocenter information to Atom.stereo (`:unspecified`, `:clockwise`, `:ant
 function setstereocenter!(mol::SDFile)
     nodes = nodeattrs(mol)
     edges = edgeattrs(mol)
-    coords_ = coords2d(mol)
+    coords_ = sdfcoords2d(mol)
     for i in 1:nodecount(mol)
         nbrs = neighbors(mol, i)
         length(nbrs) < 3 && continue # atoms attached to the chiral center
