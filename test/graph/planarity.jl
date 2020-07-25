@@ -31,9 +31,8 @@ using MolecularGraph.Graph:
     ds1 = Vector{Vector{Int}}[[[11], []]]
     ds2 = Vector{Vector{Int}}[[[12], []], [[13], []], [[14], []]]
     @test merge!(ds1, ds2, cotree)
-    @test ds1[4][1] == [11]
+    @test length(ds1[1][1]) == 3
 
-    # Monochromatic to dichromatic
     cotree = Dict(1 => 1, 21 => 2, 22 => 2, 3 => 3)
     ds1 = Vector{Vector{Int}}[[[1], []], [[21], []], [[3], []]]
     ds2 = Vector{Vector{Int}}[[[22], []]]
@@ -49,10 +48,10 @@ using MolecularGraph.Graph:
     @test ds1[2][1] == [2]
     @test ds1[2][2] == [3, 4, 5]
 
-    # Dichromatic to dichromatic
+    # Merge dichromatic
     cotree = Dict(1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6)
-    ds1 = Vector{Vector{Int}}[[[2, 4], [3]]]
-    ds2 = Vector{Vector{Int}}[[[1], []]]
+    ds1 = Vector{Vector{Int}}[[[1], []]]
+    ds2 = Vector{Vector{Int}}[[[2, 4], [3]]]
     @test !merge!(ds1, ds2, cotree)
     ds1 = Vector{Vector{Int}}[[[2, 4], [3]]]
     ds2 = Vector{Vector{Int}}[[[5], [6]]]
@@ -75,16 +74,32 @@ using MolecularGraph.Graph:
     @test ds1[2][2] == [21, 22]
 end
 
+@testset "remove" begin
+    ds = Vector{Vector{Int}}[[[1], []], [[2], [3, 4]]]
+    remove!(ds, Set([3]))
+    @test ds[2][2] == [4]
+    ds = Vector{Vector{Int}}[[[1], []], [[2], [3, 4]]]
+    remove!(ds, Set([2, 3]))
+    @test ds[2][1] == [4]
+    ds = Vector{Vector{Int}}[[[1], []], [[2], [3, 4]]]
+    remove!(ds, Set([2, 3, 4]))
+    @test length(ds) == 1
+end
 
 @testset "isplanar" begin
     @test planaritytest(completebipartite(2,3))
     @test !planaritytest(completebipartite(3,3))
     @test planaritytest(completegraph(4))
     @test !planaritytest(completegraph(5))
-    @test planaritytest(laddergraph(5))
-    @test planaritytest(circularladder(5))
-    @test !planaritytest(moebiusladder(5))
-    # TODO non-biconnected cases (ex. berbell graph)
+    @test planaritytest(laddergraph(20))
+    @test planaritytest(circularladder(20))
+    @test !planaritytest(moebiusladder(20))
+    @test planaritytest(pathgraph(20))
+    disconn = plaingraph(11, [
+        (1, 2), (2, 3), (3, 4), (6, 7), (6, 8),
+        (6, 9), (10, 7), (10, 8), (10, 9), (11, 7), (11, 8), (11, 9)
+    ])
+    @test !planaritytest(disconn)
 end
 
 @testset "isouterplanar" begin
@@ -92,11 +107,14 @@ end
     @test !outerplanaritytest(completebipartite(2,3))
     @test outerplanaritytest(completegraph(3))
     @test !outerplanaritytest(completegraph(4))
-    @test outerplanaritytest(laddergraph(5))
-    # @test outerplanaritytest(laddergraph(200))
-    @test !outerplanaritytest(circularladder(5))
+    @test outerplanaritytest(laddergraph(20))
+    @test !outerplanaritytest(circularladder(20))
+    @test outerplanaritytest(pathgraph(20))
+    disconn = plaingraph(10, [
+        (1, 2), (2, 3), (3, 4), (6, 7), (6, 8),
+        (6, 9), (10, 7), (10, 8), (10, 9)
+    ])
+    @test !outerplanaritytest(disconn)
 end
-
-# TODO: test cache
 
 end # graph.planarity

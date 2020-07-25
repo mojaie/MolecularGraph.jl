@@ -29,8 +29,6 @@ struct DFSState
 end
 
 
-dfs!(state::DFSState) = dfs!(state, 1)
-
 function dfs!(state::DFSState, u::Int)
     state.rank[u] = length(state.rank) + 1
     buckets = Dict{Int,Vector{Int}}() # low(e), edges
@@ -50,12 +48,13 @@ function dfs!(state::DFSState, u::Int)
             state.cotree[inc] = state.rank[adj]
             state.isthick[inc] = false
         end
+        low === nothing && continue
         lows[inc] = low
         rank = state.rank[low]
         haskey(buckets, rank) || (buckets[rank] = Int[])
         push!(buckets[rank], inc)
     end
-    u == 1 && return # Root
+    u in keys(state.inedge) || return # Root
     # low(e) ordering
     inedge = state.inedge[u]
     fringes = [i for i in values(state.cotree) if i < state.rank[u]]
@@ -65,6 +64,7 @@ function dfs!(state::DFSState, u::Int)
         append!(sorted, sort(buckets[k], by=x->state.isthick[x]))
     end
     state.loworder[inedge] = sorted
+    isempty(lows) && return # No cycles
     return lows[state.loworder[inedge][1]]
 end
 
@@ -76,25 +76,22 @@ function merge!(ds1::DataStructure, ds2::DataStructure,
         verbose && println("Trunk cells")
         return true
     end
+    if isempty(ds2)
+        verbose && println("Empty branch")
+        return true
+    end
     monoc(a, b) = cotree[a[end]] <= cotree[b[1]]
     branch = Int[]
-    rootcells = DataStructure()
     # Collect branch cells
     for (alike, oppo) in ds2
         if !isempty(oppo)
             verbose && println("Not planer: dichromatic branch found")
             return false
         end
-        if length(alike) == 1 && cotree[ds1[1][1][1]] == cotree[alike[1]]
-            c = Vector{Int}[alike, []]
-            verbose && println("Root cell $(c)")
-            push!(rootcells, c)
-        else
-            append!(branch, alike)
-        end
+        append!(branch, alike)
     end
-    if isempty(branch)
-        prepend!(ds1, rootcells)
+    if monoc(branch, ds1[1][1])
+        pushfirst!(ds1, [branch, Int[]])
         return true
     end
     # Merge branch into trunk
@@ -107,7 +104,6 @@ function merge!(ds1::DataStructure, ds2::DataStructure,
             else
                 append!(alike, branch)
                 verbose && println("Merge alike")
-                prepend!(ds1, rootcells)
                 return true
             end
         else
@@ -126,12 +122,10 @@ function merge!(ds1::DataStructure, ds2::DataStructure,
                 empty!(ds1)
                 append!(ds1, newds)
                 verbose && println("New opposite")
-                prepend!(ds1, rootcells)
                 return true
             elseif monoc(oppo, branch)
                 append!(oppo, branch)
                 verbose && println("Merge opposite")
-                prepend!(ds1, rootcells)
                 return true
             else
                 verbose && println("Not planar: trichromatic")
@@ -140,8 +134,7 @@ function merge!(ds1::DataStructure, ds2::DataStructure,
         end
     end
     verbose && println("Next cell")
-    push!(ds1, Vector{Int}[branch, []])
-    prepend!(ds1, rootcells)
+    push!(ds1, [branch, Int[]])
     return true
 end
 
@@ -152,7 +145,10 @@ function remove!(ds::DataStructure, edges)
         (alike, oppo) = cell
         setdiff!(alike, edges)
         setdiff!(oppo, edges)
-        if !isempty(alike)
+        (isempty(alike) && isempty(oppo)) && continue
+        if isempty(alike)
+            push!(newds, [oppo, Int[]])
+        else
             push!(newds, cell)
         end
     end
@@ -164,7 +160,12 @@ end
 function planaritytest(graph::OrderedGraph; verbose=false)
     # Do DFS to determine treeedge, cotree, loworder, source
     state = DFSState(plaingraph(graph))
-    dfs!(state)
+    nodes = nodeset(graph)
+    while !isempty(nodes)
+        n = pop!(nodes)
+        dfs!(state, n)
+        setdiff!(nodes, keys(state.rank))
+    end
     verbose && println(state)
 
     # L-R check
