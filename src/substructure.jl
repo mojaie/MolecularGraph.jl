@@ -228,7 +228,21 @@ function atommatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
 end
 
 function atommatch(mol::UndirectedGraph, querymol::QueryMol)
-    return (a, qa) -> querymatchtree(nodeattr(querymol, qa).query, mol, a)
+    matcher = Dict(
+        :atomsymbol => atomsymbol(mol),
+        :isaromatic => isaromatic(mol),
+        :charge => charge(mol),
+        :mass => getproperty.(nodeattrs(mol), :mass),
+        :stereo => getproperty.(nodeattrs(mol), :stereo),
+        :connectivity => connectivity(mol),
+        :nodedegree => nodedegree(mol),
+        :valence => valence(mol),
+        :hydrogenconnected => hydrogenconnected(mol),
+        :sssrsizes => sssrsizes(mol),
+        :sssrcount => sssrcount(mol)
+    )
+    return (a, qa) -> querymatchtree(
+        nodeattr(querymol, qa).query, mol, matcher, a)
 end
 
 
@@ -238,19 +252,27 @@ function bondmatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
 end
 
 function bondmatch(mol::UndirectedGraph, querymol::QueryMol)
-    return (b, qb) -> querymatchtree(edgeattr(querymol, qb).query, mol, b)
+    matcher = Dict(
+        :bondorder => bondorder(mol),
+        :isringbond => isringbond(mol),
+        :isaromaticbond => isaromaticbond(mol),
+        :stereo => getproperty.(edgeattrs(mol), :stereo)
+    )
+    return (b, qb) -> querymatchtree(
+        edgeattr(querymol, qb).query, mol, matcher, b)
 end
 
 
-function querymatchtree(query::Pair, mol::UndirectedGraph, i::Int)
+function querymatchtree(
+        query::Pair, mol::UndirectedGraph, matcher::Dict, i::Int)
     if query.first == :any
         return true
     elseif query.first == :and
-        return all(querymatchtree(q, mol, i) for q in query.second)
+        return all(querymatchtree(q, mol, matcher, i) for q in query.second)
     elseif query.first == :or
-        return any(querymatchtree(q, mol, i) for q in query.second)
+        return any(querymatchtree(q, mol, matcher, i) for q in query.second)
     elseif query.first == :not
-        return !querymatchtree(query.second, mol, i)
+        return !querymatchtree(query.second, mol, matcher, i)
     elseif query.first == :stereo
         # TODO: stereo not implemented yet
         return true
@@ -259,11 +281,9 @@ function querymatchtree(query::Pair, mol::UndirectedGraph, i::Int)
         return issmartsgroupmatch(mol, subq, i)
     else
         if query.first == :sssrsizes
-            return query.second in sssrsizes(mol, i)
-        elseif query.first == :sssrcount
-            return sssrcount(mol, i) == query.second
+            return query.second in matcher[query.first][i]
         else
-            return mol[query.first][i] == query.second
+            return matcher[query.first][i] == query.second
         end
     end
 end

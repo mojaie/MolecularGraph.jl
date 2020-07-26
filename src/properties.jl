@@ -52,10 +52,17 @@ end
 end
 
 
-sssrsizes(mol, n
-    ) = [length(sssr(mol)[r]) for r in sssrmembership(mol)[n]]
+@cachefirst function sssrsizes(mol::UndirectedGraph)
+    ssrs_ = sssr(mol)
+    arr = Set{Int}[]
+    for ks in sssrmembership(mol)
+        push!(arr, Set{Int}([length(ssrs_[k]) for k in ks]))
+    end
+    return arr
+end
 
-sssrcount(mol, n) = length(sssrmembership(mol)[n])
+
+@cachefirst sssrcount(mol::UndirectedGraph) = length.(sssrmembership(mol))
 
 
 # TODO: waiting for fix #28992
@@ -594,19 +601,3 @@ isaromatic(view::SubgraphView) = isaromatic(view.graph)
 end
 
 isaromaticbond(view::SubgraphView) = isaromaticbond(view.graph)
-
-
-
-function calcdesc!(mol::GraphMol)
-    @cache atomsymbol(mol)
-    @cache charge(mol)
-    @cache bondorder(mol)
-    @cache sssr(mol)
-    @cache sssrmembership(mol)
-    @cache valence(mol)
-    @cache isaromatic(mol)
-    @cache isringatom(mol)
-    @cache isringbond(mol)
-    @cache connectivity(mol)
-    return nothing
-end

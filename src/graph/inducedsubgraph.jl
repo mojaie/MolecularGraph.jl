@@ -133,5 +133,8 @@ edgeset(view::AllSubgraphView) = copy(view.edges)
 nodecount(view::Union{SubgraphView,DiSubgraphView}) = length(view.nodes)
 edgecount(view::Union{SubgraphView,DiSubgraphView}) = length(view.edges)
 
+nodeattrs(view::AllSubgraphView) = nodeattrs(view.graph)
+edgeattrs(view::AllSubgraphView) = edgeattrs(view.graph)
+
 nodeattrtype(view::AllSubgraphView) = nodeattrtype(view.graph)
 edgeattrtype(view::AllSubgraphView) = edgeattrtype(view.graph)
