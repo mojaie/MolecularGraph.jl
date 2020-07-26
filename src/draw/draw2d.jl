@@ -74,8 +74,10 @@ Return whether the atom is visible in the 2D drawing.
 @cachefirst function isatomvisible(mol::GraphMol; setting=DRAW_SETTING)
     termc = setting[:display_terminal_carbon]
     vec = Bool[]
-    for (deg, sym) in zip(nodedegree(mol), atomsymbol(mol))
-        isvisible = deg == 0 || sym != :C || (termc && deg == 1)
+    deg_ = nodedegree(mol)
+    sym_ = atomsymbol(mol)
+    for i in 1:nodecount(mol)
+        isvisible = deg_[i] == 0 || sym_[i] !== :C || (termc && deg_[i] == 1)
         push!(vec, isvisible)
     end
     return vec

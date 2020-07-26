@@ -21,6 +21,16 @@ export
     calcdesc!
 
 
+const ORGANIC_SYMBOLS = [
+    :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I]
+
+const LONEPAIR_COUNT = Dict(
+    :H => 0, :B => -1, :C => 0, :N => 1, :O => 2, :F => 3,
+    :Si => 0, :P => 1, :S => 2, :Cl => 3,
+    :As => 1, :Se => 2, :Br => 3, :I => 3
+)
+
+
 # Molecular graph topology
 connectedcomponents = Graph.connectedcomponents
 connectedmembership = Graph.connectedmembership
@@ -148,15 +158,12 @@ Note that implicit hydrogens are available for only organic atoms. The lonepair
 value of inorganic atoms would be `nothing`. The result can take negative value if the atom has empty valence shells.
 """
 @cachefirst function lonepair(mol::GraphMol)
-    defs = Dict(
-        :H => 0, :B => -1, :C => 0, :N => 1, :O => 2, :F => 3,
-        :Si => 0, :P => 1, :S => 2, :Cl => 3,
-        :As => 1, :Se => 2, :Br => 3, :I => 3
-    )
     vec = Union{Int,Nothing}[]
-    for (sym, chg) in zip(atomsymbol(mol), charge(mol))
-        num = get(defs, sym, nothing)
-        v = num === nothing ? nothing : num - chg
+    atomsymbol_ = atomsymbol(mol)
+    charge_ = charge(mol)
+    for i in 1:nodecount(mol)
+        num = get(LONEPAIR_COUNT, atomsymbol_[i], nothing)
+        v = num === nothing ? nothing : num - charge_[i]
         push!(vec, v)
     end
     return vec
@@ -169,7 +176,7 @@ lonepair(view::SubgraphView) = lonepair(view.graph)
     vec = zeros(Int, nodecount(mol))
     bondorder_ = bondorder(mol)
     for i in 1:nodecount(mol)
-        for inc in incidences(mol, i)
+        for (inc, adj) in neighbors(mol, i)
             vec[i] += bondorder_[inc]
         end
     end
@@ -215,8 +222,8 @@ Return the size ``n`` vector of the number of adjacent explicit hydrogen nodes w
     vec = zeros(Int, nodecount(mol))
     atomsymbol_ = atomsymbol(mol)
     for i in 1:nodecount(mol)
-        for adj in adjacencies(mol, i)
-            if atomsymbol_[adj] == :H
+        for (inc, adj) in neighbors(mol, i)
+            if atomsymbol_[adj] === :H
                 vec[i] += 1
             end
         end
@@ -458,7 +465,7 @@ These rules are applied for only typical organic atoms. The values for inorganic
     for i in 1:nodecount(mol)
         vec[i] = pie_[i]
         atomsymbol_[i] in (:N, :O) || continue
-        for adj in adjacencies(mol, i)
+        for (inc, adj) in neighbors(mol, i)
             if pie_[i] == 0 && pie_[adj] > 0 && charge_[i] == 0
                 vec[i] = 2
                 break
@@ -471,6 +478,7 @@ end
 pielectron(view::SubgraphView) = pielectron(view.graph)
 
 
+
 """
     hybridization(mol::GraphMol) -> Vector{Int}
 
@@ -480,23 +488,20 @@ These hybridizations are for only typical organic atoms. Inorganic atoms and oth
 """
 @cachefirst function hybridization(mol::GraphMol)
     atomsymbol_ = atomsymbol(mol)
-    connectivity_ = connectivity(mol)
-    lonepair_ = lonepair(mol)
     pielectron_ = pielectron(mol)
-    organic_symbols = [:B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I]
+    orbitals = connectivity(mol) + lonepair(mol)
     vec = Symbol[]
     for i in 1:nodecount(mol)
-        if atomsymbol_[i] in organic_symbols
-            val = connectivity_[i] + lonepair_[i]
-            if val == 4
+        if atomsymbol_[i] in ORGANIC_SYMBOLS
+            if orbitals == 4
                 if (atomsymbol_[i] in [:N, :O] && pielectron_[i] == 2)
                     push!(vec, :sp2)  # adjacent to conjugated bonds
                 else
                     push!(vec, :sp3)
                 end
-            elseif val == 3
+            elseif orbitals == 3
                 push!(vec, :sp2)
-            elseif val == 2
+            elseif orbitals == 2
                 push!(vec, :sp)
             else
                 push!(vec, :none)
@@ -514,54 +519,54 @@ hybridization(view::SubgraphView) = hybridization(view.graph)
 
 # Aromatic rings
 
-function satisfyhuckel(mol::GraphMol, ring)
-    # TODO: need improvement
-    cnt = 0
+@cachefirst function isaromaticring(mol::GraphMol)
     atomsymbol_ = atomsymbol(mol)
     nodedegree_ = nodedegree(mol)
     pie_ = apparentvalence(mol) - nodedegree(mol)
     lonepair_ = lonepair(mol)
     carbonylO = findall(
-        (atomsymbol_ .== :O) .* (nodedegree_ .== 1) .* (pie_ .== 1))
-    carbonylC = Int[]
+        (atomsymbol_ .=== :O) .* (nodedegree_ .== 1) .* (pie_ .== 1))
+    carbonylC = falses(nodecount(mol))
     for o in carbonylO
-        c = iterate(adjacencies(mol, o))[1]
-        if atomsymbol_[c] == :C
-            push!(carbonylC, c)
+        c = pop!(adjacencies(mol, o))
+        if atomsymbol_[c] === :C
+            carbonylC[c] = true
         end
     end
-    for r in ring
-        if r in carbonylC
-            continue
-        elseif pie_[r] == 1
-            cnt += 1
-        elseif lonepair_[r] === nothing
-            return false
-        elseif lonepair_[r] > 0
-            cnt += 2
-        elseif lonepair_[r] < 0
-            continue
-        else
-            return false
-        end
-    end
-    return cnt % 4 == 2
-end
-
-
-@cachefirst function isaromaticring(mol::GraphMol)
-    vec = falses(circuitrank(mol))
+    arr = falses(circuitrank(mol))
     for (i, ring) in enumerate(sssr(mol))
-        if satisfyhuckel(mol, ring)
-            vec[i] = true
-        elseif nodeattrtype(mol) === SmilesAtom # SMILES aromatic atom
+        cnt = 0
+        for r in ring
+            if carbonylC[r]
+                continue
+            elseif pie_[r] == 1
+                cnt += 1
+            elseif lonepair_[r] === nothing
+                cnt = 0
+                break
+            elseif lonepair_[r] > 0
+                cnt += 2
+            elseif lonepair_[r] < 0
+                continue
+            else
+                cnt = 0
+                break
+            end
+        end
+        if cnt % 4 == 2
+            # Huckel rule check
+            arr[i] = true
+            continue
+        end
+        if nodeattrtype(mol) === SmilesAtom
+            # SMILES aromatic atom
             sub = nodesubgraph(mol, Set(ring))
             if all(nodeattr(mol, n).isaromatic for n in nodeset(sub))
-                vec[i] = true
+                arr[i] = true
             end
         end
     end
-    return vec
+    return arr
 end
 
 

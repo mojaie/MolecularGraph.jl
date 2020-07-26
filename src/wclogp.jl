@@ -287,13 +287,8 @@ Return Wildman-Crippen LogP atom types.
                 atomtypes[i] = :S2  # Ionic sulfur
             end
         elseif atomsymbol_[i] === :H
-            adjs = adjacencies(mol, i)
-            if isempty(adjs)
-                atomtypes[i] = :HS  # Proton or hydride (But not meaningful)
-            else
-                adj = pop!(adjs)
-                atomtypes[i] = wclogphydrogentype(mol, adj)
-            end
+            # Keep undef (defined by adjacent wclogphydrogentype)
+            continue
         elseif atomsymbol_[i] in P_BLOCK
             atomtypes[i] = :Me1
         elseif atomsymbol_[i] in D_BLOCK
@@ -304,53 +299,68 @@ Return Wildman-Crippen LogP atom types.
 end
 
 
-function wclogphydrogentype(mol::GraphMol, i)
+@cachefirst function wclogphydrogentype(mol::GraphMol)
     atomsymbol_ = atomsymbol(mol)
+    nodedegree_ = nodedegree(mol)
+    heavyatomconn_ = heavyatomconnected(mol)
+    hydrogenconn_ = hydrogenconnected(mol)
     hybridization_ = hybridization(mol)
     isaromatic_ = isaromatic(mol)
-    if atomsymbol_[i] in (:H, :C)
-        return :H1  # Hydrocarbon
-    elseif atomsymbol_[i] === :N
-        return :H3  # Amine
-    elseif atomsymbol_[i] === :O
-        adjs = adjacencies(mol, i)
-        heavy = [adj for adj in adjs if atomsymbol_[adj] !== :H]
-        isempty(heavy) && return :H2  # Alcohol (H2O)
-        a = pop!(heavy)
-        if atomsymbol_[a] === :N
-            return :H3  # Hydroxyamine
-        elseif atomsymbol_[a] in (:O, :S)
-            return :H4  # Peroxide, sulfoxide
-        elseif atomsymbol_[a] === :C
-            if hybridization_[a] === :sp2 && !isaromatic_[a]
-                return :H4  # Acid
+    arr = fill(:undef, nodecount(mol))
+    for i in 1:nodecount(mol)
+        hydrogenconn_[i] == 0 && continue
+        if atomsymbol_[i] === :H && nodedegree_[i] == 1
+            arr[i] = :HS  # Proton or hydride (But not meaningful)
+        elseif atomsymbol_[i] in (:H, :C)
+            arr[i] = :H1  # Hydrocarbon or molecular hydrogen
+        elseif atomsymbol_[i] === :N
+            arr[i] = :H3  # Amine
+        elseif atomsymbol_[i] === :O
+            if heavyatomconn_[i] == 0
+                arr[i] = :H2  # Alcohol (H2O)
+                continue
+            end
+            adj = pop!(
+                [a for a in adjacencies(mol, i) if atomsymbol_[a] !== :H])
+            if atomsymbol_[adj] === :N
+                arr[i] = :H3  # Hydroxyamine
+            elseif atomsymbol_[adj] in (:O, :S)
+                arr[i] = :H4  # Peroxide, sulfoxide
+            elseif atomsymbol_[adj] === :C
+                if hybridization_[adj] === :sp2 && !isaromatic_[adj]
+                    arr[i] = :H4  # Acid
+                else
+                    arr[i] = :H2  # Alcohol
+                end
             else
-                return :H2  # Alcohol
+                arr[i] = :H2  # Alcohol (Other hydroxyl)
             end
         else
-            return :H2  # Alcohol (Other hydroxyl)
+            arr[i] = :H2  # Other hydrate
         end
-    else
-        return :H2  # Other hydrate
     end
+    return arr
 end
 
 
-function wclogpcontrib(mol::GraphMol)
+@cachefirst function wclogpcontrib(mol::GraphMol)
     contrib = zeros(nodecount(mol))
     atomsymbol_ = atomsymbol(mol)
-    hydrogenconnected_ = hydrogenconnected(mol)
-    atomtypes = wclogptype(mol)
+    heavyatomconn_ = heavyatomconnected(mol)
+    hydrogenconn_ = hydrogenconnected(mol)
+    logptypes_ = wclogptype(mol)
+    htypes_ = wclogphydrogentype(mol)
     for i in 1:nodecount(mol)
-        cont = get(WCLOGP_TABLE, string(atomtypes[i]), 0)
-        if atomsymbol_[i] == :H
-            contrib[i] = 0  # avoid double count
-        elseif hydrogenconnected_[i] == 0
-            contrib[i] = cont
+        cont = get(WCLOGP_TABLE, string(logptypes_[i]), 0.0)
+        hcont = get(WCLOGP_TABLE, string(htypes_[i]), 0.0)
+        if atomsymbol_[i] === :H
+            if heavyatomconn_[i] > 0
+                contrib[i] = 0.0  # avoid double count
+            else
+                contrib[i] = hcont
+            end
         else
-            htype = wclogphydrogentype(mol, i)
-            hcont = WCLOGP_TABLE[string(htype)] * hydrogenconnected_[i]
-            contrib[i] = cont + hcont
+            contrib[i] = cont + hcont * hydrogenconn_[i]
         end
     end
     return contrib

@@ -7,12 +7,19 @@
     @test wclogptype(mol1) == [
         :C18, :C18, :C18, :C18, :C23, :O4, :C3, :C23, :O2
     ]
+    @test wclogphydrogentype(mol1) == [
+        :H1, :H1, :H1, :H1, :undef, :undef, :H1, :undef, :H2
+    ]
     @test wclogp(mol1) == 1.40
 
     mol2 = smilestomol("C1=CC=CC=C1C2=CC=CC=N2")
     @test wclogptype(mol2) == [
         :C18, :C18, :C18, :C18, :C18, :C20, :C20,
         :C18, :C18, :C18, :C18, :N11
+    ]
+    @test wclogphydrogentype(mol2) == [
+        :H1, :H1, :H1, :H1, :H1, :undef, :undef,
+        :H1, :H1, :H1, :H1, :undef
     ]
     @test wclogp(mol2) == 2.75
 
@@ -21,7 +28,7 @@
     aliphatic = sdftomol(open(joinpath(TESTMOL_DIR, "wctype_C_alip.mol")))
     @test wclogptype(aliphatic) == [
         :C2, :C1, :C7, :C4, :N2, :C3, :N1, :C7, :C5, :O9,
-        :C27, :Me1, :C27, :C27, :C27, :H1, :C6, :C26, :C21, :C21,
+        :C27, :Me1, :C27, :C27, :C27, :undef, :C6, :C26, :C21, :C21,
         :N12, :C18, :C21, :C21, :C11, :O3, :C12, :C1, :C1, :C1,
         :C9, :C10, :C1
     ]
