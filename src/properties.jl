@@ -493,15 +493,15 @@ These hybridizations are for only typical organic atoms. Inorganic atoms and oth
     vec = Symbol[]
     for i in 1:nodecount(mol)
         if atomsymbol_[i] in ORGANIC_SYMBOLS
-            if orbitals == 4
+            if orbitals[i] == 4
                 if (atomsymbol_[i] in [:N, :O] && pielectron_[i] == 2)
                     push!(vec, :sp2)  # adjacent to conjugated bonds
                 else
                     push!(vec, :sp3)
                 end
-            elseif orbitals == 3
+            elseif orbitals[i] == 3
                 push!(vec, :sp2)
-            elseif orbitals == 2
+            elseif orbitals[i] == 2
                 push!(vec, :sp)
             else
                 push!(vec, :none)

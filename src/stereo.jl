@@ -5,13 +5,17 @@
 
 export
     addstereohydrogens, removestereohydrogens,
-    setdiastereo!, optimizewedges!, setstereocenter!
+    setdiastereo!, setdiastereo,
+    setstereocenter!, setstereocenter,
+    optimizewedges!, optimizewedges
 
 
 """
     addstereohydrogens(mol::GraphMol) -> GraphMol
 
-Return new molecule with explicit hydrogen nodes attached to stereocenters.
+Add stereospecific hydrogen nodes to the molecule.
+
+If the molecule was genereted from SDFile, run `setstereocenter!(mol)` in advance to set stereocenter information.
 """
 function addstereohydrogens(mol::GraphMol)
     """
@@ -20,8 +24,8 @@ function addstereohydrogens(mol::GraphMol)
     """
     atoms = nodeattrs(mol)
     hydrogenconnected_ = hydrogenconnected(mol)
-    newmol = clone(mol)
-    mapper = Dict{Int,Int}() 
+    newmol = graphmol(mol)
+    mapper = Dict{Int,Int}()
     offset = 0
     for i in 1:nodecount(mol)
         mapper[i] = i + offset
@@ -37,10 +41,13 @@ function addstereohydrogens(mol::GraphMol)
 end
 
 
+
 """
     removestereohydrogens(mol::GraphMol) -> GraphMol
 
-Return new molecule without explicit hydrogen nodes attached to stereocenters.
+Return new molecule with stereospecific hydrogen nodes removed.
+
+If the molecule was genereted from SDFile, run `setstereocenter!(mol)` in advance to set stereocenter information. This will keep stereochemistry of the molecule object. `addstereohydrogens!` can be used to revert the change. 
 """
 function removestereohydrogens(mol::GraphMol)
     """
@@ -71,7 +78,7 @@ function removestereohydrogens(mol::GraphMol)
         append!(nodes_to_rm, hs)
         rev && push!(nodes_to_rev, c)
     end
-    newmol = clone(mol)
+    newmol = graphmol(mol)
     for c in nodes_to_rev
         a = setstereo(atoms[c],
             atoms[c].stereo === :clockwise ? :anticlockwise : :clockwise)
@@ -82,8 +89,9 @@ function removestereohydrogens(mol::GraphMol)
 end
 
 
+
 """
-    setdiastereo!(mol::Union{SMILES,SDFile}) -> nothing
+    setdiastereo!(mol::Union{SMILES,SDFile}) -> Nothing
 
 Set diastereomerism flags to `Bond.stereo` fields of double bonds.
 
@@ -129,6 +137,7 @@ function setdiastereo!(mol::SMILES)
             setedgeattr!(mol, i, bond)
         end
     end
+    clearcache!(mol)
 end
 
 
@@ -164,7 +173,24 @@ function setdiastereo!(mol::SDFile)
         bond = setstereo(edges[i], stereo)
         setedgeattr!(mol, i, bond)
     end
+    clearcache!(mol)
 end
+
+
+
+"""
+    setdiastereo(mol::GraphMol) -> GraphMol
+
+Return new molecule with diastereomeric information set.
+
+See [`setdiastereo！`](@ref))
+"""
+function setdiastereo(mol::GraphMol)
+    newmol = graphmol(mol)
+    setdiastereo!(newmol)
+    return newmol
+end
+
 
 
 
@@ -185,8 +211,102 @@ function anglesort(coords, center, ref, vertices)
 end
 
 
+
 """
-    optimizewedges!(mol::SDFile)
+    setstereocenter!(mol::SDFile) -> Nothing
+
+Set stereocenter information to Atom.stereo (`:unspecified`, `:clockwise`, `:anticlockwise` or `:atypical`). Clockwise/anticlockwise means the configuration of 2-4th nodes in index label order when we see the chiral center from the node labeled by the lowest index. If there is an implicit hydrogen, its index label will be regarded as the same as the stereocenter atom.
+"""
+function setstereocenter!(mol::SDFile)
+    nodes = nodeattrs(mol)
+    edges = edgeattrs(mol)
+    coords_ = sdfcoords2d(mol)
+    for i in 1:nodecount(mol)
+        nbrs = neighbors(mol, i)
+        length(nbrs) < 3 && continue # atoms attached to the chiral center
+        adjs = Int[]
+        upadjs = Int[]
+        downadjs = Int[]
+        for (inc, adj) in nbrs
+            push!(adjs, adj)
+            if edges[inc].notation == 1 && mol.edges[inc][1] == i
+                push!(upadjs, adj)
+            elseif edges[inc].notation == 6 && mol.edges[inc][1] == i
+                push!(downadjs, adj)
+            end
+        end
+        (isempty(upadjs) && isempty(downadjs)) && continue  # unspecified
+        if (length(adjs) > 4 ||
+            length(adjs) - length(upadjs) - length(downadjs) < 2)
+            # Hypervalent, not sp3, axial chirality or wrong wedges
+            a = setstereo(nodes[i], :atypical)
+            setnodeattr!(mol, i, a)
+            continue
+        end
+        if length(adjs) == 4
+            # Select a pivot
+            pivot = isempty(upadjs) ? downadjs[1] : upadjs[1]
+            tri = setdiff(adjs, [pivot])
+            quad = adjs
+            rev = isempty(upadjs) ? true : false
+            # Check wedges
+            if length(downadjs) == 2 || length(upadjs) == 2
+                ordered = anglesort(coords_, i, pivot, tri)
+                sec = isempty(upadjs) ? downadjs[2] : upadjs[2]
+                if findfirst(isequal(sec), ordered) != 2
+                    a = setstereo(nodes[i], :atypical)
+                    setnodeattr!(mol, i, a)
+                    continue
+                end
+            elseif length(downadjs) == 1 && length(upadjs) == 1
+                ordered = anglesort(coords_, i, pivot, tri)
+                if findfirst(isequal(downadjs[1]), ordered) == 2
+                    a = setstereo(nodes[i], :atypical)
+                    setnodeattr!(mol, i, a)
+                    continue
+                end
+            end
+        elseif length(adjs) == 3
+            # Implicit hydrogen is the pivot
+            pivot = i
+            tri = adjs
+            quad = union(adjs, [i])
+            rev = isempty(upadjs) ? false : true
+        end
+        cw = isclockwise(toarray(coords_, sort(tri)))
+        if rev
+            cw = !cw
+        end
+        # Arrange the configuration so that the lowest index node is the pivot.
+        pividx = findfirst(isequal(pivot), sort(quad))
+        if pividx in (2, 4)
+            cw = !cw
+        end
+        stereo = cw ? :clockwise : :anticlockwise
+        a = setstereo(nodes[i], stereo)
+        setnodeattr!(mol, i, a)
+    end
+    clearcache!(mol)
+end
+
+
+"""
+    setstereocenter(mol::GraphMol) -> GraphMol
+
+Return new molecule with stereocenter information set.
+
+See [`setstereocenter！`](@ref))
+"""
+function setstereocenter(mol::GraphMol)
+    newmol = graphmol(mol)
+    setstereocenter!(newmol)
+    return newmol
+end
+
+
+
+"""
+    optimizewedges!(mol::SDFile) -> Nothing
 
 Optimize dashes and wedges representations. Typical stereocenters can be drawn as four bonds including only a wedge and/or a dash, so if there are too many dashes and wedges, some of them will be converted to normal single bond without changing any stereochemistry.
 """
@@ -289,82 +409,19 @@ function optimizewedges!(mol::SDFile)
             setedgeattr!(mol, inc, b)
         end
     end
+    clearcache!(mol)
 end
 
 
-
 """
-    setstereocenter!(mol::SDFile)
+    optimizewedges(mol::GraphMol) -> GraphMol
 
-Set stereocenter information to Atom.stereo (`:unspecified`, `:clockwise`, `:anticlockwise` or `:atypical`). Clockwise/anticlockwise means the configuration of 2-4th nodes in index label order when we see the chiral center from the node labeled by the lowest index. If there is an implicit hydrogen, its index label will be regarded as the same as the stereocenter atom.
+Return new molecule with wedge configurations optimized.
+
+See [`optimizewedges!`](@ref))
 """
-function setstereocenter!(mol::SDFile)
-    nodes = nodeattrs(mol)
-    edges = edgeattrs(mol)
-    coords_ = sdfcoords2d(mol)
-    for i in 1:nodecount(mol)
-        nbrs = neighbors(mol, i)
-        length(nbrs) < 3 && continue # atoms attached to the chiral center
-        adjs = Int[]
-        upadjs = Int[]
-        downadjs = Int[]
-        for (inc, adj) in nbrs
-            push!(adjs, adj)
-            if edges[inc].notation == 1 && mol.edges[inc][1] == i
-                push!(upadjs, adj)
-            elseif edges[inc].notation == 6 && mol.edges[inc][1] == i
-                push!(downadjs, adj)
-            end
-        end
-        (isempty(upadjs) && isempty(downadjs)) && continue  # unspecified
-        if (length(adjs) > 4 ||
-            length(adjs) - length(upadjs) - length(downadjs) < 2)
-            # Hypervalent, not sp3, axial chirality or wrong wedges
-            a = setstereo(nodes[i], :atypical)
-            setnodeattr!(mol, i, a)
-            continue
-        end
-        if length(adjs) == 4
-            # Select a pivot
-            pivot = isempty(upadjs) ? downadjs[1] : upadjs[1]
-            tri = setdiff(adjs, [pivot])
-            quad = adjs
-            rev = isempty(upadjs) ? true : false
-            # Check wedges
-            if length(downadjs) == 2 || length(upadjs) == 2
-                ordered = anglesort(coords_, i, pivot, tri)
-                sec = isempty(upadjs) ? downadjs[2] : upadjs[2]
-                if findfirst(isequal(sec), ordered) != 2
-                    a = setstereo(nodes[i], :atypical)
-                    setnodeattr!(mol, i, a)
-                    continue
-                end
-            elseif length(downadjs) == 1 && length(upadjs) == 1
-                ordered = anglesort(coords_, i, pivot, tri)
-                if findfirst(isequal(downadjs[1]), ordered) == 2
-                    a = setstereo(nodes[i], :atypical)
-                    setnodeattr!(mol, i, a)
-                    continue
-                end
-            end
-        elseif length(adjs) == 3
-            # Implicit hydrogen is the pivot
-            pivot = i
-            tri = adjs
-            quad = union(adjs, [i])
-            rev = isempty(upadjs) ? false : true
-        end
-        cw = isclockwise(toarray(coords_, sort(tri)))
-        if rev
-            cw = !cw
-        end
-        # Arrange the configuration so that the lowest index node is the pivot.
-        pividx = findfirst(isequal(pivot), sort(quad))
-        if pividx in (2, 4)
-            cw = !cw
-        end
-        stereo = cw ? :clockwise : :anticlockwise
-        a = setstereo(nodes[i], stereo)
-        setnodeattr!(mol, i, a)
-    end
+function optimizewedges(mol::GraphMol)
+    newmol = graphmol(mol)
+    optimizewedges!(newmol)
+    return newmol
 end

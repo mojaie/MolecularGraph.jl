@@ -4,12 +4,16 @@
 #
 
 export
-    kekulize,
+    kekulize!, kekulize,
     trivialhydrogens, allhydrogens,
     removehydrogens, addhydrogens,
     largestcomponentnodes, extractlargestcomponent,
-    protonateacids, deprotonateoniums,
-    depolarize, polarize, totriplebond, toallenelike
+    protonateacids!, protonateacids,
+    deprotonateoniums!, deprotonateoniums,
+    depolarize!, depolarize,
+    polarize!, polarize,
+    totriplebond!, totriplebond,
+    toallenelike!, toallenelike
 
 
 # TODO: large conjugated system
@@ -21,15 +25,15 @@ export
 
 
 """
-    kekulize(mol::SMILES) -> SMILES
+    kekulize!(mol::SMILES) -> Nothing
 
-Return the molecule with SMILES aromatic bonds kekulized.
+Kekulize the molecule that has SMILES aromatic bonds.
 
 SMILES allows aromatic atoms in small letters - b, c, n, o, p, s, [as] and [se]. Once these are stored in `SmilesAtom.isaromatic` field, then `kekulize` will place double bonds to satisfy valences.
 
-Kekulization should be applied for molecules parsed from SMILES. Otherwise, some bond valence and implicit hydrogen properties would be wrong.
+Kekulization is necessary for molecules parsed from SMILES. If not kekulized, some bond valence and implicit hydrogen properties would be wrong.
 """
-function kekulize(mol::SMILES)
+function kekulize!(mol::SMILES)
     nodes = Set{Int}()
     for i in 1:nodecount(mol)
         nodeattr(mol, i).isaromatic === nothing && continue
@@ -47,14 +51,27 @@ function kekulize(mol::SMILES)
     a, b = twocoloring(subg)
     adjmap = Dict{Int,Set{Int}}(
         i => adjacencies(subg, i) for i in nodeset(subg))
-    mapping = maxcardmap(a, b, adjmap)
-    newmol = graphmol(mol)
-    for (u, v) in mapping
+    for (u, v) in maxcardmap(a, b, adjmap)
         e = findedgekey(mol, u, v)
-        setedgeattr!(newmol, e, setorder(edgeattr(newmol, e), 2))
+        setedgeattr!(mol, e, setorder(edgeattr(mol, e), 2))
     end
+    return mol
+end
+
+
+"""
+    kekulize(mol::SMILES) -> SMILES
+
+Return the kekulized molecule.
+
+See [`kekulize!`](@ref))
+"""
+function kekulize(mol::SMILES)
+    newmol = graphmol(mol)
+    kekulize!(newmol)
     return newmol
 end
+
 
 
 """
@@ -134,6 +151,7 @@ function addhydrogens(mol::GraphMol{A,B}) where {A<:Atom,B<:Bond}
 end
 
 
+
 """
     largestcomponentnodes(mol::GraphMol) -> Set{Int}
 
@@ -154,55 +172,81 @@ extractlargestcomponent(mol::GraphMol
     ) = graphmol(nodesubgraph(mol, largestcomponentnodes(mol)))
 
 
-"""
-    protonateacids(mol::GraphMol) -> GraphMol
 
-Return the molecule with its oxo(thio) anion groups protonated.
 """
-function protonateacids(mol::GraphMol)
+    protonateacids!(mol::GraphMol) -> GraphMol
+
+Protonate oxo(thio) anion groups of the molecule.
+"""
+function protonateacids!(mol::GraphMol)
     atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)
     connectivity_ = connectivity(mol)
-    newmol = graphmol(mol)
     for o in findall(charge_ .== -1)
         atomsymbol_[o] in (:O, :S) || continue
         @assert connectivity_[o] == 1
         nbr = pop!(adjacencies(mol, o))
         charge_[nbr] == 1 && continue  # polarized double bond
-        setnodeattr!(newmol, o, setcharge(nodeattr(newmol, o), 0))
+        setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
     end
+    clearcache!(mol)
+end
+
+
+"""
+    protonateacids(mol::GraphMol) -> GraphMol
+
+Return the molecule with its oxo(thio) anion groups protonated.
+
+See [`protonateacids!`](@ref))
+"""
+function protonateacids(mol::GraphMol)
+    newmol = graphmol(mol)
+    protonateacids!(newmol)
     return newmol
+end
+
+
+"""
+    deprotonateoniums!(mol::GraphMol) -> Nothing
+
+Deprotonate onium groups of the molecule.
+"""
+function deprotonateoniums!(mol::GraphMol)
+    hydrogenconnected_ = hydrogenconnected(mol)
+    charge_ = charge(mol)
+    for o in findall(charge_ .== 1)
+        hydrogenconnected_[o] > 0 || continue
+        setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
+    end
+    clearcache!(mol)
 end
 
 
 """
     deprotonateoniums(mol::GraphMol) -> GraphMol
 
-Return the molecule with its onium groups are deprotonated.
+Return the molecule with its onium groups deprotonated.
+
+See [`deprotonateoniums!`](@ref))
 """
 function deprotonateoniums(mol::GraphMol)
-    hydrogenconnected_ = hydrogenconnected(mol)
-    charge_ = charge(mol)
     newmol = graphmol(mol)
-    for o in findall(charge_ .== 1)
-        hydrogenconnected_[o] > 0 || continue
-        setnodeattr!(newmol, o, setcharge(nodeattr(newmol, o), 0))
-    end
+    deprotonateoniums!(newmol)
     return newmol
 end
 
 
 """
-    depolarize(mol::GraphMol; negative=:O, positive=[:C, :P]) -> GraphMol
+    depolarize!(mol::GraphMol; negative=:O, positive=[:C, :P]) -> Nothing
 
-Return the molecule with its dipole double bonds are depolarized.
+Depolarize dipole double bonds of the molecule.
 """
-function depolarize(mol::GraphMol; negative=:O, positive=[:C, :P])
+function depolarize!(mol::GraphMol; negative=:O, positive=[:C, :P])
     atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)
     connectivity_ = connectivity(mol)
     isaromatic_ = isaromatic(mol)
-    newmol = graphmol(mol)
     for o in findall(charge_ .== -1)
         atomsymbol_[o] === negative || continue
         @assert connectivity_[o] == 1
@@ -210,25 +254,38 @@ function depolarize(mol::GraphMol; negative=:O, positive=[:C, :P])
         atomsymbol_[adj] in positive || continue
         charge_[adj] == 1 || continue
         isaromatic_[adj] && continue
-        setnodeattr!(newmol, o, setcharge(nodeattr(newmol, o), 0))
-        setnodeattr!(newmol, adj, setcharge(nodeattr(newmol, adj), 0))
-        setedgeattr!(newmol, inc, setorder(edgeattr(newmol, inc), 2))
+        setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
+        setnodeattr!(mol, adj, setcharge(nodeattr(mol, adj), 0))
+        setedgeattr!(mol, inc, setorder(edgeattr(mol, inc), 2))
     end
+    clearcache!(mol)
+end
+
+
+"""
+    depolarize(mol::GraphMol) -> GraphMol
+
+Return the molecule with its dipole double bonds depolarized.
+
+See [`depolarize!`](@ref))
+"""
+function depolarize(mol::GraphMol; kwargs...)
+    newmol = graphmol(mol)
+    depolarize!(newmol; kwargs...)
     return newmol
 end
 
 
 """
-    polarize(mol::GraphMol; negative=:O, positive=[:N, :S]) -> GraphMol
+    polarize!(mol::GraphMol; negative=:O, positive=[:N, :S]) -> Nothing
 
-Return the molecule with its dipole double bonds are polarized.
+Polarize dipole double bonds of the molecule.
 """
-function polarize(mol::GraphMol, negative=:O, positive=[:N, :S])
+function polarize!(mol::GraphMol, negative=:O, positive=[:N, :S])
     atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)
     bondorder_ = bondorder(mol)
     connectivity_ = connectivity(mol)
-    newmol = graphmol(mol)
     for o in findall(connectivity_ .== 1)
         atomsymbol_[o] === negative || continue
         charge_[o] == 0 || continue
@@ -236,12 +293,27 @@ function polarize(mol::GraphMol, negative=:O, positive=[:N, :S])
         atomsymbol_[adj] in positive || continue
         charge_[adj] == 0 || continue
         bondorder_[inc] == 2 || continue
-        setnodeattr!(newmol, o, setcharge(nodeattr(newmol, o), -1))
-        setnodeattr!(newmol, adj, setcharge(nodeattr(newmol, adj), 1))
-        setedgeattr!(newmol, inc, setorder(edgeattr(newmol, inc), 1))
+        setnodeattr!(mol, o, setcharge(nodeattr(mol, o), -1))
+        setnodeattr!(mol, adj, setcharge(nodeattr(mol, adj), 1))
+        setedgeattr!(mol, inc, setorder(edgeattr(mol, inc), 1))
     end
+    clearcache!(mol)
+end
+
+
+"""
+    polarize(mol::GraphMol) -> GraphMol
+
+Return the molecule with its dipole double bonds polarized.
+
+See [`polarize!`](@ref))
+"""
+function polarize(mol::GraphMol; kwargs...)
+    newmol = graphmol(mol)
+    polarize!(newmol; kwargs...)
     return newmol
 end
+
 
 
 function find13dipoles(mol::GraphMol)
@@ -262,40 +334,62 @@ end
 
 
 """
-    totriplebond(mol::GraphMol) -> GraphMol
+    totriplebond!(mol::GraphMol) -> Nothing
 
-Return the molecule with its 1,3-dipole groups described in triple bond resonance structure (ex. Diazo group C=[N+]=[N-] -> [C-][N+]#N).
+Standardize the molecule so that all 1,3-dipole groups are represented as triple bond and single bond (ex. Diazo group C=[N+]=[N-] -> [C-][N+]#N).
 """
-function totriplebond(mol::GraphMol)
-    newmol = graphmol(mol)
+function totriplebond!(mol::GraphMol)
     for (first, center, third) in find13dipoles(mol)
         fe = findedgekey(mol, first, center)
         te = findedgekey(mol, center, third)
         edgeattr(mol, fe).order == 2 || continue
-        setnodeattr!(newmol, first, setcharge(nodeattr(mol, first), 0))
-        setnodeattr!(newmol, third, setcharge(nodeattr(mol, third), -1))
-        setedgeattr!(newmol, fe, setorder(edgeattr(mol, fe), 3))
-        setedgeattr!(newmol, te, setorder(edgeattr(mol, te), 1))
+        setnodeattr!(mol, first, setcharge(nodeattr(mol, first), 0))
+        setnodeattr!(mol, third, setcharge(nodeattr(mol, third), -1))
+        setedgeattr!(mol, fe, setorder(edgeattr(mol, fe), 3))
+        setedgeattr!(mol, te, setorder(edgeattr(mol, te), 1))
     end
+    clearcache!(mol)
+end
+
+
+"""
+    totriplebond(mol::GraphMol) -> GraphMol
+
+Return the molecule standardized as the same way as [`totriplebond!`](@ref)).
+"""
+function totriplebond(mol::GraphMol)
+    newmol = graphmol(mol)
+    totriplebond!(newmol)
     return newmol
+end
+
+
+"""
+    toallenelike!(mol::GraphMol) -> Nothing
+
+Standardize the molecule so that all 1,3-dipole groups are represented as allene-like structure (ex. Diazo group [C-][N+]#N -> C=[N+]=[N-]).
+"""
+function toallenelike!(mol::GraphMol)
+    for (first, center, third) in find13dipoles(mol)
+        fe = findedgekey(mol, first, center)
+        te = findedgekey(mol, center, third)
+        edgeattr(mol, fe).order == 1 || continue
+        setnodeattr!(mol, first, setcharge(nodeattr(mol, first), 0))
+        setnodeattr!(mol, third, setcharge(nodeattr(mol, third), -1))
+        setedgeattr!(mol, fe, setorder(edgeattr(mol, fe), 2))
+        setedgeattr!(mol, te, setorder(edgeattr(mol, te), 2))
+    end
+    clearcache!(mol)
 end
 
 
 """
     toallenelike(mol::GraphMol) -> GraphMol
 
-Return the molecule with its 1,3-dipole groups described in allene-like resonance structure (ex. Diazo group [C-][N+]#N -> C=[N+]=[N-]).
+Return the molecule standardized as the same way as [`toallenelike!`](@ref)).
 """
 function toallenelike(mol::GraphMol)
     newmol = graphmol(mol)
-    for (first, center, third) in find13dipoles(mol)
-        fe = findedgekey(mol, first, center)
-        te = findedgekey(mol, center, third)
-        edgeattr(mol, fe).order == 1 || continue
-        setnodeattr!(newmol, first, setcharge(nodeattr(mol, first), 0))
-        setnodeattr!(newmol, third, setcharge(nodeattr(mol, third), -1))
-        setedgeattr!(newmol, fe, setorder(edgeattr(mol, fe), 2))
-        setedgeattr!(newmol, te, setorder(edgeattr(mol, te), 2))
-    end
+    toallenelike!(newmol)
     return newmol
 end

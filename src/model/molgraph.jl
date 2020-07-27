@@ -113,6 +113,7 @@ function remapnodes(graph::GraphMol, mapping::Dict{Int,Int})
         newg.edges[i] = (mapping[u], mapping[v])
         newg.edgeattrs[i] = graph.edgeattrs[i]
     end
+    merge!(newg.attributes, graph.attributes)
     return newg
 end
 
