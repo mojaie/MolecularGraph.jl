@@ -18,7 +18,7 @@ export
     atomcounter, heavyatomcount, molecularformula, empiricalformula,
     pielectron, hybridization,
     isaromaticring, isaromatic, isaromaticbond,
-    calcdesc!
+    precalculate!
 
 
 const ORGANIC_SYMBOLS = [
@@ -606,3 +606,19 @@ isaromatic(view::SubgraphView) = isaromatic(view.graph)
 end
 
 isaromaticbond(view::SubgraphView) = isaromaticbond(view.graph)
+
+
+
+"""
+    precalculate!(mol::GraphMol)
+
+Convenient method to pre-calculate and cache performance bottleneck descriptors.
+"""
+function precalculate!(mol)
+    @cache edgemincycles(mol)
+    @cache mincycles(mol)
+    @cache lonepair(mol)
+    @cache apparentvalence(mol)
+    @cache valence(mol)
+    nodeattrtype(mol) === SmilesAtom && @cache coordgen(mol)
+end

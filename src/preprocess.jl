@@ -48,7 +48,10 @@ function kekulize!(mol::SMILES)
         end
     end
     subg = nodesubgraph(mol, nodes)
-    a, b = twocoloring(subg)
+    coloring = twocoloring(subg)
+    coloring === nothing && throw(
+        ErrorException("Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])"))
+    a, b = coloring
     adjmap = Dict{Int,Set{Int}}(
         i => adjacencies(subg, i) for i in nodeset(subg))
     for (u, v) in maxcardmap(a, b, adjmap)
@@ -336,7 +339,7 @@ end
 """
     totriplebond!(mol::GraphMol) -> Nothing
 
-Standardize the molecule so that all 1,3-dipole groups are represented as triple bond and single bond (ex. Diazo group C=[N+]=[N-] -> [C-][N+]#N).
+Standardize the molecule so that all 1,3-dipole groups are represented as triple bond and single bond (e.g. Diazo group C=[N+]=[N-] -> [C-][N+]#N).
 """
 function totriplebond!(mol::GraphMol)
     for (first, center, third) in find13dipoles(mol)
@@ -367,7 +370,7 @@ end
 """
     toallenelike!(mol::GraphMol) -> Nothing
 
-Standardize the molecule so that all 1,3-dipole groups are represented as allene-like structure (ex. Diazo group [C-][N+]#N -> C=[N+]=[N-]).
+Standardize the molecule so that all 1,3-dipole groups are represented as allene-like structure (e.g. Diazo group [C-][N+]#N -> C=[N+]=[N-]).
 """
 function toallenelike!(mol::GraphMol)
     for (first, center, third) in find13dipoles(mol)

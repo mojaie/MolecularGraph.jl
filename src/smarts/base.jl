@@ -60,7 +60,12 @@ end
 
 Parse SMILES string into `GraphMol` object.
 """
-smilestomol(smiles::AbstractString) = parse(SMILES, smiles)
+function smilestomol(smiles::AbstractString)
+    mol = parse(SMILES, smiles)
+    kekulize!(mol)
+    setdiastereo!(mol)
+    return mol
+end
 
 
 """

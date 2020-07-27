@@ -139,8 +139,11 @@ end
 
 
 function nohaltsupplier(block)
-    mol = try
-        return parse(SDFile, block)
+    return try
+        mol = parse(SDFile, block)
+        setdiastereo!(mol)
+        setstereocenter!(mol)
+        return mol
     catch e
         if e isa ErrorException
             println("$(e.msg) (#$(i) in sdfilereader)")
@@ -216,6 +219,11 @@ Read a SDFile(.sdf or .mol) and parse it into a molecule object. The given
 argument should be a file input stream, a file path as a string or an iterator
 that yields each sdfile text lines.
 """
-sdftomol(lines) = parse(SDFile, lines)
+function sdftomol(lines)
+    mol = parse(SDFile, lines)
+    setdiastereo!(mol)
+    setstereocenter!(mol)
+    return mol
+end
 sdftomol(file::IO) = sdftomol(eachline(file))
 sdftomol(path::AbstractString) = sdftomol(open(path))

@@ -91,7 +91,7 @@ end
 
     sixmem = parse(SMARTS, "[*r6]1[*r6][*r6][*r6][*r6][*r6]1")
     pyridine = smilestomol("n1ccccc1")
-    pyrrole = smilestomol("n1cccc1")
+    pyrrole = smilestomol("[nH]1cccc1")
     @test isquerymatch(pyridine, sixmem)
     @test !isquerymatch(pyrrole, sixmem)
 end

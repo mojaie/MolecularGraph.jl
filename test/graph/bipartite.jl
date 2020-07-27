@@ -28,6 +28,11 @@
 end
 
 @testset "twocoloring" begin
+    noedge = SubgraphView(pathgraph(5), Set(1:5), Set{Int}())
+    a, b = twocoloring(noedge)
+    @test length(a) == 5
+    @test isempty(b)
+    
     K5_5 = completebipartite(5, 5)
     a, b = twocoloring(K5_5)
     @test length(a) == 5
