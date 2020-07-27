@@ -46,7 +46,8 @@ function combinations(n::Int, k::Int=2)
     if k < 0
         throw(DomainError(k, "k should not be negative"))
     elseif k > n
-        throw(ErrorException("$(k) should be equal or less than the collection size"))
+        throw(ErrorException(
+            "$(k) should be equal or less than the collection size"))
     elseif k == 0
         return (Int[],)
     else
@@ -59,14 +60,12 @@ end
 
 
 function sortstablemax(iter; by=identity, kwargs...)
-    isempty(iter) && return kwargs[:init]
     cmp(x, y) = by(x) < by(y) ? y : x
-    return reduce(cmp, iter)
+    return reduce(cmp, iter; kwargs...)
 end
 
 
 function sortstablemin(iter; by=identity, kwargs...)
-    isempty(iter) && return kwargs[:init]
     cmp(x, y) = by(x) > by(y) ? y : x
-    return reduce(cmp, iter)
+    return reduce(cmp, iter; kwargs...)
 end
