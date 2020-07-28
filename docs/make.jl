@@ -37,7 +37,8 @@ makedocs(
     ],
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true"
-    )
+    ),
+    push_preview = true
 )
 
 deploydocs(repo="github.com/mojaie/MolecularGraph.jl.git")
