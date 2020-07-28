@@ -75,7 +75,7 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 deps = ["Documenter", "JSON", "LinearAlgebra", "Printf", "Statistics", "Test", "Unmarshal", "YAML", "coordgenlibs_jll", "libinchi_jll"]
 path = "/Users/smatsuoka/Repository/MolecularGraph.jl"
 uuid = "6c89ec66-9cd8-5372-9f91-fabc50dd27fd"
-version = "0.6.0"
+version = "0.7.0"
 
 [[Nullables]]
 git-tree-sha1 = "8f87854cc8f3685a60689d8edecaa29d2251979b"
