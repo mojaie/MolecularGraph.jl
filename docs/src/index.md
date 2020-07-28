@@ -12,10 +12,10 @@
 ## Installation
 
 ```
- (v1.0) pkg> add MolecularGraph
+(@v1.4) pkg> add MolecularGraph
 ```
 
 
 ## Usage
 
-- [Jupyter notebook tutorials](https://github.com/mojaie/MolecularGraph.jl_notebook/tree/master/notebook)
+- [Jupyter notebook tutorials](https://github.com/mojaie/MolecularGraph.jl_notebook)

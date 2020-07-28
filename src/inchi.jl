@@ -54,7 +54,7 @@ function inchi(molblock::String)
     return res
 end
 
-@cachefirst function inchi(mol::GraphMol)
+function inchi(mol::GraphMol)
     buf = IOBuffer(write=true)
     molblock(buf, mol)
     mb = String(take!(buf))
@@ -69,7 +69,7 @@ end
 
 Generate InChI key from InChI string or molecule
 """
-@cachefirst function inchikey(inchi::Union{String,Nothing})
+function inchikey(inchi::Union{String,Nothing})
     inchi === nothing && return nothing
     ikeybuf = pointer(Vector{UInt8}(undef, 256))
     # TODO: need extra buffer?

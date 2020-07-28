@@ -3,7 +3,7 @@
 
 ```@autodocs
 Modules = [MolecularGraph]
-Pages   = ["properties.jl"]
+Pages   = ["properties.jl", "wclogp.jl", "inchi.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

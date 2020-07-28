@@ -32,9 +32,37 @@ const LONEPAIR_COUNT = Dict(
 
 
 # Molecular graph topology
+
+"""
+    connectedcomponents(mol::UndirectedGraph) -> Vector{Set{Int}}
+
+Return a vector of connected components represented as a set of atom node indices.
+"""
 connectedcomponents = Graph.connectedcomponents
+
+"""
+    connectedmembership(mol::UndirectedGraph) -> Vector{Int}
+
+Return membership of connected components. See [`connectedcomponents`](@ref).
+"""
 connectedmembership = Graph.connectedmembership
+
+"""
+    sssr(mol::UndirectedGraph) -> Vector{Vector{Int}}
+
+Calculate Small set of smallest rings (SSSR).
+
+This returns a vector of rings represented as a vector of atom node index along with the cycle path.
+"""
 sssr = Graph.mincycles
+
+"""
+    sssrmembership(mol::UndirectedGraph) -> Vector{Set{Int}}
+
+Return size n vector of SSSR membership set where n is the number of atom nodes.
+
+The numbers in the set correspond to the index of [`sssr`](@ref) that the node belongs.
+"""
 sssrmembership = Graph.mincyclemembership
 
 
@@ -42,7 +70,7 @@ sssrmembership = Graph.mincyclemembership
     fusedrings(mol::UndirectedGraph) -> Vector{Set{Int}}
 
 Return the size ``n`` vector of ring labels within the molecule that have ``n``
-fused rings.
+fused rings (2-edge connected components in the context of graph theory).
 """
 @cachefirst function fusedrings(mol::UndirectedGraph)
     cobr = setdiff(edgeset(mol), bridges(mol))
@@ -50,7 +78,11 @@ fused rings.
     return Graph.connectedcomponents(subg)
 end
 
+"""
+    fusedringmembership(mol::UndirectedGraph) -> Vector{Int}
 
+Return the membership of fused rings. See [`fusedrings`](@ref).
+"""
 @cachefirst function fusedringmembership(mol::UndirectedGraph)
     arr = [Set{Int}() for i in 1:nodecount(mol)]
     for (i, conn) in enumerate(fusedrings(mol))
@@ -75,15 +107,12 @@ end
 @cachefirst sssrcount(mol::UndirectedGraph) = length.(sssrmembership(mol))
 
 
-# TODO: waiting for fix #28992
-# atom_isringmem(mol) = .!isempty.(mincyclemembership(mol))
-@cachefirst isringatom(mol::UndirectedGraph
-    ) = [!i for i in isempty.(sssrmembership(mol))]
+@cachefirst isringatom(mol::UndirectedGraph) = .!isempty.(sssrmembership(mol))
 isringatom(view::SubgraphView) = isringatom(view.graph)
 
-# bond_isringmem(mol) = .!isempty.(mincyclemembership(mol))
+
 @cachefirst isringbond(mol::UndirectedGraph
-    ) = [!i for i in isempty.(Graph.edgemincyclemembership(mol))]
+    ) = .!isempty.(edgemincyclemembership(mol))
 isringbond(view::SubgraphView) = isringbond(view.graph)
 
 

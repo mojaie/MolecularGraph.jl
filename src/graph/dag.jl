@@ -13,7 +13,6 @@ ancestors(graph::DirectedGraph, idx::Int) = reversereachablenodes(graph, idx)
 
 
 function topologicalsort(graph::DirectedGraph)
-    # TODO: cache
     result = Int[]
     stack = [i for i in nodeset(graph) if indegree(graph, i) == 0]
     used = Set{Int}()

@@ -7,6 +7,11 @@ export
     triangles
 
 
+"""
+    triangles(graph::UndirectedGraph) -> Set{Tuple{Int,Int,Int}}
+
+Fast computation of finding triangle node sets in the graph.
+"""
 function triangles(graph::UndirectedGraph)
     triads = Set()
     for n in nodeset(graph)

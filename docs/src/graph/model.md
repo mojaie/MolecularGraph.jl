@@ -1,42 +1,42 @@
 
-# Graph topology
+# Graph model
 
 
-## Cycle
+## Plain graph
 
 ```@autodocs
 Modules = [Graph]
-Pages   = ["graph/cycle.jl"]
+Pages   = ["graph/plaingraph.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```
 
 
-## Connectivity
+## Hyper graph
 
 ```@autodocs
 Modules = [Graph]
-Pages   = ["graph/connectivity.jl"]
+Pages   = ["graph/plainhypergraph.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```
 
 
-## Planarity
+## Directed Acyclic Graph (DAG)
 
 ```@autodocs
 Modules = [Graph]
-Pages   = ["graph/planarity.jl"]
+Pages   = ["graph/dag.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```
 
 
-## Triangles
+## Bipartite Graph
 
 ```@autodocs
 Modules = [Graph]
-Pages   = ["graph/triangle.jl"]
+Pages   = ["graph/bipartite.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

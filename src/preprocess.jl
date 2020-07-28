@@ -65,9 +65,7 @@ end
 """
     kekulize(mol::SMILES) -> SMILES
 
-Return the kekulized molecule.
-
-See [`kekulize!`](@ref))
+Return the kekulized molecule. See [`kekulize!`](@ref).
 """
 function kekulize(mol::SMILES)
     newmol = graphmol(mol)
@@ -201,7 +199,7 @@ end
 
 Return the molecule with its oxo(thio) anion groups protonated.
 
-See [`protonateacids!`](@ref))
+See [`protonateacids!`](@ref).
 """
 function protonateacids(mol::GraphMol)
     newmol = graphmol(mol)
@@ -231,7 +229,7 @@ end
 
 Return the molecule with its onium groups deprotonated.
 
-See [`deprotonateoniums!`](@ref))
+See [`deprotonateoniums!`](@ref).
 """
 function deprotonateoniums(mol::GraphMol)
     newmol = graphmol(mol)
@@ -270,7 +268,7 @@ end
 
 Return the molecule with its dipole double bonds depolarized.
 
-See [`depolarize!`](@ref))
+See [`depolarize!`](@ref).
 """
 function depolarize(mol::GraphMol; kwargs...)
     newmol = graphmol(mol)
@@ -309,7 +307,7 @@ end
 
 Return the molecule with its dipole double bonds polarized.
 
-See [`polarize!`](@ref))
+See [`polarize!`](@ref).
 """
 function polarize(mol::GraphMol; kwargs...)
     newmol = graphmol(mol)
@@ -358,7 +356,7 @@ end
 """
     totriplebond(mol::GraphMol) -> GraphMol
 
-Return the molecule standardized as the same way as [`totriplebond!`](@ref)).
+Return the molecule standardized as the same way as [`totriplebond!`](@ref).
 """
 function totriplebond(mol::GraphMol)
     newmol = graphmol(mol)
@@ -389,7 +387,7 @@ end
 """
     toallenelike(mol::GraphMol) -> GraphMol
 
-Return the molecule standardized as the same way as [`toallenelike!`](@ref)).
+Return the molecule standardized as the same way as [`toallenelike!`](@ref).
 """
 function toallenelike(mol::GraphMol)
     newmol = graphmol(mol)

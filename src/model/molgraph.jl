@@ -140,7 +140,7 @@ tojson(graph::GraphMol) = JSON.json(todict(graph))
 
 
 
-# TODO: Unmarshal patch for Set
+# Note: Unmarshal patch for Set
 function Unmarshal.unmarshal(::Type{Set{E}},
     parsedJson::Union{Vector, AbstractArray},
     verbose::Bool=false, verboseLvl::Int=0) where E

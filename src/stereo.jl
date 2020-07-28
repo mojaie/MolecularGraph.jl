@@ -183,7 +183,7 @@ end
 
 Return new molecule with diastereomeric information set.
 
-See [`setdiastereo！`](@ref))
+See [`setdiastereo!`](@ref))
 """
 function setdiastereo(mol::GraphMol)
     newmol = graphmol(mol)
@@ -295,7 +295,7 @@ end
 
 Return new molecule with stereocenter information set.
 
-See [`setstereocenter！`](@ref))
+See [`setstereocenter!`](@ref))
 """
 function setstereocenter(mol::GraphMol)
     newmol = graphmol(mol)
