@@ -12,7 +12,9 @@ export
     setatom!, setbond!, addatom!, addbond!,
     atomcount, bondcount
 
-import JSON
+using JSON
+import Unmarshal
+
 
 struct GraphMol{A<:Atom,B<:Bond} <: OrderedGraph
     neighbormap::Vector{Dict{Int,Int}}
@@ -124,16 +126,32 @@ end
 Convert molecule object into JSON compatible dictionary.
 """
 todict(graph::GraphMol) = Dict(
-        "edges" => graph.edges,
-        "nodetype" => string(nodeattrtype(graph)),
-        "edgetype" => string(edgeattrtype(graph)),
-        "nodeattrs" => [todict(atom) for atom in graph.nodeattrs],
-        "edgeattrs" => [todict(bond) for bond in graph.edgeattrs],
-        "cache" => Dict(string(k) => v for (k, v) in graph.cache),
-        "attributes" => Dict(string(k) => v for (k, v) in graph.attributes)
+    "edges" => graph.edges,
+    "nodetype" => string(nodeattrtype(graph)),
+    "edgetype" => string(edgeattrtype(graph)),
+    "nodeattrs" => [todict(atom) for atom in graph.nodeattrs],
+    "edgeattrs" => [todict(bond) for bond in graph.edgeattrs],
+    "cache" => Dict(
+        string(k) => (string(typeof(v)), v) for (k, v) in graph.cache),
+    "attributes" => Dict(string(k) => v for (k, v) in graph.attributes)
 )
 
 tojson(graph::GraphMol) = JSON.json(todict(graph))
+
+
+
+# TODO: Unmarshal patch for Set
+function Unmarshal.unmarshal(::Type{Set{E}},
+    parsedJson::Union{Vector, AbstractArray},
+    verbose::Bool=false, verboseLvl::Int=0) where E
+    if verbose
+        prettyPrint(verboseLvl, "Set{$E}")
+        verboseLvl += 1
+    end
+    Set(Unmarshal.unmarshal(
+        E, field, verbose, verboseLvl) for field in parsedJson)
+end
+
 
 
 function graphmol(data::Dict{String,Any})
@@ -150,8 +168,8 @@ function graphmol(data::Dict{String,Any})
         push!(mol.edgeattrs, bondtype(data["edgeattrs"][i]))
         push!(mol.edges, (u, v))
     end
-    for (k, v) in data["cache"]
-        mol.cache[Symbol(k)] = v
+    for (k, (vt, v)) in data["cache"]
+        mol.cache[Symbol(k)] = Unmarshal.unmarshal(eval(Meta.parse(vt)), v)
     end
     for (k, v) in data["attributes"]
         mol.attributes[Symbol(k)] = v
