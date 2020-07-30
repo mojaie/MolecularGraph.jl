@@ -56,13 +56,13 @@ macro cachefirst(ex)
     ex.args[1].args[1] = dummy
     return esc(quote
         $ex
-        Core.@__doc__ function $func(graph)
-            if isdefined(graph, :cache)
+        Core.@__doc__ function $func(graph; kwargs...)
+            if isdefined(graph, :cache) && isempty(kwargs)
                 # Return cache
                 symf = nameof($func)
                 symf in keys(graph.cache) && return graph.cache[symf]
             end
-            return $dummy(graph)
+            return $dummy(graph; kwargs...)
         end
     end)
 end

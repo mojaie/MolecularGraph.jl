@@ -4,7 +4,6 @@
 #
 
 export
-    connectedcomponents, connectedmembership,
     sssr, sssrmembership,
     fusedrings, fusedringmembership, 
     sssrsizes, sssrcount,
@@ -33,19 +32,6 @@ const LONEPAIR_COUNT = Dict(
 
 # Molecular graph topology
 
-"""
-    connectedcomponents(mol::UndirectedGraph) -> Vector{Set{Int}}
-
-Return a vector of connected components represented as a set of atom node indices.
-"""
-connectedcomponents = Graph.connectedcomponents
-
-"""
-    connectedmembership(mol::UndirectedGraph) -> Vector{Int}
-
-Return membership of connected components. See [`connectedcomponents`](@ref).
-"""
-connectedmembership = Graph.connectedmembership
 
 """
     sssr(mol::UndirectedGraph) -> Vector{Vector{Int}}

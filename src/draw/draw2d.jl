@@ -57,7 +57,8 @@ const DRAW_SETTING = Dict(
 
 Return atom colors for molecule 2D drawing
 """
-@cachefirst function atomcolor(mol::GraphMol; setting=DRAW_SETTING)
+@cachefirst function atomcolor(
+        mol::GraphMol; setting=DRAW_SETTING, kwargs...)
     atomc = setting[:atomcolor]
     dfc =  setting[:default_atom_color]
     return [get(atomc, sym, dfc) for sym in atomsymbol(mol)]
@@ -71,7 +72,8 @@ atomcolor(view::SubgraphView; kwargs...) = atomcolor(view.graph; kwargs...)
 
 Return whether the atom is visible in the 2D drawing.
 """
-@cachefirst function isatomvisible(mol::GraphMol; setting=DRAW_SETTING)
+@cachefirst function isatomvisible(
+        mol::GraphMol; setting=DRAW_SETTING, kwargs...)
     termc = setting[:display_terminal_carbon]
     vec = Bool[]
     deg_ = nodedegree(mol)
@@ -101,7 +103,7 @@ sdfcoords2d(view::SubgraphView) = sdfcoords2d(view.graph)
 
 
 @cachefirst function coords2d(
-        mol::GraphMol; forcecoordgen=false, setting=DRAW_SETTING)
+        mol::GraphMol; forcecoordgen=false, setting=DRAW_SETTING, kwargs...)
     if nodeattrtype(mol) === SDFileAtom && !forcecoordgen
         coords = sdfcoords2d(mol)
         style = getproperty.(edgeattrs(mol), :notation)
@@ -189,23 +191,21 @@ atomhtml(
 
 
 """
-    draw2d!(canvas::Canvas, mol::UndirectedGraph;
-            setting=copy(DRAW_SETTING), recalculate=false)
+    draw2d!(canvas::Canvas, mol::UndirectedGraph; kwargs...)
 
 Draw molecular image to the canvas.
 """
-function draw2d!(canvas::Canvas, mol::UndirectedGraph;
-                 setting=DRAW_SETTING, forcecoordgen=false)
+function draw2d!(canvas::Canvas, mol::UndirectedGraph; kwargs...)
     # Canvas settings
-    coords_, bondstyles_ = coords2d(mol)
+    coords_, bondstyles_ = coords2d(mol; kwargs...)
     initcanvas!(canvas, coords_, boundary(mol, coords_))
     canvas.valid || return
 
     # Properties
     atomsymbol_ = atomsymbol(mol)
-    atomcolor_ = atomcolor(mol)
+    atomcolor_ = atomcolor(mol; kwargs...)
     charge_ = charge(mol)
-    isatomvisible_ = isatomvisible(mol)
+    isatomvisible_ = isatomvisible(mol; kwargs...)
     bondorder_ = bondorder(mol)
     implicithconnected_ = implicithconnected(mol)
 
