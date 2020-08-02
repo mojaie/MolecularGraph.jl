@@ -25,7 +25,6 @@ end
 Generate InChI string from molblock string or molecule
 """
 function inchi(molblock::String)
-    # TODO: SMILES need coords for sdfwriter
     output = inchi_Output()
     ccall(
         (:MakeINCHIFromMolfileText, libinchi),
@@ -54,13 +53,7 @@ function inchi(molblock::String)
     return res
 end
 
-function inchi(mol::GraphMol)
-    buf = IOBuffer(write=true)
-    molblock(buf, mol)
-    mb = String(take!(buf))
-    close(buf)
-    return inchi(mb)
-end
+inchi(mol::GraphMol) = inchi(printv2mol(mol))
 
 
 """

@@ -213,6 +213,7 @@ function draw2d!(canvas::Canvas, mol::UndirectedGraph; kwargs...)
     for i in edgeset(mol)
         (u, v) = getedge(mol, i)
         if bondorder_[i] == 1 && bondstyles_[i] in (2, 7)
+            # cordgen reverse bonds
             (t, s) = (u, v)
             bs = bondstyles_[i] - 1
         else

@@ -4,13 +4,22 @@
 #
 
 export
-    molblock, sdfblock, sdfilewriter
+    printv2mol, printv2sdf, sdfilewriter
 
 
-function atomblock(io::IO, mol::GraphMol)
+function printv2atoms(io::IO, mol::SDFile)
     for (i, atom) in enumerate(nodeattrs(mol))
-        # TODO: SMILES coords
-        (x, y, z) = atom.coords
+        x, y, z = atom.coords
+        xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atom.symbol)
+        println(io, "$(xyzsym) 0  0  0  0  0  0  0  0  0  0  0  0")
+    end
+    return
+end
+
+function printv2atoms(io::IO, mol::SMILES, coords)
+    for (i, atom) in enumerate(nodeattrs(mol))
+        x, y = coords[i, 1:2]
+        z = 0.0
         xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atom.symbol)
         println(io, "$(xyzsym) 0  0  0  0  0  0  0  0  0  0  0  0")
     end
@@ -18,10 +27,9 @@ function atomblock(io::IO, mol::GraphMol)
 end
 
 
-function bondblock(io::IO, mol::GraphMol)
+function printv2bonds(io::IO, mol::SDFile)
     for (i, (u, v)) in enumerate(edgesiter(mol))
         bond = edgeattr(mol, i)
-        # TODO: SmilesBond
         uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v bond.order bond.notation
         println(io, uv)
     end
@@ -29,7 +37,24 @@ function bondblock(io::IO, mol::GraphMol)
 end
 
 
-function propertyblock(io::IO, mol::GraphMol)
+function printv2bonds(io::IO, mol::SMILES, styles)
+    for (i, (u, v)) in enumerate(edgesiter(mol))
+        bond = edgeattr(mol, i)
+        if styles[i] in (2, 7)
+            f, s = (v, u)
+            notation = styles[i] - 1
+        else
+            f, s = (u, v)
+            notation = styles[i]
+        end
+        uv = @sprintf "%3d%3d%3d%3d  0  0  0" f s bond.order notation
+        println(io, uv)
+    end
+    return
+end
+
+
+function printv2properties(io::IO, mol::GraphMol)
     charges = Tuple{Int,Int}[]
     radicals = Tuple{Int,Int}[]
     masses = Tuple{Int,Float64}[]
@@ -69,7 +94,7 @@ function propertyblock(io::IO, mol::GraphMol)
 end
 
 
-function datablock(io::IO, mol::GraphMol)
+function printv2data(io::IO, mol::GraphMol)
     for (key, val) in mol.attributes
         println(io, "> <$(string(key))>")
         println(io, string(val))
@@ -79,8 +104,7 @@ function datablock(io::IO, mol::GraphMol)
 end
 
 
-function molblock(io::IO, mol::GraphMol)
-    # TODO: 2D coords for SmilesMol
+function printv2mol(io::IO, mol::GraphMol)
     println(io)
     println(io, "MolecularGraph.jl version $(Util.VERSION)")
     println(io)
@@ -88,17 +112,32 @@ function molblock(io::IO, mol::GraphMol)
     ecnt = edgecount(mol)
     header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
     println(io, header)
-    atomblock(io, mol)
-    bondblock(io, mol)
-    propertyblock(io, mol)
+    if nodeattrtype(mol) === SmilesAtom
+        coords, styles = coordgen(mol)
+        printv2atoms(io, mol, coords)
+        printv2bonds(io, mol, styles)
+    else
+        printv2atoms(io, mol)
+        printv2bonds(io, mol)
+    end
+    printv2properties(io, mol)
     println(io, "M  END")
     return
 end
 
 
-function sdfblock(io::IO, mol::GraphMol)
-    molblock(io, mol)
-    datablock(io, mol)
+function printv2mol(mol::GraphMol)
+    buf = IOBuffer(write=true)
+    printv2mol(buf, mol)
+    res = String(take!(buf))
+    close(buf)
+    return res
+end
+
+
+function printv2sdf(io::IO, mol::GraphMol)
+    printv2mol(io, mol)
+    printv2data(io, mol)
     println(io, raw"$$$$")
     return
 end
@@ -110,6 +149,6 @@ end
 
 Write molecule data to the output stream as a SDFile format file.
 """
-sdfilewriter(io::IO, mols) = sdfblock.((io,), mols)
-sdfilewriter(filename::AbstractString, mols
-    ) = sdfilewriter(open(path, "w"), mols)
+sdfilewriter(io::IO, mols; writer=printv2sdf) = writer.((io,), mols)
+sdfilewriter(filename::AbstractString, mols; kwargs...
+    ) = sdfilewriter(open(path, "w"), mols; kwargs...)

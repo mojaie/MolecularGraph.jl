@@ -14,10 +14,10 @@ struct SDFileBond <: Bond
         * Single bond
             * 0: u - v
             * 1: u ◀ v (Up-arrow)
-            * 2: v ◀ u
+            * 2: v ◀ u -> for SMILES coordgen compatibility
             * 4: u ~ v (Up or down)
             * 6: u ◁ v (Down-arrow)
-            * 7: v ◁ u
+            * 7: v ◁ u -> for SMILES coordgen compatibility
         * Double bond
             * 0: v ニ u (clockwise, default)
             * 1: u ニ v (counter-clockwise)
