@@ -82,6 +82,10 @@ end
     pyrrole = smilestomol("C1=CC=CN1")
     @test pielectron(pyrrole) == [1, 1, 1, 1, 2]
     @test hybridization(pyrrole) == [:sp2, :sp2, :sp2, :sp2, :sp2]
+
+    nacl = smilestomol("[Na+][Cl-]")
+    @test pielectron(nacl) == [0, 0]
+    @test hybridization(nacl) == [:none, :none]
 end
 
 @testset "rotatable" begin

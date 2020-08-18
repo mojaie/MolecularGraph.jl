@@ -20,9 +20,6 @@ export
     precalculate!
 
 
-const ORGANIC_SYMBOLS = [
-    :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I]
-
 const LONEPAIR_COUNT = Dict(
     :H => 0, :B => -1, :C => 0, :N => 1, :O => 2, :F => 3,
     :Si => 0, :P => 1, :S => 2, :Cl => 3,
@@ -504,23 +501,25 @@ These hybridizations are for only typical organic atoms. Inorganic atoms and oth
 @cachefirst function hybridization(mol::GraphMol)
     atomsymbol_ = atomsymbol(mol)
     pielectron_ = pielectron(mol)
-    orbitals = connectivity(mol) + lonepair(mol)
+    connectivity_ = connectivity(mol)
+    lonepair_ = lonepair(mol)
     vec = Symbol[]
     for i in 1:nodecount(mol)
-        if atomsymbol_[i] in ORGANIC_SYMBOLS
-            if orbitals[i] == 4
-                if (atomsymbol_[i] in [:N, :O] && pielectron_[i] == 2)
-                    push!(vec, :sp2)  # adjacent to conjugated bonds
-                else
-                    push!(vec, :sp3)
-                end
-            elseif orbitals[i] == 3
-                push!(vec, :sp2)
-            elseif orbitals[i] == 2
-                push!(vec, :sp)
+        if lonepair_[i] === nothing || atomsymbol_[i] === :H
+            push!(vec, :none)
+            continue
+        end
+        orbitals = connectivity_[i] + lonepair_[i]
+        if orbitals == 4
+            if (atomsymbol_[i] in [:N, :O] && pielectron_[i] == 2)
+                push!(vec, :sp2)  # adjacent to conjugated bonds
             else
-                push!(vec, :none)
+                push!(vec, :sp3)
             end
+        elseif orbitals == 3
+            push!(vec, :sp2)
+        elseif orbitals == 2
+            push!(vec, :sp)
         else
             push!(vec, :none)
         end
