@@ -151,4 +151,4 @@ Write molecule data to the output stream as a SDFile format file.
 """
 sdfilewriter(io::IO, mols; writer=printv2sdf) = writer.((io,), mols)
 sdfilewriter(filename::AbstractString, mols; kwargs...
-    ) = sdfilewriter(open(path, "w"), mols; kwargs...)
+    ) = sdfilewriter(open(filename, "w"), mols; kwargs...)
