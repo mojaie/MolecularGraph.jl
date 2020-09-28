@@ -10,57 +10,64 @@ export
     edgesubgraphmatches, edgesubgraphmatch, isedgesubgraphmatch
 
 
-mutable struct VF2State{T1<:UndirectedGraph,T2<:UndirectedGraph}
+mutable struct VF2Matcher{T1<:UndirectedGraph,T2<:UndirectedGraph}
     G::T1
     H::T2
+    matchtype::Symbol
+    nodematcher::Function
+    edgematcher::Function
+    mandatory::Dict{Int,Int}
+    forbidden::Dict{Int,Int}
+    expire::Union{UInt64,Nothing} # UInt64, nanoseconds
 
+    stack::Vector{Tuple{Symbol,Int,Int}}
+    currentpair::Union{Tuple{Int,Int},Nothing}
     g_core::Dict{Int,Int}
     h_core::Dict{Int,Int}
     g_term::Dict{Int,Int}
     h_term::Dict{Int,Int}
-    expire::Union{UInt64,Nothing} # UInt64, nanoseconds
+    timedout::Bool
 
-    mappings::Vector{Dict{Int,Int}}
-    status::Symbol
-
-    function VF2State{T1,T2}(G::T1, H::T2; timeout=nothing
+    function VF2Matcher{T1,T2}(
+                G::T1, H::T2; matchtype=:subgraph,
+                nodematcher=(a, b)->true, edgematcher=(a, b)->true,
+                mandatory=nothing, forbidden=nothing, timeout=nothing
             ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
-        if timeout !== nothing
-            expire = (time_ns() + timeout * 1_000_000_000)::UInt64
-        else
-            expire = nothing
-        end
-        return new(G, H, Dict(), Dict(), Dict(), Dict(), expire, [], :ready)
+        md = mandatory === nothing ? Dict() : mandatory
+        fb = forbidden === nothing ? Dict() : forbidden
+        expire = (timeout === nothing ?
+            nothing : (time_ns() + timeout * 1_000_000_000)::UInt64)
+        return new(
+            G, H, matchtype, nodematcher, edgematcher, md, fb, expire,
+            [], nothing, Dict(), Dict(), Dict(), Dict(), false
+        )
     end
 end
-VF2State(G::UndirectedGraph, H::UndirectedGraph; kwargs...) = VF2State{typeof(G),typeof(H)}(G, H; kwargs...)
+VF2Matcher(G::UndirectedGraph, H::UndirectedGraph; kwargs...) = VF2Matcher{typeof(G),typeof(H)}(G, H; kwargs...)
 
 
-function candidatepairs(state::VF2State; kwargs...)
+function candidatepairs(iter::VF2Matcher)
     # Mandatory pair
-    if haskey(kwargs, :mandatory)
-        md = setdiff(keys(kwargs[:mandatory]), keys(state.g_core))
-        if !isempty(md)
-            n = pop!(md)
-            return [(n, kwargs[:mandatory][n])]
-        end
+    md = setdiff(keys(iter.mandatory), keys(iter.g_core))
+    if !isempty(md)
+        n = pop!(md)
+        return [(n, iter.mandatory[n])]
     end
 
     pairs = Tuple{Int,Int}[]
-    g_cand = setdiff(keys(state.g_term), keys(state.g_core))
-    h_cand = setdiff(keys(state.h_term), keys(state.h_core))
+    g_cand = setdiff(keys(iter.g_term), keys(iter.g_core))
+    h_cand = setdiff(keys(iter.h_term), keys(iter.h_core))
     if isempty(g_cand) || isempty(h_cand)
         # New connected component
-        g_cand = setdiff(nodeset(state.G), keys(state.g_core))
-        h_cand = setdiff(nodeset(state.H), keys(state.h_core))
+        g_cand = setdiff(nodeset(iter.G), keys(iter.g_core))
+        h_cand = setdiff(nodeset(iter.H), keys(iter.h_core))
     end
     if !isempty(h_cand)
         h_min = minimum(h_cand)
         for g in g_cand
             # Forbidden pair
-            if haskey(kwargs, :forbidden)
-                fb = kwargs[:forbidden]
-                haskey(fb, g) && fb[g] == h_min && continue
+            if haskey(iter.forbidden, g) && iter.forbidden[g] == h_min
+                continue
             end
             push!(pairs, (g, h_min))
         end
@@ -69,183 +76,164 @@ function candidatepairs(state::VF2State; kwargs...)
 end
 
 
-function is_feasible(state::VF2State, g, h; mode=:Subgraph, kwargs...)
+function is_feasible(iter::VF2Matcher, g, h)
     # TODO: assume no self loop
-    g_nbrs = adjacencies(state.G, g)
-    h_nbrs = adjacencies(state.H, h)
-    for n in intersect(g_nbrs, keys(state.g_core))
-        if !(state.g_core[n] in h_nbrs)
-            # println("Infeasible: neighbor connectivity")
+    g_nbrs = adjacencies(iter.G, g)
+    h_nbrs = adjacencies(iter.H, h)
+    for n in intersect(g_nbrs, keys(iter.g_core))
+        if !(iter.g_core[n] in h_nbrs)
+            @debug "Infeasible: neighbor connectivity"
             return false
         end
     end
-    for n in intersect(h_nbrs, keys(state.h_core))
-        if !(state.h_core[n] in g_nbrs)
-            # println("Infeasible: neighbor connectivity")
+    for n in intersect(h_nbrs, keys(iter.h_core))
+        if !(iter.h_core[n] in g_nbrs)
+            @debug "Infeasible: neighbor connectivity"
             return false
         end
     end
-    g_term_count = length(setdiff(keys(state.g_term), keys(state.g_core)))
-    h_term_count = length(setdiff(keys(state.h_term), keys(state.h_core)))
-    if mode == :Isomorphism && g_term_count != h_term_count
-        # println("Infeasible: terminal set size")
+    g_term_count = length(setdiff(keys(iter.g_term), keys(iter.g_core)))
+    h_term_count = length(setdiff(keys(iter.h_term), keys(iter.h_core)))
+    if iter.matchtype === :exact && g_term_count != h_term_count
+        @debug "Infeasible: terminal set size"
         return false
-    elseif mode == :Subgraph && g_term_count < h_term_count
-        # println("Infeasible: terminal set size")
-        return false
-    end
-    g_new_count = length(setdiff(nodeset(state.G), keys(state.g_term)))
-    h_new_count = length(setdiff(nodeset(state.H), keys(state.h_term)))
-    if mode == :Isomorphism && g_new_count != h_new_count
-        # println("Infeasible: yet unexplored nodes")
-        return false
-    elseif mode == :Subgraph && g_new_count < h_new_count
-        # println("Infeasible: yet unexplored nodes")
+    elseif iter.matchtype === :subgraph && g_term_count < h_term_count
+        @debug "Infeasible: terminal set size"
         return false
     end
-    # println("Syntactically feasible")
+    g_new_count = length(setdiff(nodeset(iter.G), keys(iter.g_term)))
+    h_new_count = length(setdiff(nodeset(iter.H), keys(iter.h_term)))
+    if iter.matchtype === :exact && g_new_count != h_new_count
+        @debug "Infeasible: yet unexplored nodes"
+        return false
+    elseif iter.matchtype === :subgraph && g_new_count < h_new_count
+        @debug "Infeasible: yet unexplored nodes"
+        return false
+    end
+    @debug "Syntactically feasible"
     return true
 end
 
 
-function is_semantic_feasible(state::VF2State, g, h; kwargs...)
-    if haskey(kwargs, :nodematcher)
-        if !kwargs[:nodematcher](g, h)
-            # println("Infeasible: node attribute mismatch")
-            return false
-        end
+function is_semantic_feasible(iter::VF2Matcher, g, h)
+    if !iter.nodematcher(g, h)
+        @debug "Infeasible: node attribute mismatch"
+        return false
     end
-    if haskey(kwargs, :edgematcher)
-        for (inc, adj) in neighbors(state.G, g)
-            haskey(state.g_core, adj) || continue
-            hinc = findedgekey(state.H, h, state.g_core[adj])
-            if !kwargs[:edgematcher](inc, hinc)
-                # println("Infeasible: edge attribute mismatch")
-                return false
-            end
+    for (inc, adj) in neighbors(iter.G, g)
+        haskey(iter.g_core, adj) || continue
+        hinc = findedgekey(iter.H, h, iter.g_core[adj])
+        if !iter.edgematcher(inc, hinc)
+            @debug "Infeasible: edge attribute mismatch"
+            return false
         end
     end
     return true
 end
 
 
-function updatestate!(state::VF2State, g, h)
-    state.g_core[g] = h
-    state.h_core[h] = g
-    depth = length(state.g_core)
-    if !haskey(state.g_term, g)
-        state.g_term[g] = depth
+function expand!(iter::VF2Matcher, g, h)
+    iter.g_core[g] = h
+    iter.h_core[h] = g
+    depth = length(iter.g_core)
+    if !haskey(iter.g_term, g)
+        iter.g_term[g] = depth
     end
-    if !haskey(state.h_term, h)
-        state.h_term[h] = depth
+    if !haskey(iter.h_term, h)
+        iter.h_term[h] = depth
     end
-    g_nbrset = union([adjacencies(state.G, n) for n in keys(state.g_core)]...)
-    for n in setdiff(g_nbrset, keys(state.g_term))
-        state.g_term[n] = depth
+    g_nbrset = union([adjacencies(iter.G, n) for n in keys(iter.g_core)]...)
+    for n in setdiff(g_nbrset, keys(iter.g_term))
+        iter.g_term[n] = depth
     end
-    h_nbrset = union([adjacencies(state.H, n) for n in keys(state.h_core)]...)
-    for n in setdiff(h_nbrset, keys(state.h_term))
-        state.h_term[n] = depth
+    h_nbrset = union([adjacencies(iter.H, n) for n in keys(iter.h_core)]...)
+    for n in setdiff(h_nbrset, keys(iter.h_term))
+        iter.h_term[n] = depth
     end
     return
 end
 
 
-function restore!(state::VF2State, g, h)
-    depth = length(state.g_core)
+function restore!(iter::VF2Matcher, g, h)
+    depth = length(iter.g_core)
     if g !== nothing && h !== nothing
-        delete!(state.g_core, g)
-        delete!(state.h_core, h)
+        delete!(iter.g_core, g)
+        delete!(iter.h_core, h)
     end
-    for (k, v) in state.g_term
-        v == depth && delete!(state.g_term, k)
+    for (k, v) in iter.g_term
+        v == depth && delete!(iter.g_term, k)
     end
-    for (k, v) in state.h_term
-        v == depth && delete!(state.h_term, k)
-    end
-end
-
-
-function yieldallnodes!(state::VF2State)
-    push!(state.mappings, copy(state.g_core))
-    return
-end
-
-function yieldfirstnode!(state::VF2State)
-    push!(state.mappings, copy(state.g_core))
-    state.status = :done
-    return
-end
-
-function yieldedgefunc(G, H, yieldtype)
-    return function (state)
-        delta_y_mismatch(G, H, state.g_core) && return
-        push!(state.mappings, copy(state.g_core))
-        yieldtype == :first && (state.status = :done)
-        return
+    for (k, v) in iter.h_term
+        v == depth && delete!(iter.h_term, k)
     end
 end
 
 
-function expand!(state::VF2State; kwargs...)
-    state.status == :done && return
-    # Recursive
-    # println("depth $(length(state.g_core))")
-    if length(state.g_core) == nodecount(state.H)
-        # println("done $(state.g_core)")
-        kwargs[:reportfunc](state)
-        return
-    elseif state.expire !== nothing && time_ns() > state.expire
-        state.status = :timedout
-        # println("Timed out")
-        return
+function Base.iterate(iter::VF2Matcher, state=nothing)
+    iter.timedout && return
+    if iter.currentpair !== nothing
+        g1, h1 = iter.currentpair
+        push!(iter.stack, (:restore, g1, h1))
     end
-    for (g, h) in candidatepairs(state; kwargs...)
-        # println("candidates $(g) $(h)")
-        is_feasible(state, g, h; kwargs...) || continue
-        is_semantic_feasible(state, g, h; kwargs...) || continue
-        updatestate!(state, g, h)
-        # println("g_core $(state.g_core)")
-        mp = expand!(state; kwargs...)
-        # println("restored $(state.g_core)")
-        restore!(state, g, h)
+    for (g, h) in candidatepairs(iter)
+        @debug "candidates" g h
+        is_feasible(iter, g, h) || continue
+        is_semantic_feasible(iter, g, h) || continue
+        push!(iter.stack, (:expand, g, h))
     end
-    return
+    while !isempty(iter.stack)
+        command, g1, h1 = pop!(iter.stack)
+        if command === :restore
+            @debug "restored" iter.g_core
+            restore!(iter, g1, h1)
+            continue
+        end
+        @debug "g_core" iter.g_core
+        expand!(iter, g1, h1)
+        iter.currentpair = (g1, h1)
+        @debug "depth" length(iter.g_core)
+        if length(iter.g_core) == nodecount(iter.H)
+            @debug "done" iter.g_core
+            return (copy(iter.g_core), state)
+        elseif iter.expire !== nothing && time_ns() > iter.expire
+            iter.timedout = true
+            @debug "Timed out"
+            return
+        end
+        push!(iter.stack, (:restore, g1, h1))
+        for (g, h) in candidatepairs(iter)
+            @debug "candidates" g h
+            is_feasible(iter, g, h) || continue
+            is_semantic_feasible(iter, g, h) || continue
+            push!(iter.stack, (:expand, g, h))
+        end
+    end
+    return  # no match found
 end
 
+Base.IteratorSize(::Type{VF2Matcher}) = Base.SizeUnknown()
+Base.IteratorEltype(::Type{VF2Matcher}) = Base.EltypeUnknown()
 
 
-function isomorphismitervf2(G::UndirectedGraph, H::UndirectedGraph; timeout=nothing, yield=:all, kwargs...)
-    (nodecount(G) == 0 || nodecount(H) == 0) && return Dict{Int,Int}()
-    state = VF2State(G, H, timeout=timeout)
-    yieldfunc = yield == :all ? yieldallnodes! : yieldfirstnode!
-    expand!(state, reportfunc=yieldfunc; kwargs...)
-    if state.status == :timedout
-        throw(ErrorException("Timeout reached"))
-    end
-
-    return state.mappings
+function isomorphismitervf2(
+        G::UndirectedGraph, H::UndirectedGraph; kwargs...)
+    return VF2Matcher{T1,T2}(G, H; kwargs...)
 end
 
 
 function edgeisomorphismitervf2(
-            G::UndirectedGraph, H::UndirectedGraph; timeout=nothing, yield=:all,
-            nodematcher=(g,h)->true , edgematcher=(g,h)->true,
-            kwargs...
-        )
-    (edgecount(G) == 0 || edgecount(H) == 0) && return Dict{Int,Int}()
+        G::UndirectedGraph, H::UndirectedGraph; 
+        nodematcher=(g,h)->true, edgematcher=(g,h)->true, kwargs...)
     lg = linegraph(G)
     lh = linegraph(H)
-    state = VF2State(lg, lh, timeout=timeout)
-    lgematch = lgedgematcher(lg, lh, nodematcher)
-    lgnmatch = lgnodematcher(lg, lh, nodematcher, edgematcher)
-    yieldfunc = yieldedgefunc(G, H, yield)
-    expand!(state, nodematcher=lgnmatch, edgematcher=lgematch,
-            reportfunc=yieldfunc; kwargs...)
-    if state.status == :timedout
-        throw(ErrorException("Timeout reached"))
+    lgedge = lgedgematcher(lg, lh, nodematcher)
+    lgnode = lgnodematcher(lg, lh, nodematcher, edgematcher)
+    matcher = VF2Matcher{LineGraph,LineGraph}(
+        lg, lh; nodematcher=lgnode, edgematcher=lgedge, kwargs...
+    )
+    return Iterators.filter(matcher) do mapping
+        return !delta_y_mismatch(G, H, mapping)
     end
-    return state.mappings
 end
 
 
@@ -259,7 +247,7 @@ Generate isomorphism mappings between `G` and `H`. If no match found, return
 nothing.
 """
 graphmatches(G, H; kwargs...
-    ) = isomorphismitervf2(G, H, mode=:Isomorphism; kwargs...)
+    ) = isomorphismitervf2(G, H, matchtype=:exact; kwargs...)
 
 """
     graphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
@@ -267,10 +255,7 @@ graphmatches(G, H; kwargs...
 Return an isomorphism mapping between `G` and `H`. If no match found, return
 nothing.
 """
-function graphmatch(G, H; kwargs...)
-    res = isomorphismitervf2(G, H, mode=:Isomorphism, yield=:first; kwargs...)
-    return isempty(res) ? nothing : res[1]
-end
+graphmatch(G, H; kwargs...) = iterate(graphmatches(G, H; kwargs...))
 
 """
     isgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
@@ -299,7 +284,7 @@ arguments.
     forbidden node matches (available for only VF2)
 """
 subgraphmatches(G, H; kwargs...
-    ) = isomorphismitervf2(G, H, mode=:Subgraph; kwargs...)
+    ) = isomorphismitervf2(G, H, matchtype=:subgraph; kwargs...)
 
 """
     subgraphmatch(
@@ -308,10 +293,7 @@ subgraphmatches(G, H; kwargs...
 Return a subgraph isomorphism mapping between `G` and `H`. If no match found,
 return nothing.
 """
-function subgraphmatch(G, H; kwargs...)
-    res = isomorphismitervf2(G, H, mode=:Subgraph, yield=:first; kwargs...)
-    return isempty(res) ? nothing : res[1]
-end
+subgraphmatch(G, H; kwargs...) = iterate(subgraphmatches(G, H; kwargs...))
 
 """
     issubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
@@ -339,7 +321,7 @@ edges in `G` and `H`, respectively.
 See [`MolecularGraph.edgesubgraph`](@ref) to construct the subgraphs that result from the match.
 """
 edgesubgraphmatches(G, H; kwargs...
-    ) = edgeisomorphismitervf2(G, H, mode=:Subgraph; kwargs...)
+    ) = edgeisomorphismitervf2(G, H, matchtype=:subgraph; kwargs...)
 
 """
     edgesubgraphmatch(
@@ -348,10 +330,8 @@ edgesubgraphmatches(G, H; kwargs...
 Return a edge induced subgraph isomorphism mapping between `G` and `H`.
 If no match found, return nothing.
 """
-function edgesubgraphmatch(G, H; kwargs...)
-    res = edgeisomorphismitervf2(G, H, mode=:Subgraph, yield=:first; kwargs...)
-    return isempty(res) ? nothing : res[1]
-end
+edgesubgraphmatch(G, H; kwargs...
+    ) = iterate(edgesubgraphmatches(G, H; kwargs...))
 
 """
     isedgesubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
