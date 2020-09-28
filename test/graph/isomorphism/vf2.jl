@@ -7,10 +7,10 @@
 
 @testset "subgraph" begin
     null = immutableplaingraph()
-    @test !isgraphmatch(null, null)
+    @test !isexactmatch(null, null)
     @test !issubgraphmatch(null, null)
-    @test isempty(graphmatches(null, null))
-    @test isempty(subgraphmatches(null, null))
+    @test isempty(allexactmatches(null, null))
+    @test isempty(allsubgraphmatches(null, null))
 
     p5 = pathgraph(5)
     k5 = completegraph(5)
@@ -18,8 +18,8 @@
     @test !issubgraphmatch(p5, k5)
     @test issubgraphmatch(k6, k5)
     @test !issubgraphmatch(k5, k6)
-    @test isgraphmatch(k5, k5)
-    @test !isgraphmatch(k6, k5)
+    @test isexactmatch(k5, k5)
+    @test !isexactmatch(k6, k5)
 
     p7 = pathgraph(7)
     disconn1 = immutableplaingraph(6, [(1,2), (2,3), (4,5), (5,6)])
@@ -29,15 +29,15 @@
 
     cd6 = circularladder(6)
     mb6 = moebiusladder(6)
-    @test !isgraphmatch(cd6, mb6)
+    @test !isexactmatch(cd6, mb6)
     # TODO: relabeled mb6
-    # @test isgraphmatch(rmb6, mb6)
+    # @test isexactmatch(rmb6, mb6)
 end
 
 @testset "edgesubgraph" begin
     null = immutableplaingraph()
     @test !isedgesubgraphmatch(null, null)
-    @test isempty(edgesubgraphmatches(null, null))
+    @test isempty(alledgesubgraphmatches(null, null))
 
     c4 = cyclegraph(4)
     k4 = completegraph(4)
@@ -64,17 +64,17 @@ end
     butterfly = immutableplaingraph(
         5, [(1,2), (2,3), (1,3), (3,4), (4,5), (5,3)])
     @test !isedgesubgraphmatch(k4, butterfly)
-    matches = edgesubgraphmatches(k4, 〼)
+    matches = alledgesubgraphmatches(k4, 〼)
     @test length(collect(matches)) == 24
 end
 
 @testset "mandatory" begin
     path = pathgraph(7)
     subp = pathgraph(3)
-    eiso = edgesubgraphmatches(path, subp)
+    eiso = alledgesubgraphmatches(path, subp)
     @test length(collect(eiso)) == 10
 
-    restricted = edgesubgraphmatches(path, subp, mandatory=Dict(3 => 1))
+    restricted = alledgesubgraphmatches(path, subp, mandatory=Dict(3 => 1))
     @test length(collect(restricted)) == 2
 end
 

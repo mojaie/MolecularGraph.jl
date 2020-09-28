@@ -4,10 +4,10 @@
 #
 
 export
-    isomorphismitervf2, edgeisomorphismitervf2,
-    graphmatches, graphmatch, isgraphmatch,
-    subgraphmatches, subgraphmatch, issubgraphmatch,
-    edgesubgraphmatches, edgesubgraphmatch, isedgesubgraphmatch
+    VF2Matcher,
+    allexactmatches, exactmatch, isexactmatch,
+    allsubgraphmatches, subgraphmatch, issubgraphmatch,
+    alledgesubgraphmatches, edgesubgraphmatch, isedgesubgraphmatch
 
 
 mutable struct VF2Matcher{T1<:UndirectedGraph,T2<:UndirectedGraph}
@@ -29,7 +29,7 @@ mutable struct VF2Matcher{T1<:UndirectedGraph,T2<:UndirectedGraph}
     timedout::Bool
 
     function VF2Matcher{T1,T2}(
-                G::T1, H::T2; matchtype=:subgraph,
+                G::T1, H::T2, matchtype;
                 nodematcher=(a, b)->true, edgematcher=(a, b)->true,
                 mandatory=nothing, forbidden=nothing, timeout=nothing
             ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
@@ -215,63 +215,40 @@ Base.IteratorSize(::Type{VF2Matcher}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{VF2Matcher}) = Base.EltypeUnknown()
 
 
-function isomorphismitervf2(
-        G::UndirectedGraph, H::UndirectedGraph; kwargs...)
-    return VF2Matcher{T1,T2}(G, H; kwargs...)
-end
-
-
-function edgeisomorphismitervf2(
-        G::UndirectedGraph, H::UndirectedGraph; 
-        nodematcher=(g,h)->true, edgematcher=(g,h)->true, kwargs...)
-    lg = linegraph(G)
-    lh = linegraph(H)
-    lgedge = lgedgematcher(lg, lh, nodematcher)
-    lgnode = lgnodematcher(lg, lh, nodematcher, edgematcher)
-    matcher = VF2Matcher{LineGraph,LineGraph}(
-        lg, lh; nodematcher=lgnode, edgematcher=lgedge, kwargs...
-    )
-    return Iterators.filter(matcher) do mapping
-        return !delta_y_mismatch(G, H, mapping)
-    end
-end
-
-
 
 # Graph isomorphism
 
 """
-    graphmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+    allexactmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
 
 Generate isomorphism mappings between `G` and `H`. If no match found, return
 nothing.
 """
-graphmatches(G, H; kwargs...
-    ) = isomorphismitervf2(G, H, matchtype=:exact; kwargs...)
+allexactmatches(G::T1, H::T2; kwargs...
+    ) where {T1<:UndirectedGraph,T2<:UndirectedGraph
+    } = VF2Matcher{T1,T2}(G, H, :exact; kwargs...) 
 
 """
-    graphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
+    exactmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Dict{Int,Int}
 
 Return an isomorphism mapping between `G` and `H`. If no match found, return
 nothing.
 """
-graphmatch(G, H; kwargs...) = iterate(graphmatches(G, H; kwargs...))
+exactmatch(G, H; kwargs...) = iterate(allexactmatches(G, H; kwargs...))
 
 """
-    isgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
+    isexactmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
 
 Return true if `G` and `H` are isomorphic.
 """
-isgraphmatch(G, H; kwargs...) = graphmatch(G, H; kwargs...) !== nothing
+isexactmatch(G, H; kwargs...) = exactmatch(G, H; kwargs...) !== nothing
 
 
-
-# Node induced subgraph isomorphism
 
 """
     subgraphmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
 
-Generate subgraph isomorphism mappings between `G` and `H`.
+Generate node induced subgraph isomorphism mappings between `G` and `H`.
 
 # Keyword arguments
 
@@ -283,8 +260,9 @@ arguments.
 - forbidden(Dict{Int,Int}):
     forbidden node matches (available for only VF2)
 """
-subgraphmatches(G, H; kwargs...
-    ) = isomorphismitervf2(G, H, matchtype=:subgraph; kwargs...)
+allsubgraphmatches(G::T1, H::T2; kwargs...
+    ) where {T1<:UndirectedGraph,T2<:UndirectedGraph
+    } = VF2Matcher{T1,T2}(G, H, :subgraph; kwargs...) 
 
 """
     subgraphmatch(
@@ -293,12 +271,12 @@ subgraphmatches(G, H; kwargs...
 Return a subgraph isomorphism mapping between `G` and `H`. If no match found,
 return nothing.
 """
-subgraphmatch(G, H; kwargs...) = iterate(subgraphmatches(G, H; kwargs...))
+subgraphmatch(G, H; kwargs...) = iterate(allsubgraphmatches(G, H; kwargs...))
 
 """
     issubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
 
-Return true if a node induced subgraph of `G` and `H` are isomorphic.
+Return true if `H` and a node induced subgraph of `G` are isomorphic.
 """
 issubgraphmatch(G, H; kwargs...) = subgraphmatch(G, H; kwargs...) !== nothing
 
@@ -307,9 +285,10 @@ issubgraphmatch(G, H; kwargs...) = subgraphmatch(G, H; kwargs...) !== nothing
 # Edge induced subgraph isomorphism
 
 """
-    edgesubgraphmatch(G::AbstractGraph, H::AbstractGraph;
-                      nodematcher=(g,h)->true , edgematcher=(g,h)->true,
-                      kwargs...) -> Iterator
+    alledgesubgraphmatches(
+        G::AbstractGraph, H::AbstractGraph;
+        nodematcher=(g,h)->true , edgematcher=(g,h)->true,
+        kwargs...) -> Iterator
 
 Generate edge induced subgraph isomorphism mappings between `G` and `H`.
 The returned iterator has `ig => ih` pairs that correspond to the indices of matching
@@ -320,8 +299,21 @@ edges in `G` and `H`, respectively.
 
 See [`MolecularGraph.edgesubgraph`](@ref) to construct the subgraphs that result from the match.
 """
-edgesubgraphmatches(G, H; kwargs...
-    ) = edgeisomorphismitervf2(G, H, matchtype=:subgraph; kwargs...)
+function alledgesubgraphmatches(
+            G::T1, H::T2,
+            nodematcher=(g,h)->true, edgematcher=(g,h)->true; kwargs...
+        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
+    lg = linegraph(G)
+    lh = linegraph(H)
+    lgedge = lgedgematcher(lg, lh, nodematcher)
+    lgnode = lgnodematcher(lg, lh, nodematcher, edgematcher)
+    matcher = VF2Matcher{LineGraph,LineGraph}(
+        lg, lh, :subgraph, nodematcher=lgnode, edgematcher=lgedge; kwargs...
+    )
+    return Iterators.filter(matcher) do mapping
+        return !delta_y_mismatch(G, H, mapping)
+    end
+end
 
 """
     edgesubgraphmatch(
@@ -331,7 +323,7 @@ Return a edge induced subgraph isomorphism mapping between `G` and `H`.
 If no match found, return nothing.
 """
 edgesubgraphmatch(G, H; kwargs...
-    ) = iterate(edgesubgraphmatches(G, H; kwargs...))
+    ) = iterate(alledgesubgraphmatches(G, H; kwargs...))
 
 """
     isedgesubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
