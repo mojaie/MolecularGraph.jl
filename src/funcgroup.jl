@@ -144,18 +144,8 @@ end
 function fgroupquery(mol::GraphMol, query)
     q = parse(SMARTS, query)
     newset = Set{Set{Int}}()
-    # TODO: monomorphism
-    if nodecount(q) == 1
-        for nmap in structmatches(mol, q, :nodeinduced)
-            isempty(nmap) || push!(newset, keys(nmap))
-        end
-    else
-        for emap in structmatches(mol, q, :edgeinduced)
-            if !isempty(emap)
-                esub = edgesubgraph(mol, Set(keys(emap)))
-                push!(newset, nodeset(esub))
-            end
-        end
+    for nmap in structmatches(mol, q, :substruct)
+        isempty(nmap) || push!(newset, keys(nmap))
     end
     return newset
 end

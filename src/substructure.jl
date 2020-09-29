@@ -139,6 +139,9 @@ function structmatches(
     if matchtype === :exact
         return exactmatches(mol, query,
             nodematcher=afunc, edgematcher=bfunc; kwargs...)
+    elseif matchtype === :substruct
+        return monomorphicmatches(mol, query,
+            nodematcher=afunc, edgematcher=bfunc; kwargs...)
     elseif matchtype === :nodeinduced
         return subgraphmatches(mol, query,
             nodematcher=afunc, edgematcher=bfunc; kwargs...)
@@ -149,7 +152,7 @@ function structmatches(
 
     # TODO: Monomorphism by maximum cardinality mapping
     # returns only the first match
-    @assert matchtype === :substruct
+    @assert matchtype === :substructmc
     if edgecount(query) != 0
         # Edge induced subgraph mapping
         for emap in edgesubgraphmatches(
@@ -312,7 +315,7 @@ function querymatchtree(
         return true
     elseif query.first == :recursive
         subq = parse(SMARTS, query.second)
-        return issmartsgroupmatch(mol, subq, i)
+        return isstructmatch(mol, subq, :substruct, mandatory=Dict(i => 1))
     else
         if query.first == :sssrsizes
             return query.second in matcher[query.first][i]

@@ -31,6 +31,8 @@
 
     notH = parse(SMARTS, "[!#1]")
     @test nodeattr(notH, 1).query == (:not => (:atomsymbol => :H))
+    
+    # TODO: test recursive
 end
 
 end # smarts.SMARTS

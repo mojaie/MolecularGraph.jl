@@ -7,7 +7,8 @@ export
     VF2Matcher,
     exactmatches, isexactmatch,
     subgraphmatches, issubgraphmatch,
-    edgesubgraphmatches, isedgesubgraphmatch
+    edgesubgraphmatches, isedgesubgraphmatch,
+    monomorphicmatches, ismonomorphicmatch
 
 
 mutable struct VF2Matcher{T1<:UndirectedGraph,T2<:UndirectedGraph}
@@ -77,13 +78,15 @@ end
 
 
 function is_feasible(iter::VF2Matcher, g, h)
-    # TODO: assume no self loop
+    # Note: assume simple graph (no self loops and multi edges)
     g_nbrs = adjacencies(iter.G, g)
     h_nbrs = adjacencies(iter.H, h)
-    for n in intersect(g_nbrs, keys(iter.g_core))
-        if !(iter.g_core[n] in h_nbrs)
-            @debug "Infeasible: neighbor connectivity"
-            return false
+    if iter.matchtype !== :monomorphic
+        for n in intersect(g_nbrs, keys(iter.g_core))
+            if !(iter.g_core[n] in h_nbrs)
+                @debug "Infeasible: neighbor connectivity"
+                return false
+            end
         end
     end
     for n in intersect(h_nbrs, keys(iter.h_core))
@@ -92,23 +95,27 @@ function is_feasible(iter::VF2Matcher, g, h)
             return false
         end
     end
-    g_term_count = length(setdiff(keys(iter.g_term), keys(iter.g_core)))
-    h_term_count = length(setdiff(keys(iter.h_term), keys(iter.h_core)))
-    if iter.matchtype === :exact && g_term_count != h_term_count
-        @debug "Infeasible: terminal set size"
-        return false
-    elseif iter.matchtype === :subgraph && g_term_count < h_term_count
-        @debug "Infeasible: terminal set size"
-        return false
-    end
-    g_new_count = length(setdiff(nodeset(iter.G), keys(iter.g_term)))
-    h_new_count = length(setdiff(nodeset(iter.H), keys(iter.h_term)))
-    if iter.matchtype === :exact && g_new_count != h_new_count
-        @debug "Infeasible: yet unexplored nodes"
-        return false
-    elseif iter.matchtype === :subgraph && g_new_count < h_new_count
-        @debug "Infeasible: yet unexplored nodes"
-        return false
+    
+    if iter.matchtype !== :monomorphic
+        g_term_count = length(setdiff(keys(iter.g_term), keys(iter.g_core)))
+        h_term_count = length(setdiff(keys(iter.h_term), keys(iter.h_core)))
+        if iter.matchtype === :exact && g_term_count != h_term_count
+            @debug "Infeasible: terminal set size"
+            return false
+        elseif iter.matchtype === :subgraph && g_term_count < h_term_count
+            @debug "Infeasible: terminal set size"
+            return false
+        end
+
+        g_new_count = length(setdiff(nodeset(iter.G), keys(iter.g_term)))
+        h_new_count = length(setdiff(nodeset(iter.H), keys(iter.h_term)))
+        if iter.matchtype === :exact && g_new_count != h_new_count
+            @debug "Infeasible: yet unexplored nodes"
+            return false
+        elseif iter.matchtype === :subgraph && g_new_count < h_new_count
+            @debug "Infeasible: yet unexplored nodes"
+            return false
+        end
     end
     @debug "Syntactically feasible"
     return true
@@ -123,6 +130,7 @@ function is_semantic_feasible(iter::VF2Matcher, g, h)
     for (inc, adj) in neighbors(iter.G, g)
         haskey(iter.g_core, adj) || continue
         hinc = findedgekey(iter.H, h, iter.g_core[adj])
+        iter.matchtype === :monomorphic && hinc === nothing && continue
         if !iter.edgematcher(inc, hinc)
             @debug "Infeasible: edge attribute mismatch"
             return false
@@ -225,8 +233,8 @@ Generate isomorphism mappings between `G` and `H`. If no match found, return
 nothing.
 """
 exactmatches(G::T1, H::T2; kwargs...
-    ) where {T1<:UndirectedGraph,T2<:UndirectedGraph
-    } = VF2Matcher{T1,T2}(G, H, :exact; kwargs...) 
+        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph
+            } = VF2Matcher{T1,T2}(G, H, :exact; kwargs...) 
 
 
 """
@@ -254,8 +262,8 @@ arguments.
     forbidden node matches (available for only VF2)
 """
 subgraphmatches(G::T1, H::T2; kwargs...
-    ) where {T1<:UndirectedGraph,T2<:UndirectedGraph
-    } = VF2Matcher{T1,T2}(G, H, :subgraph; kwargs...) 
+        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph
+            } = VF2Matcher{T1,T2}(G, H, :subgraph; kwargs...) 
 
 
 """
@@ -308,3 +316,21 @@ Return true if a node induced subgraph of `G` and `H` are isomorphic.
 """
 isedgesubgraphmatch(G, H; kwargs...
     ) = !isempty(edgesubgraphmatches(G, H; kwargs...))
+
+
+
+"""
+    monomorphicmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+"""
+monomorphicmatches(G::T1, H::T2; kwargs...
+        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph
+            } = VF2Matcher{T1,T2}(G, H, :monomorphic; kwargs...)
+
+
+"""
+    ismonomorphicmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
+
+Return true if `H` and a node induced subgraph of `G` are isomorphic.
+"""
+ismonomorphicmatch(G, H; kwargs...
+    ) = !isempty(monomorphicmatches(G, H; kwargs...))
