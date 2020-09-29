@@ -76,7 +76,7 @@ module MolecularGraphTest
     include("stereo.jl")
     include("mass.jl")
     include("wclogp.jl")
-    include("substructure.jl")
+    include("structurematch.jl")
     include("funcgroup.jl")
     include("mcs.jl")
     include("inchi.jl")

@@ -69,7 +69,7 @@ module MolecularGraph
     include("./model/bond.jl")
     include("./model/molgraph.jl")
 
-    include("substructure.jl")
+    include("structurematch.jl")
     include("mcs.jl")
     include("stereo.jl")
     include("preprocess.jl")
