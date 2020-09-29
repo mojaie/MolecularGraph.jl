@@ -115,7 +115,7 @@ function fgrouprecord(mol::GraphMol, fgc::FGC, rcd)
             eachset = Set{Set{Int}}()
             for s in refset
                 subst = nodesubgraph(mol, s)
-                if isqueryidentical(subst, q)
+                if isstructmatch(subst, q, :exact)
                     push!(eachset, s)
                 end
             end
@@ -144,12 +144,17 @@ end
 function fgroupquery(mol::GraphMol, query)
     q = parse(SMARTS, query)
     newset = Set{Set{Int}}()
-    for (emap, nmap) in fastquerymatches(mol, q)
-        if !isempty(emap)
-            esub = edgesubgraph(mol, Set(keys(emap)))
-            push!(newset, nodeset(esub))
-        elseif !isempty(nmap)
-            push!(newset, keys(nmap))
+    # TODO: monomorphism
+    if nodecount(q) == 1
+        for nmap in structmatches(mol, q, :nodeinduced)
+            isempty(nmap) || push!(newset, keys(nmap))
+        end
+    else
+        for emap in structmatches(mol, q, :edgeinduced)
+            if !isempty(emap)
+                esub = edgesubgraph(mol, Set(keys(emap)))
+                push!(newset, nodeset(esub))
+            end
         end
     end
     return newset

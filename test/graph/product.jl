@@ -16,6 +16,6 @@
         g = pathgraph(5)
         prod = cartesianproduct(g, g)
         grid = squaregrid(5, 5)
-        @test isgraphmatch(prod, grid)
+        @test isexactmatch(prod, grid)
     end
 end # graph.product

@@ -9,8 +9,6 @@
     null = immutableplaingraph()
     @test !isexactmatch(null, null)
     @test !issubgraphmatch(null, null)
-    @test isempty(allexactmatches(null, null))
-    @test isempty(allsubgraphmatches(null, null))
 
     p5 = pathgraph(5)
     k5 = completegraph(5)
@@ -37,7 +35,6 @@ end
 @testset "edgesubgraph" begin
     null = immutableplaingraph()
     @test !isedgesubgraphmatch(null, null)
-    @test isempty(alledgesubgraphmatches(null, null))
 
     c4 = cyclegraph(4)
     k4 = completegraph(4)
@@ -64,17 +61,17 @@ end
     butterfly = immutableplaingraph(
         5, [(1,2), (2,3), (1,3), (3,4), (4,5), (5,3)])
     @test !isedgesubgraphmatch(k4, butterfly)
-    matches = alledgesubgraphmatches(k4, 〼)
+    matches = edgesubgraphmatches(k4, 〼)
     @test length(collect(matches)) == 24
 end
 
 @testset "mandatory" begin
     path = pathgraph(7)
     subp = pathgraph(3)
-    eiso = alledgesubgraphmatches(path, subp)
+    eiso = edgesubgraphmatches(path, subp)
     @test length(collect(eiso)) == 10
 
-    restricted = alledgesubgraphmatches(path, subp, mandatory=Dict(3 => 1))
+    restricted = edgesubgraphmatches(path, subp, mandatory=Dict(3 => 1))
     @test length(collect(restricted)) == 2
 end
 

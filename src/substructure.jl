@@ -4,68 +4,47 @@
 #
 
 export
-    structmatches, structmatch, isstructmatch,
-    substructmatches, substructmatch, issubstructmatch,
-    querymatch, isquerymatch,
-    fastquerymatches, isqueryidentical, issmartsgroupmatch
+    structmatches, isstructmatch, issmartsgroupmatch
 
 
 """
-    structmatches(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...) -> Iterator
+
+    structmatches(mol::UndirectedGraph, query::UndirectedGraph; kwargs...) -> Iterator
+
+query is a subgraph of mol
+
 
 Generate molecular graph match mappings between `mol1` and `mol2`. If no match
 found, return nothing.
-"""
-function structmatches(mol1::UndirectedGraph, mol2::UndirectedGraph;
-        prefilter=true, kwargs...)
-    !prefilter || fastidentityfilter(mol1, mol2) || return []
-    afunc = atommatch(mol1, mol2)
-    bfunc = bondmatch(mol1, mol2)
-    return graphmatches(mol1, mol2,
-        nodematcher=afunc, edgematcher=bfunc; kwargs...)
-end
 
-function structmatch(mol1, mol2; kwargs...)
-    res = iterate(structmatches(mol1, mol2; kwargs...))
-    return res === nothing ? nothing : res[1]
-end
+option
+matchtype: exact, substruct, nodeinduced, edgeinduced
 
-isstructmatch(mol1, mol2; kwargs...
-    ) = structmatch(mol1, mol2; kwargs...) !== nothing
+prefilter(true): if true, apply prefilter before vf2
+fastsingleton(true): skip vf2 if the query is single node or edge
 
+nodematcher(atommatch(mol1,mol2))
+edgematcher(edgematch(mol1,mol2))
+mandatory(nothing): invalid if induced=none
+forbidden(nothihg): invalid if induced=none
+timeout(10): if specified, set timeout
 
-"""
-    substructmatches(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...) -> Iterator
-
-Generate substructure match mappings between `mol1` and `mol2`. If no match
-found, return nothing.
+smarts: induced=none
 
 The mapping is based on only edge induced subgraph isomorphism and therefore
 it does not care disconnected single atom matches. This function is intended
 for use in substructure search. If you need single atom SMARTS match
 (ex. [#16;X2;!R]), see [`querymatch`](@ref).
-"""
-function substructmatches(mol1::UndirectedGraph, mol2::UndirectedGraph;
-        prefilter=true, kwargs...)
-    !prefilter || fastsubstrfilter(mol1, mol2) || return []
-    afunc = atommatch(mol1, mol2)
-    bfunc = bondmatch(mol1, mol2)
-    return edgesubgraphmatches(mol1, mol2,
-        nodematcher=afunc, edgematcher=bfunc; kwargs...)
-end
 
-function substructmatch(mol1, mol2; kwargs...)
-    res = iterate(substructmatches(mol1, mol2; kwargs...))
-    return res === nothing ? nothing : res[1]
-end
 
-issubstructmatch(mol1, mol2; kwargs...
-    ) = substructmatch(mol1, mol2; kwargs...) !== nothing
+    structmatches(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...) -> Iterator
+
+Generate substructure match mappings between `mol1` and `mol2`. If no match
+found, return nothing.
 
 
 
-"""
-    querymatch(mol::UndirectedGraph, query::QueryMol; kwargs...) -> Dict{Int,Int}
+querymatch(mol::UndirectedGraph, query::QueryMol; kwargs...) -> Dict{Int,Int}
 
 Generate substructure match mappings between `mol1` and `mol2`. If no match
 found, return nothing.
@@ -73,12 +52,104 @@ found, return nothing.
 This accepts also disconnected single atom but returns only the first match.
 This function is intended for use in SMARTS query search
 
+fastquerymatches(mol::UndirectedGraph, query::QueryMol; kwargs...
+    ) -> Dict{Int,Int}
+
+Generate query match mappings between `mol` and `query`. If no match
+found, return nothing.
+
+The `query` should not have any component level expression that means it should
+not have any dots (`.`). This is intended for use in functional group detection.
+
+Note that null mol and null query never match
+(e.g. isstructmatch(smilestomol(""), smilestomol("")) is false)
 """
-function querymatch(mol::UndirectedGraph, query::QueryMol; kwargs...)
-    mnodeset = nodeset(mol)
-    qnodeset = nodeset(query)
-    afunc = atommatch(mol, query)
-    bfunc = bondmatch(mol, query)
+function structmatches(
+        mol::UndirectedGraph, query::UndirectedGraph, matchtype;
+        prefilter=true, fastsingleton=true,
+        atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
+    # Null molecule
+    nodecount(mol) == 0 && return ()
+    nodecount(query) == 0 && return ()
+    matchtype === :edgeinduced && edgecount(mol) == 0 && return ()
+    matchtype === :edgeinduced && edgecount(query) == 0 && return ()
+
+    # Prefilter by graph size and topology
+    if prefilter
+        if matchtype === :exact
+            fastidentityfilter(mol, query) || return ()
+        else
+            fastsubstrfilter(mol, query) || return ()
+        end
+    end
+
+    # Matcher functions
+    afunc = atommatcher(mol, query)
+    bfunc = bondmatcher(mol, query)
+
+    # Skip isomorphism calculation if the query is a sigle node/edge
+    if fastsingleton
+        if nodecount(query) == 1
+            matchtype !== :exact || nodecount(mol) == 1 || return ()
+            res = Dict{Int,Int}[]
+            q = pop!(nodeset(query))
+            for n in nodeset(mol)
+                if haskey(kwargs, :mandatory)
+                    get(kwargs[:mandatory], n, -1) == q || continue
+                end
+                if haskey(kwargs, :forbidden)
+                    get(kwargs[:forbidden], n, -1) == q && continue
+                end
+                afunc(n, q) && push!(res, Dict(n => q))
+            end
+            return res
+        elseif nodecount(query) == 2 && edgecount(query) == 1
+            matchtype !== :exact || edgecount(mol) == 1 || return ()
+            res = Dict{Int,Int}[]
+            q = pop!(edgeset(query))
+            (qu, qv) = getedge(query, q)
+            for e in edgeset(mol)
+                if haskey(kwargs, :mandatory)
+                    get(kwargs[:mandatory], e, -1) == q || continue
+                end
+                if haskey(kwargs, :forbidden)
+                    get(kwargs[:forbidden], e, -1) == q && continue
+                end
+                bfunc(e, q) || continue
+                (u, v) = getedge(mol, e)
+                if afunc(u, qu) && afunc(v, qv)
+                    if matchtype === :edgeinduced
+                        push!(res, Dict(e => q))
+                    else
+                        push!(res, Dict(u => qu, v => qv))
+                    end
+                elseif afunc(u, qv) && afunc(v, qu)
+                    if matchtype === :edgeinduced
+                        push!(res, Dict(e => q))
+                    else
+                        push!(res, Dict(u => qv, v => qu))
+                    end
+                end
+            end
+            return res
+        end
+    end
+
+    # Isomorphism
+    if matchtype === :exact
+        return exactmatches(mol, query,
+            nodematcher=afunc, edgematcher=bfunc; kwargs...)
+    elseif matchtype === :nodeinduced
+        return subgraphmatches(mol, query,
+            nodematcher=afunc, edgematcher=bfunc; kwargs...)
+    elseif matchtype === :edgeinduced
+        return edgesubgraphmatches(mol, query,
+            nodematcher=afunc, edgematcher=bfunc; kwargs...)
+    end
+
+    # TODO: Monomorphism by maximum cardinality mapping
+    # returns only the first match
+    @assert matchtype === :substruct
     if edgecount(query) != 0
         # Edge induced subgraph mapping
         for emap in edgesubgraphmatches(
@@ -86,25 +157,25 @@ function querymatch(mol::UndirectedGraph, query::QueryMol; kwargs...)
             # Isolated node mapping
             msub = edgesubgraph(mol, Set(keys(emap)))
             qsub = edgesubgraph(query, Set(values(emap)))
-            miso = setdiff(mnodeset, nodeset(msub))
-            qiso = setdiff(qnodeset, nodeset(qsub))
+            miso = setdiff(nodeset(mol), nodeset(msub))
+            qiso = setdiff(nodeset(query), nodeset(qsub))
             mrem = nodesubgraph(mol, miso)
             qrem = nodesubgraph(query, qiso)
             nmap = maxcardmap(nodeset(mrem), nodeset(qrem), afunc)
             # TODO: connectivity filter
             if length(nmap) == nodecount(qrem)
-                return (emap, nmap)
+                return [nmap]
             end
         end
-    elseif nodecount(query) != 0
+    else
         # Isolated nodes only
-        nmap = maxcardmap(mnodeset, qnodeset, afunc)
+        nmap = maxcardmap(nodeset(mol), nodeset(query), afunc)
         # TODO: connectivity filter
         if length(nmap) == nodecount(query)
-            return (Dict(), nmap)
+            return [nmap]
         end
     end
-    return
+    return ()
 end
 
 """
@@ -143,83 +214,10 @@ function emaptonmap(emap, mol::UndirectedGraph, query::QueryMol)
     return assignment
 end
 
-"""
-    isquerymatch(mol, query; kwargs...)
 
-Return whether mol matches with the query.
-"""
-isquerymatch(mol, query; kwargs...
-    ) = querymatch(mol, query; kwargs...) !== nothing
+isstructmatch(mol1, mol2, matchtype; kwargs...
+    ) = !isempty(structmatches(mol1, mol2, matchtype; kwargs...))
 
-
-"""
-    fastquerymatches(mol::UndirectedGraph, query::QueryMol; kwargs...
-        ) -> Dict{Int,Int}
-
-Generate query match mappings between `mol` and `query`. If no match
-found, return nothing.
-
-The `query` should not have any component level expression that means it should
-not have any dots (`.`). This is intended for use in functional group detection.
-
-"""
-function fastquerymatches(mol::UndirectedGraph, query::QueryMol; kwargs...)
-    isempty(query.connectivity) || throw(
-        ErrorException("Component level query is disallowed"))
-    afunc = atommatch(mol, query)
-    bfunc = bondmatch(mol, query)
-    nodecount(query) == 0 && return ()
-    if nodecount(query) == 1
-        # node match
-        match = Iterators.filter(nodeset(mol)) do ma
-            return afunc(ma, 1)
-        end
-        return ((Dict(), Dict(ma => 1)) for ma in match)
-    elseif edgecount(query) == 1
-        # edge match
-        (qu, qv) = getedge(query, 1)
-        match = Iterators.filter(edgeset(mol)) do mb
-            (u, v) = getedge(mol, mb)
-            return (
-                ((afunc(u, qu) && afunc(v, qv))
-                || (afunc(u, qv) && afunc(v, qu)))
-                && bfunc(mb, 1)
-            )
-        end
-        return ((Dict(mb => 1), Dict()) for mb in match)
-    else
-        # subgraph match
-        return ((emap, Dict()) for emap in edgesubgraphmatches(
-            mol, query, nodematcher=afunc, edgematcher=bfunc; kwargs...))
-    end
-end
-
-
-function isqueryidentical(mol::UndirectedGraph, query::QueryMol; kwargs...)
-    isempty(query.connectivity) || throw(
-        ErrorException("Component level query is disallowed"))
-    afunc = atommatch(mol, query)
-    bfunc = bondmatch(mol, query)
-    nodecount(query) == 0 && return ()
-    if nodecount(query) == 1
-        for n in nodeset(mol)
-            afunc(n, 1) && return true
-        end
-        return false
-    elseif edgecount(query) == 1
-        (qu, qv) = getedge(query, 1)
-        for e in edgeset(mol)
-            (u, v) = getedge(mol, e)
-            pred = ((afunc(u, qu) && afunc(v, qv))
-                || (afunc(u, qv) && afunc(v, qu))) && bfunc(e, 1)
-            pred && return true
-        end
-        return false
-    else
-        return isgraphmatch(
-            mol, query, nodematcher=afunc, edgematcher=bfunc; kwargs...)
-    end
-end
 
 
 function issmartsgroupmatch(
