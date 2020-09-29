@@ -11,6 +11,28 @@ export
     monomorphicmatches, ismonomorphicmatch
 
 
+"""
+    VF2Matcher{T1<:UndirectedGraph,T2<:UndirectedGraph}(
+        G::T1, H::T2, matchtype::Symbol; kwargs...
+    )
+
+Lazy iterator that generate all isomorphism mappings between `G` and `H`.
+
+`matchtype` should be one of the followings
+  - `:exact`: G is isomorphic to H
+  - `:nodeinduced`: a node-induced subgraph of G is isomorphic to H
+  - `:edgeinduced`: an edge-induced subgraph of G is isomorphic to H
+  - `:monomorphic`: a subgraph of G is monomorphic to H
+
+# Options
+
+- `nodematcher::Function`: a function for semantic node attribute matching (default: (a, b) -> true)
+- `edgematcher::Function`: a function for semantic edge attribute matching (default: (a, b) -> true)
+- `mandatory::Dict{Int,Int}`: mandatory node mapping (if matchtype=:edgeinduced, edge mapping)
+- `forbidden::Dict{Int,Int}`: forbidden node mapping (if matchtype=:edgeinduced, edge mapping)
+- `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time reached and return empty iterator (default: 10 seconds)
+
+"""
 mutable struct VF2Matcher{T1<:UndirectedGraph,T2<:UndirectedGraph}
     G::T1
     H::T2
@@ -227,18 +249,21 @@ Base.IteratorEltype(::Type{VF2Matcher}) = Base.EltypeUnknown()
 # Graph isomorphism
 
 """
-    exactmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+exactmatches(
+    G::T1, H::T2; kwargs...
+) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
 
-Generate isomorphism mappings between `G` and `H`. If no match found, return
-nothing.
+Return an iterator that generate all isomorphism mappings between `G` and `H`.
 """
-exactmatches(G::T1, H::T2; kwargs...
-        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph
-            } = VF2Matcher{T1,T2}(G, H, :exact; kwargs...) 
+exactmatches(
+    G::T1, H::T2; kwargs...
+) where {
+    T1<:UndirectedGraph,T2<:UndirectedGraph
+} = VF2Matcher{T1,T2}(G, H, :exact; kwargs...) 
 
 
 """
-    isexactmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
+    isexactmatch(G, H; kwargs...) -> Bool
 
 Return true if `G` and `H` are isomorphic.
 """
@@ -249,27 +274,19 @@ isexactmatch(G, H; kwargs...) = !isempty(exactmatches(G, H; kwargs...))
 """
     subgraphmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
 
-Generate node induced subgraph isomorphism mappings between `G` and `H`.
-
-# Keyword arguments
-
-- nodematcher(Function): node matcher function that takes two node indices as
-arguments.
-- edgematcher(Function): edge matcher function that takes two edge indices as
-arguments.
-- mandatory(Dict{Int,Int}): mandatory node matches (available for only VF2)
-- forbidden(Dict{Int,Int}):
-    forbidden node matches (available for only VF2)
+Generate isomorphism mappings between `H` and node-induced subgraphs of `G`.
 """
-subgraphmatches(G::T1, H::T2; kwargs...
-        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph
-            } = VF2Matcher{T1,T2}(G, H, :subgraph; kwargs...) 
+subgraphmatches(
+    G::T1, H::T2; kwargs...
+) where {
+    T1<:UndirectedGraph,T2<:UndirectedGraph
+} = VF2Matcher{T1,T2}(G, H, :subgraph; kwargs...) 
 
 
 """
     issubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
 
-Return true if `H` and a node induced subgraph of `G` are isomorphic.
+Return true if `H` and a node-induced subgraph of `G` are isomorphic.
 """
 issubgraphmatch(G, H; kwargs...) = !isempty(subgraphmatches(G, H; kwargs...))
 
@@ -312,7 +329,7 @@ end
 """
     isedgesubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
 
-Return true if a node induced subgraph of `G` and `H` are isomorphic.
+Return true if `H` and a edge-induced subgraph of `G` are isomorphic.
 """
 isedgesubgraphmatch(G, H; kwargs...
     ) = !isempty(edgesubgraphmatches(G, H; kwargs...))
@@ -321,6 +338,8 @@ isedgesubgraphmatch(G, H; kwargs...
 
 """
     monomorphicmatches(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+
+Generate monomorphism mappings between `H` and subgraphs of `G`.
 """
 monomorphicmatches(G::T1, H::T2; kwargs...
         ) where {T1<:UndirectedGraph,T2<:UndirectedGraph
@@ -330,7 +349,7 @@ monomorphicmatches(G::T1, H::T2; kwargs...
 """
     ismonomorphicmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Bool
 
-Return true if `H` and a node induced subgraph of `G` are isomorphic.
+Return true if `H` and a subgraph of `G` are monomorphic.
 """
 ismonomorphicmatch(G, H; kwargs...
     ) = !isempty(monomorphicmatches(G, H; kwargs...))

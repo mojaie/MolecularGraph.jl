@@ -4,65 +4,36 @@
 #
 
 export
-    structmatches, isstructmatch, issmartsgroupmatch
+    structmatches, isstructmatch
 
 
 """
 
-    structmatches(mol::UndirectedGraph, query::UndirectedGraph; kwargs...) -> Iterator
+    structmatches(
+        mol::UndirectedGraph, query::UndirectedGraph,
+        matchtype::Symbol; kwargs...) -> Iterator
 
-query is a subgraph of mol
+Return a lazy iterator that generate all isomorphism mappings between `mol` and `query`.
 
+`matchtype` should be one of the followings
+  - `:exact`: mol is isomorphic to query
+  - `:substruct`: a subgraph of mol is monomorphic to query (typical substructure search)
+  - `:nodeinduced`: a node-induced subgraph of mol is isomorphic to query
+  - `:edgeinduced`: an edge-induced subgraph of mol is isomorphic to query`
 
-Generate molecular graph match mappings between `mol1` and `mol2`. If no match
-found, return nothing.
+# options
 
-option
-matchtype: exact, substruct, nodeinduced, edgeinduced
+- `prefilter::Bool`: if true, apply simple prefilter by graph size and topology to skip vf2 calculation (dafault: true)
+- `fastsingleton::Bool`: if true, skip vf2 if the query is single node or edge that can be matched by simple iteration (dafault: true)
+- `atommatcher::Function`: a function for semantic atom attribute matching (default: `MolecularGraph.atommatch`)
+- `bondmatcher::Function`: a function for semantic bond attribute matching (default: `MolecularGraph.edgematch`)
+- `mandatory::Dict{Int,Int}`: mandatory node mapping (if matchtype=:edgeinduced, edge mapping)
+- `forbidden::Dict{Int,Int}`: forbidden node mapping (if matchtype=:edgeinduced, edge mapping)
+- `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time reached and return empty iterator (default: 10 seconds).
 
-prefilter(true): if true, apply prefilter before vf2
-fastsingleton(true): skip vf2 if the query is single node or edge
+Note that if the query is disconnected (has component level expression like "CCO.O.O"), monomorphism mapping can be extreamly slow.
 
-nodematcher(atommatch(mol1,mol2))
-edgematcher(edgematch(mol1,mol2))
-mandatory(nothing): invalid if induced=none
-forbidden(nothihg): invalid if induced=none
-timeout(10): if specified, set timeout
-
-smarts: induced=none
-
-The mapping is based on only edge induced subgraph isomorphism and therefore
-it does not care disconnected single atom matches. This function is intended
-for use in substructure search. If you need single atom SMARTS match
-(ex. [#16;X2;!R]), see [`querymatch`](@ref).
-
-
-    structmatches(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...) -> Iterator
-
-Generate substructure match mappings between `mol1` and `mol2`. If no match
-found, return nothing.
-
-
-
-querymatch(mol::UndirectedGraph, query::QueryMol; kwargs...) -> Dict{Int,Int}
-
-Generate substructure match mappings between `mol1` and `mol2`. If no match
-found, return nothing.
-
-This accepts also disconnected single atom but returns only the first match.
-This function is intended for use in SMARTS query search
-
-fastquerymatches(mol::UndirectedGraph, query::QueryMol; kwargs...
-    ) -> Dict{Int,Int}
-
-Generate query match mappings between `mol` and `query`. If no match
-found, return nothing.
-
-The `query` should not have any component level expression that means it should
-not have any dots (`.`). This is intended for use in functional group detection.
-
-Note that null mol and null query never match
-(e.g. isstructmatch(smilestomol(""), smilestomol("")) is false)
+Note that null mol and null query never match (e.g. isstructmatch(smilestomol(""), smilestomol("")) is false)
 """
 function structmatches(
         mol::UndirectedGraph, query::UndirectedGraph, matchtype;
@@ -150,7 +121,7 @@ function structmatches(
             nodematcher=afunc, edgematcher=bfunc; kwargs...)
     end
 
-    # TODO: Monomorphism by maximum cardinality mapping
+    # Monomorphism by maximum cardinality matching
     # returns only the first match
     @assert matchtype === :substructmc
     if edgecount(query) != 0
@@ -221,39 +192,6 @@ end
 isstructmatch(mol1, mol2, matchtype; kwargs...
     ) = !isempty(structmatches(mol1, mol2, matchtype; kwargs...))
 
-
-
-function issmartsgroupmatch(
-        mol::UndirectedGraph, query::QueryMol, root::Int; kwargs...)
-    # For recursive SMARTS match
-    isempty(query.connectivity) || throw(
-        ErrorException("Component level query is disallowed"))
-    afunc = atommatch(mol, query)
-    bfunc = bondmatch(mol, query)
-    @assert root in nodeset(mol) "node $(root) does not exist"
-    if nodecount(query) == 1
-        # node match
-        return afunc(root, 1)
-    elseif edgecount(query) == 1
-        # edge match
-        for (inc, adj) in neighbors(mol, root)
-            if afunc(root, 1) && afunc(adj, 2) && bfunc(inc, 1)
-                return true
-            end
-        end
-        return false
-    else
-        # subgraph match
-        for n in incidences(mol, root)
-            if isedgesubgraphmatch(
-                    mol, query, nodematcher=afunc, edgematcher=bfunc,
-                    mandatory=Dict(n=>1); kwargs...)
-                return true
-            end
-        end
-        return false
-    end
-end
 
 
 function atommatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
