@@ -43,6 +43,7 @@ end
 function sdfprops(lines)
     props = Dict{Int,Dict{Symbol,Real}}() # atomindex, {type => value}
     for line in lines
+        startswith(line, "M  ") || continue
         proptype = line[4:6]
         if !(proptype in ("CHG", "RAD", "ISO"))
             continue # Other properties are not supported yet
