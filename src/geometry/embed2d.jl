@@ -75,7 +75,7 @@ function is_outerplanar(mol::GraphMol)
     # A biconnected graph G is K2,3 minor if and only if any pair of basic
     # cycles has two or more edges in common.
     seen = Set{Set{Int}}()
-    for i findall(mol[bond_ringmem] .> 1)
+    for i in findall(mol[bond_ringmem] .> 1)
         m = mol[bond_ringmem][i]
         m in seen && return false
         push!(seen, m)
