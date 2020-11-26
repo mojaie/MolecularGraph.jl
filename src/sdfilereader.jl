@@ -84,7 +84,7 @@ function sdfoptions(lines)
     prevlines = String[]
     for (i, line) in enumerate(lines)
         # Some inappropriate signs are accepted for practical use
-        m = match(r">.*?<([\w -.%=]+)>", line)
+        m = match(r">.*?<([\w -.%=/]+)>", line)
         if m !== nothing
             add_attribute!(data, lastoption[], prevlines)
             lastoption[] = Symbol(m[1])

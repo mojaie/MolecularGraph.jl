@@ -149,6 +149,13 @@ end
 
 Write molecule data to the output stream as a SDFile format file.
 """
-sdfilewriter(io::IO, mols; writer=printv2sdf) = writer.((io,), mols)
-sdfilewriter(filename::AbstractString, mols; kwargs...
-    ) = sdfilewriter(open(filename, "w"), mols; kwargs...)
+function sdfilewriter(io::IO, mols; writer=printv2sdf)
+    cnt = length(writer.((io,), mols))
+    @info "$(cnt) records exported."
+end
+
+function sdfilewriter(filename::AbstractString, mols; kwargs...)
+    open(filename, "w") do io
+        sdfilewriter(io, mols; kwargs...)
+    end
+end
