@@ -67,14 +67,37 @@ end
 
 
 function sdfoptions(lines)
-    data = Dict()
+    function add_attribute!(d, key, list)
+        if key != :NOTANOPTION
+            while !isempty(list) && isempty(list[end])
+                pop!(list)
+            end
+            d[key] = length(list) == 1 ? list[1] : copy(list)
+            empty!(list)
+        end
+        return d
+    end
+
+    data = Dict{Symbol,Union{String,Vector{String}}}()
+    lastoption = Ref(:NOTANOPTION)
+    prevlines = String[]
     for (i, line) in enumerate(lines)
         # Some inappropriate signs are accepted for practical use
         m = match(r">.*?<([\w -.%=]+)>", line)
         if m !== nothing
-            data[Symbol(m[1])] = lines[i + 1]
+            add_attribute!(data, lastoption[], prevlines)
+            lastoption[] = Symbol(m[1])
+        elseif line == "\$\$\$\$"  # $$$$ indicates the next compound
+            add_attribute!(data, lastoption[], prevlines)
+            lastoption[] = :NOTANOPTION
+            break
+        else
+            push!(prevlines, line)
         end
     end
+    # Ensure that an unterminated file includes the final option
+    add_attribute!(data, lastoption[], prevlines)
+
     return data
 end
 

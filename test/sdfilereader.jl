@@ -32,6 +32,18 @@ end
     @test edgecount(mol) == 37
     @test nodecount(mol) == 37
     @test mol isa SDFile
+
+    # attributes
+    aspirinfile = joinpath(dirname(@__FILE__), "..", "assets", "test", "aspirin_3d.sdf")
+    mol = sdftomol(aspirinfile)
+    pcharges = mol.attributes[:PUBCHEM_MMFF94_PARTIAL_CHARGES]
+    @test length(pcharges) == parse(Int, pcharges[1]) + 1
+    for i = 2:length(pcharges)
+        node, charge = split(pcharges[i])
+        @test 1 <= parse(Int, node) <= nodecount(mol)
+        @test isa(parse(Float32, charge), Float32)
+    end
+    @test mol.attributes[:PUBCHEM_COORDINATE_TYPE] == ["2", "5", "10"]  # ensure the last attribute is read
 end
 
 end # sdfilereader
