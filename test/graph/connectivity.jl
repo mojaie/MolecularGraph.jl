@@ -12,6 +12,8 @@
     pg = pathgraph(5)
     @test length(connectedcomponents(pg)) == 1
     @test length(bridges(pg)) == 4
+    sg = edgesubgraph(pg, [1, 2, 4])
+    @test length(connectedcomponents(sg)) == 2
 
     disconn = plaingraph(5, [(1, 2), (2, 3), (4, 5)])
     @test length(connectedcomponents(disconn)) == 2
