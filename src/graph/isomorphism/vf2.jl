@@ -33,6 +33,7 @@ mutable struct VF2State{T1<:UndirectedGraph,T2<:UndirectedGraph}
         return new(G, H, Dict(), Dict(), Dict(), Dict(), expire, [], :ready)
     end
 end
+VF2State(G::UndirectedGraph, H::UndirectedGraph; kwargs...) = VF2State{typeof(G),typeof(H)}(G, H; kwargs...)
 
 
 function candidatepairs(state::VF2State; kwargs...)
@@ -214,10 +215,9 @@ end
 
 
 
-function isomorphismitervf2(G::T1, H::T2; timeout=nothing, yield=:all, kwargs...
-        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
+function isomorphismitervf2(G::UndirectedGraph, H::UndirectedGraph; timeout=nothing, yield=:all, kwargs...)
     (nodecount(G) == 0 || nodecount(H) == 0) && return Dict{Int,Int}()
-    state = VF2State{T1,T2}(G, H, timeout=timeout)
+    state = VF2State(G, H, timeout=timeout)
     yieldfunc = yield == :all ? yieldallnodes! : yieldfirstnode!
     expand!(state, reportfunc=yieldfunc; kwargs...)
     if state.status == :timedout
@@ -229,14 +229,14 @@ end
 
 
 function edgeisomorphismitervf2(
-            G::T1, H::T2; timeout=nothing, yield=:all,
+            G::UndirectedGraph, H::UndirectedGraph; timeout=nothing, yield=:all,
             nodematcher=(g,h)->true , edgematcher=(g,h)->true,
             kwargs...
-        ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
+        )
     (edgecount(G) == 0 || edgecount(H) == 0) && return Dict{Int,Int}()
     lg = linegraph(G)
     lh = linegraph(H)
-    state = VF2State{LineGraph,LineGraph}(lg, lh, timeout=timeout)
+    state = VF2State(lg, lh, timeout=timeout)
     lgematch = lgedgematcher(lg, lh, nodematcher)
     lgnmatch = lgnodematcher(lg, lh, nodematcher, edgematcher)
     yieldfunc = yieldedgefunc(G, H, yield)
