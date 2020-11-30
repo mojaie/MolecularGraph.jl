@@ -31,6 +31,7 @@
     esubg = edgesubgraph(graph, Set([1, 5, 8, 10]))
     @test nodecount(esubg) == 5
     @test edgecount(esubg) == 4
+    @test edgesubgraph(graph, [1, 5, 8, 10]) == esubg
 
     subgsubg = nodesubgraph(nsubg, Set([2, 3, 4]))
     @test issetequal(nodeset(subgsubg), [2, 3, 4])
