@@ -34,6 +34,7 @@ mutable struct FindCliqueState{T<:UndirectedGraph}
         new(graph, targetsize, adj, expire, [], [], :ongoing)
     end
 end
+FindCliqueState(graph::UndirectedGraph; kwargs...) = FindCliqueState{typeof(graph)}(graph; kwargs...)
 
 
 mutable struct FindConnCliqueState{T<:ModularProduct}
@@ -75,6 +76,7 @@ mutable struct FindConnCliqueState{T<:ModularProduct}
         new(graph, targetsize, adj, conn, disconn, expire, [], :ongoing)
     end
 end
+FindConnCliqueState(graph::ModularProduct; kwargs...) = FindConnCliqueState{typeof(graph)}(graph; kwargs...)
 
 
 
@@ -156,8 +158,8 @@ Return maximal cliques.
    cliques. Theoretical Computer Science, 407(1–3), 564–568.
    https://doi.org/10.1016/j.tcs.2008.05.010
 """
-function maximalcliques(graph::T; kwargs...) where {T<:UndirectedGraph}
-    state = FindCliqueState{T}(graph; kwargs...)
+function maximalcliques(graph::UndirectedGraph; kwargs...)
+    state = FindCliqueState(graph; kwargs...)
     expand!(state, nodeset(graph), nodeset(graph))
     if state.status == :ongoing
         state.status = :done
@@ -172,7 +174,7 @@ end
 Return a maximum clique.
 
 """
-function maximumclique(graph::T; kwargs...) where {T<:UndirectedGraph}
+function maximumclique(graph::UndirectedGraph; kwargs...)
     (cliques, status) = maximalcliques(graph; kwargs...)
     return (sortstablemax(cliques, by=length, init=[]), status)
 end
@@ -192,8 +194,8 @@ Return maximal connected cliques.
    https://doi.org/10.1016/j.tcs.2005.09.038
 
 """
-function maximalconncliques(graph::T; kwargs...) where {T<:UndirectedGraph}
-    state = FindConnCliqueState{T}(graph; kwargs...)
+function maximalconncliques(graph::ModularProduct; kwargs...)
+    state = FindConnCliqueState(graph; kwargs...)
     nodes = nodeset(graph)
     done = Set{Int}()
     for n in nodes
@@ -219,7 +221,7 @@ end
 Return a maximum connected clique.
 
 """
-function maximumconnclique(graph::T; kwargs...) where {T<:ModularProduct}
+function maximumconnclique(graph::ModularProduct; kwargs...)
     (cliques, status) = maximalconncliques(graph; kwargs...)
     return (sortstablemax(cliques, by=length, init=[]), status)
 end

@@ -61,6 +61,7 @@ struct BiconnectedState{T<:UndirectedGraph}
         new(graph, Dict(), Dict(), Dict(), Set(), [], [])
     end
 end
+BiconnectedState(graph::UndirectedGraph) = BiconnectedState{typeof(graph)}(graph)
 
 
 function dfs!(state::BiconnectedState, n::Int)
@@ -105,8 +106,8 @@ function dfs!(state::BiconnectedState, depth::Int, n::Int)
 end
 
 
-function findbiconnected(graph::T, sym::Symbol) where {T<:UndirectedGraph}
-    state = BiconnectedState{T}(graph)
+function findbiconnected(graph::UndirectedGraph, sym::Symbol)
+    state = BiconnectedState(graph)
     nodes = nodeset(graph)
     while !isempty(nodes)
         dfs!(state, pop!(nodes))
