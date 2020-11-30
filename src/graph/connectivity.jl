@@ -25,9 +25,6 @@ Compute connectivity and return sets of the connected components.
     return components
 end
 
-connectedcomponents(view::SubgraphView) = connectedcomponents(view.graph)
-
-
 """
     connectedmembership(graph::OrderedGraph) -> Vector{Int}
 
