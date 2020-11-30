@@ -27,6 +27,8 @@
     @test getsourcenode(U, 15).sourcekey == 5
     @test getsourceedge(U, 13).source == 3
     @test getsourceedge(U, 13).sourcekey == 5
+    gsub2 = nodesubgraph(G, 1:5)
+    @test gsub == gsub2
 
     k5 = completegraph(5)
     k5sub = nodesubgraph(k5, Set(1:4))

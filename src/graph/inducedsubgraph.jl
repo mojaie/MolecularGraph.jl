@@ -13,13 +13,18 @@ struct SubgraphView{T<:UndirectedGraph} <: UndirectedGraph
     nodes::Set{Int}
     edges::Set{Int}
 end
+SubgraphView(graph::UndirectedGraph, nodes, edges) = SubgraphView(graph, Set{Int}(nodes), Set{Int}(edges))
+
+Base.:(==)(g1::SubgraphView, g2::SubgraphView) = g1.graph == g2.graph && g1.nodes == g2.nodes && g1.edges == g2.edges
 
 struct DiSubgraphView{T<:DirectedGraph} <: DirectedGraph
     graph::T
     nodes::Set{Int}
     edges::Set{Int}
 end
+DiSubgraphView(graph::UndirectedGraph, nodes, edges) = DiSubgraphView(graph, Set{Int}(nodes), Set{Int}(edges))
 
+Base.:(==)(g1::DiSubgraphView, g2::DiSubgraphView) = g1.graph == g2.graph && g1.nodes == g2.nodes && g1.edges == g2.edges
 
 # TODO: use trait
 AllSubgraphView = Union{SubgraphView,DiSubgraphView}
@@ -29,12 +34,12 @@ supergraph(view::AllSubgraphView) = view.graph
 
 
 """
-    nodesubgraph(graph::UndirectedGraph, nodes::Set{Int}) -> SubgraphView
-    nodesubgraph(graph::DirectedGraph, nodes::Set{Int}) -> DiSubgraphView
+    nodesubgraph(graph::UndirectedGraph, nodes) -> SubgraphView
+    nodesubgraph(graph::DirectedGraph, nodes) -> DiSubgraphView
 
 Generate node-induced subgraph view.
 """
-function nodesubgraph(graph::AbstractGraph, nodes::Set{Int})
+function nodesubgraph(graph::AbstractGraph, nodes)
     # TODO: test for updating in nodes
     edges = Set{Int}()
     for n in nodes
@@ -53,12 +58,12 @@ end
 
 
 """
-    edgesubgraph(graph::UndirectedGraph, edges::Set{Int}) -> SubgraphView
-    edgesubgraph(graph::DirectedGraph, edges::Set{Int}) -> DiSubgraphView
+    edgesubgraph(graph::UndirectedGraph, edges) -> SubgraphView
+    edgesubgraph(graph::DirectedGraph, edges) -> DiSubgraphView
 
 Generate edge-induced subgraph view.
 """
-function edgesubgraph(graph::AbstractGraph, edges::Set{Int})
+function edgesubgraph(graph::AbstractGraph, edges)
     # TODO: test for updating in edges
     nodes = Set{Int}()
     for e in edges
