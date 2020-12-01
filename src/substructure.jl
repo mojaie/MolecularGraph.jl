@@ -108,6 +108,42 @@ function querymatch(mol::UndirectedGraph, query::QueryMol; kwargs...)
 end
 
 """
+    nmap = emaptonmap(emap, mol, query)
+
+Convert an edge-based mapping, of the form returned by [`edgesubgraphmatches`](@ref), into
+a map between nodes. Commonly, `nmap[i]` is a length-1 vector `[j]`, where `i=>j` is the mapping
+from `nodeattr(query, i)` to `nodeattr(mol, j)`. In cases where the mapping is ambiguous,
+`nmap[i]` may be multivalued.
+"""
+function emaptonmap(emap, mol::UndirectedGraph, query::QueryMol)
+    nmol, nq = nodecount(mol), nodecount(query)
+    nq <= nmol || throw(ArgumentError("query must be a substructure of mol"))
+    # Each node in the query edges can map to either of two nodes in mol
+    qnodeoptions = [Tuple{Int,Int}[] for _ = 1:nq]
+    for (edgeidmol, edgeidq) in emap
+        edgemol, edgeq = getedge(mol, edgeidmol), getedge(query, edgeidq)
+        for nq in edgeq
+            push!(qnodeoptions[nq], edgemol)
+        end
+    end
+    # For nodes connected to two or more other nodes, intersection results in a unique answer
+    assignment = [intersect(nodeops...) for nodeops in qnodeoptions]
+    # For the singly-connected nodes, assign them by eliminating ones already taken
+    taken = falses(nmol)
+    for a in assignment
+        if length(a) == 1
+            taken[a[1]] = true
+        end
+    end
+    for a in assignment
+        if length(a) > 1
+            deleteat!(a, findall(taken[a]))
+        end
+    end
+    return assignment
+end
+
+"""
     isquerymatch(mol, query; kwargs...)
 
 Return whether mol matches with the query.
