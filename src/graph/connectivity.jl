@@ -76,14 +76,15 @@ function dfs!(state::BiconnectedState, depth::Int, n::Int)
     compbuf = Set{Int}()
     for (ninc, nadj) in neighbors(state.graph, n)
         if !haskey(state.level, nadj)
-            # New node
+            @debug "new node: $(nadj)"
             childcnt += 1
             state.pred[nadj] = n
             comp = dfs!(state, depth + 1, nadj)
             push!(comp, ninc)
             if state.low[nadj] >= state.level[n]
-                # Articulation point
+                @debug "articulation point: $(n)"
                 if state.low[nadj] > state.level[n]
+                    @debug "bridge $(ninc)"
                     push!(state.bridges, ninc) # except for bridgehead
                 end
                 push!(state.biconnected, comp)
@@ -93,13 +94,13 @@ function dfs!(state::BiconnectedState, depth::Int, n::Int)
             end
             state.low[n] = min(state.low[n], state.low[nadj])
         elseif state.pred[n] != nadj
-            # Cycle found
+            @debug "cycle found: $(n)"
             state.low[n] = min(state.low[n], state.level[nadj])
-            state.pred[nadj] = n
             push!(compbuf, ninc)
         end
     end
     if depth == 1 && childcnt < 2
+        @debug "revert: $(n)"
         delete!(state.cutvertices, n)
     end
     return compbuf

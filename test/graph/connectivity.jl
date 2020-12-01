@@ -32,7 +32,13 @@
         (1, 2), (2, 3), (3, 4), (4, 5), (4, 6),
         (3, 7), (7, 8), (8, 9), (9, 1)
     ])
-    @test length(bridges(branched)) == 3
+    
+    # https://github.com/mojaie/MolecularGraph.jl/issues/42
+    for i = 1:nodecount(branched)
+        state = Graph.BiconnectedState(branched)
+        Graph.dfs!(state, i)
+        @test length(state.bridges) == 3
+    end
     @test length(cutvertices(branched)) == 2
 
     spiro = plaingraph(10, [
