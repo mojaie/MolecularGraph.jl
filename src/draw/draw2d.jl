@@ -58,10 +58,14 @@ const DRAW_SETTING = Dict(
 Return atom colors for molecule 2D drawing
 """
 @cachefirst function atomcolor(
-        mol::GraphMol; setting=DRAW_SETTING, kwargs...)
+        mol::GraphMol; kwargs...)
+    atomcolor(atomsymbol(mol); kwargs...)
+end
+
+function atomcolor(syms::AbstractVector; setting=DRAW_SETTING, kwargs...)
     atomc = setting[:atomcolor]
-    dfc =  setting[:default_atom_color]
-    return [get(atomc, sym, dfc) for sym in atomsymbol(mol)]
+    dfc = setting[:default_atom_color]
+    return [get(atomc, sym, dfc) for sym in syms]
 end
 
 atomcolor(view::SubgraphView; kwargs...) = atomcolor(view.graph; kwargs...)
@@ -111,7 +115,7 @@ sdfcoords2d(view::SubgraphView) = sdfcoords2d(view.graph)
         coords, style = coordgen(mol)
     end
     bondorder_ = bondorder(mol)
-    
+
     # All double bonds to be "="
     if setting[:double_bond_style] == :dual
         for b in findall(bondorder_ .== 2)
