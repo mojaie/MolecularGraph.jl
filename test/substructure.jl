@@ -2,7 +2,7 @@
 using MolecularGraph.Graph: lgnodematcher, lgedgematcher
 using MolecularGraph:
     fastidentityfilter, fastsubstrfilter,
-    atommatch, bondmatch
+    atommatch, bondmatch, emaptonmap
 
 @testset "substructure" begin
 
@@ -106,6 +106,51 @@ end
     @test !isquerymatch(hetero2, disconn)
     @test isquerymatch(hetero3, disconn)
     @test !isquerymatch(hetero4, disconn)
+end
+
+@testset "node matching" begin
+    function nodematch(mol, query, idx=1, len=1)
+        afunc = atommatch(mol, query)
+        bfunc = bondmatch(mol, query)
+        emaps = edgesubgraphmatches(mol, query, nodematcher=afunc, edgematcher=bfunc)
+        @test length(emaps) == len
+        emap = emaps[idx]
+        return emaptonmap(emap, mol, query)
+    end
+    function single(v)   # like `only` on Julia 1.4+
+        length(v) == 1 || error("expected a single entry")
+        return v[1]
+    end
+    # 6-membered carbon ring fused to a 5-membered carbon ring with an attached oxygen
+    query = smartstomol("[#6]~1~[#6]~[#6]~[#6]~2~[#6](~[#6]~1)~[#6]~[#6]~[#6]~2~[#8]")
+    # The carbon numbering looks like this:
+    #         3     9
+    #      2     4     8
+    #      1     5     7
+    #         6
+    # 1-Indanone, PubChem CID6735
+    mol = smilestomol("C1CC(=O)C2=CC=CC=C21")
+    nmap = nodematch(mol, query)
+    @test single.(nmap) == [8,7,6,5,10,9,1,2,3,4]  # indices in mol corresponding to atoms in query
+    # 1-Acenaphthenone, PubChem CID75229
+    mol = smilestomol("C1C2=CC=CC3=C2C(=CC=C3)C1=O")
+    nmap = nodematch(mol, query)
+    @test single.(nmap) == [11,10,9,8,7,6,2,1,12,13]
+    # Ninhydrin, PubChem CID10236 (2 matches)
+    mol = smilestomol("C1=CC=C2C(=C1)C(=O)C(C2=O)(O)O")
+    nmaps = ([1,2,3,4,5,6,7,9,10,11], [2,1,6,5,4,3,10,9,7,8])
+    nmap = nodematch(mol, query, 1, 2)
+    snmap = single.(nmap)
+    @test snmap ∈ nmaps
+    nmap = nodematch(mol, query, 2, 2)
+    snmap = single.(nmap)
+    @test snmap ∈ nmaps
+
+    # Ambiguous match
+    query = smartstomol("[H][H]")
+    mol = smilestomol("[H][H]")
+    nmap = nodematch(mol, query)
+    @test nmap == [[1,2], [1,2]]
 end
 
 end # substructure

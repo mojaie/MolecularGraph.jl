@@ -325,11 +325,16 @@ issubgraphmatch(G, H; kwargs...) = subgraphmatch(G, H; kwargs...) !== nothing
 # Edge induced subgraph isomorphism
 
 """
-    edgesubgraphmatch(G::AbstractGraph, H::AbstractGraph; kwargs...) -> Iterator
+    edgesubgraphmatch(G::AbstractGraph, H::AbstractGraph;
+                      nodematcher=(g,h)->true , edgematcher=(g,h)->true,
+                      kwargs...) -> Iterator
 
 Generate edge induced subgraph isomorphism mappings between `G` and `H`.
 The returned iterator has `ig => ih` pairs that correspond to the indices of matching
 edges in `G` and `H`, respectively.
+
+`nodematcher` and `edgematcher` control the features needed to be counted as a match.
+[`atommatch`](@ref) and [`bondmatch`](@ref) can be used to construct these functions.
 
 See [`MolecularGraph.edgesubgraph`](@ref) to construct the subgraphs that result from the match.
 """
