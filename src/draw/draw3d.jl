@@ -58,7 +58,7 @@ function spacefilling!(scene::Scene, mol::UndirectedGraph; radius::String="van d
         end
         r
     end
-    return axisoff!(meshscatter!(scene, pos[1,:], pos[2,:], pos[3,:], color=colortype.(atomcolor(syms)), markersize=radii, markerspace=SceneSpace))
+    return axisoff!(meshscatter!(scene, pos[1,:], pos[2,:], pos[3,:], color=colortype.(atomcolor(syms; setting=DRAW_SETTING3)), markersize=radii, markerspace=SceneSpace))
 end
 
 """
@@ -86,7 +86,7 @@ function ballstick!(scene::Scene, mol::UndirectedGraph; tform=identity, H::Bool=
         syms, pos = syms[keep], pos[:,keep]
         bondinfo = [bi for (bi, e) in zip(bondinfo, edgesiter(mol)) if (keep[e[1]] & keep[e[2]])]
     end
-    scene = scatter!(scene, pos[1,:], pos[2,:], pos[3,:], color=colortype.(atomcolor(syms)), markersize=markersize, markerspace=SceneSpace)
+    scene = scatter!(scene, pos[1,:], pos[2,:], pos[3,:], color=colortype.(atomcolor(syms; setting=DRAW_SETTING3)), markersize=markersize, markerspace=SceneSpace)
     for (l, w) in bondinfo
         lines!(scene, l, linewidth=10*w)
     end

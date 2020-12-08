@@ -51,6 +51,8 @@ const DRAW_SETTING = Dict(
     :default_atom_color => Color(0, 192, 192)
 )
 
+# For 3d rendering, we use white for hydrogen
+const DRAW_SETTING3 = (dct = deepcopy(DRAW_SETTING); dct[:atomcolor][:H] = Color(255, 255, 255); dct)
 
 """
     atomcolor(mol::GraphMol; setting=DRAW_SETTING) -> Vector{Color}
