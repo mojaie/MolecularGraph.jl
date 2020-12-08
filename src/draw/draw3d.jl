@@ -12,10 +12,12 @@ export spacefilling, ballstick
 colortype(c::Color) = RGB{N0f8}(c.r/255, c.g/255, c.b/255)
 
 """
-    spacefilling(mol::UndirectGraph; tform=identity, H::Bool=true)
+    spacefilling(mol::UndirectGraph; radius="van der Waals", tform=identity, H::Bool=true)
 
 Represent `mol` as a space-filling (Calotte) model in three dimensions. `mol` should have 3d atom positions represented
-in Angstroms. 3D SDF files can be downloaded from sites such as PubChem.
+in Angstroms. (3D SDF files can be downloaded from sites such as PubChem.) The two supported options for `radius` are
+`"van der Waals"` and `"covalent"`; the former are available only for main-group elements, and the latter are available for
+all.
 
 `tform(xyz)` optionally transforms the positions before plotting them. `H=false` causes hydrogens to be omitted from the plot.
 
@@ -32,19 +34,24 @@ function spacefilling(mol::UndirectedGraph; tform=identity, H::Bool=true)
     else
         atomidx = collect(1:length(syms))
     end
+    isvdW = radius == "van der Waals"
     radii = map(atomidx, syms) do idx, sym
         an = ATOMSYMBOLMAP[string(sym)]
-        r = ATOMRADII[an]
-        if !isa(r, Real)
-            # Carbon and a few metals have multiple values
-            if an == 6
-                nbrs = neighbors(mol, idx)
-                key = nbrs == 3 ? "Csp3" :
-                      nbrs == 2 ? "Csp2" : "Csp"
-                r = r[key]
-            else
-                # For metals, it's safest to choose the smallest radius
-                r = minimum(values(r))
+        if isvdW
+            r = ATOM_VANDERWAALS_RADII[an]
+        else
+            r = ATOM_COVALENT_RADII[an]
+            if !isa(r, Real)
+                # Carbon and a few metals have multiple values
+                if an == 6
+                    nbrs = neighbors(mol, idx)
+                    key = nbrs == 3 ? "Csp3" :
+                        nbrs == 2 ? "Csp2" : "Csp"
+                    r = r[key]
+                else
+                    # For metals, it's safest to choose the smallest radius
+                    r = minimum(values(r))
+                end
             end
         end
         r

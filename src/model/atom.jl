@@ -20,7 +20,7 @@ const ATOMSYMBOLMAP = let
     YAML.load(open(symbolfile))
 end
 
-const ATOMRADII = let
+const ATOM_COVALENT_RADII = let
     radiifile = joinpath(dirname(@__FILE__), "../../assets/const/covalent_radii.csv")
     include_dependency(radiifile)
     tab, headers = readdlm(radiifile, '\t', String; header=true, comments=true)
@@ -42,6 +42,19 @@ const ATOMRADII = let
         else
             container[tab[i, 2]] = ar
         end
+    end
+    radii
+end
+
+const ATOM_VANDERWAALS_RADII = let
+    radiifile = joinpath(dirname(@__FILE__), "../../assets/const/vanderWaals_radii.csv")
+    include_dependency(radiifile)
+    tab, headers = readdlm(radiifile, '\t', String; header=true, comments=true)
+    radii = Dict{Int,Float32}()
+    for i = 1:size(tab, 1)
+        an = parse(Int, tab[i, 1])
+        ar = parse(Float32, tab[i, 2])
+        radii[an] = ar
     end
     radii
 end
