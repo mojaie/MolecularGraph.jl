@@ -5,7 +5,7 @@
 
 # This is loaded via @require
 
-using .AbstractPlotting: RGB, N0f8, Vec3f0, Scene, SceneSpace, Axis, meshscatter, scatter, lines!
+using .AbstractPlotting: RGB, N0f8, Vec3f0, Scene, SceneSpace, Axis, meshscatter!, scatter!, lines!
 
 export spacefilling, ballstick
 
@@ -23,7 +23,9 @@ all.
 
 This function requires that you load one of the backends of the Makie/WGLMakie/CairoMakie family.
 """
-function spacefilling(mol::UndirectedGraph; tform=identity, H::Bool=true)
+spacefilling(mol::UndirectedGraph; kwargs...) = spacefilling!(Scene(), mol; kwargs...)
+
+function spacefilling!(scene::Scene, mol::UndirectedGraph; radius::String="van der Waals", tform=identity, H::Bool=true)
     syms = [a.symbol for a in nodeattrs(mol)]
     pos = reduce(hcat, [tform(atom.coords) for atom in nodeattrs(mol)])
     size(pos, 1) == 3 || error("this plots only in 3d")
@@ -56,7 +58,7 @@ function spacefilling(mol::UndirectedGraph; tform=identity, H::Bool=true)
         end
         r
     end
-    return axisoff!(meshscatter(pos[1,:], pos[2,:], pos[3,:], color=colortype.(atomcolor(syms)), markersize=radii, markerspace=SceneSpace))
+    return axisoff!(meshscatter!(scene, pos[1,:], pos[2,:], pos[3,:], color=colortype.(atomcolor(syms)), markersize=radii, markerspace=SceneSpace))
 end
 
 """
@@ -70,7 +72,9 @@ in Angstroms. 3D SDF files can be downloaded from sites such as PubChem.
 
 This function requires that you load one of the backends of the Makie/WGLMakie/CairoMakie family.
 """
-function ballstick(mol::UndirectedGraph; tform=identity, H::Bool=true, markersize=1)
+ballstick(mol::UndirectedGraph; kwargs...) = ballstick!(Scene(), mol; kwargs...)
+
+function ballstick!(scene::Scene, mol::UndirectedGraph; tform=identity, H::Bool=true, markersize=1)
     syms = [a.symbol for a in nodeattrs(mol)]
     pos = reduce(hcat, [tform(atom.coords) for atom in nodeattrs(mol)])
     size(pos, 1) == 3 || error("this plots only in 3d")
@@ -82,7 +86,7 @@ function ballstick(mol::UndirectedGraph; tform=identity, H::Bool=true, markersiz
         syms, pos = syms[keep], pos[:,keep]
         bondinfo = [bi for (bi, e) in zip(bondinfo, edgesiter(mol)) if (keep[e[1]] & keep[e[2]])]
     end
-    scene = scatter(pos[1,:], pos[2,:], pos[3,:], color=colortype.(atomcolor(syms)), markersize=markersize, markerspace=SceneSpace)
+    scene = scatter!(scene, pos[1,:], pos[2,:], pos[3,:], color=colortype.(atomcolor(syms)), markersize=markersize, markerspace=SceneSpace)
     for (l, w) in bondinfo
         lines!(scene, l, linewidth=10*w)
     end
