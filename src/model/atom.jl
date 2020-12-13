@@ -8,14 +8,56 @@ export
     setcharge, setstereo, atomnumber, todict
 
 
-const ATOMTABLE = YAML.load(open(
-    joinpath(dirname(@__FILE__), "../../assets/const/atomicweights.yaml")
-))
+const ATOMTABLE = let
+    weightsfile = joinpath(dirname(@__FILE__), "../../assets/const/atomicweights.yaml")
+    include_dependency(weightsfile)
+    YAML.load(open(weightsfile))
+end
 
-const ATOMSYMBOLMAP = YAML.load(open(
-    joinpath(dirname(@__FILE__), "../../assets/const/symboltonumber.yaml")
-))
+const ATOMSYMBOLMAP = let
+    symbolfile = joinpath(dirname(@__FILE__), "../../assets/const/symboltonumber.yaml")
+    include_dependency(symbolfile)
+    YAML.load(open(symbolfile))
+end
 
+const ATOM_COVALENT_RADII = let
+    radiifile = joinpath(dirname(@__FILE__), "../../assets/const/covalent_radii.csv")
+    include_dependency(radiifile)
+    tab, headers = readdlm(radiifile, '\t', String; header=true, comments=true)
+    radii = Dict{Int,Union{Float32,Dict{String,Float32}}}()
+    for i = 1:size(tab, 1)
+        an = parse(Int, tab[i, 1])
+        container = if !haskey(radii, an)
+            if i < size(tab, 1) && tab[i+1,1] == tab[i,1]  # special handling for elements with multiple options
+                radii[an] = Dict{String,Float32}()
+            else
+                nothing
+            end
+        else
+            radii[an]
+        end
+        ar = parse(Float32, tab[i, 3])
+        if container === nothing
+            radii[an] = ar
+        else
+            container[tab[i, 2]] = ar
+        end
+    end
+    radii
+end
+
+const ATOM_VANDERWAALS_RADII = let
+    radiifile = joinpath(dirname(@__FILE__), "../../assets/const/vanderWaals_radii.csv")
+    include_dependency(radiifile)
+    tab, headers = readdlm(radiifile, '\t', String; header=true, comments=true)
+    radii = Dict{Int,Float32}()
+    for i = 1:size(tab, 1)
+        an = parse(Int, tab[i, 1])
+        ar = parse(Float32, tab[i, 2])
+        radii[an] = ar
+    end
+    radii
+end
 
 
 struct SDFileAtom <: Atom

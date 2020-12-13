@@ -55,10 +55,11 @@ module MolecularGraph
     using LinearAlgebra
     using Statistics
     using YAML
+    using DelimitedFiles
     using .Util
     using .Graph
     using .Geometry
-    
+
     export Util, Graph, Geometry
 
     include("./model/interface.jl")
@@ -83,7 +84,7 @@ module MolecularGraph
     include("./smarts/bond.jl")
     include("./smarts/logicaloperator.jl")
     include("./smarts/molecule.jl")
-    
+
     include("coordgen.jl")
     include("./draw/draw2d.jl")
     include("./draw/svg.jl")
@@ -92,4 +93,9 @@ module MolecularGraph
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
 
+    using Requires
+
+    function __init__()
+        @require AbstractPlotting="537997a7-5e4e-5d89-9595-2241ea00577e" include("draw/draw3d.jl")
+    end
 end

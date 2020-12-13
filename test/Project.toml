@@ -1,0 +1,7 @@
+[deps]
+AbstractPlotting = "537997a7-5e4e-5d89-9595-2241ea00577e"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+AbstractPlotting = "0.12, 0.13, 0.14"

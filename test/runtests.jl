@@ -83,4 +83,5 @@ module MolecularGraphTest
 
     include("./draw/base.jl")
     include("./draw/svg.jl")
+    include("./draw/3d.jl")
 end
