@@ -115,7 +115,7 @@ function fgrouprecord(mol::GraphMol, fgc::FGC, rcd)
             eachset = Set{Set{Int}}()
             for s in refset
                 subst = nodesubgraph(mol, s)
-                if isstructmatch(subst, q, :exact)
+                if hasexactmatch(subst, q)
                     push!(eachset, s)
                 end
             end
@@ -144,7 +144,7 @@ end
 function fgroupquery(mol::GraphMol, query)
     q = parse(SMARTS, query)
     newset = Set{Set{Int}}()
-    for nmap in structmatches(mol, q, :substruct)
+    for nmap in substructmatches(mol, q)
         isempty(nmap) || push!(newset, keys(nmap))
     end
     return newset

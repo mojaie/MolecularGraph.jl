@@ -4,11 +4,14 @@
 #
 
 export
-    structmatches, isstructmatch
+    structmatches,
+    exactmatches, hasexactmatch,
+    substructmatches, hassubstructmatch,
+    nodeinducedmatches, hasnodeinducedmatch,
+    edgeinducedmatches, hasedgeinducedmatch
 
 
 """
-
     structmatches(
         mol::UndirectedGraph, query::UndirectedGraph,
         matchtype::Symbol; kwargs...) -> Iterator
@@ -27,11 +30,11 @@ Return a lazy iterator that generate all isomorphism mappings between `mol` and 
 - `fastsingleton::Bool`: if true, skip vf2 if the query is single node or edge that can be matched by simple iteration (dafault: true)
 - `atommatcher::Function`: a function for semantic atom attribute matching (default: `MolecularGraph.atommatch`)
 - `bondmatcher::Function`: a function for semantic bond attribute matching (default: `MolecularGraph.edgematch`)
-- `mandatory::Dict{Int,Int}`: mandatory node mapping (if matchtype=:edgeinduced, edge mapping)
-- `forbidden::Dict{Int,Int}`: forbidden node mapping (if matchtype=:edgeinduced, edge mapping)
+- `mandatory::Dict{Int,Int}`: mandatory node mapping (or edge mapping if matchtype=:edgeinduced)
+- `forbidden::Dict{Int,Int}`: forbidden node mapping (or edge mapping if matchtype=:edgeinduced)
 - `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time reached and return empty iterator (default: 10 seconds).
 
-Note that if the query is disconnected (has component level expression like "CCO.O.O"), monomorphism mapping can be extreamly slow.
+Note that if the query is disconnected (has component level expression like "CCO.O.O"), monomorphism mapping can be extremely slow.
 
 Note that null mol and null query never match (e.g. isstructmatch(smilestomol(""), smilestomol("")) is false)
 """
@@ -39,7 +42,7 @@ function structmatches(
         mol::UndirectedGraph, query::UndirectedGraph, matchtype;
         prefilter=true, fastsingleton=true,
         atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
-    # Null molecule
+    # Null molecule filter
     nodecount(mol) == 0 && return ()
     nodecount(query) == 0 && return ()
     matchtype === :edgeinduced && edgecount(mol) == 0 && return ()
@@ -108,16 +111,16 @@ function structmatches(
 
     # Isomorphism
     if matchtype === :exact
-        return exactmatches(mol, query,
+        return isomorphisms(mol, query,
             nodematcher=afunc, edgematcher=bfunc; kwargs...)
     elseif matchtype === :substruct
-        return monomorphicmatches(mol, query,
+        return subgraph_monomorphisms(mol, query,
             nodematcher=afunc, edgematcher=bfunc; kwargs...)
     elseif matchtype === :nodeinduced
-        return subgraphmatches(mol, query,
+        return nodesubgraph_isomorphisms(mol, query,
             nodematcher=afunc, edgematcher=bfunc; kwargs...)
     elseif matchtype === :edgeinduced
-        return edgesubgraphmatches(mol, query,
+        return edgesubgraph_isomorphisms(mol, query,
             nodematcher=afunc, edgematcher=bfunc; kwargs...)
     end
 
@@ -126,7 +129,7 @@ function structmatches(
     @assert matchtype === :substructmc
     if edgecount(query) != 0
         # Edge induced subgraph mapping
-        for emap in edgesubgraphmatches(
+        for emap in edgesubgraph_isomorphisms(
                 mol, query, nodematcher=afunc, edgematcher=bfunc; kwargs...)
             # Isolated node mapping
             msub = edgesubgraph(mol, Set(keys(emap)))
@@ -151,6 +154,95 @@ function structmatches(
     end
     return ()
 end
+
+
+"""
+    exactmatches(
+        mol::UndirectedGraph, query::UndirectedGraph; kwargs...) -> Iterator
+
+Return a lazy iterator that generate node mappings between `mol` and `query` if these are exactly same.
+See [`MolecularGraph.structmatches`](@ref) for available options.
+"""
+exactmatches(mol1, mol2; kwargs...
+    ) = structmatches(mol1, mol2, :exact; kwargs...)
+
+
+"""
+    hasexactmatch(
+        mol::UndirectedGraph, query::UndirectedGraph; kwargs...) -> Iterator
+
+Return whether `mol` and `query` have exactly the same structure.
+See [`MolecularGraph.structmatches`](@ref) for available options.
+"""
+hasexactmatch(mol1, mol2; kwargs...
+    ) = !isempty(exactmatches(mol1, mol2; kwargs...))
+
+
+"""
+    substructmatches(
+        mol::UndirectedGraph, query::UndirectedGraph; kwargs...) -> Iterator
+
+Return a lazy iterator that generate node mappings between `mol` and `query` if `mol` has `query` as a substructure.
+See [`MolecularGraph.structmatches`](@ref) for available options.
+"""
+substructmatches(mol1, mol2; kwargs...
+    ) = structmatches(mol1, mol2, :substruct; kwargs...)
+
+
+"""
+    hassubstructmatch(
+        mol::UndirectedGraph, query::UndirectedGraph; kwargs...) -> Iterator
+
+Return whether `mol` has `query` as a substructure.
+See [`MolecularGraph.structmatches`](@ref) for available options.
+"""
+hassubstructmatch(mol1, mol2; kwargs...
+    ) = !isempty(substructmatches(mol1, mol2; kwargs...))
+
+
+"""
+    nodeinducedmatches(
+        mol::UndirectedGraph, query::UndirectedGraph; kwargs...) -> Iterator
+
+Return a lazy iterator that generate node mappings between `mol` and `query` if a node-induced subgraph of `mol` graph is isomorphic to `query` graph.
+See [`MolecularGraph.structmatches`](@ref) for available options.
+"""
+nodeinducedmatches(mol1, mol2; kwargs...
+    ) = structmatches(mol1, mol2, :nodeinduced; kwargs...)
+
+
+"""
+    hasnodeinducedmatch(
+        mol::UndirectedGraph, query::UndirectedGraph; kwargs...) -> Iterator
+
+Return whether a node-induced subgraph of `mol` graph is isomorphic to `query` graph.
+See [`MolecularGraph.structmatches`](@ref) for available options.
+"""
+hasnodeinducedmatch(mol1, mol2; kwargs...
+    ) = !isempty(nodeinducedmatches(mol1, mol2; kwargs...))
+
+
+"""
+    edgeinducedmatches(
+        mol::UndirectedGraph, query::UndirectedGraph; kwargs...) -> Iterator
+
+Return a lazy iterator that generate **edge** mappings between `mol` and `query` if a edge-induced subgraph of `mol` graph is isomorphic to `query` graph.
+See [`MolecularGraph.structmatches`](@ref) for available options.
+"""
+edgeinducedmatches(mol1, mol2; kwargs...
+    ) = structmatches(mol1, mol2, :edgeinduced; kwargs...)
+
+
+"""
+    hasedgeinducedmatch(
+        mol::UndirectedGraph, query::UndirectedGraph; kwargs...) -> Iterator
+
+Return whether a edge-induced subgraph of `mol` graph is isomorphic to `query` graph.
+See [`MolecularGraph.structmatches`](@ref) for available options.
+"""
+hasedgeinducedmatch(mol1, mol2; kwargs...
+    ) = !isempty(edgeinducedmatches(mol1, mol2; kwargs...))
+
 
 """
     nmap = emaptonmap(emap, mol, query)
@@ -187,11 +279,6 @@ function emaptonmap(emap, mol::UndirectedGraph, query::QueryMol)
     end
     return assignment
 end
-
-
-isstructmatch(mol1, mol2, matchtype; kwargs...
-    ) = !isempty(structmatches(mol1, mol2, matchtype; kwargs...))
-
 
 
 function atommatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
@@ -253,7 +340,7 @@ function querymatchtree(
         return true
     elseif query.first == :recursive
         subq = parse(SMARTS, query.second)
-        return isstructmatch(mol, subq, :substruct, mandatory=Dict(i => 1))
+        return hassubstructmatch(mol, subq, mandatory=Dict(i => 1))
     else
         if query.first == :sssrsizes
             return query.second in matcher[query.first][i]
