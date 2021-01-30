@@ -16,10 +16,10 @@ coordgenlibs_jll = "f6050b86-aaaf-512f-8549-0afff1b4d57f"
 libinchi_jll = "172afb32-8f1c-513b-968f-184fcd77af72"
 
 [compat]
-JSON = "0"
+JSON = "0.21"
 Requires = "1"
-Unmarshal = "0"
-YAML = "0"
+Unmarshal = "0.4"
+YAML = "0.4"
 coordgenlibs_jll = "1.4"
 julia = "1.3"
 libinchi_jll = "1.5"
