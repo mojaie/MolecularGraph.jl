@@ -163,8 +163,8 @@ function graphmol(data::Dict{String,Any})
         push!(mol.neighbormap, Dict())
     end
     for (i, (u, v)) in enumerate(data["edges"])
-        mol.neighbormap[u][v] = i
-        mol.neighbormap[v][u] = i
+        mol.neighbormap[u][i] = v
+        mol.neighbormap[v][i] = u
         push!(mol.edgeattrs, bondtype(data["edgeattrs"][i]))
         push!(mol.edges, (u, v))
     end
