@@ -107,7 +107,7 @@ end
     @test !outerplanaritytest(completebipartite(2,3))
     @test outerplanaritytest(completegraph(3))
     @test !outerplanaritytest(completegraph(4))
-    @test_broken outerplanaritytest(laddergraph(20))
+    @test_skip outerplanaritytest(laddergraph(20))
     @test !outerplanaritytest(circularladder(20))
     @test outerplanaritytest(pathgraph(20))
     disconn = plaingraph(10, [
