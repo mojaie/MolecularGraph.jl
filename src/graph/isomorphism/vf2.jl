@@ -86,7 +86,9 @@ function candidatepairs(iter::VF2Matcher)
         h_cand = setdiff(nodeset(iter.H), keys(iter.h_core))
     end
     if !isempty(h_cand)
-        h_min = minimum(h_cand)
+        # improved pivot for monomorphism match with many isolated nodes
+        h_sorted = sort!(collect(h_cand))
+        h_min = h_sorted[argmax([degree(iter.H, n) for n in h_sorted])]
         for g in g_cand
             # Forbidden pair
             if haskey(iter.forbidden, g) && iter.forbidden[g] == h_min
