@@ -126,9 +126,19 @@ function chain!(state::SmartsParserState)
         end
 
         # RingLabel
-        if isdigit(read(state))
-            num = parse(Int, read(state))
-            forward!(state)
+        if isdigit(read(state)) || read(state) == '%'
+            if read(state) == '%'
+                forward!(state)
+                start = state.pos
+                while isdigit(lookahead(state, 1))
+                    forward!(state)
+                end
+                num = parse(Int, SubString(state.input, start, state.pos))
+                forward!(state)
+            else
+                num = parse(Int, read(state))
+                forward!(state)
+            end
             if num in keys(state.ringlabel)
                 (v, rb) = state.ringlabel[num]
                 b = something(b, rb, defaultbond(state))

@@ -74,6 +74,9 @@ end
 
     thiamin = parse(SMILES, "OCCc1c(C)[n+](=cs1)Cc2cnc(C)nc(N)2")
     @test edgecount(thiamin) == 19
+
+    c60 = parse(SMILES, "c12c3c4c5c1c6c7c8c2c9c1c3c2c3c4c4c%10c5c5c6c6c7c7c%11c8c9c8c9c1c2c1c2c3c4c3c4c%10c5c5c6c6c7c7c%11c8c8c9c1c1c2c3c2c4c5c6c3c7c8c1c23")
+    @test edgecount(c60) == 90
 end
 
 @testset "component" begin

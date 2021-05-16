@@ -21,6 +21,13 @@ using MolecularGraph:
     forward!(state)
     chain!(state)
     @test state.edges[6] == (6, 1)
+
+    state = SmartsParser("C%10CCCCC%10", false)
+    state.node = 1
+    push!(state.nodeattrs, SmartsAtom(:Symbol => :C))
+    forward!(state)
+    chain!(state)
+    @test state.edges[6] == (6, 1)
 end
 
 @testset "fragment" begin
