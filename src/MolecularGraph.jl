@@ -26,11 +26,13 @@ module MolecularGraph
         include("./graph/inducedsubgraph.jl")
         include("./graph/product.jl")
         include("./graph/disjointunion.jl")
+        include("./graph/contraction.jl")
         include("./graph/linegraph.jl")
 
         include("./graph/dfs.jl")
         include("./graph/shortestpath.jl")
         include("./graph/bipartite.jl")
+        include("./graph/matching.jl")
         include("./graph/triangle.jl")
         include("./graph/clique.jl")
         include("./graph/connectivity.jl")

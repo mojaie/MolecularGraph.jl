@@ -26,6 +26,10 @@
     pyridineoxide = parse(SMILES, "[n+]1([O-])ccccc1")
     pyridineoxide = kekulize(pyridineoxide)
     @test sum(bondorder(pyridineoxide) .== 2) == 3
+
+    c60 = parse(SMILES, "c12c3c4c5c1c6c7c8c2c9c1c3c2c3c4c4c%10c5c5c6c6c7c7c%11c8c9c8c9c1c2c1c2c3c4c3c4c%10c5c5c6c6c7c7c%11c8c8c9c1c1c2c3c2c4c5c6c3c7c8c1c23")
+    c60 = kekulize(c60)
+    @test sum(bondorder(c60) .== 2) == 30
 end
 
 @testset "allhydrogens" begin

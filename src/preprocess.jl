@@ -48,14 +48,10 @@ function kekulize!(mol::SMILES)
         end
     end
     subg = nodesubgraph(mol, nodes)
-    coloring = twocoloring(subg)
-    coloring === nothing && throw(
+    matching = maximummatching(subg)
+    isperfectmatching(subg, matching) || throw(
         ErrorException("Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])"))
-    a, b = coloring
-    adjmap = Dict{Int,Set{Int}}(
-        i => adjacencies(subg, i) for i in nodeset(subg))
-    for (u, v) in maxcardmap(a, b, adjmap)
-        e = findedgekey(mol, u, v)
+    for e in matching
         setedgeattr!(mol, e, setorder(edgeattr(mol, e), 2))
     end
     return mol
