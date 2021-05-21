@@ -23,7 +23,7 @@ module MolecularGraph
         include("./graph/generator.jl")
         include("./graph/multigraph.jl")
         include("./graph/dag.jl")
-        include("./graph/inducedsubgraph.jl")
+        include("./graph/subgraphview.jl")
         include("./graph/product.jl")
         include("./graph/disjointunion.jl")
         include("./graph/contraction.jl")

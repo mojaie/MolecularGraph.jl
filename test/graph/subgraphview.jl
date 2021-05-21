@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-@testset "graph.inducedsubgraph" begin
+@testset "graph.subgraphview" begin
 
 @testset "subgraphview" begin
     graph = pathgraph(5)

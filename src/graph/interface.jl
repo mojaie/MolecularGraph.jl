@@ -136,6 +136,13 @@ the given node.
 inneighbors(graph::DirectedGraph, i) = graph.inneighbormap[i]
 
 
+"""
+    findedgekey(graph::UndirectedGraph, u, v) -> Any
+    findedgekey(graph::DirectedGraph, u, v) -> Any
+    findedgekey(graph::HyperGraph, u, v) -> Any
+
+Return the first edge found that connects nodes u and v.
+"""
 function findedgekey(graph::UndirectedGraph, u, v)
     for (inc, adj) in neighbors(graph, u)
         adj == v && return inc
@@ -155,6 +162,13 @@ function findedgekey(graph::HyperGraph, u, v)
 end
 
 
+"""
+    findalledgekeys(graph::UndirectedGraph, u, v) -> Any
+    findalledgekeys(graph::DirectedGraph, u, v) -> Any
+    findalledgekeys(graph::HyperGraph, u, v) -> Any
+
+Return all edges that connect nodes u and v.
+"""
 function findalledgekeys(graph::UndirectedGraph, u, v)
     hasmultiedge(graph) || return [findedgekey(graph, u, v)]
     keys = Int[]
@@ -194,11 +208,11 @@ getedge(graph::AbstractGraph, i) = graph.edges[i]
 
 
 """
-    hasedge(graph::AbstractGraph, u, v) -> Bool
+    hasedge(graph, u, v) -> Bool
 
 Return whether the given two nodes are connected by at least one edge.
 """
-hasedge(graph::AbstractGraph, u, v) = findedgekey(graph, u, v) !== nothing
+hasedge(graph, u, v) = findedgekey(graph, u, v) !== nothing
 
 
 """
@@ -224,7 +238,7 @@ return nothing.
 """
 function edgeattr(graph::AbstractGraph, u, v)
     k = findedgekey(graph, u, v)
-    return k === nothing ? nothing : graph.edgeattrs[k]
+    return k === nothing ? nothing : edgeattr(graph, k)
 end
 
 

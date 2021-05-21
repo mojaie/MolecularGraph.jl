@@ -5,7 +5,7 @@
 
 export
     SubgraphView, DiSubgraphView,
-    supergraph, nodesubgraph, edgesubgraph
+    subgraphview, supergraph, nodesubgraph, edgesubgraph
 
 
 struct SubgraphView{T<:UndirectedGraph} <: UndirectedGraph
@@ -27,7 +27,35 @@ DiSubgraphView(graph::UndirectedGraph, nodes, edges) = DiSubgraphView(graph, Set
 Base.:(==)(g1::DiSubgraphView, g2::DiSubgraphView) = g1.graph == g2.graph && g1.nodes == g2.nodes && g1.edges == g2.edges
 
 
-supergraph(view::Union{SubgraphView,DiSubgraphView}) = view.graph
+"""
+    subgraphview(graph::UndirectedGraph, nodes, edges) -> SubgraphView
+    subgraphview(graph::DirectedGraph, nodes, edges) -> DiSubgraphView
+
+Generate subgraph view with the given nodes and edges.
+"""
+subgraphview(graph::UndirectedGraph, nodes, edges) = SubgraphView(graph, nodes, edges)
+subgraphview(graph::DirectedGraph, nodes, edges) = DiSubgraphView(graph, nodes, edges)
+
+
+"""
+    supergraph(view::SubgraphView) -> UndirectedGraph
+    supergraph(view::DiSubgraphView) -> DirectedGraph
+
+Returns the graph on which the view is based.
+"""
+supergraph(view::SubgraphView) = view.graph
+supergraph(view::DiSubgraphView) = view.graph
+
+
+function nodesubgraphedges(graph::AbstractGraph, nodes)
+    edges = Set{Int}()
+    for n in nodes
+        for (ninc, nadj) in neighbors(graph, n)
+            nadj in nodes && push!(edges, ninc)
+        end
+    end
+    return edges
+end
 
 
 """
@@ -36,21 +64,18 @@ supergraph(view::Union{SubgraphView,DiSubgraphView}) = view.graph
 
 Generate node-induced subgraph view.
 """
-function nodesubgraph(graph::AbstractGraph, nodes)
-    # TODO: test for updating in nodes
-    edges = Set{Int}()
-    for n in nodes
-        for (ninc, nadj) in neighbors(graph, n)
-            if nadj in nodes
-                push!(edges, ninc)
-            end
-        end
+function nodesubgraph(graph, nodes)
+    edges = nodesubgraphedges(graph, nodes)
+    return subgraphview(graph, Set(nodes), edges)
+end
+
+
+function edgesubgraphnodes(graph::AbstractGraph, edges)
+    nodes = Set{Int}()
+    for e in edges
+        union!(nodes, getedge(graph, e))
     end
-    if graph isa UndirectedGraph
-        return SubgraphView(graph, Set(nodes), edges)
-    elseif graph isa DirectedGraph
-        return DiSubgraphView(graph, Set(nodes), edges)
-    end
+    return nodes
 end
 
 
@@ -60,19 +85,10 @@ end
 
 Generate edge-induced subgraph view.
 """
-function edgesubgraph(graph::AbstractGraph, edges)
-    # TODO: test for updating in edges
-    nodes = Set{Int}()
-    for e in edges
-        union!(nodes, getedge(graph, e))
-    end
-    if graph isa UndirectedGraph
-        return SubgraphView(graph, nodes, Set(edges))
-    elseif graph isa DirectedGraph
-        return DiSubgraphView(graph, nodes, Set(edges))
-    end
+function edgesubgraph(graph, edges)
+    nodes = edgesubgraphnodes(graph, edges)
+    return subgraphview(graph, nodes, Set(edges))
 end
-
 
 
 function neighbors(view::Union{SubgraphView,DiSubgraphView}, idx)
@@ -105,10 +121,10 @@ function getedge(view::Union{SubgraphView,DiSubgraphView}, idx)
     return getedge(view.graph, idx)
 end
 
-function hasedge(view::Union{SubgraphView,DiSubgraphView}, u, v)
-    u in view.nodes || return false
-    v in view.nodes || return false
-    return findedgekey(view.graph, u, v) !== nothing
+function findedgekey(view::Union{SubgraphView,DiSubgraphView}, u, v)
+    u in view.nodes || return
+    v in view.nodes || return
+    return findedgekey(view.graph, u, v)
 end
 
 function nodeattr(view::Union{SubgraphView,DiSubgraphView}, idx)
@@ -119,13 +135,6 @@ end
 function edgeattr(view::Union{SubgraphView,DiSubgraphView}, idx)
     idx in view.edges || throw(KeyError(idx))
     return edgeattr(view.graph, idx)
-end
-
-function edgeattr(view::Union{SubgraphView,DiSubgraphView}, u, v)
-    u in view.nodes || return nothing
-    v in view.nodes || return nothing
-    k = findedgekey(view.graph, u, v)
-    return k === nothing ? nothing : edgeattr(view.graph, k)
 end
 
 

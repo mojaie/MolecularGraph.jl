@@ -28,7 +28,7 @@ module MolecularGraphGraphTest
     include("./graph/dag.jl")
     include("./graph/cycle.jl")
     include("./graph/connectivity.jl")
-    include("./graph/inducedsubgraph.jl")
+    include("./graph/subgraphview.jl")
     include("./graph/disjointunion.jl")
     include("./graph/linegraph.jl")
 
