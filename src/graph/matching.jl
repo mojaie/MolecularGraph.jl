@@ -6,7 +6,7 @@
 export maximummatching, isperfectmatching
 
 
-function backtrack(pred::Dict{Int,Int}, n::Int)
+function backtrack(pred::Dict, n)
     path = [n]
     x = n
     while pred[x] != x
@@ -17,7 +17,7 @@ function backtrack(pred::Dict{Int,Int}, n::Int)
 end
 
 
-function backtrack(pred::Dict{Int,Int}, n::Int, root::Int)
+function backtrack(pred::Dict, n, root)
     path = [n]
     x = n
     while x != root
@@ -28,7 +28,7 @@ function backtrack(pred::Dict{Int,Int}, n::Int, root::Int)
 end
 
 
-function findaugpath(G, matching)
+function findaugpath(G::UndirectedGraph, matching)
     head = nodeset(G)  # Initial exposed node set
     for m in matching
         (u, v) = getedge(G, m)
@@ -122,7 +122,7 @@ function findaugpath(G, matching)
 end
 
 
-function findmaxmatch(G, matching)
+function findmaxmatch(G::UndirectedGraph, matching)
     P = findaugpath(G, matching)
     @assert length(P) % 2 == 0
     if !isempty(P)

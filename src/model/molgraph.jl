@@ -242,24 +242,3 @@ function Base.getindex(view::SubgraphView, sym::Symbol)
         return eval(Expr(:call, sym, view.graph))
     end
 end
-
-
-
-Molecule = Union{GraphMol,QueryMol}
-IAtom = Union{Atom,QueryAtom}
-IBond = Union{Bond,QueryBond}
-
-# Aliases
-
-getatom(mol::Molecule, i::Int) = nodeattr(mol, i)
-getbond(mol::Molecule, i::Int) = edgeattr(mol, i)
-getbond(mol::Molecule, u::Int, v::Int) = edgeattr(mol, u, v)
-hasbond(mol::Molecule, u::Int, v::Int) = hasedge(mol, u, v)
-
-setatom!(mol::Molecule, i::Int, attr::IAtom) = setnodeattr!(mol, i, attr)
-setbond!(mol::Molecule, i::Int, attr::IBond) = setedgeattr!(mol, i, attr)
-addatom!(mol::Molecule, attr::IAtom) = addnode!(mol, attr)
-addbond!(mol::Molecule, u::Int, v::Int, attr::IBond) = addedge!(mol, u, v, attr)
-
-atomcount(mol::Molecule) = nodecount(mol)
-bondcount(mol::Molecule) = edgecount(mol)

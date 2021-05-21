@@ -78,12 +78,9 @@ function distance(adjfunc::Function, graph, source, target)
     haskey(dps, target) || return
     return dps[target]
 end
-distance(graph::UndirectedGraph, s::Int, t::Int
-    ) = distance(adjacencies, graph, s, t)
-distance(graph::DirectedGraph, s::Int, t::Int
-    ) = distance(successors, graph, s, t)
-reversedistance(graph::DirectedGraph, s::Int, t::Int
-    ) = distance(predecessors, graph, s, t)
+distance(graph::UndirectedGraph, s, t) = distance(adjacencies, graph, s, t)
+distance(graph::DirectedGraph, s, t) = distance(successors, graph, s, t)
+reversedistance(graph::DirectedGraph, s, t) = distance(predecessors, graph, s, t)
 
 
 """
@@ -92,12 +89,9 @@ reversedistance(graph::DirectedGraph, s::Int, t::Int
 
 Return the set of reachable nodes from `node`.
 """
-reachablenodes(graph::UndirectedGraph, node::Int
-    ) = Set(keys(bfsdepth(adjacencies, graph, node)))
-reachablenodes(graph::DirectedGraph, node::Int
-    ) = Set(keys(bfsdepth(successors, graph, node)))
-reversereachablenodes(graph::DirectedGraph, node::Int
-    ) = Set(keys(bfsdepth(predecessors, graph, node)))
+reachablenodes(graph::UndirectedGraph, node) = Set(keys(bfsdepth(adjacencies, graph, node)))
+reachablenodes(graph::DirectedGraph, node) = Set(keys(bfsdepth(successors, graph, node)))
+reversereachablenodes(graph::DirectedGraph, node) = Set(keys(bfsdepth(predecessors, graph, node)))
 
 
 """
@@ -106,12 +100,9 @@ reversereachablenodes(graph::DirectedGraph, node::Int
 
 Return whether the node `v` is reachable from `u`.
 """
-isreachable(graph::UndirectedGraph, u::Int, v::Int
-    ) = distance(adjacencies, graph, u, v) !== nothing
-isreachable(graph::DirectedGraph, u::Int, v::Int
-    ) = distance(successors, graph, u, v) !== nothing
-isreversereachable(graph::DirectedGraph, u::Int, v::Int
-    ) = distance(predecessors, graph, u, v) !== nothing
+isreachable(graph::UndirectedGraph, u, v) = distance(adjacencies, graph, u, v) !== nothing
+isreachable(graph::DirectedGraph, u, v) = distance(successors, graph, u, v) !== nothing
+isreversereachable(graph::DirectedGraph, u, v) = distance(predecessors, graph, u, v) !== nothing
 
 
 """
@@ -125,12 +116,9 @@ function eccentricity(adjfunc::Function, graph, v)
     isempty(dists) && return
     return maximum(dists)
 end
-eccentricity(graph::UndirectedGraph, v::Int
-    ) = eccentricity(adjacencies, graph, v)
-eccentricity(graph::DirectedGraph, v::Int
-    ) = eccentricity(successors, graph, v)
-reverseeccentricity(graph::DirectedGraph, v::Int
-    ) = eccentricity(predecessors, graph, v)
+eccentricity(graph::UndirectedGraph, v) = eccentricity(adjacencies, graph, v)
+eccentricity(graph::DirectedGraph, v) = eccentricity(successors, graph, v)
+reverseeccentricity(graph::DirectedGraph, v) = eccentricity(predecessors, graph, v)
 
 
 """
@@ -190,12 +178,9 @@ function shortestpathnodes(func::Function, graph, source, target)
     return path
 end
 
-shortestpathnodes(graph::UndirectedGraph, u::Int, v::Int
-    ) = shortestpathnodes(adjacencies, graph, u, v)
-shortestpathnodes(graph::DirectedGraph, u::Int, v::Int
-    ) = shortestpathnodes(successors, graph, u, v)
-reverseshortestpathnodes(graph::DirectedGraph, u::Int, v::Int
-    ) = shortestpathnodes(predecessors, graph, u, v)
+shortestpathnodes(graph::UndirectedGraph, u, v) = shortestpathnodes(adjacencies, graph, u, v)
+shortestpathnodes(graph::DirectedGraph, u, v) = shortestpathnodes(successors, graph, u, v)
+reverseshortestpathnodes(graph::DirectedGraph, u, v) = shortestpathnodes(predecessors, graph, u, v)
 
 
 """
@@ -217,12 +202,9 @@ function shortestpathedges(func::Function, graph, source, target)
     return path
 end
 
-shortestpathedges(graph::UndirectedGraph, u::Int, v::Int
-    ) = shortestpathedges(neighbors, graph, u, v)
-shortestpathedges(graph::DirectedGraph, u::Int, v::Int
-    ) = shortestpathedges(outneighbors, graph, u, v)
-reverseshortestpathedges(graph::DirectedGraph, u::Int, v::Int
-    ) = shortestpathedges(inneighbors, graph, u, v)
+shortestpathedges(graph::UndirectedGraph, u, v) = shortestpathedges(neighbors, graph, u, v)
+shortestpathedges(graph::DirectedGraph, u, v) = shortestpathedges(outneighbors, graph, u, v)
+reverseshortestpathedges(graph::DirectedGraph, u, v) = shortestpathedges(inneighbors, graph, u, v)
 
 
 """

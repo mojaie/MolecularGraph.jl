@@ -26,11 +26,8 @@ DiSubgraphView(graph::UndirectedGraph, nodes, edges) = DiSubgraphView(graph, Set
 
 Base.:(==)(g1::DiSubgraphView, g2::DiSubgraphView) = g1.graph == g2.graph && g1.nodes == g2.nodes && g1.edges == g2.edges
 
-# TODO: use trait
-AllSubgraphView = Union{SubgraphView,DiSubgraphView}
 
-
-supergraph(view::AllSubgraphView) = view.graph
+supergraph(view::Union{SubgraphView,DiSubgraphView}) = view.graph
 
 
 """
@@ -78,7 +75,7 @@ end
 
 
 
-function neighbors(view::AllSubgraphView, idx::Int)
+function neighbors(view::Union{SubgraphView,DiSubgraphView}, idx)
     (idx in view.nodes) || throw(KeyError(idx))
     return Dict(
         n for n in neighbors(view.graph, idx)
@@ -86,7 +83,7 @@ function neighbors(view::AllSubgraphView, idx::Int)
     )
 end
 
-function outneighbors(view::DiSubgraphView, idx::Int)
+function outneighbors(view::DiSubgraphView, idx)
     (idx in view.nodes) || throw(KeyError(idx))
     return Dict(
         n for n in outneighbors(view.graph, idx)
@@ -94,7 +91,7 @@ function outneighbors(view::DiSubgraphView, idx::Int)
     )
 end
 
-function inneighbors(view::DiSubgraphView, idx::Int)
+function inneighbors(view::DiSubgraphView, idx)
     (idx in view.nodes) || throw(KeyError(idx))
     return Dict(
         n for n in inneighbors(view.graph, idx)
@@ -103,28 +100,28 @@ function inneighbors(view::DiSubgraphView, idx::Int)
 end
 
 
-function getedge(view::AllSubgraphView, idx::Int)
+function getedge(view::Union{SubgraphView,DiSubgraphView}, idx)
     idx in view.edges || throw(KeyError(idx))
     return getedge(view.graph, idx)
 end
 
-function hasedge(view::AllSubgraphView, u::Int, v::Int)
+function hasedge(view::Union{SubgraphView,DiSubgraphView}, u, v)
     u in view.nodes || return false
     v in view.nodes || return false
     return findedgekey(view.graph, u, v) !== nothing
 end
 
-function nodeattr(view::AllSubgraphView, idx::Int)
+function nodeattr(view::Union{SubgraphView,DiSubgraphView}, idx)
     idx in view.nodes || throw(KeyError(idx))
     return nodeattr(view.graph, idx)
 end
 
-function edgeattr(view::AllSubgraphView, idx::Int)
+function edgeattr(view::Union{SubgraphView,DiSubgraphView}, idx)
     idx in view.edges || throw(KeyError(idx))
     return edgeattr(view.graph, idx)
 end
 
-function edgeattr(view::AllSubgraphView, u::Int, v::Int)
+function edgeattr(view::Union{SubgraphView,DiSubgraphView}, u, v)
     u in view.nodes || return nothing
     v in view.nodes || return nothing
     k = findedgekey(view.graph, u, v)
@@ -132,14 +129,14 @@ function edgeattr(view::AllSubgraphView, u::Int, v::Int)
 end
 
 
-nodeset(view::AllSubgraphView) = copy(view.nodes)
-edgeset(view::AllSubgraphView) = copy(view.edges)
+nodeset(view::Union{SubgraphView,DiSubgraphView}) = copy(view.nodes)
+edgeset(view::Union{SubgraphView,DiSubgraphView}) = copy(view.edges)
 
 nodecount(view::Union{SubgraphView,DiSubgraphView}) = length(view.nodes)
 edgecount(view::Union{SubgraphView,DiSubgraphView}) = length(view.edges)
 
-nodeattrs(view::AllSubgraphView) = nodeattrs(view.graph)
-edgeattrs(view::AllSubgraphView) = edgeattrs(view.graph)
+nodeattrs(view::Union{SubgraphView,DiSubgraphView}) = nodeattrs(view.graph)
+edgeattrs(view::Union{SubgraphView,DiSubgraphView}) = edgeattrs(view.graph)
 
-nodeattrtype(view::AllSubgraphView) = nodeattrtype(view.graph)
-edgeattrtype(view::AllSubgraphView) = edgeattrtype(view.graph)
+nodeattrtype(view::Union{SubgraphView,DiSubgraphView}) = nodeattrtype(view.graph)
+edgeattrtype(view::Union{SubgraphView,DiSubgraphView}) = edgeattrtype(view.graph)

@@ -26,11 +26,11 @@ Compute connectivity and return sets of the connected components.
 end
 
 """
-    connectedmembership(graph::OrderedGraph) -> Vector{Int}
+    connectedmembership(graph::UndirectedGraph) -> Vector{Int}
 
 Return connected component membership array.
 """
-@cachefirst function connectedmembership(graph::OrderedGraph)
+@cachefirst function connectedmembership(graph::UndirectedGraph)
     mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(connectedcomponents(graph))
         for n in conn
@@ -39,8 +39,6 @@ Return connected component membership array.
     end
     return mem
 end
-
-connectedmembership(view::SubgraphView) = connectedmembership(view.graph)
 
 
 struct BiconnectedState{T<:UndirectedGraph}
@@ -124,8 +122,6 @@ Compute biconnectivity and return cut vertices (articulation points).
     return findbiconnected(graph, :cutvertices)
 end
 
-cutvertices(view::SubgraphView) = cutvertices(view.graph)
-
 
 """
     bridges(graph::UndirectedGraph) -> Set{Int}
@@ -136,8 +132,6 @@ Compute biconnectivity and return bridges.
     return findbiconnected(graph, :bridges)
 end
 
-bridges(view::SubgraphView) = bridges(view.graph)
-
 
 """
     edgebiconnectedcomponents(graph::UndirectedGraph) -> Vector{Vector{Int}}
@@ -147,6 +141,3 @@ Compute sets of biconnected component edges.
 @cachefirst function edgebiconnectedcomponents(graph::UndirectedGraph)
     return findbiconnected(graph, :biconnected)
 end
-
-edgebiconnectedcomponents(view::SubgraphView
-    ) = edgebiconnectedcomponents(view.graph)

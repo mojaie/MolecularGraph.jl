@@ -31,10 +31,6 @@ abstract type OrderedGraph <: UndirectedGraph end
 abstract type OrderedDiGraph <: DirectedGraph end
 abstract type OrderedHyperGraph <: HyperGraph end
 
-# TODO: use traits
-# https://github.com/JuliaLang/julia/issues/2345
-
-
 
 # Node and edge attributes
 
@@ -110,59 +106,56 @@ function clone end
 # Lookup
 
 """
-    neighbors(graph, i) -> Dict{Int,Int}
+    neighbors(graph, i) -> Dict
 
 Return the mapping of incident edges and adjacent nodes of node `i`.
 If the graph is directed graph, both outneighbors and inneighbors are mapped.
 """
-neighbors(graph::UndirectedGraph, i::Int) = graph.neighbormap[i]
-neighbors(graph::DirectedGraph, i::Int
-    ) = merge(outneighbors(graph, i), inneighbors(graph, i))
+neighbors(graph::UndirectedGraph, i) = graph.neighbormap[i]
+neighbors(graph::DirectedGraph, i) = merge(outneighbors(graph, i), inneighbors(graph, i))
 
-neighbors(graph::HyperGraph, i::Int
-    ) = Dict(inc => graph.edges[inc] for inc in graph.incidences[i])
+neighbors(graph::HyperGraph, i) = Dict(inc => graph.edges[inc] for inc in graph.incidences[i])
 
 
 
 """
-    outneighbors(graph::DirectedGraph, i::Int) -> Dict{Int,Int}
+    outneighbors(graph::DirectedGraph, i) -> Dict
 
 Return the mapping of successor node keys and out edge keys connected to
 the given node.
 """
-outneighbors(graph::DirectedGraph, i::Int) = graph.outneighbormap[i]
+outneighbors(graph::DirectedGraph, i) = graph.outneighbormap[i]
 
 
 """
-    inneighbors(graph::DirectedGraph, i::Int) -> Dict{Int,Int}
+    inneighbors(graph::DirectedGraph, i) -> Dict
 
 Return the mapping of predecessor node keys and in edge keys connected to
 the given node.
 """
-inneighbors(graph::DirectedGraph, i::Int) = graph.inneighbormap[i]
+inneighbors(graph::DirectedGraph, i) = graph.inneighbormap[i]
 
 
-
-function findedgekey(graph::UndirectedGraph, u::Int, v::Int)
+function findedgekey(graph::UndirectedGraph, u, v)
     for (inc, adj) in neighbors(graph, u)
         adj == v && return inc
     end
 end
 
-function findedgekey(graph::DirectedGraph, source::Int, target::Int)
+function findedgekey(graph::DirectedGraph, source, target)
     for (inc, adj) in outneighbors(graph, source)
         adj == target && return inc
     end
 end
 
-function findedgekey(graph::HyperGraph, u::Int, v::Int)
+function findedgekey(graph::HyperGraph, u, v)
     for (inc, adj) in neighbors(graph, u)
         v in adj && return inc
     end
 end
 
 
-function findalledgekeys(graph::UndirectedGraph, u::Int, v::Int)
+function findalledgekeys(graph::UndirectedGraph, u, v)
     hasmultiedge(graph) || return [findedgekey(graph, u, v)]
     keys = Int[]
     for (inc, adj) in neighbors(graph, u)
@@ -171,7 +164,7 @@ function findalledgekeys(graph::UndirectedGraph, u::Int, v::Int)
     return keys
 end
 
-function findalledgekeys(graph::DirectedGraph, source::Int, target::Int)
+function findalledgekeys(graph::DirectedGraph, source, target)
     hasmultiedge(graph) || return [findedgekey(graph, source, target)]
     keys = Int[]
     for (inc, adj) in outneighbors(graph, source)
@@ -180,7 +173,7 @@ function findalledgekeys(graph::DirectedGraph, source::Int, target::Int)
     return keys
 end
 
-function findalledgekeys(graph::HyperGraph, u::Int, v::Int)
+function findalledgekeys(graph::HyperGraph, u, v)
     hasmultiedge(graph) || return [findedgekey(graph, u, v)]
     keys = Int[]
     for (inc, adj) in neighbors(graph, u)
@@ -192,48 +185,44 @@ end
 
 
 """
-    getedge(graph::AbstractGraph, i::Int) -> Tuple{Int,Int}
-    getedge(graph::HyperGraph, i::Int) -> Set{Int}
+    getedge(graph::AbstractGraph, i) -> Any
 
 Return an edge.
 """
-getedge(graph::AbstractGraph, i::Int) = graph.edges[i]
+getedge(graph::AbstractGraph, i) = graph.edges[i]
 
 
 
 """
-    hasedge(graph::UndirectedGraph, u::Int, v::Int) -> Bool
-    hasedge(graph::DirectedGraph, source::Int, target::Int) -> Bool
+    hasedge(graph::AbstractGraph, u, v) -> Bool
 
 Return whether the given two nodes are connected by at least one edge.
 """
-hasedge(graph::AbstractGraph, u::Int, v::Int
-    ) = findedgekey(graph, u, v) !== nothing
+hasedge(graph::AbstractGraph, u, v) = findedgekey(graph, u, v) !== nothing
 
 
 """
-    nodeattr(graph::AbstractGraph, i::Int) -> AbstractNode
+    nodeattr(graph::AbstractGraph, i) -> AbstractNode
 
 Return the attribute object of node `i`.
 """
-nodeattr(graph::AbstractGraph, i::Int) = graph.nodeattrs[i]
+nodeattr(graph::AbstractGraph, i) = graph.nodeattrs[i]
 
 
 """
-    edgeattr(graph::AbstractGraph, i::Int) -> AbstractEdge
+    edgeattr(graph::AbstractGraph, i) -> AbstractEdge
 
 Return the attribute object of edge `i`.
 """
-edgeattr(graph::AbstractGraph, i::Int) = graph.edgeattrs[i]
+edgeattr(graph::AbstractGraph, i) = graph.edgeattrs[i]
 
 """
-    edgeattr(graph::AbstractGraph, u::Int, v::Int
-        ) -> Union{AbstractEdge,Nothing}
+    edgeattr(graph::AbstractGraph, u, v) -> Union{AbstractEdge,Nothing}
 
 Return the attribute object of an edge that connects `u` and `v`. If not found,
 return nothing.
 """
-function edgeattr(graph::AbstractGraph, u::Int, v::Int)
+function edgeattr(graph::AbstractGraph, u, v)
     k = findedgekey(graph, u, v)
     return k === nothing ? nothing : graph.edgeattrs[k]
 end
@@ -253,45 +242,40 @@ in_incidences(g::DirectedGraph, i) = Set(keys(inneighbors(g, i)))
 
 
 """
-    nodeset(graph::Union{OrderedGraph,OrderedDiGraph}) -> Set{Int}
+    nodeset(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}) -> Set{Int}
 
 Return the set of node keys.
 """
-nodeset(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}
-    ) = Set(1:nodecount(graph))
+nodeset(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}) = Set(1:nodecount(graph))
 
 
 """
-    edgeset(graph::Union{OrderedGraph,OrderedDiGraph}) -> Set{Int}
+    edgeset(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}) -> Set{Int}
 
 Return the set of edge keys.
 """
-edgeset(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}
-    ) = Set(1:edgecount(graph))
+edgeset(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}) = Set(1:edgecount(graph))
 
 
-edgesiter(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}
-    ) = graph.edges
+edgesiter(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}) = graph.edges
 
-neighborsiter(graph::Union{OrderedGraph}) = graph.neighbormap
+neighborsiter(graph::OrderedGraph) = graph.neighbormap
 
 
 """
-    nodeattrs(graph::Union{OrderedGraph,OrderedDiGraph}) -> Vector{AbstractNode}
+    nodeattrs(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}) -> Vector{AbstractNode}
 
 Return graph node attributes.
 """
-nodeattrs(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}
-    ) = graph.nodeattrs
+nodeattrs(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}) = graph.nodeattrs
 
 
 """
-    edgeattrs(graph::Union{OrderedGraph,OrderedDiGraph}) -> Vector{AbstractEdge}
+    edgeattrs(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}) -> Vector{AbstractEdge}
 
 Return graph edge attributes.
 """
-edgeattrs(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}
-    ) = graph.edgeattrs
+edgeattrs(graph::Union{OrderedGraph,OrderedDiGraph,OrderedHyperGraph}) = graph.edgeattrs
 
 
 
@@ -316,29 +300,29 @@ edgecount(graph::AbstractGraph) = length(graph.edges)
 
 
 """
-    neighborcount(graph::AbstractGraph, n::Int) -> Int
-    degree(graph::AbstractGraph, n::Int) -> Int
+    neighborcount(graph::AbstractGraph, n) -> Int
+    degree(graph::AbstractGraph, n) -> Int
 
 Return the number of adjacent nodes of the node 'n'.
 """
-neighborcount(graph::AbstractGraph, n::Int) = length(neighbors(graph, n))
+neighborcount(graph::AbstractGraph, n) = length(neighbors(graph, n))
 degree = neighborcount
 
 
 """
-    outdegree(graph::DirectedGraph, n::Int) -> Int
+    outdegree(graph::DirectedGraph, n) -> Int
 
 Return the number of outneighbors of the node 'n'.
 """
-outdegree(graph::DirectedGraph, n::Int) = length(outneighbors(graph, n))
+outdegree(graph::DirectedGraph, n) = length(outneighbors(graph, n))
 
 
 """
-    indegree(graph::DirectedGraph, n::Int) -> Int
+    indegree(graph::DirectedGraph, n) -> Int
 
 Return the number of inneighbors of the node 'n'.
 """
-indegree(graph::DirectedGraph, n::Int) = length(inneighbors(graph, n))
+indegree(graph::DirectedGraph, n) = length(inneighbors(graph, n))
 
 
 
@@ -398,7 +382,7 @@ end
 Add new edge and return the edge index. If the edge attribute type is required,
 specify the edge attribute object by `attr` keyword.
 """
-function _addedge!(graph::UndirectedGraph, u::Int, v::Int)
+function _addedge!(graph::UndirectedGraph, u, v)
     push!(graph.edges, (u, v))
     i = edgecount(graph)
     graph.neighbormap[u][i] = v
@@ -406,17 +390,17 @@ function _addedge!(graph::UndirectedGraph, u::Int, v::Int)
     return i
 end
 
-function addedge!(graph::UndirectedGraph, u::Int, v::Int, attr::AbstractEdge)
+function addedge!(graph::UndirectedGraph, u, v, attr::AbstractEdge)
     push!(graph.edgeattrs, attr)
     return _addedge!(graph, u, v)
 end
 
-function addedge!(graph::UndirectedGraph, u::Int, v::Int)
+function addedge!(graph::UndirectedGraph, u, v)
     isdefined(graph, :edgeattrs) && throw(ErrorException("edgeattr required"))
     return _addedge!(graph, u, v)
 end
 
-function _addedge!(graph::DirectedGraph, s::Int, t::Int)
+function _addedge!(graph::DirectedGraph, s, t)
     push!(graph.edges, (s, t))
     i = edgecount(graph)
     graph.outneighbormap[s][i] = t
@@ -424,18 +408,18 @@ function _addedge!(graph::DirectedGraph, s::Int, t::Int)
     return i
 end
 
-function addedge!(graph::DirectedGraph, s::Int, t::Int, attr::AbstractEdge)
+function addedge!(graph::DirectedGraph, s, t, attr::AbstractEdge)
     push!(graph.edgeattrs, attr)
     return _addedge!(graph, s, t)
 end
 
-function addedge!(graph::DirectedGraph, s::Int, t::Int)
+function addedge!(graph::DirectedGraph, s, t)
     isdefined(graph, :edgeattrs) && throw(ErrorException("edgeattr required"))
     return _addedge!(graph, s, t)
 end
 
 
-function _addedge!(graph::HyperGraph, edge::Set{Int})
+function _addedge!(graph::HyperGraph, edge)
     push!(graph.edges, edge)
     i = edgecount(graph)
     for n in edge
@@ -444,12 +428,12 @@ function _addedge!(graph::HyperGraph, edge::Set{Int})
     return i
 end
 
-function addedge!(graph::HyperGraph, edge::Set{Int}, attr::AbstractEdge)
+function addedge!(graph::HyperGraph, edge, attr::AbstractEdge)
     push!(graph.edgeattrs, attr)
     return _addedge!(graph, edge)
 end
 
-function addedge!(graph::HyperGraph, edge::Set{Int})
+function addedge!(graph::HyperGraph, edge)
     isdefined(graph, :edgeattrs) && throw(ErrorException("edgeattr required"))
     return _addedge!(graph, edge)
 end
@@ -457,22 +441,22 @@ end
 
 
 """
-    setnodeattr!(graph::AbstractGraph, i::Int, attr::AbstractNode)
+    setnodeattr!(graph::AbstractGraph, i, attr::AbstractNode)
 
 Update the node attribute.
 """
-function setnodeattr!(graph::AbstractGraph, i::Int, attr::AbstractNode)
+function setnodeattr!(graph::AbstractGraph, i, attr::AbstractNode)
     graph.nodeattrs[i] = attr
     return
 end
 
 
 """
-    setedgeattr!(graph::AbstractGraph, i::Int, attr::AbstractNode)
+    setedgeattr!(graph::AbstractGraph, i, attr::AbstractNode)
 
 Update the edge attribute.
 """
-function setedgeattr!(graph::AbstractGraph, i::Int, attr::AbstractEdge)
+function setedgeattr!(graph::AbstractGraph, i, attr::AbstractEdge)
     graph.edgeattrs[i] = attr
     return
 end
