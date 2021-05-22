@@ -144,7 +144,7 @@ end
 function fgroupquery(mol::GraphMol, query)
     q = parse(SMARTS, query)
     newset = Set{Set{Int}}()
-    for nmap in substructmatches(mol, q)
+    for nmap in substructmatches(mol, q, fastsingleton=true)
         isempty(nmap) || push!(newset, keys(nmap))
     end
     return newset

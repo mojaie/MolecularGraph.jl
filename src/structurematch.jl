@@ -27,20 +27,18 @@ Return a lazy iterator that generate all isomorphism mappings between `mol` and 
 # options
 
 - `prefilter::Bool`: if true, apply simple prefilter by graph size and topology to skip vf2 calculation (dafault: true)
-- `fastsingleton::Bool`: if true, skip vf2 if the query is single node or edge that can be matched by simple iteration (dafault: true)
+- `fastsingleton::Bool`: if true, skip vf2 if the query is single node or edge that can be matched by simple iteration (dafault: false)
 - `atommatcher::Function`: a function for semantic atom attribute matching (default: `MolecularGraph.atommatch`)
 - `bondmatcher::Function`: a function for semantic bond attribute matching (default: `MolecularGraph.edgematch`)
 - `mandatory::Dict{Int,Int}`: mandatory node mapping (or edge mapping if matchtype=:edgeinduced)
 - `forbidden::Dict{Int,Int}`: forbidden node mapping (or edge mapping if matchtype=:edgeinduced)
 - `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time reached and return empty iterator (default: 10 seconds).
 
-Note that if the query is disconnected (has component level expression like "CCO.O.O"), monomorphism mapping can be extremely slow.
-
 Note that null mol and null query never match (e.g. isstructmatch(smilestomol(""), smilestomol("")) is false)
 """
 function structmatches(
         mol::UndirectedGraph, query::UndirectedGraph, matchtype;
-        prefilter=true, fastsingleton=true,
+        prefilter=true, fastsingleton=false,
         atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Null molecule filter
     nodecount(mol) == 0 && return ()
@@ -61,48 +59,28 @@ function structmatches(
     afunc = atommatcher(mol, query)
     bfunc = bondmatcher(mol, query)
 
-    # Skip isomorphism calculation if the query is a sigle node/edge
-    if fastsingleton
+    # Skip substruct calculation if the query is a sigle node/edge
+    # This slightly speeds up SMARTS queries and hence functional group analysis
+    # Note that mandatory and forbidden mapping would be ignored
+    if matchtype === :substruct && fastsingleton
         if nodecount(query) == 1
-            matchtype !== :exact || nodecount(mol) == 1 || return ()
             res = Dict{Int,Int}[]
             q = pop!(nodeset(query))
             for n in nodeset(mol)
-                if haskey(kwargs, :mandatory)
-                    get(kwargs[:mandatory], n, -1) == q || continue
-                end
-                if haskey(kwargs, :forbidden)
-                    get(kwargs[:forbidden], n, -1) == q && continue
-                end
                 afunc(n, q) && push!(res, Dict(n => q))
             end
             return res
         elseif nodecount(query) == 2 && edgecount(query) == 1
-            matchtype !== :exact || edgecount(mol) == 1 || return ()
             res = Dict{Int,Int}[]
             q = pop!(edgeset(query))
             (qu, qv) = getedge(query, q)
             for e in edgeset(mol)
-                if haskey(kwargs, :mandatory)
-                    get(kwargs[:mandatory], e, -1) == q || continue
-                end
-                if haskey(kwargs, :forbidden)
-                    get(kwargs[:forbidden], e, -1) == q && continue
-                end
                 bfunc(e, q) || continue
                 (u, v) = getedge(mol, e)
                 if afunc(u, qu) && afunc(v, qv)
-                    if matchtype === :edgeinduced
-                        push!(res, Dict(e => q))
-                    else
-                        push!(res, Dict(u => qu, v => qv))
-                    end
+                    push!(res, Dict(u => qu, v => qv))
                 elseif afunc(u, qv) && afunc(v, qu)
-                    if matchtype === :edgeinduced
-                        push!(res, Dict(e => q))
-                    else
-                        push!(res, Dict(u => qv, v => qu))
-                    end
+                    push!(res, Dict(u => qv, v => qu))
                 end
             end
             return res
@@ -111,48 +89,14 @@ function structmatches(
 
     # Isomorphism
     if matchtype === :exact
-        return isomorphisms(mol, query,
-            nodematcher=afunc, edgematcher=bfunc; kwargs...)
+        return isomorphisms(mol, query, nodematcher=afunc, edgematcher=bfunc; kwargs...)
     elseif matchtype === :substruct
-        return subgraph_monomorphisms(mol, query,
-            nodematcher=afunc, edgematcher=bfunc; kwargs...)
+        return subgraph_monomorphisms(mol, query, nodematcher=afunc, edgematcher=bfunc; kwargs...)
     elseif matchtype === :nodeinduced
-        return nodesubgraph_isomorphisms(mol, query,
-            nodematcher=afunc, edgematcher=bfunc; kwargs...)
+        return nodesubgraph_isomorphisms(mol, query, nodematcher=afunc, edgematcher=bfunc; kwargs...)
     elseif matchtype === :edgeinduced
-        return edgesubgraph_isomorphisms(mol, query,
-            nodematcher=afunc, edgematcher=bfunc; kwargs...)
+        return edgesubgraph_isomorphisms(mol, query, nodematcher=afunc, edgematcher=bfunc; kwargs...)
     end
-
-    # Monomorphism by maximum cardinality matching
-    # returns only the first match
-    @assert matchtype === :substructmc
-    if edgecount(query) != 0
-        # Edge induced subgraph mapping
-        for emap in edgesubgraph_isomorphisms(
-                mol, query, nodematcher=afunc, edgematcher=bfunc; kwargs...)
-            # Isolated node mapping
-            msub = edgesubgraph(mol, Set(keys(emap)))
-            qsub = edgesubgraph(query, Set(values(emap)))
-            miso = setdiff(nodeset(mol), nodeset(msub))
-            qiso = setdiff(nodeset(query), nodeset(qsub))
-            mrem = nodesubgraph(mol, miso)
-            qrem = nodesubgraph(query, qiso)
-            nmap = maxcardmap(nodeset(mrem), nodeset(qrem), afunc)
-            # TODO: connectivity filter
-            if length(nmap) == nodecount(qrem)
-                return [nmap]
-            end
-        end
-    else
-        # Isolated nodes only
-        nmap = maxcardmap(nodeset(mol), nodeset(query), afunc)
-        # TODO: connectivity filter
-        if length(nmap) == nodecount(query)
-            return [nmap]
-        end
-    end
-    return ()
 end
 
 

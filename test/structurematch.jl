@@ -52,8 +52,8 @@ end
     # No edges
     nacl = smilestomol("[Na+].[Cl-]")
     na = smilestomol("[Na]")
-    @test hassubstructmatch(nacl, na, prefilter=false, fastsingleton=false)
-    @test !hasedgeinducedmatch(nacl, na, prefilter=false, fastsingleton=false)
+    @test hassubstructmatch(nacl, na, prefilter=false)
+    @test !hasedgeinducedmatch(nacl, na, prefilter=false)
 
     tetrahedrane = smilestomol("C12C3C1C23")
     fused = smilestomol("C1C2C1C2")
