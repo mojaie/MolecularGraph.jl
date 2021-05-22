@@ -8,8 +8,107 @@ export
     exactmatches, hasexactmatch,
     substructmatches, hassubstructmatch,
     nodeinducedmatches, hasnodeinducedmatch,
-    edgeinducedmatches, hasedgeinducedmatch
+    edgeinducedmatches, hasedgeinducedmatch,
+    maxcommonsubstruct,
+    connectedmcis, connectedmces,
+    disconnectedmcis, disconnectedmces,
+    tcmcis, tcmces
 
+
+
+function atommatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
+    sym1 = atomsymbol(mol1)
+    sym2 = atomsymbol(mol2)
+    pi1 = pielectron(mol1)
+    pi2 = pielectron(mol2)
+    return (a1, a2) -> sym1[a1] == sym2[a2] && pi1[a1] == pi2[a2]
+end
+
+function atommatch(mol::UndirectedGraph, querymol::QueryMol)
+    matcher = Dict(
+        :atomsymbol => atomsymbol(mol),
+        :isaromatic => isaromatic(mol),
+        :charge => charge(mol),
+        :mass => getproperty.(nodeattrs(mol), :mass),
+        :stereo => getproperty.(nodeattrs(mol), :stereo),
+        :connectivity => connectivity(mol),
+        :nodedegree => nodedegree(mol),
+        :valence => valence(mol),
+        :hydrogenconnected => hydrogenconnected(mol),
+        :sssrsizes => sssrsizes(mol),
+        :sssrcount => sssrcount(mol)
+    )
+    return (a, qa) -> querymatchtree(
+        nodeattr(querymol, qa).query, mol, matcher, a)
+end
+
+
+function bondmatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
+    # TODO: need bond attribute matching?
+    return (b1, b2) -> true
+end
+
+function bondmatch(mol::UndirectedGraph, querymol::QueryMol)
+    matcher = Dict(
+        :bondorder => bondorder(mol),
+        :isringbond => isringbond(mol),
+        :isaromaticbond => isaromaticbond(mol),
+        :stereo => getproperty.(edgeattrs(mol), :stereo)
+    )
+    return (b, qb) -> querymatchtree(
+        edgeattr(querymol, qb).query, mol, matcher, b)
+end
+
+
+function querymatchtree(
+        query::Pair, mol::UndirectedGraph, matcher::Dict, i::Int)
+    if query.first == :any
+        return true
+    elseif query.first == :and
+        return all(querymatchtree(q, mol, matcher, i) for q in query.second)
+    elseif query.first == :or
+        return any(querymatchtree(q, mol, matcher, i) for q in query.second)
+    elseif query.first == :not
+        return !querymatchtree(query.second, mol, matcher, i)
+    elseif query.first == :stereo
+        # TODO: stereo not implemented yet
+        return true
+    elseif query.first == :recursive
+        subq = parse(SMARTS, query.second)
+        return hassubstructmatch(mol, subq, mandatory=Dict(i => 1))
+    else
+        if query.first == :sssrsizes
+            return query.second in matcher[query.first][i]
+        else
+            return matcher[query.first][i] == query.second
+        end
+    end
+end
+
+
+function fastidentityfilter(mol1::UndirectedGraph, mol2::UndirectedGraph)
+    if nodecount(mol1) != nodecount(mol2)
+        return false
+    elseif edgecount(mol1) != edgecount(mol2)
+        return false
+    elseif circuitrank(mol1) != circuitrank(mol2)
+        return false
+    end
+    return true
+end
+
+
+function fastsubstrfilter(mol1::UndirectedGraph, mol2::UndirectedGraph)
+    if nodecount(mol1) < nodecount(mol2)
+        return false
+    elseif edgecount(mol1) < edgecount(mol2)
+        return false
+    elseif circuitrank(mol1) < circuitrank(mol2)
+        return false
+    end
+    return true
+end
+    
 
 """
     structmatches(
@@ -188,6 +287,51 @@ hasedgeinducedmatch(mol1, mol2; kwargs...
     ) = !isempty(edgeinducedmatches(mol1, mol2; kwargs...))
 
 
+
+"""
+    maxcommonsubstruct(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...) -> Tuple{Dict{Int,Int},Symbol}
+
+Compute maximum common substructure (MCS) of mol1 and mol2.
+
+## Keyword arguments
+
+- matchtype(Symbol): :nodeinduced or :edgeinduced (default=:edgeinduced).
+- connected(Bool): if true, apply connected MCS constraint (default=false).
+- topological(Bool): if true, apply topological constraint (default=false).
+- diameter(Int): distance cutoff for topological constraint.
+- tolerance(Int): distance mismatch tolerance for topological constraint.
+- timeout(Int): abort calculation and return suboptimal results if the execution
+time has reached the given value (default=60, in seconds).
+- targetsize(Int): abort calculation and return suboptimal result so far if the
+given mcs size achieved.
+
+# References
+
+1. Kawabata, T. (2011). Build-Up Algorithm for Atomic Correspondence between
+Chemical Structures. Journal of Chemical Information and Modeling, 51(8),
+1775–1787. https://doi.org/10.1021/ci2001023
+1. https://www.jstage.jst.go.jp/article/ciqs/2017/0/2017_P4/_article/-char/en
+"""
+function maxcommonsubstruct(mol1::UndirectedGraph, mol2::UndirectedGraph, matchtype; kwargs...)
+    afunc = atommatch(mol1, mol2)
+    bfunc = bondmatch(mol1, mol2)
+    return maxcommonsubgraph(mol1, mol2, matchtype, nodematcher=afunc, edgematcher=bfunc; kwargs...)
+end
+
+disconnectedmcis(mol1, mol2; kwargs...) = maxcommonsubstruct(mol1, mol2, :nodeinduced; kwargs...)
+
+disconnectedmces(mol1, mol2; kwargs...) = maxcommonsubstruct(mol1, mol2, :edgeinduced; kwargs...)
+
+connectedmcis(mol1, mol2; kwargs...) = maxcommonsubstruct(mol1, mol2, :nodeinduced, connected=true; kwargs...)
+
+connectedmces(mol1, mol2; kwargs...) = maxcommonsubstruct(mol1, mol2, :edgeinduced, connected=true; kwargs...)
+
+tcmcis(mol1, mol2; kwargs...) = maxcommonsubstruct(mol1, mol2, :nodeinduced, topological=true; kwargs...)
+
+tcmces(mol1, mol2; kwargs...) = maxcommonsubstruct(mol1, mol2, :edgeinduced, topological=true; kwargs...)
+
+
+
 """
     nmap = emaptonmap(emap, mol, query)
 
@@ -222,98 +366,4 @@ function emaptonmap(emap, mol::UndirectedGraph, query::QueryMol)
         end
     end
     return assignment
-end
-
-
-function atommatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
-    sym1 = atomsymbol(mol1)
-    sym2 = atomsymbol(mol2)
-    pi1 = pielectron(mol1)
-    pi2 = pielectron(mol2)
-    return (a1, a2) -> sym1[a1] == sym2[a2] && pi1[a1] == pi2[a2]
-end
-
-function atommatch(mol::UndirectedGraph, querymol::QueryMol)
-    matcher = Dict(
-        :atomsymbol => atomsymbol(mol),
-        :isaromatic => isaromatic(mol),
-        :charge => charge(mol),
-        :mass => getproperty.(nodeattrs(mol), :mass),
-        :stereo => getproperty.(nodeattrs(mol), :stereo),
-        :connectivity => connectivity(mol),
-        :nodedegree => nodedegree(mol),
-        :valence => valence(mol),
-        :hydrogenconnected => hydrogenconnected(mol),
-        :sssrsizes => sssrsizes(mol),
-        :sssrcount => sssrcount(mol)
-    )
-    return (a, qa) -> querymatchtree(
-        nodeattr(querymol, qa).query, mol, matcher, a)
-end
-
-
-function bondmatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
-    # TODO: need bond attribute matching?
-    return (b1, b2) -> true
-end
-
-function bondmatch(mol::UndirectedGraph, querymol::QueryMol)
-    matcher = Dict(
-        :bondorder => bondorder(mol),
-        :isringbond => isringbond(mol),
-        :isaromaticbond => isaromaticbond(mol),
-        :stereo => getproperty.(edgeattrs(mol), :stereo)
-    )
-    return (b, qb) -> querymatchtree(
-        edgeattr(querymol, qb).query, mol, matcher, b)
-end
-
-
-function querymatchtree(
-        query::Pair, mol::UndirectedGraph, matcher::Dict, i::Int)
-    if query.first == :any
-        return true
-    elseif query.first == :and
-        return all(querymatchtree(q, mol, matcher, i) for q in query.second)
-    elseif query.first == :or
-        return any(querymatchtree(q, mol, matcher, i) for q in query.second)
-    elseif query.first == :not
-        return !querymatchtree(query.second, mol, matcher, i)
-    elseif query.first == :stereo
-        # TODO: stereo not implemented yet
-        return true
-    elseif query.first == :recursive
-        subq = parse(SMARTS, query.second)
-        return hassubstructmatch(mol, subq, mandatory=Dict(i => 1))
-    else
-        if query.first == :sssrsizes
-            return query.second in matcher[query.first][i]
-        else
-            return matcher[query.first][i] == query.second
-        end
-    end
-end
-
-
-function fastidentityfilter(mol1::UndirectedGraph, mol2::UndirectedGraph)
-    if nodecount(mol1) != nodecount(mol2)
-        return false
-    elseif edgecount(mol1) != edgecount(mol2)
-        return false
-    elseif circuitrank(mol1) != circuitrank(mol2)
-        return false
-    end
-    return true
-end
-
-
-function fastsubstrfilter(mol1::UndirectedGraph, mol2::UndirectedGraph)
-    if nodecount(mol1) < nodecount(mol2)
-        return false
-    elseif edgecount(mol1) < edgecount(mol2)
-        return false
-    elseif circuitrank(mol1) < circuitrank(mol2)
-        return false
-    end
-    return true
 end

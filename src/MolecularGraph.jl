@@ -72,7 +72,6 @@ module MolecularGraph
     include("./model/molgraph.jl")
 
     include("structurematch.jl")
-    include("mcs.jl")
     include("stereo.jl")
     include("preprocess.jl")
     include("properties.jl")
