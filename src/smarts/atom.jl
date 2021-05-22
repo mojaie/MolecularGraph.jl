@@ -213,7 +213,17 @@ function atomprop!(state::SmartsParserState)
         # Recursive
         forward!(state, 2)
         start = state.pos
-        while read(state) != ')'
+        toclose = 1
+        while true
+            if read(state) == ')'
+                if toclose == 1
+                    break
+                else
+                    toclose -= 1
+                end
+            elseif read(state) == '('
+                toclose += 1
+            end
             forward!(state)
         end
         q = SubString(state.input, start, state.pos - 1)

@@ -31,8 +31,10 @@
 
     notH = parse(SMARTS, "[!#1]")
     @test nodeattr(notH, 1).query == (:not => (:atomsymbol => :H))
-    
-    # TODO: test recursive
+
+    imine = parse(SMARTS, raw"[$([CX3]([#6])[#6]),$([CX3H][#6])]=[$([NX2][#6]),$([NX2H])]")
+    @test nodeattr(imine, 1).query == (:or => (:recursive => "[CX3]([#6])[#6]", :recursive => "[CX3H][#6]"))
+    @test nodeattr(imine, 2).query == (:or => (:recursive => "[NX2][#6]", :recursive => "[NX2H]"))
 end
 
 end # smarts.SMARTS
