@@ -12,7 +12,7 @@ mutable struct FindCliqueState{T<:UndirectedGraph}
     graph::T
     targetsize::Union{Int,Nothing} # Int
 
-    adjacencies::Dict{Int,Set{Int}}
+    adjacencies::Dict{Int,BitSet}
     expire::Union{UInt64,Nothing} # UInt64, nanoseconds
     Q::Vector{Int}
 
@@ -27,7 +27,7 @@ mutable struct FindCliqueState{T<:UndirectedGraph}
             expire = nothing
         end
         # fast adjacency access
-        adj = Dict{Int,Set{Int}}()
+        adj = Dict{Int,BitSet}()
         for n in nodeset(graph)
             adj[n] = adjacencies(graph, n)
         end
@@ -41,9 +41,9 @@ mutable struct FindConnCliqueState{T<:ModularProduct}
     graph::T
     targetsize::Union{Int,Nothing} # Int
 
-    adjacencies::Dict{Int,Set{Int}}
-    connected::Dict{Int,Set{Int}}
-    disconn::Dict{Int,Set{Int}}
+    adjacencies::Dict{Int,BitSet}
+    connected::Dict{Int,BitSet}
+    disconn::Dict{Int,BitSet}
     expire::Union{UInt64,Nothing} # UInt64, nanoseconds
 
     cliques::Vector{Set{Int}}
@@ -57,13 +57,13 @@ mutable struct FindConnCliqueState{T<:ModularProduct}
             expire = nothing
         end
         # fast adjacency access
-        adj = Dict{Int,Set{Int}}()
-        conn = Dict{Int,Set{Int}}()
-        disconn = Dict{Int,Set{Int}}()
+        adj = Dict{Int,BitSet}()
+        conn = Dict{Int,BitSet}()
+        disconn = Dict{Int,BitSet}()
         for n in nodeset(graph)
-            adj[n] = Set{Int}()
-            conn[n] = Set{Int}()
-            disconn[n] = Set{Int}()
+            adj[n] = BitSet()
+            conn[n] = BitSet()
+            disconn[n] = BitSet()
             for (i, a) in neighbors(graph, n)
                 push!(adj[n], a)
                 if edgeattr(graph, i).hasedge
@@ -160,7 +160,7 @@ Return maximal cliques.
 """
 function maximalcliques(graph::UndirectedGraph; kwargs...)
     state = FindCliqueState(graph; kwargs...)
-    expand!(state, nodeset(graph), nodeset(graph))
+    expand!(state, BitSet(nodeset(graph)), BitSet(nodeset(graph)))
     if state.status == :ongoing
         state.status = :done
     end
@@ -196,10 +196,10 @@ Return maximal connected cliques.
 """
 function maximalconncliques(graph::ModularProduct; kwargs...)
     state = FindConnCliqueState(graph; kwargs...)
-    nodes = nodeset(graph)
-    done = Set{Int}()
+    nodes = BitSet(nodeset(graph))
+    done = BitSet()
     for n in nodes
-        R = Set([n])
+        R = BitSet([n])
         P = intersect(setdiff(nodes, done), state.connected[n])
         Q = intersect(setdiff(nodes, done), state.disconn[n])
         X = intersect(state.connected[n], done)
