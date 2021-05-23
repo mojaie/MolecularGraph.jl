@@ -3,87 +3,99 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using MolecularGraph.Graph:
-    merge!, remove!, planaritytest, outerplanaritytest
+using MolecularGraph.Graph: merge!
 
 @testset "graph.planarity" begin
 
 @testset "merge" begin
-    # Empty
+    cotree = Dict(1 => 1, 2 => 2, 3 => 3, 4 => 4)
+    # Any branches can be merged to empty trunk
     ds1 = Vector{Vector{Int}}[]
-    ds2 = Vector{Vector{Int}}[[[1], [2]], [[3], [4]]]
-    cotree = Dict(1 => 1, 2 => 2, 3 => 3, 4 => 4)
+    ds2 = Vector{Vector{Int}}[[[1], []], [[2, 4], [3]]]
     @test merge!(ds1, ds2, cotree)
-    @test ds1[2][2] == [4]
+    @test ds1 == [[[1], []], [[2, 4], [3]]]
 
-    # Monochromatic to monochromatic
-    cotree = Dict(1 => 1, 2 => 2, 3 => 3, 4 => 4)
+    # ds1 edge has a smaller low(e) than ds2 edges, so ds2 edges are fused
     ds1 = Vector{Vector{Int}}[[[1], []]]
     ds2 = Vector{Vector{Int}}[[[2], []], [[3], []], [[4], []]]
     @test merge!(ds1, ds2, cotree)
-    @test ds1[2][1] == [2, 3, 4]
+    @test ds1 == [[[1], []], [[2, 3, 4], []]]
+
+    # ds1 edges have smaller low(e) than ds2 edge, so ds1 edges are not fused
     ds1 = Vector{Vector{Int}}[[[1], []], [[2], []], [[3], []]]
     ds2 = Vector{Vector{Int}}[[[4], []]]
     @test merge!(ds1, ds2, cotree)
-    @test ds1[4][1] == [4]
+    @test ds1 == [[[1], []], [[2], []], [[3], []], [[4], []]]
 
-    cotree = Dict(11 => 1, 12 => 1, 13 => 1, 14 => 1)
-    ds1 = Vector{Vector{Int}}[[[11], []]]
-    ds2 = Vector{Vector{Int}}[[[12], []], [[13], []], [[14], []]]
+    # ds1 edges with greater low(e) than ds2 are fused. d2 is set to the opposite side
+    ds1 = Vector{Vector{Int}}[[[1], []], [[3], []], [[4], []]]
+    ds2 = Vector{Vector{Int}}[[[2], []]]
     @test merge!(ds1, ds2, cotree)
-    @test length(ds1[1][1]) == 3
+    @test ds1 == [[[1], []], [[3, 4], [2]]]
 
+    # ds2 edges are fused and set to the opposite side of the ds1 cell that have greater low(e)
+    ds1 = Vector{Vector{Int}}[[[1], []], [[3], []]]
+    ds2 = Vector{Vector{Int}}[[[2], []], [[4], []]]
+    @test merge!(ds1, ds2, cotree)
+    @test ds1 == [[[1], []], [[3], [2, 4]]]
+
+    # dichromatic branches can not be merged
+    ds1 = Vector{Vector{Int}}[[[1], []]]
+    ds2 = Vector{Vector{Int}}[[[2], []], [[4], [3]]]
+    @test !merge!(ds1, ds2, cotree)
+
+    # ds2 edge with smaller low(e) can not be merged to the dichromatic ds1 cell
+    ds1 = Vector{Vector{Int}}[[[1], []], [[4], [3]]]
+    ds2 = Vector{Vector{Int}}[[[2], []]]
+    @test !merge!(ds1, ds2, cotree)
+
+    # if low(e) of ds2 bottom is the same as that of ds1 bottom, they are merged into the same cell
+    cotree = Dict(11 => 1, 12 => 1, 2 => 2, 3 => 3)
+    ds1 = Vector{Vector{Int}}[[[11], []]]
+    ds2 = Vector{Vector{Int}}[[[12], []], [[2], []], [[3], []]]
+    @test merge!(ds1, ds2, cotree)
+    @test ds1 == [[[11, 12], []], [[2, 3], []]]
+
+    # only the top cell in ds1 has greater low(e) than ds2. d2 is set to the opposite side
     cotree = Dict(1 => 1, 21 => 2, 22 => 2, 3 => 3)
     ds1 = Vector{Vector{Int}}[[[1], []], [[21], []], [[3], []]]
     ds2 = Vector{Vector{Int}}[[[22], []]]
     @test merge!(ds1, ds2, cotree)
-    @test ds1[3][1] == [22]
-    @test ds1[3][2] == [3]
+    @test ds1 == [[[1], []], [[21], []], [[3], [22]]]
 
-    cotree = Dict(1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5)
-    ds1 = Vector{Vector{Int}}[[[1], []], [[3], []], [[4], []], [[5], []]]
-    ds2 = Vector{Vector{Int}}[[[2], []]]
+    # bottom cells that have the same low(e) are merged into the same cell
+    cotree = Dict(11 => 1, 12 => 1, 13 => 1, 14 => 1)
+    ds1 = Vector{Vector{Int}}[[[11], []]]
+    ds2 = Vector{Vector{Int}}[[[12, 13], []], [[14], []]]
     @test merge!(ds1, ds2, cotree)
-    @test ds1[1][1] == [1]
-    @test ds1[2][1] == [2]
-    @test ds1[2][2] == [3, 4, 5]
+    @test ds1 == [[[11, 12, 13], []], [[14], []]]
 
-    # Merge dichromatic
-    cotree = Dict(1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6)
-    ds1 = Vector{Vector{Int}}[[[1], []]]
-    ds2 = Vector{Vector{Int}}[[[2, 4], [3]]]
-    @test !merge!(ds1, ds2, cotree)
-    ds1 = Vector{Vector{Int}}[[[2, 4], [3]]]
-    ds2 = Vector{Vector{Int}}[[[5], [6]]]
-    @test !merge!(ds1, ds2, cotree)
-    ds1 = Vector{Vector{Int}}[[[2, 4], [3]]]
-    ds2 = Vector{Vector{Int}}[[[5], []], [[6], []]]
-    @test merge!(ds1, ds2, cotree)
-    @test ds1[2][1] == [5, 6]
-
+    # bottom cells that have the same low(e) are merged. rest ds2 edges are fused 
     cotree = Dict(11 => 1, 12 => 1, 21 => 2, 22 => 2, 3 => 3)
-    ds1 = Vector{Vector{Int}}[[[11], []], [[12, 21], [3]]]
-    ds2 = Vector{Vector{Int}}[[[22], []]]
+    ds1 = Vector{Vector{Int}}[[[11], []]]
+    ds2 = Vector{Vector{Int}}[[[12], []], [[21], []], [[22], []], [[3], []]]
     @test merge!(ds1, ds2, cotree)
-    @test ds1[2][1] == [12, 21, 22]
-    @test ds1[2][2] == [3]
-    ds1 = Vector{Vector{Int}}[[[12], []], [[11, 3], [21]]]
-    ds2 = Vector{Vector{Int}}[[[22], []]]
-    @test merge!(ds1, ds2, cotree)
-    @test ds1[2][1] == [11, 3]
-    @test ds1[2][2] == [21, 22]
-end
+    @test ds1 == [[[11, 12], []], [[21, 22, 3], []]]
 
-@testset "remove" begin
-    ds = Vector{Vector{Int}}[[[1], []], [[2], [3, 4]]]
-    remove!(ds, Set([3]))
-    @test ds[2][2] == [4]
-    ds = Vector{Vector{Int}}[[[1], []], [[2], [3, 4]]]
-    remove!(ds, Set([2, 3]))
-    @test ds[2][1] == [4]
-    ds = Vector{Vector{Int}}[[[1], []], [[2], [3, 4]]]
-    remove!(ds, Set([2, 3, 4]))
-    @test length(ds) == 1
+    # ds2 edges are fused and set to the opposite side of the ds1 cell that have greater low(e)
+    cotree = Dict(1 => 1, 21 => 2, 22 => 2, 23 => 2, 3 => 3)
+    ds1 = Vector{Vector{Int}}[[[1], []], [[21], []], [[3], [22]]]
+    ds2 = Vector{Vector{Int}}[[[23], []]]
+    @test merge!(ds1, ds2, cotree)
+    @test ds1 == [[[1], []], [[21], []], [[3], [22, 23]]]
+
+    # if both side of ds1 dichromatic cell have greater low(e) than ds2 bottom low(e), ds2 can not be merged
+    cotree = Dict(1 => 1, 21 => 2, 22 => 2, 3 => 3, 4 => 4)
+    ds1 = Vector{Vector{Int}}[[[1], []], [[21], []], [[3], [4]]]
+    ds2 = Vector{Vector{Int}}[[[22], []]]
+    @test !merge!(ds1, ds2, cotree)
+
+    # ds2 edges are fused and merged into top of ds1 cell if ds2 bottom has greater low(e) than that
+    cotree = Dict(1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6)
+    ds1 = Vector{Vector{Int}}[[[1], []], [[3], [2]]]
+    ds2 = Vector{Vector{Int}}[[[4, 5], []], [[6], []]]
+    @test merge!(ds1, ds2, cotree)
+    @test ds1 == [[[1], []], [[3], [2]], [[4, 5, 6], []]]
 end
 
 @testset "isplanar" begin
@@ -107,7 +119,7 @@ end
     @test !outerplanaritytest(completebipartite(2,3))
     @test outerplanaritytest(completegraph(3))
     @test !outerplanaritytest(completegraph(4))
-    @test_skip outerplanaritytest(laddergraph(20))
+    @test outerplanaritytest(laddergraph(20))
     @test !outerplanaritytest(circularladder(20))
     @test outerplanaritytest(pathgraph(20))
     disconn = plaingraph(10, [

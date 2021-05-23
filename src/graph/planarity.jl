@@ -4,8 +4,8 @@
 #
 
 export
-    isplanar,
-    isouterplanar
+    planaritytest, outerplanaritytest,
+    isplanar, isouterplanar
 
 
 DataStructure = Vector{Vector{Vector{Int}}}
@@ -69,95 +69,70 @@ function dfs!(state::DFSState, u::Int)
 end
 
 
-function merge!(ds1::DataStructure, ds2::DataStructure,
-        cotree::Dict{Int,Int}; verbose=false)
+function merge!(ds1::DataStructure, ds2::DataStructure, cotree::Dict{Int,Int})
     if isempty(ds1)
         append!(ds1, ds2)
-        verbose && println("Trunk cells")
+        @debug "Trunk"
         return true
     end
-    if isempty(ds2)
-        verbose && println("Empty branch")
-        return true
-    end
-    monoc(a, b) = cotree[a[end]] <= cotree[b[1]]
-    branch = Int[]
-    # Collect branch cells
-    for (alike, oppo) in ds2
-        if !isempty(oppo)
-            verbose && println("Not planer: dichromatic branch found")
+    @assert !isempty(ds2)
+    b1 = cotree[ds1[1][1][1]]
+    b2 = cotree[ds2[1][1][1]]
+    newds = DataStructure()
+    lowtop = 0
+    while lowtop <= b2 && !isempty(ds1)
+        pair = popfirst!(ds1)
+        topl = isempty(pair[1]) ? 0 : cotree[pair[1][end]]
+        topr = isempty(pair[2]) ? 0 : cotree[pair[2][end]]
+        if topl > b2 && topr > b2
+            @debug "Not planer: j+1 case"
             return false
         end
-        append!(branch, alike)
+        lowtop = max(topl, topr)
+        @assert lowtop != 0
+        newl = topl >= topr ? 1 : 2
+        newr = topl >= topr ? 2 : 1
+        push!(newds, [pair[newl], pair[newr]])
     end
-    if monoc(branch, ds1[1][1])
-        pushfirst!(ds1, [branch, Int[]])
-        return true
+    # newds[end] is now j + 1
+    if lowtop <= b2
+        push!(newds, [[], []])
     end
-    # Merge branch into trunk
-    for (i, cell) in enumerate(ds1)
-        (alike, oppo) = cell
-        if monoc(alike, branch)
-            if isempty(oppo) || monoc(oppo, branch)
-                verbose && println("Next cell")
-                continue
-            else
-                append!(alike, branch)
-                verbose && println("Merge alike")
-                return true
-            end
-        else
-            if isempty(oppo)
-                # Collect higher trunk cells
-                for (halike, hoppo) in ds1[i:end]
-                    if !isempty(hoppo)
-                        verbose && println("Not planer: dichromatic branch found")
-                        return false
-                    else
-                        append!(oppo, halike)
-                    end
-                end
-                newds = ds1[1:i-1]
-                push!(newds, [branch, oppo])
-                empty!(ds1)
-                append!(ds1, newds)
-                verbose && println("New opposite")
-                return true
-            elseif monoc(oppo, branch)
-                append!(oppo, branch)
-                verbose && println("Merge opposite")
-                return true
-            else
-                verbose && println("Not planar: trichromatic")
-                return false
-            end
+
+    fused1 = Int[]
+    while !isempty(ds1)
+        pair = popfirst!(ds1)
+        if !isempty(pair[1]) && !isempty(pair[2])
+            @debug "Not planer: should be trichromatic"
+            return false
         end
+        append!(fused1, pair[1], pair[2])
     end
-    verbose && println("Next cell")
-    push!(ds1, [branch, Int[]])
+    append!(newds[end][1], fused1)
+
+    fused2 = Int[]
+    for (i, pair) in enumerate(ds2)
+        if !isempty(pair[1]) && !isempty(pair[2])
+            @debug "Not planer: dichromatic branch cannot be merged"
+            return false
+        end
+        cell = i == 1 && b1 == b2 ? newds[1][1] : fused2
+        append!(cell, pair[1], pair[2])
+    end
+    whichtofuse = isempty(newds[end][1]) ? 1 : 2
+    append!(newds[end][whichtofuse], fused2)
+    if isempty(newds[end][1]) && isempty(newds[end][2])
+        # ds2 has only a b1 == b2 edge
+        pop!(newds)
+    end
+    # Already ds1 has used up
+    append!(ds1, newds)
+    @debug "Merged: ds $(ds1)"
     return true
 end
 
 
-function remove!(ds::DataStructure, edges)
-    newds = DataStructure()
-    for cell in ds
-        (alike, oppo) = cell
-        setdiff!(alike, edges)
-        setdiff!(oppo, edges)
-        (isempty(alike) && isempty(oppo)) && continue
-        if isempty(alike)
-            push!(newds, [oppo, Int[]])
-        else
-            push!(newds, cell)
-        end
-    end
-    empty!(ds)
-    append!(ds, newds)
-end
-
-
-function planaritytest(graph::OrderedGraph; verbose=false)
+function planaritytest(graph::OrderedGraph)
     # Do DFS to determine treeedge, cotree, loworder, source
     state = DFSState(plaingraph(graph))
     nodes = nodeset(graph)
@@ -166,38 +141,42 @@ function planaritytest(graph::OrderedGraph; verbose=false)
         dfs!(state, n)
         setdiff!(nodes, keys(state.rank))
     end
-    verbose && println(state)
+    @debug state
 
     # L-R check
     ds = Dict(c => Vector{Vector{Int}}[[[c], []]] for c in keys(state.cotree))
     while !isempty(state.treeedge)
         e = pop!(state.treeedge)
         ds[e] = DataStructure()
+        @debug "inedge: $(e)"
         for i in state.loworder[e]
-            verbose && println("stem: $(i), ds: $(ds[i])")
-            if !merge!(ds[e], ds[i], state.cotree, verbose=verbose)
-                empty!(state.treeedge)
+            @debug "stem: $(i), ds: $(ds[i])"
+            if !merge!(ds[e], ds[i], state.cotree)
                 return false
             end
         end
-        verbose && println("inedge: $(e), ds: $(ds[e])")
-        finished = filter(
-            x -> state.cotree[x] == state.source[e], keys(state.cotree))
-        verbose && println("finished: $(finished)\n")
-        remove!(ds[e], finished)
+        finished = filter(x -> state.cotree[x] == state.source[e], keys(state.cotree))
+        @debug "removed: $(finished)"
+        if !isempty(ds[e])
+            setdiff!(ds[e][end][1], finished)
+            setdiff!(ds[e][end][2], finished)
+            if isempty(ds[e][end][1]) && isempty(ds[e][end][2])
+                pop!(ds[e])
+            end
+        end
     end
     return true
 end
 
 
-function outerplanaritytest(graph::UndirectedGraph; verbose=false)
+function outerplanaritytest(graph::UndirectedGraph)
     # Add a node connects all other nodes
     newg = plaingraph(graph)
     newnode = addnode!(newg)
     for n in nodeset(graph)
         addedge!(newg, newnode, n)
     end
-    return planaritytest(newg, verbose=verbose)
+    return planaritytest(newg)
 end
 
 
@@ -211,6 +190,7 @@ Return whether the graph is planar.
 1. de Fraysseix, H., & Ossona de Mendez, P. (2012). Trémaux trees and planarity.
    European Journal of Combinatorics, 33(3), 279–293.
    https://doi.org/10.1016/j.ejc.2011.09.012
+1. Trémaux trees and planarity. https://arxiv.org/abs/math/0610935
 """
 function isplanar(graph::UndirectedGraph)
     if isdefined(graph, :cache) && haskey(graph.cache, :isouterplanar)
