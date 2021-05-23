@@ -43,7 +43,6 @@ function modularproduct(G::OrderedGraph, H::OrderedGraph;
     product = ModularProduct([], [], [], [], Dict())
     ndict = Dict{Int,Dict{Int,Int}}() # Ref to node indices of the product
     # Modular product nodes
-    nattrs = ModularProductNode[]
     for g in 1:nodecount(G)
         ndict[g] = Dict{Int,Int}()
         for h in 1:nodecount(H)

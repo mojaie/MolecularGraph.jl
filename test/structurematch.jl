@@ -166,4 +166,44 @@ end
     @test nmap == [[1,2], [1,2]]
 end
 
+@testset "MCS" begin
+    null = smilestomol("")
+    @test length(disconnectedmcis(null, null)[1]) == 0
+
+    BuOH = smilestomol("CCCO")
+    butane = smilestomol("CCCC")
+    @test length(disconnectedmcis(butane, BuOH)[1]) == 3
+    @test length(disconnectedmces(butane, BuOH)[1]) == 2
+
+    hexane = smilestomol("CCCCCC")
+    cyclohexane = smilestomol("C1CCCCC1")
+    @test length(disconnectedmcis(hexane, cyclohexane)[1]) == 5
+    @test length(disconnectedmces(hexane, cyclohexane)[1]) == 5
+
+    tms = smilestomol("C[Si](C)(C)C")
+    tsm = smilestomol("[Si]C([Si])([Si])[Si]")
+    @test length(disconnectedmcis(tms, tsm)[1]) == 2
+    @test length(disconnectedmces(tms, tsm)[1]) == 1
+
+    sulfide = smilestomol("CSSC")
+    disconn = smilestomol("CS.SC")
+    @test length(disconnectedmcis(sulfide, disconn)[1]) == 3
+    @test length(disconnectedmces(sulfide, disconn)[1]) == 2
+
+    # Delta-Y
+    cyclopropane = smilestomol("C1CC1")
+    isopropane = smilestomol("CC(C)C")
+    @test length(disconnectedmcis(cyclopropane, isopropane)[1]) == 2
+    @test length(disconnectedmces(cyclopropane, isopropane)[1]) == 2
+
+    tetrahedrane = smilestomol("C12C3C1C23")
+    fused = smilestomol("C1C2C1C2")
+    spiro = smilestomol("C1CC12CC2")
+    @test length(disconnectedmcis(tetrahedrane, fused)[1]) == 3
+    @test length(disconnectedmcis(tetrahedrane, spiro)[1]) == 3
+    @test length(disconnectedmces(tetrahedrane, fused)[1]) == 5
+    @test length(disconnectedmces(tetrahedrane, spiro)[1]) == 4
+end
+
+
 end # substructure

@@ -78,7 +78,6 @@ module MolecularGraphTest
     include("wclogp.jl")
     include("structurematch.jl")
     include("funcgroup.jl")
-    include("mcs.jl")
     include("inchi.jl")
 
     include("./draw/base.jl")
