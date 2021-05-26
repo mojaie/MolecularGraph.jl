@@ -143,8 +143,7 @@ end
 
 
 """
-    maximalcliques(graph::UndirectedGraph; kwargs...
-        ) -> Tuple{Vector{Set{Int}}, Symbol}
+    maximalcliques(graph::UndirectedGraph; kwargs...) -> FindCliqueState
 
 Return maximal cliques.
 
@@ -164,26 +163,22 @@ function maximalcliques(graph::UndirectedGraph; kwargs...)
     if state.status == :ongoing
         state.status = :done
     end
-    return (state.cliques, state.status)
+    return state
 end
 
 
 """
-    maximumclique(graph::UndirectedGraph; kwargs...) -> Tuple{Set{Int}, Symbol}
+    maximumclique(state::FindCliqueState) -> Set{Int}
 
 Return a maximum clique.
 
 """
-function maximumclique(graph::UndirectedGraph; kwargs...)
-    (cliques, status) = maximalcliques(graph; kwargs...)
-    return (sortstablemax(cliques, by=length, init=[]), status)
-end
+maximumclique(state::FindCliqueState) = sortstablemax(state.cliques, by=length, init=[])
 
 
 
 """
-    maximalconncliques(graph::ModularProduct; kwargs...
-        ) -> Tuple{Vector{Set{Int}}, Symbol}
+    maximalconncliques(graph::ModularProduct; kwargs...) -> FindConnCliqueState
 
 Return maximal connected cliques.
 
@@ -210,18 +205,14 @@ function maximalconncliques(graph::ModularProduct; kwargs...)
     if state.status == :ongoing
         state.status = :done
     end
-    return (state.cliques, state.status)
+    return state
 end
 
 
 """
-    maximumconnclique(graph::ModularProduct; kwargs...
-        ) -> Tuple{Set{Int}, Symbol}
+    maximumclique(state::FindConnCliqueState) -> Set{Int}
 
 Return a maximum connected clique.
 
 """
-function maximumconnclique(graph::ModularProduct; kwargs...)
-    (cliques, status) = maximalconncliques(graph; kwargs...)
-    return (sortstablemax(cliques, by=length, init=[]), status)
-end
+maximumclique(state::FindConnCliqueState) = sortstablemax(state.cliques, by=length, init=[])

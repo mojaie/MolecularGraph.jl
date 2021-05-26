@@ -289,7 +289,7 @@ hasedgeinducedmatch(mol1, mol2; kwargs...
 
 
 """
-    maxcommonsubstruct(mol1::UndirectedGraph, mol2::UndirectedGraph; kwargs...) -> Tuple{Dict{Int,Int},Symbol}
+    maxcommonsubstruct(mol1::UndirectedGraph, mol2::UndirectedGraph, matchtype; kwargs...) -> MaxCommonSubgraphResult
 
 Compute maximum common substructure (MCS) of mol1 and mol2.
 

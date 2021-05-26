@@ -4,7 +4,15 @@
 #
 
 export
-    maxcommonsubgraph
+    maxcommonsubgraph, MaxCommonSubgraphResult
+
+
+struct MaxCommonSubgraphResult
+    mapping::Dict{Int,Int}
+    status::Symbol
+end
+
+Base.size(result::MaxCommonSubgraphResult) = length(result.mapping)
 
 
 function modprodedgefilter(G, H, edgematcher)
@@ -31,7 +39,7 @@ end
 
 
 """
-    maxcommonsubgraph(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> Tuple{Dict{Int,Int},Symbol}
+    maxcommonsubgraph(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> MaxCommonSubgraphResult
 
 Compute maximum common edge induced subgraph between `G` and `H`.
 """
@@ -40,13 +48,13 @@ function maxcommonsubgraph(G::UndirectedGraph, H::UndirectedGraph, matchtype;
     mapping = Dict{Int,Int}()
     status = :invalidinput
     if matchtype == :nodeinduced
-        (nodecount(G) == 0 || nodecount(H) == 0) && return (mapping, status)
+        (nodecount(G) == 0 || nodecount(H) == 0) && return MaxCommonSubgraphResult(mapping, status)
         G_ = G
         H_ = H
         nmatch = nodematcher
         ematch = edgematcher
     else
-        (edgecount(G) == 0 || edgecount(H) == 0) && return (mapping, status)
+        (edgecount(G) == 0 || edgecount(H) == 0) && return MaxCommonSubgraphResult(mapping, status)
         G_ = linegraph(G)
         H_ = linegraph(H)
         nmatch = lgnodematcher(G_, H_, nodematcher, edgematcher)
@@ -61,15 +69,16 @@ function maxcommonsubgraph(G::UndirectedGraph, H::UndirectedGraph, matchtype;
     prod = modularproduct(G_, H_, nodematcher=nmatch, edgefilter=eflt)
     # Clique detection
     if haskey(kwargs, :connected) && kwargs[:connected]
-        (cliques, status) = maximalconncliques(prod; kwargs...)
+        cqstate = maximalconncliques(prod; kwargs...)
     else
-        (cliques, status) = maximalcliques(prod; kwargs...)
+        cqstate = maximalcliques(prod; kwargs...)
     end
     if matchtype == :nodeinduced
-        maxclique = sortstablemax(collect(cliques), by=length, init=[])
+        maxclique = maximumclique(cqstate)
         mapping = Dict(nodeattr(prod, n).g => nodeattr(prod, n).h for n in maxclique)
     else
-        for edges in cliques
+        @assert length(mapping) == 0
+        for edges in cqstate.cliques
             length(edges) > length(mapping) || continue
             mp = Dict(nodeattr(prod, e).g => nodeattr(prod, e).h for e in edges)
             delta_y_correction!(mp, G, H)
@@ -78,5 +87,5 @@ function maxcommonsubgraph(G::UndirectedGraph, H::UndirectedGraph, matchtype;
             end
         end
     end
-    return (mapping, status)
+    return MaxCommonSubgraphResult(mapping, cqstate.status)
 end
