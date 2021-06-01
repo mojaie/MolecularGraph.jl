@@ -31,22 +31,25 @@ const LONEPAIR_COUNT = Dict(
 
 
 """
-    sssr(mol::UndirectedGraph) -> Vector{Vector{Int}}
+    sssr(mol::GraphMol) -> Vector{Vector{Int}}
 
 Calculate Small set of smallest rings (SSSR).
 
 This returns a vector of rings represented as a vector of atom node index along with the cycle path.
 """
-sssr = Graph.mincycles
+@cachefirst sssr(mol::GraphMol) = mincycles(mol)
+sssr(view::SubgraphView) = sssr(view.graph)
+
 
 """
-    sssrmembership(mol::UndirectedGraph) -> Vector{Set{Int}}
+    sssrmembership(mol::GraphMol) -> Vector{Set{Int}}
 
 Return size n vector of SSSR membership set where n is the number of atom nodes.
 
 The numbers in the set correspond to the index of [`sssr`](@ref) that the node belongs.
 """
-sssrmembership = Graph.mincyclemembership
+@cachefirst sssrmembership(mol::GraphMol) = mincyclemembership(mol)
+sssrmembership(view::SubgraphView) = sssrmembership(view.graph)
 
 
 """
@@ -55,18 +58,20 @@ sssrmembership = Graph.mincyclemembership
 Return the size ``n`` vector of ring labels within the molecule that have ``n``
 fused rings (2-edge connected components in the context of graph theory).
 """
-@cachefirst function fusedrings(mol::UndirectedGraph)
+@cachefirst function fusedrings(mol::GraphMol)
     cobr = setdiff(edgeset(mol), bridges(mol))
     subg = plaingraph(edgesubgraph(mol, cobr))
-    return Graph.connectedcomponents(subg)
+    return connectedcomponents(subg)
 end
+fusedrings(view::SubgraphView) = fusedrings(view.graph)
+
 
 """
     fusedringmembership(mol::UndirectedGraph) -> Vector{Int}
 
 Return the membership of fused rings. See [`fusedrings`](@ref).
 """
-@cachefirst function fusedringmembership(mol::UndirectedGraph)
+@cachefirst function fusedringmembership(mol::GraphMol)
     arr = [Set{Int}() for i in 1:nodecount(mol)]
     for (i, conn) in enumerate(fusedrings(mol))
         for n in conn
@@ -75,9 +80,10 @@ Return the membership of fused rings. See [`fusedrings`](@ref).
     end
     return arr
 end
+fusedringmembership(view::SubgraphView) = fusedringmembership(view.graph)
 
 
-@cachefirst function sssrsizes(mol::UndirectedGraph)
+@cachefirst function sssrsizes(mol::GraphMol)
     ssrs_ = sssr(mol)
     arr = Set{Int}[]
     for ks in sssrmembership(mol)
@@ -85,18 +91,14 @@ end
     end
     return arr
 end
+sssrsizes(view::SubgraphView) = sssrsizes(view.graph)
 
 
 @cachefirst sssrcount(mol::UndirectedGraph) = length.(sssrmembership(mol))
 
-
 @cachefirst isringatom(mol::UndirectedGraph) = .!isempty.(sssrmembership(mol))
-isringatom(view::SubgraphView) = isringatom(view.graph)
 
-
-@cachefirst isringbond(mol::UndirectedGraph
-    ) = .!isempty.(edgemincyclemembership(mol))
-isringbond(view::SubgraphView) = isringbond(view.graph)
+@cachefirst isringbond(mol::UndirectedGraph) = .!isempty.(edgemincyclemembership(mol))
 
 
 
@@ -109,8 +111,7 @@ isringbond(view::SubgraphView) = isringbond(view.graph)
 Return the size ``n`` vector of atom symbols within the molecule that have ``n``
 atoms.
 """
-@cachefirst atomsymbol(mol::GraphMol) = getproperty.(nodeattrs(mol), :symbol)
-atomsymbol(view::SubgraphView) = atomsymbol(view.graph)
+@cachefirst atomsymbol(mol::UndirectedGraph) = getproperty.(nodeattrs(mol), :symbol)
 
 
 """
@@ -119,8 +120,7 @@ atomsymbol(view::SubgraphView) = atomsymbol(view.graph)
 Return the size ``n`` vector of atom charges within the molecule that have ``n``
 atoms.
 """
-@cachefirst charge(mol::GraphMol) = getproperty.(nodeattrs(mol), :charge)
-charge(view::SubgraphView) = charge(view.graph)
+@cachefirst charge(mol::UndirectedGraph) = getproperty.(nodeattrs(mol), :charge)
 
 
 """
@@ -129,9 +129,7 @@ charge(view::SubgraphView) = charge(view.graph)
 Return the size ``n`` vector of atom multiplicities within the molecule that
 have ``n`` atoms (1: non-radical, 2: radical, 3: biradical).
 """
-@cachefirst multiplicity(mol::GraphMol
-    ) = getproperty.(nodeattrs(mol), :multiplicity)
-multiplicity(view::SubgraphView) = multiplicity(view.graph)
+@cachefirst multiplicity(mol::UndirectedGraph) = getproperty.(nodeattrs(mol), :multiplicity)
 
 
 """
@@ -140,8 +138,7 @@ multiplicity(view::SubgraphView) = multiplicity(view.graph)
 Return the size ``n`` vector of bond orders within the molecule that have ``n``
 bonds.
 """
-@cachefirst bondorder(mol::GraphMol) = getproperty.(edgeattrs(mol), :order)
-bondorder(view::SubgraphView) = bondorder(view.graph)
+@cachefirst bondorder(mol::UndirectedGraph) = getproperty.(edgeattrs(mol), :order)
 
 
 """
@@ -152,8 +149,7 @@ have ``n`` atom nodes.
 
 `nodedegree` values correspond to SMARTS `D` property.
 """
-@cachefirst nodedegree(mol::GraphMol
-    ) = [degree(mol, n) for n in 1:nodecount(mol)]
+@cachefirst nodedegree(mol::GraphMol) = [degree(mol, n) for n in 1:nodecount(mol)]
 nodedegree(view::SubgraphView) = nodedegree(view.graph)
 
 
@@ -252,12 +248,10 @@ explicithconnected(view::SubgraphView) = explicithconnected(view.graph)
 Return the size ``n`` vector of the number of implicit hydrogens within
 the molecule that have ``n`` atoms.
 """
-@cachefirst function implicithconnected(mol::GraphMol)
+@cachefirst function implicithconnected(mol::UndirectedGraph)
     hcnt = (v, av) -> v === nothing ? 0 : max(0, v - av)
     return hcnt.(valence(mol), apparentvalence(mol))
 end
-
-implicithconnected(view::SubgraphView) = implicithconnected(view.graph)
 
 
 """
@@ -266,9 +260,7 @@ implicithconnected(view::SubgraphView) = implicithconnected(view.graph)
 Return the size ``n`` vector of the number of adjacent non-hydrogen atoms within
 the molecule that have ``n`` atoms.
 """
-@cachefirst heavyatomconnected(mol::GraphMol
-    ) = nodedegree(mol) - explicithconnected(mol)
-heavyatomconnected(view::SubgraphView) = heavyatomconnected(view.graph)
+@cachefirst heavyatomconnected(mol::UndirectedGraph) = nodedegree(mol) - explicithconnected(mol)
 
 
 """
@@ -278,9 +270,7 @@ Return the size ``n`` vector of the total number of hydrogens attached to the at
 
 `hydrogenconnected` values correspond to SMARTS `H` property.
 """
-@cachefirst hydrogenconnected(mol::GraphMol
-    ) = explicithconnected(mol) + implicithconnected(mol)
-hydrogenconnected(view::SubgraphView) = hydrogenconnected(view.graph)
+@cachefirst hydrogenconnected(mol::UndirectedGraph) = explicithconnected(mol) + implicithconnected(mol)
 
 
 """
@@ -290,20 +280,16 @@ Return the size ``n`` vector of the total number of adjacent atoms (including im
 
 `connectivity` values correspond to SMARTS `X` property.
 """
-@cachefirst connectivity(mol::GraphMol
-    ) = nodedegree(mol) + implicithconnected(mol)
-connectivity(view::SubgraphView) = connectivity(view.graph)
+@cachefirst connectivity(mol::UndirectedGraph) = nodedegree(mol) + implicithconnected(mol)
 
 
 
 # Hydrogen bond donor/acceptor
 
-@cachefirst function ishacceptor(mol::GraphMol)
+@cachefirst function ishacceptor(mol::UndirectedGraph)
     ac = (sym, lp) -> lp === nothing ? false : sym in (:N, :O, :F) && lp > 0
     return ac.(atomsymbol(mol), lonepair(mol))
 end
-
-ishacceptor(view::SubgraphView) = ishacceptor(view.graph)
 
 
 """
@@ -314,12 +300,10 @@ Return the number of hydrogen bond acceptors (N, O and F).
 hacceptorcount(mol::GraphMol) = reduce(+, ishacceptor(mol); init=0)
 
 
-@cachefirst function ishdonor(mol::GraphMol)
+@cachefirst function ishdonor(mol::UndirectedGraph)
     dc = (sym, h) -> sym in (:N, :O) && h > 0
     return dc.(atomsymbol(mol), hydrogenconnected(mol))
 end
-
-ishdonor(view::SubgraphView) = ishdonor(view.graph)
 
 
 """
@@ -629,10 +613,10 @@ isaromaticbond(view::SubgraphView) = isaromaticbond(view.graph)
 Convenient method to pre-calculate and cache performance bottleneck descriptors.
 """
 function precalculate!(mol)
-    @cache edgemincycles(mol)
-    @cache mincycles(mol)
-    @cache lonepair(mol)
-    @cache apparentvalence(mol)
-    @cache valence(mol)
-    nodeattrtype(mol) === SmilesAtom && @cache coordgen(mol)
+    setcache!(mol, edgemincycles)
+    setcache!(mol, mincycles)
+    setcache!(mol, lonepair)
+    setcache!(mol, apparentvalence)
+    setcache!(mol, valence)
+    nodeattrtype(mol) === SmilesAtom && setcache!(mol, coordgen)
 end

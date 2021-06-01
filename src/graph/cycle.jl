@@ -38,7 +38,7 @@ end
 
 Calculate minimum cycle basis of the unweighted undirected graph by de Pina algorithm re-interpreted by Kavitha et al. This returns an array of edge sets that consist of the cycles.
 """
-@cachefirst function edgemincycles(graph::UndirectedGraph)
+function edgemincycles(graph::UndirectedGraph)
     cycles = Vector{Int}[]
     for conn in connectedcomponents(graph)
         subg = nodesubgraph(graph, conn)
@@ -59,9 +59,7 @@ end
 
 
 
-
-
-@cachefirst function edgemincyclemembership(graph::OrderedGraph)
+function edgemincyclemembership(graph::OrderedGraph)
     edges = [Set{Int}() for n in 1:edgecount(graph)]
     for (i, cyc) in enumerate(edgemincycles(graph))
         for e in cyc
@@ -80,7 +78,7 @@ edgemincyclemembership(view::SubgraphView) = edgemincyclemembership(view.graph)
 
 Return an array of node sets that consist of the minimum cycle basis.
 """
-@cachefirst function mincycles(graph::UndirectedGraph)
+function mincycles(graph::UndirectedGraph)
     mincycs = Vector{Int}[]
     for cy in edgemincycles(graph)
         cycy = vcat(cy, cy)
@@ -95,10 +93,8 @@ Return an array of node sets that consist of the minimum cycle basis.
     return mincycs
 end
 
-mincycles(view::SubgraphView) = mincycles(view.graph)
 
-
-@cachefirst function mincyclemembership(graph::OrderedGraph)
+function mincyclemembership(graph::OrderedGraph)
     nodes = [Set{Int}() for n in 1:nodecount(graph)]
     for (i, cyc) in enumerate(mincycles(graph))
         for n in cyc

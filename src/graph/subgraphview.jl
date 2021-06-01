@@ -149,3 +149,10 @@ edgeattrs(view::Union{SubgraphView,DiSubgraphView}) = edgeattrs(view.graph)
 
 nodeattrtype(view::Union{SubgraphView,DiSubgraphView}) = nodeattrtype(view.graph)
 edgeattrtype(view::Union{SubgraphView,DiSubgraphView}) = edgeattrtype(view.graph)
+
+
+hascachestore(view::Union{SubgraphView,DiSubgraphView}) = hascachestore(view.graph)
+hascache(view::Union{SubgraphView,DiSubgraphView}, key) = hascache(view.graph, key)
+getcache(view::Union{SubgraphView,DiSubgraphView}, key) = getcache(view.graph, key)
+setcache!(view::Union{SubgraphView,DiSubgraphView}, key; kwargs...) = setcache!(view.graph, key; kwargs...)
+clearcache!(view::Union{SubgraphView,DiSubgraphView}) = clearcache!(view.graph)

@@ -8,7 +8,8 @@ export
     UndirectedGraph, DirectedGraph, HyperGraph,
     OrderedGraph, OrderedDiGraph, OrderedHyperGraph,
     AbstractNode, AbstractEdge, UndirectedEdge, DirectedEdge,
-    @cachefirst, @cache, hascache, clearcache!, clone,
+    hascachestore, hascache, getcache, setcache!, clearcache!, @cachefirst,
+    clone,
     neighbors, outneighbors, inneighbors,
     findedgekey, findalledgekeys, getedge, hasedge, nodeattr, edgeattr,
     adjacencies, successors, predecessors,
@@ -40,6 +41,49 @@ abstract type UndirectedEdge <: AbstractEdge end # TODO: unnecessary?
 abstract type DirectedEdge <: AbstractEdge end # TODO: unnecessary?
 
 
+"""
+    hascachestore(graph::AbstractGraph) -> Bool
+
+Return whether the graph has calculated property cache store.
+"""
+hascachestore(graph::AbstractGraph) = isdefined(graph, :cache)
+
+
+"""
+    hascache(graph::AbstractGraph, key) -> Bool
+
+Return whether the graph has calculated properties with the given key or not.
+"""
+hascache(graph::AbstractGraph, key) = haskey(graph.cache, key)
+
+
+"""
+    getcache(graph::AbstractGraph, key) -> Any
+
+Get cached calculated properties.
+"""
+getcache(graph::AbstractGraph, key) = graph.cache[key]
+
+
+"""
+    setcache!(graph::AbstractGraph, key; kwargs...)
+
+Set calculated property caches.
+"""
+function setcache!(graph::AbstractGraph, key; kwargs...)
+    graph.cache[key] = getfield(MolecularGraph, key)(mol; kwargs...)
+end
+
+
+"""
+    clearcache!(graph::AbstractGraph)
+
+Clear calculated property caches.
+
+Calling `clearcache!` is recommended when the graph nodes/edges are added, removed or reindexed. You can `deepcopy` or [`Graph.clone`](@ref) the graph before destructive operation instead.
+"""
+clearcache!(graph::AbstractGraph) = empty!(graph.cache)
+
 
 """
     @cachefirst expression
@@ -53,10 +97,12 @@ macro cachefirst(ex)
     return esc(quote
         $ex
         Core.@__doc__ function $func(graph; kwargs...)
-            if isdefined(graph, :cache) && isempty(kwargs)
+            if hascachestore(graph) && isempty(kwargs)
                 # Return cache
                 symf = nameof($func)
-                symf in keys(graph.cache) && return graph.cache[symf]
+                if hascache(graph, symf)
+                    return getcache(graph, symf)
+                end
             end
             return $dummy(graph; kwargs...)
         end
@@ -65,41 +111,11 @@ end
 
 
 """
-    @cache expression
-
-A macro that enables to force recalculate and set cache of descriptor arrays.
-"""
-macro cache(ex)
-    func = ex.args[1]
-    graph = ex.args[2]
-    return esc(quote
-        $graph.cache[nameof($func)] = $func($graph)
-    end)
-end
-
-
-hascache(graph, key) = isdefined(graph, :cache) && haskey(graph.cache, key)
-
-
-"""
-    clearcache!(graph::AbstractGraph) -> nothing
-
-Clear calculated property caches.
-
-Calling `clearcache!` is recommended when the graph nodes/edges are added, removed or reindexed. You can [`Graph.clone`](@ref) the graph before destructive operation instead.
-"""
-function clearcache!(graph::AbstractGraph)
-    empty!(graph.cache)
-    return
-end
-
-
-"""
     clone(graph::AbstractGraph) -> AbstractGraph
 
 Return deep copy of the graph.
 """
-function clone end
+clone = deepcopy  # TODO: use deepcopy
 
 
 

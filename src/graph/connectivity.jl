@@ -5,7 +5,7 @@
 
 export
     connectedcomponents, connectedmembership,
-    cutvertices, bridges, edgebiconnectedcomponents
+    findbiconnected, cutvertices, bridges, edgebiconnectedcomponents
 
 
 """
@@ -13,7 +13,7 @@ export
 
 Compute connectivity and return sets of the connected components.
 """
-@cachefirst function connectedcomponents(graph::UndirectedGraph)
+function connectedcomponents(graph::UndirectedGraph)
     nodes = nodeset(graph)
     components = Set{Int}[]
     while !isempty(nodes)
@@ -30,7 +30,7 @@ end
 
 Return connected component membership array.
 """
-@cachefirst function connectedmembership(graph::UndirectedGraph)
+function connectedmembership(graph::UndirectedGraph)
     mem = zeros(Int, nodecount(graph))
     for (i, conn) in enumerate(connectedcomponents(graph))
         for n in conn
@@ -102,35 +102,35 @@ function dfs!(state::BiconnectedState, depth::Int, n::Int)
 end
 
 
-function findbiconnected(graph::UndirectedGraph, sym::Symbol)
+function findbiconnected(graph::UndirectedGraph)
     state = BiconnectedState(graph)
     nodes = nodeset(graph)
     while !isempty(nodes)
         dfs!(state, pop!(nodes))
         setdiff!(nodes, keys(state.level))
     end
-    return getproperty(state, sym)
+    return state
 end
 
 
 """
     cutvertices(graph::UndirectedGraph) -> Set{Int}
+    cutvertices(state::BiconnectedState) -> Set{Int}
 
 Compute biconnectivity and return cut vertices (articulation points).
 """
-@cachefirst function cutvertices(graph::UndirectedGraph)
-    return findbiconnected(graph, :cutvertices)
-end
+cutvertices(graph::UndirectedGraph) = findbiconnected(graph).cutvertices
+cutvertices(state::BiconnectedState) = state.cutvertices
 
 
 """
     bridges(graph::UndirectedGraph) -> Set{Int}
+    bridges(state::BiconnectedState) -> Set{Int}
 
 Compute biconnectivity and return bridges.
 """
-@cachefirst function bridges(graph::UndirectedGraph)
-    return findbiconnected(graph, :bridges)
-end
+bridges(graph::UndirectedGraph) = findbiconnected(graph).bridges
+bridges(state::BiconnectedState) = state.bridges
 
 
 """
@@ -138,6 +138,5 @@ end
 
 Compute sets of biconnected component edges.
 """
-@cachefirst function edgebiconnectedcomponents(graph::UndirectedGraph)
-    return findbiconnected(graph, :biconnected)
-end
+edgebiconnectedcomponents(graph::UndirectedGraph) = findbiconnected(graph).biconnected
+edgebiconnectedcomponents(state::BiconnectedState) = state.biconnected
