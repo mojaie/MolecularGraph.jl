@@ -78,8 +78,7 @@ atomcolor(view::SubgraphView; kwargs...) = atomcolor(view.graph; kwargs...)
 
 Return whether the atom is visible in the 2D drawing.
 """
-@cachefirst function isatomvisible(
-        mol::GraphMol; setting=DRAW_SETTING, kwargs...)
+@cachefirst function isatomvisible(mol::GraphMol; setting=DRAW_SETTING, kwargs...)
     termc = setting[:display_terminal_carbon]
     vec = trues(nodecount(mol))
     deg_ = nodedegree(mol)
@@ -93,7 +92,13 @@ Return whether the atom is visible in the 2D drawing.
         mul_[i] == 1 || continue
         mas_[i] === nothing || continue
         deg_[i] == 0 && continue
-        (termc && deg_[i] == 1) && continue
+        deg_[i] == 1 && termc && continue
+        if deg_[i] == 2
+            incs = collect(incidences(mol, i))
+            if bondorder(mol)[incs[1]] == 2 && bondorder(mol)[incs[2]] == 2
+                continue # allene-like
+            end
+        end
         vec[i] = 0
     end
     return vec
@@ -137,9 +142,17 @@ sdfcoords2d(view::SubgraphView) = sdfcoords2d(view.graph)
     # Or only non-ring bonds to be "="
     if setting[:double_bond_style] == :terminal
         for i in findall(nodedegree(mol) .== 1)
-            b = iterate(incidences(mol, i))[1]
+            b = collect(incidences(mol, i))[1]
             if bondorder_[b] == 2
                 style[b] = 2
+            end
+        end
+        for i in findall(nodedegree(mol) .== 2)
+            incs = collect(incidences(mol, i))
+            if bondorder_[incs[1]] == 2 && bondorder_[incs[2]] == 2
+                # allene-like
+                style[incs[1]] = 2
+                style[incs[2]] = 2
             end
         end
     elseif setting[:double_bond_style] == :chain
