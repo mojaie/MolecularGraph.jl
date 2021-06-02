@@ -4,7 +4,7 @@
 
 ```@autodocs
 Modules = [MolecularGraph]
-Pages   = ["substructure.jl"]
+Pages   = ["structurematch.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

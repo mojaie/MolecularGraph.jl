@@ -12,7 +12,7 @@
 ## Installation
 
 ```
-(@v1.4) pkg> add MolecularGraph
+(@v1.6) pkg> add MolecularGraph
 ```
 
 

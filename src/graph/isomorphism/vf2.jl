@@ -300,9 +300,9 @@ nodesubgraph_is_isomorphic(G, H; kwargs...
 Return an iterator that generate isomorphic mappings between `H` and edge-induced subgraphs of `G`.
 The returned iterator has `ig => ih` pairs that correspond to the indices of matching edges in `G` and `H`, respectively.
 
-`nodematcher` and `edgematcher` control the features needed to be counted as a match. [`atommatch`](@ref) and [`bondmatch`](@ref) can be used to construct these functions.
+`nodematcher` and `edgematcher` control the features needed to be counted as a match.
 
-See [`MolecularGraph.edgesubgraph`](@ref) to construct the subgraphs that result from the match.
+See [`Graph.edgesubgraph`](@ref) to construct the subgraphs that result from the match.
 """
 function edgesubgraph_isomorphisms(
         G, H; nodematcher=(g,h)->true, edgematcher=(g,h)->true, kwargs...)

@@ -17,23 +17,11 @@ makedocs(
             "Chemical properties" => "moleculargraph/properties.md",
             "Preprocessing" => "moleculargraph/preprocess.md",
             "Molecular mass/weight" => "moleculargraph/mass.md",
-            "Substructure match" => "moleculargraph/substructure.md",
-            "MCS" => "moleculargraph/mcs.md",
+            "Structure match" => "moleculargraph/structurematch.md",
             "Functional group detection" => "moleculargraph/funcgroup.md"
         ],
-        "MolecularGraph.Graph" => [
-            "Interface" => "graph/interface.md",
-            "Graph models" => "graph/model.md",
-            "Generator" => "graph/generator.md",
-            "Traversal" => "graph/traversal.md",
-            "Topology" => "graph/topology.md",
-            "Operations" => "graph/operation.md",
-            "Clique" => "graph/clique.md",
-            "Isomorphism" => "graph/isomorphism.md"
-        ],
-        "MolecularGraph.Geometry" => [
-            "Cartesian" => "geometry/cartesian.md"
-        ]
+        "MolecularGraph.Graph" => "graph.md",
+        "MolecularGraph.Geometry" => "geometry.md"
     ],
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true"
