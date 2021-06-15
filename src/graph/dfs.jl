@@ -4,7 +4,7 @@
 #
 
 export
-    dfstree, dfstree_edges, cotree_edges, circuitrank
+    dfstree, edgedfstree, cotree_edges, circuitrank
 
 
 """

@@ -12,6 +12,11 @@ descendants(graph::DirectedGraph, idx::Int) = reachablenodes(graph, idx)
 ancestors(graph::DirectedGraph, idx::Int) = reversereachablenodes(graph, idx)
 
 
+"""
+    topologicalsort(graph::DirectedGraph) -> Vector{Int}
+
+Run topological sort to obtain an array of sorted nodes.
+"""
 function topologicalsort(graph::DirectedGraph)
     result = Int[]
     stack = [i for i in nodeset(graph) if indegree(graph, i) == 0]

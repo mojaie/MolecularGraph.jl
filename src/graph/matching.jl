@@ -6,21 +6,10 @@
 export maximummatching, isperfectmatching
 
 
-function backtrack(pred::Dict, n)
+function backtrack(pred, n)
     path = [n]
     x = n
     while pred[x] != x
-        x = pred[x]
-        pushfirst!(path, x)
-    end
-    return path
-end
-
-
-function backtrack(pred::Dict, n, root)
-    path = [n]
-    x = n
-    while x != root
         x = pred[x]
         pushfirst!(path, x)
     end

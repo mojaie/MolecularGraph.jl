@@ -8,10 +8,10 @@ export
     isplanar, isouterplanar
 
 
-DataStructure = Vector{Vector{Vector{Int}}}
+PlanarityTestDS = Vector{Vector{Vector{Int}}}
 
 
-struct DFSState
+struct PlanarityTestState
     graph::PlainGraph
 
     rank::Dict{Int,Int} # tree node n, dfsindex(n)
@@ -23,13 +23,13 @@ struct DFSState
     cotree::Dict{Int,Int} # cotree edge e, low(e)
     treeedge::Vector{Int} # tree edges in dfs order
 
-    function DFSState(graph)
+    function PlanarityTestState(graph)
         new(graph, Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), [])
     end
 end
 
 
-function dfs!(state::DFSState, u::Int)
+function dfs!(state::PlanarityTestState, u::Int)
     state.rank[u] = length(state.rank) + 1
     buckets = Dict{Int,Vector{Int}}() # low(e), edges
     lows = Dict{Int,Int}() # edge, lownode(e)
@@ -69,7 +69,7 @@ function dfs!(state::DFSState, u::Int)
 end
 
 
-function merge!(ds1::DataStructure, ds2::DataStructure, cotree::Dict{Int,Int})
+function merge!(ds1::PlanarityTestDS, ds2::PlanarityTestDS, cotree::Dict{Int,Int})
     if isempty(ds1)
         append!(ds1, ds2)
         @debug "Trunk"
@@ -78,7 +78,7 @@ function merge!(ds1::DataStructure, ds2::DataStructure, cotree::Dict{Int,Int})
     @assert !isempty(ds2)
     b1 = cotree[ds1[1][1][1]]
     b2 = cotree[ds2[1][1][1]]
-    newds = DataStructure()
+    newds = PlanarityTestDS()
     lowtop = 0
     while lowtop <= b2 && !isempty(ds1)
         pair = popfirst!(ds1)
@@ -134,7 +134,7 @@ end
 
 function planaritytest(graph::OrderedGraph)
     # Do DFS to determine treeedge, cotree, loworder, source
-    state = DFSState(plaingraph(graph))
+    state = PlanarityTestState(plaingraph(graph))
     nodes = nodeset(graph)
     while !isempty(nodes)
         n = pop!(nodes)
@@ -147,7 +147,7 @@ function planaritytest(graph::OrderedGraph)
     ds = Dict(c => Vector{Vector{Int}}[[[c], []]] for c in keys(state.cotree))
     while !isempty(state.treeedge)
         e = pop!(state.treeedge)
-        ds[e] = DataStructure()
+        ds[e] = PlanarityTestDS()
         @debug "inedge: $(e)"
         for i in state.loworder[e]
             @debug "stem: $(i), ds: $(ds[i])"
