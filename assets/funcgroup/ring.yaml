@@ -11,12 +11,12 @@
   query: "C1CC1"
 
 - key: Epoxide
-  have: [CyclicEther]
+  has: [CyclicEther]
   isa: [ThreeMemberedRing]
   query: "O1CC1"
 
 - key: Aziridine
-  have: [CyclicAmine]
+  has: [CyclicAmine]
   isa: [ThreeMemberedRing]
   query: "N1CC1"
 
@@ -32,12 +32,12 @@
   query: "C1CCC1"
 
 - key: Oxetane
-  have: [CyclicEther]
+  has: [CyclicEther]
   isa: [FourMemberedRing]
   query: "O1CCC1"
 
 - key: Azetidine
-  have: [CyclicAmine]
+  has: [CyclicAmine]
   isa: [FourMemberedRing]
   query: "N1CCC1"
 
@@ -53,42 +53,42 @@
   query: "C1CCCC1"
 
 - key: Tetrahydrofuran
-  have: [CyclicEther]
+  has: [CyclicEther]
   isa: [FiveMemberedRing]
   query: "O1CCCC1"
 
 - key: Furan
-  have: [AromaticOxygen]
+  has: [AromaticOxygen]
   isa: [FiveMemberedRing]
   query: "o1cccc1"
 
 - key: Pyrrolidine
-  have: [CyclicAmine]
+  has: [CyclicAmine]
   isa: [FiveMemberedRing]
   query: "N1CCCC1"
 
 - key: Pyrrole
-  have: [AromaticNitrogen]
+  has: [AromaticNitrogen]
   isa: [FiveMemberedRing]
   query: "n1cccc1"
 
 - key: Imidazole
-  have: [AromaticNitrogen]
+  has: [AromaticNitrogen]
   isa: [FiveMemberedRing]
   query: "n1cncc1"
 
 - key: Tetrazole
-  have: [AromaticNitrogen]
+  has: [AromaticNitrogen]
   isa: [FiveMemberedRing]
   query: "n1nnnc1"
 
 - key: Thiophene
-  have: [AromaticSulfur]
+  has: [AromaticSulfur]
   isa: [FiveMemberedRing]
   query: "s1cccc1"
 
 - key: Thiazole
-  have: [AromaticNitrogen, AromaticSulfur]
+  has: [AromaticNitrogen, AromaticSulfur]
   isa: [FiveMemberedRing]
   query: "s1cncc1"
 
@@ -108,37 +108,37 @@
   query: "c1ccccc1"
 
 - key: Piperidine
-  have: [CyclicAmine]
+  has: [CyclicAmine]
   isa: [SixMemberedRing]
   query: "N1CCCCC1"
 
 - key: Piperazine
-  have: [CyclicAmine]
+  has: [CyclicAmine]
   isa: [SixMemberedRing]
   query: "N1CCNCC1"
 
 - key: Pyridine
-  have: [AromaticNitrogen]
+  has: [AromaticNitrogen]
   isa: [SixMemberedRing]
   query: "n1ccccc1"
 
 - key: Pyrazine
-  have: [AromaticNitrogen]
+  has: [AromaticNitrogen]
   isa: [SixMemberedRing]
   query: "n1ccncc1"
 
 - key: Pyrimidine
-  have: [AromaticNitrogen]
+  has: [AromaticNitrogen]
   isa: [SixMemberedRing]
   query: "n1cnccc1"
 
 - key: Pyridazine
-  have: [AromaticNitrogen]
+  has: [AromaticNitrogen]
   isa: [SixMemberedRing]
   query: "n1ncccc1"
 
 - key: Morpholine
-  have: [CyclicEther, CyclicAmine]
+  has: [CyclicEther, CyclicAmine]
   isa: [SixMemberedRing]
   query: "N1CCOCC1"
 
@@ -149,7 +149,7 @@
   query: "[*r7]~1~[*r7]~[*r7]~[*r7]~[*r7]~[*r7]~[*r7]1"
 
 - key: Azepane
-  have: [CyclicAmine]
+  has: [CyclicAmine]
   isa: [SevenMemberedRing]
   query: "N1CCCCCC1"
 
@@ -167,65 +167,65 @@
 # Substituted ring
 
 - key: BetaLactam
-  have: [Azetidine, Amide]
+  has: [Azetidine, Amide]
   query: "N1C(=O)CC1"
 
 
 - key: Benzyl
-  have: [Benzene]
+  has: [Benzene]
   query: "[CD2]c1ccccc1"
 - key: Biphenyl
-  have: [Benzene]
+  has: [Benzene]
   query: "c1ccccc1Cc1ccccc1"
 
 - key: Tosyl
-  have: [Benzene, Sulfone]
+  has: [Benzene, Sulfone]
   query: "C(=O)(=O)c1ccc([CD1])cc1"
 - key: Tosylate
-  have: [Tosyl]
+  has: [Tosyl]
   query: "OC(=O)(=O)c1ccc([CD1])cc1"
 
 
 # Fused aliphatic ring
 
 - key: Norbornane
-  have: [Cyclopentane, Cyclohexane]
+  has: [Cyclopentane, Cyclohexane]
   query: "C12CCC(CC1)C2"
 
 - key: Adamantane
-  have: [Cyclohexane]
+  has: [Cyclohexane]
   query: "C12CC3CC(C2)CC(C3)C1"
 
 - key: Tropane
-  have: [Piperidine, Pyrrolidine, TertAmine]
+  has: [Piperidine, Pyrrolidine, TertAmine]
   query: "C12CCCC(CC1)N2C"
 
 
 # Fused aromatic ring
 
 - key: Naphthalene
-  have: [Benzene]
+  has: [Benzene]
   query: "c1cccc2c1cccc2"
 - key: Anthracene
-  have: [Naphthalene]
+  has: [Naphthalene]
   query: "c1cccc2c1cc1ccccc1c2"
 
 - key: Indole
-  have: [Benzene, Pyrrole]
+  has: [Benzene, Pyrrole]
   query: "c1cccc2c1ncc2"
 
 - key: Quinoline
-  have: [Benzene, Pyridine]
+  has: [Benzene, Pyridine]
   query: "c1cccc2c1nccc2"
 
 - key: Acridine
-  have: [Quinoline]
+  has: [Quinoline]
   query: "c1cccc2c1nc1ccccc1c2"
 
 - key: Purine
-  have: [Pyrimidine, Imidazole]
+  has: [Pyrimidine, Imidazole]
   query: "n1cncc2c1ncn2"
 
 - key: Pteridin
-  have: [Pyrimidine, Pyrazine]
+  has: [Pyrimidine, Pyrazine]
   query: "n1ccnc2c1cncn2"

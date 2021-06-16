@@ -78,8 +78,8 @@ function functionalgroupgraph(mol::GraphMol)
         # Update class graph
         termid = addnode!(fgc, FGTermNode(term))
         termidmap[term] = termid
-        if haskey(rcd, "have")
-            for k in rcd["have"]
+        if haskey(rcd, "has")
+            for k in rcd["has"]
                 parent = termidmap[Symbol(k)]
                 addedge!(fgc, parent, termid, FGRelationEdge(:partof))
             end
@@ -98,8 +98,8 @@ end
 function fgrouprecord(mol::GraphMol, fgc::FGC, rcd)
     newset = Set{Set{Int}}()
     # Membership filter
-    if haskey(rcd, "have")
-        for k in rcd["have"]
+    if haskey(rcd, "has")
+        for k in rcd["has"]
             if !hasterm(fgc, Symbol(k))
                 return Set{Set{Int}}()
             end

@@ -4,90 +4,90 @@
 # Amino acid
 
 - key: AminoAcid
-  have: [Carbonyl]
+  has: [Carbonyl]
   query: "NCC=O"
 - key: Gly
   isa: [AminoAcid]
   query: "N[CD2]C=O"
 
 - key: Ala
-  have: [AminoAcid]
+  has: [AminoAcid]
   query: "N[CD3](C=O)[CD1]"
 
 
 - key: Asn
-  have: [AminoAcid, Carbamoyl]
+  has: [AminoAcid, Carbamoyl]
   query: "N[CD3](C=O)[CD2]C(=O)[ND1]"
 
 - key: Asp
-  have: [AminoAcid, Carboxyl]
+  has: [AminoAcid, Carboxyl]
   query: "N[CD3](C=O)[CD2]C(=O)[OD1]"
 
 
 - key: Gln
-  have: [AminoAcid, Carbamoyl]
+  has: [AminoAcid, Carbamoyl]
   query: "N[CD3](C=O)[CD2][CD2]C(=O)[ND1]"
 
 - key: Glu
-  have: [AminoAcid, Carboxyl]
+  has: [AminoAcid, Carboxyl]
   query: "N[CD3](C=O)[CD2][CD2]C(=O)[OD1]"
 
 
 - key: Lys
-  have: [AminoAcid, PrimaryAmine]
+  has: [AminoAcid, PrimaryAmine]
   query: "N[CD3](C=O)[CD2][CD2][CD2][CD2][ND1]"
 
 - key: Arg
-  have: [AminoAcid, Guanidine]
+  has: [AminoAcid, Guanidine]
   query: "N[CD3](C=O)[CD2][CD2][CD2][ND2]C(=N)[ND1]"
 
 - key: His
-  have: [AminoAcid, Imidazole]
+  has: [AminoAcid, Imidazole]
   query: "N[CD3](C=O)[CD2]n1cncc1"
 
 
 - key: Val
-  have: [AminoAcid]
+  has: [AminoAcid]
   query: "N[CD3](C=O)[CD2]([CD1])[CD1]"
 - key: Ile
-  have: [Val]
+  has: [Val]
   query: "N[CD3](C=O)[CD3]([CD1])[CD2][CD1]"
 
 - key: Leu
-  have: [AminoAcid]
+  has: [AminoAcid]
   query: "N[CD3](C=O)[CD2][CD3]([CD1])[CD1]"
 
 
 - key: Cys
-  have: [AminoAcid, Thiol]
+  has: [AminoAcid, Thiol]
   query: "N[CD3](C=O)[CD2][SD1]"
 
 - key: Met
-  have: [AminoAcid, Sulfide]
+  has: [AminoAcid, Sulfide]
   query: "N[CD3](C=O)[CD2][CD2]S[CD1]"
 
 
 - key: Ser
-  have: [AminoAcid, Alcohol]
+  has: [AminoAcid, Alcohol]
   query: "N[CD3](C=O)[CD2][OD1]"
 - key: Thr
-  have: [Ser]
+  has: [Ser]
   query: "N[CD3](C=O)[CD2]([OD1])[CD1]"
 
 
 - key: Phe
-  have: [AminoAcid, Benzyl]
+  has: [AminoAcid, Benzyl]
   query: "N[CD3](C=O)[CD2]c1ccccc1"
 - key: Tyr
-  have: [Phe, Alcohol]
+  has: [Phe, Alcohol]
   query: "N[CD3](C=O)[CD2]c1ccc([OD1])cc1"
 
 - key: Trp
-  have: [AminoAcid, Indole]
+  has: [AminoAcid, Indole]
   query: "N[CD3](C=O)[CD2]c1cnc2c1cccc2"
 
 - key: Pro
-  have: [AminoAcid, Pyrrolidine]
+  has: [AminoAcid, Pyrrolidine]
   query: "N1[CD3](C=O)[CD2][CD2][CD2]1"
 
 
@@ -96,21 +96,21 @@
 # Nuculeic acid
 
 - key: Adenine
-  have: [Purine, PrimaryAmine]
+  has: [Purine, PrimaryAmine]
   query: "n1cnc([ND1])c2c1ncn2"
 
 - key: Guanine
-  have: [Purine, PrimaryAmine, Carbonyl]
+  has: [Purine, PrimaryAmine, Carbonyl]
   query: "n1c([ND1])nc(=[OD1])c2c1ncn2"
 
 - key: Thymine
-  have: [Pyrimidine, Carbonyl]
+  has: [Pyrimidine, Carbonyl]
   query: "n1c(=[OD1])nc(=[OD1])c([CD1])c1"
 
 - key: Cytosine
-  have: [Pyrimidine, PrimaryAmine, Carbonyl]
+  has: [Pyrimidine, PrimaryAmine, Carbonyl]
   query: "n1c(=[OD1])nc(=[ND1])cc1"
 
 - key: Uracil
-  have: [Pyrimidine, Carbonyl]
+  has: [Pyrimidine, Carbonyl]
   query: "n1c(=[OD1])nc(=[OD1])cc1"

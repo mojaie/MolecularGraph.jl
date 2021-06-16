@@ -21,12 +21,12 @@ end
     fgc = FunctionalGroupClassifier()
     setterm!(fgc, :Carbonyl, fgroupquery(coumarin, "[#6]=[OD1]"))
     res1 = fgrouprecord(
-        coumarin, fgc, Dict("have" => ["Carbonyl"], "query" => "[#6](=O)[#8]"))
+        coumarin, fgc, Dict("has" => ["Carbonyl"], "query" => "[#6](=O)[#8]"))
     @test issetequal(collect(res1)[1], [3, 4, 5])
 
     res2 = fgrouprecord(
         coumarin, fgc,
-        Dict("have" => ["Carbonyl", "Something"], "query" => "[#6](=O)[#8]"))
+        Dict("has" => ["Carbonyl", "Something"], "query" => "[#6](=O)[#8]"))
     @test isempty(res2)
 
     setterm!(fgc, :Carboxyl, res1)
