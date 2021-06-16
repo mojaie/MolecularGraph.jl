@@ -20,7 +20,7 @@ function funcgrouptable()
     for f in files
         src = joinpath(dir, f)
         data = YAML.load(open(src))
-        println("loading: $(f)")
+        @debug "loading: $(f)"
         append!(table, data)
     end
     return table
