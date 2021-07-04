@@ -347,4 +347,4 @@
 
 - key: Triflate
   has: [Sulfonate]
-  query: "OS(=O)(=O)C(F)(F)(F)"
+  query: "OS(=O)(=O)C(F)(F)F"

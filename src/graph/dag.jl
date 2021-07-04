@@ -5,7 +5,7 @@
 
 export
     descendants, ancestors,
-    topologicalsort
+    topologicalsort, transitive_reduction
 
 
 descendants(graph::DirectedGraph, idx::Int) = reachablenodes(graph, idx)
@@ -14,8 +14,11 @@ ancestors(graph::DirectedGraph, idx::Int) = reversereachablenodes(graph, idx)
 
 """
     topologicalsort(graph::DirectedGraph) -> Vector{Int}
+    topologicalsort(graph::DirectedGraph, root) -> Vector{Int}
 
 Run topological sort to obtain an array of sorted nodes.
+
+If `root` is given, the method is applied to only the downstream nodes of `root`.
 """
 function topologicalsort(graph::DirectedGraph)
     result = Int[]
@@ -34,4 +37,49 @@ function topologicalsort(graph::DirectedGraph)
     end
     edgecount(graph) == length(used) || throw(ErrorException("cycle found"))
     return result
+end
+
+
+
+function topologicalsort(graph::DirectedGraph, root)
+    sub = nodesubgraph(graph, union(descendants(graph, root), root))
+    return topologicalsort(sub)
+end
+
+
+"""
+    longestpathedges(graph::DirectedGraph, root) -> ValueIterator
+
+Return edges belong to the longest path from the given root node.
+"""
+function longestpathedges(graph::DirectedGraph, root)
+    sub = nodesubgraph(graph, union(descendants(graph, root), root))
+    dist = Dict{Int,Int}()
+    inedges = Dict{Int,Int}()
+    for n in nodeset(sub)
+        dist[n] = n == root ? 0 : typemin(Int)
+    end
+    for n in topologicalsort(sub)
+        for (inc, adj) in outneighbors(sub, n)
+            if dist[adj] < dist[n] + 1
+                dist[adj] = dist[n] + 1
+                inedges[adj] = inc
+            end
+        end
+    end
+    return values(inedges)
+end
+
+
+"""
+    transitive_reduction(graph::DirectedGraph) -> Set{Int}
+
+Return transitive reduction as a subset of the DAG edges.
+"""
+function transitive_reduction(graph::DirectedGraph)
+    edges = Set{Int}()
+    for v in nodeset(graph)
+        union!(edges, longestpathedges(graph, v))
+    end
+    return edges
 end
