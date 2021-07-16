@@ -16,61 +16,66 @@ const SMARTS_BOND_SYMBOL = Dict(
 
 
 defaultbond(state::SmilesParser) = SmilesBond()
-defaultbond(state::SmartsParser) = SmartsBond(
-    :or => (:bondorder => 1, :isaromaticbond => true))
+defaultbond(state::SmartsParser) = SmartsBond(:defaultbond => true)
 
 
+"""
+    bondsymbol!(state::SmartsParserState) -> Union{Pair,Nothing}
+
+BondSymbol <- [-=#@:/\\] / '/?' / '\\?'
+"""
 function bondsymbol!(state::SmartsParserState)
-    """ BondSymbol <- [-=#@:/\\] / '/?' / '\\?'
-    """
-    c = read(state)
-    if c in keys(SMARTS_BOND_SYMBOL)
-        cond = SMARTS_BOND_SYMBOL[c]
+    sym1 = read(state)
+    sym2 = lookahead(state, 1)
+    if sym1 == '/' && sym2 == '?'
+        forward!(state, 2)
+        return :not => (:stereo => :down)
+    elseif sym1 == '\\' && sym2 == '?'
+        forward!(state, 2)
+        return :not => (:stereo => :up)
+    elseif sym1 in keys(SMARTS_BOND_SYMBOL)
         forward!(state)
-        if c == '/' && read(state) == '?'
-            forward!(state)
-            return :not => (:stereo => :down)
-        elseif c == '\\' && read(state) == '?'
-            forward!(state)
-            return :not => (:stereo => :up)
-        else
-            return cond
-        end
+        return SMARTS_BOND_SYMBOL[sym1]
     end
     # Implicit single bond returns nothing
-    return
 end
 
 
+
+"""
+    bond!(state::SmilesParser) -> Union{SmilesBond,Nothing}
+
+Bond <- BondSymbol?
+"""
 function bond!(state::SmilesParser)
-    """ Bond <- BondSymbol?
-    """
-    b = bondsymbol!(state)
-    if b === nothing
+    fml = bondsymbol!(state)
+    if fml === nothing
         return
-    elseif b[1] == :bondorder
-        return SmilesBond(b[2])
-    elseif b[1] == :isaromaticbond
+    elseif fml[1] == :bondorder
+        return SmilesBond(fml[2])
+    elseif fml[1] == :isaromaticbond
         return SmilesBond(1, true, :unspecified)
-    elseif b[1] == :stereo
-        return SmilesBond(1, false, b[2])
+    elseif fml[1] == :stereo
+        return SmilesBond(1, false, fml[2])
     end
-    return
+    # return nothing
 end
 
 
+"""
+    bond!(state::SmartsParser) -> Union{SmartsBond,Nothing}
+
+Bond <- '~' / (BondSymbol / LogicalCond)?
+"""
 function bond!(state::SmartsParser)
-    """ Bond <- '~' / (BondSymbol / LogicalCond)?
-    """
     if read(state) == '~'
         forward!(state)
         return SmartsBond()
-    else
-        b = lglowand!(state, bondsymbol!)
-        if b !== nothing
-            return SmartsBond(b)
-        end
+    end
+    fml = lglowand!(state, bondsymbol!)
+    if fml !== nothing
+        fml = associate_operations(fml)
+        return SmartsBond(fml)
     end
     # return nothing: Invalid bond token or implicit single bond
-    return
 end

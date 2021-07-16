@@ -4,10 +4,9 @@
 #
 
 export
-    SmilesParser,
-    SmartsParser,
-    smilestomol,
-    smartstomol
+    SmilesParser, SmartsParser,
+    smilestomol, smartstomol,
+    associate_operations, isequivalent
 
 
 mutable struct SmartsParserState{N<:AbstractNode,E<:UndirectedEdge}
@@ -50,8 +49,9 @@ function Base.parse(::Type{SMARTS}, str::AbstractString)
         state = SmartsParser(str, false)
         fragment!(state)
     end
-    return querymol(
-        state.edges, state.nodeattrs, state.edgeattrs, state.connectivity)
+    qmol = querymol(state.edges, state.nodeattrs, state.edgeattrs, state.connectivity)
+    resolvedefaultbond!(qmol)
+    return qmol
 end
 
 
@@ -110,3 +110,73 @@ end
 forward!(state) = forward!(state, 1)
 backtrack!(state, num) = forward!(state, -num)
 backtrack!(state) = backtrack!(state, 1)
+
+
+
+"""
+    associate_operations(formula::Pair) -> Pair
+
+Return juxtaposed formulae (ex. :and => (A, :and => (B, C)) -> :and => (A, B, C)).
+"""
+function associate_operations(formula::Pair)
+    formula.first in (:and, :or) || return formula
+    associated = Set()
+    for elem in formula.second
+        if elem.first === formula.first
+            union!(associated, associate_operations(elem).second)
+        else
+            push!(associated, elem)
+        end
+    end
+    return formula.first => Tuple(associated)
+end
+
+
+"""
+    isequivalent(formula1::Pair, formula2::Pair) -> Pair
+
+Check if the two formulae are equivalent.
+"""
+function isequivalent(formula1::Pair, formula2::Pair)
+    formula1.first === formula2.first || return false
+    formula1.first in (:and, :or, :not) || return formula1.second == formula2.second
+    formula1.first === :not && return isequivalent(formula1.second, formula2.second)
+    length(formula1.second) == length(formula2.second) || return false
+    f1map = Dict(i => v for (i, v) in enumerate(formula1.second))
+    f2map = Dict(i => v for (i, v) in enumerate(formula2.second))
+    iseq = (x, y) -> isequivalent(f1map[x], f2map[y])
+    return maxcard(keys(f1map), keys(f2map), iseq) == length(f1map)
+end
+
+
+"""
+    resolvedefaultbond(qmol::QueryMol) -> Nothing
+
+Resolve default SMARTS bonds.
+"""
+function resolvedefaultbond!(qmol::QueryMol)
+    newedges = QueryBond[]
+    for e in 1:edgecount(qmol)
+        (u, v) = getedge(qmol, e)
+        q = edgeattr(qmol, e).query
+        if q == (:defaultbond => true)
+            uq = nodeattr(qmol, u).query
+            isuqalip = uq == (:isaromatic => false) || (uq.first === :and && (:isaromatic => false) in uq.second)
+            isuqarom = uq == (:isaromatic => true) || (uq.first === :and && (:isaromatic => true) in uq.second)
+            vq = nodeattr(qmol, v).query
+            isvqalip = vq == (:isaromatic => false) || (uq.first === :and && (:isaromatic => false) in uq.second)
+            isvqarom = vq == (:isaromatic => true) || (vq.first === :and && (:isaromatic => true) in vq.second)
+            if isuqarom && isvqarom
+                push!(newedges, SmartsBond(:isaromaticbond => true))
+            elseif (isuqalip || isuqarom) && (isvqalip || isvqarom)
+                push!(newedges, SmartsBond(:bondorder => 1))
+            else
+                push!(newedges, SmartsBond(:or => (:bondorder => 1, :isaromaticbond => true)))
+            end
+        else
+            push!(newedges, edgeattr(qmol, e))
+        end
+    end
+    empty!(qmol.edgeattrs)
+    append!(qmol.edgeattrs, newedges)
+end

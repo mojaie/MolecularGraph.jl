@@ -6,7 +6,6 @@ using MolecularGraph:
 @testset "smarts.logicaloperator" begin
 
 @testset "logicaloperator" begin
-
     # Test function
     function parseabc(state)
         if read(state) == 'a'
@@ -52,12 +51,11 @@ using MolecularGraph:
 
     state = SmartsParser("", false)
     null = lglowand!(state, parseabc)
-    @test null == nothing
+    @test null === nothing
 
-    state = SmartsParser("!a!x", false)
+    state = SmartsParser("!a!b", false)
     not3 = lglowand!(state, parseabc)
-    @test not3 == (:not => (:v => :a))
-    @test state.pos == 3
+    @test not3 == (:and => (:not => (:v => :a), :not => (:v => :b)))
 
     state = SmartsParser("abcdef", false)
     and4 = lghighand!(state, parseabc)

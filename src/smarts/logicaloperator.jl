@@ -4,108 +4,110 @@
 #
 
 
-""" The argument `func` is a parser function which has a parser state as an
-argument, process tokens found in the given text, and returns nothing if no
-valid tokens were found.
 """
+    lglowand!(state::SmartsParserState) -> Union{Pair,Nothing}
 
+LogicalLowAnd <- Or (';' Or)*
+
+The argument `func` is a parser function which has a parser state as an argument,
+process tokens found in the given text, and returns nothing if no valid tokens were found.
+"""
 function lglowand!(state::SmartsParserState, func)
-    """ LogicalLowAnd <- Or (';' Or)*
-    """
-    cond = []
-    c = lgor!(state, func)
-    while c !== nothing
-        push!(cond, c)
+    fmls = []
+    fml = lgor!(state, func)
+    fml === nothing && return
+    while fml !== nothing
+        push!(fmls, fml)
         if read(state) == ';'
             forward!(state)
-            c = lgor!(state, func)
+            fml = lgor!(state, func)
         else
             break
         end
     end
-    if isempty(cond)
-        return
-    elseif length(cond) == 1
-        return cond[1]
+    @assert !isempty(fmls) "(lglowand!) invalid AND(;) operation"
+    if length(fmls) == 1
+        return fmls[1]
     else
-        return :and => Tuple(cond)
+        return :and => Tuple(fmls)
     end
 end
 
 
+"""
+    lgor!(state::SmartsParserState) -> Union{Pair,Nothing}
+
+Or <- And (',' And)*
+
+The argument `func` is a parser function which has a parser state as an argument,
+process tokens found in the given text, and returns nothing if no valid tokens were found.
+"""
 function lgor!(state::SmartsParserState, func)
-    """ Or <- And (',' And)*
-    """
-    cond = []
-    c = lghighand!(state, func)
-    while c !== nothing
-        push!(cond, c)
+    fmls = []
+    fml = lghighand!(state, func)
+    fml === nothing && return
+    while fml !== nothing
+        push!(fmls, fml)
         if read(state) == ','
             forward!(state)
-            c = lghighand!(state, func)
+            fml = lghighand!(state, func)
         else
             break
         end
     end
-    if isempty(cond)
-        return
-    elseif length(cond) == 1
-        return cond[1]
+    @assert !isempty(fmls) "(lgor!) invalid OR(,) operation"
+    if length(fmls) == 1
+        return fmls[1]
     else
-        return :or => Tuple(cond)
+        return :or => Tuple(fmls)
     end
 end
 
 
+"""
+    lghighand!(state::SmartsParserState) -> Union{Pair,Nothing}
+
+And <- Not ('&'? Not)*
+
+The argument `func` is a parser function which has a parser state as an argument,
+process tokens found in the given text, and returns nothing if no valid tokens were found.
+"""
 function lghighand!(state::SmartsParserState, func)
-    """ And <- Not ('&'? Not)*
-    """
-    cond = []
-    c = lgnot!(state, func)
-    while c !== nothing
-        push!(cond, c)
+    fmls = []
+    fml = lgnot!(state, func)
+    fml === nothing && return
+    while fml !== nothing
+        if fml != (:skip => true)  # valid token but no meaning (ex. wildcard atom *)
+            push!(fmls, fml)
+        end
         if read(state) == '&'
             forward!(state)
         end
-        c = lgnot!(state, func)
+        fml = lgnot!(state, func)
     end
-    if isempty(cond)
-        return
-    elseif length(cond) == 1
-        return cond[1]
+    @assert !isempty(fmls) "(lghighand!) invalid AND(&) operation"
+    if length(fmls) == 1
+        return fmls[1]
     else
-        return :and => Tuple(cond)
+        return :and => Tuple(fmls)
     end
 end
 
 
+"""
+    lgnot!(state::SmartsParserState) -> Union{Pair,Nothing}
+
+Not <- '!'? Element
+
+The argument `func` is a parser function which has a parser state as an argument,
+process tokens found in the given text, and returns nothing if no valid tokens were found.
+"""
 function lgnot!(state::SmartsParserState, func)
-    """ Not <- '!'? Element
-    """
     if read(state) == '!'
         forward!(state)
-        cond = func(state)
-        if cond === nothing
-            # TODO: need backtracking in the case like [!=!c]
-            backtrack!(state)
-            return
-        else
-            return :not => cond
-        end
-    else
-        return func(state)
+        fml = func(state)
+        @assert fml !== nothing "(lgnot!) invalid NOT(!) operation"
+        return :not => fml
     end
-end
-
-
-function collectand(cond::Pair)
-    res = Dict{Symbol,Any}()
-    if cond.first === :and
-        for s in cond.second
-            merge!(res, collectand(s))
-        end
-    else
-        res[cond.first] = cond.second
-    end
-    return res
+    return func(state)  # can be Nothing if the parser get stop token
 end

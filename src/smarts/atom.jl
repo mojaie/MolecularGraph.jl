@@ -22,145 +22,88 @@ const SMARTS_CHARGE_SIGN = Dict(
 )
 
 
+"""
+    atomsymbol!(state::SmartsParserState) -> Union{Pair,Nothing}
+
+Atomsymbol <- Br / Cl / [AaBCcNnOoPpSsFI*]
+"""
 function atomsymbol!(state::SmartsParserState)
-    """ Atomsymbol <- Br / Cl / [AaBCcNnOoPpSsFI*]
-    """
-    if read(state) == 'C' && lookahead(state, 1) == 'l'
+    sym1 = read(state)
+    sym2 = lookahead(state, 1)
+    if sym1 == 'C' && sym2 == 'l'
         forward!(state, 2)
         return :and => (:atomsymbol => :Cl, :isaromatic => false)
-    elseif read(state) == 'B' && lookahead(state, 1) == 'r'
+    elseif sym1 == 'B' && sym2 == 'r'
         forward!(state, 2)
         return :and => (:atomsymbol => :Br, :isaromatic => false)
-    elseif read(state) in "BCNOPSFI"
-        sym = Symbol(read(state))
+    elseif sym1 in "BCNOPSFI"
         forward!(state)
-        return :and => (:atomsymbol => sym, :isaromatic => false)
-    elseif read(state) in "cnops"
-        sym = Symbol(uppercase(read(state)))
+        return :and => (:atomsymbol => Symbol(sym1), :isaromatic => false)
+    elseif sym1 in "cnops"
         forward!(state)
-        return :and => (:atomsymbol => sym, :isaromatic => true)
-    elseif read(state) == 'A'
+        return :and => (:atomsymbol => Symbol(uppercase(sym1)), :isaromatic => true)
+    elseif sym1 == 'A'
         forward!(state)
         return :isaromatic => false
-    elseif read(state) == 'a'
+    elseif sym1 == 'a'
         forward!(state)
         return :isaromatic => true
-    elseif read(state) == '*'
+    elseif sym1 == '*'
         forward!(state)
         return :any => true
     end
+    # return nothing
 end
 
 
-function atom!(state::SmilesParser)
-    """ Atom <- '[' AtomProp+ ']' / AtomSymbol
-    """
-    c = read(state)
-    if c == '['
-        forward!(state)
-        a = lghighand!(state, atomprop!)
-        ca = read(state)
-        @assert ca == ']' "(atom!) unexpected token: $(ca)"
-        forward!(state)
-        prop = collectand(a)
-        @assert haskey(prop, :atomsymbol) || prop[:hydrogenconnected] >= 1
-        atoms = [SmilesAtom(
-            get(prop, :atomsymbol, :H),
-            get(prop, :charge, 0),
-            1,
-            get(prop, :mass, nothing),
-            get(prop, :isaromatic, false),
-            get(prop, :stereo, :unspecified)
-        )]
-        hcnt = get(prop, :hydrogenconnected, 0)
-        if !haskey(prop, :atomsymbol)
-            hcnt -= 1
-        end
-        for h in 1:hcnt
-            push!(atoms, SmilesAtom(:H))
-        end
-            
-        return atoms
-    else
-        a = atomsymbol!(state)
-        if a === nothing
-            return SmilesAtom[]
-        else
-            sym = a.second[1].second
-            arom = a.second[2].second
-            return [SmilesAtom(sym, 0, 1, nothing, arom, :unspecified)]
-        end
-    end
-end
 
+"""
+    atomprop!(state::SmartsParserState) -> Union{Pair,Nothing}
 
-function atom!(state::SmartsParser)
-    """ Atom <- '[' (AtomProp / LogicalOperator)+ ']' / AtomSymbol
-    """
-    c = read(state)
-    if c == '['
-        forward!(state)
-        q = lglowand!(state, atomprop!)
-        cq = read(state)
-        @assert cq == ']' "(atomquery!) unexpected token: $(cq)"
-        forward!(state)
-        return [SmartsAtom(q)]
-    else
-        a = atomsymbol!(state)
-        if a === nothing
-            return SmartsAtom[]
-        else
-            return [SmartsAtom(a)]
-        end
-    end
-end
-
-
+AtomProp <- '\$(' RecursiveQuery ')' / Mass / Symbol / AtomNum / Stereo / CHG / [DHRrvX]
+"""
 function atomprop!(state::SmartsParserState)
-    """ AtomProp <- '\$(' RecursiveQuery ')' / Mass / Symbol / AtomNum /
-        Stereo / CHG / [DHRrvX]
-    """
-    c = read(state)
-    c2 = lookahead(state, 1)
-    if haskey(ATOMSYMBOLMAP, string(uppercase(c), c2))
+    sym1 = read(state)
+    sym2 = lookahead(state, 1)
+    if haskey(ATOMSYMBOLMAP, string(uppercase(sym1), sym2))
         # Two letter atoms
         forward!(state, 2)
-        if string(uppercase(c), c2) in ("As", "Se")
+        if string(uppercase(sym1), sym2) in ("As", "Se")
             return :and => (
-                :atomsymbol => Symbol(uppercase(c), c2),
-                :isaromatic => islowercase(c)
+                :atomsymbol => Symbol(uppercase(sym1), sym2),
+                :isaromatic => islowercase(sym1)
             )
         end
-        @assert isuppercase(c)
-        return :atomsymbol => Symbol(c, c2)
-    elseif haskey(SMARTS_ATOM_COND_SYMBOL, c)
+        @assert isuppercase(sym1)
+        return :atomsymbol => Symbol(sym1, sym2)
+    elseif haskey(SMARTS_ATOM_COND_SYMBOL, sym1)
         # Neighbor and ring conditions
         forward!(state)
-        if isdigit(c2)
-            num = parse(Int, c2)
+        if isdigit(sym2)
+            num = parse(Int, sym2)
             forward!(state)
         else
-            c in (:r, :R) && return :not => (:sssrcount => 0)
+            sym1 in ('r', 'R') && return :not => (:sssrcount => 0)
             num = 1
         end
-        return SMARTS_ATOM_COND_SYMBOL[c] => num
-    elseif c in ('A', 'a', '*')
+        return SMARTS_ATOM_COND_SYMBOL[sym1] => num
+    elseif sym1 in ('A', 'a', '*')
         forward!(state)
-        c == 'A' && return :isaromatic => false
-        c == 'a' && return :isaromatic => true
-        c == '*' && return :any => true
-    elseif haskey(ATOMSYMBOLMAP, string(uppercase(c)))
+        sym1 == 'A' && return :isaromatic => false
+        sym1 == 'a' && return :isaromatic => true
+        sym1 == '*' && return :skip => true
+    elseif haskey(ATOMSYMBOLMAP, string(uppercase(sym1)))
         # Single letter atoms
         forward!(state)
-        if uppercase(c) in "BCNOPS"
+        if uppercase(sym1) in "BCNOPS"
             return :and => (
-                :atomsymbol => Symbol(uppercase(c)),
-                :isaromatic => islowercase(c)
+                :atomsymbol => Symbol(uppercase(sym1)),
+                :isaromatic => islowercase(sym1)
             )
         end
-        @assert isuppercase(c)
-        return :atomsymbol => Symbol(c)
-    elseif c == '#'
+        @assert isuppercase(sym1)
+        return :atomsymbol => Symbol(sym1)
+    elseif sym1 == '#'
         # Atomic number
         forward!(state)
         start = state.pos
@@ -170,22 +113,21 @@ function atomprop!(state::SmartsParserState)
         num = parse(Int, SubString(state.input, start, state.pos))
         forward!(state)
         return :atomsymbol => atomsymbol(num)
-    elseif c in keys(SMARTS_CHARGE_SIGN)
+    elseif sym1 in keys(SMARTS_CHARGE_SIGN)
         # Charge
         forward!(state)
-        c2 = read(state)
-        if isdigit(c2)
-            chg = parse(Int, c2)
+        if isdigit(sym2)
+            chg = parse(Int, sym2)
             forward!(state)
         else
             chg = 1
-            while read(state) == c
+            while read(state) == sym1
                 forward!(state)
                 chg += 1
             end
         end
-        return :charge => chg * SMARTS_CHARGE_SIGN[c]
-    elseif c == '@'
+        return :charge => chg * SMARTS_CHARGE_SIGN[sym1]
+    elseif sym1 == '@'
         # Stereo
         # @ -> anticlockwise, @@ -> clockwise, ? -> or not specified
         forward!(state)
@@ -200,7 +142,7 @@ function atomprop!(state::SmartsParserState)
         else
             return :stereo => cw ? :clockwise : :anticlockwise
         end
-    elseif isdigit(c)
+    elseif isdigit(sym1)
         # Isotope
         start = state.pos
         while isdigit(lookahead(state, 1))
@@ -209,7 +151,7 @@ function atomprop!(state::SmartsParserState)
         num = SubString(state.input, start, state.pos)
         forward!(state)
         return :mass => parse(Int, num)
-    elseif c == '$' && lookahead(state, 1) == '('
+    elseif sym1 == '$' && sym2 == '('
         # Recursive
         forward!(state, 2)
         start = state.pos
@@ -229,5 +171,79 @@ function atomprop!(state::SmartsParserState)
         q = SubString(state.input, start, state.pos - 1)
         forward!(state)
         return :recursive => q
+    end
+    # return nothing
+end
+
+
+
+"""
+    atom!(state::SmilesParser) -> Vector{SmilesAtom}
+
+Atom <- '[' AtomProp+ ']' / AtomSymbol
+"""
+function atom!(state::SmilesParser)
+    sym1 = read(state)
+    if sym1 == '['
+        forward!(state)
+        fml = lghighand!(state, atomprop!)
+        fml = associate_operations(fml)
+        symcls = read(state)
+        @assert symcls == ']' "(atom!) unexpected token: $(symcls)"
+        forward!(state)
+        prop = Dict(fml.first === :and ? fml.second : fml)
+        @assert haskey(prop, :atomsymbol) || prop[:hydrogenconnected] >= 1
+        atoms = [SmilesAtom(
+            get(prop, :atomsymbol, :H),
+            get(prop, :charge, 0),
+            1,
+            get(prop, :mass, nothing),
+            get(prop, :isaromatic, false),
+            get(prop, :stereo, :unspecified)
+        )]
+        hcnt = get(prop, :hydrogenconnected, 0)
+        if !haskey(prop, :atomsymbol)
+            hcnt -= 1
+        end
+        for h in 1:hcnt
+            push!(atoms, SmilesAtom(:H))
+        end
+        return atoms
+    else
+        fml = atomsymbol!(state)
+        if fml === nothing
+            return SmilesAtom[]
+        else
+            asym = fml.second[1].second
+            arom = fml.second[2].second
+            return [SmilesAtom(asym, 0, 1, nothing, arom, :unspecified)]
+        end
+    end
+end
+
+
+"""
+    atom!(state::SmartsParser) -> Vector{SmartsAtom}
+
+Atom <- '[' (AtomProp / LogicalOperator)+ ']' / AtomSymbol
+"""
+function atom!(state::SmartsParser)
+    sym1 = read(state)
+    if sym1 == '['
+        forward!(state)
+        fml = lglowand!(state, atomprop!)
+        @assert fml !== nothing "(atom!) empty atomprop"
+        fml = associate_operations(fml)
+        symcls = read(state)
+        @assert symcls == ']' "(atom!) unexpected token: $(symcls)"
+        forward!(state)
+        return [SmartsAtom(fml)]
+    else
+        fml = atomsymbol!(state)
+        if fml === nothing
+            return SmartsAtom[]
+        else
+            return [SmartsAtom(fml)]
+        end
     end
 end

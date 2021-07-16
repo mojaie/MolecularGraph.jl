@@ -4,6 +4,7 @@ using MolecularGraph: atomsymbol!, atomprop!, atom!
 @testset "smarts.atom" begin
 
 @testset "atomsymbol" begin
+    # outside of []
     state = SmartsParser("Cl", false)
     Chloride = atomsymbol!(state)
     @test Chloride == (:and => (:atomsymbol => :Cl, :isaromatic => false))
@@ -17,9 +18,14 @@ using MolecularGraph: atomsymbol!, atomprop!, atom!
     state = SmartsParser("p", false)
     aromp = atomsymbol!(state)
     @test aromp == (:and => (:atomsymbol => :P, :isaromatic => true))
+
+    state = SmartsParser("*", false)
+    anyatom = atomsymbol!(state)
+    @test anyatom == (:any => true)
 end
 
 @testset "atomprop" begin
+    # inside of []
     state = SmartsParser("s", false)
     aroms = atomprop!(state)
     @test aroms == (:and => (:atomsymbol => :S, :isaromatic => true))
@@ -138,11 +144,60 @@ end
 @testset "smartsatom" begin
     state = SmartsParser("c", false)
     aromc = atom!(state)[1]
-    @test aromc.query == (:and => (:atomsymbol => :C, :isaromatic => true))
+    @test isequivalent(aromc.query, :and => (:atomsymbol => :C, :isaromatic => true))
+
+    state = SmartsParser("a", false)
+    anyarom = atom!(state)[1]
+    @test isequivalent(anyarom.query, :isaromatic => true)
+
+    state = SmartsParser("[]", false)
+    @test_throws AssertionError atom!(state)
+
+    state = SmartsParser("[*]", false)
+    @test_throws AssertionError atom!(state)
 
     state = SmartsParser("[#16]", false)
     no16 = atom!(state)[1]
-    @test no16.query == (:atomsymbol => :S)
+    @test isequivalent(no16.query, :atomsymbol => :S)
+
+    state = SmartsParser("[CH2]", false)
+    methylene = atom!(state)[1]
+    @test isequivalent(
+        associate_operations(methylene.query),
+        :and => (:atomsymbol => :C, :isaromatic => false, :hydrogenconnected => 2)
+    )
+
+    state = SmartsParser("[!C;R]", false)
+    ringnotalp = atom!(state)[1]
+    @test isequivalent(
+        associate_operations(ringnotalp.query),
+        :and => (
+            :not => (:and => (:atomsymbol => :C, :isaromatic => false)),
+            :not => (:sssrcount => 0)
+        )
+    )
+
+    state = SmartsParser("[n&H1]", false)
+    nh1 = atom!(state)[1]
+    @test isequivalent(
+        associate_operations(nh1.query),
+        :and => (:atomsymbol => :N, :isaromatic => true, :hydrogenconnected => 1)
+    )
+
+    state = SmartsParser("[*r6]", false)
+    sixmem = atom!(state)[1]
+    @test isequivalent(associate_operations(sixmem.query), :sssrsizes => 6)
+
+    state = SmartsParser("[35*]", false)
+    any35 = atom!(state)[1]
+    @test isequivalent(associate_operations(any35.query), :mass => 35)
+
+    state = SmartsParser("[F,Cl,Br,I]", false)
+    fourhalo = atom!(state)[1]
+    @test isequivalent(
+        associate_operations(fourhalo.query),
+        :or => (:atomsymbol => :F, :atomsymbol => :Cl, :atomsymbol => :Br, :atomsymbol => :I)
+    )
 end
 
 end # smiles.atom
