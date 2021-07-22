@@ -8,7 +8,7 @@ using YAML
 using MolecularGraph
 using MolecularGraph.Graph
 
-const INPUT_DIR = joinpath(PROJECT_DIR, "./assets/funcgroup/")
+const INPUT_DIR = joinpath(PROJECT_DIR, "./assets/raw/functionalgroup")
 const OUTPUT_FILE = joinpath(PROJECT_DIR, "./assets/const/functionalgroup.yaml")
 
 
@@ -43,9 +43,7 @@ function run()
     # read list of functional groups from .yaml files
     fgrecords = []
     for f in readdir(INPUT_DIR)
-        if f == "funcgroup.yaml"
-            append!(fgrecords, YAML.load(open(joinpath(INPUT_DIR, f))))
-        end
+        append!(fgrecords, YAML.load(open(joinpath(INPUT_DIR, f))))
     end
     for r in fgrecords
         delete!(r, "isa")
@@ -75,7 +73,7 @@ function run()
             # has
             for q1 in q1s
                 for q2 in q2s
-                    if hassubstructmatch(q1, q2, atommatcher=hasatommatch, bondmatcher=hasbondmatch)
+                    if hassubstructmatch(q1, q2, atommatcher=isaatommatch, bondmatcher=isabondmatch)
                         push!(hasedges, (u, v))
                         println(rcd1["key"], " has ", rcd2["key"])
                         break
@@ -100,6 +98,7 @@ function run()
     end
     for e in redhasedges
         (u, v) = getedge(hasgraph, e)
+        (u, v) in isaedges && continue
         if !haskey(fgrecords[u], "has")
             fgrecords[u]["has"] = []
         end

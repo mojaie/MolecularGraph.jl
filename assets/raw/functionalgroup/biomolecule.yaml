@@ -1,0 +1,61 @@
+---
+
+
+# Amino acid
+
+- key: AminoAcidResidue
+  query: "NCC=O"
+- key: Gly
+  query: "N[CH2]C=O"
+- key: Ala
+  query: "NC(C=O)C"
+- key: Asn
+  query: "NC(C=O)CC(=O)N"
+- key: Asp
+  query: "NC(C=O)CC(=O)O"
+- key: Gln
+  query: "NC(C=O)CCC(=O)N"
+- key: Glu
+  query: "NC(C=O)CCC(=O)O"
+- key: Lys
+  query: "NC(C=O)CCCCN"
+- key: Arg
+  query: "NC(C=O)CCCNC(=N)N"
+- key: His
+  query: "NC(C=O)Cn1cncc1"
+- key: Val
+  query: "NC(C=O)C(C)C"
+- key: Ile
+  query: "NC(C=O)C(C)CC"
+- key: Leu
+  query: "NC(C=O)CC(C)C"
+- key: Cys
+  query: "NC(C=O)CS"
+- key: Met
+  query: "NC(C=O)CCSC"
+- key: Ser
+  query: "NC(C=O)CO"
+- key: Thr
+  query: "NC(C=O)C(O)C"
+- key: Phe
+  query: "NC(C=O)Cc1ccccc1"
+- key: Tyr
+  query: "NC(C=O)Cc1ccc(O)cc1"
+- key: Trp
+  query: "NC(C=O)Cc1cnc2c1cccc2"
+- key: Pro
+  query: "N1C(C=O)CCC1"
+
+
+# Nuculeic acid
+
+- key: Adenine
+  query: "n1cnc(N)c2c1ncn2"
+- key: Guanine
+  query: "n1c(N)nc(=O)c2c1ncn2"
+- key: Thymine
+  query: "n1c(=O)nc(=O)c(C)c1"
+- key: Cytosine
+  query: "n1c(=O)nc(N)cc1"
+- key: Uracil
+  query: "n1c(=O)nc(=O)cc1"

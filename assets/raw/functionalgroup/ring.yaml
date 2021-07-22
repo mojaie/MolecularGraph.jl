@@ -1,0 +1,126 @@
+---
+
+
+# 3 membered
+
+- key: Cyclopropane
+  query: "C1CC1"
+- key: Epoxide
+  query: "O1CC1"
+- key: Aziridine
+  query: "N1CC1"
+
+
+# 4 membered
+
+- key: Cyclobutane
+  query: "C1CCC1"
+- key: Oxetane
+  query: "O1CCC1"
+- key: Azetidine
+  query: "N1CCC1"
+
+
+# 5 membered
+
+- key: Cyclopentane
+  query: "C1CCCC1"
+- key: Tetrahydrofuran
+  query: "O1CCCC1"
+- key: Furan
+  query: "o1cccc1"
+
+- key: Pyrrolidine
+  query: "N1CCCC1"
+- key: Pyrrole
+  query: "n1cccc1"
+- key: Imidazole
+  query: "n1cncc1"
+- key: Tetrazole
+  query: "n1nnnc1"
+
+- key: Thiophene
+  query: "s1cccc1"
+- key: Thiazole
+  query: "s1cncc1"
+
+
+# 6 membered
+
+- key: Cyclohexane
+  query: "C1CCCCC1"
+- key: Phenyl
+  query: "c1ccccc1"
+
+- key: Piperidine
+  query: "N1CCCCC1"
+- key: Piperazine
+  query: "N1CCNCC1"
+- key: Pyridine
+  query: "n1ccccc1"
+- key: Pyrazine
+  query: "n1ccncc1"
+- key: Pyrimidine
+  query: "n1cnccc1"
+- key: Pyridazine
+  query: "n1ncccc1"
+
+- key: Morpholine
+  query: "N1CCOCC1"
+
+
+# 7-membered
+
+- key: Azepane
+  query: "N1CCCCCC1"
+
+
+# Substituted ring
+
+- key: Benzyl
+  query: "Cc1ccccc1"
+- key: Biphenyl
+  query: "c1ccccc1c1ccccc1"
+
+- key: Quinone
+  query: "O=C1CCC(=O)CC1"
+- key: OrthoQuinone
+  query: "O=C1CCCCC1=O"
+
+- key: BetaLactam
+  query: "N1C(=O)CC1"
+
+- key: Tosyl
+  query: "O=S(=O)c1ccc([CH3])cc1"
+- key: Tosylate
+  query: "OS(=O)(=O)c1ccc([CH3])cc1"
+
+
+# Fused aliphatic ring
+
+- key: Norbornane
+  query: "C12CCC(CC1)C2"
+- key: Adamantane
+  query: "C12CC3CC(C2)CC(C3)C1"
+
+- key: Tropane
+  query: "C12CCCC(CC1)N2C"
+
+
+# Fused aromatic ring
+
+- key: Naphthalene
+  query: "c1cccc2c1cccc2"
+- key: Anthracene
+  query: "c1cccc2c1cc1ccccc1c2"
+
+- key: Indole
+  query: "c1cccc2c1ncc2"
+- key: Quinoline
+  query: "c1cccc2c1nccc2"
+- key: Acridine
+  query: "c1cccc2c1nc1ccccc1c2"
+- key: Purine
+  query: "n1cncc2c1ncn2"
+- key: Pteridin
+  query: "n1ccnc2c1cncn2"

@@ -1,0 +1,240 @@
+---
+
+
+# Carbon
+
+- key: TertiaryButyl
+  query: "[CH3]C([CH3])[CH3]"
+
+- key: Alkene
+  query: "C=C"
+- key: Alkyne
+  query: "C#C"
+- key: Allene
+  query: "C=C=C"
+- key: Diene
+  query: "C=CC=C"
+- key: Triene
+  query: "C=CC=CC=C"
+
+
+# Oxygen
+
+- key: Peroxide
+  query: "OO"
+
+- key: Alcohol
+  query: "C[OH]"
+- key: PhenolicHydroxyl
+  query: "c[OH]"
+- key: ArylAlcohol
+  query: "cC[OH]"
+- key: PrimaryAlcohol
+  query: "[#6][CH2][OH]"
+- key: SecondaryAlcohol
+  query: "[#6][CH]([#6])[OH]"
+- key: TertiaryAlcohol
+  query: "[#6][CH0]([#6])([#6])[OH]"
+- key: GeminalDiol
+  query: "[OH]C[OH]"
+
+- key: Ether
+  query: "[#6]O[#6]"
+- key: ArylEther
+  query: "cO[#6]"
+- key: Acetal
+  query: "[#6]OCO[#6]"
+- key: Orthoester
+  query: "[#6]OC(O[#6])O[#6]"
+- key: Hemiacetal
+  query: "[#6]OC[OH]"
+
+- key: Carbonyl
+  query: "[#6]=O"
+- key: Formyl
+  query: "[CH]=O"
+- key: Acetyl
+  query: "C(=O)[CH3]"
+- key: Ketone
+  query: "[#6]C(=O)[#6]"
+- key: AlkylKetone
+  query: "CC(=O)C"
+- key: ArylKetone
+  query: "cC(=O)[#6]"
+- key: Ketene
+  query: "C=C=O"
+
+- key: Carboxylate
+  query: "O=CO"
+- key: Carboxyl
+  query: "O=C[OH]"
+- key: Pivaloyl
+  query: "OC(=O)C([CH3])([CH3])[CH3]"
+- key: Pivoxil
+  query: "OCOC(=O)C([CH3])([CH3])[CH3]"
+
+
+# Nitrogen
+
+- key: Amine
+  query: "[#6]N"
+- key: ArylAmine
+  query: "cN"
+- key: PrimaryAmine
+  query: "C[NH2]"
+- key: SecondaryAmine
+  query: "C[NH]C"
+- key: TertiaryAmine
+  query: "C[NH0](C)C"
+- key: QuarternaryAmmonium
+  query: "[#6][N+]([#6])([#6])[#6]"
+
+- key: Imine
+  query: "C=N"
+- key: Nitrile
+  query: "C#N"
+- key: Hydrazine
+  query: "NN"
+- key: Hydrazone
+  query: "NN=C"
+- key: Hydrazide
+  query: "NNC=O"
+- key: Azo
+  query: "N=N"
+- key: Azide
+  any: ["N=[N+]=[N-]", "[N-][N+]#N"]
+- key: Amidine
+  query: "NC=N"
+- key: Guanidine
+  query: "NC(=N)N"
+
+
+# O, N
+
+- key: Amide
+  query: "O=CN"
+- key: Carbamoyl
+  query: "O=C[NH2]"
+- key: Nitro
+  query: "O=[N+][O-]"
+- key: Nitroso
+  query: "N=O"
+- key: AmineOxide
+  query: "[#7+][O-]"
+- key: Oxime
+  query: "C=NO"
+- key: Cyanate
+  query: "OC#N"
+- key: Isocyanate
+  query: "N=C=O"
+
+
+# Sulfur
+
+- key: Disulfide
+  query: "SS"
+- key: Thiol
+  query: "[#6][SH]"
+- key: ArylThiol
+  query: "c[SH]"
+- key: Thioether
+  query: "[#6]S[#6]"
+- key: Thiocarbonyl
+  query: "C=S"
+- key: Thial
+  query: "[CH]=S"
+- key: Thioketone
+  query: "[#6]C(=S)[#6]"
+- key: Dithiocarboxylate
+  query: "S=CS"
+
+
+# O, N, S
+
+- key: Sulfoxide
+  any: ["[#16]=O", "[#16+][O-]"]
+- key: Sulfinate
+  query: "O=SO"
+- key: Sulfone
+  query: "O=S=O"
+- key: Mesyl
+  query: "O=S(=O)[CH3]"
+- key: Sulfonate
+  query: "O=S(=O)O"
+- key: Mesylate
+  query: "OS(=O)(=O)[CH3]"
+- key: Sulfoneamide
+  query: "O=S(=O)N"
+- key: Sulfamide
+  query: "NS(=O)(=O)N"
+- key: Thiocyanate
+  query: "S-C#N"
+- key: Isothiocyanate
+  query: "N=C=S"
+
+
+# Phosphorus
+
+- key: Organophosphorus
+  query: "[#6]P"
+- key: Phosphonate
+  query: "[#6]P(=O)(O)O"
+- key: Phosphate
+  query: "OP(~O)(~O)~O"
+- key: Thiophosphate
+  query: "S~P(~[O,S])(~[O,S])~[O,S]"
+- key: Phosphoramide
+  query: "NP(=O)(N)N"
+- key: Phosphoramidate
+  query: "NP(~O)(~O)~O"
+- key: Thiophosphoramidate
+  query: "NP(~S)(~[O,S])~[O,S]"
+
+
+# Boron
+
+- key: Organoborane
+  query: "[#6]B"
+- key: Boronate
+  query: "[#6]B(O)O"
+- key: Borinate
+  query: "[#6]B(O)[#6]"
+
+
+# Halogen
+
+- key: Alkylhalide
+  query: "C[F,Cl,Br,I]"
+- key: Alkylfluoride
+  query: "CF"
+- key: Alkylchloride
+  query: "CCl"
+- key: Alkylbromide
+  query: "CBr"
+- key: Alkyliodide
+  query: "CI"
+
+- key: Arylhalide
+  query: "c[F,Cl,Br,I]"
+- key: Arylfluoride
+  query: "cF"
+- key: Arylchloride
+  query: "cCl"
+- key: Arylbromide
+  query: "cBr"
+- key: Aryliodide
+  query: "cI"
+
+- key: Acylhalide
+  query: "C(=O)[F,Cl,Br,I]"
+- key: Acylfluoride
+  query: "C(=O)F"
+- key: Acylchloride
+  query: "C(=O)Cl"
+- key: Acylbromide
+  query: "C(=O)Br"
+- key: Acyliodide
+  query: "C(=O)I"
+
+- key: Triflate
+  query: "OS(=O)(=O)C(F)(F)F"
