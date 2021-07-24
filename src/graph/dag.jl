@@ -4,12 +4,18 @@
 #
 
 export
-    descendants, ancestors,
+    descendants, ancestors, roots, leafs,
     topologicalsort, transitive_reduction
 
 
 descendants(graph::DirectedGraph, idx::Int) = reachablenodes(graph, idx)
 ancestors(graph::DirectedGraph, idx::Int) = reversereachablenodes(graph, idx)
+
+roots(graph::OrderedDiGraph) = [i for i in 1:nodecount(graph) if indegree(graph, i) == 0]
+roots(graph::DirectedGraph) = [i for i in nodeset(graph) if indegree(graph, i) == 0]
+
+leafs(graph::OrderedDiGraph) = [i for i in 1:nodecount(graph) if outdegree(graph, i) == 0]
+leafs(graph::DirectedGraph) = [i for i in nodeset(graph) if outdegree(graph, i) == 0]
 
 
 """

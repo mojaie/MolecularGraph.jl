@@ -6,27 +6,14 @@
 export
     FunctionalGroupClassifier,
     functionalgroupgraph,
-    largestcomponents
+    functionalgroupmap
 
 
-function funcgrouptable()
-    table = []
-    files = [
-        "funcgroup.yaml",
-        "ring.yaml",
-        "biomolecule.yaml"
-    ]
-    dir = joinpath(dirname(@__FILE__), "..", "assets", "funcgroup")
-    for f in files
-        src = joinpath(dir, f)
-        data = YAML.load(open(src))
-        @debug "loading: $(f)"
-        append!(table, data)
-    end
-    return table
+const FUNCGROUPTABLE = let
+    fgroupfile = joinpath(dirname(@__FILE__), "../assets/const/functionalgroup.yaml")
+    include_dependency(fgroupfile)
+    YAML.load(open(fgroupfile))
 end
-
-FUNC_GROUP_TABLE = funcgrouptable()
 
 
 struct FGTermNode <: AbstractNode
@@ -67,10 +54,10 @@ end
 Generate functional group graph that is a directed acyclic graph similar to
 an ontology graph.
 """
-function functionalgroupgraph(mol::GraphMol)
+function functionalgroupgraph(mol::GraphMol; funcgrouptable=FUNCGROUPTABLE)
     fgc = FunctionalGroupClassifier()
     termidmap = Dict{Symbol,Int}()
-    for rcd in FUNC_GROUP_TABLE
+    for rcd in funcgrouptable
         components = fgrouprecord(mol, fgc, rcd)
         isempty(components) && continue
         term = Symbol(rcd["key"])
@@ -80,8 +67,8 @@ function functionalgroupgraph(mol::GraphMol)
         termidmap[term] = termid
         if haskey(rcd, "has")
             for k in rcd["has"]
-                parent = termidmap[Symbol(k)]
-                addedge!(fgc, parent, termid, FGRelationEdge(:partof))
+                child = termidmap[Symbol(k)]
+                addedge!(fgc, termid, child, FGRelationEdge(:has))
             end
         end
         if haskey(rcd, "isa")
@@ -151,42 +138,16 @@ function fgroupquery(mol::GraphMol, query)
 end
 
 
+"""
+    functionalgroupmap(graph::FGC) -> Dict{Symbol,Set{Set{Int}}}
 
-function largestcomponents(fgc::FGC)
-    components = Dict{Symbol,Set{Set{Int}}}()
-    nodesinorder = topologicalsort(fgc)
-    for n in nodesinorder
-        rmset = Set{Set{Int}}()
-        nterm = nodeattr(fgc, n).term
-        ncomp = getterm(fgc, nterm)
-        for (oute, succ) in outneighbors(fgc, n)
-            rel = edgeattr(fgc, oute)
-            rel.relation == :partof || continue
-            ansterm = nodeattr(fgc, succ).term
-            ansset = union(getterm(fgc, ansterm)...)
-            for nset in ncomp
-                if isempty(setdiff(nset, ansset))
-                    push!(rmset, nset)
-                end
-            end
-        end
-        components[nterm] = setdiff(ncomp, rmset)
+Return mapping between terms of FGC leafs (roots of the DAG) and their corresponding atom indices.
+"""
+function functionalgroupmap(graph::FGC)
+    mapping = Dict()
+    for r in roots(graph)
+        term = nodeattr(graph, r).term
+        mapping[term] = graph.componentmap[term]
     end
-    for n in nodesinorder
-        rmset = Set{Set{Int}}()
-        nterm = nodeattr(fgc, n).term
-        for (oute, succ) in outneighbors(fgc, n)
-            rel = edgeattr(fgc, oute)
-            rel.relation == :isa || continue
-            ansterm = nodeattr(fgc, succ).term
-            intersect!(components[nterm], components[ansterm])
-        end
-        for (ine, pred) in inneighbors(fgc, n)
-            rel = edgeattr(fgc, ine)
-            rel.relation == :isa || continue
-            descterm = nodeattr(fgc, pred).term
-            setdiff!(components[nterm], components[descterm])
-        end
-    end
-    return components
+    return mapping
 end
