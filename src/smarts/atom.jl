@@ -39,7 +39,7 @@ function atomsymbol!(state::SmartsParserState)
     elseif sym1 in "BCNOPSFI"
         forward!(state)
         return :and => (:atomsymbol => Symbol(sym1), :isaromatic => false)
-    elseif sym1 in "cnops"
+    elseif sym1 in "bcnops"
         forward!(state)
         return :and => (:atomsymbol => Symbol(uppercase(sym1)), :isaromatic => true)
     elseif sym1 == 'A'
