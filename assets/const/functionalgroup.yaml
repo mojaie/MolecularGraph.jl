@@ -13,18 +13,18 @@
   query: "NC(C=O)C"
 - key: "Asn"
   has:
-    - "Amide"
     - "Ala"
+    - "Amide"
   query: "NC(C=O)CC(=O)N"
 - key: "Asp"
   has:
-    - "Ala"
     - "Carboxylate"
+    - "Ala"
   query: "NC(C=O)CC(=O)O"
 - key: "Gln"
   has:
-    - "Amide"
     - "Ala"
+    - "Amide"
   query: "NC(C=O)CCC(=O)N"
 - key: "Glu"
   has:
@@ -37,8 +37,8 @@
   query: "NC(C=O)CCCCN"
 - key: "Arg"
   has:
-    - "Guanidine"
     - "Ala"
+    - "Guanidine"
   query: "NC(C=O)CCCNC(=N)N"
 - key: "His"
   has:
@@ -59,6 +59,7 @@
   query: "NC(C=O)CC(C)C"
 - key: "Cys"
   has:
+    - "Sulfide"
     - "Ala"
   query: "NC(C=O)CS"
 - key: "Met"
@@ -76,8 +77,8 @@
   query: "NC(C=O)C(O)C"
 - key: "Phe"
   has:
-    - "Benzyl"
     - "Ala"
+    - "Benzyl"
   query: "NC(C=O)Cc1ccccc1"
 - key: "Tyr"
   has:
@@ -85,24 +86,24 @@
   query: "NC(C=O)Cc1ccc(O)cc1"
 - key: "Trp"
   has:
-    - "Indole"
     - "Ala"
+    - "Indole"
   query: "NC(C=O)Cc1cnc2c1cccc2"
 - key: "Pro"
   has:
-    - "Ala"
     - "Pyrrolidine"
+    - "Ala"
   query: "N1C(C=O)CCC1"
 - key: "Adenine"
   has:
-    - "ArylAmine"
+    - "Amine"
     - "Purine"
   query: "n1cnc(N)c2c1ncn2"
 - key: "Guanine"
   has:
+    - "Amine"
     - "Purine"
     - "Carbonyl"
-    - "ArylAmine"
   query: "n1c(N)nc(=O)c2c1ncn2"
 - key: "Thymine"
   has:
@@ -110,8 +111,8 @@
   query: "n1c(=O)nc(=O)c(C)c1"
 - key: "Cytosine"
   has:
-    - "ArylAmine"
     - "Pyrimidine"
+    - "Amine"
     - "Carbonyl"
   query: "n1c(=O)nc(N)cc1"
 - key: "Uracil"
@@ -137,20 +138,30 @@
   has:
     - "Diene"
   query: "C=CC=CC=C"
+- key: "Oxide"
+  query: "O"
+- key: "AromaticOxygen"
+  query: "o"
 - key: "Peroxide"
+  has:
+    - "Oxide"
   query: "OO"
 - key: "Alcohol"
+  has:
+    - "Oxide"
   query: "C[OH]"
 - key: "PhenolicHydroxyl"
-  query: "c[OH]"
-- key: "ArylAlcohol"
   has:
-    - "Alcohol"
-  query: "cC[OH]"
+    - "Oxide"
+  query: "c[OH]"
 - key: "PrimaryAlcohol"
   has:
     - "Alcohol"
   query: "[#6][CH2][OH]"
+- key: "PrimaryArylAlcohol"
+  isa:
+    - "PrimaryAlcohol"
+  query: "c[CH2][OH]"
 - key: "SecondaryAlcohol"
   has:
     - "Alcohol"
@@ -164,6 +175,8 @@
     - "Alcohol"
   query: "[OH]C[OH]"
 - key: "Ether"
+  has:
+    - "Oxide"
   query: "[#6]O[#6]"
 - key: "ArylEther"
   isa:
@@ -183,6 +196,8 @@
     - "Alcohol"
   query: "[#6]OC[OH]"
 - key: "Carbonyl"
+  has:
+    - "Oxide"
   query: "[#6]=O"
 - key: "Formyl"
   isa:
@@ -191,7 +206,7 @@
 - key: "Acetyl"
   has:
     - "Carbonyl"
-  query: "C(=O)[CH3]"
+  query: "O=C[CH3]"
 - key: "Ketone"
   has:
     - "Carbonyl"
@@ -206,8 +221,8 @@
   query: "cC(=O)[#6]"
 - key: "Ketene"
   has:
-    - "Alkene"
     - "Carbonyl"
+    - "Alkene"
   query: "C=C=O"
 - key: "Carboxylate"
   has:
@@ -219,48 +234,61 @@
   has:
     - "Alcohol"
   query: "O=C[OH]"
+- key: "Ester"
+  has:
+    - "Ether"
+    - "Carboxylate"
+  query: "[#6]C(=O)O[#6]"
 - key: "Pivaloyl"
   has:
-    - "TertiaryButyl"
     - "Carboxylate"
+    - "TertiaryButyl"
   query: "OC(=O)C([CH3])([CH3])[CH3]"
 - key: "Pivoxil"
   has:
     - "Pivaloyl"
-    - "Ether"
+    - "Ester"
   query: "OCOC(=O)C([CH3])([CH3])[CH3]"
 - key: "Amine"
-  query: "[#6]N"
-- key: "ArylAmine"
-  isa:
-    - "Amine"
-  query: "cN"
+  query: "N"
+- key: "AromaticNitrogen"
+  query: "n"
 - key: "PrimaryAmine"
-  isa:
+  has:
     - "Amine"
-  query: "C[NH2]"
+  query: "[#6][NH2]"
+- key: "PrimaryArylAmine"
+  isa:
+    - "PrimaryAmine"
+  query: "c[NH2]"
 - key: "SecondaryAmine"
   has:
     - "Amine"
-  query: "C[NH]C"
+  query: "[#6][NH][#6]"
 - key: "TertiaryAmine"
   has:
     - "Amine"
-  query: "C[NH0](C)C"
+  query: "[#6][NH0]([#6])[#6]"
 - key: "QuarternaryAmmonium"
   has:
     - "Amine"
   query: "[#6][N+]([#6])([#6])[#6]"
 - key: "Imine"
+  has:
+    - "Amine"
   query: "C=N"
 - key: "Nitrile"
+  has:
+    - "Amine"
   query: "C#N"
 - key: "Hydrazine"
+  has:
+    - "Amine"
   query: "NN"
 - key: "Hydrazone"
   has:
-    - "Hydrazine"
     - "Imine"
+    - "Hydrazine"
   query: "NN=C"
 - key: "Hydrazide"
   has:
@@ -268,18 +296,19 @@
     - "Amide"
   query: "NNC=O"
 - key: "Azo"
+  has:
+    - "Amine"
   query: "N=N"
 - key: "Azide"
   has:
-    - "Hydrazine"
     - "Azo"
+    - "Hydrazine"
   any:
     - "N=[N+]=[N-]"
     - "[N-][N+]#N"
 - key: "Amidine"
   has:
     - "Imine"
-    - "Amine"
   query: "NC=N"
 - key: "Guanidine"
   has:
@@ -287,8 +316,8 @@
   query: "NC(=N)N"
 - key: "Amide"
   has:
-    - "Carbonyl"
     - "Amine"
+    - "Carbonyl"
   query: "O=CN"
 - key: "Carbamoyl"
   isa:
@@ -296,39 +325,68 @@
   has:
     - "PrimaryAmine"
   query: "O=C[NH2]"
+- key: "SecondaryAmide"
+  has:
+    - "Amide"
+    - "SecondaryAmine"
+  query: "O=C[NH][#6]"
+- key: "TertiaryAmide"
+  has:
+    - "TertiaryAmine"
+    - "Amide"
+  query: "O=C[NH0]([#6])[#6]"
 - key: "Nitro"
   has:
     - "Nitroso"
     - "AmineOxide"
   query: "O=[N+][O-]"
 - key: "Nitroso"
+  has:
+    - "Amine"
+    - "Oxide"
   query: "N=O"
 - key: "AmineOxide"
+  has:
+    - "Oxide"
   query: "[#7+][O-]"
 - key: "Oxime"
   has:
+    - "Oxide"
     - "Imine"
   query: "C=NO"
 - key: "Cyanate"
   has:
+    - "Oxide"
     - "Nitrile"
   query: "OC#N"
 - key: "Isocyanate"
   has:
-    - "Carbonyl"
     - "Imine"
+    - "Carbonyl"
   query: "N=C=O"
+- key: "Sulfide"
+  query: "S"
+- key: "AromaticSulfur"
+  query: "s"
 - key: "Disulfide"
+  has:
+    - "Sulfide"
   query: "SS"
 - key: "Thiol"
+  has:
+    - "Sulfide"
   query: "[#6][SH]"
 - key: "ArylThiol"
   isa:
     - "Thiol"
   query: "c[SH]"
 - key: "Thioether"
+  has:
+    - "Sulfide"
   query: "[#6]S[#6]"
 - key: "Thiocarbonyl"
+  has:
+    - "Sulfide"
   query: "C=S"
 - key: "Thial"
   isa:
@@ -343,16 +401,20 @@
     - "Thiocarbonyl"
   query: "S=CS"
 - key: "Sulfoxide"
+  has:
+    - "Oxide"
   any:
     - "[#16]=O"
     - "[#16+][O-]"
 - key: "Sulfinate"
   has:
+    - "Sulfide"
     - "Sulfoxide"
   query: "O=SO"
 - key: "Sulfone"
   has:
     - "Sulfoxide"
+    - "Sulfide"
   query: "O=S=O"
 - key: "Mesyl"
   has:
@@ -365,11 +427,12 @@
   query: "O=S(=O)O"
 - key: "Mesylate"
   has:
-    - "Mesyl"
     - "Sulfonate"
+    - "Mesyl"
   query: "OS(=O)(=O)[CH3]"
 - key: "Sulfoneamide"
   has:
+    - "Amine"
     - "Sulfone"
   query: "O=S(=O)N"
 - key: "Sulfamide"
@@ -379,38 +442,97 @@
 - key: "Thiocyanate"
   has:
     - "Nitrile"
+    - "Sulfide"
   query: "S-C#N"
 - key: "Isothiocyanate"
   has:
-    - "Thiocarbonyl"
     - "Imine"
+    - "Thiocarbonyl"
   query: "N=C=S"
-- key: "Organophosphorus"
-  query: "[#6]P"
+- key: "Phosphine"
+  query: "P"
+- key: "AromaticPhosphorus"
+  query: "p"
+- key: "PhosphineOxide"
+  has:
+    - "Oxide"
+  any:
+    - "[#15]=O"
+    - "[#15+][O-]"
+- key: "Thiophosphinate"
+  has:
+    - "Phosphine"
+  query: "[O,S]=P[O,S]"
+- key: "Phosphinate"
+  has:
+    - "PhosphineOxide"
+    - "Phosphine"
+  query: "O=PO"
+- key: "Thiophosphonate"
+  has:
+    - "Thiophosphinate"
+  query: "[O,S]=P([O,S])[O,S]"
 - key: "Phosphonate"
   has:
-    - "Organophosphorus"
-  query: "[#6]P(=O)(O)O"
-- key: "Phosphate"
-  query: "OP(~O)(~O)~O"
+    - "Phosphinate"
+  query: "O=P(O)O"
 - key: "Thiophosphate"
-  query: "S~P(~[O,S])(~[O,S])~[O,S]"
-- key: "Phosphoramide"
-  query: "NP(=O)(N)N"
-- key: "Phosphoramidate"
-  query: "NP(~O)(~O)~O"
-- key: "Thiophosphoramidate"
-  query: "NP(~S)(~[O,S])~[O,S]"
-- key: "Organoborane"
-  query: "[#6]B"
-- key: "Boronate"
   has:
-    - "Organoborane"
-  query: "[#6]B(O)O"
+    - "Thiophosphonate"
+  query: "[O,S]=P([O,S])([O,S])[O,S]"
+- key: "Phosphate"
+  has:
+    - "Phosphonate"
+  query: "O=P(O)(O)O"
+- key: "Thiophosphoramidate"
+  has:
+    - "Thiophosphonate"
+    - "Amine"
+  query: "[O,S]=P(N)([O,S])[O,S]"
+- key: "Phosphoramidate"
+  has:
+    - "Phosphonate"
+    - "Amine"
+  query: "O=P(N)(O)O"
+- key: "Thiophosphordiamidate"
+  has:
+    - "Thiophosphinate"
+    - "Amine"
+  query: "[O,S]=P(N)(N)[O,S]"
+- key: "Phosphordiamidate"
+  has:
+    - "Amine"
+    - "Phosphinate"
+  query: "O=P(N)(N)O"
+- key: "Thiophosphoramide"
+  has:
+    - "Phosphine"
+    - "Sulfide"
+    - "Amine"
+  query: "S=P(N)(N)N"
+- key: "Phosphoramide"
+  has:
+    - "Amine"
+    - "PhosphineOxide"
+    - "Phosphine"
+  query: "O=P(N)(N)N"
+- key: "Borane"
+  query: "B"
+- key: "AromaticBorane"
+  query: "b"
 - key: "Borinate"
   has:
-    - "Organoborane"
-  query: "[#6]B(O)[#6]"
+    - "Oxide"
+    - "Borane"
+  query: "BO"
+- key: "Boronate"
+  has:
+    - "Borinate"
+  query: "OBO"
+- key: "Borate"
+  has:
+    - "Boronate"
+  query: "OB(O)O"
 - key: "Alkylhalide"
   query: "C[F,Cl,Br,I]"
 - key: "Alkylfluoride"
@@ -478,8 +600,8 @@
   query: "C(=O)I"
 - key: "Triflate"
   has:
-    - "Sulfonate"
     - "Alkylfluoride"
+    - "Sulfonate"
   query: "OS(=O)(=O)C(F)(F)F"
 - key: "Cyclopropane"
   query: "C1CC1"
@@ -508,20 +630,33 @@
     - "Ether"
   query: "O1CCCC1"
 - key: "Furan"
+  has:
+    - "AromaticOxygen"
   query: "o1cccc1"
 - key: "Pyrrolidine"
   has:
     - "Amine"
   query: "N1CCCC1"
 - key: "Pyrrole"
+  has:
+    - "AromaticNitrogen"
   query: "n1cccc1"
 - key: "Imidazole"
+  has:
+    - "AromaticNitrogen"
   query: "n1cncc1"
 - key: "Tetrazole"
+  has:
+    - "AromaticNitrogen"
   query: "n1nnnc1"
 - key: "Thiophene"
+  has:
+    - "AromaticSulfur"
   query: "s1cccc1"
 - key: "Thiazole"
+  has:
+    - "AromaticNitrogen"
+    - "AromaticSulfur"
   query: "s1cncc1"
 - key: "Cyclohexane"
   query: "C1CCCCC1"
@@ -536,17 +671,25 @@
     - "Amine"
   query: "N1CCNCC1"
 - key: "Pyridine"
+  has:
+    - "AromaticNitrogen"
   query: "n1ccccc1"
 - key: "Pyrazine"
+  has:
+    - "AromaticNitrogen"
   query: "n1ccncc1"
 - key: "Pyrimidine"
+  has:
+    - "AromaticNitrogen"
   query: "n1cnccc1"
 - key: "Pyridazine"
+  has:
+    - "AromaticNitrogen"
   query: "n1ncccc1"
 - key: "Morpholine"
   has:
-    - "Amine"
     - "Ether"
+    - "Amine"
   query: "N1CCOCC1"
 - key: "Azepane"
   has:
@@ -562,13 +705,13 @@
   query: "c1ccccc1c1ccccc1"
 - key: "Quinone"
   has:
-    - "Cyclohexane"
     - "AlkylKetone"
+    - "Cyclohexane"
   query: "O=C1CCC(=O)CC1"
 - key: "OrthoQuinone"
   has:
-    - "AlkylKetone"
     - "Cyclohexane"
+    - "AlkylKetone"
   query: "O=C1CCCCC1=O"
 - key: "BetaLactam"
   has:
@@ -582,8 +725,8 @@
   query: "O=S(=O)c1ccc([CH3])cc1"
 - key: "Tosylate"
   has:
-    - "Tosyl"
     - "Sulfonate"
+    - "Tosyl"
   query: "OS(=O)(=O)c1ccc([CH3])cc1"
 - key: "Norbornane"
   has:
@@ -596,8 +739,8 @@
   query: "C12CC3CC(C2)CC(C3)C1"
 - key: "Tropane"
   has:
-    - "Piperidine"
     - "Pyrrolidine"
+    - "Piperidine"
   query: "C12CCCC(CC1)N2C"
 - key: "Naphthalene"
   has:
@@ -609,8 +752,8 @@
   query: "c1cccc2c1cc1ccccc1c2"
 - key: "Indole"
   has:
-    - "Pyrrole"
     - "Phenyl"
+    - "Pyrrole"
   query: "c1cccc2c1ncc2"
 - key: "Quinoline"
   has:
@@ -623,8 +766,8 @@
   query: "c1cccc2c1nc1ccccc1c2"
 - key: "Purine"
   has:
-    - "Pyrimidine"
     - "Imidazole"
+    - "Pyrimidine"
   query: "n1cncc2c1ncn2"
 - key: "Pteridin"
   has:

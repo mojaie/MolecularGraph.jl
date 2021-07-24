@@ -20,6 +20,10 @@
 
 # Oxygen
 
+- key: Oxide
+  query: "O"
+- key: AromaticOxygen
+  query: "o"
 - key: Peroxide
   query: "OO"
 
@@ -27,10 +31,10 @@
   query: "C[OH]"
 - key: PhenolicHydroxyl
   query: "c[OH]"
-- key: ArylAlcohol
-  query: "cC[OH]"
 - key: PrimaryAlcohol
   query: "[#6][CH2][OH]"
+- key: PrimaryArylAlcohol
+  query: "c[CH2][OH]"
 - key: SecondaryAlcohol
   query: "[#6][CH]([#6])[OH]"
 - key: TertiaryAlcohol
@@ -54,7 +58,7 @@
 - key: Formyl
   query: "[CH]=O"
 - key: Acetyl
-  query: "C(=O)[CH3]"
+  query: "O=C[CH3]"
 - key: Ketone
   query: "[#6]C(=O)[#6]"
 - key: AlkylKetone
@@ -68,6 +72,8 @@
   query: "O=CO"
 - key: Carboxyl
   query: "O=C[OH]"
+- key: Ester
+  query: "[#6]C(=O)O[#6]"
 - key: Pivaloyl
   query: "OC(=O)C([CH3])([CH3])[CH3]"
 - key: Pivoxil
@@ -75,17 +81,18 @@
 
 
 # Nitrogen
-
 - key: Amine
-  query: "[#6]N"
-- key: ArylAmine
-  query: "cN"
+  query: "N"
+- key: AromaticNitrogen
+  query: "n"
 - key: PrimaryAmine
-  query: "C[NH2]"
+  query: "[#6][NH2]"
+- key: PrimaryArylAmine
+  query: "c[NH2]"
 - key: SecondaryAmine
-  query: "C[NH]C"
+  query: "[#6][NH][#6]"
 - key: TertiaryAmine
-  query: "C[NH0](C)C"
+  query: "[#6][NH0]([#6])[#6]"
 - key: QuarternaryAmmonium
   query: "[#6][N+]([#6])([#6])[#6]"
 
@@ -115,6 +122,10 @@
   query: "O=CN"
 - key: Carbamoyl
   query: "O=C[NH2]"
+- key: SecondaryAmide
+  query: "O=C[NH][#6]"
+- key: TertiaryAmide
+  query: "O=C[NH0]([#6])[#6]"
 - key: Nitro
   query: "O=[N+][O-]"
 - key: Nitroso
@@ -131,6 +142,10 @@
 
 # Sulfur
 
+- key: Sulfide
+  query: "S"
+- key: AromaticSulfur
+  query: "s"
 - key: Disulfide
   query: "SS"
 - key: Thiol
@@ -175,30 +190,50 @@
 
 # Phosphorus
 
-- key: Organophosphorus
-  query: "[#6]P"
+- key: Phosphine
+  query: "P"
+- key: AromaticPhosphorus
+  query: "p"
+- key: PhosphineOxide
+  any: ["[#15]=O", "[#15+][O-]"]
+- key: Thiophosphinate
+  query: "[O,S]=P[O,S]"
+- key: Phosphinate
+  query: "O=PO"
+- key: Thiophosphonate
+  query: "[O,S]=P([O,S])[O,S]"
 - key: Phosphonate
-  query: "[#6]P(=O)(O)O"
-- key: Phosphate
-  query: "OP(~O)(~O)~O"
+  query: "O=P(O)O"
 - key: Thiophosphate
-  query: "S~P(~[O,S])(~[O,S])~[O,S]"
-- key: Phosphoramide
-  query: "NP(=O)(N)N"
-- key: Phosphoramidate
-  query: "NP(~O)(~O)~O"
+  query: "[O,S]=P([O,S])([O,S])[O,S]"
+- key: Phosphate
+  query: "O=P(O)(O)O"
 - key: Thiophosphoramidate
-  query: "NP(~S)(~[O,S])~[O,S]"
+  query: "[O,S]=P(N)([O,S])[O,S]"
+- key: Phosphoramidate
+  query: "O=P(N)(O)O"
+- key: Thiophosphordiamidate
+  query: "[O,S]=P(N)(N)[O,S]"
+- key: Phosphordiamidate
+  query: "O=P(N)(N)O"
+- key: Thiophosphoramide
+  query: "S=P(N)(N)N"
+- key: Phosphoramide
+  query: "O=P(N)(N)N"
 
 
 # Boron
 
-- key: Organoborane
-  query: "[#6]B"
-- key: Boronate
-  query: "[#6]B(O)O"
+- key: Borane
+  query: "B"
+- key: AromaticBorane
+  query: "b"
 - key: Borinate
-  query: "[#6]B(O)[#6]"
+  query: "BO"
+- key: Boronate
+  query: "OBO"
+- key: Borate
+  query: "OB(O)O"
 
 
 # Halogen
