@@ -6,7 +6,7 @@
 export
     SmilesParser, SmartsParser,
     smilestomol, smartstomol,
-    associate_operations, isequivalent, query_contains
+    associate_operations
 
 
 mutable struct SmartsParserState{N<:AbstractNode,E<:UndirectedEdge}
@@ -119,7 +119,6 @@ backtrack!(state, num) = forward!(state, -num)
 backtrack!(state) = backtrack!(state, 1)
 
 
-
 """
     associate_operations(fml::Pair) -> Pair
 
@@ -136,54 +135,6 @@ function associate_operations(fml::Pair)
         end
     end
     return fml.first => Tuple(associated)
-end
-
-
-"""
-    isequivalent(fml1::Pair, fml2::Pair) -> Pair
-
-Check if the two formulae are equivalent.
-"""
-function isequivalent(fml1::Pair, fml2::Pair)
-    fml1.first === fml2.first || return false
-    fml1.first in (:and, :or, :not) || return fml1.second == fml2.second
-    fml1.first === :not && return isequivalent(fml1.second, fml2.second)
-    length(fml1.second) == length(fml2.second) || return false
-    f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
-    f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
-    iseq = (x, y) -> isequivalent(f1map[x], f2map[y])
-    return maxcard(keys(f1map), keys(f2map), iseq) == length(f1map)
-end
-
-
-"""
-    query_contains(fml1::Pair, fml2::Pair) -> Pair
-
-Check if the two formulae are equivalent.
-"""
-function query_contains(fml1::Pair, fml2::Pair)
-    fml1 == (:any => true) && return true
-    if fml2.first === :and
-        f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
-        if fml1.first === :and
-            f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
-        else
-            f1map = Dict(1 => fml1)
-        end
-        func = (x, y) -> query_contains(f1map[x], f2map[y])
-        return maxcard(keys(f1map), keys(f2map), func) == length(f1map)
-    elseif fml1.first === :or
-        f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
-        if fml2.first === :or
-            f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
-        else
-            f2map = Dict(1 => fml2)
-        end
-        func = (x, y) -> query_contains(f1map[x], f2map[y])
-        return maxcard(keys(f1map), keys(f2map), func) == length(f2map)
-    else
-        return fml1 == fml2
-    end
 end
 
 

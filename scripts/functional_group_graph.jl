@@ -12,33 +12,6 @@ const INPUT_DIR = joinpath(PROJECT_DIR, "./assets/raw/functionalgroup")
 const OUTPUT_FILE = joinpath(PROJECT_DIR, "./assets/const/functionalgroup.yaml")
 
 
-function isaatommatch(q1::QueryMol, q2::QueryMol)
-    return function (qa1, qa2)
-        return query_contains(nodeattr(q2, qa2).query, nodeattr(q1, qa1).query)
-    end
-end
-
-function isabondmatch(q1::QueryMol, q2::QueryMol)
-    return function (qb1, qb2)
-        return query_contains(edgeattr(q2, qb2).query, edgeattr(q1, qb1).query)
-    end
-end
-
-
-function hasatommatch(q1::QueryMol, q2::QueryMol)
-    return function (qa1, qa2)
-        return isequivalent(nodeattr(q1, qa1).query, nodeattr(q2, qa2).query)
-    end
-end
-
-function hasbondmatch(q1::QueryMol, q2::QueryMol)
-    return function (qb1, qb2)
-        return isequivalent(edgeattr(q1, qb1).query, edgeattr(q2, qb2).query)
-    end
-end
-
-
-
 function run()
     # read list of functional groups from .yaml files
     fgrecords = []

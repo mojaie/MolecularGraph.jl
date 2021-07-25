@@ -4,6 +4,8 @@
 #
 
 export
+    atommatch, bondmatch,
+    isequivalent, query_contains, isaatommatch, isabondmatch,
     structmatches,
     exactmatches, hasexactmatch,
     substructmatches, hassubstructmatch,
@@ -15,7 +17,11 @@ export
     tcmcis, tcmces
 
 
+"""
+    atommatch(mol1::UndirectedGraph, mol2::UndirectedGraph) -> Function
 
+Return a default atom attribute comparator between two atoms.
+"""
 function atommatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
     sym1 = atomsymbol(mol1)
     sym2 = atomsymbol(mol2)
@@ -24,39 +30,15 @@ function atommatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
     return (a1, a2) -> sym1[a1] == sym2[a2] && pi1[a1] == pi2[a2]
 end
 
-function atommatch(mol::UndirectedGraph, querymol::QueryMol)
-    matcher = Dict(
-        :atomsymbol => atomsymbol(mol),
-        :isaromatic => isaromatic(mol),
-        :charge => charge(mol),
-        :mass => getproperty.(nodeattrs(mol), :mass),
-        :stereo => getproperty.(nodeattrs(mol), :stereo),
-        :connectivity => connectivity(mol),
-        :nodedegree => nodedegree(mol),
-        :valence => valence(mol),
-        :hydrogenconnected => hydrogenconnected(mol),
-        :sssrsizes => sssrsizes(mol),
-        :sssrcount => sssrcount(mol)
-    )
-    return (a, qa) -> querymatchtree(
-        nodeattr(querymol, qa).query, mol, matcher, a)
-end
 
+"""
+    bondmatch(mol1::UndirectedGraph, mol2::UndirectedGraph) -> Function
 
+Return a default bond attribute comparator between two bonds.
+"""
 function bondmatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
     # TODO: need bond attribute matching?
     return (b1, b2) -> true
-end
-
-function bondmatch(mol::UndirectedGraph, querymol::QueryMol)
-    matcher = Dict(
-        :bondorder => bondorder(mol),
-        :isringbond => isringbond(mol),
-        :isaromaticbond => isaromaticbond(mol),
-        :stereo => getproperty.(edgeattrs(mol), :stereo)
-    )
-    return (b, qb) -> querymatchtree(
-        edgeattr(querymol, qb).query, mol, matcher, b)
 end
 
 
@@ -84,6 +66,144 @@ function querymatchtree(
         end
     end
 end
+
+
+"""
+    atommatch(mol::UndirectedGraph, querymol::QueryMol) -> Function
+
+Return a default atom attribute comparator that returns true if the atom satisfies all the queryatom conditions.
+"""
+function atommatch(mol::UndirectedGraph, querymol::QueryMol)
+    matcher = Dict(
+        :atomsymbol => atomsymbol(mol),
+        :isaromatic => isaromatic(mol),
+        :charge => charge(mol),
+        :mass => getproperty.(nodeattrs(mol), :mass),
+        :stereo => getproperty.(nodeattrs(mol), :stereo),
+        :connectivity => connectivity(mol),
+        :nodedegree => nodedegree(mol),
+        :valence => valence(mol),
+        :hydrogenconnected => hydrogenconnected(mol),
+        :sssrsizes => sssrsizes(mol),
+        :sssrcount => sssrcount(mol)
+    )
+    return (a, qa) -> querymatchtree(
+        nodeattr(querymol, qa).query, mol, matcher, a)
+end
+
+
+"""
+    bondmatch(mol::UndirectedGraph, querymol::QueryMol) -> Function
+
+Return a default bond attribute comparator that returns true if the bond satisfies all the querybond conditions.
+"""
+function bondmatch(mol::UndirectedGraph, querymol::QueryMol)
+    matcher = Dict(
+        :bondorder => bondorder(mol),
+        :isringbond => isringbond(mol),
+        :isaromaticbond => isaromaticbond(mol),
+        :stereo => getproperty.(edgeattrs(mol), :stereo)
+    )
+    return (b, qb) -> querymatchtree(
+        edgeattr(querymol, qb).query, mol, matcher, b)
+end
+
+
+"""
+    isequivalent(fml1::Pair, fml2::Pair) -> Pair
+
+Check if the two formulae are equivalent.
+"""
+function isequivalent(fml1::Pair, fml2::Pair)
+    fml1.first === fml2.first || return false
+    fml1.first in (:and, :or, :not) || return fml1.second == fml2.second
+    fml1.first === :not && return isequivalent(fml1.second, fml2.second)
+    length(fml1.second) == length(fml2.second) || return false
+    f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
+    f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
+    iseq = (x, y) -> isequivalent(f1map[x], f2map[y])
+    return maxcard(keys(f1map), keys(f2map), iseq) == length(f1map)
+end
+
+
+"""
+    atommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
+
+Return a default atom attribute comparator between two atom queries.
+"""
+function atommatch(qmol1::QueryMol, qmol2::QueryMol)
+    return function (a1, a2)
+        return isequivalent(nodeattr(qmol1, a1).query, nodeattr(qmol2, a2).query)
+    end
+end
+
+
+"""
+    bondmatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
+
+Return a default bond attribute comparator between two bond queries.
+"""
+function bondmatch(qmol1::QueryMol, qmol2::QueryMol)
+    return function (b1, b2)
+        return isequivalent(edgeattr(qmol1, b1).query, edgeattr(qmol2, b2).query)
+    end
+end
+
+
+"""
+    query_contains(fml1::Pair, fml2::Pair) -> Pair
+
+Check if fml1 contains fml2 (that is, all the query results of fml1 is included in the results of fml2)
+"""
+function query_contains(fml1::Pair, fml2::Pair)
+    fml1 == (:any => true) && return true
+    if fml2.first === :and
+        f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
+        if fml1.first === :and
+            f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
+        else
+            f1map = Dict(1 => fml1)
+        end
+        func = (x, y) -> query_contains(f1map[x], f2map[y])
+        return maxcard(keys(f1map), keys(f2map), func) == length(f1map)
+    elseif fml1.first === :or
+        f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
+        if fml2.first === :or
+            f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
+        else
+            f2map = Dict(1 => fml2)
+        end
+        func = (x, y) -> query_contains(f1map[x], f2map[y])
+        return maxcard(keys(f1map), keys(f2map), func) == length(f2map)
+    else
+        return fml1 == fml2
+    end
+end
+
+
+"""
+    isaatommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
+
+Return an atom attribute comparator that returns true if a2 contains a1.
+"""
+function isaatommatch(qmol1::QueryMol, qmol2::QueryMol)
+    return function (a1, a2)
+        return query_contains(nodeattr(qmol2, a2).query, nodeattr(qmol1, a1).query)
+    end
+end
+
+
+"""
+    isabondmatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
+
+Return a bond attribute comparator that returns true if b2 contains b1.
+"""
+function isabondmatch(qmol1::QueryMol, qmol2::QueryMol)
+    return function (b1, b2)
+        return query_contains(edgeattr(qmol2, b2).query, edgeattr(qmol1, b1).query)
+    end
+end
+
 
 
 function fastidentityfilter(mol1::UndirectedGraph, mol2::UndirectedGraph)
