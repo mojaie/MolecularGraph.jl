@@ -3,6 +3,8 @@
 
 # 3 membered
 
+- key: Threememberedring
+  query: "*1**1"
 - key: Cyclopropane
   query: "C1CC1"
 - key: Epoxide
@@ -13,6 +15,8 @@
 
 # 4 membered
 
+- key: Fourmemberedring
+  query: "*1***1"
 - key: Cyclobutane
   query: "C1CCC1"
 - key: Oxetane
@@ -82,10 +86,19 @@
 - key: Biphenyl
   query: "c1ccccc1c1ccccc1"
 
+- key: Catechol
+  query: "Oc1ccccc1O"
+- key: Hydroquinone
+  query: "Oc1ccc(O)cc1"
 - key: Quinone
-  query: "O=C1CCC(=O)CC1"
+  query: "O=C1C=CC(=O)C=C1"
 - key: OrthoQuinone
-  query: "O=C1CCCCC1=O"
+  query: "O=C1C=CC=CC1=O"
+
+- key: Succinimide
+  query: "O=C1CCC(=O)N1"
+- key: Maleimide
+  query: "O=C1C=CC(=O)N1"
 
 - key: BetaLactam
   query: "N1C(=O)CC1"
@@ -113,6 +126,13 @@
   query: "c1cccc2c1cccc2"
 - key: Anthracene
   query: "c1cccc2c1cc1ccccc1c2"
+
+- key: Benzofuran
+  query: "c1cccc2c1occ2"
+- key: Coumarin
+  query: "O=c1ccc2ccccc2o1"
+- key: Chromone
+  query: "O=c1ccoc2ccccc12"
 
 - key: Indole
   query: "c1cccc2c1ncc2"

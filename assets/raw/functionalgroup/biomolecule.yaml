@@ -59,3 +59,24 @@
   query: "n1c(=O)nc(N)cc1"
 - key: Uracil
   query: "n1c(=O)nc(=O)cc1"
+
+
+# Sugar
+
+- key: Aldopentose
+  query: "OCC(O1)C(O)C(O)C1O"
+- key: Ketopentose
+  query: "O1CC(O)C(O)C1(O)CO"
+- key: Aldohexose
+  query: "OCC(O1)C(O)C(O)C(O)C1O"
+- key: Ketohexose
+  query: "OCC(O1)C(O)C(O)C1(O)CO"
+
+
+
+
+- key: Glycerol
+  query: "OCC(O)CO"
+
+- key: Choline
+  query: "OCC[N+](C)(C)C"

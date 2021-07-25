@@ -57,6 +57,8 @@
   query: "[#6]=O"
 - key: Formyl
   query: "[CH]=O"
+- key: Acyl
+  query: "O=C[#6]"
 - key: Acetyl
   query: "O=C[CH3]"
 - key: Ketone
