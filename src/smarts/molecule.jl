@@ -59,7 +59,7 @@ function group!(state::SmartsParserState, bond)
     """
     a = atom!(state)
     if isempty(a)
-        # ex. CC((C)C)C should be CC(CC)C
+        # ex. CC((CC)C)C
         throw(ErrorException(
             "unexpected token: branch starts with '(' at $(state.pos)"))
     end
@@ -88,11 +88,14 @@ function group!(state::SmartsParserState, bond)
             c = read(state)
             @assert c == ')' "unexpected token: $(c) at $(state.pos)"
             forward!(state)
+
+            # ex. CC(C)(C) should be CC(C)C but acceptable
+            raw"""
             if state.done || read(state) in ")."
-                # ex. CC(C)(C) should be CC(C)C
                 throw(ErrorException(
                     "unexpected token: branch ends with ')' at $(state.pos)"))
             end
+            """
         else
             ccen = chain!(state)
             state.branch = ccen

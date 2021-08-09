@@ -91,7 +91,7 @@ function atomprop!(state::SmartsParserState)
         forward!(state)
         sym1 == 'A' && return :isaromatic => false
         sym1 == 'a' && return :isaromatic => true
-        sym1 == '*' && return :skip => true
+        sym1 == '*' && return :any => true
     elseif haskey(ATOMSYMBOLMAP, string(uppercase(sym1)))
         # Single letter atoms
         forward!(state)

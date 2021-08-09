@@ -154,7 +154,8 @@ end
     @test_throws AssertionError atom!(state)
 
     state = SmartsParser("[*]", false)
-    @test_throws AssertionError atom!(state)
+    anyatom = atom!(state)[1]
+    @test isequivalent(anyatom.query, :any => true)
 
     state = SmartsParser("[#16]", false)
     no16 = atom!(state)[1]

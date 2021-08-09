@@ -60,17 +60,23 @@ end
     invalid4 = SmartsParser("1CCC1", false)
     @test_throws ErrorException fragment!(invalid4)
 
-    invalid5 = SmartsParser("CC(C)", false)
-    @test_throws ErrorException fragment!(invalid5)
+    valid5 = SmartsParser("CC(C)", false)
+    fragment!(valid5)
 
     invalid6 = SmartsParser("(CC)CC", false)
     @test_throws ErrorException fragment!(invalid6)
 
-    invalid7 = SmartsParser("C(C(C))CC", false)
-    @test_throws ErrorException fragment!(invalid7)
+    valid7 = SmartsParser("C(C(C))CC", false)
+    fragment!(valid7)
 
     invalid8 = SmartsParser("C(1C)C1C", false)
     @test_throws ErrorException fragment!(invalid8)
+
+    valid9 = SmartsParser("C(C(C(C(C(C(C(C(C(C(C(C(C(C(C(C(C(C(C(C(C))))))))))))))))))))C", false)
+    fragment!(valid9)
+    @test length(valid9.nodeattrs) == 22
+    @test length(valid9.edgeattrs) == 21
+
 end
 
 
@@ -105,8 +111,9 @@ end
     invalid2 = SmartsParser("CCC.", true)
     @test_throws ErrorException fragment!(invalid2)
 
-    invalid3 = SmartsParser("CC(C).C", true)
-    @test_throws ErrorException fragment!(invalid3)
+    valid3 = SmartsParser("CC(C).C", true)
+    componentquery!(conn0)
+    @test isempty(valid3.connectivity)
 end
 
 end # smarts.molecule

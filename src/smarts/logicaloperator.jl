@@ -77,19 +77,20 @@ function lghighand!(state::SmartsParserState, func)
     fml = lgnot!(state, func)
     fml === nothing && return
     while fml !== nothing
-        if fml != (:skip => true)  # valid token but no meaning (ex. wildcard atom *)
-            push!(fmls, fml)
-        end
+        push!(fmls, fml)
         if read(state) == '&'
             forward!(state)
         end
         fml = lgnot!(state, func)
     end
     @assert !isempty(fmls) "(lghighand!) invalid AND(&) operation"
-    if length(fmls) == 1
-        return fmls[1]
+    fltd = [fml for fml in fmls if fml != (:any => true)]
+    if isempty(fltd)
+        return (:any => true)
+    elseif length(fltd) == 1
+        return fltd[1]
     else
-        return :and => Tuple(fmls)
+        return :and => Tuple(fltd)
     end
 end
 
