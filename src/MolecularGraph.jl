@@ -70,6 +70,7 @@ module MolecularGraph
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
+    include("./model/query.jl")
 
     include("structurematch.jl")
     include("stereo.jl")

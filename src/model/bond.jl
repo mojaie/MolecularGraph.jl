@@ -4,7 +4,7 @@
 #
 
 export
-    SDFileBond, SmilesBond, SmartsBond,
+    SDFileBond, SmilesBond,
     setorder, setnotation, setstereo, todict
 
 
@@ -90,10 +90,3 @@ setorder(edge::SmilesBond, order
 
 setstereo(edge::SmilesBond, cistrans
     ) = SmilesBond(edge.order, edge.isaromatic, edge.direction, cistrans)
-
-
-struct SmartsBond <: QueryBond
-    query::Pair
-end
-
-SmartsBond() = SmartsBond(:any => true)

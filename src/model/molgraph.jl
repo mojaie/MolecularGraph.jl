@@ -4,10 +4,9 @@
 #
 
 export
-    GraphMol, QueryMol,
+    GraphMol,
     graphmol, remapnodes, todict, tojson,
-    querymol, 
-    SDFile, SMILES, SMARTS,
+    SDFile, SMILES,
     getatom, getbond, hasbond,
     setatom!, setbond!, addatom!, addbond!,
     atomcount, bondcount
@@ -181,50 +180,10 @@ graphmol(json::String) = graphmol(JSON.parse(json))
 
 
 
-struct QueryMol{A<:QueryAtom,B<:QueryBond} <: OrderedGraph
-    neighbormap::Vector{Dict{Int,Int}}
-    edges::Vector{Tuple{Int,Int}}
-    nodeattrs::Vector{A}
-    edgeattrs::Vector{B}
-    cache::Dict{Symbol,Any}
-    attributes::Dict{Symbol,Any}
-    connectivity::Vector{Vector{Int}}
-end
-
-"""
-    querymol() -> QueryMol
-
-Generate empty `QueryMol`.
-"""
-querymol(
-    ::Type{A}, ::Type{B}
-) where {A<:QueryAtom,B<:QueryBond} = QueryMol{A,B}(
-    [], [], [], [], Dict(), Dict(), [])
-
-"""
-    querymol(atoms::Vector{Atom}, bonds::Vector{Bond}) -> GraphMol
-
-Generate `QueryMol` that has the given atom objects and edge objects.
-"""
-function querymol(edges, atoms::Vector{A}, bonds::Vector{B},
-        connectivity::Vector{Vector{Int}}) where {A<:QueryAtom,B<:QueryBond}
-    nbrmap = [Dict{Int,Int}() for i in 1:length(atoms)]
-    edges = collect(edges)
-    for (i, (u, v)) in enumerate(edges)
-        nbrmap[u][i] = v
-        nbrmap[v][i] = u
-    end
-    return QueryMol(
-        nbrmap, edges, atoms, bonds,
-        Dict{Symbol,Any}(), Dict{Symbol,Any}(), connectivity)
-end
-
-
 # Aliases
 
 SDFile = GraphMol{SDFileAtom,SDFileBond}
 SMILES = GraphMol{SmilesAtom,SmilesBond}
-SMARTS = QueryMol{SmartsAtom,SmartsBond}
 
 
 function Base.getindex(graph::GraphMol, sym::Symbol)

@@ -4,7 +4,7 @@
 #
 
 export
-    SDFileAtom, SmilesAtom, SmartsAtom,
+    SDFileAtom, SmilesAtom,
     setcharge, setstereo, atomnumber, todict
 
 
@@ -143,13 +143,6 @@ setcharge(a::SmilesAtom, chg) = SmilesAtom(
 
 setstereo(a::SmilesAtom, direction) = SmilesAtom(
     a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, direction)
-
-
-
-struct SmartsAtom <: QueryAtom
-    query::Pair
-end
-
 
 
 """

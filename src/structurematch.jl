@@ -43,26 +43,26 @@ end
 
 
 function querymatchtree(
-        query::Pair, mol::UndirectedGraph, matcher::Dict, i::Int)
-    if query.first == :any
+        query::QueryFormula, mol::UndirectedGraph, matcher::Dict, i::Int)
+    if query.key === :any
         return true
-    elseif query.first == :and
-        return all(querymatchtree(q, mol, matcher, i) for q in query.second)
-    elseif query.first == :or
-        return any(querymatchtree(q, mol, matcher, i) for q in query.second)
-    elseif query.first == :not
-        return !querymatchtree(query.second, mol, matcher, i)
-    elseif query.first == :stereo
+    elseif query.key === :and
+        return all(querymatchtree(q, mol, matcher, i) for q in query.value)
+    elseif query.key === :or
+        return any(querymatchtree(q, mol, matcher, i) for q in query.value)
+    elseif query.key === :not
+        return !querymatchtree(query.value, mol, matcher, i)
+    elseif query.key === :stereo
         # TODO: stereo not implemented yet
         return true
-    elseif query.first == :recursive
-        subq = parse(SMARTS, query.second)
+    elseif query.key === :recursive
+        subq = parse(SMARTS, query.value)
         return hassubstructmatch(mol, subq, mandatory=Dict(i => 1))
     else
-        if query.first == :sssrsizes
-            return query.second in matcher[query.first][i]
+        if query.key === :sssrsizes
+            return query.value in matcher[query.key][i]
         else
-            return matcher[query.first][i] == query.second
+            return matcher[query.key][i] == query.value
         end
     end
 end
@@ -110,30 +110,13 @@ end
 
 
 """
-    isequivalent(fml1::Pair, fml2::Pair) -> Pair
-
-Check if the two formulae are equivalent.
-"""
-function isequivalent(fml1::Pair, fml2::Pair)
-    fml1.first === fml2.first || return false
-    fml1.first in (:and, :or, :not) || return fml1.second == fml2.second
-    fml1.first === :not && return isequivalent(fml1.second, fml2.second)
-    length(fml1.second) == length(fml2.second) || return false
-    f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
-    f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
-    iseq = (x, y) -> isequivalent(f1map[x], f2map[y])
-    return maxcard(keys(f1map), keys(f2map), iseq) == length(f1map)
-end
-
-
-"""
     atommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
 
 Return a default atom attribute comparator between two atom queries.
 """
 function atommatch(qmol1::QueryMol, qmol2::QueryMol)
     return function (a1, a2)
-        return isequivalent(nodeattr(qmol1, a1).query, nodeattr(qmol2, a2).query)
+        return nodeattr(qmol1, a1).query == nodeattr(qmol2, a2).query
     end
 end
 
@@ -145,38 +128,7 @@ Return a default bond attribute comparator between two bond queries.
 """
 function bondmatch(qmol1::QueryMol, qmol2::QueryMol)
     return function (b1, b2)
-        return isequivalent(edgeattr(qmol1, b1).query, edgeattr(qmol2, b2).query)
-    end
-end
-
-
-"""
-    query_contains(fml1::Pair, fml2::Pair) -> Pair
-
-Check if fml1 contains fml2 (that is, all the query results of fml1 is included in the results of fml2)
-"""
-function query_contains(fml1::Pair, fml2::Pair)
-    fml1 == (:any => true) && return true
-    if fml2.first === :and
-        f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
-        if fml1.first === :and
-            f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
-        else
-            f1map = Dict(1 => fml1)
-        end
-        func = (x, y) -> query_contains(f1map[x], f2map[y])
-        return maxcard(keys(f1map), keys(f2map), func) == length(f1map)
-    elseif fml1.first === :or
-        f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
-        if fml2.first === :or
-            f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
-        else
-            f2map = Dict(1 => fml2)
-        end
-        func = (x, y) -> query_contains(f1map[x], f2map[y])
-        return maxcard(keys(f1map), keys(f2map), func) == length(f2map)
-    else
-        return fml1 == fml2
+        return edgeattr(qmol1, b1).query == edgeattr(qmol2, b2).query
     end
 end
 

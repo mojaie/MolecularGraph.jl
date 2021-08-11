@@ -59,6 +59,7 @@ module MolecularGraphTest
 
     include("./model/atom.jl")
     include("./model/molgraph.jl")
+    include("./model/query.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
