@@ -10,7 +10,8 @@ using MolecularGraph.Graph
 using MolecularGraph.Util
 
 const INPUT_DIR = joinpath(PROJECT_DIR, "./assets/raw/functionalgroup")
-const OUTPUT_FILE = joinpath(PROJECT_DIR, "./assets/const/functionalgroup.yaml")
+const INPUT_SA_DIR = joinpath(PROJECT_DIR, "./assets/raw/structuralalerts")
+const OUTPUT_FILE = joinpath(PROJECT_DIR, "./assets/const/fgroup_pains.yaml")
 
 
 function run()
@@ -24,6 +25,15 @@ function run()
             push!(fgrecords, rcd)
         end
     end
+    # PAINS
+    for rcd in YAML.load(open(joinpath(INPUT_SA_DIR, "PAINS.yaml")))
+        m = smartstomol(rcd["query"])
+        m = removehydrogens(m)
+        inferatomaromaticity!(m)
+        rcd["qmol"] = m
+        push!(fgrecords, rcd)
+    end
+    
     # Detect query relationships
     isaedges = Set{Tuple{Int,Int}}()
     hasedges = Set{Tuple{Int,Int}}()
