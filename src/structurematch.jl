@@ -110,11 +110,11 @@ end
 
 
 """
-    atommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
+    exactatommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
 
 Return a default atom attribute comparator between two atom queries.
 """
-function atommatch(qmol1::QueryMol, qmol2::QueryMol)
+function exactatommatch(qmol1::QueryMol, qmol2::QueryMol)
     return function (a1, a2)
         return nodeattr(qmol1, a1).query == nodeattr(qmol2, a2).query
     end
@@ -122,11 +122,11 @@ end
 
 
 """
-    bondmatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
+    exactbondmatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
 
 Return a default bond attribute comparator between two bond queries.
 """
-function bondmatch(qmol1::QueryMol, qmol2::QueryMol)
+function exactbondmatch(qmol1::QueryMol, qmol2::QueryMol)
     return function (b1, b2)
         return edgeattr(qmol1, b1).query == edgeattr(qmol2, b2).query
     end
@@ -134,25 +134,25 @@ end
 
 
 """
-    isaatommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
+    atommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
 
 Return an atom attribute comparator that returns true if a2 contains a1.
 """
-function isaatommatch(qmol1::QueryMol, qmol2::QueryMol)
+function atommatch(qmol1::QueryMol, qmol2::QueryMol)
     return function (a1, a2)
-        return query_contains(nodeattr(qmol2, a2).query, nodeattr(qmol1, a1).query)
+        return issubset(nodeattr(qmol1, a1).query, nodeattr(qmol2, a2).query)
     end
 end
 
 
 """
-    isabondmatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
+    bondmatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
 
 Return a bond attribute comparator that returns true if b2 contains b1.
 """
-function isabondmatch(qmol1::QueryMol, qmol2::QueryMol)
+function bondmatch(qmol1::QueryMol, qmol2::QueryMol)
     return function (b1, b2)
-        return query_contains(edgeattr(qmol2, b2).query, edgeattr(qmol1, b1).query)
+        return issubset(edgeattr(qmol1, b1).query, edgeattr(qmol2, b2).query)
     end
 end
 

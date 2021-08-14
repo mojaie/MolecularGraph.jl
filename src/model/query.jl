@@ -6,7 +6,8 @@
 export
     QueryFormula, QueryMol, querymol,
     tidyformula, findformula,
-    inferatomaromaticity!, removehydrogens
+    inferatomaromaticity!, removehydrogens,
+    recursiveatommatch
 
 
 struct QueryFormula
@@ -45,6 +46,21 @@ function Base.issubset(a::QueryFormula, b::QueryFormula)
         amap = Dict(i => v for (i, v) in enumerate(aset))
         func = (x, y) -> issubset(amap[x], bmap[y])
         return maxcard(keys(amap), keys(bmap), func) == length(amap)
+    elseif a.key === :or && b.key === :not
+        common = Set([c.key for c in a.value])
+        length(common) == 1 || return false
+        collect(common)[1] == b.value.key || return false
+        return !(b.value.value in Set([c.value for c in a.value]))
+    elseif a.key === :recursive
+        if b.key === :recursive
+            return hassubstructmatch(
+                smartstomol(a.value), smartstomol(b.value),
+                mandatory=Dict(1 => 1)
+            )
+        else
+            amol = smartstomol(a.value)
+            return issubset(nodeattr(amol, 1).query, b)
+        end
     else
         return a == b
     end
@@ -133,10 +149,11 @@ function tidyformula(fml::QueryFormula)
     childs = Set{QueryFormula}()
     # Association
     for child in fml.value
-        if child.key === fml.key
-            union!(childs, tidyformula(child).value)
+        tf = tidyformula(child)
+        if tf.key === fml.key
+            union!(childs, tf.value)
         else
-            union!(childs, [child])
+            union!(childs, [tf])
         end
     end
     length(childs) == 1 && return collect(childs)[1]
@@ -160,10 +177,7 @@ function tidyformula(fml::QueryFormula)
             push!(updated, QueryFormula(ckey, cdiff))
         end
     end
-    return tidyformula(QueryFormula(ckey, Set([
-        bin...,
-        QueryFormula(fml.key, updated)
-    ])))
+    return QueryFormula(ckey, Set([bin..., QueryFormula(fml.key, updated)]))
 end
 
 
@@ -177,11 +191,11 @@ return the value after applying the `aggregate` function to them.
 """
 function findformula(q::QueryFormula, key::Symbol; deep=false, aggregate=minimum)
     if q.key == key
-        return q.value
+        return aggregate([q.value])
     elseif q.key === :and
         for child in q.value
             if child.key == key
-                return child.value
+                return aggregate([child.value])
             elseif deep && child.key === :or
                 gc = findformula(child, key, deep=deep, aggregate=aggregate)
                 gc === nothing || return gc
@@ -221,7 +235,7 @@ function inferatomaromaticity!(qmol::QueryMol)
             if findformula(aq, :atomsymbol) === :H
                 hcnt += 1
             else
-                heavyorder += findformula(iq, :bondorder, deep=true)
+                heavyorder += something(findformula(iq, :bondorder, deep=true), 1)
             end
         end
         nq = nodeattr(qmol,n).query
@@ -285,4 +299,20 @@ function removehydrogens(mol::QueryMol)
     end
     ns = setdiff(nodeset(mol), hs)
     return querymol(nodesubgraph(newmol, ns))
+end
+
+
+function recursiveatommatch(qmol1::QueryMol, qmol2::QueryMol)
+    return function (a1, a2)
+        a1q = nodeattr(qmol1, a1).query
+        a2q = nodeattr(qmol2, a2).query
+        issubset(a1q, a2q) && return true
+        recfmls= findformula(a2q, :recursive, deep=true, aggregate=collect)
+        recfmls === nothing && return false
+        for r in recfmls
+            hassubstructmatch(
+                qmol1, smartstomol(r), mandatory=Dict(a1 => 1)) && return true
+        end
+        return false
+    end
 end

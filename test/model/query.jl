@@ -6,11 +6,6 @@
     @test QueryFormula(:v, :b) != QueryFormula(:v, :c)
     @test QueryFormula(:x, 1) != QueryFormula(:v, 1)
 
-    nota = QueryFormula(:not, QueryFormula(:v, :a))
-    notb = QueryFormula(:not, QueryFormula(:v, :b))
-    @test nota == nota
-    @test nota != notb
-
     and1 = QueryFormula(:and, Set([
         QueryFormula(:x, "hoge"),
         QueryFormula(:y, "fuga"),
@@ -79,6 +74,46 @@
     @test !issubset(nested2, nested1)
     @test issubset(nested3, nested1)
     @test !issubset(nested1, nested3)
+
+    nota = QueryFormula(:not, QueryFormula(:v, :a))
+    notb = QueryFormula(:not, QueryFormula(:v, :b))
+    @test nota == nota
+    @test nota != notb
+
+    or3 = QueryFormula(:or, Set([
+        QueryFormula(:x, 1),
+        QueryFormula(:x, 2)
+    ]))
+    or4 = QueryFormula(:or, Set([
+        QueryFormula(:v, 1),
+        QueryFormula(:x, 1),
+        QueryFormula(:x, 2)
+    ]))
+    not3 = QueryFormula(:not, QueryFormula(:x, 3))
+    @test or3 != not3
+    @test issubset(or3, not3)
+    @test !issubset(not3, or3)
+    @test !issubset(or4, not3)
+
+    rec1 = QueryFormula(:recursive, "[NH2]C")
+    rec2 = QueryFormula(:recursive, "[NH2]CC")
+    rec3 = QueryFormula(:recursive, "[NH2+0]C")
+    rec4 = QueryFormula(:recursive, "[N,O;H2]C")
+    and3 = QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :N)
+        QueryFormula(:or, Set([
+            QueryFormula(:hydrogenconnected, 2),
+            QueryFormula(:hydrogenconnected, 3)
+        ]))
+    ]))
+    @test issubset(rec2, rec1)
+    @test !issubset(rec1, rec2)
+    @test issubset(rec3, rec1)
+    @test !issubset(rec1, rec3)
+    @test !issubset(rec4, rec1)
+    @test issubset(rec1, rec4)
+    @test issubset(rec1, and3)
+    @test !issubset(rec4, and3)
 end
 
 @testset "tidyformula" begin
@@ -248,6 +283,28 @@ end
                 QueryFormula(:z, 4)
             ]))
         ]))
+    ]))
+
+    dist3 = QueryFormula(:and, Set([
+        QueryFormula(:hydrogenconnected, 1),
+        QueryFormula(:or, Set([
+            QueryFormula(:and, Set([
+                QueryFormula(:atomsymbol, :O),
+                QueryFormula(:isaromatic, false)
+            ])),
+            QueryFormula(:and, Set([
+                QueryFormula(:atomsymbol, :N),
+                QueryFormula(:isaromatic, false)
+            ]))
+        ]))
+    ]))
+    @test tidyformula(dist3) == QueryFormula(:and, Set([
+        QueryFormula(:hydrogenconnected, 1),
+        QueryFormula(:or, Set([
+            QueryFormula(:atomsymbol, :O),
+            QueryFormula(:atomsymbol, :N)
+        ])),
+        QueryFormula(:isaromatic, false)
     ]))
 end
 

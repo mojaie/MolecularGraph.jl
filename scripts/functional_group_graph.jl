@@ -7,48 +7,48 @@ Pkg.activate(PROJECT_DIR)
 using YAML
 using MolecularGraph
 using MolecularGraph.Graph
+using MolecularGraph.Util
 
 const INPUT_DIR = joinpath(PROJECT_DIR, "./assets/raw/functionalgroup")
 const OUTPUT_FILE = joinpath(PROJECT_DIR, "./assets/const/functionalgroup.yaml")
 
 
 function run()
+    # read file directories
+    paths = [joinpath(INPUT_DIR, f) for f in readdir(INPUT_DIR)]
     # read list of functional groups from .yaml files
     fgrecords = []
-    for f in readdir(INPUT_DIR)
-        append!(fgrecords, YAML.load(open(joinpath(INPUT_DIR, f))))
+    for p in paths
+        for rcd in YAML.load(open(p))
+            qs = haskey(rcd, "any") ? rcd["any"] : [rcd["query"]]
+            rcd["qmols"] = smartstomol.(qs)
+            push!(fgrecords, rcd)
+        end
     end
-    for r in fgrecords
-        delete!(r, "isa")
-        delete!(r, "has")
-    end
+    # Detect query relationships
     isaedges = Set{Tuple{Int,Int}}()
     hasedges = Set{Tuple{Int,Int}}()
-
-    # Detect query relationship
-    for (u, rcd1) in enumerate(fgrecords)
-        println(rcd1["key"])
-        for (v, rcd2) in enumerate(fgrecords)
-            rcd1["key"] == rcd2["key"] && continue
-            q1s = smartstomol.(haskey(rcd1, "any") ? rcd1["any"] : [rcd1["query"]])
-            q2s = smartstomol.(haskey(rcd2, "any") ? rcd2["any"] : [rcd2["query"]])
+    for u in 1:length(fgrecords)
+        println(fgrecords[u]["key"])
+        for v in 1:length(fgrecords)
+            u == v && continue
             # isa
-            for q1 in q1s
-                for q2 in q2s
-                    if hasexactmatch(q1, q2, atommatcher=isaatommatch, bondmatcher=isabondmatch)
+            for qu in fgrecords[u]["qmols"]
+                for qv in fgrecords[v]["qmols"]
+                    if hasexactmatch(qu, qv)
                         push!(isaedges, (u, v))
-                        println(rcd1["key"], " isa ", rcd2["key"])
+                        println(fgrecords[u]["key"], " isa ", fgrecords[v]["key"])
                         break
                     end
                 end
                 (u, v) in isaedges && break
             end
             # has
-            for q1 in q1s
-                for q2 in q2s
-                    if hassubstructmatch(q1, q2, atommatcher=isaatommatch, bondmatcher=isabondmatch)
+            for qu in fgrecords[u]["qmols"]
+                for qv in fgrecords[v]["qmols"]
+                    if hassubstructmatch(qu, qv, atommatcher=recursiveatommatch)
                         push!(hasedges, (u, v))
-                        println(rcd1["key"], " has ", rcd2["key"])
+                        println(fgrecords[u]["key"], " has ", fgrecords[v]["key"])
                         break
                     end
                 end
@@ -76,6 +76,9 @@ function run()
             fgrecords[u]["has"] = []
         end
         push!(fgrecords[u]["has"], fgrecords[v]["key"])
+    end
+    for rcd in fgrecords
+        delete!(rcd, "qmols")
     end
     # Write records to the file
     YAML.write_file(OUTPUT_FILE, fgrecords)
