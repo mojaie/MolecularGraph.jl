@@ -43,21 +43,20 @@ end
 
 
 function querymatchtree(
-        query::QueryFormula, mol::UndirectedGraph, matcher::Dict, i::Int)
+        query::QueryFormula, mol::UndirectedGraph, matcher, i; recursive=Dict())
     if query.key === :any
         return true
     elseif query.key === :and
-        return all(querymatchtree(q, mol, matcher, i) for q in query.value)
+        return all(querymatchtree(q, mol, matcher, i, recursive=recursive) for q in query.value)
     elseif query.key === :or
-        return any(querymatchtree(q, mol, matcher, i) for q in query.value)
+        return any(querymatchtree(q, mol, matcher, i, recursive=recursive) for q in query.value)
     elseif query.key === :not
-        return !querymatchtree(query.value, mol, matcher, i)
+        return !querymatchtree(query.value, mol, matcher, i, recursive=recursive)
     elseif query.key === :stereo
         # TODO: stereo not implemented yet
         return true
     elseif query.key === :recursive
-        subq = parse(SMARTS, query.value)
-        return hassubstructmatch(mol, subq, mandatory=Dict(i => 1))
+        return i in recursive[query.value]
     else
         if query.key === :sssrsizes
             return query.value in matcher[query.key][i]
@@ -73,7 +72,7 @@ end
 
 Return a default atom attribute comparator that returns true if the atom satisfies all the queryatom conditions.
 """
-function atommatch(mol::UndirectedGraph, querymol::QueryMol)
+function atommatch(mol::UndirectedGraph, qmol::QueryMol)
     matcher = Dict(
         :atomsymbol => atomsymbol(mol),
         :isaromatic => isaromatic(mol),
@@ -87,8 +86,34 @@ function atommatch(mol::UndirectedGraph, querymol::QueryMol)
         :sssrsizes => sssrsizes(mol),
         :sssrcount => sssrcount(mol)
     )
+    bmatcher = Dict(
+        :bondorder => bondorder(mol),
+        :isringbond => isringbond(mol),
+        :isaromaticbond => isaromaticbond(mol),
+        :stereo => getproperty.(edgeattrs(mol), :stereo)
+    )
+    # precalc recursive
+    recursive = Dict()
+    for q in 1:nodecount(qmol)
+        rec = findformula(nodeattr(qmol, q).query, :recursive, deep=true, aggregate=collect)
+        rec === nothing && continue
+        for fml in rec
+            qm = smartstomol(fml)
+            recursive[fml] = Set()
+            for n in 1:nodecount(mol)
+                if subgraph_is_monomorphic(
+                        mol, qm,
+                        nodematcher=(a, qa) -> querymatchtree(nodeattr(qm, qa).query, mol, matcher, a),
+                        edgematcher=(b, qb) -> querymatchtree(
+                            edgeattr(qm, qb).query, mol, bmatcher, b),
+                        mandatory=Dict(n => 1))
+                    push!(recursive[fml], n)
+                end
+            end
+        end
+    end
     return (a, qa) -> querymatchtree(
-        nodeattr(querymol, qa).query, mol, matcher, a)
+        nodeattr(qmol, qa).query, mol, matcher, a, recursive=recursive)
 end
 
 

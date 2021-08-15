@@ -243,8 +243,9 @@ function Base.iterate(iter::VF2Matcher, state=nothing)
     return  # no match found
 end
 
-Base.IteratorSize(::Type{VF2Matcher}) = Base.SizeUnknown()
-Base.IteratorEltype(::Type{VF2Matcher}) = Base.EltypeUnknown()
+# TODO: get rid of generics
+Base.IteratorSize(::Type{VF2Matcher{T1,T2}}) where {T1<:UndirectedGraph,T2<:UndirectedGraph} = Base.SizeUnknown()
+Base.IteratorEltype(::Type{VF2Matcher{T1,T2}}) where {T1<:UndirectedGraph,T2<:UndirectedGraph} = Base.EltypeUnknown()
 
 
 

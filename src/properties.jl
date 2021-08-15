@@ -614,7 +614,7 @@ Convenient method to pre-calculate and cache performance bottleneck descriptors.
 """
 function precalculate!(mol)
     setcache!(mol, edgemincycles)
-    setcache!(mol, mincycles)
+    setcache!(mol, sssr)
     setcache!(mol, lonepair)
     setcache!(mol, apparentvalence)
     setcache!(mol, valence)

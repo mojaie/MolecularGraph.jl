@@ -7,7 +7,8 @@ export
     QueryFormula, QueryMol, querymol,
     tidyformula, findformula,
     inferatomaromaticity!, removehydrogens,
-    recursiveatommatch
+    recursiveatommatch,
+    query_relationship, filter_queries
 
 
 struct QueryFormula
@@ -315,4 +316,106 @@ function recursiveatommatch(qmol1::QueryMol, qmol2::QueryMol)
         end
         return false
     end
+end
+
+
+
+const DEFAULT_QUERY_RELATIONS = let
+    qrfile = joinpath(dirname(@__FILE__), "../../assets/const/default_query_relations.yaml")
+    include_dependency(qrfile)
+    qrfile
+end
+
+
+
+struct DictDiGraph <: OrderedDiGraph
+    # TODO: should be moved to Graph module
+    outneighbormap::Vector{Dict{Int,Int}}
+    inneighbormap::Vector{Dict{Int,Int}}
+    edges::Vector{Tuple{Int,Int}}
+    nodeattrs::Vector{Dict}
+    edgeattrs::Vector{Dict}
+end
+
+
+"""
+    dictdigraph(view::DiSubgraphView{DictDiGraph}) -> DictDiGraph
+
+Generate a new `DictDiGraph` from a substructure view.
+
+Graph property caches and attributes are not inherited.
+"""
+function dictdigraph(view::DiSubgraphView{DictDiGraph})
+    newg = DictDiGraph([], [], [], [], [])
+    nkeys = sort(collect(nodeset(view)))
+    ekeys = sort(collect(edgeset(view)))
+    nmap = Dict{Int,Int}()
+    for (i, n) in enumerate(nkeys)
+        nmap[n] = i
+        push!(newg.nodeattrs, nodeattr(view, n))
+        push!(newg.outneighbormap, Dict())
+        push!(newg.inneighbormap, Dict())
+    end
+    for (i, e) in enumerate(ekeys)
+        (oldu, oldv) = getedge(view, e)
+        u = nmap[oldu]
+        v = nmap[oldv]
+        push!(newg.edges, (u, v))
+        push!(newg.edgeattrs, edgeattr(view, e))
+        newg.outneighbormap[u][i] = v
+        newg.inneighbormap[v][i] = u
+    end
+    return newg
+end
+
+
+"""
+    query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS) -> DictDiGraph
+
+Generate query relationship diagram.
+"""
+function query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS)
+    graph = DictDiGraph([], [], [], [], [])
+    keys = Dict()
+    for (i, rcd) in enumerate(YAML.load(open(sourcefile)))
+        addnode!(graph, rcd)
+        keys[rcd["key"]] = i
+    end
+    for rcd in nodeattrs(graph)
+        if haskey(rcd, "isa")
+            for e in rcd["isa"]
+                addedge!(graph, keys[rcd["key"]], keys[e], Dict("relation" => "isa"))
+            end
+        end
+        if haskey(rcd, "has")
+            for e in rcd["has"]
+                addedge!(graph, keys[rcd["key"]], keys[e], Dict("relation" => "has"))
+            end
+        end
+    end
+    return graph
+end
+
+
+"""
+    filter_queries(qr::DictDiGraph, mol::GraphMol) -> DictDiGraph
+
+Filter query relationship diagram by the given molecule.
+The filtered diagram represents query relationship that the molecule have.
+"""
+function filter_queries(qr::DictDiGraph, mol::GraphMol)
+    matched = Set{Int}()
+    qrc = deepcopy(qr)
+    for n in reversetopologicalsort(qrc)
+        rcd = nodeattr(qrc, n)
+        if !issubset(successors(qrc, n), matched)
+            continue
+        end
+        matches = collect(substructmatches(mol, smartstomol(rcd["query"])))
+        if !isempty(matches)
+            push!(matched, n)
+            rcd["matched"] = Set([sort(collect(keys(m))) for m in matches])
+        end
+    end
+    return dictdigraph(nodesubgraph(qrc, matched))
 end
