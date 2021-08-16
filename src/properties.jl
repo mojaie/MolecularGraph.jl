@@ -618,5 +618,9 @@ function precalculate!(mol)
     setcache!(mol, lonepair)
     setcache!(mol, apparentvalence)
     setcache!(mol, valence)
+    # for SMARTS query performance
+    setcache!(mol, isaromaticring)
+    setcache!(mol, sssrmembership)
+
     nodeattrtype(mol) === SmilesAtom && setcache!(mol, coordgen)
 end

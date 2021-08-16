@@ -5,7 +5,7 @@
 
 export
     QueryFormula, QueryMol, querymol,
-    tidyformula, findformula,
+    tidyformula, findformula, findallformula,
     inferatomaromaticity!, removehydrogens,
     recursiveatommatch,
     query_relationship, filter_queries
@@ -211,6 +211,27 @@ function findformula(q::QueryFormula, key::Symbol; deep=false, aggregate=minimum
         return aggregate(values)
     end
     return
+end
+
+
+"""
+    findallformula(q::QueryFormula, key::Symbol) -> Any
+
+Find all formula values that matched the given key regardless of logical operator roles.
+"""
+function findallformula(q::QueryFormula, key::Symbol)
+    if q.key == key
+        return [q.value]
+    elseif q.key === :not
+        return findallformula(q.value, key)
+    elseif q.key in (:and, :or)
+        values = []
+        for child in q.value
+            append!(values, findallformula(child, key))
+        end
+        return values
+    end
+    return []
 end
 
 

@@ -56,7 +56,18 @@ function querymatchtree(
         # TODO: stereo not implemented yet
         return true
     elseif query.key === :recursive
-        return i in recursive[query.value]
+        if haskey(recursive, query.value)
+            return i in recursive[query.value]
+        else
+            qm = smartstomol(query.value)
+            return subgraph_is_monomorphic(
+                mol, qm,
+                nodematcher=(a, qa) -> querymatchtree(
+                    nodeattr(qm, qa).query, mol, matcher, a),
+                edgematcher=(b, qb) -> querymatchtree(
+                    edgeattr(qm, qb).query, mol, bmatcher, b),
+                mandatory=Dict(i => 1))
+        end
     else
         if query.key === :sssrsizes
             return query.value in matcher[query.key][i]
@@ -95,15 +106,14 @@ function atommatch(mol::UndirectedGraph, qmol::QueryMol)
     # precalc recursive
     recursive = Dict()
     for q in 1:nodecount(qmol)
-        rec = findformula(nodeattr(qmol, q).query, :recursive, deep=true, aggregate=collect)
-        rec === nothing && continue
-        for fml in rec
+        for fml in findallformula(nodeattr(qmol, q).query, :recursive)
             qm = smartstomol(fml)
             recursive[fml] = Set()
             for n in 1:nodecount(mol)
                 if subgraph_is_monomorphic(
                         mol, qm,
-                        nodematcher=(a, qa) -> querymatchtree(nodeattr(qm, qa).query, mol, matcher, a),
+                        nodematcher=(a, qa) -> querymatchtree(
+                            nodeattr(qm, qa).query, mol, matcher, a),
                         edgematcher=(b, qb) -> querymatchtree(
                             edgeattr(qm, qb).query, mol, bmatcher, b),
                         mandatory=Dict(n => 1))
