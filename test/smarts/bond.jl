@@ -38,7 +38,7 @@ end
     notring = bond!(state)
     @test notring.query == QueryFormula(:and, Set([
         QueryFormula(:bondorder, 1),
-        QueryFormula(:not, QueryFormula(:isringbond, true))
+        QueryFormula(:isringbond, false)
     ]))
 end
 

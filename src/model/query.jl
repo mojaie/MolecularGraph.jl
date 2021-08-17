@@ -6,6 +6,7 @@
 export
     QueryFormula, QueryMol, querymol,
     tidyformula, findformula, findallformula,
+    convertnotquery, convertnotquery!,
     inferatomaromaticity!, removehydrogens,
     recursiveatommatch,
     query_relationship, filter_queries
@@ -142,19 +143,48 @@ end
 """
 tidyformula(fml::QueryFormula) -> QueryFormula
 
-Return juxtaposed formulae (ex. :and => (A, :and => (B, C)) -> :and => (A, B, C)).
+Return tidy formulae.
+
+- associative formulae will be juxtaposed
+  (ex. :and => (A, :and => (B, C)) -> :and => (A, B, C))
+- distributive formulae will be factored out
+  (ex. :or => (:and => (A, B), :and => (A, C)) -> :and => (A, :or => (B, C)))
+- Absorption
+  (ex. :and => (A, :or => (A, B)) -> A
+- `:any` absorbs everything
+  (ex. :and => (:any => true, A) -> A, :or => (:any => true, A) -> :any => true
+- `:not` would be inverted if possible
+  (ex. :not => (:A => true) -> :A => false)
+- `:not` has the highest precedence in SMARTS, but only in the case like [!C],
+  De Morgan's law will be applied to remove `:and` under `:not`.
+  (ex. :not => (:and => (:atomsymbol => :C, :isaromatic => false)
+   -> :or => (:not => (:atomsymbol => :C), isaromatic => true)
 """
 function tidyformula(fml::QueryFormula)
+    # not
+    if fml.key === :not
+        child = fml.value
+        if child.key === :and  # only the cases like [!C]
+            return QueryFormula(:or, Set([
+                tidyformula(QueryFormula(:not, c)) for c in child.value
+            ]))
+        elseif typeof(child.value) === Bool
+            return QueryFormula(child.key, !child.value)
+        end
+    end
     fml.key in (:and, :or) || return fml
-    # TODO: :not and :recursive formula
     childs = Set{QueryFormula}()
     # Association
     for child in fml.value
-        tf = tidyformula(child)
-        if tf.key === fml.key
-            union!(childs, tf.value)
+        cfml = tidyformula(child)
+        if cfml.key === :any
+            # Absorption
+            (fml.key === :and) == cfml.value && continue
+            return QueryFormula(:any, cfml.value)
+        elseif cfml.key === fml.key
+            union!(childs, cfml.value)
         else
-            union!(childs, [tf])
+            union!(childs, [cfml])
         end
     end
     length(childs) == 1 && return collect(childs)[1]
@@ -162,10 +192,21 @@ function tidyformula(fml::QueryFormula)
     ckey = fml.key === :and ? :or : :and
     cc = collect(childs)
     bin = cc[1].key == ckey ? copy(cc[1].value) : Set([cc[1]])
+    mono = Set([b.key for b in bin])
     for child in cc[2:end]
-        intersect!(bin, child.key == ckey ? child.value : [child])
+        @assert child.key !== fml.key  # already associated
+        elems = child.key === ckey ? child.value : [child]
+        intersect!(bin, elems)
+        union!(mono, Set([e.key for e in elems]))
     end
-    isempty(bin) && return QueryFormula(fml.key, childs)
+    if isempty(bin)
+        if fml.key === :and && length(mono) == 1
+            # SMARTS primitives are disjoint, so the intersection should be an empty set.
+            return QueryFormula(:any, false)
+        else
+            return QueryFormula(fml.key, childs)
+        end
+    end
     updated = Set{QueryFormula}()
     for child in childs
         cdiff = setdiff(child.key == ckey ? child.value : [child], bin)
@@ -178,7 +219,7 @@ function tidyformula(fml::QueryFormula)
             push!(updated, QueryFormula(ckey, cdiff))
         end
     end
-    return QueryFormula(ckey, Set([bin..., QueryFormula(fml.key, updated)]))
+    return tidyformula(QueryFormula(ckey, Set([bin..., QueryFormula(fml.key, updated)])))
 end
 
 
@@ -235,6 +276,62 @@ function findallformula(q::QueryFormula, key::Symbol)
 end
 
 
+
+NOTCONV = Dict(
+    :isaromatic => Set([true, false]),
+    :hydrogenconnected => Set([0, 1, 2, 3, 4]),
+    :sssrcount => Set([0, 1, 2, 3]),
+    :isringbond => Set([true, false]),
+    :isaromaticbond => Set([true, false]),
+    :stereo => Set([:up, :down, :unspecified])
+)
+
+"""
+    convertnotquery(mol::QueryMol) -> QueryMol
+
+Convert :not query to :or if possible.
+
+- [!#1] would be *. Typical substructure mining tasks do not care stereochemistry,
+so all hydrogen nodes can be removed.)
+- following `tidyformula` is necessary.
+"""
+function convertnotquery(fml::QueryFormula)
+    if fml.key === :not
+        cfml = fml.value
+        cfml == QueryFormula(:atomsymbol, :H) && return QueryFormula(:any, true)
+        if haskey(NOTCONV, cfml.key)
+            rest = setdiff(NOTCONV[cfml.key], [cfml.value])
+            isempty(rest) && return QueryFormula(:any, false)
+            length(rest) == 1 && return QueryFormula(cfml.key, collect(rest)[1])
+            return QueryFormula(:or, Set([QueryFormula(cfml.key, v) for v in rest]))
+        else
+            return fml
+        end
+    end
+    fml.key in (:and, :or) || return fml
+    childs = Set{QueryFormula}(convertnotquery.(fml.value))
+    return QueryFormula(fml.key, childs)
+end
+
+function convertnotquery!(qmol::QueryMol)
+    nodes = []
+    for n in 1:nodecount(qmol)
+        na = nodeattr(qmol, n).query
+        push!(nodes, SmartsAtom(tidyformula(convertnotquery(na))))
+    end
+    edges = []
+    for e in 1:edgecount(qmol)
+        ea = edgeattr(qmol, e).query
+        push!(edges, SmartsBond(tidyformula(convertnotquery(ea))))
+    end
+    empty!(qmol.nodeattrs)
+    append!(qmol.nodeattrs, nodes)
+    empty!(qmol.edgeattrs)
+    append!(qmol.edgeattrs, edges)
+end
+
+
+
 """
     inferatomaromaticity!(qmol::QueryMol)
 
@@ -284,7 +381,7 @@ end
 
 Return the molecular query with hydrogen nodes removed.
 
-Hydrogen nodes would be represented as `[*Hx]` in the connected heavy atoms.
+- Hydrogen nodes would be represented as `[*Hx]` in the connected heavy atoms.
 (e.g. CN[H] -> C[N;H1,H2,H3,H4])
 """
 function removehydrogens(mol::QueryMol)

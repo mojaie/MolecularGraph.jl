@@ -21,7 +21,9 @@ function run()
     fgrecords = []
     for p in paths
         for rcd in YAML.load(open(p))
-            rcd["qmol"] = smartstomol(rcd["query"])
+            m = smartstomol(rcd["query"])
+            convertnotquery!(m)
+            rcd["qmol"] = m
             push!(fgrecords, rcd)
         end
     end
@@ -30,6 +32,7 @@ function run()
         m = smartstomol(rcd["query"])
         m = removehydrogens(m)
         inferatomaromaticity!(m)
+        convertnotquery!(m)
         rcd["qmol"] = m
         push!(fgrecords, rcd)
     end

@@ -118,16 +118,16 @@ end
 
 @testset "tidyformula" begin
     and1 = QueryFormula(:and, Set([
-        QueryFormula(:v, :a),
+        QueryFormula(:x, :a),
         QueryFormula(:and, Set([
-            QueryFormula(:v, :b),
-            QueryFormula(:v, :c)
+            QueryFormula(:y, :b),
+            QueryFormula(:z, :c)
         ]))
     ]))
     @test tidyformula(and1) == QueryFormula(:and, Set([
-        QueryFormula(:v, :a),
-        QueryFormula(:v, :b),
-        QueryFormula(:v, :c)
+        QueryFormula(:x, :a),
+        QueryFormula(:y, :b),
+        QueryFormula(:z, :c)
     ]))
 
     or1 = QueryFormula(:or, Set([
@@ -168,29 +168,29 @@ end
 
     or2 = QueryFormula(:or, Set([
         QueryFormula(:and, Set([
-            QueryFormula(:v, :a),
-            QueryFormula(:v, :b)
+            QueryFormula(:x, :a),
+            QueryFormula(:y, :b)
         ])),
         QueryFormula(:and, Set([
-            QueryFormula(:v, :c),
-            QueryFormula(:v, :d)
+            QueryFormula(:x, :c),
+            QueryFormula(:y, :d)
         ])),
         QueryFormula(:or, Set([
-            QueryFormula(:v, :e),
-            QueryFormula(:v, :f)
+            QueryFormula(:x, :e),
+            QueryFormula(:y, :f)
         ]))
     ]))
     @test tidyformula(or2) == QueryFormula(:or, Set([
         QueryFormula(:and, Set([
-            QueryFormula(:v, :a),
-            QueryFormula(:v, :b)
+            QueryFormula(:x, :a),
+            QueryFormula(:y, :b)
         ])),
         QueryFormula(:and, Set([
-            QueryFormula(:v, :c),
-            QueryFormula(:v, :d)
+            QueryFormula(:x, :c),
+            QueryFormula(:y, :d)
         ])),
-        QueryFormula(:v, :e),
-        QueryFormula(:v, :f)
+        QueryFormula(:x, :e),
+        QueryFormula(:y, :f)
     ]))
 
     not1 = QueryFormula(:not, QueryFormula(:v, :a))
@@ -199,22 +199,22 @@ end
     and3 = QueryFormula(:and, Set([
         QueryFormula(:and, Set([
             QueryFormula(:and, Set([
-                QueryFormula(:v, :a),
+                QueryFormula(:a, 1),
                 QueryFormula(:and, Set([
-                    QueryFormula(:v, :b),
-                    QueryFormula(:v, :c)
+                    QueryFormula(:b, 1),
+                    QueryFormula(:c, 1)
                 ]))
             ])),
-            QueryFormula(:v, :d)
+            QueryFormula(:d, 1)
         ])),
-        QueryFormula(:v, :e)
+        QueryFormula(:e, 1)
     ]))
     @test tidyformula(and3) == QueryFormula(:and, Set([
-        QueryFormula(:v, :a),
-        QueryFormula(:v, :b),
-        QueryFormula(:v, :c),
-        QueryFormula(:v, :d),
-        QueryFormula(:v, :e)
+        QueryFormula(:a, 1),
+        QueryFormula(:b, 1),
+        QueryFormula(:c, 1),
+        QueryFormula(:d, 1),
+        QueryFormula(:e, 1)
     ]))
 
     abs1 = QueryFormula(:and, Set([
@@ -305,6 +305,67 @@ end
             QueryFormula(:atomsymbol, :N)
         ])),
         QueryFormula(:isaromatic, false)
+    ]))
+
+    abs3 = QueryFormula(:and, Set([
+        QueryFormula(:any, true),
+        QueryFormula(:a, 1)
+    ]))
+    @test tidyformula(abs3) == QueryFormula(:a, 1)
+
+    abs4 = QueryFormula(:or, Set([
+        QueryFormula(:any, true),
+        QueryFormula(:a, 1)
+    ]))
+    @test tidyformula(abs4) == QueryFormula(:any, true)
+
+    abs5 = QueryFormula(:and, Set([
+        QueryFormula(:any, false),
+        QueryFormula(:a, 1)
+    ]))
+    @test tidyformula(abs5) == QueryFormula(:any, false)
+
+    abs6 = QueryFormula(:or, Set([
+        QueryFormula(:any, false),
+        QueryFormula(:a, 1)
+    ]))
+    @test tidyformula(abs6) == QueryFormula(:a, 1)
+
+    abs7 = QueryFormula(:and, Set([
+        QueryFormula(:or, Set([
+            QueryFormula(:or, Set([
+                QueryFormula(:any, true),
+                QueryFormula(:c, 3)
+            ])),
+            QueryFormula(:b, 2)
+        ])),
+        QueryFormula(:a, 1)
+    ]))
+    @test tidyformula(abs7) == QueryFormula(:a, 1)
+end
+
+@testset "convertnotquery" begin
+    not1 = QueryFormula(:not, QueryFormula(:atomsymbol, :H))
+    @test convertnotquery(not1) == QueryFormula(:any, true)
+
+    not2 = QueryFormula(:not, QueryFormula(:isringbond, true))
+    @test convertnotquery(not2) == QueryFormula(:isringbond, false)
+
+    not3 = QueryFormula(:not, QueryFormula(:sssrcount, 0))
+    @test convertnotquery(not3) == QueryFormula(:or, Set([
+        QueryFormula(:sssrcount, 1),
+        QueryFormula(:sssrcount, 2),
+        QueryFormula(:sssrcount, 3)
+    ]))
+
+    not4 = QueryFormula(:and, Set([
+        QueryFormula(:not, QueryFormula(:hydrogenconnected, 0)),
+        QueryFormula(:not, QueryFormula(:hydrogenconnected, 1)),
+        QueryFormula(:not, QueryFormula(:hydrogenconnected, 2))
+    ]))
+    @test tidyformula(convertnotquery(not4)) == QueryFormula(:or, Set([
+        QueryFormula(:hydrogenconnected, 3),
+        QueryFormula(:hydrogenconnected, 4)
     ]))
 end
 

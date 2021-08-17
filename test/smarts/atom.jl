@@ -188,10 +188,10 @@ end
     state = SmartsParser("[!C;R]", false)
     ringnotalp = atom!(state)[1]
     @test ringnotalp.query == QueryFormula(:and, Set([
-        QueryFormula(:not, QueryFormula(:and, Set([
-            QueryFormula(:atomsymbol, :C),
-            QueryFormula(:isaromatic, false)
-        ]))),
+        QueryFormula(:or, Set([
+            QueryFormula(:not, QueryFormula(:atomsymbol, :C)),
+            QueryFormula(:isaromatic, true)
+        ])),
         QueryFormula(:not, QueryFormula(:sssrcount, 0))
     ]))
 
