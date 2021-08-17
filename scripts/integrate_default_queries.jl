@@ -10,17 +10,28 @@ using MolecularGraph.Graph
 using MolecularGraph.Util
 
 const INPUT_DIR = joinpath(PROJECT_DIR, "./assets/raw/functionalgroup")
-const OUTPUT_FILE = joinpath(PROJECT_DIR, "./assets/const/functionalgroup.yaml")
+const INPUT_SA_DIR = joinpath(PROJECT_DIR, "./assets/raw/structuralalerts")
+const OUTPUT_FILE = joinpath(PROJECT_DIR, "./assets/const/default_query_relations.yaml")
 
 
 function run()
     # read file directories
     paths = [joinpath(INPUT_DIR, f) for f in readdir(INPUT_DIR)]
+    # append!(paths, [joinpath(INPUT_SA_DIR, f) for f in readdir(INPUT_SA_DIR)])
+
     # read list of functional groups from .yaml files
     fgrecords = []
     for p in paths
+        basename(p) == ".DS_Store" && continue
         for rcd in YAML.load(open(p))
-            rcd["qmol"] = smartstomol(rcd["query"])
+            m = smartstomol(rcd["query"])
+            if basename(p) == "PAINS.yaml"
+                m = removehydrogens(m)
+                inferatomaromaticity!(m)
+            end
+            convertnotquery!(m)
+            rcd["qmol"] = m
+            rcd["source"] = split(basename(p), ".")[1]
             push!(fgrecords, rcd)
         end
     end
@@ -28,7 +39,8 @@ function run()
     isaedges = Set{Tuple{Int,Int}}()
     hasedges = Set{Tuple{Int,Int}}()
     for u in 1:length(fgrecords)
-        println(fgrecords[u]["key"])
+        @debug "---" fgrecords[u]["key"]
+        u % 50 == 0 && println(u, " records processed...")
         for v in 1:length(fgrecords)
             u == v && continue
             # isa
@@ -43,10 +55,10 @@ function run()
                     end
                     push!(fgrecords[u]["aliases"], fgrecords[v]["key"])
                     push!(fgrecords[v]["aliases"], fgrecords[u]["key"])
-                    println("dupes: ", fgrecords[u]["key"], " ", fgrecords[v]["key"])
+                    @debug "dupes" fgrecords[u]["key"] fgrecords[v]["key"]
                 else
                     push!(isaedges, (u, v))
-                    println(fgrecords[u]["key"], " isa ", fgrecords[v]["key"])
+                    @debug "isa" fgrecords[u]["key"] fgrecords[v]["key"]
                 end
             end
             # has
@@ -56,7 +68,7 @@ function run()
                     pop!(hasedges, (v, u))  # duplicate
                 else
                     push!(hasedges, (u, v))
-                    println(fgrecords[u]["key"], " has ", fgrecords[v]["key"])
+                    @debug "has" fgrecords[u]["key"] fgrecords[v]["key"]
                 end
             end
         end
