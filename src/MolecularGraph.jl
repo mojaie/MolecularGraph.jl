@@ -78,7 +78,6 @@ module MolecularGraph
     include("properties.jl")
     include("mass.jl")
     include("wclogp.jl")
-    include("funcgroup.jl")
     include("inchi.jl")
 
     include("./smarts/base.jl")
