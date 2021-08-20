@@ -5,7 +5,7 @@
 
 export
     atommatch, bondmatch,
-    isequivalent, query_contains, isaatommatch, isabondmatch,
+    exactatommatch, exactbondmatch,
     structmatches,
     exactmatches, hasexactmatch,
     substructmatches, hassubstructmatch,
@@ -69,11 +69,7 @@ function querymatchtree(
                 mandatory=Dict(i => 1))
         end
     else
-        if query.key === :sssrsizes
-            return query.value in matcher[query.key][i]
-        else
-            return matcher[query.key][i] == query.value
-        end
+        return matcher[query.key][i] == query.value
     end
 end
 
@@ -94,7 +90,7 @@ function atommatch(mol::UndirectedGraph, qmol::QueryMol)
         :nodedegree => nodedegree(mol),
         :valence => valence(mol),
         :hydrogenconnected => hydrogenconnected(mol),
-        :sssrsizes => sssrsizes(mol),
+        :smallestsssr => smallestsssr(mol),
         :sssrcount => sssrcount(mol)
     )
     bmatcher = Dict(

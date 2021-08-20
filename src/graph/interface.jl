@@ -70,8 +70,8 @@ getcache(graph::AbstractGraph, key) = graph.cache[key]
 
 Set calculated property caches.
 """
-function setcache!(graph::AbstractGraph, func; kwargs...)
-    graph.cache[nameof(func)] = func(graph; kwargs...)
+function setcache!(graph::AbstractGraph, key; kwargs...)
+    graph.cache[key] = getfield(Graph, key)(graph; kwargs...)
 end
 
 

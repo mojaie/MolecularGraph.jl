@@ -12,7 +12,7 @@ const SMARTS_ATOM_COND_SYMBOL = Dict(
     'D' => :nodedegree,
     'v' => :valence,
     'H' => :hydrogenconnected,
-    'r' => :sssrsizes,
+    'r' => :smallestsssr,
     'R' => :sssrcount
 )
 
