@@ -184,7 +184,7 @@ graphmol(json::String) = graphmol(JSON.parse(json))
 
 Set calculated property caches.
 """
-function setcache!(mol::GraphMol, key; kwargs...)
+function Graph.setcache!(mol::GraphMol, key; kwargs...)
     mol.cache[key] = getfield(MolecularGraph, key)(mol; kwargs...)
 end
 
