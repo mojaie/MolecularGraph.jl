@@ -1,10 +1,10 @@
 
-# Functional group detection
+# Molecular queries
 
 
 ```@autodocs
 Modules = [MolecularGraph]
-Pages   = ["funcgroup.jl"]
+Pages   = ["./model/query.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

@@ -18,7 +18,7 @@ makedocs(
             "Preprocessing" => "moleculargraph/preprocess.md",
             "Molecular mass/weight" => "moleculargraph/mass.md",
             "Structure match" => "moleculargraph/structurematch.md",
-            "Functional group detection" => "moleculargraph/funcgroup.md"
+            "Molecular queries" => "moleculargraph/query.md"
         ],
         "MolecularGraph.Graph" => "graph.md",
         "MolecularGraph.Geometry" => "geometry.md"

@@ -37,8 +37,6 @@ end
 
 Returns minimum cycle basis represented as an array of edge sequence that make up a cycle.
 
-The node sequences can be obtained by using [`minimumcyclenodes`](@ref).
-
 # Reference
 
 1. de Pina, J.C. Applications of shortest path methods. PhD thesis, University of Amsterdam,
