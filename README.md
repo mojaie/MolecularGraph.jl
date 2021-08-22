@@ -23,6 +23,7 @@ MolecularGraph.jl
 - [Documentation and API Reference](https://mojaie.github.io/MolecularGraph.jl/dev)
 
 
+
 ## Features
 
 - Chemical structure file I/O
@@ -65,6 +66,10 @@ MolecularGraph.jl
   - Monomorphism, node-induced and edge-induced
   - Constraints (mandatory/forbidden mapping)
 
+- SMARTS query-based substructure analysis
+  - functional group mining
+  - structural alerts (by using ChEMBL dataset)
+
 - Maximum common substructure (MCS)
   - By clique detection algorithm
   - Node-induced (MCIS) and edge-induced (MCES)
@@ -72,12 +77,13 @@ MolecularGraph.jl
   - Topological constraint (known as tdMCS)
   - Diameter restriction (MCS-DR) and graph-based local similarity (GLS)
 
-- SMARTS and terminology graph-based functional group analysis
 
 
 ## License
 
-[MIT license](http://opensource.org/licenses/MIT)
+[MIT license](http://opensource.org/licenses/MIT)  
+See [Assets/README.md](https://github.com/mojaie/MolecularGraph.jl/tree/master/assets) for details of external data sets and their licenses.
+
 
 
 ## Copyright
