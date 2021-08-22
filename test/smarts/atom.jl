@@ -205,7 +205,7 @@ end
 
     state = SmartsParser("[*r6]", false)
     sixmem = atom!(state)[1]
-    @test sixmem.query == QueryFormula(:sssrsizes, 6)
+    @test sixmem.query == QueryFormula(:smallestsssr, 6)
 
     state = SmartsParser("[35*]", false)
     any35 = atom!(state)[1]
