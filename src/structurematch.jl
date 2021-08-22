@@ -5,7 +5,7 @@
 
 export
     atommatch, bondmatch,
-    isequivalent, query_contains, isaatommatch, isabondmatch,
+    exactatommatch, exactbondmatch,
     structmatches,
     exactmatches, hasexactmatch,
     substructmatches, hassubstructmatch,
@@ -43,27 +43,33 @@ end
 
 
 function querymatchtree(
-        query::Pair, mol::UndirectedGraph, matcher::Dict, i::Int)
-    if query.first == :any
+        query::QueryFormula, mol::UndirectedGraph, matcher, i; recursive=Dict())
+    if query.key === :any
         return true
-    elseif query.first == :and
-        return all(querymatchtree(q, mol, matcher, i) for q in query.second)
-    elseif query.first == :or
-        return any(querymatchtree(q, mol, matcher, i) for q in query.second)
-    elseif query.first == :not
-        return !querymatchtree(query.second, mol, matcher, i)
-    elseif query.first == :stereo
+    elseif query.key === :and
+        return all(querymatchtree(q, mol, matcher, i, recursive=recursive) for q in query.value)
+    elseif query.key === :or
+        return any(querymatchtree(q, mol, matcher, i, recursive=recursive) for q in query.value)
+    elseif query.key === :not
+        return !querymatchtree(query.value, mol, matcher, i, recursive=recursive)
+    elseif query.key === :stereo
         # TODO: stereo not implemented yet
         return true
-    elseif query.first == :recursive
-        subq = parse(SMARTS, query.second)
-        return hassubstructmatch(mol, subq, mandatory=Dict(i => 1))
-    else
-        if query.first == :sssrsizes
-            return query.second in matcher[query.first][i]
+    elseif query.key === :recursive
+        if haskey(recursive, query.value)
+            return i in recursive[query.value]
         else
-            return matcher[query.first][i] == query.second
+            qm = smartstomol(query.value)
+            return subgraph_is_monomorphic(
+                mol, qm,
+                nodematcher=(a, qa) -> querymatchtree(
+                    nodeattr(qm, qa).query, mol, matcher, a),
+                edgematcher=(b, qb) -> querymatchtree(
+                    edgeattr(qm, qb).query, mol, bmatcher, b),
+                mandatory=Dict(i => 1))
         end
+    else
+        return matcher[query.key][i] == query.value
     end
 end
 
@@ -73,7 +79,7 @@ end
 
 Return a default atom attribute comparator that returns true if the atom satisfies all the queryatom conditions.
 """
-function atommatch(mol::UndirectedGraph, querymol::QueryMol)
+function atommatch(mol::UndirectedGraph, qmol::QueryMol)
     matcher = Dict(
         :atomsymbol => atomsymbol(mol),
         :isaromatic => isaromatic(mol),
@@ -84,11 +90,36 @@ function atommatch(mol::UndirectedGraph, querymol::QueryMol)
         :nodedegree => nodedegree(mol),
         :valence => valence(mol),
         :hydrogenconnected => hydrogenconnected(mol),
-        :sssrsizes => sssrsizes(mol),
+        :smallestsssr => smallestsssr(mol),
         :sssrcount => sssrcount(mol)
     )
+    bmatcher = Dict(
+        :bondorder => bondorder(mol),
+        :isringbond => isringbond(mol),
+        :isaromaticbond => isaromaticbond(mol),
+        :stereo => getproperty.(edgeattrs(mol), :stereo)
+    )
+    # precalc recursive
+    recursive = Dict()
+    for q in 1:nodecount(qmol)
+        for fml in findallformula(nodeattr(qmol, q).query, :recursive)
+            qm = smartstomol(fml)
+            recursive[fml] = Set()
+            for n in 1:nodecount(mol)
+                if subgraph_is_monomorphic(
+                        mol, qm,
+                        nodematcher=(a, qa) -> querymatchtree(
+                            nodeattr(qm, qa).query, mol, matcher, a),
+                        edgematcher=(b, qb) -> querymatchtree(
+                            edgeattr(qm, qb).query, mol, bmatcher, b),
+                        mandatory=Dict(n => 1))
+                    push!(recursive[fml], n)
+                end
+            end
+        end
+    end
     return (a, qa) -> querymatchtree(
-        nodeattr(querymol, qa).query, mol, matcher, a)
+        nodeattr(qmol, qa).query, mol, matcher, a, recursive=recursive)
 end
 
 
@@ -110,30 +141,37 @@ end
 
 
 """
-    isequivalent(fml1::Pair, fml2::Pair) -> Pair
+    exactatommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
 
-Check if the two formulae are equivalent.
+Return a default atom attribute comparator between two atom queries.
 """
-function isequivalent(fml1::Pair, fml2::Pair)
-    fml1.first === fml2.first || return false
-    fml1.first in (:and, :or, :not) || return fml1.second == fml2.second
-    fml1.first === :not && return isequivalent(fml1.second, fml2.second)
-    length(fml1.second) == length(fml2.second) || return false
-    f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
-    f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
-    iseq = (x, y) -> isequivalent(f1map[x], f2map[y])
-    return maxcard(keys(f1map), keys(f2map), iseq) == length(f1map)
+function exactatommatch(qmol1::QueryMol, qmol2::QueryMol)
+    return function (a1, a2)
+        return nodeattr(qmol1, a1).query == nodeattr(qmol2, a2).query
+    end
+end
+
+
+"""
+    exactbondmatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
+
+Return a default bond attribute comparator between two bond queries.
+"""
+function exactbondmatch(qmol1::QueryMol, qmol2::QueryMol)
+    return function (b1, b2)
+        return edgeattr(qmol1, b1).query == edgeattr(qmol2, b2).query
+    end
 end
 
 
 """
     atommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
 
-Return a default atom attribute comparator between two atom queries.
+Return an atom attribute comparator that returns true if a2 contains a1.
 """
 function atommatch(qmol1::QueryMol, qmol2::QueryMol)
     return function (a1, a2)
-        return isequivalent(nodeattr(qmol1, a1).query, nodeattr(qmol2, a2).query)
+        return issubset(nodeattr(qmol1, a1).query, nodeattr(qmol2, a2).query)
     end
 end
 
@@ -141,66 +179,11 @@ end
 """
     bondmatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
 
-Return a default bond attribute comparator between two bond queries.
+Return a bond attribute comparator that returns true if b2 contains b1.
 """
 function bondmatch(qmol1::QueryMol, qmol2::QueryMol)
     return function (b1, b2)
-        return isequivalent(edgeattr(qmol1, b1).query, edgeattr(qmol2, b2).query)
-    end
-end
-
-
-"""
-    query_contains(fml1::Pair, fml2::Pair) -> Pair
-
-Check if fml1 contains fml2 (that is, all the query results of fml1 is included in the results of fml2)
-"""
-function query_contains(fml1::Pair, fml2::Pair)
-    fml1 == (:any => true) && return true
-    if fml2.first === :and
-        f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
-        if fml1.first === :and
-            f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
-        else
-            f1map = Dict(1 => fml1)
-        end
-        func = (x, y) -> query_contains(f1map[x], f2map[y])
-        return maxcard(keys(f1map), keys(f2map), func) == length(f1map)
-    elseif fml1.first === :or
-        f1map = Dict(i => v for (i, v) in enumerate(fml1.second))
-        if fml2.first === :or
-            f2map = Dict(i => v for (i, v) in enumerate(fml2.second))
-        else
-            f2map = Dict(1 => fml2)
-        end
-        func = (x, y) -> query_contains(f1map[x], f2map[y])
-        return maxcard(keys(f1map), keys(f2map), func) == length(f2map)
-    else
-        return fml1 == fml2
-    end
-end
-
-
-"""
-    isaatommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
-
-Return an atom attribute comparator that returns true if a2 contains a1.
-"""
-function isaatommatch(qmol1::QueryMol, qmol2::QueryMol)
-    return function (a1, a2)
-        return query_contains(nodeattr(qmol2, a2).query, nodeattr(qmol1, a1).query)
-    end
-end
-
-
-"""
-    isabondmatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
-
-Return a bond attribute comparator that returns true if b2 contains b1.
-"""
-function isabondmatch(qmol1::QueryMol, qmol2::QueryMol)
-    return function (b1, b2)
-        return query_contains(edgeattr(qmol2, b2).query, edgeattr(qmol1, b1).query)
+        return issubset(edgeattr(qmol1, b1).query, edgeattr(qmol2, b2).query)
     end
 end
 

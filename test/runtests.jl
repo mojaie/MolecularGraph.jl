@@ -59,6 +59,7 @@ module MolecularGraphTest
 
     include("./model/atom.jl")
     include("./model/molgraph.jl")
+    include("./model/query.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
@@ -77,7 +78,6 @@ module MolecularGraphTest
     include("mass.jl")
     include("wclogp.jl")
     include("structurematch.jl")
-    include("funcgroup.jl")
     include("inchi.jl")
 
     include("./draw/base.jl")

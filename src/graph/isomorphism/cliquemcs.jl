@@ -33,6 +33,7 @@ function tpconstraintfilter(
         hdist[h1][h2] > diameter && return false
         abs(gdist[g1][g2] - hdist[h1][h2]) > tolerance && return false
         !hasedge(G, g1, g2) && !hasedge(H, h1, h2) && return true
+        hasedge(G, g1, g2) && hasedge(H, h1, h2) || return false
         return edgematcher(findedgekey(G, g1, g2), findedgekey(H, h1, h2))
     end
 end

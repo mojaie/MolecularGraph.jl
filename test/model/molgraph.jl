@@ -1,5 +1,5 @@
 
-@testset "molgraph" begin
+@testset "model.molgraph" begin
 
 @testset "graphmol" begin
     mol = graphmol(SDFileAtom, SDFileBond)
@@ -31,14 +31,4 @@
     @test length(loaded.cache[:test]) == 3
 end
 
-@testset "querymol" begin
-    q = querymol(SmartsAtom, SmartsBond)
-    addatom!(q, SmartsAtom(:Any => true))
-    addatom!(q, SmartsAtom(:Any => true))
-    addbond!(q, 1, 2, SmartsBond(:Any => true))
-    @test atomcount(q) == 2
-    @test bondcount(q) == 1
-    @test hasbond(q, 1, 2)
-end
-
-end  # molgraph
+end  # model.molgraph

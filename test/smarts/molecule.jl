@@ -8,7 +8,7 @@ using MolecularGraph:
 @testset "chain" begin
     state = SmartsParser("CCCCC", false)
     state.node = 1
-    push!(state.nodeattrs, SmartsAtom(:Symbol => :C))
+    push!(state.nodeattrs, SmartsAtom(QueryFormula(:atomsymbol, :C)))
     forward!(state)
     chain!(state)
     @test length(state.edges) == 4
@@ -17,14 +17,14 @@ using MolecularGraph:
 
     state = SmartsParser("C1CCCCC1", false)
     state.node = 1
-    push!(state.nodeattrs, SmartsAtom(:Symbol => :C))
+    push!(state.nodeattrs, SmartsAtom(QueryFormula(:atomsymbol, :C)))
     forward!(state)
     chain!(state)
     @test state.edges[6] == (6, 1)
 
     state = SmartsParser("C%10CCCCC%10", false)
     state.node = 1
-    push!(state.nodeattrs, SmartsAtom(:Symbol => :C))
+    push!(state.nodeattrs, SmartsAtom(QueryFormula(:atomsymbol, :C)))
     forward!(state)
     chain!(state)
     @test state.edges[6] == (6, 1)

@@ -71,7 +71,7 @@ getcache(graph::AbstractGraph, key) = graph.cache[key]
 Set calculated property caches.
 """
 function setcache!(graph::AbstractGraph, key; kwargs...)
-    graph.cache[key] = getfield(MolecularGraph, key)(mol; kwargs...)
+    graph.cache[key] = getfield(Graph, key)(graph; kwargs...)
 end
 
 
@@ -365,7 +365,7 @@ indegree(graph::DirectedGraph, n) = length(inneighbors(graph, n))
 Add new node and return the node index. If the node attribute type is required,
 specify the node attribute object by `node` keyword.
 """
-function addnode!(graph::UndirectedGraph, attr::AbstractNode)
+function addnode!(graph::UndirectedGraph, attr)
     push!(graph.neighbormap, Dict())
     push!(graph.nodeattrs, attr)
     return length(graph.neighbormap)
@@ -377,7 +377,7 @@ function addnode!(graph::UndirectedGraph)
     return length(graph.neighbormap)
 end
 
-function addnode!(graph::DirectedGraph, attr::AbstractNode)
+function addnode!(graph::DirectedGraph, attr)
     push!(graph.outneighbormap, Dict())
     push!(graph.inneighbormap, Dict())
     push!(graph.nodeattrs, attr)
@@ -391,7 +391,7 @@ function addnode!(graph::DirectedGraph)
     return length(graph.outneighbormap)
 end
 
-function addnode!(graph::HyperGraph, attr::AbstractNode)
+function addnode!(graph::HyperGraph, attr)
     push!(graph.incidences, Set())
     push!(graph.nodeattrs, attr)
     return length(graph.incidences)
@@ -420,7 +420,7 @@ function _addedge!(graph::UndirectedGraph, u, v)
     return i
 end
 
-function addedge!(graph::UndirectedGraph, u, v, attr::AbstractEdge)
+function addedge!(graph::UndirectedGraph, u, v, attr)
     push!(graph.edgeattrs, attr)
     return _addedge!(graph, u, v)
 end
@@ -438,7 +438,7 @@ function _addedge!(graph::DirectedGraph, s, t)
     return i
 end
 
-function addedge!(graph::DirectedGraph, s, t, attr::AbstractEdge)
+function addedge!(graph::DirectedGraph, s, t, attr)
     push!(graph.edgeattrs, attr)
     return _addedge!(graph, s, t)
 end
@@ -458,7 +458,7 @@ function _addedge!(graph::HyperGraph, edge)
     return i
 end
 
-function addedge!(graph::HyperGraph, edge, attr::AbstractEdge)
+function addedge!(graph::HyperGraph, edge, attr)
     push!(graph.edgeattrs, attr)
     return _addedge!(graph, edge)
 end
@@ -475,7 +475,7 @@ end
 
 Update the node attribute.
 """
-function setnodeattr!(graph::AbstractGraph, i, attr::AbstractNode)
+function setnodeattr!(graph::AbstractGraph, i, attr)
     graph.nodeattrs[i] = attr
     return
 end
@@ -486,7 +486,7 @@ end
 
 Update the edge attribute.
 """
-function setedgeattr!(graph::AbstractGraph, i, attr::AbstractEdge)
+function setedgeattr!(graph::AbstractGraph, i, attr)
     graph.edgeattrs[i] = attr
     return
 end

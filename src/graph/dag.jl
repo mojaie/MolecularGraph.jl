@@ -5,7 +5,8 @@
 
 export
     descendants, ancestors, roots, leafs,
-    topologicalsort, transitive_reduction
+    topologicalsort, reversetopologicalsort,
+    transitive_reduction
 
 
 descendants(graph::DirectedGraph, idx::Int) = reachablenodes(graph, idx)
@@ -49,6 +50,31 @@ end
 
 function topologicalsort(graph::DirectedGraph, root)
     sub = nodesubgraph(graph, union(descendants(graph, root), root))
+    return topologicalsort(sub)
+end
+
+
+function reversetopologicalsort(graph::DirectedGraph)
+    result = Int[]
+    stack = [i for i in nodeset(graph) if outdegree(graph, i) == 0]
+    used = Set{Int}()
+    while !isempty(stack)
+        n = pop!(stack)
+        push!(result, n)
+        for (ninc, nadj) in inneighbors(graph, n)
+            ninc in used && continue
+            push!(used, ninc)
+            if isempty(setdiff(outincidences(graph, nadj), used))
+                push!(stack, nadj)
+            end
+        end
+    end
+    edgecount(graph) == length(used) || throw(ErrorException("cycle found"))
+    return result
+end
+
+function reversetopologicalsort(graph::DirectedGraph, leaf)
+    sub = nodesubgraph(graph, union(ancestors(graph, leaf), leaf))
     return topologicalsort(sub)
 end
 

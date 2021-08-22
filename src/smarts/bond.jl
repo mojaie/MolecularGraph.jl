@@ -5,18 +5,18 @@
 
 
 const SMARTS_BOND_SYMBOL = Dict(
-    '-' => :bondorder => 1,
-    '=' => :bondorder => 2,
-    '#' => :bondorder => 3,
-    '@' => :isringbond => true,
-    ':' => :isaromaticbond => true,
-    '/' => :stereo => :up,
-    '\\' => :stereo => :down
+    '-' => QueryFormula(:bondorder, 1),
+    '=' => QueryFormula(:bondorder, 2),
+    '#' => QueryFormula(:bondorder, 3),
+    '@' => QueryFormula(:isringbond, true),
+    ':' => QueryFormula(:isaromaticbond, true),
+    '/' => QueryFormula(:stereo, :up),
+    '\\' => QueryFormula(:stereo, :down)
 )
 
 
 defaultbond(state::SmilesParser) = SmilesBond()
-defaultbond(state::SmartsParser) = SmartsBond(:defaultbond => true)
+defaultbond(state::SmartsParser) = SmartsBond(QueryFormula(:defaultbond, true))
 
 
 """
@@ -29,10 +29,10 @@ function bondsymbol!(state::SmartsParserState)
     sym2 = lookahead(state, 1)
     if sym1 == '/' && sym2 == '?'
         forward!(state, 2)
-        return :not => (:stereo => :down)
+        return QueryFormula(:not, QueryFormula(:stereo, :down))
     elseif sym1 == '\\' && sym2 == '?'
         forward!(state, 2)
-        return :not => (:stereo => :up)
+        return QueryFormula(:not, QueryFormula(:stereo, :up))
     elseif sym1 in keys(SMARTS_BOND_SYMBOL)
         forward!(state)
         return SMARTS_BOND_SYMBOL[sym1]
@@ -51,12 +51,12 @@ function bond!(state::SmilesParser)
     fml = bondsymbol!(state)
     if fml === nothing
         return
-    elseif fml[1] == :bondorder
-        return SmilesBond(fml[2])
-    elseif fml[1] == :isaromaticbond
+    elseif fml.key == :bondorder
+        return SmilesBond(fml.value)
+    elseif fml.key == :isaromaticbond
         return SmilesBond(1, true, :unspecified)
-    elseif fml[1] == :stereo
-        return SmilesBond(1, false, fml[2])
+    elseif fml.key == :stereo
+        return SmilesBond(1, false, fml.value)
     end
     # return nothing
 end
@@ -74,7 +74,7 @@ function bond!(state::SmartsParser)
     end
     fml = lglowand!(state, bondsymbol!)
     if fml !== nothing
-        fml = associate_operations(fml)
+        fml = tidyformula(fml)
         return SmartsBond(fml)
     end
     # return nothing: Invalid bond token or implicit single bond

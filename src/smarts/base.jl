@@ -4,9 +4,26 @@
 #
 
 export
+    SmartsAtom, SmartsBond, SMARTS,
     SmilesParser, SmartsParser,
     smilestomol, smartstomol,
     associate_operations
+
+
+struct SmartsAtom <: QueryAtom
+    query::QueryFormula
+end
+
+
+struct SmartsBond <: QueryBond
+    query::QueryFormula
+end
+
+SmartsBond() = SmartsBond(QueryFormula(:any, true))
+
+
+SMARTS = QueryMol{SmartsAtom,SmartsBond}
+
 
 
 mutable struct SmartsParserState{N<:AbstractNode,E<:UndirectedEdge}
@@ -119,24 +136,6 @@ backtrack!(state, num) = forward!(state, -num)
 backtrack!(state) = backtrack!(state, 1)
 
 
-"""
-    associate_operations(fml::Pair) -> Pair
-
-Return juxtaposed formulae (ex. :and => (A, :and => (B, C)) -> :and => (A, B, C)).
-"""
-function associate_operations(fml::Pair)
-    fml.first in (:and, :or) || return fml
-    associated = Set()
-    for elem in fml.second
-        if elem.first === fml.first
-            union!(associated, associate_operations(elem).second)
-        else
-            push!(associated, elem)
-        end
-    end
-    return fml.first => Tuple(associated)
-end
-
 
 """
     resolvedefaultbond(qmol::QueryMol) -> Nothing
@@ -144,28 +143,22 @@ end
 Resolve default SMARTS bonds.
 """
 function resolvedefaultbond!(qmol::QueryMol)
-    newedges = QueryBond[]
     for e in 1:edgecount(qmol)
-        (u, v) = getedge(qmol, e)
         q = edgeattr(qmol, e).query
-        if q == (:defaultbond => true)
-            uq = nodeattr(qmol, u).query
-            isuqalip = uq == (:isaromatic => false) || (uq.first === :and && (:isaromatic => false) in uq.second)
-            isuqarom = uq == (:isaromatic => true) || (uq.first === :and && (:isaromatic => true) in uq.second)
-            vq = nodeattr(qmol, v).query
-            isvqalip = vq == (:isaromatic => false) || (uq.first === :and && (:isaromatic => false) in uq.second)
-            isvqarom = vq == (:isaromatic => true) || (vq.first === :and && (:isaromatic => true) in vq.second)
-            if isuqarom && isvqarom
-                push!(newedges, SmartsBond(:isaromaticbond => true))
-            elseif (isuqalip || isuqarom) && (isvqalip || isvqarom)
-                push!(newedges, SmartsBond(:bondorder => 1))
-            else
-                push!(newedges, SmartsBond(:or => (:bondorder => 1, :isaromaticbond => true)))
-            end
+        q == QueryFormula(:defaultbond, true) || continue
+        (u, v) = getedge(qmol, e)
+        uq = nodeattr(qmol, u).query
+        uarom = findformula(uq, :isaromatic)
+        vq = nodeattr(qmol, v).query
+        varom = findformula(vq, :isaromatic)
+        arombond = QueryFormula(:isaromaticbond, true)
+        single = QueryFormula(:bondorder, 1)
+        if uarom === true && varom === true
+            setedgeattr!(qmol, e, SmartsBond(arombond))
+        elseif uarom === false || varom === false
+            setedgeattr!(qmol, e, SmartsBond(single))
         else
-            push!(newedges, edgeattr(qmol, e))
+            setedgeattr!(qmol, e, SmartsBond(QueryFormula(:or, Set([single, arombond]))))
         end
     end
-    empty!(qmol.edgeattrs)
-    append!(qmol.edgeattrs, newedges)
 end

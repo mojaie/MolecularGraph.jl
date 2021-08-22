@@ -12,7 +12,7 @@ const SMARTS_ATOM_COND_SYMBOL = Dict(
     'D' => :nodedegree,
     'v' => :valence,
     'H' => :hydrogenconnected,
-    'r' => :sssrsizes,
+    'r' => :smallestsssr,
     'R' => :sssrcount
 )
 
@@ -32,25 +32,32 @@ function atomsymbol!(state::SmartsParserState)
     sym2 = lookahead(state, 1)
     if sym1 == 'C' && sym2 == 'l'
         forward!(state, 2)
-        return :and => (:atomsymbol => :Cl, :isaromatic => false)
+        return QueryFormula(
+            :and, Set([QueryFormula(:atomsymbol, :Cl), QueryFormula(:isaromatic, false)]))
     elseif sym1 == 'B' && sym2 == 'r'
         forward!(state, 2)
-        return :and => (:atomsymbol => :Br, :isaromatic => false)
+        return QueryFormula(
+            :and, Set([QueryFormula(:atomsymbol, :Br), QueryFormula(:isaromatic, false)]))
     elseif sym1 in "BCNOPSFI"
         forward!(state)
-        return :and => (:atomsymbol => Symbol(sym1), :isaromatic => false)
+        return QueryFormula(
+            :and, Set([QueryFormula(:atomsymbol, Symbol(sym1)), QueryFormula(:isaromatic, false)]))
     elseif sym1 in "bcnops"
         forward!(state)
-        return :and => (:atomsymbol => Symbol(uppercase(sym1)), :isaromatic => true)
+        return QueryFormula(
+            :and, Set([
+                QueryFormula(:atomsymbol, Symbol(uppercase(sym1))),
+                QueryFormula(:isaromatic, true)
+            ]))
     elseif sym1 == 'A'
         forward!(state)
-        return :isaromatic => false
+        return QueryFormula(:isaromatic, false)
     elseif sym1 == 'a'
         forward!(state)
-        return :isaromatic => true
+        return QueryFormula(:isaromatic, true)
     elseif sym1 == '*'
         forward!(state)
-        return :any => true
+        return QueryFormula(:any, true)
     end
     # return nothing
 end
@@ -69,13 +76,14 @@ function atomprop!(state::SmartsParserState)
         # Two letter atoms
         forward!(state, 2)
         if string(uppercase(sym1), sym2) in ("As", "Se")
-            return :and => (
-                :atomsymbol => Symbol(uppercase(sym1), sym2),
-                :isaromatic => islowercase(sym1)
-            )
+            return QueryFormula(
+                :and, Set([
+                    QueryFormula(:atomsymbol, Symbol(uppercase(sym1), sym2)),
+                    QueryFormula(:isaromatic, islowercase(sym1))
+                ]))
         end
         @assert isuppercase(sym1)
-        return :atomsymbol => Symbol(sym1, sym2)
+        return QueryFormula(:atomsymbol, Symbol(sym1, sym2))
     elseif haskey(SMARTS_ATOM_COND_SYMBOL, sym1)
         # Neighbor and ring conditions
         forward!(state)
@@ -83,26 +91,27 @@ function atomprop!(state::SmartsParserState)
             num = parse(Int, sym2)
             forward!(state)
         else
-            sym1 in ('r', 'R') && return :not => (:sssrcount => 0)
+            sym1 in ('r', 'R') && return QueryFormula(:not, QueryFormula(:sssrcount, 0))
             num = 1
         end
-        return SMARTS_ATOM_COND_SYMBOL[sym1] => num
+        return QueryFormula(SMARTS_ATOM_COND_SYMBOL[sym1], num)
     elseif sym1 in ('A', 'a', '*')
         forward!(state)
-        sym1 == 'A' && return :isaromatic => false
-        sym1 == 'a' && return :isaromatic => true
-        sym1 == '*' && return :any => true
+        sym1 == 'A' && return QueryFormula(:isaromatic, false)
+        sym1 == 'a' && return QueryFormula(:isaromatic, true)
+        sym1 == '*' && return QueryFormula(:any, true)
     elseif haskey(ATOMSYMBOLMAP, string(uppercase(sym1)))
         # Single letter atoms
         forward!(state)
         if uppercase(sym1) in "BCNOPS"
-            return :and => (
-                :atomsymbol => Symbol(uppercase(sym1)),
-                :isaromatic => islowercase(sym1)
-            )
+            return QueryFormula(
+                :and, Set([
+                    QueryFormula(:atomsymbol, Symbol(uppercase(sym1))),
+                    QueryFormula(:isaromatic, islowercase(sym1))
+                ]))
         end
         @assert isuppercase(sym1)
-        return :atomsymbol => Symbol(sym1)
+        return QueryFormula(:atomsymbol, Symbol(sym1))
     elseif sym1 == '#'
         # Atomic number
         forward!(state)
@@ -112,7 +121,7 @@ function atomprop!(state::SmartsParserState)
         end
         num = parse(Int, SubString(state.input, start, state.pos))
         forward!(state)
-        return :atomsymbol => atomsymbol(num)
+        return QueryFormula(:atomsymbol, atomsymbol(num))
     elseif sym1 in keys(SMARTS_CHARGE_SIGN)
         # Charge
         forward!(state)
@@ -126,7 +135,7 @@ function atomprop!(state::SmartsParserState)
                 chg += 1
             end
         end
-        return :charge => chg * SMARTS_CHARGE_SIGN[sym1]
+        return QueryFormula(:charge, chg * SMARTS_CHARGE_SIGN[sym1])
     elseif sym1 == '@'
         # Stereo
         # @ -> anticlockwise, @@ -> clockwise, ? -> or not specified
@@ -138,9 +147,9 @@ function atomprop!(state::SmartsParserState)
         end
         if read(state) == '?'
             forward!(state)
-            return :not => (:stereo => cw ? :anticlockwise : :clockwise)
+            return QueryFormula(:not, QueryFormula(:stereo, cw ? :anticlockwise : :clockwise))
         else
-            return :stereo => cw ? :clockwise : :anticlockwise
+            return QueryFormula(:stereo, cw ? :clockwise : :anticlockwise)
         end
     elseif isdigit(sym1)
         # Isotope
@@ -150,7 +159,7 @@ function atomprop!(state::SmartsParserState)
         end
         num = SubString(state.input, start, state.pos)
         forward!(state)
-        return :mass => parse(Int, num)
+        return QueryFormula(:mass, parse(Int, num))
     elseif sym1 == '$' && sym2 == '('
         # Recursive
         forward!(state, 2)
@@ -170,7 +179,7 @@ function atomprop!(state::SmartsParserState)
         end
         q = SubString(state.input, start, state.pos - 1)
         forward!(state)
-        return :recursive => q
+        return QueryFormula(:recursive, q)
     end
     # return nothing
 end
@@ -187,22 +196,21 @@ function atom!(state::SmilesParser)
     if sym1 == '['
         forward!(state)
         fml = lghighand!(state, atomprop!)
-        fml = associate_operations(fml)
+        fml = tidyformula(fml)
         symcls = read(state)
         @assert symcls == ']' "(atom!) unexpected token: $(symcls)"
         forward!(state)
-        prop = Dict(fml.first === :and ? fml.second : fml)
-        @assert haskey(prop, :atomsymbol) || prop[:hydrogenconnected] >= 1
+        @assert findformula(fml, :atomsymbol) !== nothing || findformula(fml, :hydrogenconnected) >= 1
         atoms = [SmilesAtom(
-            get(prop, :atomsymbol, :H),
-            get(prop, :charge, 0),
-            1,
-            get(prop, :mass, nothing),
-            get(prop, :isaromatic, false),
-            get(prop, :stereo, :unspecified)
+            something(findformula(fml, :atomsymbol), :H),
+            something(findformula(fml, :charge), 0),
+            1,  # TODO: multiplicity
+            findformula(fml, :mass),
+            something(findformula(fml, :isaromatic), false),
+            something(findformula(fml, :stereo), :unspecified)
         )]
-        hcnt = get(prop, :hydrogenconnected, 0)
-        if !haskey(prop, :atomsymbol)
+        hcnt = something(findformula(fml, :hydrogenconnected), 0)
+        if findformula(fml, :atomsymbol) === nothing
             hcnt -= 1
         end
         for h in 1:hcnt
@@ -214,8 +222,8 @@ function atom!(state::SmilesParser)
         if fml === nothing
             return SmilesAtom[]
         else
-            asym = fml.second[1].second
-            arom = fml.second[2].second
+            asym = findformula(fml, :atomsymbol)
+            arom = findformula(fml, :isaromatic)
             return [SmilesAtom(asym, 0, 1, nothing, arom, :unspecified)]
         end
     end
@@ -233,7 +241,7 @@ function atom!(state::SmartsParser)
         forward!(state)
         fml = lglowand!(state, atomprop!)
         @assert fml !== nothing "(atom!) empty atomprop"
-        fml = associate_operations(fml)
+        fml = tidyformula(fml)
         symcls = read(state)
         @assert symcls == ']' "(atom!) unexpected token: $(symcls)"
         forward!(state)

@@ -13,7 +13,7 @@ The argument `func` is a parser function which has a parser state as an argument
 process tokens found in the given text, and returns nothing if no valid tokens were found.
 """
 function lglowand!(state::SmartsParserState, func)
-    fmls = []
+    fmls = Set{QueryFormula}()
     fml = lgor!(state, func)
     fml === nothing && return
     while fml !== nothing
@@ -27,9 +27,9 @@ function lglowand!(state::SmartsParserState, func)
     end
     @assert !isempty(fmls) "(lglowand!) invalid AND(;) operation"
     if length(fmls) == 1
-        return fmls[1]
+        return collect(fmls)[1]
     else
-        return :and => Tuple(fmls)
+        return QueryFormula(:and, fmls)
     end
 end
 
@@ -43,7 +43,7 @@ The argument `func` is a parser function which has a parser state as an argument
 process tokens found in the given text, and returns nothing if no valid tokens were found.
 """
 function lgor!(state::SmartsParserState, func)
-    fmls = []
+    fmls = Set{QueryFormula}()
     fml = lghighand!(state, func)
     fml === nothing && return
     while fml !== nothing
@@ -57,9 +57,9 @@ function lgor!(state::SmartsParserState, func)
     end
     @assert !isempty(fmls) "(lgor!) invalid OR(,) operation"
     if length(fmls) == 1
-        return fmls[1]
+        return collect(fmls)[1]
     else
-        return :or => Tuple(fmls)
+        return QueryFormula(:or, fmls)
     end
 end
 
@@ -73,7 +73,7 @@ The argument `func` is a parser function which has a parser state as an argument
 process tokens found in the given text, and returns nothing if no valid tokens were found.
 """
 function lghighand!(state::SmartsParserState, func)
-    fmls = []
+    fmls = Set{QueryFormula}()
     fml = lgnot!(state, func)
     fml === nothing && return
     while fml !== nothing
@@ -84,13 +84,13 @@ function lghighand!(state::SmartsParserState, func)
         fml = lgnot!(state, func)
     end
     @assert !isempty(fmls) "(lghighand!) invalid AND(&) operation"
-    fltd = [fml for fml in fmls if fml != (:any => true)]
-    if isempty(fltd)
-        return (:any => true)
-    elseif length(fltd) == 1
-        return fltd[1]
+    setdiff!(fmls, [QueryFormula(:any, true)])
+    if isempty(fmls)
+        return QueryFormula(:any, true)
+    elseif length(fmls) == 1
+        return collect(fmls)[1]
     else
-        return :and => Tuple(fltd)
+        return QueryFormula(:and, fmls)
     end
 end
 
@@ -108,7 +108,7 @@ function lgnot!(state::SmartsParserState, func)
         forward!(state)
         fml = func(state)
         @assert fml !== nothing "(lgnot!) invalid NOT(!) operation"
-        return :not => fml
+        return QueryFormula(:not, fml)
     end
     return func(state)  # can be Nothing if the parser get stop token
 end

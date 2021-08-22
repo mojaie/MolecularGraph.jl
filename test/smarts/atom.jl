@@ -7,79 +7,92 @@ using MolecularGraph: atomsymbol!, atomprop!, atom!
     # outside of []
     state = SmartsParser("Cl", false)
     Chloride = atomsymbol!(state)
-    @test Chloride == (:and => (:atomsymbol => :Cl, :isaromatic => false))
+    @test Chloride == QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :Cl),
+        QueryFormula(:isaromatic, false)
+    ]))
     @test state.pos == 3
 
     state = SmartsParser("Cr", false)
     Chromium = atomsymbol!(state)
-    @test Chromium == (:and => (:atomsymbol => :C, :isaromatic => false))
+    @test Chromium == QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :C),
+        QueryFormula(:isaromatic, false)
+    ]))
     @test state.pos == 2
 
     state = SmartsParser("p", false)
     aromp = atomsymbol!(state)
-    @test aromp == (:and => (:atomsymbol => :P, :isaromatic => true))
+    
+    @test aromp == QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :P),
+        QueryFormula(:isaromatic, true)
+    ]))
 
     state = SmartsParser("*", false)
     anyatom = atomsymbol!(state)
-    @test anyatom == (:any => true)
+    @test anyatom == QueryFormula(:any, true)
 end
 
 @testset "atomprop" begin
     # inside of []
     state = SmartsParser("s", false)
     aroms = atomprop!(state)
-    @test aroms == (:and => (:atomsymbol => :S, :isaromatic => true))
+    @test aroms == QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :S),
+        QueryFormula(:isaromatic, true)
+    ]))
 
     state = SmartsParser("123", false)
     iso = atomprop!(state)
-    @test iso == (:mass => 123)
+    @test iso == QueryFormula(:mass, 123)
 
     state = SmartsParser("H41", false)
     H4 = atomprop!(state)
-    @test H4 == (:hydrogenconnected => 4)
+    @test H4 == QueryFormula(:hydrogenconnected, 4)
     @test state.pos == 3
 
     state = SmartsParser("X2", false)
     X2 = atomprop!(state)
-    @test X2 == (:connectivity => 2)
+    @test X2 == QueryFormula(:connectivity, 2)
 
     state = SmartsParser("Xe", false)
     Xe = atomprop!(state)
-    @test Xe == (:atomsymbol => :Xe)
+    @test Xe == QueryFormula(:atomsymbol, :Xe)
     @test state.pos == 3
 
     state = SmartsParser("Na", false)
     Na = atomprop!(state)
-    @test Na == (:atomsymbol => :Na)
+    @test Na == QueryFormula(:atomsymbol, :Na)
     @test state.pos == 3
 
     state = SmartsParser("Yv2", false)
     Yval = atomprop!(state)
-    @test Yval == (:atomsymbol => :Y)
+    @test Yval == QueryFormula(:atomsymbol, :Y)
 
     state = SmartsParser("+23", false)
     chg1 = atomprop!(state)
-    @test chg1 == (:charge => 2)
+    @test chg1 == QueryFormula(:charge, 2)
     @test state.pos == 3
 
     state = SmartsParser("----+", false)
     chg2 = atomprop!(state)
-    @test chg2 == (:charge => -4)
+    @test chg2 == QueryFormula(:charge, -4)
     @test state.pos == 5
 
     state = SmartsParser("@+", false)
     stereo1 = atomprop!(state)
-    @test stereo1 == (:stereo => :anticlockwise)
+    @test stereo1 == QueryFormula(:stereo, :anticlockwise)
     @test state.pos == 2
 
     state = SmartsParser("@@?", false)
     stereo4 = atomprop!(state)
-    @test stereo4 == (:not => (:stereo => :anticlockwise))
+    @test stereo4 == QueryFormula(:not, QueryFormula(:stereo, :anticlockwise))
     @test state.pos == 4
 
     state = SmartsParser("\$([CH2]=*)", false)
     rec = atomprop!(state)
-    @test rec == (:recursive => "[CH2]=*")
+    @test rec == QueryFormula(:recursive, "[CH2]=*")
     @test state.pos == 11
 end
 
@@ -144,61 +157,68 @@ end
 @testset "smartsatom" begin
     state = SmartsParser("c", false)
     aromc = atom!(state)[1]
-    @test isequivalent(aromc.query, :and => (:atomsymbol => :C, :isaromatic => true))
+    @test aromc.query == QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :C),
+        QueryFormula(:isaromatic, true)
+    ]))
 
     state = SmartsParser("a", false)
     anyarom = atom!(state)[1]
-    @test isequivalent(anyarom.query, :isaromatic => true)
+    @test anyarom.query == QueryFormula(:isaromatic, true)
 
     state = SmartsParser("[]", false)
     @test_throws AssertionError atom!(state)
 
     state = SmartsParser("[*]", false)
     anyatom = atom!(state)[1]
-    @test isequivalent(anyatom.query, :any => true)
+    @test anyatom.query == QueryFormula(:any, true)
 
     state = SmartsParser("[#16]", false)
     no16 = atom!(state)[1]
-    @test isequivalent(no16.query, :atomsymbol => :S)
+    @test no16.query == QueryFormula(:atomsymbol, :S)
 
     state = SmartsParser("[CH2]", false)
     methylene = atom!(state)[1]
-    @test isequivalent(
-        associate_operations(methylene.query),
-        :and => (:atomsymbol => :C, :isaromatic => false, :hydrogenconnected => 2)
-    )
+    @test methylene.query == QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :C),
+        QueryFormula(:isaromatic, false),
+        QueryFormula(:hydrogenconnected, 2)
+    ]))
 
     state = SmartsParser("[!C;R]", false)
     ringnotalp = atom!(state)[1]
-    @test isequivalent(
-        associate_operations(ringnotalp.query),
-        :and => (
-            :not => (:and => (:atomsymbol => :C, :isaromatic => false)),
-            :not => (:sssrcount => 0)
-        )
-    )
+    @test ringnotalp.query == QueryFormula(:and, Set([
+        QueryFormula(:or, Set([
+            QueryFormula(:not, QueryFormula(:atomsymbol, :C)),
+            QueryFormula(:isaromatic, true)
+        ])),
+        QueryFormula(:not, QueryFormula(:sssrcount, 0))
+    ]))
 
     state = SmartsParser("[n&H1]", false)
     nh1 = atom!(state)[1]
-    @test isequivalent(
-        associate_operations(nh1.query),
-        :and => (:atomsymbol => :N, :isaromatic => true, :hydrogenconnected => 1)
-    )
+    @test nh1.query == QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :N),
+        QueryFormula(:isaromatic, true),
+        QueryFormula(:hydrogenconnected, 1)
+    ]))
 
     state = SmartsParser("[*r6]", false)
     sixmem = atom!(state)[1]
-    @test isequivalent(associate_operations(sixmem.query), :sssrsizes => 6)
+    @test sixmem.query == QueryFormula(:sssrsizes, 6)
 
     state = SmartsParser("[35*]", false)
     any35 = atom!(state)[1]
-    @test isequivalent(associate_operations(any35.query), :mass => 35)
+    @test any35.query == QueryFormula(:mass, 35)
 
     state = SmartsParser("[F,Cl,Br,I]", false)
     fourhalo = atom!(state)[1]
-    @test isequivalent(
-        associate_operations(fourhalo.query),
-        :or => (:atomsymbol => :F, :atomsymbol => :Cl, :atomsymbol => :Br, :atomsymbol => :I)
-    )
+    @test fourhalo.query == QueryFormula(:or, Set([
+        QueryFormula(:atomsymbol, :F),
+        QueryFormula(:atomsymbol, :Cl),
+        QueryFormula(:atomsymbol, :Br),
+        QueryFormula(:atomsymbol, :I)
+    ]))
 end
 
 end # smiles.atom
