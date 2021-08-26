@@ -200,8 +200,9 @@ function tidyformula(fml::QueryFormula)
         union!(mono, Set([e.key for e in elems]))
     end
     if isempty(bin)
-        if fml.key === :and && length(mono) == 1
+        if fml.key === :and && length(mono) == 1 && !(collect(mono)[1] in (:not, :recursive))
             # SMARTS primitives are disjoint, so the intersection should be an empty set.
+            # NOTE: except for ! and $() queries
             return QueryFormula(:any, false)
         else
             return QueryFormula(fml.key, childs)

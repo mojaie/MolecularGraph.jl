@@ -342,6 +342,52 @@ end
         QueryFormula(:a, 1)
     ]))
     @test tidyformula(abs7) == QueryFormula(:a, 1)
+
+    disjoint1 = QueryFormula(:and, Set([
+        QueryFormula(:v, :a)
+        QueryFormula(:v, :c)
+        QueryFormula(:v, :e)
+    ]))
+    @test tidyformula(disjoint1) == QueryFormula(:any, false)
+
+    disjoint2 = QueryFormula(:and, Set([
+        QueryFormula(:not, QueryFormula(:v, :a))
+        QueryFormula(:not, QueryFormula(:v, :c))
+        QueryFormula(:not, QueryFormula(:v, :e))
+    ]))
+    @test tidyformula(disjoint2) == disjoint2
+
+    disjoint3 = QueryFormula(:and, Set([
+        QueryFormula(:or, Set([
+            QueryFormula(:x, 1),
+            QueryFormula(:x, 2)
+        ])),
+        QueryFormula(:or, Set([
+            QueryFormula(:x, 2),
+            QueryFormula(:x, 3)
+        ])),
+        QueryFormula(:or, Set([
+            QueryFormula(:x, 3),
+            QueryFormula(:x, 1)
+        ])),
+    ]))
+    @test tidyformula(disjoint3) == QueryFormula(:any, false)
+
+    disjoint4 = QueryFormula(:and, Set([
+        QueryFormula(:or, Set([
+            QueryFormula(:x, 1),
+            QueryFormula(:y, :a)
+        ])),
+        QueryFormula(:or, Set([
+            QueryFormula(:x, 2),
+            QueryFormula(:y, :b)
+        ])),
+        QueryFormula(:or, Set([
+            QueryFormula(:x, 3),
+            QueryFormula(:y, :c)
+        ])),
+    ]))
+    @test tidyformula(disjoint4) == disjoint4
 end
 
 @testset "convertnotquery" begin
