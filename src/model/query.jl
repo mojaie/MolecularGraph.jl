@@ -36,36 +36,61 @@ Check if fml1 contains fml2 (that is, all the query results of fml1 is included 
 """
 function Base.issubset(a::QueryFormula, b::QueryFormula)
     b == QueryFormula(:any, true) && return true
-    if a.key === :and
-        amap = Dict(i => v for (i, v) in enumerate(a.value))
-        bset = b.key === :and ? b.value : [b]
-        bmap = Dict(i => v for (i, v) in enumerate(bset))
-        func = (x, y) -> issubset(amap[x], bmap[y])
-        return maxcard(keys(amap), keys(bmap), func) == length(bmap)
-    elseif b.key === :or
-        bmap = Dict(i => v for (i, v) in enumerate(b.value))
-        aset = a.key === :or ? a.value : [a]
-        amap = Dict(i => v for (i, v) in enumerate(aset))
-        func = (x, y) -> issubset(amap[x], bmap[y])
-        return maxcard(keys(amap), keys(bmap), func) == length(amap)
-    elseif a.key === :or && b.key === :not
-        common = Set([c.key for c in a.value])
-        length(common) == 1 || return false
-        collect(common)[1] == b.value.key || return false
-        return !(b.value.value in Set([c.value for c in a.value]))
-    elseif a.key === :recursive
-        if b.key === :recursive
-            return hassubstructmatch(
-                smartstomol(a.value), smartstomol(b.value),
-                mandatory=Dict(1 => 1)
-            )
-        else
-            amol = smartstomol(a.value)
-            return issubset(nodeattr(amol, 1).query, b)
-        end
-    else
+    # :recursive
+    if a.key === :recursive && b.key === :recursive
+        a == b && return true
+        return hassubstructmatch(
+            smartstomol(a.value), smartstomol(b.value),
+            mandatory=Dict(1 => 1))
+    elseif a.key === :recursive && !(b.key in (:not, :or))
+        amol = smartstomol(a.value)
+        return issubset(nodeattr(amol, 1).query, b)
+    elseif b.key === :recursive
+        return false
+    end
+    if !(a.key in (:and, :or) || b.key in (:and, :or))
+        # :not
+        a.key === :not && b.key === :not && return a == b
+        a.key === :not && return false
+        b.key === :not && a.key !== :recursive && return a.key == b.value.key && a.value != b.value.value
+        # descriptors
         return a == b
     end
+    # :and, :or
+    aset = a.key in (:and, :or) ? a.value : [a]
+    bset = b.key in (:and, :or) ? b.value : [b]
+    akeys = Set(e.key for e in aset)
+    bkeys = Set(e.key for e in bset)
+    if a.key === :and
+        if b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
+            return any(issubset(fml, b) for fml in a.value)
+        else
+            amap = Dict(i => v for (i, v) in enumerate(aset))
+            bmap = Dict(i => v for (i, v) in enumerate(b.key === :and ? bset : [b]))
+            func = (x, y) -> issubset(amap[x], bmap[y])
+            return maxcard(keys(amap), keys(bmap), func) == length(bmap)
+        end
+    elseif b.key === :or
+        amap = Dict(i => v for (i, v) in enumerate(a.key === :or ? aset : [a]))
+        bmap = Dict(i => v for (i, v) in enumerate(bset))
+        func = (x, y) -> issubset(amap[x], bmap[y])
+        return maxcard(keys(amap), keys(bmap), func) == length(amap)
+    elseif b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
+        for bfml in bset
+            for afml in aset
+                issubset(afml, bfml) || return false
+            end
+        end
+        return true
+    elseif a.key === :or && b.key === :not
+        if length(akeys) == 1 && collect(akeys)[1] == b.value.key
+            amap = Dict(i => v for (i, v) in enumerate(aset))
+            bmap = Dict(i => v for (i, v) in enumerate(bset))
+            func = (x, y) -> issubset(amap[x], bmap[y])
+            return maxcard(keys(amap), keys(bmap), func) == 1
+        end
+    end
+    return false
 end
 
 
@@ -422,22 +447,6 @@ function removehydrogens(mol::QueryMol)
 end
 
 
-function recursiveatommatch(qmol1::QueryMol, qmol2::QueryMol)
-    return function (a1, a2)
-        a1q = nodeattr(qmol1, a1).query
-        a2q = nodeattr(qmol2, a2).query
-        issubset(a1q, a2q) && return true
-        recfmls= findformula(a2q, :recursive, deep=true, aggregate=collect)
-        recfmls === nothing && return false
-        for r in recfmls
-            hassubstructmatch(
-                qmol1, smartstomol(r), mandatory=Dict(a1 => 1)) && return true
-        end
-        return false
-    end
-end
-
-
 
 const DEFAULT_QUERY_RELATIONS = let
     qrfile = joinpath(dirname(@__FILE__), "../../assets/const/default_query_relations.yaml")
@@ -497,6 +506,7 @@ function query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS)
     graph = DictDiGraph([], [], [], [], [])
     keys = Dict()
     for (i, rcd) in enumerate(YAML.load(open(sourcefile)))
+        rcd["parsed"] = smartstomol(rcd["query"])
         addnode!(graph, rcd)
         keys[rcd["key"]] = i
     end
@@ -522,15 +532,17 @@ end
 Filter query relationship diagram by the given molecule.
 The filtered diagram represents query relationship that the molecule have.
 """
-function filter_queries(qr::DictDiGraph, mol::GraphMol)
+function filter_queries(qr::DictDiGraph, mol::GraphMol; filtering=true)
     matched = Set{Int}()
     qrc = deepcopy(qr)
     for n in reversetopologicalsort(qrc)
         rcd = nodeattr(qrc, n)
-        if !issubset(successors(qrc, n), matched)
-            continue
+        if filtering
+            if !issubset(successors(qrc, n), matched)  # query containment filter
+                continue
+            end
         end
-        matches = collect(substructmatches(mol, smartstomol(rcd["query"])))
+        matches = collect(substructmatches(mol, rcd["parsed"]))
         if !isempty(matches)
             push!(matched, n)
             rcd["matched"] = Set([sort(collect(keys(m))) for m in matches])

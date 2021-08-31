@@ -209,13 +209,14 @@ function Base.iterate(iter::VF2Matcher, state=nothing)
     end
     for (g, h) in candidatepairs(iter)
         @debug "candidates" g h
-        is_feasible(iter, g, h) || continue
-        is_semantic_feasible(iter, g, h) || continue
         push!(iter.stack, (:expand, g, h))
     end
     while !isempty(iter.stack)
         command, g1, h1 = pop!(iter.stack)
-        if command === :restore
+        if command === :expand
+            is_feasible(iter, g1, h1) || continue
+            is_semantic_feasible(iter, g1, h1) || continue
+        elseif command === :restore
             @debug "restored" iter.g_core
             restore!(iter, g1, h1)
             continue
@@ -235,8 +236,6 @@ function Base.iterate(iter::VF2Matcher, state=nothing)
         push!(iter.stack, (:restore, g1, h1))
         for (g, h) in candidatepairs(iter)
             @debug "candidates" g h
-            is_feasible(iter, g, h) || continue
-            is_semantic_feasible(iter, g, h) || continue
             push!(iter.stack, (:expand, g, h))
         end
     end

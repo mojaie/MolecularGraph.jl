@@ -118,6 +118,87 @@ end
     @test !hassubstructmatch(hetero4, disconn)
 end
 
+@testset "querycontainment" begin
+    tmse = smartstomol("O[Si](C)(C)C")
+    tms = smartstomol("C[Si](C)C")
+    @test hassubstructmatch(tmse, tms)
+    @test !hassubstructmatch(tms, tmse)
+    @test !hasexactmatch(tmse, tms)
+
+    primary = smartstomol("[CH2][OH]")
+    alcohol = smartstomol("C[OH]")
+    @test hassubstructmatch(primary, alcohol)
+    @test !hassubstructmatch(alcohol, primary)
+    @test hasexactmatch(primary, alcohol)
+    @test !hasexactmatch(alcohol, primary)
+    @test !hasexactmatch(primary, alcohol, atommatcher=exactatommatch)
+
+    pyrrole = smartstomol("[nH]1cccc1")
+    pyridine = smartstomol("n1ccccc1")
+    pyrrolidine = smartstomol("N1CCCC1")
+    cyclicamine = smartstomol("[#7]1[#6][#6][#6][#6]1")
+    @test !hassubstructmatch(pyridine, pyrrole)
+    @test !hassubstructmatch(pyrrole, pyrrolidine)
+    @test hassubstructmatch(pyrrole, cyclicamine)
+    @test hassubstructmatch(pyrrolidine, cyclicamine)
+
+    carbonylazide = smartstomol("O=CN=[N+]=[N-]")
+    azide = smartstomol("N=[N+]=[N-]")
+    hydrazine = smartstomol("N=N")
+    stricthydrazine = smartstomol("[N+0]=[N+0]")
+    @test hassubstructmatch(carbonylazide, azide)
+    @test hassubstructmatch(azide, hydrazine)
+    @test !hassubstructmatch(azide, stricthydrazine)
+
+    halo = smartstomol("[#9,#17,#35]c1ccccc1")
+    narrow = smartstomol("[#9,#17]c1ccccc1")
+    broad = smartstomol("[#9,#17,#35,#53]c1ccccc1")
+    broad2 = smartstomol("[#9,35#17,#35,#53]c1ccccc1")
+    @test hasexactmatch(narrow, halo)
+    @test !hasexactmatch(broad, halo)
+    @test hasexactmatch(halo, broad)
+    @test !hasexactmatch(halo, broad2)
+
+    hetero = smartstomol("[!#6&!#7&!#8]1[#6][#6][#6][#6][#6]1")
+    oxo = smartstomol("[#8]1[#6][#6][#6][#6][#6]1")
+    sulfo = smartstomol("[#16]1[#6][#6][#6][#6][#6]1")
+    thiopyrylium = smartstomol("[s+]1ccccc1")
+    @test !hasexactmatch(oxo, hetero)
+    @test hasexactmatch(sulfo, hetero)
+    @test hasexactmatch(thiopyrylium, sulfo)
+    @test hasexactmatch(thiopyrylium, hetero)
+
+    diazocarbonyl1 = smartstomol(raw"[$(N=N=C~C=O)]")
+    diazocarbonyl2 = smartstomol(raw"[$(N=N=C~C=O),$(N#N-C~C=O)]")
+    @test hasexactmatch(diazocarbonyl1, diazocarbonyl2)
+    @test !hasexactmatch(diazocarbonyl2, diazocarbonyl1)
+
+    nested = smartstomol(raw"[$([CH]=[$(NOC)])]C=O")
+    nestedor = smartstomol(raw"[$([CH]=[$(NOC),$(NO[Si])])]")
+    @test hassubstructmatch(nested, nestedor)
+    @test !hassubstructmatch(nestedor, nested)
+
+    naryl = smartstomol(raw"OP(=O)(=[S,O])[$(Na)]")
+    phos = smartstomol(raw"OP(=O)(=[S,O])N")
+    phos2 = smartstomol(raw"[$([S,O]=PN)]")
+    @test hasexactmatch(naryl, phos)
+    @test !hasexactmatch(phos, naryl)
+    @test hassubstructmatch(phos, phos2)
+
+    tfas = smartstomol(raw"C(F)(F)(F)C(=O)S")
+    tfmk1 = smartstomol(raw"[$(C(=O))]C(F)(F)(F)")
+    tfmk2 = smartstomol(raw"[$(C(=O));!$(C-N);!$(C-O);!$(C-S)]C(F)(F)(F)")
+    @test hassubstructmatch(tfas, tfmk1)
+    @test !hassubstructmatch(tfas, tfmk2)
+
+    quart = smartstomol(raw"[C+,Cl+,I+,P+,S+]")
+    sulfonium = smartstomol(raw"[S+;X3;$(S-C);!$(S-[O;D1])]")
+    cys = smartstomol(raw"NC(C=O)CS")
+    @test hasexactmatch(sulfonium, quart)
+    @test !hassubstructmatch(cys, sulfonium)
+    @test !hassubstructmatch(cys, quart)
+end
+
 @testset "node matching" begin
     function nodematch(mol, query, idx=1, len=1)
         afunc = atommatch(mol, query)

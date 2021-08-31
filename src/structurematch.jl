@@ -42,36 +42,50 @@ function bondmatch(mol1::UndirectedGraph, mol2::UndirectedGraph)
 end
 
 
-function querymatchtree(
-        query::QueryFormula, mol::UndirectedGraph, matcher, i; recursive=Dict())
+
+struct QueryMatcher
+    mol::GraphMol
+    qmol::QueryMol
+    descriptors::Dict{Symbol,Any}
+    recursive::Dict{String,Vector{Union{Bool,Nothing}}}
+end
+
+
+function querymatchtree(matcher::QueryMatcher, i, query)
     if query.key === :any
         return true
     elseif query.key === :and
-        return all(querymatchtree(q, mol, matcher, i, recursive=recursive) for q in query.value)
+        return all(q -> querymatchtree(matcher, i, q), query.value)
     elseif query.key === :or
-        return any(querymatchtree(q, mol, matcher, i, recursive=recursive) for q in query.value)
+        return any(q -> querymatchtree(matcher, i, q), query.value)
     elseif query.key === :not
-        return !querymatchtree(query.value, mol, matcher, i, recursive=recursive)
+        return !querymatchtree(matcher, i, query.value)
     elseif query.key === :stereo
         # TODO: stereo not implemented yet
         return true
     elseif query.key === :recursive
-        if haskey(recursive, query.value)
-            return i in recursive[query.value]
-        else
-            qm = smartstomol(query.value)
-            return subgraph_is_monomorphic(
-                mol, qm,
-                nodematcher=(a, qa) -> querymatchtree(
-                    nodeattr(qm, qa).query, mol, matcher, a),
-                edgematcher=(b, qb) -> querymatchtree(
-                    edgeattr(qm, qb).query, mol, bmatcher, b),
-                mandatory=Dict(i => 1))
+        if haskey(matcher.recursive, query.value)
+            v = matcher.recursive[query.value][i]
+            v === nothing || return v  # return cache
         end
+        subq = smartstomol(query.value)
+        hasmatched = subgraph_is_monomorphic(
+            matcher.mol, subq,
+            nodematcher=(a, qa) -> querymatchtree(matcher, a, nodeattr(subq, qa).query),
+            edgematcher=(b, qb) -> querymatchtree(matcher, b, edgeattr(subq, qb).query),
+            mandatory=Dict(i => 1))
+        # cache recursive match results
+        if !haskey(matcher.recursive, query.value)
+            matcher.recursive[query.value] = Vector{Union{Bool,Nothing}}(
+                nothing, nodecount(matcher.mol))
+        end
+        matcher.recursive[query.value][i] = hasmatched
+        return hasmatched
     else
-        return matcher[query.key][i] == query.value
+        return matcher.descriptors[query.key][i] == query.value
     end
 end
+
 
 
 """
@@ -80,7 +94,7 @@ end
 Return a default atom attribute comparator that returns true if the atom satisfies all the queryatom conditions.
 """
 function atommatch(mol::UndirectedGraph, qmol::QueryMol)
-    matcher = Dict(
+    descriptors = Dict(
         :atomsymbol => atomsymbol(mol),
         :isaromatic => isaromatic(mol),
         :charge => charge(mol),
@@ -91,35 +105,14 @@ function atommatch(mol::UndirectedGraph, qmol::QueryMol)
         :valence => valence(mol),
         :hydrogenconnected => hydrogenconnected(mol),
         :smallestsssr => smallestsssr(mol),
-        :sssrcount => sssrcount(mol)
-    )
-    bmatcher = Dict(
+        :sssrcount => sssrcount(mol),
         :bondorder => bondorder(mol),
         :isringbond => isringbond(mol),
         :isaromaticbond => isaromaticbond(mol),
         :stereo => getproperty.(edgeattrs(mol), :stereo)
     )
-    # precalc recursive
-    recursive = Dict()
-    for q in 1:nodecount(qmol)
-        for fml in findallformula(nodeattr(qmol, q).query, :recursive)
-            qm = smartstomol(fml)
-            recursive[fml] = Set()
-            for n in 1:nodecount(mol)
-                if subgraph_is_monomorphic(
-                        mol, qm,
-                        nodematcher=(a, qa) -> querymatchtree(
-                            nodeattr(qm, qa).query, mol, matcher, a),
-                        edgematcher=(b, qb) -> querymatchtree(
-                            edgeattr(qm, qb).query, mol, bmatcher, b),
-                        mandatory=Dict(n => 1))
-                    push!(recursive[fml], n)
-                end
-            end
-        end
-    end
-    return (a, qa) -> querymatchtree(
-        nodeattr(qmol, qa).query, mol, matcher, a, recursive=recursive)
+    matcher = QueryMatcher(mol, qmol, descriptors, Dict())
+    return (a, qa) -> querymatchtree(matcher, a, nodeattr(qmol, qa).query)
 end
 
 
@@ -128,15 +121,15 @@ end
 
 Return a default bond attribute comparator that returns true if the bond satisfies all the querybond conditions.
 """
-function bondmatch(mol::UndirectedGraph, querymol::QueryMol)
-    matcher = Dict(
+function bondmatch(mol::UndirectedGraph, qmol::QueryMol)
+    descriptors = Dict(
         :bondorder => bondorder(mol),
         :isringbond => isringbond(mol),
         :isaromaticbond => isaromaticbond(mol),
         :stereo => getproperty.(edgeattrs(mol), :stereo)
     )
-    return (b, qb) -> querymatchtree(
-        edgeattr(querymol, qb).query, mol, matcher, b)
+    matcher = QueryMatcher(mol, qmol, descriptors, Dict())
+    return (b, qb) -> querymatchtree(matcher, b, edgeattr(qmol, qb).query)
 end
 
 
@@ -164,15 +157,97 @@ function exactbondmatch(qmol1::QueryMol, qmol2::QueryMol)
 end
 
 
+struct QueryComparator
+    qmol1::QueryMol
+    qmol2::QueryMol
+    recursive::Dict{String,Vector{Union{Bool,Nothing}}}
+end
+
+
+function querycompare(matcher::QueryComparator, aidx, a, b)
+    # TODO: almost duplicate of issubset
+    b == QueryFormula(:any, true) && return true
+    # :recursive
+    if a.key === :recursive && b.key === :recursive
+        a == b && return true
+        amol = smartstomol(a.value)
+        bmol = smartstomol(b.value)
+        return subgraph_is_monomorphic(
+            amol, bmol,
+            nodematcher=(na, nb) -> querycompare(matcher, aidx,
+                nodeattr(amol, na).query, nodeattr(bmol, nb).query),
+            edgematcher=(ea, eb) -> querycompare(matcher, aidx,
+                edgeattr(amol, ea).query, edgeattr(bmol, eb).query),
+            mandatory=Dict(1 => 1)
+        )
+    elseif a.key === :recursive && !(b.key in (:not, :or))
+        amol = smartstomol(a.value)
+        return querycompare(matcher, aidx, nodeattr(amol, 1).query, b)
+    elseif b.key === :recursive
+        bmol = smartstomol(b.value)
+        return subgraph_is_monomorphic(
+            matcher.qmol1, bmol,
+            nodematcher=(na, nb) -> querycompare(matcher, aidx,
+                nodeattr(matcher.qmol1, na).query, nodeattr(bmol, nb).query),
+            edgematcher=(ea, eb) -> querycompare(matcher, aidx,
+                edgeattr(matcher.qmol1, ea).query, edgeattr(bmol, eb).query),
+            mandatory=Dict(aidx => 1)
+        )
+    end
+    if !(a.key in (:and, :or) || b.key in (:and, :or))
+        # :not
+        a.key === :not && b.key === :not && return a == b
+        a.key === :not && return false
+        b.key === :not && a.key !== :recursive && return a.key == b.value.key && a.value != b.value.value
+        # descriptors
+        return a == b
+    end
+    # :and, :or
+    aset = a.key in (:and, :or) ? a.value : [a]
+    bset = b.key in (:and, :or) ? b.value : [b]
+    akeys = Set(e.key for e in aset)
+    bkeys = Set(e.key for e in bset)
+    if a.key === :and
+        if b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
+            return any(querycompare(matcher, aidx, fml, b) for fml in a.value)
+        else
+            amap = Dict(i => v for (i, v) in enumerate(aset))
+            bmap = Dict(i => v for (i, v) in enumerate(b.key === :and ? bset : [b]))
+            func = (x, y) -> querycompare(matcher, aidx, amap[x], bmap[y])
+            return maxcard(keys(amap), keys(bmap), func) == length(bmap)
+        end
+    elseif b.key === :or
+        amap = Dict(i => v for (i, v) in enumerate(a.key === :or ? aset : [a]))
+        bmap = Dict(i => v for (i, v) in enumerate(bset))
+        func = (x, y) -> issubset(amap[x], bmap[y])
+        return maxcard(keys(amap), keys(bmap), func) == length(amap)
+    elseif b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
+        for bfml in bset
+            for afml in aset
+                querycompare(matcher, aidx, afml, bfml) || return false
+            end
+        end
+        return true
+    elseif a.key === :or && b.key === :not
+        if length(akeys) == 1 && collect(akeys)[1] == b.value.key
+            amap = Dict(i => v for (i, v) in enumerate(aset))
+            bmap = Dict(i => v for (i, v) in enumerate(bset))
+            func = (x, y) -> querycompare(matcher, aidx, amap[x], bmap[y])
+            return maxcard(keys(amap), keys(bmap), func) == 1
+        end
+    end
+    return false
+end
+
 """
     atommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function
 
 Return an atom attribute comparator that returns true if a2 contains a1.
 """
 function atommatch(qmol1::QueryMol, qmol2::QueryMol)
-    return function (a1, a2)
-        return issubset(nodeattr(qmol1, a1).query, nodeattr(qmol2, a2).query)
-    end
+    matcher = QueryComparator(qmol1, qmol2, Dict())
+    return (a1, a2) -> querycompare(
+        matcher, a1, nodeattr(qmol1, a1).query, nodeattr(qmol2, a2).query)
 end
 
 
@@ -240,7 +315,7 @@ Note that null mol and null query never match (e.g. isstructmatch(smilestomol(""
 """
 function structmatches(
         mol::UndirectedGraph, query::UndirectedGraph, matchtype;
-        prefilter=true, fastsingleton=false,
+        prefilter=true,
         atommatcher=atommatch, bondmatcher=bondmatch, kwargs...)
     # Null molecule filter
     nodecount(mol) == 0 && return ()
@@ -260,34 +335,6 @@ function structmatches(
     # Matcher functions
     afunc = atommatcher(mol, query)
     bfunc = bondmatcher(mol, query)
-
-    # Skip substruct calculation if the query is a sigle node/edge
-    # This slightly speeds up SMARTS queries and hence functional group analysis
-    # Note that mandatory and forbidden mapping would be ignored
-    if matchtype === :substruct && fastsingleton
-        if nodecount(query) == 1
-            res = Dict{Int,Int}[]
-            q = pop!(nodeset(query))
-            for n in nodeset(mol)
-                afunc(n, q) && push!(res, Dict(n => q))
-            end
-            return res
-        elseif nodecount(query) == 2 && edgecount(query) == 1
-            res = Dict{Int,Int}[]
-            q = pop!(edgeset(query))
-            (qu, qv) = getedge(query, q)
-            for e in edgeset(mol)
-                bfunc(e, q) || continue
-                (u, v) = getedge(mol, e)
-                if afunc(u, qu) && afunc(v, qv)
-                    push!(res, Dict(u => qu, v => qv))
-                elseif afunc(u, qv) && afunc(v, qu)
-                    push!(res, Dict(u => qv, v => qu))
-                end
-            end
-            return res
-        end
-    end
 
     # Isomorphism
     if matchtype === :exact

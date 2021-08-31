@@ -6,6 +6,7 @@
     @test QueryFormula(:v, :b) != QueryFormula(:v, :c)
     @test QueryFormula(:x, 1) != QueryFormula(:v, 1)
 
+    fml1 = QueryFormula(:x, "hoge")
     and1 = QueryFormula(:and, Set([
         QueryFormula(:x, "hoge"),
         QueryFormula(:y, "fuga"),
@@ -15,6 +16,8 @@
         QueryFormula(:z, "piyo"),
         QueryFormula(:y, "fuga")
     ]))
+    @test issubset(and1, fml1)
+    @test !issubset(fml1, and1)
     @test and1 == and1
     @test and1 != and2
     @test issubset(and1, and2)  # seems not intuitive, but and1 result records should be less than and2
@@ -22,6 +25,7 @@
     @test issubset(and1, QueryFormula(:x, "hoge"))
     @test !issubset(QueryFormula(:x, "hoge"), and1)
 
+    fml2 = QueryFormula(:x, "fuga")
     or1 = QueryFormula(:or, Set([
         QueryFormula(:x, "hoge"),
         QueryFormula(:x, "fuga"),
@@ -31,6 +35,8 @@
         QueryFormula(:x, "piyo"),
         QueryFormula(:x, "fuga")
     ]))
+    @test issubset(fml2, or1)
+    @test !issubset(or1, fml2)
     @test or1 == or1
     @test or1 != or2
     @test issubset(or2, or1)  # opposit to the `and` case
@@ -80,6 +86,7 @@
     @test nota == nota
     @test nota != notb
 
+    fml3 = QueryFormula(:x, 1)
     or3 = QueryFormula(:or, Set([
         QueryFormula(:x, 1),
         QueryFormula(:x, 2)
@@ -90,6 +97,8 @@
         QueryFormula(:x, 2)
     ]))
     not3 = QueryFormula(:not, QueryFormula(:x, 3))
+    @test issubset(fml3, not3)
+    @test !issubset(not3, fml3)
     @test or3 != not3
     @test issubset(or3, not3)
     @test !issubset(not3, or3)
@@ -114,6 +123,68 @@
     @test issubset(rec1, rec4)
     @test issubset(rec1, and3)
     @test !issubset(rec4, and3)
+
+    rec5 = QueryFormula(:recursive, "C-Cl")
+    rec6 = QueryFormula(:or, Set([
+        QueryFormula(:recursive, "C-Cl")
+        QueryFormula(:recursive, "C-Br")
+    ]))
+    @test issubset(rec5, rec6)
+    @test !issubset(rec6, rec5)
+
+
+    fml4 = QueryFormula(:atomsymbol, :S)
+    fml5 = QueryFormula(:atomsymbol, :N)
+    and4 = QueryFormula(:and, Set([
+        QueryFormula(:not, QueryFormula(:atomsymbol, :C)),
+        QueryFormula(:not, QueryFormula(:atomsymbol, :N)),
+        QueryFormula(:not, QueryFormula(:atomsymbol, :O))
+    ]))
+    @test issubset(fml4, and4)
+    @test !issubset(fml5, and4)
+
+    or5 = QueryFormula(:or, Set([
+        QueryFormula(:atomsymbol, :N),
+        QueryFormula(:atomsymbol, :P)
+    ]))
+    and5 = QueryFormula(:and, Set([
+        QueryFormula(:not, QueryFormula(:atomsymbol, :C)),
+        QueryFormula(:not, QueryFormula(:atomsymbol, :S)),
+        QueryFormula(:not, QueryFormula(:atomsymbol, :O))
+    ]))
+    and6 = QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :N),
+        QueryFormula(:charge, 0),
+        QueryFormula(:isaromatic, false)
+    ]))
+    and7 = QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :C),
+        QueryFormula(:charge, 0),
+        QueryFormula(:isaromatic, false)
+    ]))
+    and8 = QueryFormula(:and, Set([
+        QueryFormula(:or, Set([
+            QueryFormula(:atomsymbol, :C),
+            QueryFormula(:atomsymbol, :N)
+        ])),
+        QueryFormula(:isaromatic, false)
+    ]))
+    @test issubset(or5, and5)
+    @test !issubset(and5, or5)
+    @test issubset(and6, and5)
+    @test !issubset(and7, and5)
+    @test !issubset(and8, and5)
+
+    and9 = QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :F),
+        QueryFormula(:isaromatic, false)
+    ]))
+    or6 = QueryFormula(:or, Set([
+        QueryFormula(:atomsymbol, :F),
+        QueryFormula(:atomsymbol, :Cl)
+    ]))
+    @test issubset(and9, or6)
+    @test !issubset(or6, and9)
 end
 
 @testset "tidyformula" begin
