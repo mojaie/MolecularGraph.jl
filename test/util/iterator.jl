@@ -2,6 +2,7 @@
 @testset "util.iterator" begin
 
 @testset "combinations" begin
+    @test collect(combinations(3, 2)) == [[1, 2], [1, 3], [2, 3]]
     @test length(collect(combinations(10, 1))) == 10
     @test length(collect(combinations(10, 2))) == 45
     @test length(collect(combinations(10, 3))) == 120

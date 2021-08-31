@@ -30,11 +30,11 @@ function Base.iterate(cmb::Combinations, state=nothing)
     else
         cmb.indice[end] += 1
     end
-    return (cmb.indice, state)
+    return (collect(cmb.indice), state)
 end
 
-Base.eltype(::Type{<:Combinations}) = Vector{Int}
-Base.IteratorSize(::Type{<:Combinations}) = Base.SizeUnknown()
+Base.IteratorEltype(::Type{Combinations}) = Base.EltypeUnknown()
+Base.IteratorSize(::Type{Combinations}) = Base.SizeUnknown()
 
 
 """
