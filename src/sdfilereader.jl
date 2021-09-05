@@ -108,7 +108,7 @@ end
 
 Parse lines of a SDFile mol block data into a molecule object.
 """
-function Base.parse(::Type{SDFile}, sdflines)
+function Base.parse(::Type{SDFile}, sdflines)::Union{SDFile, Tuple{Vector{SDFile}, Vector{SDFile}}}
     sdflines = collect(sdflines)
 
     startswith(sdflines[1], "\$RXN") && return parserxn(join(sdflines, "\n"))
