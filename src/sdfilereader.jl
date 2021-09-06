@@ -7,8 +7,11 @@ export
     SDFileReader,
     sdfilereader,
     nohaltsupplier,
-    sdftomol, rxntoreaction
-
+    sdftomol,
+    RDFileReader,
+    rdfilereader,
+    nohalt_rxn_supplier,
+    rxntoreaction
 
 const SDF_CHARGE_TABLE = Dict(
     0 => 0, 1 => 3, 2 => 2, 3 => 1, 4 => 0, 5 => -1, 6 => -2, 7 => -3
@@ -169,8 +172,7 @@ end
 
 Parse lines of a rxn file into a reaction object.
 """
-function Base.parse(::Type{GraphReaction}, rxnlines)
-    rxn = join(rxnlines, "\n")
+function Base.parse(::Type{GraphReaction}, rxn::AbstractString)
     reactants, products = if startswith(rxn, raw"$RXN V3000")
         rr = String[m.captures[1] for m in eachmatch(blockregex("REACTANT"), rxn)]
         pp = String[m.captures[1] for m in eachmatch(blockregex("PRODUCT"), rxn)]
@@ -184,6 +186,8 @@ function Base.parse(::Type{GraphReaction}, rxnlines)
     end
     GraphReaction(reactants, products)
 end
+
+Base.parse(::Type{GraphReaction}, rxnlines) = parse(GraphReaction, join(rxnlines, "\n"))
 
 function nohaltsupplier(block)
     return try
@@ -201,9 +205,29 @@ function nohaltsupplier(block)
     end
 end
 
+function nohalt_rxn_supplier(block)
+    return try
+        reaction = parse(GraphReaction, block)
+        setdiastereo!(reaction)
+        setstereocenter!(reaction)
+        return reaction
+    catch e
+        if e isa ErrorException
+            println("$(e.msg) (#$(i) in rxnfilereader)")
+            return Reaction()
+        else
+            throw(e)
+        end
+    end
+end
 
 struct SDFileReader
     lines::Base.EachLine
+    parser::Function
+end
+
+struct RDFileReader
+    io::IO
     parser::Function
 end
 
@@ -224,8 +248,19 @@ function Base.iterate(reader::SDFileReader, state=nothing)
     return
 end
 
+function Base.iterate(reader::RDFileReader, state=nothing)
+    block = readuntil(reader.io, "\$RXN")
+    while startswith(block, "\$RDFILE") && block != ""
+        block = readuntil(reader.io, "\$RXN")
+    end
+    isempty(block) ? nothing : (reader.parser("\$RXN" * block), state)
+end
+
 Base.IteratorSize(::Type{SDFileReader}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{SDFileReader}) = Base.EltypeUnknown()
+
+Base.IteratorSize(::Type{RDFileReader}) = Base.SizeUnknown()
+Base.IteratorEltype(::Type{RDFileReader}) = Base.EltypeUnknown()
 
 """
     sdfilereader(file::IO)
@@ -256,6 +291,8 @@ end
 sdfilereader(file::IO) = SDFileReader(eachline(file), nohaltsupplier)
 sdfilereader(path::AbstractString) = sdfilereader(open(path))
 
+rdfilereader(file::IO) = RDFileReader(file, nohalt_rxn_supplier)
+rdfilereader(path::AbstractString) = rdfilereader(open(path))
 
 """
     sdftomol(lines) -> GraphMol{SDFileAtom,SDFileBond}
@@ -341,19 +378,4 @@ function sdftomol3000(s::AbstractString)
     mol = graphmol(edges, nodeattrs, edgeattrs)
     # setdiastereo!(mol)
     # setstereocenter!(mol)
-end
-
-# support of reaction files with
-function parserxn(rxn::AbstractString)
-    reactants, products = if startswith(rxn, raw"$RXN V3000")
-        rr = String[m.captures[1] for m in eachmatch(blockregex("REACTANT"), rxn)]
-        pp = String[m.captures[1] for m in eachmatch(blockregex("PRODUCT"), rxn)]
-        sdftomol3000.(rr), sdftomol3000.(pp)
-    else
-        parts = split(rxn, r"\$MOL\r?\n")
-        (ne, np) = parse.(Int, split(split(first(parts), r"\r?\n")[end-1]))
-        rr = parts[2:1 + ne]
-        pp = parts[(2 + ne):(1 + ne + np)]
-        sdftomol.(IOBuffer.(rr)), sdftomol.(IOBuffer.(pp))
-    end
 end
