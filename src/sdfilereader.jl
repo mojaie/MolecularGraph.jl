@@ -7,7 +7,7 @@ export
     SDFileReader,
     sdfilereader,
     nohaltsupplier,
-    sdftomol
+    sdftomol, rxntoreaction
 
 
 const SDF_CHARGE_TABLE = Dict(
@@ -108,13 +108,9 @@ end
 
 Parse lines of a SDFile mol block data into a molecule object.
 """
-function Base.parse(::Type{SDFile}, sdflines)::Union{SDFile, Tuple{Vector{SDFile}, Vector{SDFile}}}
+function Base.parse(::Type{SDFile}, sdflines)
     sdflines = collect(sdflines)
-
-    startswith(sdflines[1], "\$RXN") && return parserxn(join(sdflines, "\n"))
-
-    molend = findnext(x -> occursin(r"M\s+END", x), sdflines, 1)
-    
+    molend = findnext(x -> x == "M  END", sdflines, 1)    
     lines = @view sdflines[1:molend-1]
     optlines = @view sdflines[molend+1:end]
 
@@ -168,6 +164,26 @@ function Base.parse(::Type{SDFile}, sdflines)::Union{SDFile, Tuple{Vector{SDFile
     return molobj
 end
 
+"""
+    parse(::Type{GraphReaction}, lines)
+
+Parse lines of a rxn file into a reaction object.
+"""
+function Base.parse(::Type{GraphReaction}, rxnlines)
+    rxn = join(rxnlines, "\n")
+    reactants, products = if startswith(rxn, raw"$RXN V3000")
+        rr = String[m.captures[1] for m in eachmatch(blockregex("REACTANT"), rxn)]
+        pp = String[m.captures[1] for m in eachmatch(blockregex("PRODUCT"), rxn)]
+        sdftomol3000.(rr), sdftomol3000.(pp)
+    else
+        parts = split(rxn, r"\$MOL\r?\n")
+        (ne, np) = parse.(Int, split(split(first(parts), r"\r?\n")[end-1]))
+        rr = parts[2:1 + ne]
+        pp = parts[(2 + ne):(1 + ne + np)]
+        sdftomol.(IOBuffer.(rr)), sdftomol.(IOBuffer.(pp))
+    end
+    GraphReaction(reactants, products)
+end
 
 function nohaltsupplier(block)
     return try
@@ -259,10 +275,29 @@ end
 sdftomol(file::IO) = sdftomol(eachline(file))
 sdftomol(path::AbstractString) = sdftomol(open(path))
 
-# support of extended mol file format (V3000) than
+
+"""
+    rxntoreaction(lines) -> GraphReaction
+    rxntoreaction(file::IO) -> GraphReaction
+    sdftomol(path::AbstractString) -> GraphReaction
+
+Read a RXN file and parse it into a reaction object. The given
+argument should be a file input stream, a file path as a string or an iterator
+that yields each sdfile text lines.
+"""
+function rxntoreaction(lines)
+    reaction = parse(GraphReaction, lines)
+    setdiastereo!(reaction)
+    setstereocenter!(reaction)
+    return reaction
+end
+rxntoreaction(file::IO) = rxntoreaction(eachline(file))
+rxntoreaction(path::AbstractString) = rxntoreaction(open(path))
+
+# support of extended mol file format (V3000)
 
 sympair(s) = (p -> Symbol(p[1]) => p[2])(split(s,"="))
-blockregex(s::AbstractString) = Regex("M V30 BEGIN $(s)\r?\n(.*?)\r?\nM V30 END $(s)", "s")
+blockregex(s::AbstractString) = Regex("M  V30 BEGIN $(s)\r?\n(.*?)\r?\nM  V30 END $(s)", "s")
 
 function parseatomblock3000(atomblock)
     nodeattrs = SDFileAtom[]

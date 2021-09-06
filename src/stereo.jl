@@ -176,11 +176,13 @@ function setdiastereo!(mol::SDFile)
     clearcache!(mol)
 end
 
-function setdiastereo!((reactants, products)::Tuple{Vector{SDFile}, Vector{SDFile}})
-    setdiastereo!.(reactants)
-    setdiastereo!.(products)
-    reactants, products
+
+function setdiastereo!(reaction::GraphReaction)
+    setdiastereo!.(reaction.reactants)
+    setdiastereo!.(reaction.products)
+    reaction
 end
+
 
 """
     setdiastereo(mol::GraphMol) -> GraphMol
@@ -293,11 +295,13 @@ function setstereocenter!(mol::SDFile)
     clearcache!(mol)
 end
 
-function setstereocenter!((reactants, products)::Tuple{Vector{SDFile}, Vector{SDFile}})
-    setstereocenter!.(reactants)
-    setstereocenter!.(products)
-    reactants, products
+
+function setstereocenter!(reaction::GraphReaction)
+    setstereocenter!.(reaction.reactants)
+    setstereocenter!.(reaction.products)
+    reaction
 end
+
 
 """
     setstereocenter(mol::GraphMol) -> GraphMol

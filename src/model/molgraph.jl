@@ -4,7 +4,7 @@
 #
 
 export
-    GraphMol,
+    GraphMol, GraphReaction,
     graphmol, remapnodes, todict, tojson,
     SDFile, SMILES,
     getatom, getbond, hasbond,
@@ -22,6 +22,11 @@ struct GraphMol{A<:Atom,B<:Bond} <: OrderedGraph
     edgeattrs::Vector{B}
     cache::Dict{Symbol,Any}
     attributes::Dict{Symbol,Any}
+end
+
+struct GraphReaction
+    reactants::Vector{GraphMol}
+    products::Vector{GraphMol}
 end
 
 """
