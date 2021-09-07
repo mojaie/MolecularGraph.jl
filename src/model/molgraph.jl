@@ -4,7 +4,7 @@
 #
 
 export
-    GraphMol,
+    GraphMol, GraphReaction,
     graphmol, remapnodes, todict, tojson,
     SDFile, SMILES,
     getatom, getbond, hasbond,
@@ -23,6 +23,15 @@ struct GraphMol{A<:Atom,B<:Bond} <: OrderedGraph
     cache::Dict{Symbol,Any}
     attributes::Dict{Symbol,Any}
 end
+
+GraphMol{A, B}() where {A<:Atom,B<:Bond} = GraphMol{A,B}([], [], [], [], Dict(), Dict())
+
+struct GraphReaction
+    reactants::Vector{GraphMol}
+    products::Vector{GraphMol}
+end
+
+GraphReaction() = GraphReaction(GraphMol[], GraphMol[])
 
 """
     graphmol() -> GraphMol
