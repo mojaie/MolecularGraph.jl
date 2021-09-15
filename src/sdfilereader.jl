@@ -174,8 +174,10 @@ Parse lines of a rxn file into a reaction object.
 """
 function Base.parse(::Type{GraphReaction}, rxn::AbstractString)
     reactants, products = if startswith(rxn, raw"$RXN V3000")
-        rr = String[m.captures[1] for m in eachmatch(blockregex("REACTANT"), rxn)]
-        pp = String[m.captures[1] for m in eachmatch(blockregex("PRODUCT"), rxn)]
+        reactants = match(blockregex("REACTANT"), rxn).match
+        products = match(blockregex("PRODUCT"), rxn).match
+        rr = String[m.captures[1] for m in eachmatch(blockregex("CTAB"), reactants)]
+        pp = String[m.captures[1] for m in eachmatch(blockregex("CTAB"), products)]
         sdftomol3000.(rr), sdftomol3000.(pp)
     else
         parts = split(rxn, r"\$MOL\r?\n")
@@ -333,7 +335,13 @@ rxntoreaction(path::AbstractString) = rxntoreaction(open(path))
 
 # support of extended mol file format (V3000)
 
-sympair(s) = (p -> Symbol(p[1]) => p[2])(split(s,"="))
+function sympair(s)::Pair{Symbol, Union{String, Int}}
+    p = split(s,"=")
+    length(p) != 2 && return :nothing => ""
+    int = tryparse(Int, p[2])
+    Symbol(p[1]) => isnothing(int) ? p[2] : int
+end
+
 blockregex(s::AbstractString) = Regex("M  V30 BEGIN $(s)\r?\n(.*?)\r?\nM  V30 END $(s)", "s")
 
 function parseatomblock3000(atomblock)
@@ -345,10 +353,11 @@ function parseatomblock3000(atomblock)
         
         props = Dict(sympair.(ss[9:end])...)
         
-        charge = parse(Int, get(props, :CHG, "0"))
-        mass = tryparse(Int, get(props, :MASS, ""))
+        charge = get(props, :CHG, 0)
+        mass   = get(props, :MASS, nothing)
+        multi  = get(props, :RAD, 1)
 
-        push!(nodeattrs, SDFileAtom(sym, charge, 1, mass, coords))
+        push!(nodeattrs, SDFileAtom(sym, charge, multi, mass, coords))
     end
     nodeattrs
 end
