@@ -174,8 +174,10 @@ Parse lines of a rxn file into a reaction object.
 """
 function Base.parse(::Type{GraphReaction}, rxn::AbstractString)
     reactants, products = if startswith(rxn, raw"$RXN V3000")
-        rr = String[m.captures[1] for m in eachmatch(blockregex("REACTANT"), rxn)]
-        pp = String[m.captures[1] for m in eachmatch(blockregex("PRODUCT"), rxn)]
+        reactants = match(blockregex("REACTANT"), rxn).match
+        products = match(blockregex("PRODUCT"), rxn).match
+        rr = String[m.captures[1] for m in eachmatch(blockregex("CTAB"), reactants)]
+        pp = String[m.captures[1] for m in eachmatch(blockregex("CTAB"), products)]
         sdftomol3000.(rr), sdftomol3000.(pp)
     else
         parts = split(rxn, r"\$MOL\r?\n")
@@ -347,8 +349,9 @@ function parseatomblock3000(atomblock)
         
         charge = parse(Int, get(props, :CHG, "0"))
         mass = tryparse(Int, get(props, :MASS, ""))
+        multi = tryparse(Int, get(props, :RAD, ""))
 
-        push!(nodeattrs, SDFileAtom(sym, charge, 1, mass, coords))
+        push!(nodeattrs, SDFileAtom(sym, charge, multi, mass, coords))
     end
     nodeattrs
 end
