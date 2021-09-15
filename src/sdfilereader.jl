@@ -252,6 +252,9 @@ end
 
 function Base.iterate(reader::RDFileReader, state=nothing)
     block = readuntil(reader.io, "\$RXN")
+    
+    # if the file is a normal rxn file, block is empty and one needs to read one more time
+    isempty(block) && (block = readuntil(reader.io, "\$RXN"))
     while startswith(block, "\$RDFILE") && block != ""
         block = readuntil(reader.io, "\$RXN")
     end
