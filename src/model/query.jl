@@ -476,6 +476,7 @@ end
 
 struct DictDiGraph <: OrderedDiGraph
     # TODO: should be moved to Graph module
+    # TODO: get rid of mutable Dict
     outneighbormap::Vector{Dict{Int,Int}}
     inneighbormap::Vector{Dict{Int,Int}}
     edges::Vector{Tuple{Int,Int}}
@@ -552,11 +553,10 @@ The filtered diagram represents query relationship that the molecule have.
 """
 function filter_queries(qr::DictDiGraph, mol::GraphMol; filtering=true)
     matched = Set{Int}()
-    qrc = deepcopy(qr)
-    for n in reversetopologicalsort(qrc)
-        rcd = nodeattr(qrc, n)
+    for n in reversetopologicalsort(qr)
+        rcd = nodeattr(qr, n)
         if filtering
-            if !issubset(successors(qrc, n), matched)  # query containment filter
+            if !issubset(successors(qr, n), matched)  # query containment filter
                 continue
             end
         end
@@ -566,5 +566,5 @@ function filter_queries(qr::DictDiGraph, mol::GraphMol; filtering=true)
             rcd["matched"] = Set([sort(collect(keys(m))) for m in matches])
         end
     end
-    return dictdigraph(nodesubgraph(qrc, matched))
+    return dictdigraph(nodesubgraph(qr, matched))
 end

@@ -47,7 +47,7 @@ struct QueryMatcher
     mol::GraphMol
     qmol::QueryMol
     descriptors::Dict{Symbol,Any}
-    recursive::Dict{String,Vector{Union{Bool,Nothing}}}
+    recursive::Dict{String,Tuple{QueryMol,Vector{Union{Bool,Nothing}}}}
 end
 
 
@@ -64,22 +64,22 @@ function querymatchtree(matcher::QueryMatcher, i, query)
         # TODO: stereo not implemented yet
         return true
     elseif query.key === :recursive
-        if haskey(matcher.recursive, query.value)
-            v = matcher.recursive[query.value][i]
-            v === nothing || return v  # return cache
-        end
-        subq = smartstomol(query.value)
-        hasmatched = subgraph_is_monomorphic(
-            matcher.mol, subq,
-            nodematcher=(a, qa) -> querymatchtree(matcher, a, nodeattr(subq, qa).query),
-            edgematcher=(b, qb) -> querymatchtree(matcher, b, edgeattr(subq, qb).query),
-            mandatory=Dict(i => 1))
-        # cache recursive match results
         if !haskey(matcher.recursive, query.value)
-            matcher.recursive[query.value] = Vector{Union{Bool,Nothing}}(
-                nothing, nodecount(matcher.mol))
+            # cache mol object and recursive match results
+            subq = smartstomol(query.value)
+            subq.cache[:sssr] = sssr(subq)
+            matcher.recursive[query.value] = (
+                subq, Vector{Union{Bool,Nothing}}(nothing, nodecount(matcher.mol)))
         end
-        matcher.recursive[query.value][i] = hasmatched
+        v = matcher.recursive[query.value][2][i]
+        v === nothing || return v  # return cache
+        qmol = matcher.recursive[query.value][1]
+        hasmatched = subgraph_is_monomorphic(
+            matcher.mol, qmol,
+            nodematcher=(a, qa) -> querymatchtree(matcher, a, nodeattr(qmol, qa).query),
+            edgematcher=(b, qb) -> querymatchtree(matcher, b, edgeattr(qmol, qb).query),
+            mandatory=Dict(i => 1))
+        matcher.recursive[query.value][2][i] = hasmatched
         return hasmatched
     else
         return matcher.descriptors[query.key][i] == query.value
