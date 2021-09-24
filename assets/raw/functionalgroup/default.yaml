@@ -69,6 +69,8 @@
   query: "[$(C(c)[#6])]=O"
 - key: Ketene
   query: "C=C=O"
+- key: AlphaBetaUnsaturatedCarbonyl
+  query: "C=CC=O"
 
 - key: Carboxylate
   query: "O=CO"
@@ -142,6 +144,8 @@
   query: "OC#N"
 - key: Isocyanate
   query: "N=C=O"
+- key: Carbamide
+  query: "NC(=O)N"
 
 
 # Sulfur
@@ -192,6 +196,8 @@
   query: "S-C#N"
 - key: Isothiocyanate
   query: "N=C=S"
+- key: Thiocarbamide
+  query: "NC(=S)N"
 
 
 # Phosphorus
