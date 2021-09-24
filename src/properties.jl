@@ -50,7 +50,7 @@ Return vectors of ring nodes representing small set of smallest rings (SSSR).
 
 See [`Graph.minimumcyclebasis`](@ref).
 """
-@cachefirst function sssr(mol::GraphMol)
+@cachefirst function sssr(mol::UndirectedGraph)
     cycles = Vector{Int}[]
     for cy in minimumcyclebasis(mol)
         cp = copy(cy)

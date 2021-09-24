@@ -143,22 +143,45 @@ backtrack!(state) = backtrack!(state, 1)
 Resolve default SMARTS bonds.
 """
 function resolvedefaultbond!(qmol::QueryMol)
+    aromfml = QueryFormula(:isaromaticbond, true)
+    singlefml = QueryFormula(:and, Set([
+        QueryFormula(:bondorder, 1),
+        QueryFormula(:isaromaticbond, false)
+    ]))
+    # extract explicitly aromatic bonds
+    arombonds = Set([])
+    for ring in sssr(qmol)
+        isarom = true
+        for n in ring
+            nq = nodeattr(qmol, n).query
+            if !issubset(nq, QueryFormula(:isaromatic, true))
+                isarom = false
+                break
+            end
+        end
+        if isarom
+            union!(arombonds, edgeset(nodesubgraph(qmol, ring)))
+        end
+    end
+    # CC, cC, Cc, [#6]C, C[#6] -> -
+    # cc, c[#6], [#6]c, [#6][#6] -> -,:
+    # cc in the same aromatic ring -> :
     for e in 1:edgecount(qmol)
         q = edgeattr(qmol, e).query
         q == QueryFormula(:defaultbond, true) || continue
+        if e in arombonds
+            setedgeattr!(qmol, e, SmartsBond(aromfml))
+            continue
+        end
         (u, v) = getedge(qmol, e)
         uq = nodeattr(qmol, u).query
-        uarom = findformula(uq, :isaromatic)
+        unotarom = issubset(uq, QueryFormula(:isaromatic, false))
         vq = nodeattr(qmol, v).query
-        varom = findformula(vq, :isaromatic)
-        arombond = QueryFormula(:isaromaticbond, true)
-        single = QueryFormula(:bondorder, 1)
-        if uarom === true && varom === true
-            setedgeattr!(qmol, e, SmartsBond(arombond))
-        elseif uarom === false || varom === false
-            setedgeattr!(qmol, e, SmartsBond(single))
+        vnotarom = issubset(vq, QueryFormula(:isaromatic, false))
+        if unotarom || vnotarom
+            setedgeattr!(qmol, e, SmartsBond(singlefml))
         else
-            setedgeattr!(qmol, e, SmartsBond(QueryFormula(:or, Set([single, arombond]))))
+            setedgeattr!(qmol, e, SmartsBond(QueryFormula(:or, Set([singlefml, aromfml]))))
         end
     end
 end

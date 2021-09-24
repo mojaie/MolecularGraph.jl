@@ -3,11 +3,30 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
-const SMARTS_BOND_SYMBOL = Dict(
+const SMILES_BOND_SYMBOL = Dict(
     '-' => QueryFormula(:bondorder, 1),
     '=' => QueryFormula(:bondorder, 2),
     '#' => QueryFormula(:bondorder, 3),
+    '@' => QueryFormula(:isringbond, true),
+    ':' => QueryFormula(:isaromaticbond, true),
+    '/' => QueryFormula(:stereo, :up),
+    '\\' => QueryFormula(:stereo, :down)
+)
+
+
+const SMARTS_BOND_SYMBOL = Dict(
+    '-' => QueryFormula(:and, Set([
+        QueryFormula(:bondorder, 1)
+        QueryFormula(:isaromaticbond, false)
+    ])),
+    '=' => QueryFormula(:and, Set([
+        QueryFormula(:bondorder, 2)
+        QueryFormula(:isaromaticbond, false)
+    ])),
+    '#' => QueryFormula(:and, Set([
+        QueryFormula(:bondorder, 3)
+        QueryFormula(:isaromaticbond, false)
+    ])),
     '@' => QueryFormula(:isringbond, true),
     ':' => QueryFormula(:isaromaticbond, true),
     '/' => QueryFormula(:stereo, :up),
@@ -24,7 +43,23 @@ defaultbond(state::SmartsParser) = SmartsBond(QueryFormula(:defaultbond, true))
 
 BondSymbol <- [-=#@:/\\] / '/?' / '\\?'
 """
-function bondsymbol!(state::SmartsParserState)
+function bondsymbol!(state::SmilesParser)
+    sym1 = read(state)
+    sym2 = lookahead(state, 1)
+    if sym1 == '/' && sym2 == '?'
+        forward!(state, 2)
+        return QueryFormula(:not, QueryFormula(:stereo, :down))
+    elseif sym1 == '\\' && sym2 == '?'
+        forward!(state, 2)
+        return QueryFormula(:not, QueryFormula(:stereo, :up))
+    elseif sym1 in keys(SMARTS_BOND_SYMBOL)
+        forward!(state)
+        return SMILES_BOND_SYMBOL[sym1]
+    end
+    # Implicit single bond returns nothing
+end
+
+function bondsymbol!(state::SmartsParser)
     sym1 = read(state)
     sym2 = lookahead(state, 1)
     if sym1 == '/' && sym2 == '?'
