@@ -5,10 +5,8 @@
 
 export
     QueryFormula, QueryMol, querymol,
-    tidyformula, findformula, findallformula,
-    convertnotquery, convertnotquery!,
-    inferatomaromaticity!, removehydrogens,
-    recursiveatommatch,
+    tidyformula, findformula,
+    removehydrogens, inferaromaticity,
     query_relationship, filter_queries
 
 
@@ -281,170 +279,190 @@ function findformula(q::QueryFormula, key::Symbol; deep=false, aggregate=minimum
 end
 
 
-"""
-    findallformula(q::QueryFormula, key::Symbol) -> Any
-
-Find all formula values that matched the given key regardless of logical operator roles.
-"""
-function findallformula(q::QueryFormula, key::Symbol)
-    if q.key == key
-        return [q.value]
-    elseif q.key === :not
-        return findallformula(q.value, key)
-    elseif q.key in (:and, :or)
-        values = []
-        for child in q.value
-            append!(values, findallformula(child, key))
-        end
-        return values
-    end
-    return []
-end
-
-
-
-NOTCONV = Dict(
-    :isaromatic => Set([true, false]),
-    :hydrogenconnected => Set([0, 1, 2, 3, 4]),
-    :sssrcount => Set([0, 1, 2, 3]),
-    :isringbond => Set([true, false]),
-    :isaromaticbond => Set([true, false]),
-    :stereo => Set([:up, :down, :unspecified])
-)
-
-"""
-    convertnotquery(mol::QueryMol) -> QueryMol
-
-Convert :not query to :or if possible.
-
-- [!#1] would be *. Typical substructure mining tasks do not care stereochemistry,
-so all hydrogen nodes can be removed.)
-- following `tidyformula` is necessary.
-"""
-function convertnotquery(fml::QueryFormula)
-    if fml.key === :not
-        cfml = fml.value
-        cfml == QueryFormula(:atomsymbol, :H) && return QueryFormula(:any, true)
-        if haskey(NOTCONV, cfml.key)
-            rest = setdiff(NOTCONV[cfml.key], [cfml.value])
-            isempty(rest) && return QueryFormula(:any, false)
-            length(rest) == 1 && return QueryFormula(cfml.key, collect(rest)[1])
-            return QueryFormula(:or, Set([QueryFormula(cfml.key, v) for v in rest]))
-        else
-            return fml
-        end
-    end
-    fml.key in (:and, :or) || return fml
-    childs = Set{QueryFormula}(convertnotquery.(fml.value))
-    return QueryFormula(fml.key, childs)
-end
-
-function convertnotquery!(qmol::QueryMol)
-    nodes = []
-    for n in 1:nodecount(qmol)
-        na = nodeattr(qmol, n).query
-        push!(nodes, SmartsAtom(tidyformula(convertnotquery(na))))
-    end
-    edges = []
-    for e in 1:edgecount(qmol)
-        ea = edgeattr(qmol, e).query
-        push!(edges, SmartsBond(tidyformula(convertnotquery(ea))))
-    end
-    empty!(qmol.nodeattrs)
-    append!(qmol.nodeattrs, nodes)
-    empty!(qmol.edgeattrs)
-    append!(qmol.edgeattrs, edges)
-end
-
-
-
-"""
-    inferatomaromaticity!(qmol::QueryMol)
-
-Infer aromaticity of atoms from connected bonds.
-
-This directly add :isaromatic formulas to query atoms in the query molecule.
-"""
-function inferatomaromaticity!(qmol::QueryMol)
-    for n in 1:nodecount(qmol)
-        arom = false
-        hcnt = 0
-        heavyorder = 0
-        for (inc, adj) in neighbors(qmol, n)
-            iq = edgeattr(qmol, inc).query
-            if findformula(iq, :isaromaticbond) === true
-                arom = true
-                break
-            end
-            aq = nodeattr(qmol, adj).query
-            if findformula(aq, :atomsymbol) === :H
-                hcnt += 1
-            else
-                heavyorder += something(findformula(iq, :bondorder, deep=true), 1)
-            end
-        end
-        nq = nodeattr(qmol,n).query
-        if arom
-            newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, true)]))
-            setnodeattr!(qmol, n, SmartsAtom(tidyformula(newq)))
-            continue
-        end
-        hqcnt = findformula(nq, :hydrogenconnected, deep=true)
-        if hqcnt !== nothing
-            hcnt = hqcnt  # ignore hydrogen nodes if H query is already set
-        end
-        acceptable = Dict(:O => 0, :N => 1, :C => 1, :S => 0, :P => 1, :B => 1)
-        if heavyorder + hcnt > get(acceptable, findformula(nq, :atomsymbol), 0)
-            newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
-            setnodeattr!(qmol, n, SmartsAtom(tidyformula(newq)))
-        end
-    end
-end
-
 
 """
     removehydrogens(mol::QueryMol) -> QueryMol
 
 Return the molecular query with hydrogen nodes removed.
-
-- Hydrogen nodes would be represented as `[*Hx]` in the connected heavy atoms.
-(e.g. CN[H] -> C[N;H1,H2,H3,H4])
 """
-function removehydrogens(mol::QueryMol)
-    MAX_H_COUNT = 4
-    hs = Set{Int}()
-    hcntmap = Dict()
-    for (i, atom) in enumerate(nodeattrs(mol))
-        h = atom.query == QueryFormula(:atomsymbol, :H)
-        h2 = atom.query == QueryFormula(
-            :and, Set([QueryFormula(:atomsymbol, :H), QueryFormula(:isaromatic, false)]))
-        (h || h2) || continue
-        @assert degree(mol, i) == 1
-        adj = iterate(adjacencies(mol, i))[1]
-        if !haskey(hcntmap, adj)
-            hcntmap[adj] = 0
-        end
-        hcntmap[adj] += 1
-        push!(hs, i)
+function removehydrogens(qmol::QueryMol)
+    # count H nodes and mark H nodes to remove
+    hnodes = Set{Int}()
+    hcntarr = zeros(Int, nodecount(qmol))
+    for n in 1:nodecount(qmol)
+        nq = nodeattr(qmol, n).query
+        issubset(nq, QueryFormula(:atomsymbol, :H)) || continue
+        degree(qmol, n) == 1 || throw(ErrorException("Invalid hydrogen valence"))
+        adj = iterate(adjacencies(qmol, n))[1]
+        hcntarr[adj] += 1
+        push!(hnodes, n)
     end
-    newmol = deepcopy(mol)
-    for (i, hcnt) in hcntmap
-        q = nodeattr(mol, i).query
-        findformula(q, :hydrogenconnected, deep=true) === nothing || continue  # ignore if H is already set
-        heavycnt = degree(mol, i) - hcnt
-        maxh = MAX_H_COUNT - heavycnt
-        if maxh <= hcnt
-            hf = QueryFormula(:hydrogenconnected, hcnt)
+    qmol_ = deepcopy(qmol)
+    heavynodes = setdiff(nodeset(qmol), hnodes)
+    for n in heavynodes
+        nq = nodeattr(qmol, n).query
+        # [!#1] => *
+        noth = QueryFormula(:not, QueryFormula(:atomsymbol, :H))
+        if nq == noth
+            newq = QueryFormula(:any, true)
+        elseif nq.key === :and && noth in nq.value
+            if length(nq.value) == 2
+                newq = collect(setdiff(nq.value, [noth]))[1]
+            else
+                newq = QueryFormula(:and, setdiff(nq.value, [noth]))
+            end
         else
-            hf = QueryFormula(
-                :or, Set([QueryFormula(:hydrogenconnected, n) for n in hcnt:maxh]))
+            newq = nq
         end
-        newq = QueryFormula(:and, Set([q, hf]))
-        setnodeattr!(newmol, i, SmartsAtom(tidyformula(newq)))
+        # consider H nodes
+        adjhnfmls = collect(0:(hcntarr[n] - 1))
+        if !isempty(adjhnfmls)
+            nfmls = [QueryFormula(:not, QueryFormula(:hydrogenconnected, i)) for i in adjhnfmls]
+            newq = QueryFormula(:and, Set([newq, nfmls...]))
+        end
+        setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
     end
-    ns = setdiff(nodeset(mol), hs)
-    return querymol(nodesubgraph(newmol, ns))
+    return querymol(nodesubgraph(qmol_, heavynodes))
 end
+
+
+"""
+    inferatomaromaticity(qmol::QueryMol)
+
+Infer aromaticity of atoms and bonds, then return more specific query in the aspect of aromaticity.
+"""
+function inferaromaticity(qmol::QueryMol)
+    qmol_ = deepcopy(qmol)
+    for n in 1:nodecount(qmol)
+        nq = nodeattr(qmol, n).query
+        issubset(nq, QueryFormula(:isaromatic, true)) && continue
+        issubset(nq, QueryFormula(:isaromatic, false)) && continue
+        # by topology query (!R, !r)
+        if issubset(nq, QueryFormula(:sssrcount, 0))
+            newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
+            setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
+            continue
+        end
+        # by atom symbol
+        canbearom = [:B, :C, :N, :O, :P, :S, :As, :Se]
+        notaromfml = QueryFormula(:and, Set([
+            QueryFormula(:not, QueryFormula(:atomsymbol, a)) for a in canbearom]))
+        if issubset(nq, notaromfml)
+            newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
+            setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
+            continue
+        end
+        # by explicitly non-/aromatic incidences
+        noincacc = QueryFormula(:and, Set([
+            QueryFormula(:not, QueryFormula(:atomsymbol, a)) for a in [:C, :N, :B]]))
+        minacc = issubset(nq, noincacc) ? 0 : 1
+        nonaromcnt = 0
+        # hydrogen query
+        if issubset(nq, QueryFormula(:and, Set([
+            QueryFormula(:not, QueryFormula(:hydrogenconnected, 0)),
+            QueryFormula(:not, QueryFormula(:hydrogenconnected, 1))
+        ])))
+            nonaromcnt += 2  # 2 is enough to be nonaromcnt > minacc
+        elseif issubset(nq, QueryFormula(:not, QueryFormula(:hydrogenconnected, 0)))
+            nonaromcnt += 1
+        end
+        # incidences
+        hasarombond = false
+        for inc in incidences(qmol, n)
+            eq = edgeattr(qmol_, inc).query
+            if issubset(eq, QueryFormula(:isaromaticbond, true))
+                hasarombond = true
+                break
+            end
+            if issubset(eq, QueryFormula(:bondorder, 2))
+                # C=O special case
+                adjq = nodeattr(qmol, neighbors(qmol, n)[inc]).query
+                if issubset(adjq, QueryFormula(:atomsymbol, :O))
+                    continue
+                end
+            end
+            if (issubset(eq, QueryFormula(:isaromaticbond, false))
+                    || issubset(eq, QueryFormula(:isringbond, false)))
+                if issubset(eq, QueryFormula(:not, QueryFormula(:bondorder, 1)))
+                    nonaromcnt += 2
+                else
+                    nonaromcnt += 1
+                end
+            end
+        end
+        if hasarombond
+            newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, true)]))
+            setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
+        elseif nonaromcnt > minacc
+            newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
+            setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
+        end
+    end
+    # by Huckel rule
+    aromf = QueryFormula(:isaromaticbond, true)
+    aors = QueryFormula(:or, Set([
+        aromf,
+        QueryFormula(:and, Set([
+            QueryFormula(:bondorder, 1),
+            QueryFormula(:isaromaticbond, false)
+        ]))
+    ]))
+    aord = QueryFormula(:or, Set([
+        aromf,
+        QueryFormula(:and, Set([
+            QueryFormula(:bondorder, 2),
+            QueryFormula(:isaromaticbond, false)
+        ]))
+    ]))
+    for ring in sssr(qmol)
+        ringedges = edgeset(nodesubgraph(qmol, ring))
+        pcnt = 0
+        for n in ring
+            nq = nodeattr(qmol, n).query
+            if issubset(nq, QueryFormula(:isaromatic, true))
+                pcnt += 1
+                continue
+            end
+            rincs = collect(intersect(incidences(qmol, n), ringedges))
+            uq = edgeattr(qmol, rincs[1]).query
+            vq = edgeattr(qmol, rincs[2]).query
+            if uq == aors && vq == aord || vq == aors && uq == aord
+                if issubset(nq, QueryFormula(:or, Set([QueryFormula(:atomsymbol, a) for a in [:B, :C, :N, :P, :As]])))
+                    pcnt += 1
+                    continue
+                end
+            elseif uq == aors && vq == aors
+                if issubset(nq, QueryFormula(:or, Set([QueryFormula(:atomsymbol, a) for a in [:N, :O, :P, :S, :As, :Se]])))
+                    pcnt += 2
+                    continue
+                elseif issubset(nq, QueryFormula(:atomsymbol, :C))
+                    outer = collect(setdiff(incidences(qmol, n), ringedges))
+                    if length(outer) == 1
+                        outerq = edgeattr(qmol, outer[1]).query
+                        oadjq = nodeattr(qmol, neighbors(qmol, n)[outer[1]]).query
+                        if issubset(outerq, QueryFormula(:bondorder, 2)) && issubset(oadjq, QueryFormula(:atomsymbol, :O))
+                            continue
+                        end
+                    end
+                end
+            end
+            pcnt = 0
+            break
+        end
+        if pcnt % 4 == 2
+            for n in ring
+                nq = nodeattr(qmol, n).query
+                newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, true)]))
+                setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
+            end
+            for e in ringedges
+                setedgeattr!(qmol_, e, SmartsBond(aromf))
+            end
+        end
+    end
+    return qmol_
+end
+
 
 
 

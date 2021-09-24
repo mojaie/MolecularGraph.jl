@@ -25,18 +25,19 @@ function run()
         basename(p) == ".DS_Store" && continue
         for rcd in YAML.load(open(p))
             m = smartstomol(rcd["query"])
-            if basename(p) == "PAINS.yaml"
-                m = removehydrogens(m)
-                inferatomaromaticity!(m)
-            end
-            convertnotquery!(m)
+            m = removehydrogens(m)
+            m = inferaromaticity(m)
             rcd["qmol"] = m
             rcd["source"] = split(basename(p), ".")[1]
+            if !haskey(rcd, "name")
+                rcd["name"] = rcd["key"]
+            end
             push!(fgrecords, rcd)
         end
     end
     
     # Detect query relationships
+    dupes = Set{Int}()
     isaedges = Set{Tuple{Int,Int}}()
     hasedges = Set{Tuple{Int,Int}}()
     for (u, v) in combinations(length(fgrecords))
@@ -44,6 +45,7 @@ function run()
             @debug "---" fgrecords[u]["key"]
             u % 50 == 0 && println(u, " records processed...")
         end
+        u in dupes && continue
         umol = fgrecords[u]["qmol"]
         vmol = fgrecords[v]["qmol"]
         ukey = fgrecords[u]["key"]
@@ -58,8 +60,9 @@ function run()
             if !haskey(fgrecords[v], "aliases")
                 fgrecords[v]["aliases"] = []
             end
-            push!(fgrecords[u]["aliases"], vkey)
-            push!(fgrecords[v]["aliases"], ukey)
+            aliastext = join([fgrecords[v]["source"], fgrecords[v]["name"], fgrecords[v]["query"]], ": ")
+            push!(fgrecords[u]["aliases"], aliastext)
+            push!(dupes, v)
             @debug "dupes" ukey vkey
         elseif uv
             push!(isaedges, (u, v))
@@ -87,6 +90,7 @@ function run()
     # Add relationship to records
     for e in transitive_reduction(g)
         (u, v) = getedge(g, e)
+        (u in dupes || v in dupes) && continue
         if (u, v) in isaedges
             if !haskey(fgrecords[u], "isa")
                 fgrecords[u]["isa"] = []
@@ -99,11 +103,14 @@ function run()
             push!(fgrecords[u]["has"], fgrecords[v]["key"])
         end
     end
-    for rcd in fgrecords
+    filtered = []
+    for (i, rcd) in enumerate(fgrecords)
+        i in dupes && continue
         delete!(rcd, "qmol")
+        push!(filtered, rcd)
     end
     # Write records to the file
-    YAML.write_file(OUTPUT_FILE, fgrecords)
+    YAML.write_file(OUTPUT_FILE, filtered)
 end
 
 
