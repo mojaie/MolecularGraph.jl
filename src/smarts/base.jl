@@ -151,8 +151,8 @@ function resolvedefaultbond!(qmol::QueryMol)
         QueryFormula(:bondorder, 1),
         QueryFormula(:isaromaticbond, false)
     ]))
-    atomsymfml = QueryFormula(:or, Set([
-        QueryFormula(:atomsymbol, s) for s in [:B, :C, :N, :O, :P, :S, :As, :Se]
+    notaromsymfml = QueryFormula(:and, Set([
+        QueryFormula(:not, QueryFormula(:atomsymbol, s)) for s in [:B, :C, :N, :O, :P, :S, :As, :Se]
     ]))
     # extract explicitly aromatic bonds
     arombonds = Set([])
@@ -160,7 +160,7 @@ function resolvedefaultbond!(qmol::QueryMol)
         isarom = true
         for n in ring
             nq = nodeattr(qmol, n).query
-            if !issubset(nq, QueryFormula(:isaromatic, true))
+            if !issubset(nq, QueryFormula(:isaromatic, true), eval_recursive=false)
                 isarom = false
                 break
             end
@@ -181,9 +181,13 @@ function resolvedefaultbond!(qmol::QueryMol)
         end
         (u, v) = getedge(qmol, e)
         uq = nodeattr(qmol, u).query
-        unotarom = issubset(uq, QueryFormula(:isaromatic, false)) && !issubset(uq, atomsymfml)
+        unotarom = (issubset(uq,
+            QueryFormula(:isaromatic, false), eval_recursive=false)
+            || issubset(uq, notaromsymfml, eval_recursive=false))
         vq = nodeattr(qmol, v).query
-        vnotarom = issubset(vq, QueryFormula(:isaromatic, false)) && !issubset(vq, atomsymfml)
+        vnotarom = (issubset(vq,
+            QueryFormula(:isaromatic, false), eval_recursive=false)
+            || issubset(vq, notaromsymfml, eval_recursive=false))
         if unotarom || vnotarom
             setedgeattr!(qmol, e, SmartsBond(singlefml))
         else

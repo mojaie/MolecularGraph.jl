@@ -32,16 +32,16 @@ end
 
 Check if fml1 contains fml2 (that is, all the query results of fml1 is included in the results of fml2)
 """
-function Base.issubset(a::QueryFormula, b::QueryFormula; eval_recursive=true)
+function Base.issubset(a::QueryFormula, b::QueryFormula; kwargs...)
     b == QueryFormula(:any, true) && return true
     # :recursive
-    if eval_recursive
+    if !haskey(kwargs, :eval_recursive) || kwargs[:eval_recursive]
         if a.key === :recursive && b.key === :recursive
             a == b && return true
             return hassubstructmatch(
                 smartstomol(a.value), smartstomol(b.value), mandatory=Dict(1 => 1))
         elseif a.key === :recursive && b.key !== :or
-            return issubset(nodeattr(smartstomol(a.value), 1).query, b)
+            return issubset(nodeattr(smartstomol(a.value), 1).query, b; kwargs...)
         elseif b.key === :recursive
             return false
         end
@@ -63,11 +63,11 @@ function Base.issubset(a::QueryFormula, b::QueryFormula; eval_recursive=true)
     # :and => (:not => :A, :not => :B) -> :not => (:or => (:A, :B))
     if b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
         if a.key === :and
-            return any(issubset(fml, b) for fml in a.value)
+            return any(issubset(fml, b; kwargs...) for fml in a.value)
         else
             for bfml in bset
                 for afml in aset
-                    issubset(afml, bfml) || return false
+                    issubset(afml, bfml; kwargs...) || return false
                 end
             end
             return true
@@ -75,7 +75,7 @@ function Base.issubset(a::QueryFormula, b::QueryFormula; eval_recursive=true)
     elseif a.key === :or && b.key === :not && length(akeys) == 1 && collect(akeys)[1] == b.value.key
         amap = Dict(i => v for (i, v) in enumerate(aset))
         bmap = Dict(i => v for (i, v) in enumerate(bset))
-        func = (x, y) -> issubset(amap[x], bmap[y])
+        func = (x, y) -> issubset(amap[x], bmap[y]; kwargs...)
         return maxcard(keys(amap), keys(bmap), func) == 1
     end
 
@@ -84,13 +84,13 @@ function Base.issubset(a::QueryFormula, b::QueryFormula; eval_recursive=true)
     if a.key === :and
         amap = Dict(i => v for (i, v) in enumerate(aset))
         bmap = Dict(i => v for (i, v) in enumerate(b.key === :and ? bset : [b]))
-        func = (x, y) -> issubset(amap[x], bmap[y])
+        func = (x, y) -> issubset(amap[x], bmap[y]; kwargs...)
         issub1 = maxcard(keys(amap), keys(bmap), func) == length(bmap)
     end
     if b.key === :or
         amap = Dict(i => v for (i, v) in enumerate(a.key === :or ? aset : [a]))
         bmap = Dict(i => v for (i, v) in enumerate(bset))
-        func = (x, y) -> issubset(amap[x], bmap[y])
+        func = (x, y) -> issubset(amap[x], bmap[y]; kwargs...)
         issub2 = maxcard(keys(amap), keys(bmap), func) == length(amap)
     end
     return issub1 || issub2
@@ -296,7 +296,7 @@ function removehydrogens(qmol::QueryMol)
     hcntarr = zeros(Int, nodecount(qmol))
     for n in 1:nodecount(qmol)
         nq = nodeattr(qmol, n).query
-        issubset(nq, QueryFormula(:atomsymbol, :H)) || continue
+        issubset(nq, QueryFormula(:atomsymbol, :H), eval_recursive=false) || continue
         degree(qmol, n) == 1 || throw(ErrorException("Invalid hydrogen valence"))
         adj = iterate(adjacencies(qmol, n))[1]
         hcntarr[adj] += 1
@@ -343,7 +343,7 @@ function inferaromaticity(qmol::QueryMol)
         issubset(nq, QueryFormula(:isaromatic, true), eval_recursive=false) && continue
         issubset(nq, QueryFormula(:isaromatic, false), eval_recursive=false) && continue
         # by topology query (!R, !r)
-        if issubset(nq, QueryFormula(:sssrcount, 0))
+        if issubset(nq, QueryFormula(:sssrcount, 0), eval_recursive=false)
             newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
             setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
             continue
@@ -352,7 +352,7 @@ function inferaromaticity(qmol::QueryMol)
         canbearom = [:B, :C, :N, :O, :P, :S, :As, :Se]
         notaromfml = QueryFormula(:and, Set([
             QueryFormula(:not, QueryFormula(:atomsymbol, a)) for a in canbearom]))
-        if issubset(nq, notaromfml)
+        if issubset(nq, notaromfml, eval_recursive=false)
             newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
             setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
             continue
@@ -360,35 +360,36 @@ function inferaromaticity(qmol::QueryMol)
         # by explicitly non-/aromatic incidences
         noincacc = QueryFormula(:and, Set([
             QueryFormula(:not, QueryFormula(:atomsymbol, a)) for a in [:C, :N, :B]]))
-        minacc = issubset(nq, noincacc) ? 0 : 1
+        minacc = issubset(nq, noincacc, eval_recursive=false) ? 0 : 1
         nonaromcnt = 0
         # hydrogen query
         if issubset(nq, QueryFormula(:and, Set([
             QueryFormula(:not, QueryFormula(:hydrogenconnected, 0)),
             QueryFormula(:not, QueryFormula(:hydrogenconnected, 1))
-        ])))
+        ])), eval_recursive=false)
             nonaromcnt += 2  # 2 is enough to be nonaromcnt > minacc
-        elseif issubset(nq, QueryFormula(:not, QueryFormula(:hydrogenconnected, 0)))
+        elseif issubset(nq,
+                QueryFormula(:not, QueryFormula(:hydrogenconnected, 0)), eval_recursive=false)
             nonaromcnt += 1
         end
         # incidences
         hasarombond = false
         for inc in incidences(qmol, n)
             eq = edgeattr(qmol_, inc).query
-            if issubset(eq, QueryFormula(:isaromaticbond, true))
+            if issubset(eq, QueryFormula(:isaromaticbond, true), eval_recursive=false)
                 hasarombond = true
                 break
             end
-            if issubset(eq, QueryFormula(:bondorder, 2))
+            if issubset(eq, QueryFormula(:bondorder, 2), eval_recursive=false)
                 # C=O special case
                 adjq = nodeattr(qmol, neighbors(qmol, n)[inc]).query
-                if issubset(adjq, QueryFormula(:atomsymbol, :O))
+                if issubset(adjq, QueryFormula(:atomsymbol, :O), eval_recursive=false)
                     continue
                 end
             end
-            if (issubset(eq, QueryFormula(:isaromaticbond, false))
-                    || issubset(eq, QueryFormula(:isringbond, false)))
-                if issubset(eq, QueryFormula(:not, QueryFormula(:bondorder, 1)))
+            if (issubset(eq, QueryFormula(:isaromaticbond, false), eval_recursive=false)
+                    || issubset(eq, QueryFormula(:isringbond, false), eval_recursive=false))
+                if issubset(eq, QueryFormula(:not, QueryFormula(:bondorder, 1)), eval_recursive=false)
                     nonaromcnt += 2  # 2 is enough to be nonaromcnt > minacc
                 else
                     nonaromcnt += 1
@@ -424,7 +425,7 @@ function inferaromaticity(qmol::QueryMol)
         pcnt = 0
         for n in ring
             nq = nodeattr(qmol, n).query
-            if issubset(nq, QueryFormula(:isaromatic, true))
+            if issubset(nq, QueryFormula(:isaromatic, true), eval_recursive=false)
                 pcnt += 1
                 continue
             end
@@ -432,20 +433,24 @@ function inferaromaticity(qmol::QueryMol)
             uq = edgeattr(qmol, rincs[1]).query
             vq = edgeattr(qmol, rincs[2]).query
             if uq == aors && vq == aord || vq == aors && uq == aord
-                if issubset(nq, QueryFormula(:or, Set([QueryFormula(:atomsymbol, a) for a in [:B, :C, :N, :P, :As]])))
+                if issubset(nq, QueryFormula(:or,
+                            Set([QueryFormula(:atomsymbol, a) for a in [:B, :C, :N, :P, :As]])),
+                        eval_recursive=false)
                     pcnt += 1
                     continue
                 end
             elseif uq == aors && vq == aors
-                if issubset(nq, QueryFormula(:or, Set([QueryFormula(:atomsymbol, a) for a in [:N, :O, :P, :S, :As, :Se]])))
+                if issubset(nq, QueryFormula(:or,
+                            Set([QueryFormula(:atomsymbol, a) for a in [:N, :O, :P, :S, :As, :Se]])),
+                        eval_recursive=false)
                     pcnt += 2
                     continue
-                elseif issubset(nq, QueryFormula(:atomsymbol, :C))
+                elseif issubset(nq, QueryFormula(:atomsymbol, :C), eval_recursive=false)
                     outer = collect(setdiff(incidences(qmol, n), ringedges))
                     if length(outer) == 1
                         outerq = edgeattr(qmol, outer[1]).query
                         oadjq = nodeattr(qmol, neighbors(qmol, n)[outer[1]]).query
-                        if issubset(outerq, QueryFormula(:bondorder, 2)) && issubset(oadjq, QueryFormula(:atomsymbol, :O))
+                        if issubset(outerq, QueryFormula(:bondorder, 2), eval_recursive=false) && issubset(oadjq, QueryFormula(:atomsymbol, :O), eval_recursive=false)
                             continue
                         end
                     end

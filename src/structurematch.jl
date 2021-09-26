@@ -272,7 +272,7 @@ Return a bond attribute comparator that returns true if b2 contains b1.
 """
 function bondmatch(qmol1::QueryMol, qmol2::QueryMol)
     return function (b1, b2)
-        return issubset(edgeattr(qmol1, b1).query, edgeattr(qmol2, b2).query)
+        return issubset(edgeattr(qmol1, b1).query, edgeattr(qmol2, b2).query, eval_recursive=false)
     end
 end
 

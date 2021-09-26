@@ -201,6 +201,10 @@ end
     halobenzene = smartstomol(raw"c1c([O;D1])c(-[Cl,Br,I])cc(-[Cl,Br,I])c1")
     halo = smartstomol(raw"c[F,Cl,Br,I]")
     @test hassubstructmatch(halobenzene, halo)
+
+    pivoxil = smartstomol(raw"OCOC(=O)C([CH3])([CH3])[CH3]")
+    ester = smartstomol(raw"[#6]-C(=O)O-[#6]")
+    @test hassubstructmatch(pivoxil, ester)
 end
 
 @testset "node matching" begin
