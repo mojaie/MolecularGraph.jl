@@ -66,10 +66,9 @@ function querymatchtree(matcher::QueryMatcher, i, query)
     elseif query.key === :recursive
         if !haskey(matcher.recursive, query.value)
             # cache mol object and recursive match results
-            subq = smartstomol(query.value)
-            subq.cache[:sssr] = sssr(subq)
             matcher.recursive[query.value] = (
-                subq, Vector{Union{Bool,Nothing}}(nothing, nodecount(matcher.mol)))
+                smartstomol(query.value),
+                Vector{Union{Bool,Nothing}}(nothing, nodecount(matcher.mol)))
         end
         v = matcher.recursive[query.value][2][i]
         v === nothing || return v  # return cache
@@ -160,7 +159,7 @@ end
 struct QueryComparator
     qmol1::QueryMol
     qmol2::QueryMol
-    recursive::Dict{String,Vector{Union{Bool,Nothing}}}
+    recursive::Dict{String,QueryMol}
 end
 
 
@@ -168,10 +167,20 @@ function querycompare(matcher::QueryComparator, aidx, a, b)
     # TODO: almost duplicate of issubset
     b == QueryFormula(:any, true) && return true
     # :recursive
+    if a.key === :recursive
+        if !haskey(matcher.recursive, a.value)
+            matcher.recursive[a.value] = smartstomol(a.value)
+        end
+        amol = matcher.recursive[a.value]
+    end
+    if b.key === :recursive
+        if !haskey(matcher.recursive, b.value)
+            matcher.recursive[b.value] = smartstomol(b.value)
+        end
+        bmol = matcher.recursive[b.value]
+    end
     if a.key === :recursive && b.key === :recursive
         a == b && return true
-        amol = smartstomol(a.value)
-        bmol = smartstomol(b.value)
         return subgraph_is_monomorphic(
             amol, bmol,
             nodematcher=(na, nb) -> querycompare(matcher, aidx,
@@ -180,11 +189,9 @@ function querycompare(matcher::QueryComparator, aidx, a, b)
                 edgeattr(amol, ea).query, edgeattr(bmol, eb).query),
             mandatory=Dict(1 => 1)
         )
-    elseif a.key === :recursive && !(b.key in (:not, :or))
-        amol = smartstomol(a.value)
+    elseif a.key === :recursive && b.key !== :or
         return querycompare(matcher, aidx, nodeattr(amol, 1).query, b)
     elseif b.key === :recursive
-        bmol = smartstomol(b.value)
         return subgraph_is_monomorphic(
             matcher.qmol1, bmol,
             nodematcher=(na, nb) -> querycompare(matcher, aidx,
@@ -198,7 +205,7 @@ function querycompare(matcher::QueryComparator, aidx, a, b)
         # :not
         a.key === :not && b.key === :not && return a == b
         a.key === :not && return false
-        b.key === :not && a.key !== :recursive && return a.key == b.value.key && a.value != b.value.value
+        b.key === :not && return a.key == b.value.key && a.value != b.value.value
         # descriptors
         return a == b
     end
@@ -207,37 +214,44 @@ function querycompare(matcher::QueryComparator, aidx, a, b)
     bset = b.key in (:and, :or) ? b.value : [b]
     akeys = Set(e.key for e in aset)
     bkeys = Set(e.key for e in bset)
-    if a.key === :and
-        if b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
+
+    # :and => (:not => :A, :not => :B) -> :not => (:or => (:A, :B))
+    if b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
+        if a.key === :and
             return any(querycompare(matcher, aidx, fml, b) for fml in a.value)
         else
-            amap = Dict(i => v for (i, v) in enumerate(aset))
-            bmap = Dict(i => v for (i, v) in enumerate(b.key === :and ? bset : [b]))
-            func = (x, y) -> querycompare(matcher, aidx, amap[x], bmap[y])
-            return maxcard(keys(amap), keys(bmap), func) == length(bmap)
+            for bfml in bset
+                for afml in aset
+                    querycompare(matcher, aidx, afml, bfml) || return false
+                end
+            end
+            return true
         end
-    elseif b.key === :or
+    elseif a.key === :or && b.key === :not && length(akeys) == 1 && collect(akeys)[1] == b.value.key
+        amap = Dict(i => v for (i, v) in enumerate(aset))
+        bmap = Dict(i => v for (i, v) in enumerate(bset))
+        func = (x, y) -> querycompare(matcher, aidx, amap[x], bmap[y])
+        return maxcard(keys(amap), keys(bmap), func) == 1
+    end
+
+    issub1 = false
+    issub2 = false
+    if a.key === :and
+        amap = Dict(i => v for (i, v) in enumerate(aset))
+        bmap = Dict(i => v for (i, v) in enumerate(b.key === :and ? bset : [b]))
+        func = (x, y) -> querycompare(matcher, aidx, amap[x], bmap[y])
+        issub1 = maxcard(keys(amap), keys(bmap), func) == length(bmap)
+    end
+    if b.key === :or
         amap = Dict(i => v for (i, v) in enumerate(a.key === :or ? aset : [a]))
         bmap = Dict(i => v for (i, v) in enumerate(bset))
-        func = (x, y) -> issubset(amap[x], bmap[y])
-        return maxcard(keys(amap), keys(bmap), func) == length(amap)
-    elseif b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
-        for bfml in bset
-            for afml in aset
-                querycompare(matcher, aidx, afml, bfml) || return false
-            end
-        end
-        return true
-    elseif a.key === :or && b.key === :not
-        if length(akeys) == 1 && collect(akeys)[1] == b.value.key
-            amap = Dict(i => v for (i, v) in enumerate(aset))
-            bmap = Dict(i => v for (i, v) in enumerate(bset))
-            func = (x, y) -> querycompare(matcher, aidx, amap[x], bmap[y])
-            return maxcard(keys(amap), keys(bmap), func) == 1
-        end
+        func = (x, y) -> querycompare(matcher, aidx, amap[x], bmap[y])
+        issub2 = maxcard(keys(amap), keys(bmap), func) == length(amap)
     end
-    return false
+    return issub1 || issub2
 end
+
+
 
 """
     atommatch(qmol1::QueryMol, qmol2::QueryMol) -> Function

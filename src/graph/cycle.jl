@@ -4,7 +4,7 @@
 #
 
 export
-    minimumcyclebasis
+    minimumcyclebasis, minimumcyclebasisnodes
 
 
 
@@ -59,6 +59,17 @@ Returns minimum cycle basis represented as an array of edge sequence that make u
                 end
             end
         end
+    end
+    return cycles
+end
+
+
+@cachefirst function minimumcyclebasisnodes(mol::UndirectedGraph)
+    cycles = Vector{Int}[]
+    for cy in minimumcyclebasis(mol)
+        cp = copy(cy)
+        (u, v) = getedge(mol, pop!(cp))
+        push!(cycles, shortestpathnodes(edgesubgraph(mol, cp), u, v))
     end
     return cycles
 end

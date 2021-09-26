@@ -24,10 +24,7 @@ function run()
     for p in paths
         basename(p) == ".DS_Store" && continue
         for rcd in YAML.load(open(p))
-            m = smartstomol(rcd["query"])
-            m = removehydrogens(m)
-            m = inferaromaticity(m)
-            rcd["qmol"] = m
+            rcd["qmol"] = smartstomol(rcd["query"])
             rcd["source"] = split(basename(p), ".")[1]
             if !haskey(rcd, "name")
                 rcd["name"] = rcd["key"]

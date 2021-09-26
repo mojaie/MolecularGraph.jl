@@ -7,7 +7,7 @@ export
     SmartsAtom, SmartsBond, SMARTS,
     SmilesParser, SmartsParser,
     smilestomol, smartstomol,
-    associate_operations
+    resolvedefaultbond!
 
 
 struct SmartsAtom <: QueryAtom
@@ -66,9 +66,7 @@ function Base.parse(::Type{SMARTS}, str::AbstractString)
         state = SmartsParser(str, false)
         fragment!(state)
     end
-    qmol = querymol(state.edges, state.nodeattrs, state.edgeattrs, state.connectivity)
-    resolvedefaultbond!(qmol)
-    return qmol
+    return querymol(state.edges, state.nodeattrs, state.edgeattrs, state.connectivity)
 end
 
 
@@ -97,8 +95,13 @@ end
 
 Parse SMARTS string into `QueryMol` object.
 """
-smartstomol(smarts::AbstractString) = parse(SMARTS, smarts)
-
+function smartstomol(smarts::AbstractString)
+    qmol = parse(SMARTS, smarts)
+    setcache!(qmol, :minimumcyclebasisnodes)
+    resolvedefaultbond!(qmol)
+    qmol = inferaromaticity(removehydrogens(qmol))
+    return qmol
+end
 
 
 function lookahead(state::SmartsParserState, pos::Int)
@@ -148,9 +151,12 @@ function resolvedefaultbond!(qmol::QueryMol)
         QueryFormula(:bondorder, 1),
         QueryFormula(:isaromaticbond, false)
     ]))
+    atomsymfml = QueryFormula(:or, Set([
+        QueryFormula(:atomsymbol, s) for s in [:B, :C, :N, :O, :P, :S, :As, :Se]
+    ]))
     # extract explicitly aromatic bonds
     arombonds = Set([])
-    for ring in sssr(qmol)
+    for ring in minimumcyclebasisnodes(qmol)
         isarom = true
         for n in ring
             nq = nodeattr(qmol, n).query
@@ -163,7 +169,7 @@ function resolvedefaultbond!(qmol::QueryMol)
             union!(arombonds, edgeset(nodesubgraph(qmol, ring)))
         end
     end
-    # CC, cC, Cc, [#6]C, C[#6] -> -
+    # CC, cC, Cc, [#6]C, C[#6], A*, *A -> -
     # cc, c[#6], [#6]c, [#6][#6] -> -,:
     # cc in the same aromatic ring -> :
     for e in 1:edgecount(qmol)
@@ -175,9 +181,9 @@ function resolvedefaultbond!(qmol::QueryMol)
         end
         (u, v) = getedge(qmol, e)
         uq = nodeattr(qmol, u).query
-        unotarom = issubset(uq, QueryFormula(:isaromatic, false))
+        unotarom = issubset(uq, QueryFormula(:isaromatic, false)) && !issubset(uq, atomsymfml)
         vq = nodeattr(qmol, v).query
-        vnotarom = issubset(vq, QueryFormula(:isaromatic, false))
+        vnotarom = issubset(vq, QueryFormula(:isaromatic, false)) && !issubset(vq, atomsymfml)
         if unotarom || vnotarom
             setedgeattr!(qmol, e, SmartsBond(singlefml))
         else

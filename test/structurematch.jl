@@ -64,44 +64,44 @@ end
 
 @testset "connectedquery" begin
     hexane = smilestomol("CCCCCC")
-    anyatom = parse(SMARTS, "*")
+    anyatom = smartstomol("*")
     @test hassubstructmatch(hexane, anyatom)
 
     aniline = smilestomol("C1=CC=CC=C1N")
     dieamine = smilestomol("CCNCC")
-    priamine = parse(SMARTS, "[NX3;H2]")
+    priamine = smartstomol("[NX3;H2]")
     @test hassubstructmatch(aniline, priamine)
     @test !hassubstructmatch(dieamine, priamine)
 
     diether = smilestomol("CCOCC")
     phenol = smilestomol("c1ccccc1O")
     glycerol = smilestomol("OCC(O)CO")
-    alcohol = parse(SMARTS, "[#6][OD]")
+    alcohol = smartstomol("[#6][OD]")
     @test !hassubstructmatch(diether, alcohol)
     @test hassubstructmatch(phenol, alcohol)
     @test hassubstructmatch(glycerol, alcohol)
 
     cyclopentane = smilestomol("C1CCCC1")
     pyrrole = smilestomol("N1C=CC=C1")
-    aliphring = parse(SMARTS, "*@;!:*")
+    aliphring = smartstomol("*@;!:*")
     @test hassubstructmatch(cyclopentane, aliphring)
     @test !hassubstructmatch(pyrrole, aliphring)
 
     triamine = smilestomol("CCN(CC)CC")
     acetamide = smilestomol("CC(=O)N")
-    notamide = parse(SMARTS, raw"[NX3;!$(NC=O)]")
+    notamide = smartstomol(raw"[NX3;!$(NC=O)]")
     @test hassubstructmatch(triamine, notamide)
     @test !hassubstructmatch(acetamide, notamide)
 
     po1 = smilestomol("COOC")
     npo1 = smilestomol("COCOCOC")
-    peroxide = parse(SMARTS, "[OX2][OX2]")
+    peroxide = smartstomol("[OX2][OX2]")
     @test hassubstructmatch(po1, peroxide)
     @test !hassubstructmatch(npo1, peroxide)
 
     pyridine = smilestomol("n1ccccc1")
     pyrrole = smilestomol("[nH]1cccc1")
-    sixmem = parse(SMARTS, "[*r6]1[*r6][*r6][*r6][*r6][*r6]1")
+    sixmem = smartstomol("[*r6]1[*r6][*r6][*r6][*r6][*r6]1")
     @test hassubstructmatch(pyridine, sixmem)
     @test !hassubstructmatch(pyrrole, sixmem)
 end
@@ -111,7 +111,7 @@ end
     hetero2 = smilestomol("CCN=N")
     hetero3 = smilestomol("BrCCOC#N")
     hetero4 = smilestomol("CCS(=O)(=O)O")
-    disconn = parse(SMARTS, "[#7,#8].[!#6].N")
+    disconn = smartstomol("[#7,#8].[!#6].N")
     @test hassubstructmatch(hetero1, disconn)
     @test !hassubstructmatch(hetero2, disconn)
     @test hassubstructmatch(hetero3, disconn)
@@ -197,6 +197,10 @@ end
     @test hasexactmatch(sulfonium, quart)
     @test !hassubstructmatch(cys, sulfonium)
     @test !hassubstructmatch(cys, quart)
+
+    halobenzene = smartstomol(raw"c1c([O;D1])c(-[Cl,Br,I])cc(-[Cl,Br,I])c1")
+    halo = smartstomol(raw"c[F,Cl,Br,I]")
+    @test hassubstructmatch(halobenzene, halo)
 end
 
 @testset "node matching" begin

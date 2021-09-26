@@ -129,8 +129,11 @@
         QueryFormula(:recursive, "C-Cl")
         QueryFormula(:recursive, "C-Br")
     ]))
+    not4 = QueryFormula(:not, QueryFormula(:atomsymbol, :O))
     @test issubset(rec5, rec6)
     @test !issubset(rec6, rec5)
+    @test issubset(rec5, not4)
+    @test !issubset(not4, rec5)
 
 
     fml4 = QueryFormula(:atomsymbol, :S)
@@ -185,6 +188,19 @@
     ]))
     @test issubset(and9, or6)
     @test !issubset(or6, and9)
+    and10 = QueryFormula(:and, Set([
+        QueryFormula(:atomsymbol, :C),
+        QueryFormula(:isaromatic, false)
+    ]))
+    or7 = QueryFormula(:or, Set([
+        QueryFormula(:and, Set([
+            QueryFormula(:atomsymbol, :C),
+            QueryFormula(:isaromatic, false)
+        ])),
+        QueryFormula(:isaromatic, true)
+    ]))
+    @test issubset(and10, or7)
+    @test !issubset(or7, and10)
 end
 
 @testset "tidyformula" begin
@@ -461,30 +477,6 @@ end
     @test tidyformula(disjoint4) == disjoint4
 end
 
-@testset "convertnotquery" begin
-    not1 = QueryFormula(:not, QueryFormula(:atomsymbol, :H))
-    @test convertnotquery(not1) == QueryFormula(:any, true)
-
-    not2 = QueryFormula(:not, QueryFormula(:isringbond, true))
-    @test convertnotquery(not2) == QueryFormula(:isringbond, false)
-
-    not3 = QueryFormula(:not, QueryFormula(:sssrcount, 0))
-    @test convertnotquery(not3) == QueryFormula(:or, Set([
-        QueryFormula(:sssrcount, 1),
-        QueryFormula(:sssrcount, 2),
-        QueryFormula(:sssrcount, 3)
-    ]))
-
-    not4 = QueryFormula(:and, Set([
-        QueryFormula(:not, QueryFormula(:hydrogenconnected, 0)),
-        QueryFormula(:not, QueryFormula(:hydrogenconnected, 1)),
-        QueryFormula(:not, QueryFormula(:hydrogenconnected, 2))
-    ]))
-    @test tidyformula(convertnotquery(not4)) == QueryFormula(:or, Set([
-        QueryFormula(:hydrogenconnected, 3),
-        QueryFormula(:hydrogenconnected, 4)
-    ]))
-end
 
 @testset "querymol" begin
     q = querymol(SmartsAtom, SmartsBond)

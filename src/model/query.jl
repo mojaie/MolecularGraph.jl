@@ -32,25 +32,25 @@ end
 
 Check if fml1 contains fml2 (that is, all the query results of fml1 is included in the results of fml2)
 """
-function Base.issubset(a::QueryFormula, b::QueryFormula)
+function Base.issubset(a::QueryFormula, b::QueryFormula; eval_recursive=true)
     b == QueryFormula(:any, true) && return true
     # :recursive
-    if a.key === :recursive && b.key === :recursive
-        a == b && return true
-        return hassubstructmatch(
-            smartstomol(a.value), smartstomol(b.value),
-            mandatory=Dict(1 => 1))
-    elseif a.key === :recursive && !(b.key in (:not, :or))
-        amol = smartstomol(a.value)
-        return issubset(nodeattr(amol, 1).query, b)
-    elseif b.key === :recursive
-        return false
+    if eval_recursive
+        if a.key === :recursive && b.key === :recursive
+            a == b && return true
+            return hassubstructmatch(
+                smartstomol(a.value), smartstomol(b.value), mandatory=Dict(1 => 1))
+        elseif a.key === :recursive && b.key !== :or
+            return issubset(nodeattr(smartstomol(a.value), 1).query, b)
+        elseif b.key === :recursive
+            return false
+        end
     end
     if !(a.key in (:and, :or) || b.key in (:and, :or))
         # :not
         a.key === :not && b.key === :not && return a == b
         a.key === :not && return false
-        b.key === :not && a.key !== :recursive && return a.key == b.value.key && a.value != b.value.value
+        b.key === :not && return a.key == b.value.key && a.value != b.value.value
         # descriptors
         return a == b
     end
@@ -59,36 +59,41 @@ function Base.issubset(a::QueryFormula, b::QueryFormula)
     bset = b.key in (:and, :or) ? b.value : [b]
     akeys = Set(e.key for e in aset)
     bkeys = Set(e.key for e in bset)
-    if a.key === :and
-        if b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
+
+    # :and => (:not => :A, :not => :B) -> :not => (:or => (:A, :B))
+    if b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
+        if a.key === :and
             return any(issubset(fml, b) for fml in a.value)
         else
-            amap = Dict(i => v for (i, v) in enumerate(aset))
-            bmap = Dict(i => v for (i, v) in enumerate(b.key === :and ? bset : [b]))
-            func = (x, y) -> issubset(amap[x], bmap[y])
-            return maxcard(keys(amap), keys(bmap), func) == length(bmap)
+            for bfml in bset
+                for afml in aset
+                    issubset(afml, bfml) || return false
+                end
+            end
+            return true
         end
-    elseif b.key === :or
+    elseif a.key === :or && b.key === :not && length(akeys) == 1 && collect(akeys)[1] == b.value.key
+        amap = Dict(i => v for (i, v) in enumerate(aset))
+        bmap = Dict(i => v for (i, v) in enumerate(bset))
+        func = (x, y) -> issubset(amap[x], bmap[y])
+        return maxcard(keys(amap), keys(bmap), func) == 1
+    end
+
+    issub1 = false
+    issub2 = false
+    if a.key === :and
+        amap = Dict(i => v for (i, v) in enumerate(aset))
+        bmap = Dict(i => v for (i, v) in enumerate(b.key === :and ? bset : [b]))
+        func = (x, y) -> issubset(amap[x], bmap[y])
+        issub1 = maxcard(keys(amap), keys(bmap), func) == length(bmap)
+    end
+    if b.key === :or
         amap = Dict(i => v for (i, v) in enumerate(a.key === :or ? aset : [a]))
         bmap = Dict(i => v for (i, v) in enumerate(bset))
         func = (x, y) -> issubset(amap[x], bmap[y])
-        return maxcard(keys(amap), keys(bmap), func) == length(amap)
-    elseif b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
-        for bfml in bset
-            for afml in aset
-                issubset(afml, bfml) || return false
-            end
-        end
-        return true
-    elseif a.key === :or && b.key === :not
-        if length(akeys) == 1 && collect(akeys)[1] == b.value.key
-            amap = Dict(i => v for (i, v) in enumerate(aset))
-            bmap = Dict(i => v for (i, v) in enumerate(bset))
-            func = (x, y) -> issubset(amap[x], bmap[y])
-            return maxcard(keys(amap), keys(bmap), func) == 1
-        end
+        issub2 = maxcard(keys(amap), keys(bmap), func) == length(amap)
     end
-    return false
+    return issub1 || issub2
 end
 
 
@@ -301,7 +306,7 @@ function removehydrogens(qmol::QueryMol)
     heavynodes = setdiff(nodeset(qmol), hnodes)
     for n in heavynodes
         nq = nodeattr(qmol, n).query
-        # [!#1] => *
+        # no longer H nodes exist, so [!#1] would be ignored
         noth = QueryFormula(:not, QueryFormula(:atomsymbol, :H))
         if nq == noth
             newq = QueryFormula(:any, true)
@@ -314,7 +319,7 @@ function removehydrogens(qmol::QueryMol)
         else
             newq = nq
         end
-        # consider H nodes
+        # consider H nodes as a :hydrogenconnected query
         adjhnfmls = collect(0:(hcntarr[n] - 1))
         if !isempty(adjhnfmls)
             nfmls = [QueryFormula(:not, QueryFormula(:hydrogenconnected, i)) for i in adjhnfmls]
@@ -335,8 +340,8 @@ function inferaromaticity(qmol::QueryMol)
     qmol_ = deepcopy(qmol)
     for n in 1:nodecount(qmol)
         nq = nodeattr(qmol, n).query
-        issubset(nq, QueryFormula(:isaromatic, true)) && continue
-        issubset(nq, QueryFormula(:isaromatic, false)) && continue
+        issubset(nq, QueryFormula(:isaromatic, true), eval_recursive=false) && continue
+        issubset(nq, QueryFormula(:isaromatic, false), eval_recursive=false) && continue
         # by topology query (!R, !r)
         if issubset(nq, QueryFormula(:sssrcount, 0))
             newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
@@ -384,7 +389,7 @@ function inferaromaticity(qmol::QueryMol)
             if (issubset(eq, QueryFormula(:isaromaticbond, false))
                     || issubset(eq, QueryFormula(:isringbond, false)))
                 if issubset(eq, QueryFormula(:not, QueryFormula(:bondorder, 1)))
-                    nonaromcnt += 2
+                    nonaromcnt += 2  # 2 is enough to be nonaromcnt > minacc
                 else
                     nonaromcnt += 1
                 end
@@ -560,10 +565,14 @@ function filter_queries(qr::DictDiGraph, mol::GraphMol; filtering=true)
                 continue
             end
         end
-        matches = collect(substructmatches(mol, rcd["parsed"]))
-        if !isempty(matches)
-            push!(matched, n)
-            rcd["matched"] = Set([sort(collect(keys(m))) for m in matches])
+        println("key: $(rcd["key"])")
+        println("query: $(rcd["query"])")
+        @time begin
+            matches = collect(substructmatches(mol, rcd["parsed"]))
+            if !isempty(matches)
+                push!(matched, n)
+                rcd["matched"] = Set([sort(collect(keys(m))) for m in matches])
+            end
         end
     end
     return dictdigraph(nodesubgraph(qr, matched))
