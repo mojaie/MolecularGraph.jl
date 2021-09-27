@@ -168,11 +168,11 @@ function Base.parse(::Type{SDFile}, sdflines)
 end
 
 """
-    parse(::Type{GraphReaction}, lines)
+    parse(::Type{GraphMolReaction}, lines)
 
 Parse lines of a rxn file into a reaction object.
 """
-function Base.parse(::Type{GraphReaction}, rxn::AbstractString)
+function Base.parse(::Type{GraphMolReaction}, rxn::AbstractString)
     reactants, products = if startswith(rxn, raw"$RXN V3000")
         reactants = match(blockregex("REACTANT"), rxn).match
         products = match(blockregex("PRODUCT"), rxn).match
@@ -186,10 +186,10 @@ function Base.parse(::Type{GraphReaction}, rxn::AbstractString)
         pp = parts[(2 + ne):(1 + ne + np)]
         sdftomol.(IOBuffer.(rr)), sdftomol.(IOBuffer.(pp))
     end
-    GraphReaction(reactants, products)
+    GraphMolReaction(reactants, products)
 end
 
-Base.parse(::Type{GraphReaction}, rxnlines) = parse(GraphReaction, join(rxnlines, "\n"))
+Base.parse(::Type{GraphMolReaction}, rxnlines) = parse(GraphMolReaction, join(rxnlines, "\n"))
 
 function nohaltsupplier(block)
     return try
@@ -209,7 +209,7 @@ end
 
 function nohalt_rxn_supplier(block)
     return try
-        reaction = parse(GraphReaction, block)
+        reaction = parse(GraphMolReaction, block)
         setdiastereo!(reaction)
         setstereocenter!(reaction)
         return reaction
@@ -319,16 +319,16 @@ sdftomol(path::AbstractString) = sdftomol(open(path))
 
 
 """
-    rxntoreaction(lines) -> GraphReaction
-    rxntoreaction(file::IO) -> GraphReaction
-    sdftomol(path::AbstractString) -> GraphReaction
+    rxntoreaction(lines) -> GraphMolReaction
+    rxntoreaction(file::IO) -> GraphMolReaction
+    sdftomol(path::AbstractString) -> GraphMolReaction
 
 Read a RXN file and parse it into a reaction object. The given
 argument should be a file input stream, a file path as a string or an iterator
 that yields each sdfile text lines.
 """
 function rxntoreaction(lines)
-    reaction = parse(GraphReaction, lines)
+    reaction = parse(GraphMolReaction, lines)
     setdiastereo!(reaction)
     setstereocenter!(reaction)
     return reaction

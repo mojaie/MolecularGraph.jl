@@ -4,7 +4,7 @@
 #
 
 export
-    GraphMol, GraphReaction,
+    GraphMol, GraphMolReaction,
     graphmol, remapnodes, todict, tojson,
     SDFile, SMILES,
     getatom, getbond, hasbond,
@@ -26,12 +26,12 @@ end
 
 GraphMol{A, B}() where {A<:Atom,B<:Bond} = GraphMol{A,B}([], [], [], [], Dict(), Dict())
 
-struct GraphReaction
+struct GraphMolReaction
     reactants::Vector{GraphMol}
     products::Vector{GraphMol}
 end
 
-GraphReaction() = GraphReaction(GraphMol[], GraphMol[])
+GraphMolReaction() = GraphMolReaction(GraphMol[], GraphMol[])
 
 """
     graphmol() -> GraphMol

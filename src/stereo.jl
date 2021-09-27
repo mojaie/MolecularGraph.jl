@@ -177,7 +177,7 @@ function setdiastereo!(mol::SDFile)
 end
 
 
-function setdiastereo!(reaction::GraphReaction)
+function setdiastereo!(reaction::GraphMolReaction)
     setdiastereo!.(reaction.reactants)
     setdiastereo!.(reaction.products)
     reaction
@@ -296,7 +296,7 @@ function setstereocenter!(mol::SDFile)
 end
 
 
-function setstereocenter!(reaction::GraphReaction)
+function setstereocenter!(reaction::GraphMolReaction)
     setstereocenter!.(reaction.reactants)
     setstereocenter!.(reaction.products)
     reaction
