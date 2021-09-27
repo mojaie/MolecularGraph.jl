@@ -88,4 +88,4 @@ See [Assets/README.md](https://github.com/mojaie/MolecularGraph.jl/tree/master/a
 
 ## Copyright
 
-(C) 2018-2021 Seiji Matsuoka
+(C) 2018-2021 Seiji Matsuoka and contributors

@@ -177,6 +177,12 @@ function setdiastereo!(mol::SDFile)
 end
 
 
+function setdiastereo!(reaction::GraphMolReaction)
+    setdiastereo!.(reaction.reactants)
+    setdiastereo!.(reaction.products)
+    reaction
+end
+
 
 """
     setdiastereo(mol::GraphMol) -> GraphMol
@@ -287,6 +293,13 @@ function setstereocenter!(mol::SDFile)
         setnodeattr!(mol, i, a)
     end
     clearcache!(mol)
+end
+
+
+function setstereocenter!(reaction::GraphMolReaction)
+    setstereocenter!.(reaction.reactants)
+    setstereocenter!.(reaction.products)
+    reaction
 end
 
 

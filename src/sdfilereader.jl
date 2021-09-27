@@ -7,8 +7,11 @@ export
     SDFileReader,
     sdfilereader,
     nohaltsupplier,
-    sdftomol
-
+    sdftomol,
+    RDFileReader,
+    rdfilereader,
+    nohalt_rxn_supplier,
+    rxntoreaction
 
 const SDF_CHARGE_TABLE = Dict(
     0 => 0, 1 => 3, 2 => 2, 3 => 1, 4 => 0, 5 => -1, 6 => -2, 7 => -3
@@ -110,12 +113,15 @@ Parse lines of a SDFile mol block data into a molecule object.
 """
 function Base.parse(::Type{SDFile}, sdflines)
     sdflines = collect(sdflines)
-    molend = findnext(x -> x == "M  END", sdflines, 1)
+    molend = findnext(x -> x == "M  END", sdflines, 1)    
     lines = @view sdflines[1:molend-1]
     optlines = @view sdflines[molend+1:end]
 
     # Get element blocks
     countline = lines[4]
+    
+    occursin("V3000", countline) && return sdftomol3000(join(sdflines, "\n"))
+
     atomcount = parse(UInt16, countline[1:3])
     bondcount = parse(UInt16, countline[4:6])
     # chiralflag = countline[12:15] Not used
@@ -161,6 +167,29 @@ function Base.parse(::Type{SDFile}, sdflines)
     return molobj
 end
 
+"""
+    parse(::Type{GraphMolReaction}, lines)
+
+Parse lines of a rxn file into a reaction object.
+"""
+function Base.parse(::Type{GraphMolReaction}, rxn::AbstractString)
+    reactants, products = if startswith(rxn, raw"$RXN V3000")
+        reactants = match(blockregex("REACTANT"), rxn).match
+        products = match(blockregex("PRODUCT"), rxn).match
+        rr = String[m.captures[1] for m in eachmatch(blockregex("CTAB"), reactants)]
+        pp = String[m.captures[1] for m in eachmatch(blockregex("CTAB"), products)]
+        sdftomol3000.(rr), sdftomol3000.(pp)
+    else
+        parts = split(rxn, r"\$MOL\r?\n")
+        (ne, np) = parse.(Int, split(split(first(parts), r"\r?\n")[end-1]))
+        rr = parts[2:1 + ne]
+        pp = parts[(2 + ne):(1 + ne + np)]
+        sdftomol.(IOBuffer.(rr)), sdftomol.(IOBuffer.(pp))
+    end
+    GraphMolReaction(reactants, products)
+end
+
+Base.parse(::Type{GraphMolReaction}, rxnlines) = parse(GraphMolReaction, join(rxnlines, "\n"))
 
 function nohaltsupplier(block)
     return try
@@ -178,9 +207,29 @@ function nohaltsupplier(block)
     end
 end
 
+function nohalt_rxn_supplier(block)
+    return try
+        reaction = parse(GraphMolReaction, block)
+        setdiastereo!(reaction)
+        setstereocenter!(reaction)
+        return reaction
+    catch e
+        if e isa ErrorException
+            println("$(e.msg) (#$(i) in rxnfilereader)")
+            return Reaction()
+        else
+            throw(e)
+        end
+    end
+end
 
 struct SDFileReader
     lines::Base.EachLine
+    parser::Function
+end
+
+struct RDFileReader
+    io::IO
     parser::Function
 end
 
@@ -201,8 +250,22 @@ function Base.iterate(reader::SDFileReader, state=nothing)
     return
 end
 
+function Base.iterate(reader::RDFileReader, state=nothing)
+    block = readuntil(reader.io, "\$RXN")
+    
+    # if the file is a normal rxn file, block is empty and one needs to read one more time
+    isempty(block) && (block = readuntil(reader.io, "\$RXN"))
+    while startswith(block, "\$RDFILE") && block != ""
+        block = readuntil(reader.io, "\$RXN")
+    end
+    isempty(block) ? nothing : (reader.parser("\$RXN" * block), state)
+end
+
 Base.IteratorSize(::Type{SDFileReader}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{SDFileReader}) = Base.EltypeUnknown()
+
+Base.IteratorSize(::Type{RDFileReader}) = Base.SizeUnknown()
+Base.IteratorEltype(::Type{RDFileReader}) = Base.EltypeUnknown()
 
 """
     sdfilereader(file::IO)
@@ -233,6 +296,8 @@ end
 sdfilereader(file::IO) = SDFileReader(eachline(file), nohaltsupplier)
 sdfilereader(path::AbstractString) = sdfilereader(open(path))
 
+rdfilereader(file::IO) = RDFileReader(file, nohalt_rxn_supplier)
+rdfilereader(path::AbstractString) = rdfilereader(open(path))
 
 """
     sdftomol(lines) -> GraphMol{SDFileAtom,SDFileBond}
@@ -251,3 +316,78 @@ function sdftomol(lines)
 end
 sdftomol(file::IO) = sdftomol(eachline(file))
 sdftomol(path::AbstractString) = sdftomol(open(path))
+
+
+"""
+    rxntoreaction(lines) -> GraphMolReaction
+    rxntoreaction(file::IO) -> GraphMolReaction
+    sdftomol(path::AbstractString) -> GraphMolReaction
+
+Read a RXN file and parse it into a reaction object. The given
+argument should be a file input stream, a file path as a string or an iterator
+that yields each sdfile text lines.
+"""
+function rxntoreaction(lines)
+    reaction = parse(GraphMolReaction, lines)
+    setdiastereo!(reaction)
+    setstereocenter!(reaction)
+    return reaction
+end
+rxntoreaction(file::IO) = rxntoreaction(eachline(file))
+rxntoreaction(path::AbstractString) = rxntoreaction(open(path))
+
+# support of extended mol file format (V3000)
+
+function sympair(s)::Pair{Symbol, Union{String, Int}}
+    p = split(s,"=")
+    length(p) != 2 && return :nothing => ""
+    int = tryparse(Int, p[2])
+    Symbol(p[1]) => isnothing(int) ? p[2] : int
+end
+
+blockregex(s::AbstractString) = Regex("M  V30 BEGIN $(s)\r?\n(.*?)\r?\nM  V30 END $(s)", "s")
+
+function parseatomblock3000(atomblock)
+    nodeattrs = SDFileAtom[]
+    for line in eachline(IOBuffer(atomblock))
+        ss = split(line)
+        coords = parse.(Float64, ss[5:7])
+        sym = Symbol(ss[4])
+        
+        props = Dict(sympair.(ss[9:end])...)
+        
+        charge = get(props, :CHG, 0)
+        mass   = get(props, :MASS, nothing)
+        multi  = get(props, :RAD, 1)
+
+        push!(nodeattrs, SDFileAtom(sym, charge, multi, mass, coords))
+    end
+    nodeattrs
+end
+
+function parsebondblock3000(bondblock)
+    edges = Tuple{Int,Int}[]
+    edgeattrs = SDFileBond[]
+
+    for line in eachline(IOBuffer(bondblock))
+        ss = split(line)
+        order, u, v = parse.(Int, ss[4:6])
+        props = Dict(sympair.(ss[7:end])...)
+        notation = get(props, :CFG, 0)
+        push!(edges, (u, v))
+        push!(edgeattrs, SDFileBond(order, notation))
+    end
+    edges, edgeattrs
+end
+
+function sdftomol3000(s::AbstractString)
+    atomblock = match(blockregex("ATOM"), s).captures[1]
+    bondblock = match(blockregex("BOND"), s).captures[1]
+
+    nodeattrs = parseatomblock3000(atomblock)
+    edges, edgeattrs = parsebondblock3000(bondblock)
+
+    mol = graphmol(edges, nodeattrs, edgeattrs)
+    # setdiastereo!(mol)
+    # setstereocenter!(mol)
+end
