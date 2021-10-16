@@ -252,38 +252,6 @@ function tidyformula(fml::QueryFormula)
 end
 
 
-"""
-    findformula(q::QueryFormula, key::Symbol) -> Any
-
-Find value of the given key.
-
-If `deep=true` is set, it will also search under `:or` sets to match multiple formulae and
-return the value after applying the `aggregate` function to them.
-"""
-function findformula(q::QueryFormula, key::Symbol; deep=false, aggregate=minimum)
-    if q.key == key
-        return aggregate([q.value])
-    elseif q.key === :and
-        for child in q.value
-            if child.key == key
-                return aggregate([child.value])
-            elseif deep && child.key === :or
-                gc = findformula(child, key, deep=deep, aggregate=aggregate)
-                gc === nothing || return gc
-            end
-        end
-    elseif deep && q.key === :or
-        values = []
-        for child in q.value
-            child.key == key || return
-            push!(values, child.value)
-        end
-        return aggregate(values)
-    end
-    return
-end
-
-
 
 """
     removehydrogens(mol::QueryMol) -> QueryMol
@@ -570,15 +538,15 @@ function filter_queries(qr::DictDiGraph, mol::GraphMol; filtering=true)
                 continue
             end
         end
-        println("key: $(rcd["key"])")
-        println("query: $(rcd["query"])")
-        @time begin
+        # println("key: $(rcd["key"])")
+        # println("query: $(rcd["query"])")
+        # @time begin
             matches = collect(substructmatches(mol, rcd["parsed"]))
             if !isempty(matches)
                 push!(matched, n)
                 rcd["matched"] = Set([sort(collect(keys(m))) for m in matches])
             end
-        end
+        # end
     end
     return dictdigraph(nodesubgraph(qr, matched))
 end

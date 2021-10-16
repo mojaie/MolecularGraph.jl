@@ -186,6 +186,17 @@ end
 
 
 
+function findformula(q::QueryFormula, key::Symbol)
+    q.key === key && return q.value
+    q.key === :and || return
+    for child in q.value
+        child.key === key && return child.value
+    end
+    return
+end
+
+
+
 """
     atom!(state::SmilesParser) -> Vector{SmilesAtom}
 
