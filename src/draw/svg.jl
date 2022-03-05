@@ -7,7 +7,8 @@ export
     SvgCanvas,
     tosvg,
     drawsvg,
-    initcanvas!
+    initcanvas!,
+    savesvg
 
 using Printf
 
@@ -492,4 +493,18 @@ function drawwave!(canvas::SvgCanvas, seg, ucolor, vcolor)
     """
     push!(canvas.elements, elem)
     return
+end
+
+"""
+write svg string to file.
+"""
+function savesvg(the_svg_string::String, filename::String)
+    if ! contains(filename, ".svg")
+        filename *= ".svg"
+    end
+
+    f = open(filename, "w")
+    write(f, the_svg_string)
+    close(f)
+    return filename
 end
