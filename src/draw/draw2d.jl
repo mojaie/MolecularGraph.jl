@@ -298,12 +298,13 @@ end
 
 
 function drawatomindex!(canvas::Canvas, mol::UndirectedGraph;
-                        color=Color(0, 0, 0), bgcolor=Color(240, 240, 255))
+                        color=Color(0, 0, 0), bgcolor=Color(240, 240, 255),
+                        opacity=1.0)
     isatomvisible_ = isatomvisible(mol)
     for i in nodeset(mol)
         offset = isatomvisible_[i] ? (0.0, canvas.fontsize/2.0) : (0.0, 0.0)
         pos = Point2D(canvas.coords, i) + offset
-        setatomnote!(canvas, pos, string(i), color, bgcolor)
+        setatomnote!(canvas, pos, string(i), color, bgcolor, opacity)
     end
     return
 end

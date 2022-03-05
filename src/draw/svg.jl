@@ -324,15 +324,15 @@ setatomleft!(canvas::SvgCanvas, pos, sym, color, hcnt, charge) = atomsymbol!(
 )
 
 
-function setatomnote!(canvas::SvgCanvas, pos, text, color, bgcolor)
+function setatomnote!(canvas::SvgCanvas, pos, text, color, bgcolor, opacity)
     size = round(Int, canvas.fontsize * canvas.annotsizef)
     bxy = svgcoords(pos)
     txy = svgcoords(pos + (0, size))
     c = svgcolor(color)
     bc = svgcolor(bgcolor)
     elem = """<g>
-     <rect $(bxy) width="$(size)" height="$(size)" rx="$(size/2)" ry="$(size/2)" fill="$(bc)" />
-     <text $(txy) font-size="$(size)" fill="$(c)">$(text)</text>
+     <rect $(bxy) width="$(size)" height="$(size)" rx="$(size/2)" ry="$(size/2)" fill="$(bc)" opacity="$(opacity)" />
+     <text $(txy) font-size="$(size)" fill="$(c)">$(text) </text>
     </g>
     """
     push!(canvas.elements, elem)
