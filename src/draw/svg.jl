@@ -115,6 +115,19 @@ function drawsvg(mol::UndirectedGraph, width, height; kwargs...)
 end
 
 
+import Base.Multimedia.display
+"""
+    display(mol, x, y)
+
+Displays an SVG drawing with dimensions (x, y) in an HTML element for use in Pluto notebooks.
+Arguments
+- `mol::GraphMol` the `GraphMol` object to display
+- `x::Int` the horizontal extent in pixels of the SVG to render (optional; default = 250)
+- `y::Int` the vertical extent in pixels of the SVG to render (optional; default = 250)
+"""
+Base.Multimedia.display(mol::GraphMol, x::Int=250, y::Int=250) = HTML(drawsvg(mol, x, y))
+
+
 """
     boundary(mol::GraphMol, coords::AbstractArray{Float64}
         ) -> (top, left, width, height, unit)
