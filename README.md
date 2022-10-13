@@ -3,7 +3,6 @@ MolecularGraph.jl
 ===================================================
 
 [![DOI](https://zenodo.org/badge/151080560.svg)](https://zenodo.org/badge/latestdoi/151080560)
-[![Build Status](https://travis-ci.org/mojaie/MolecularGraph.jl.svg?branch=master)](https://travis-ci.org/mojaie/MolecularGraph.jl)
 ![TagBot](https://github.com/mojaie/MolecularGraph.jl/workflows/TagBot/badge.svg)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://mojaie.github.io/MolecularGraph.jl/dev)
 
@@ -88,4 +87,4 @@ See [Assets/README.md](https://github.com/mojaie/MolecularGraph.jl/tree/master/a
 
 ## Copyright
 
-(C) 2018-2021 Seiji Matsuoka and contributors
+(C) 2018-2022 Seiji Matsuoka and contributors
