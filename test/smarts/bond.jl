@@ -11,7 +11,10 @@ using MolecularGraph: bondsymbol!, bond!
 
     state = SmartsParser("-", false)
     explicit1 = bondsymbol!(state)
-    @test explicit1 == QueryFormula(:bondorder, 1)
+    @test explicit1 == QueryFormula(:and, Set([
+        QueryFormula(:bondorder, 1),
+        QueryFormula(:isaromaticbond, false)
+    ]))
 
     state = SmartsParser("\\?", false)
     stereo4 = bondsymbol!(state)
@@ -38,6 +41,7 @@ end
     notring = bond!(state)
     @test notring.query == QueryFormula(:and, Set([
         QueryFormula(:bondorder, 1),
+        QueryFormula(:isaromaticbond, false),
         QueryFormula(:isringbond, false)
     ]))
 end
