@@ -3,17 +3,17 @@ from pathlib import Path
 from ctypes import CDLL, RTLD_GLOBAL, c_char_p, c_double
 
 
-execdir = Path(__file__).parent
+scriptdir = Path(__file__).parent
 
-julia = CDLL(execdir.parent / "compiled/lib/libmoleculargraph.dylib", RTLD_GLOBAL)
+julia = CDLL(scriptdir.parent / "compiled/lib/libmoleculargraph.dylib", RTLD_GLOBAL)
 try:
     julia.jl_init_with_image__threading(
-        bytes(execdir.parent / "compiled/lib"),
+        bytes(scriptdir.parent / "compiled/lib"),
         b"libmoleculargraph.dylib"
     )
 except AttributeError:
     julia.jl_init_with_image(
-        bytes(execdir.parent / "compiled/lib"),
+        bytes(scriptdir.parent / "compiled/lib"),
         b"libmoleculargraph.dylib"
     )
 

@@ -1,3 +1,3 @@
-int* smilesmoldata(int*);
-int* sdfmoldata(int*);
-int* structmatch(int*);
+char* smilesmoldata(char*);
+char* sdfmoldata(char*);
+char* structmatch(char*);

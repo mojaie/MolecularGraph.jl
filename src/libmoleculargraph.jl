@@ -1,10 +1,7 @@
 
-module LibMolecularGraph
-
 using JSON
-using MolecularGraph
-
 export smilesmoldata, sdfmoldata, structmatch
+
 
 record(mol::GraphMol) = Dict(
     "inchikey" => inchikey(mol),
@@ -82,4 +79,3 @@ if abspath(PROGRAM_FILE) == @__FILE__
     println(unsafe_string(sdfmoldata(pointer(sdf))))
 end
 
-end # module

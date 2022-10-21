@@ -8,7 +8,7 @@ TARGET="../compiled"
 MYLIB_INCLUDES = $(TARGET)/include/julia_init.h $(TARGET)/include/libmoleculargraph.h
 MYLIB_PATH := $(TARGET)/lib/libmoleculargraph.$(DLEXT)
 
-$(MYLIB_PATH) $(MYLIB_INCLUDES): ./build.jl ./libmoleculargraph.jl
+$(MYLIB_PATH) $(MYLIB_INCLUDES): ./build.jl ../src/MolecularGraph.jl
 	$(JULIA) --startup-file=no --project=../ -e 'using Pkg; Pkg.instantiate()'
 	$(JULIA) --startup-file=no --project=. -e 'using Pkg; Pkg.instantiate(); include("./build.jl")'
 

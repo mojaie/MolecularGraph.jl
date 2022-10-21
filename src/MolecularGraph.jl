@@ -94,6 +94,8 @@ module MolecularGraph
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
 
+    include("libmoleculargraph.jl")
+
     using Requires
 
     function __init__()
