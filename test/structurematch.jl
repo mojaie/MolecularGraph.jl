@@ -274,6 +274,8 @@ end
 
     sulfide = smilestomol("CSSC")
     disconn = smilestomol("CS.SC")
+    @test size(connectedmcis(sulfide, disconn)) == 2
+    @test size(connectedmces(sulfide, disconn)) == 1
     @test size(disconnectedmcis(sulfide, disconn)) == 3
     @test size(disconnectedmces(sulfide, disconn)) == 2
 
@@ -290,6 +292,19 @@ end
     @test size(disconnectedmcis(tetrahedrane, spiro)) == 3
     @test size(disconnectedmces(tetrahedrane, fused)) == 5
     @test size(disconnectedmces(tetrahedrane, spiro)) == 4
+
+    # Topological constraint
+    sulfide = smilestomol("CSSC")
+    disconn = smilestomol("CS.SC")
+    @test size(tcmcis(sulfide, disconn)) == 2
+    @test size(tcmces(sulfide, disconn)) == 1
+
+    cid6437877 = smilestomol("CC1=C(SC=N1)C=CC2=C(N3C(C(C3=O)NC(=O)C(=NOC)C4=CSC(=N4)N)SC2)C(=O)OCOC(=O)C(C)(C)C")  # Cefditoren pivoxil
+    cid5481173 = smilestomol("CC(C)(C(=O)O)ON=C(C1=CSC(=N1)N)C(=O)NC2C3N(C2=O)C(=C(CS3)C[N+]4=CC=CC=C4)C(=O)[O-]")  # Ceftazidime
+    @test size(tcmcis(cid6437877, cid5481173, tolerance=1)) == 27
+    @test size(tcmces(cid6437877, cid5481173, tolerance=1)) == 28
+    @test size(tcmcis(cid6437877, cid5481173, diameter=8)) == 18
+    @test size(tcmces(cid6437877, cid5481173, diameter=8)) == 20
 end
 
 end # structurematch

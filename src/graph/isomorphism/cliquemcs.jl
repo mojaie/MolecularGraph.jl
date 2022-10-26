@@ -18,7 +18,7 @@ Base.size(result::MaxCommonSubgraphResult) = length(result.mapping)
 function modprodedgefilter(G, H, edgematcher)
     return function (g1, g2, h1, h2)
         hasedge(G, g1, g2) == hasedge(H, h1, h2) || return false
-        !hasedge(G, g1, g2) && !hasedge(H, h1, h2) && return true
+        !hasedge(G, g1, g2) && return true
         return edgematcher(findedgekey(G, g1, g2), findedgekey(H, h1, h2))
     end
 end
@@ -29,11 +29,15 @@ function tpconstraintfilter(
     gdist = Dict(n => bfsdepth(adjacencies, G, n) for n in nodeset(G))
     hdist = Dict(n => bfsdepth(adjacencies, H, n) for n in nodeset(H))
     return function (g1, g2, h1, h2)
-        gdist[g1][g2] > diameter && return false
-        hdist[h1][h2] > diameter && return false
-        abs(gdist[g1][g2] - hdist[h1][h2]) > tolerance && return false
-        !hasedge(G, g1, g2) && !hasedge(H, h1, h2) && return true
-        hasedge(G, g1, g2) && hasedge(H, h1, h2) || return false
+        hasedge(G, g1, g2) == hasedge(H, h1, h2) || return false
+        if !hasedge(G, g1, g2)
+            haskey(gdist[g1], g2) || return false
+            haskey(hdist[h1], h2) || return false
+            gdist[g1][g2] > diameter && return false
+            hdist[h1][h2] > diameter && return false
+            abs(gdist[g1][g2] - hdist[h1][h2]) > tolerance && return false
+            return true
+        end
         return edgematcher(findedgekey(G, g1, g2), findedgekey(H, h1, h2))
     end
 end
