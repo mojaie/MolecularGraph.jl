@@ -8,7 +8,5 @@ PackageCompiler.create_library(
     "../", target_dir;
     lib_name="libmoleculargraph",
     precompile_execution_file=["$(@__DIR__)/generate_precompile.jl"],
-    incremental=false,
-    filter_stdlibs=true,
     header_files=["$(@__DIR__)/libmoleculargraph.h"],
 )
