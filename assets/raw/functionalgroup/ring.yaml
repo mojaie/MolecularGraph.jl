@@ -36,6 +36,10 @@
 - key: Pyrrolidine
   query: "N1CCCC1"
 
+- key: Hydantoin
+  query: "N1C(=O)NCC1=O"
+- key: Thiazolidinedione
+  query: "N1C(=O)SCC1=O"
 - key: Rhodanine
   query: "N1C(=S)SCC1=O"
 
@@ -58,6 +62,8 @@
 
 - key: Furazan
   query: "c1nonc1"
+- key: Oxazole
+  query: "o1cncc1"
 - key: Thiazole
   query: "s1cncc1"
 
@@ -164,11 +170,17 @@
   query: "O=c1ccc2ccccc2o1"
 - key: Chromone
   query: "O=c1ccoc2ccccc12"
+- key: Flavone
+  query: "O=c1cc(c3ccccc3)oc2ccccc12"
+- key: Isoflavone
+  query: "O=c1c(c3ccccc3)coc2ccccc12"
 
 # N
 
 - key: Tropane
   query: "C12CCCC(CC1)N2C"
+- key: Quinuclidine
+  query: "N12CCC(CC1)CC2"
 
 - key: Indole
   query: "c1cccc2c1ncc2"

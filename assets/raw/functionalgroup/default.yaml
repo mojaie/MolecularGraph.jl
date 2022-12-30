@@ -120,6 +120,8 @@
   query: "NC=N"
 - key: Guanidine
   query: "NC(=N)N"
+- key: Biguanide
+  query: "NC(=N)NC(=N)N"
 
 
 # O, N
