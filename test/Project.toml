@@ -1,6 +1,7 @@
 [deps]
-AbstractPlotting = "537997a7-5e4e-5d89-9595-2241ea00577e"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
@@ -13,7 +14,7 @@ coordgenlibs_jll = "f6050b86-aaaf-512f-8549-0afff1b4d57f"
 libinchi_jll = "172afb32-8f1c-513b-968f-184fcd77af72"
 
 [compat]
-AbstractPlotting = "0.12, 0.13, 0.14"
+Graphs = "1.7"
 JSON = "0.21"
 Requires = "1"
 Unmarshal = "0.4"

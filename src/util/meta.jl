@@ -4,16 +4,14 @@
 #
 
 export
-    VERSION
+    VERSION, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION
 
 const VERSION = begin
-    project = joinpath(dirname(@__FILE__), "..", "..", "Project.toml")
-    v = []
-    for line in eachline(project)
-        if startswith(line, "version")
-            push!(v, strip(strip(split(line, " = ")[2]), ['"']))
-            break
-        end
-    end
-    v[1]
+    io = open(joinpath(dirname(@__FILE__), "..", "..", "Project.toml"))
+    readuntil(io, "version = \"")
+    readuntil(io, "\"\n")
 end
+
+const MAJOR_VERSION = parse(Int, split(VERSION, ".")[1])
+const MINOR_VERSION = parse(Int, split(VERSION, ".")[2])
+const PATCH_VERSION = parse(Int, split(VERSION, ".")[3])

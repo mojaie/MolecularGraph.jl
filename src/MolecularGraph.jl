@@ -11,6 +11,7 @@ module MolecularGraph
         include("./util/math.jl")
     end
 
+    """
     module Graph
         using ..Util
 
@@ -53,25 +54,33 @@ module MolecularGraph
         include("./geometry/cartesian.jl")
         include("./geometry/internal.jl")
     end
+    """
 
+    using Dates
+    using DelimitedFiles
+    using Graphs
     using LinearAlgebra
+    using Printf
     using Statistics
     using YAML
-    using DelimitedFiles
     using .Util
-    using .Graph
-    using .Geometry
+    # using .Graph
+    # using .Geometry
 
-    export Util, Graph, Geometry
+    export Util  # , Graph, Geometry
 
     include("./model/interface.jl")
-    include("./draw/interface.jl")
+    # include("./draw/interface.jl")
 
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
-    include("./model/query.jl")
+    # include("./model/query.jl")
 
+    include("sdfilereader.jl")
+    include("sdfilewriter.jl")
+
+    """
     include("structurematch.jl")
     include("stereo.jl")
     include("preprocess.jl")
@@ -91,8 +100,6 @@ module MolecularGraph
     include("./draw/svg.jl")
 
     include("download.jl")
-    include("sdfilereader.jl")
-    include("sdfilewriter.jl")
 
     include("libmoleculargraph.jl")
 
@@ -101,4 +108,5 @@ module MolecularGraph
     function __init__()
         @require AbstractPlotting="537997a7-5e4e-5d89-9595-2241ea00577e" include("draw/draw3d.jl")
     end
+    """
 end

@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
+"""
 module MolecularGraphUtilTest
     using Test
     using MolecularGraph.Util
@@ -50,20 +50,23 @@ module MolecularGraphGeometryTest
     include("./geometry/cartesian.jl")
     include("./geometry/internal.jl")
 end
-
+"""
 
 module MolecularGraphTest
     using Test
+    using Graphs
     using MolecularGraph
-    using MolecularGraph.Graph
+    # using MolecularGraph.Graph
 
     include("./model/atom.jl")
+    include("./model/bond.jl")
     include("./model/molgraph.jl")
-    include("./model/query.jl")
+    # include("./model/query.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
 
+    """
     include("./smarts/base.jl")
     include("./smarts/logicaloperator.jl")
     include("./smarts/atom.jl")
@@ -83,4 +86,5 @@ module MolecularGraphTest
     include("./draw/base.jl")
     include("./draw/svg.jl")
     include("./draw/3d.jl")
+    """
 end
