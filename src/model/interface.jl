@@ -3,29 +3,50 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+import Graphs:
+    AbstractGraph, edgetype, nv, vertices, ne, edges,
+    has_vertex, has_edge, outneighbors
+
 export
-    Atom, QueryAtom,
-    Bond, QueryBond
+    AbstractMolGraph, OrderedMolGraph, AbstractReaction,
+    to_dict, edge_rank
 
 
-abstract type Atom <: AbstractNode end
-abstract type QueryAtom <: AbstractNode end
+abstract type AbstractMolGraph{T} <: AbstractGraph{T} end
+abstract type OrderedMolGraph{T} <: AbstractMolGraph{T} end
 
-abstract type Bond <: UndirectedEdge end
-abstract type QueryBond <: UndirectedEdge end
+abstract type AbstractReaction{T<:AbstractMolGraph} end
 
 
-# Aliases
+Base.copy(g::AbstractMolGraph) = deepcopy(mol)
+Base.eltype(g::AbstractMolGraph) = eltype(typeof(g))
+edgetype(g::AbstractMolGraph) = edgetype(typeof(g))
 
-getatom(mol, i) = nodeattr(mol, i)
-getbond(mol, i) = edgeattr(mol, i)
-getbond(mol, u, v) = edgeattr(mol, u, v)
-hasbond(mol, u, v) = hasedge(mol, u, v)
+nv(g::AbstractMolGraph) = nv(g.graph)
+vertices(g::AbstractMolGraph) = vertices(g.graph)
+ne(g::AbstractMolGraph) = ne(g.graph)
+edges(g::AbstractMolGraph) = edges(g.graph)
 
-setatom!(mol, i, attr) = setnodeattr!(mol, i, attr)
-setbond!(mol, i, attr) = setedgeattr!(mol, i, attr)
-addatom!(mol, attr) = addnode!(mol, attr)
-addbond!(mol, u, v, attr) = addedge!(mol, u, v, attr)
+has_vertex(g::AbstractMolGraph, x::Integer) = has_vertex(g.graph, x)
+has_edge(g::AbstractMolGraph, s::Integer, d::Integer) = has_edge(g.graph, s, d)
 
-atomcount(mol) = nodecount(mol)
-bondcount(mol) = edgecount(mol)
+outneighbors(g::AbstractMolGraph, v::Integer) = outneighbors(g.graph, v)
+
+
+function edge_rank(g::SimpleGraph, u::Integer, v::Integer)
+    u, v = u < v ? (u, v) : (v, u)
+    i = zero(u)
+    cnt = 0
+    @inbounds while i < u
+        i += one(u)
+        for j in g.fadjlist[i]
+            if j > i
+                cnt += 1
+                j == v && break
+            end
+        end
+    end
+    return cnt
+end
+
+edge_rank(g::SimpleGraph, e::Edge) = edge_rank(g, src(e), dst(e))
