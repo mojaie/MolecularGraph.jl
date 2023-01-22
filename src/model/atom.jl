@@ -107,10 +107,14 @@ struct SMILESAtom
 end
 
 
-SMILESAtom() = SMILESAtom(:C, 0, 1, nothing, nothing, :unspecified)
-SMILESAtom(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SMILESAtom(
-    Symbol(d[T("symbol")]), d[T("charge")], d[T("multiplicity")],
-    d[T("mass")], d[T("isaromatic")], Symbol(d[T("stereo")])
+SMILESAtom() = SMILESAtom(:C, 0, 1, nothing, false, :unspecified)
+SMILESAtom(d::Dict{T,U}) where {T<:Union{AbstractString,Symbol},U} = SMILESAtom(
+    Symbol(get(d, T("symbol"), :C)),
+    get(d, T("charge"), 0),
+    get(d, T("multiplicity"), 1),
+    get(d, T("mass"), nothing),
+    get(d, T("isaromatic"), false),
+    Symbol(get(d, T("stereo"), :unspecified))
 )
 
 Base.getindex(a::SMILESAtom, prop::Symbol) = getproperty(a, prop)

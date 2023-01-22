@@ -40,10 +40,21 @@ SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
 
 MolGraph(g=SimpleGraph{Int}(), vprops=Dict{Symbol,Any}[], eprops=Dict{Symbol,Any}[], gprops=Dict()
     ) = MolGraph{eltype(g),eltype(vprops),eltype(eprops)}(g, vprops, eprops, gprops)
-MolGraph{T,A,B}(edge_list::Vector, vprops=A[], eprops=B[], gprops=Dict()
-    ) where {T,A,B} = MolGraph{T,A,B}(SimpleGraph{T}(edge_list), vprops, eprops, gprops)
+
+function MolGraph{T,A,B}(edge_list::Vector{Edge{T}}, vprops=A[], eprops=B[], gprops=Dict()) where {T,A,B}
+    # reorder edge properties
+    mapping = Dict(e => eprops[i] for (i, e) in enumerate(edge_list))
+    g = SimpleGraph(edge_list)
+    new_eprops = B[]
+    for e in edges(g)
+        push!(new_eprops, mapping[e])
+    end
+    return MolGraph{T,A,B}(g, vprops, new_eprops, gprops)
+end
+
 MolGraph(edge_list::Vector, vprops=[], eprops=[], gprops=Dict()
-    ) = MolGraph(SimpleGraph(edge_list), vprops, eprops, gprops)
+    ) = MolGraph{eltype(eltype(edge_list)),eltype(vprops),eltype(eprops)}(edge_list, vprops, eprops, gprops)
+
 
 function MolGraph(emol::EditableMolGraph)
     vps = []
@@ -167,7 +178,7 @@ eproptype(mol::EditableMolGraph) = valtype(mol.eprops)
 props(mol::EditableMolGraph) = mol.gprops
 props(mol::EditableMolGraph, v::Integer) = mol.vprops[v]
 props(mol::EditableMolGraph, e::Edge) = mol.eprops[e]
-props(mol::EditableMolGraph, u::Integer, v::Integer) = mol.eprops[u < v ? Edge(u, v) : Edge(v, u)]
+props(mol::EditableMolGraph, u::Integer, v::Integer) = mol.eprops[undirectededge(u, v)]
 get_prop(mol::EditableMolGraph, prop::Symbol) = mol.gprops[prop]
 get_prop(mol::EditableMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
 get_prop(mol::EditableMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]

@@ -4,70 +4,50 @@
 #
 
 export
-    SmartsAtom, SmartsBond, SMARTS,
-    SmilesParser, SmartsParser,
-    smilestomol, smartstomol,
-    resolvedefaultbond!
+    SMILESParser, SMARTSParser,
+    smilestomol, smartstomol
+    # resolvedefaultbond!
 
 
-struct SmartsAtom <: QueryAtom
-    query::QueryFormula
-end
-
-
-struct SmartsBond <: QueryBond
-    query::QueryFormula
-end
-
-SmartsBond() = SmartsBond(QueryFormula(:any, true))
-
-
-SMARTS = QueryMol{SmartsAtom,SmartsBond}
-
-
-
-mutable struct SmartsParserState{N<:AbstractNode,E<:UndirectedEdge}
+mutable struct SMILESParser{V,E}
     input::String
-    allow_disconnected::Bool
-
     pos::Int
     done::Bool
     node::Int # No. of current node
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
     ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
+    edges::Vector{Edge{Int}}
+    vprops::Vector{V}
+    eprops::Vector{E}
 
-    edges::Vector{Tuple{Int,Int}}
-    nodeattrs::Vector{N}
-    edgeattrs::Vector{E}
+    function SMILESParser{V,E}(smiles) where {V,E}
+        new(smiles, 1, false, 0, 1, 1, Dict(), Edge{Int}[], V[], E[])
+    end
+end
+
+SMILESParser(smiles) = SMILESParser{SMILESAtom,SMILESBond}(smiles)
+
+mutable struct SMARTSParser{V,E}
+    input::String
+    pos::Int
+    done::Bool
+    node::Int # No. of current node
+    branch::Int # No. of node at the current branch root
+    root::Int # No. of node at the current tree root
+    ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
+    edges::Vector{Edge{Int}}
+    vprops::Vector{V}
+    eprops::Vector{E}
     connectivity::Vector{Vector{Int}}
 
-    function SmartsParserState{N,E}(str, disconn
-            ) where {N<:AbstractNode,E<:UndirectedEdge}
-        new(str, disconn, 1, false, 0, 1, 1, Dict(), [], [], [], [])
+    function SMARTSParser{V,E}(smarts) where {V,E}
+        new(smarts, 1, false, 0, 1, 1, Dict(), Edge{Int}[], V[], E[], [])
     end
 end
 
-SmilesParser = SmartsParserState{SmilesAtom,SmilesBond}
-SmartsParser = SmartsParserState{SmartsAtom,SmartsBond}
+SMARTSParser(smarts) = SMARTSParser{QueryTruthTable,QueryTruthTable}(smarts)
 
-
-function Base.parse(::Type{SMILES}, str::AbstractString)
-    state = SmilesParser(str, true)
-    fragment!(state)
-    return graphmol(state.edges, state.nodeattrs, state.edgeattrs)
-end
-
-function Base.parse(::Type{SMARTS}, str::AbstractString)
-    if occursin('.', str)
-        state = SmartsParser(str, true)
-        componentquery!(state)
-    else
-        state = SmartsParser(str, false)
-        fragment!(state)
-    end
-    return querymol(state.edges, state.nodeattrs, state.edgeattrs, state.connectivity)
-end
 
 
 """
@@ -82,10 +62,11 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. OpenSMILES Specification http://opensmiles.org/spec/open-smiles.html
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
-function smilestomol(smiles::AbstractString)
-    mol = parse(SMILES, smiles)
-    kekulize!(mol)
-    setdiastereo!(mol)
+function smilestomol(smiles::AbstractString; kekulize=true)
+    state = SMILESParser(smiles)
+    fragment!(state)
+    mol = MolGraph(state.edges, state.vprops, state.eprops)
+    #kekulize && kekulize!(mol)
     return mol
 end
 
@@ -95,16 +76,29 @@ end
 
 Parse SMARTS string into `QueryMol` object.
 """
-function smartstomol(smarts::AbstractString)
-    qmol = parse(SMARTS, smarts)
-    setcache!(qmol, :minimumcyclebasisnodes)
-    resolvedefaultbond!(qmol)
-    qmol = inferaromaticity(removehydrogens(qmol))
-    return qmol
+function smartstomol(smarts::AbstractString; kekulize=true)
+    if occursin('.', smarts)
+        state = SMARTSParser(smarts)
+        componentquery!(state)
+    else
+        state = SMARTSParser(smarts)
+        fragment!(state)
+    end
+    mol = MolGraph(
+        state.edges, state.vprops, state.eprops, Dict(:connectivity => state.connectivity))
+    # setcache!(mol, :minimumcyclebasisnodes)
+    # resolvedefaultbond!(mol)
+    # mol = inferaromaticity(removehydrogens(mol))
+    # kekulize && kekulize!(mol)
+    # setdiastereo && setdiastereo!(mol)
+    return mol
 end
 
 
-function lookahead(state::SmartsParserState, pos::Int)
+
+# internal parser methods
+
+function lookahead(state::Union{SMILESParser,SMARTSParser}, pos::Int)
     # Negative pos can be used
     newpos = state.pos + pos
     if newpos > length(state.input) || newpos < 1
@@ -122,7 +116,7 @@ end
 Base.read(state) = lookahead(state, 0)  # TODO: rename
 
 
-function forward!(state::SmartsParserState, num::Int)
+function forward!(state::Union{SMILESParser,SMARTSParser}, num::Int)
     # Negative num can be used
     state.pos += num
     if state.pos > length(state.input)
@@ -144,15 +138,14 @@ backtrack!(state) = backtrack!(state, 1)
     resolvedefaultbond(qmol::QueryMol) -> Nothing
 
 Resolve default SMARTS bonds.
-"""
 function resolvedefaultbond!(qmol::QueryMol)
-    aromfml = QueryFormula(:isaromaticbond, true)
+    aromfml = QueryFormula(:isaromatic, true)
     singlefml = QueryFormula(:and, Set([
-        QueryFormula(:bondorder, 1),
-        QueryFormula(:isaromaticbond, false)
+        QueryFormula(:order, 1),
+        QueryFormula(:isaromatic, false)
     ]))
     notaromsymfml = QueryFormula(:and, Set([
-        QueryFormula(:not, QueryFormula(:atomsymbol, s)) for s in [:B, :C, :N, :O, :P, :S, :As, :Se]
+        QueryFormula(:not, QueryFormula(:symbol, s)) for s in [:B, :C, :N, :O, :P, :S, :As, :Se]
     ]))
     # extract explicitly aromatic bonds
     arombonds = Set([])
@@ -195,3 +188,5 @@ function resolvedefaultbond!(qmol::QueryMol)
         end
     end
 end
+
+"""

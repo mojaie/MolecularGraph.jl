@@ -4,252 +4,147 @@
 #
 
 export
-    QueryFormula, QueryMol, querymol,
-    tidyformula, findformula,
-    removehydrogens, inferaromaticity,
-    query_relationship, filter_queries
+    QueryLiteral, QueryTruthTable,
+    statement, any_query, not_query, and_query, or_query
+    # removehydrogens, inferaromaticity,
+    # query_relationship, filter_queries
 
 
-struct QueryFormula
+struct QueryLiteral
+    operator::Symbol  # :eq, :gt?, :lt? ...
     key::Symbol
-    value::Any
+    value::Union{Symbol,Int,String,Bool,Nothing}
 end
 
+QueryLiteral(key) = QueryLiteral(:eq, key, true)
+QueryLiteral(key, value) = QueryLiteral(:eq, key, value)
 
-Base.:(==)(a::QueryFormula, b::QueryFormula) = a.key == b.key && a.value == b.value
+Base.isless(q::QueryLiteral, r::QueryLiteral
+    ) = q.key < r.key || q.operator < r.operator || string(q.value) < string(r.value)
 
-function Base.in(a::QueryFormula, b::Set{QueryFormula})
-    # Necessary for set operations
-    for i in b
-        a == i && return true
-    end
-    return false
+
+struct QueryTruthTable
+    table::Matrix{Union{Bool,Nothing}}
+    props::Vector{QueryLiteral}
 end
 
 
 """
-    issubset(a::QueryFormula, b::QueryFormula) -> Bool
+    QueryTruthTable(fml::Function, props::Vector{QueryLiteral}) -> QueryTruthTable
 
-Check if fml1 contains fml2 (that is, all the query results of fml1 is included in the results of fml2)
+Construct QueryTruthTable from boolian function and QueryLiteral vector.
+
+Maybe faster than query generator functions (e.g. and_query, or_query).  
+- props: QueryLiteral vector. The properties should be unique.
+- function: function that takes a vector whose size is `length(props)`
+  that corresponds to each property variables and returns true or false.
 """
-function Base.issubset(a::QueryFormula, b::QueryFormula; kwargs...)
-    b == QueryFormula(:any, true) && return true
-    # :recursive
-    if !haskey(kwargs, :eval_recursive) || kwargs[:eval_recursive]
-        if a.key === :recursive && b.key === :recursive
-            a == b && return true
-            return hassubstructmatch(
-                smartstomol(a.value), smartstomol(b.value), mandatory=Dict(1 => 1))
-        elseif a.key === :recursive && b.key !== :or
-            return issubset(nodeattr(smartstomol(a.value), 1).query, b; kwargs...)
-        elseif b.key === :recursive
-            return false
+function QueryTruthTable(fml::Function, props::Vector{QueryLiteral})
+    nlit = length(props)
+    table = iszero.(transpose(hcat([digits(i, base=2, pad=nlit)[1:nlit] for i in 1:(2^nlit)]...)))
+    values = Vector{Union{Bool,Nothing}}[]
+    for i in 1:size(table, 1)
+        vals = table[i, :]
+        res = fml(vals)
+        if res == 1
+            push!(vals, res)
+            push!(values, vals)
         end
     end
-    if !(a.key in (:and, :or) || b.key in (:and, :or))
-        # :not
-        a.key === :not && b.key === :not && return a == b
-        a.key === :not && return false
-        b.key === :not && return a.key == b.value.key && a.value != b.value.value
-        # descriptors
-        return a == b
-    end
-    # :and, :or
-    aset = a.key in (:and, :or) ? a.value : [a]
-    bset = b.key in (:and, :or) ? b.value : [b]
-    akeys = Set(e.key for e in aset)
-    bkeys = Set(e.key for e in bset)
+    return QueryTruthTable(transpose(hcat(values...)), props)
+end
 
-    # :and => (:not => :A, :not => :B) -> :not => (:or => (:A, :B))
-    if b.key === :and && length(bkeys) == 1 && collect(bkeys)[1] === :not
-        if a.key === :and
-            return any(issubset(fml, b; kwargs...) for fml in a.value)
-        else
-            for bfml in bset
-                for afml in aset
-                    issubset(afml, bfml; kwargs...) || return false
-                end
+QueryTruthTable(fml::Function, props::Vector{T}
+    ) where T <: Tuple = QueryTruthTable(fml, [QueryLiteral(p...) for p in props])
+
+
+function issubset_arr(q, r)
+    matched = true
+    for i in 1:length(q)
+        q[i] == r[i] && continue
+        isnothing(q[i]) && continue
+        isnothing(r[i]) && continue
+        matched = false
+        break
+    end
+    matched
+end
+
+function Base.issubset(q::QueryTruthTable, r::QueryTruthTable)
+    # tautology
+    """
+    q \\ r  T other F
+    T      T   F   F
+    other  T   ?   F
+    F      T   T   T
+    """
+    isempty(q.props) && (q.table[1] || return true)
+    isempty(r.props) && (r.table[1] && return true)
+    (isempty(q.props) || isempty(r.props)) && return false
+    # TODO: more efficient implementation
+    unn = sort(collect(union(Set(q.props), Set(r.props))))
+    qtbl = Matrix{Union{Bool,Nothing}}(nothing, size(q.table, 1), length(unn) + 1)
+    rtbl = Matrix{Union{Bool,Nothing}}(nothing, size(r.table, 1), length(unn) + 1)
+    for (i, k) in enumerate(unn)
+        for (m, p) in enumerate(q.props)
+            if k == p  # TODO: recursive and disjoint check
+                qtbl[:, i] = q.table[:, m]
+                break
             end
-            return true
         end
-    elseif a.key === :or && b.key === :not && length(akeys) == 1 && collect(akeys)[1] == b.value.key
-        amap = Dict(i => v for (i, v) in enumerate(aset))
-        bmap = Dict(i => v for (i, v) in enumerate(bset))
-        func = (x, y) -> issubset(amap[x], bmap[y]; kwargs...)
-        return maxcard(keys(amap), keys(bmap), func) == 1
+        qtbl[:, end] = q.table[:, end]
+        for (m, p) in enumerate(r.props)
+            if k == p
+                rtbl[:, i] = r.table[:, m]
+                break
+            end
+        end
+        rtbl[:, end] = r.table[:, end]
     end
-
-    issub1 = false
-    issub2 = false
-    if a.key === :and
-        amap = Dict(i => v for (i, v) in enumerate(aset))
-        bmap = Dict(i => v for (i, v) in enumerate(b.key === :and ? bset : [b]))
-        func = (x, y) -> issubset(amap[x], bmap[y]; kwargs...)
-        issub1 = maxcard(keys(amap), keys(bmap), func) == length(bmap)
+    for i in 1:size(qtbl, 1)
+        matched = 0
+        nreq = 2^sum(isnothing.(qtbl[i, :]))
+        for j in 1:size(rtbl, 1)
+            if issubset_arr(qtbl[i, :], rtbl[j, :])
+                matched += 1
+                matched == nreq && break
+            end
+        end
+        matched == nreq || return false
     end
-    if b.key === :or
-        amap = Dict(i => v for (i, v) in enumerate(a.key === :or ? aset : [a]))
-        bmap = Dict(i => v for (i, v) in enumerate(bset))
-        func = (x, y) -> issubset(amap[x], bmap[y]; kwargs...)
-        issub2 = maxcard(keys(amap), keys(bmap), func) == length(amap)
-    end
-    return issub1 || issub2
+    return true
 end
 
+# TODO: expensive. just for testing
+Base.:(==)(q::QueryTruthTable, r::QueryTruthTable) = issubset(q, r) && issubset(r, q)
 
-
-struct QueryMol{A<:QueryAtom,B<:QueryBond} <: OrderedGraph
-    neighbormap::Vector{Dict{Int,Int}}
-    edges::Vector{Tuple{Int,Int}}
-    nodeattrs::Vector{A}
-    edgeattrs::Vector{B}
-    cache::Dict{Symbol,Any}
-    attributes::Dict{Symbol,Any}
-    connectivity::Vector{Vector{Int}}
-end
-
-"""
-    querymol() -> QueryMol
-
-Generate empty `QueryMol`.
-"""
-querymol(
-    ::Type{A}, ::Type{B}
-) where {A<:QueryAtom,B<:QueryBond} = QueryMol{A,B}(
-    [], [], [], [], Dict(), Dict(), [])
-
-"""
-    querymol(atoms::Vector{Atom}, bonds::Vector{Bond}) -> GraphMol
-
-Generate `QueryMol` that has the given atom objects and edge objects.
-"""
-function querymol(edges, atoms::Vector{A}, bonds::Vector{B},
-        connectivity::Vector{Vector{Int}}) where {A<:QueryAtom,B<:QueryBond}
-    nbrmap = [Dict{Int,Int}() for i in 1:length(atoms)]
-    edges = collect(edges)
-    for (i, (u, v)) in enumerate(edges)
-        nbrmap[u][i] = v
-        nbrmap[v][i] = u
-    end
-    return QueryMol(
-        nbrmap, edges, atoms, bonds,
-        Dict{Symbol,Any}(), Dict{Symbol,Any}(), connectivity)
-end
-
-
-"""
-    querymol(mol::SubgraphView{QueryMol}) -> QueryMol
-
-Generate a new `QueryMol` from a substructure view.
-
-Graph property caches and attributes are not inherited.
-"""
-function querymol(view::SubgraphView)
-    newg = querymol(nodeattrtype(view), edgeattrtype(view))
-    nkeys = sort(collect(nodeset(view)))
-    ekeys = sort(collect(edgeset(view)))
-    nmap = Dict{Int,Int}()
-    for (i, n) in enumerate(nkeys)
-        nmap[n] = i
-        push!(newg.nodeattrs, nodeattr(view, n))
-        push!(newg.neighbormap, Dict())
-    end
-    for (i, e) in enumerate(ekeys)
-        (oldu, oldv) = getedge(view, e)
-        u = nmap[oldu]
-        v = nmap[oldv]
-        push!(newg.edges, (u, v))
-        push!(newg.edgeattrs, edgeattr(view, e))
-        newg.neighbormap[u][i] = v
-        newg.neighbormap[v][i] = u
-    end
-    return newg
-end
-
-
-
-"""
-tidyformula(fml::QueryFormula) -> QueryFormula
-
-Return tidy formulae.
-
-- associative formulae will be juxtaposed
-  (ex. :and => (A, :and => (B, C)) -> :and => (A, B, C))
-- distributive formulae will be factored out
-  (ex. :or => (:and => (A, B), :and => (A, C)) -> :and => (A, :or => (B, C)))
-- Absorption
-  (ex. :and => (A, :or => (A, B)) -> A
-- `:any` absorbs everything
-  (ex. :and => (:any => true, A) -> A, :or => (:any => true, A) -> :any => true
-- `:not` would be inverted if possible
-  (ex. :not => (:A => true) -> :A => false)
-- `:not` has the highest precedence in SMARTS, but only in the case like [!C],
-  De Morgan's law will be applied to remove `:and` under `:not`.
-  (ex. :not => (:and => (:atomsymbol => :C, :isaromatic => false)
-   -> :or => (:not => (:atomsymbol => :C), isaromatic => true)
-"""
-function tidyformula(fml::QueryFormula)
-    # not
-    if fml.key === :not
-        child = fml.value
-        if child.key === :and  # only the cases like [!C]
-            return QueryFormula(:or, Set([
-                tidyformula(QueryFormula(:not, c)) for c in child.value
-            ]))
-        elseif typeof(child.value) === Bool
-            return QueryFormula(child.key, !child.value)
+# Query generation
+statement(key, value=true, operator=:eq) = (v -> v[1], [(operator, key, value)])
+any_query(b::Bool) = (v -> b, Tuple{Symbol}[])
+not_query(q) = (v -> ~q[1](v), q[2])
+function and_query(qs; cond=all)
+    funcs = Function[]
+    props = Union{Tuple{Symbol},Tuple{Symbol,Any},Tuple{Symbol,Symbol,Any}}[]
+    vpos = Vector{Int}[]  # positions of vars passed to downstream
+    for q in qs
+        func, ps = q
+        push!(funcs, func)
+        idxs = Int[]
+        for p in ps
+            if p in props  # props should be unique
+                idx = findfirst(x -> x == p, props)
+                push!(idxs, idx)
+            else
+                push!(props, p)
+                push!(idxs, length(props))
+            end
         end
+        push!(vpos, idxs)
     end
-    fml.key in (:and, :or) || return fml
-    childs = Set{QueryFormula}()
-    # Association
-    for child in fml.value
-        cfml = tidyformula(child)
-        if cfml.key === :any
-            # Absorption
-            (fml.key === :and) == cfml.value && continue
-            return QueryFormula(:any, cfml.value)
-        elseif cfml.key === fml.key
-            union!(childs, cfml.value)
-        else
-            union!(childs, [cfml])
-        end
-    end
-    length(childs) == 1 && return collect(childs)[1]
-    # Distribution
-    ckey = fml.key === :and ? :or : :and
-    cc = collect(childs)
-    bin = cc[1].key == ckey ? copy(cc[1].value) : Set([cc[1]])
-    mono = Set([b.key for b in bin])
-    for child in cc[2:end]
-        @assert child.key !== fml.key  # already associated
-        elems = child.key === ckey ? child.value : [child]
-        intersect!(bin, elems)
-        union!(mono, Set([e.key for e in elems]))
-    end
-    if isempty(bin)
-        if fml.key === :and && length(mono) == 1 && !(collect(mono)[1] in (:not, :recursive))
-            # SMARTS primitives are disjoint, so the intersection should be an empty set.
-            # NOTE: except for ! and $() queries
-            return QueryFormula(:any, false)
-        else
-            return QueryFormula(fml.key, childs)
-        end
-    end
-    updated = Set{QueryFormula}()
-    for child in childs
-        cdiff = setdiff(child.key == ckey ? child.value : [child], bin)
-        if isempty(cdiff)
-            # Absorption
-            return length(bin) == 1 ? collect(bin)[1] : QueryFormula(ckey, bin)
-        elseif length(cdiff) == 1
-            push!(updated, collect(cdiff)[1])
-        else
-            push!(updated, QueryFormula(ckey, cdiff))
-        end
-    end
-    return tidyformula(QueryFormula(ckey, Set([bin..., QueryFormula(fml.key, updated)])))
+    func = v -> cond(f(v[vpos[i]]) for (i, f) in enumerate(funcs))
+    return (func, props)
 end
+or_query(qs) = and_query(qs, cond=any)
 
 
 
@@ -257,14 +152,14 @@ end
     removehydrogens(mol::QueryMol) -> QueryMol
 
 Return the molecular query with hydrogen nodes removed.
-"""
+
 function removehydrogens(qmol::QueryMol)
     # count H nodes and mark H nodes to remove
     hnodes = Set{Int}()
     hcntarr = zeros(Int, nodecount(qmol))
     for n in 1:nodecount(qmol)
         nq = nodeattr(qmol, n).query
-        issubset(nq, QueryFormula(:atomsymbol, :H), eval_recursive=false) || continue
+        issubset(nq, QueryFormula(:symbol, :H), eval_recursive=false) || continue
         degree(qmol, n) == 1 || throw(ErrorException("Invalid hydrogen valence"))
         adj = iterate(adjacencies(qmol, n))[1]
         hcntarr[adj] += 1
@@ -275,7 +170,7 @@ function removehydrogens(qmol::QueryMol)
     for n in heavynodes
         nq = nodeattr(qmol, n).query
         # no longer H nodes exist, so [!#1] would be ignored
-        noth = QueryFormula(:not, QueryFormula(:atomsymbol, :H))
+        noth = QueryFormula(:not, QueryFormula(:symbol, :H))
         if nq == noth
             newq = QueryFormula(:any, true)
         elseif nq.key === :and && noth in nq.value
@@ -297,13 +192,13 @@ function removehydrogens(qmol::QueryMol)
     end
     return querymol(nodesubgraph(qmol_, heavynodes))
 end
-
+"""
 
 """
     inferatomaromaticity(qmol::QueryMol)
 
 Infer aromaticity of atoms and bonds, then return more specific query in the aspect of aromaticity.
-"""
+
 function inferaromaticity(qmol::QueryMol)
     qmol_ = deepcopy(qmol)
     for n in 1:nodecount(qmol)
@@ -319,7 +214,7 @@ function inferaromaticity(qmol::QueryMol)
         # by atom symbol
         canbearom = [:B, :C, :N, :O, :P, :S, :As, :Se]
         notaromfml = QueryFormula(:and, Set([
-            QueryFormula(:not, QueryFormula(:atomsymbol, a)) for a in canbearom]))
+            QueryFormula(:not, QueryFormula(:symbol, a)) for a in canbearom]))
         if issubset(nq, notaromfml, eval_recursive=false)
             newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
             setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
@@ -327,7 +222,7 @@ function inferaromaticity(qmol::QueryMol)
         end
         # by explicitly non-/aromatic incidences
         noincacc = QueryFormula(:and, Set([
-            QueryFormula(:not, QueryFormula(:atomsymbol, a)) for a in [:C, :N, :B]]))
+            QueryFormula(:not, QueryFormula(:symbol, a)) for a in [:C, :N, :B]]))
         minacc = issubset(nq, noincacc, eval_recursive=false) ? 0 : 1
         nonaromcnt = 0
         # hydrogen query
@@ -344,20 +239,20 @@ function inferaromaticity(qmol::QueryMol)
         hasarombond = false
         for inc in incidences(qmol, n)
             eq = edgeattr(qmol_, inc).query
-            if issubset(eq, QueryFormula(:isaromaticbond, true), eval_recursive=false)
+            if issubset(eq, QueryFormula(:isaromatic, true), eval_recursive=false)
                 hasarombond = true
                 break
             end
-            if issubset(eq, QueryFormula(:bondorder, 2), eval_recursive=false)
+            if issubset(eq, QueryFormula(:order, 2), eval_recursive=false)
                 # C=O special case
                 adjq = nodeattr(qmol, neighbors(qmol, n)[inc]).query
-                if issubset(adjq, QueryFormula(:atomsymbol, :O), eval_recursive=false)
+                if issubset(adjq, QueryFormula(:symbol, :O), eval_recursive=false)
                     continue
                 end
             end
-            if (issubset(eq, QueryFormula(:isaromaticbond, false), eval_recursive=false)
-                    || issubset(eq, QueryFormula(:isringbond, false), eval_recursive=false))
-                if issubset(eq, QueryFormula(:not, QueryFormula(:bondorder, 1)), eval_recursive=false)
+            if (issubset(eq, QueryFormula(:isaromatic, false), eval_recursive=false)
+                    || issubset(eq, QueryFormula(:isring, false), eval_recursive=false))
+                if issubset(eq, QueryFormula(:not, QueryFormula(:order, 1)), eval_recursive=false)
                     nonaromcnt += 2  # 2 is enough to be nonaromcnt > minacc
                 else
                     nonaromcnt += 1
@@ -373,19 +268,19 @@ function inferaromaticity(qmol::QueryMol)
         end
     end
     # by Huckel rule
-    aromf = QueryFormula(:isaromaticbond, true)
+    aromf = QueryFormula(:isaromatic, true)
     aors = QueryFormula(:or, Set([
         aromf,
         QueryFormula(:and, Set([
-            QueryFormula(:bondorder, 1),
-            QueryFormula(:isaromaticbond, false)
+            QueryFormula(:order, 1),
+            QueryFormula(:isaromatic, false)
         ]))
     ]))
     aord = QueryFormula(:or, Set([
         aromf,
         QueryFormula(:and, Set([
-            QueryFormula(:bondorder, 2),
-            QueryFormula(:isaromaticbond, false)
+            QueryFormula(:order, 2),
+            QueryFormula(:isaromatic, false)
         ]))
     ]))
     for ring in sssr(qmol)
@@ -402,23 +297,23 @@ function inferaromaticity(qmol::QueryMol)
             vq = edgeattr(qmol, rincs[2]).query
             if uq == aors && vq == aord || vq == aors && uq == aord
                 if issubset(nq, QueryFormula(:or,
-                            Set([QueryFormula(:atomsymbol, a) for a in [:B, :C, :N, :P, :As]])),
+                            Set([QueryFormula(:symbol, a) for a in [:B, :C, :N, :P, :As]])),
                         eval_recursive=false)
                     pcnt += 1
                     continue
                 end
             elseif uq == aors && vq == aors
                 if issubset(nq, QueryFormula(:or,
-                            Set([QueryFormula(:atomsymbol, a) for a in [:N, :O, :P, :S, :As, :Se]])),
+                            Set([QueryFormula(:symbol, a) for a in [:N, :O, :P, :S, :As, :Se]])),
                         eval_recursive=false)
                     pcnt += 2
                     continue
-                elseif issubset(nq, QueryFormula(:atomsymbol, :C), eval_recursive=false)
+                elseif issubset(nq, QueryFormula(:symbol, :C), eval_recursive=false)
                     outer = collect(setdiff(incidences(qmol, n), ringedges))
                     if length(outer) == 1
                         outerq = edgeattr(qmol, outer[1]).query
                         oadjq = nodeattr(qmol, neighbors(qmol, n)[outer[1]]).query
-                        if issubset(outerq, QueryFormula(:bondorder, 2), eval_recursive=false) && issubset(oadjq, QueryFormula(:atomsymbol, :O), eval_recursive=false)
+                        if issubset(outerq, QueryFormula(:order, 2), eval_recursive=false) && issubset(oadjq, QueryFormula(:symbol, :O), eval_recursive=false)
                             continue
                         end
                     end
@@ -461,7 +356,7 @@ struct DictDiGraph <: OrderedDiGraph
     nodeattrs::Vector{Dict}
     edgeattrs::Vector{Dict}
 end
-
+"""
 
 """
     dictdigraph(view::DiSubgraphView{DictDiGraph}) -> DictDiGraph
@@ -469,7 +364,7 @@ end
 Generate a new `DictDiGraph` from a substructure view.
 
 Graph property caches and attributes are not inherited.
-"""
+
 function dictdigraph(view::DiSubgraphView{DictDiGraph})
     newg = DictDiGraph([], [], [], [], [])
     nkeys = sort(collect(nodeset(view)))
@@ -492,13 +387,13 @@ function dictdigraph(view::DiSubgraphView{DictDiGraph})
     end
     return newg
 end
-
+"""
 
 """
     query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS) -> DictDiGraph
 
 Generate query relationship diagram.
-"""
+
 function query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS)
     graph = DictDiGraph([], [], [], [], [])
     keys = Dict()
@@ -521,14 +416,14 @@ function query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS)
     end
     return graph
 end
-
+"""
 
 """
     filter_queries(qr::DictDiGraph, mol::GraphMol) -> DictDiGraph
 
 Filter query relationship diagram by the given molecule.
 The filtered diagram represents query relationship that the molecule have.
-"""
+
 function filter_queries(qr::DictDiGraph, mol::GraphMol; filtering=true)
     matched = Set{Int}()
     for n in reversetopologicalsort(qr)
@@ -538,8 +433,8 @@ function filter_queries(qr::DictDiGraph, mol::GraphMol; filtering=true)
                 continue
             end
         end
-        # println("key: $(rcd["key"])")
-        # println("query: $(rcd["query"])")
+        # println("key: \$(rcd["key"])")
+        # println("query: \$(rcd["query"])")
         # @time begin
             matches = collect(substructmatches(mol, rcd["parsed"]))
             if !isempty(matches)
@@ -550,3 +445,4 @@ function filter_queries(qr::DictDiGraph, mol::GraphMol; filtering=true)
     end
     return dictdigraph(nodesubgraph(qr, matched))
 end
+"""

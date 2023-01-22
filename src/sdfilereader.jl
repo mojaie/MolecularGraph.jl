@@ -58,9 +58,9 @@ function ctab_bond_v2(E, B, line)
     v = parse(Int, line[4:6])
     d["order"] = parse(Int, line[7:9])
     d["notation"] = parse(Int, line[10:12])
-    d["is_ordered"] = u < v
-    u, v = d["is_ordered"] ? (u, v) : (v, u)
-    return (E(u, v), B(d))
+    d["isordered"] = u < v
+    u, v = d["isordered"] ? (u, v) : (v, u)
+    return (undirectededge(E, u, v), B(d))
 end
 
 function ctab_bond_v3(E, B, line)
@@ -69,9 +69,9 @@ function ctab_bond_v3(E, B, line)
     d["order"], u, v = parse.(Int, ss[4:6])
     props = Dict(sympair.(ss[7:end])...)
     d["notation"] = get(props, :CFG, 0)  # TODO: not compatible with v2
-    d["is_ordered"] = u < v
-    u, v = d["is_ordered"] ? (u, v) : (v, u)
-    return (E(u, v), B(d))
+    d["isordered"] = u < v
+    u, v = d["isordered"] ? (u, v) : (v, u)
+    return (undirectededge(E, u, v), B(d))
 end
 
 function ctab_props_v2(io::IO)

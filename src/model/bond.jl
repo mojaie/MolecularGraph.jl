@@ -26,14 +26,14 @@ struct SDFBond
     """
     order::Int
     notation::Int
-    is_ordered::Bool
+    isordered::Bool
     stereo::Symbol  # deprecated
 end
 
-SDFBond(order, notation, is_ordered) = SDFBond(order, notation, is_ordered, :unspecified)
+SDFBond(order, notation, isordered) = SDFBond(order, notation, isordered, :unspecified)
 SDFBond() = SDFBond(1, 0, true, :unspecified)
 SDFBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFBond(
-    d[T("order")], d[T("notation")], d[T("is_ordered")])
+    d[T("order")], d[T("notation")], d[T("isordered")])
 
 Base.getindex(b::SDFBond, prop::Symbol) = getproperty(b, prop)
 
@@ -46,24 +46,27 @@ function to_dict(b::SDFBond)
 end
 
 setorder(b::SDFBond, order
-    ) = SDFBond(order, b.notation, b.is_ordered, b.stereo)  # deprecated
+    ) = SDFBond(order, b.notation, b.isordered, b.stereo)  # deprecated
 setnotation(b::SDFBond, notation
-    ) = SDFBond(b.order, notation, b.is_ordered, b.stereo)  # deprecated
+    ) = SDFBond(b.order, notation, b.isordered, b.stereo)  # deprecated
 setstereo(edge::SDFBond, cistrans
-    ) = SDFBond(b.order, b.notation, b.is_ordered, cistrans)  # deprecated
+    ) = SDFBond(b.order, b.notation, b.isordered, cistrans)  # deprecated
 
 
 struct SMILESBond
     order::Int
-    is_aromatic::Bool
+    isaromatic::Bool
     direction::Symbol  # :up or :down
     stereo::Symbol  # deprecated
 end
 
-SMILESBond(order, is_aromatic, direction) = SMILESBond(order, is_aromatic, direction, :unspecified)
+SMILESBond(order, isaromatic, direction) = SMILESBond(order, isaromatic, direction, :unspecified)
 SMILESBond() = SMILESBond(1, false, :unspecified)
-SMILESBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFBond(
-    d[T("order")], d[T("is_aromatic")], d[T("direction")])
+SMILESBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SMILESBond(
+    get(d, T("order"), 1),
+    get(d, T("isaromatic"), false),
+    get(d, T("direction"), :unspecified)
+)
 
 Base.getindex(b::SMILESBond, prop::Symbol) = getproperty(b, prop)
 
@@ -76,6 +79,6 @@ function todict(b::SMILESBond)
 end
 
 setorder(b::SMILESBond, order
-    ) = SMILESBond(order, b.is_aromatic, b.direction, b.stereo)  # deprecated
+    ) = SMILESBond(order, b.isaromatic, b.direction, b.stereo)  # deprecated
 setstereo(b::SMILESBond, cistrans
-    ) = SMILESBond(b.order, b.is_aromatic, b.direction, cistrans)  # deprecated
+    ) = SMILESBond(b.order, b.isaromatic, b.direction, cistrans)  # deprecated

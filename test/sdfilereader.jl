@@ -27,12 +27,12 @@ end
     @test edge == Edge(1, 2)
     @test prop[:order] == 2
     @test prop[:notation] == 0
-    @test prop[:is_ordered]
+    @test prop[:isordered]
     edge, prop = ctab_bond_v2(Edge{Int}, SDFBond, "  5  4  1  6  0  0  0")
     @test edge == Edge(4, 5)
     @test prop[:order] == 1
     @test prop[:notation] == 6
-    @test !prop[:is_ordered]
+    @test !prop[:isordered]
 end
 
 @testset "sdftomol" begin

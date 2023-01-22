@@ -75,10 +75,16 @@ module MolecularGraph
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
-    # include("./model/query.jl")
+    include("./model/query.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
+
+    include("./smarts/base.jl")
+    include("./smarts/atom.jl")
+    include("./smarts/bond.jl")
+    include("./smarts/logicaloperator.jl")
+    include("./smarts/molecule.jl")
 
     """
     include("structurematch.jl")
@@ -89,11 +95,7 @@ module MolecularGraph
     include("wclogp.jl")
     include("inchi.jl")
 
-    include("./smarts/base.jl")
-    include("./smarts/atom.jl")
-    include("./smarts/bond.jl")
-    include("./smarts/logicaloperator.jl")
-    include("./smarts/molecule.jl")
+
 
     include("coordgen.jl")
     include("./draw/draw2d.jl")

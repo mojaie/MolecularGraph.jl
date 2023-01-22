@@ -56,25 +56,27 @@ module MolecularGraphTest
     using Test
     using Graphs
     using MolecularGraph
-    # using MolecularGraph.Graph
+
 
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
-    # include("./model/query.jl")
+    include("./model/query.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
 
-    """
     include("./smarts/base.jl")
     include("./smarts/logicaloperator.jl")
+    
     include("./smarts/atom.jl")
     include("./smarts/bond.jl")
     include("./smarts/molecule.jl")
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
+
+    """
     include("properties.jl")
     include("preprocess.jl")
     include("stereo.jl")

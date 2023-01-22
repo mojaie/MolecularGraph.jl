@@ -94,7 +94,7 @@ Return a default atom attribute comparator that returns true if the atom satisfi
 """
 function atommatch(mol::UndirectedGraph, qmol::QueryMol)
     descriptors = Dict(
-        :atomsymbol => atomsymbol(mol),
+        :symbol => atomsymbol(mol),
         :isaromatic => isaromatic(mol),
         :charge => charge(mol),
         :mass => getproperty.(nodeattrs(mol), :mass),
@@ -105,9 +105,9 @@ function atommatch(mol::UndirectedGraph, qmol::QueryMol)
         :hydrogenconnected => hydrogenconnected(mol),
         :smallestsssr => smallestsssr(mol),
         :sssrcount => sssrcount(mol),
-        :bondorder => bondorder(mol),
-        :isringbond => isringbond(mol),
-        :isaromaticbond => isaromaticbond(mol),
+        :order => bondorder(mol),
+        :isring => isringbond(mol),
+        :isaromatic => isaromaticbond(mol),
         :stereo => getproperty.(edgeattrs(mol), :stereo)
     )
     matcher = QueryMatcher(mol, qmol, descriptors, Dict())
@@ -122,9 +122,9 @@ Return a default bond attribute comparator that returns true if the bond satisfi
 """
 function bondmatch(mol::UndirectedGraph, qmol::QueryMol)
     descriptors = Dict(
-        :bondorder => bondorder(mol),
-        :isringbond => isringbond(mol),
-        :isaromaticbond => isaromaticbond(mol),
+        :order => bondorder(mol),
+        :isring => isringbond(mol),
+        :isaromatic => isaromaticbond(mol),
         :stereo => getproperty.(edgeattrs(mol), :stereo)
     )
     matcher = QueryMatcher(mol, qmol, descriptors, Dict())

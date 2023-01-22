@@ -10,124 +10,71 @@ using MolecularGraph:
     function parseabc(state)
         if read(state) == 'a'
             forward!(state)
-            return QueryFormula(:v, :a)
+            return (v -> v[1], [(:v, :a)])
         elseif read(state) == 'b'
             forward!(state)
-            return QueryFormula(:v, :b)
+            return (v -> v[1], [(:v, :b)])
         elseif read(state) == 'c'
             forward!(state)
-            return QueryFormula(:v, :c)
+            return (v -> v[1], [(:v, :c)])
         end
     end
 
-    state = SmartsParser("!a", false)
+    state = SMARTSParser("!a")
     not1 = lgnot!(state, parseabc)
-    @test not1 == QueryFormula(:not, QueryFormula(:v, :a))
+    @test QueryTruthTable(not1...) == QueryTruthTable(v -> ~v[1], [(:v, :a)])
 
-    state = SmartsParser("a&b", false)
+    state = SMARTSParser("a&b")
     and1 = lghighand!(state, parseabc)
-    @test and1 == QueryFormula(:and, Set([
-        QueryFormula(:v, :a),
-        QueryFormula(:v, :b)
-    ]))
+    @test QueryTruthTable(and1...) == QueryTruthTable(v -> v[1] & v[2], [(:v, :a), (:v, :b)])
 
-    state = SmartsParser("abc", false)
+    state = SMARTSParser("abc")
     and2 = lghighand!(state, parseabc)
-    @test and2 == QueryFormula(:and, Set([
-        QueryFormula(:v, :a),
-        QueryFormula(:v, :b),
-        QueryFormula(:v, :c)
-    ]))
+    @test QueryTruthTable(and2...) == QueryTruthTable(
+        v -> v[1] & v[2] & v[3], [(:v, :a), (:v, :b), (:v, :c)])
 
-    state = SmartsParser("!ab", false)
+    state = SMARTSParser("!ab")
     not2 = lghighand!(state, parseabc)
-    @test not2 == QueryFormula(:and, Set([
-        QueryFormula(:not, QueryFormula(:v, :a)),
-        QueryFormula(:v, :b)
-    ]))
+    @test QueryTruthTable(not2...) == QueryTruthTable(v -> ~v[1] & v[2], [(:v, :a), (:v, :b)])
 
-    state = SmartsParser("a,b", false)
+    state = SMARTSParser("a,b")
     or1 = lgor!(state, parseabc)
-    @test or1 == QueryFormula(:or, Set([
-        QueryFormula(:v, :a),
-        QueryFormula(:v, :b)
-    ]))
+    @test QueryTruthTable(or1...) == QueryTruthTable(v -> v[1] | v[2], [(:v, :a), (:v, :b)])
 
-    state = SmartsParser("a;b", false)
+    state = SMARTSParser("a;b")
     and3 = lglowand!(state, parseabc)
-    @test and3 == QueryFormula(:and, Set([
-        QueryFormula(:v, :a),
-        QueryFormula(:v, :b)
-    ]))
+    @test QueryTruthTable(and3...) == QueryTruthTable(v -> v[1] & v[2], [(:v, :a), (:v, :b)])
 
-    state = SmartsParser("", false)
+    state = SMARTSParser("")
     null = lglowand!(state, parseabc)
     @test null === nothing
 
-    state = SmartsParser("!a!b", false)
+    state = SMARTSParser("!a!b")
     not3 = lglowand!(state, parseabc)
-    @test not3 == QueryFormula(:and, Set([
-        QueryFormula(:not, QueryFormula(:v, :a)),
-        QueryFormula(:not, QueryFormula(:v, :b))
-    ]))
+    @test QueryTruthTable(not3...) == QueryTruthTable(v -> ~v[1] & ~v[2], [(:v, :a), (:v, :b)])
 
-    state = SmartsParser("abcdef", false)
+
+    state = SMARTSParser("abcdef")
     and4 = lghighand!(state, parseabc)
-    @test and4 == QueryFormula(:and, Set([
-        QueryFormula(:v, :a),
-        QueryFormula(:v, :b),
-        QueryFormula(:v, :c)
-    ]))
+    @test QueryTruthTable(and4...) == QueryTruthTable(
+        v -> v[1] & v[2] & v[3], [(:v, :a), (:v, :b), (:v, :c)])
     @test state.pos == 4
 
-    state = SmartsParser("a;b&c", false)
-    and5 = lglowand!(state, parseabc)
-    @test and5 == QueryFormula(:and, Set([
-        QueryFormula(:v, :a),
-        QueryFormula(:and, Set([
-            QueryFormula(:v, :b),
-            QueryFormula(:v, :c)
-        ]))
-    ]))
-
-    state = SmartsParser("a,b&c", false)
+    state = SMARTSParser("a,b&c")
     comp1 = lglowand!(state, parseabc)
-    @test comp1 == QueryFormula(:or, Set([
-        QueryFormula(:v, :a),
-        QueryFormula(:and, Set([
-            QueryFormula(:v, :b),
-            QueryFormula(:v, :c)
-        ]))
-    ]))
+    @test QueryTruthTable(comp1...) == QueryTruthTable(
+        v -> v[1] | v[2] & v[3], [(:v, :a), (:v, :b), (:v, :c)])
 
-    state = SmartsParser("a,b;c", false)
+    state = SMARTSParser("a,b;c")
     comp2 = lglowand!(state, parseabc)
-    @test comp2 == QueryFormula(:and, Set([
-        QueryFormula(:or, Set([
-            QueryFormula(:v, :a),
-            QueryFormula(:v, :b)
-        ])),
-        QueryFormula(:v, :c)
-    ]))
+    @test QueryTruthTable(comp2...) == QueryTruthTable(
+        v -> (v[1] | v[2]) & v[3], [(:v, :a), (:v, :b), (:v, :c)])
 
-    state = SmartsParser("ac;a!b,c;bx", false)
+    state = SMARTSParser("ac;a!b,c;bx")
     comp3 = lglowand!(state, parseabc)
-    @test comp3 == QueryFormula(:and, Set([
-        QueryFormula(:and, Set([
-            QueryFormula(:v, :a),
-            QueryFormula(:v, :c)
-        ])),
-        QueryFormula(:or, Set([
-            QueryFormula(:and, Set([
-                QueryFormula(:v, :a),
-                QueryFormula(:not, QueryFormula(:v, :b))
-            ])),
-            QueryFormula(:v, :c)
-        ])),
-        QueryFormula(:v, :b)
-    ]))
+    @test QueryTruthTable(comp3...) == QueryTruthTable(
+        v -> v[1] & v[3] & (v[1] & ~v[2] | v[3]) & v[2], [(:v, :a), (:v, :b), (:v, :c)])
     @test state.pos == 11
-
 end
 
 end # logicalopelator

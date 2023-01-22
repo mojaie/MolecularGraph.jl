@@ -4,12 +4,10 @@
 #
 
 
-function componentquery!(state::SmartsParserState)
+function componentquery!(state::SMARTSParser)
     """ Start <- Component ('.' Component)*
     """
-    if read(state) == '\0'
-        return # Empty query
-    end
+    read(state) == '\0' && return  # Empty query: smartstomol("")
     component!(state)
     while !state.done && read(state) == '.'
         forward!(state)
@@ -19,63 +17,55 @@ function componentquery!(state::SmartsParserState)
 end
 
 
-function component!(state::SmartsParserState)
+function component!(state::SMARTSParser)
     """ Component <- '(' Fragment ')' / Fragment
     """
-    if read(state) == '('
-        # Connectivity restriction
-        forward!(state)
-        push!(state.connectivity, [state.root])
-        fragment!(state)
-        c2 = read(state)
-        @assert c2 == ')' "unexpected token: $(c2) at $(state.pos)"
-        forward!(state)
-    else
-        fragment!(state)
-    end
+    read(state) == '(' || (fragment!(state); return)
+    forward!(state)
+    push!(state.connectivity, [state.root])  # Set connectivity restriction
+    fragment!(state)
+    c2 = read(state)
+    c2 == ')' || throw(ErrorException("component not closed: $(c2) found at $(state.pos)"))
+    forward!(state)
 end
 
 
-function fragment!(state::SmartsParserState)
+function fragment!(state::Union{SMILESParser,SMARTSParser})
     """ Fragment <- Group
     """
-    if read(state) == '\0'
-        return # Empty molecule
-    end
+    read(state) == '\0' && return  # Empty molecule
     group!(state, nothing)
     # Validity check
-    if state.node + 1 == state.root
-        throw(ErrorException(
-            "unexpected token: $(read(state)) at $(state.pos)"))
-    elseif length(state.ringlabel) > 0
-        label = collect(keys(state.ringlabel))[1]
-        throw(ErrorException("unclosed ring: $(label)"))
-    end
+    state.node + 1 == state.root && throw(
+        ErrorException("empty group: $(read(state)) found at $(state.pos)")
+    )
+    length(state.ringlabel) == 0 || throw(
+        ErrorException("unclosed ring: $(collect(keys(state.ringlabel))[1])")
+    )
 end
 
 
-function group!(state::SmartsParserState, bond)
+function group!(state::Union{SMILESParser{V,E},SMARTSParser{V,E}}, bond) where {V,E}
     """ Group <- Atom ((Bond? Group) / Chain)* Chain
     """
     a = atom!(state)
-    if isempty(a)
-        # ex. CC((CC)C)C
-        throw(ErrorException(
-            "unexpected token: branch starts with '(' at $(state.pos)"))
-    end
+    isempty(a) && throw(
+        ErrorException("unexpected token: branch starts with '(' at $(state.pos)")
+    ) # ex. CC((CC)C)C  TODO: is still valid?
     state.node += 1
-    push!(state.nodeattrs, popfirst!(a))
+    push!(state.vprops, popfirst!(a))
     if bond !== nothing
         # Connect branch
-        push!(state.edges, (state.branch, state.node))
-        push!(state.edgeattrs, bond)
+        push!(state.edges, undirectededge(state.branch, state.node))
+        push!(state.eprops, bond)
     end
     center = state.node
     for h in a
+        # hydrogens
         state.node += 1
-        push!(state.nodeattrs, h)
-        push!(state.edges, (center, state.node))
-        push!(state.edgeattrs, SmilesBond())
+        push!(state.vprops, h)
+        push!(state.edges, undirectededge(center, state.node))
+        push!(state.eprops, E())
     end
     state.branch = center
     while true
@@ -107,17 +97,14 @@ function group!(state::SmartsParserState, bond)
 end
 
 
-function chain!(state::SmartsParserState)
+function chain!(state::Union{SMILESParser{V,E},SMARTSParser{V,E}}) where {V,E}
     """ Chain <- (Bond? (Atom / RingLabel))+
     """
     u = state.branch
     while !state.done
         # Bond?
         if read(state) == '.'
-            if !state.allow_disconnected
-                throw(ErrorException(
-                    "unexpected token: disconnected at $(state.pos)"))
-            elseif lookahead(state, 1) != '('
+            if lookahead(state, 1) != '('
                 # Disconnected
                 forward!(state)
                 b = :disconn
@@ -146,8 +133,8 @@ function chain!(state::SmartsParserState)
                 (v, rb) = state.ringlabel[num]
                 b = something(b, rb, defaultbond(state))
                 delete!(state.ringlabel, num) # Ring label is reusable
-                push!(state.edges, (u, v))
-                push!(state.edgeattrs, b)
+                push!(state.edges, undirectededge(u, v))
+                push!(state.eprops, b)
             else
                 state.ringlabel[num] = (u, b)
             end
@@ -158,35 +145,33 @@ function chain!(state::SmartsParserState)
         a = atom!(state)
         if isempty(a)
             c = read(state)
-            @assert c in "().\0" "unexpected token: $(c) at $(state.pos)"
-            if b == :disconn
-                throw(ErrorException(
-                    "unexpected token: $(read(state)) at $(state.pos)"))
-            end
+            c in "().\0" || throw(ErrorException("unexpected token: $(c) at $(state.pos)"))
+            b === :disconn && throw(
+                ErrorException("unexpected token: $(read(state)) at $(state.pos)")
+            )
             break
         else
             state.node += 1
-            push!(state.nodeattrs, popfirst!(a))
+            push!(state.vprops, popfirst!(a))
         end
-        if b == :disconn
-            if state isa SmartsParser
+        if b === :disconn
+            if isa(state, SMARTSParser)
                 for conn in state.connectivity
-                    if conn[1] == state.root
-                        push!(conn, state.node)
-                    end
+                    conn[1] == state.root && push!(conn, state.node)
                 end
             end
         else
             b = something(b, defaultbond(state))
-            push!(state.edges, (u, state.node))
-            push!(state.edgeattrs, b)
+            push!(state.edges, undirectededge(u, state.node))
+            push!(state.eprops, b)
         end
         center = state.node
         for h in a
+            # hydrogens
             state.node += 1
-            push!(state.edges, (center, state.node))
-            push!(state.edgeattrs, SmilesBond())
-            push!(state.nodeattrs, h)
+            push!(state.edges, undirectededge(center, state.node))
+            push!(state.eprops, E())
+            push!(state.vprops, h)
         end
         u = center
     end
