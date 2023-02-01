@@ -311,13 +311,13 @@ end
 
 function sethighlight!(
         canvas::Canvas, substr::UndirectedGraph; color=Color(253, 216, 53))
-    isatomvisible_ = isatomvisible(substr)
+    # isatomvisible_ = isatomvisible(substr)
     for i in edgeset(substr)
         (u, v) = getedge(substr, i)
         setbondhighlight!(canvas, Segment{Point2D}(canvas.coords, u, v), color)
     end
     for i in nodeset(substr)
-        isatomvisible_[i] || continue
+        # isatomvisible_[i] || continue
         pos = Point2D(canvas.coords, i)
         setatomhighlight!(canvas, pos, color)
     end
