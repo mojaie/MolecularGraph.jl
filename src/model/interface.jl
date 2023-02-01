@@ -62,5 +62,5 @@ edge_rank(g::SimpleGraph, e::Edge) = edge_rank(g, src(e), dst(e))
 
 A workaround for UndirectedEdge that are not yet implemented in SimpleGraph
 """
-undirectededge(::Type{T}, src, dst) where T <: Edge = src < dst ? T(src, dst) : T(dst, src)
-undirectededge(src::Int, dst::Int) = undirectededge(Edge{Int}, src, dst)
+undirectededge(::Type{T}, src, dst) where T <: Integer = src < dst ? Edge{T}(src, dst) : Edge{T}(dst, src)
+undirectededge(src::Int, dst::Int) = undirectededge(Int, src, dst)

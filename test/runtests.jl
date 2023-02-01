@@ -26,7 +26,6 @@ module MolecularGraphGraphTest
 
     include("./graph/multigraph.jl")
     include("./graph/dag.jl")
-    include("./graph/cycle.jl")
     include("./graph/connectivity.jl")
     include("./graph/subgraphview.jl")
     include("./graph/disjointunion.jl")
@@ -57,7 +56,7 @@ module MolecularGraphTest
     using Graphs
     using MolecularGraph
 
-
+    
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
@@ -75,6 +74,7 @@ module MolecularGraphTest
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
+    include("./graph/cycle.jl")
 
     """
     include("properties.jl")

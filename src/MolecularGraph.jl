@@ -37,7 +37,6 @@ module MolecularGraph
         include("./graph/triangle.jl")
         include("./graph/clique.jl")
         include("./graph/connectivity.jl")
-        include("./graph/cycle.jl")
         include("./graph/planarity.jl")
 
         include("./graph/isomorphism/edgeinduced.jl")
@@ -69,6 +68,7 @@ module MolecularGraph
 
     export Util  # , Graph, Geometry
 
+
     include("./model/interface.jl")
     # include("./draw/interface.jl")
 
@@ -76,6 +76,8 @@ module MolecularGraph
     include("./model/bond.jl")
     include("./model/molgraph.jl")
     include("./model/query.jl")
+
+    include("./graph/cycle.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")

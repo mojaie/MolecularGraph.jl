@@ -52,26 +52,26 @@ function ctab_atom_v3(T, line)
     return T(d)
 end
 
-function ctab_bond_v2(E, B, line)
+function ctab_bond_v2(::Type{T}, B, line) where T <: Integer
     d = Dict{String,Any}()
-    u = parse(Int, line[1:3])
-    v = parse(Int, line[4:6])
+    u = parse(T, line[1:3])
+    v = parse(T, line[4:6])
     d["order"] = parse(Int, line[7:9])
     d["notation"] = parse(Int, line[10:12])
     d["isordered"] = u < v
     u, v = d["isordered"] ? (u, v) : (v, u)
-    return (undirectededge(E, u, v), B(d))
+    return (undirectededge(T, u, v), B(d))
 end
 
-function ctab_bond_v3(E, B, line)
+function ctab_bond_v3(::Type{T}, B, line) where T <: Integer
     d = Dict{String,Any}()
     ss = split(line)
-    d["order"], u, v = parse.(Int, ss[4:6])
+    d["order"], u, v = parse.(T, ss[4:6])
     props = Dict(sympair.(ss[7:end])...)
     d["notation"] = get(props, :CFG, 0)  # TODO: not compatible with v2
     d["isordered"] = u < v
     u, v = d["isordered"] ? (u, v) : (v, u)
-    return (undirectededge(E, u, v), B(d))
+    return (undirectededge(T, u, v), B(d))
 end
 
 function ctab_props_v2(io::IO)
@@ -157,7 +157,7 @@ function parse_ctab(::Type{T}, io::IO) where T <: AbstractMolGraph
     edges = edgetype(T)[]
     eprops = eproptype(T)[]
     for _ in 1:bondcount
-        edge, eprop = ctab_bond(edgetype(T), eproptype(T), readline(io))
+        edge, eprop = ctab_bond(eltype(T), eproptype(T), readline(io))
         push!(edges, edge)
         push!(eprops, eprop)
     end

@@ -23,12 +23,12 @@ using MolecularGraph: ctab_atom_v2, ctab_bond_v2
 end
 
 @testset "ctab_bond_v2" begin
-    edge, prop = ctab_bond_v2(Edge{Int}, SDFBond, "  1  2  2  0  0  0  0")
+    edge, prop = ctab_bond_v2(Int, SDFBond, "  1  2  2  0  0  0  0")
     @test edge == Edge(1, 2)
     @test prop[:order] == 2
     @test prop[:notation] == 0
     @test prop[:isordered]
-    edge, prop = ctab_bond_v2(Edge{Int}, SDFBond, "  5  4  1  6  0  0  0")
+    edge, prop = ctab_bond_v2(Int, SDFBond, "  5  4  1  6  0  0  0")
     @test edge == Edge(4, 5)
     @test prop[:order] == 1
     @test prop[:notation] == 6
