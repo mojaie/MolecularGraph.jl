@@ -7,7 +7,8 @@ export
     SvgCanvas,
     tosvg,
     drawsvg,
-    initcanvas!
+    initcanvas!,
+    savesvg
 
 using Printf
 
@@ -337,15 +338,15 @@ setatomleft!(canvas::SvgCanvas, pos, sym, color, hcnt, charge) = atomsymbol!(
 )
 
 
-function setatomnote!(canvas::SvgCanvas, pos, text, color, bgcolor)
+function setatomnote!(canvas::SvgCanvas, pos, text, color, bgcolor, opacity)
     size = round(Int, canvas.fontsize * canvas.annotsizef)
     bxy = svgcoords(pos)
     txy = svgcoords(pos + (0, size))
     c = svgcolor(color)
     bc = svgcolor(bgcolor)
     elem = """<g>
-     <rect $(bxy) width="$(size)" height="$(size)" rx="$(size/2)" ry="$(size/2)" fill="$(bc)" />
-     <text $(txy) font-size="$(size)" fill="$(c)">$(text)</text>
+     <rect $(bxy) width="$(size)" height="$(size)" rx="$(size/2)" ry="$(size/2)" fill="$(bc)" opacity="$(opacity)" />
+     <text $(txy) font-size="$(size)" fill="$(c)">$(text) </text>
     </g>
     """
     push!(canvas.elements, elem)
@@ -505,4 +506,18 @@ function drawwave!(canvas::SvgCanvas, seg, ucolor, vcolor)
     """
     push!(canvas.elements, elem)
     return
+end
+
+"""
+write svg string to file.
+"""
+function savesvg(the_svg_string::String, filename::String)
+    if ! contains(filename, ".svg")
+        filename *= ".svg"
+    end
+
+    f = open(filename, "w")
+    write(f, the_svg_string)
+    close(f)
+    return filename
 end

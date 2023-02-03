@@ -28,6 +28,7 @@ Default setting parameters of the molecule drawing canvas.
                    `:alongside` for others (default)
 - `:atomcolor`(Dict{Symbol,Color}) atom symbol and bond colors for organic atoms
 - `:defaul_atom_color`(Dict{Symbol,Color}) colors for other atoms
+- `:C_visible`(Bool) if C atoms should be visible
 """
 const DRAW_SETTING = Dict(
     :display_terminal_carbon => false,
@@ -48,7 +49,8 @@ const DRAW_SETTING = Dict(
         :Br => Color(0, 192, 0),
         :I => Color(0, 128, 0)
     ),
-    :default_atom_color => Color(0, 192, 192)
+    :default_atom_color => Color(0, 192, 192),
+    :C_visible => false
 )
 
 # For 3d rendering, we use white for hydrogen
@@ -87,7 +89,7 @@ Return whether the atom is visible in the 2D drawing.
     mul_ = multiplicity(mol)
     mas_ = getproperty.(nodeattrs(mol), :mass)
     for i in 1:nodecount(mol)
-        sym_[i] === :C || continue
+        (sym_[i] === :C && ! setting[:C_visible]) || continue
         chg_[i] == 0 || continue
         mul_[i] == 1 || continue
         mas_[i] === nothing || continue
@@ -298,12 +300,13 @@ end
 
 
 function drawatomindex!(canvas::Canvas, mol::UndirectedGraph;
-                        color=Color(0, 0, 0), bgcolor=Color(240, 240, 255))
+                        color=Color(0, 0, 0), bgcolor=Color(240, 240, 255),
+                        opacity=1.0)
     isatomvisible_ = isatomvisible(mol)
     for i in nodeset(mol)
         offset = isatomvisible_[i] ? (0.0, canvas.fontsize/2.0) : (0.0, 0.0)
         pos = Point2D(canvas.coords, i) + offset
-        setatomnote!(canvas, pos, string(i), color, bgcolor)
+        setatomnote!(canvas, pos, string(i), color, bgcolor, opacity)
     end
     return
 end
