@@ -12,19 +12,25 @@ export
 
 struct MolGraph{T,A,B} <: OrderedMolGraph{T}
     graph::SimpleGraph{T}
+    edge_rank::Dict{Edge{T},T}
     vprops::Vector{A}
     eprops::Vector{B}
     gprops::Dict{Symbol,Any}
 
     function MolGraph{T,A,B}(
-            g::SimpleGraph{T}=SimpleGraph{T}(), vprops=A[], eprops=B[], gprops=Dict()) where {T,A,B}
+            g=SimpleGraph{T}(), vprops=A[], eprops=B[], gprops=Dict()) where {T,A,B}
         nv(g) > length(vprops) && throw(ErrorException("Mismatch in the number of nodes and node properties"))
         ne(g) == length(eprops) || throw(ErrorException("Mismatch in the number of edges and edge properties"))
         # expand fadjlist for vprops of isolated nodes
         for _ in nv(g):(length(vprops) - 1)
             push!(g.fadjlist, Vector{T}())
         end
-        new(g, vprops, eprops, gprops)
+        # edge_rank mapping
+        er = Dict{Edge{T},T}()
+        for (i, e) in enumerate(edges(g))
+            er[e] = i
+        end
+        new(g, er, vprops, eprops, gprops)
     end
 end
 
@@ -115,16 +121,22 @@ vproptype(mol::MolGraph) = vproptype(typeof(mol))
 eproptype(::Type{MolGraph{T,A,B}}) where {T,A,B} = B
 eproptype(mol::MolGraph) = eproptype(typeof(mol))
 
+edge_rank(mol::MolGraph, e::Edge) = mol.edge_rank[e]
+edge_rank(mol::MolGraph{T,A,B}, u::Integer, v::Integer
+    ) where {T,A,B} = edge_rank(mol, undirectededge(T, u, v))
+
 props(mol::MolGraph) = mol.gprops
 props(mol::MolGraph, v::Integer) = mol.vprops[v]
-props(mol::MolGraph, u::Integer, v::Integer) = mol.eprops[edge_rank(mol.graph, u, v)]
-props(mol::MolGraph, e::Edge) = props(mol, src(e), dst(e))
+props(mol::MolGraph, e::Edge) = mol.eprops[mol.edge_rank[e]]
+props(mol::MolGraph{T,A,B}, u::Integer, v::Integer
+    ) where {T,A,B} = props(mol, undirectededge(T, u, v))
 get_prop(mol::MolGraph, prop::Symbol) = mol.gprops[prop]
 get_prop(mol::MolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
-get_prop(mol::MolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
 get_prop(mol::MolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
-eprop_iter(mol::MolGraph) = zip(edges(mol), mol.eprops)
-eprop_dict(mol::MolGraph) = Dict(eprop_iter(mol))
+get_prop(mol::MolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
+has_prop(mol::MolGraph, prop::Symbol) = haskey(mol.gprops, prop)
+# eprop_iter(mol::MolGraph) = zip(edges(mol), mol.eprops)
+# eprop_dict(mol::MolGraph) = Dict(eprop_iter(mol))
 
 """
     to_dict(mol::MolGraph) -> Dict{String,Any}
@@ -178,13 +190,13 @@ eproptype(mol::EditableMolGraph) = valtype(mol.eprops)
 props(mol::EditableMolGraph) = mol.gprops
 props(mol::EditableMolGraph, v::Integer) = mol.vprops[v]
 props(mol::EditableMolGraph, e::Edge) = mol.eprops[e]
-props(mol::EditableMolGraph, u::Integer, v::Integer) = mol.eprops[undirectededge(u, v)]
+props(mol::EditableMolGraph, u::Integer, v::Integer) = props(mol, undirectededge(u, v))
 get_prop(mol::EditableMolGraph, prop::Symbol) = mol.gprops[prop]
 get_prop(mol::EditableMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
 get_prop(mol::EditableMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
 get_prop(mol::EditableMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
-eprop_iter(mol::EditableMolGraph) = [mol.eprops[e] for e in edges(mol)]
-eprop_dict(mol::EditableMolGraph) = mol.eprops
+# eprop_iter(mol::EditableMolGraph) = [mol.eprops[e] for e in edges(mol)]
+# eprop_dict(mol::EditableMolGraph) = mol.eprops
 
 
 struct Reaction{T} <: AbstractReaction{T}
@@ -232,10 +244,10 @@ end
 
 
 """
+TODO: to be removed.
     setcache!(graph::, key; kwargs...)
 
-Set calculated property caches.
-"""
+Set calculated property caches. 
 function setcache!(mol::MolGraph, key; kwargs...)
     mol.gprops[:cache][key] = getfield(MolecularGraph, key)(mol; kwargs...)
 end
@@ -249,7 +261,6 @@ function Base.getindex(graph::MolGraph, sym::Symbol)
     end
 end
 
-"""
 function Base.getindex(view::SubstructView, sym::Symbol)
     if haskey(view.mol.gprops[:cache], sym)
         return view.mol.gprops[:cache][sym]

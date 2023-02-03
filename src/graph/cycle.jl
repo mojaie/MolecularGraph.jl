@@ -4,7 +4,7 @@
 #
 
 export
-    mincyclebasis, mincycle_edges
+    mincyclebasis, edgemincyclebasis
 
 
 function cotree_edges(g::SimpleGraph{T}) where T
@@ -55,7 +55,7 @@ function noweight_shortestpath(g::SimpleGraph{T}, u::T, v::T) where T
     # BFS based
     # u == v && return T[]  # impossible in findmincycle
     queue = [u]
-    pred = Dict{Int,Int}(u => 0)
+    pred = Dict{T,T}(u => 0)
     while !isempty(queue)
         i = popfirst!(queue)
         for nbr in neighbors(g, i)
@@ -97,7 +97,8 @@ function findmincycle(g::SimpleGraph, S::Set)
         pop!(sp)
         push!(paths, sp)
     end
-    return sortstablemin(paths, by=length)
+    # resume original vertices and return the cycle
+    return [vmap[get(hvmap, s, s)] for s in sortstablemin(paths, by=length)]
 end
 
 
@@ -134,10 +135,11 @@ function mincyclebasis(g::SimpleGraph{T}) where T
 end
 
 
-function mincycle_edges(g::SimpleGraph{T}) where T
+function edgemincyclebasis(g::SimpleGraph{T}) where T
     cycles = Vector{Edge{T}}[]
     for p in mincyclebasis(g)
         minedges = [undirectededge(T, p[i], p[i + 1]) for i in 1:(length(p) - 1)]
+        push!(minedges, undirectededge(T, p[1], p[end]))
         push!(cycles, minedges)
     end
     return cycles

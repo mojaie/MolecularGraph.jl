@@ -26,7 +26,7 @@ end
 
 
 function printv2bonds(io::IO, mol::SDFMolGraph)
-    for (e, prop) in eprop_iter(mol)
+    for (e, prop) in zip(edges(mol), mol.eprops)
         u, v = prop[:isordered] ? (src(e), dst(e)) : (dst(e), src(e))
         uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v prop[:order] prop[:notation]
         println(io, uv)
@@ -35,9 +35,9 @@ end
 
 
 function printv2bonds(io::IO, mol::SMILESMolGraph, styles)
-    for (i, (e, prop)) in enumerate(eprop_iter(mol))
+    for (e, prop) in zip(edges(mol), mol.eprops)
         u, v = prop[:isordered] ? (src(e), dst(e)) : (dst(e), src(e))
-        notation = styles[i]
+        notation = styles[edge_rank(mol, e)]
         uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v prop[:order] notation
         println(io, uv)
     end

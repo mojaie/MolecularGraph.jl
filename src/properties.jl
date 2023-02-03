@@ -4,20 +4,18 @@
 #
 
 export
-    nodedegree,
-    sssr, sssrmembership, sssrbondmembership,
-    fusedrings, fusedringmembership, 
-    smallestsssr, sssrcount,
-    isringatom, isringbond,
-    atomsymbol, charge, multiplicity, bondorder,
-    valence, lonepair,
-    heavyatomconnected, explicithconnected, implicithconnected,
-    hydrogenconnected, connectivity,
-    ishdonor, hacceptorcount, ishacceptor, hdonorcount,
-    isrotatable, rotatablecount,
-    atomcounter, heavyatomcount, molecularformula, empiricalformula,
-    pielectron, hybridization,
-    isaromaticring, isaromatic, isaromaticbond,
+    sssr, which_ring, edge_which_ring, fused_rings, which_fused_ring, 
+    smallest_ring, ring_count, is_in_ring, is_edge_in_ring,
+    atom_symbol, charge, multiplicity, bond_order,
+    valence, lone_pair,
+    heavy_atoms, explicit_hydrogens, implicit_hydrogens,
+    total_hydrogens, connectivity,
+    is_hydrogen_donor, hydrogen_donor_count,
+    is_hydrogen_acceptor, hydrogen_acceptor_count,
+    is_rotatable, rotatable_count,
+    atom_counter, heavy_atom_count, molecular_formula, empirical_formula,
+    pi_electron, hybridization,
+    is_ring_aromatic, is_aromatic, is_edge_aromatic,
     precalculate!
 
 
@@ -32,38 +30,37 @@ const LONEPAIR_COUNT = Dict(
 # Molecular graph topology
 
 """
-    nodedegree(mol::GraphMol) -> Vector{Int}
+    degree(mol::AbstractMolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the node degree of the molecular graph
 of 1 to ``n``th atoms of the given molecule.
 
 This property corresponds to SMARTS `D` query.
 """
-@cachefirst nodedegree(mol::GraphMol) = [degree(mol, n) for n in 1:nodecount(mol)]
-nodedegree(view::SubgraphView) = nodedegree(view.graph)
+Graphs.degree
 
 
 """
-    sssr(mol::GraphMol) -> Vector{Vector{Int}}
+    sssr(mol::AbstractMolGraph) -> Vector{Vector{Int}}
 
 Return vectors of ring nodes representing small set of smallest rings (SSSR).
 
 See [`Graph.minimumcyclebasis`](@ref).
 """
-sssr = minimumcyclebasisnodes
+sssr(mol::AbstractMolGraph) = get(mol.gprops, :sssr, mincyclebasis(mol.graph))
 
 
 """
-    sssrmembership(mol::GraphMol) -> Vector{Set{Int}}
+    which_ring(mol::MolGraph) -> Vector{Set{Int}}
 
 Return a vector of size ``n`` representing [`sssr`](@ref) membership of
-1 to ``n``th atoms of the given molecule.
+1 to ``n``th nodes of the given graph.
 
-SSSR membership is represented as a set of SSSR indices assigned to each rings.
-This means atoms that have the same SSSR index belong to the same SSSR.
+SSSR membership is represented as a vector of SSSR indices assigned to each rings.
+This means nodes that have the same SSSR index belong to the same SSSR.
 """
-@cachefirst function sssrmembership(mol::GraphMol)
-    nodes = [Set{Int}() for n in 1:nodecount(mol)]
+function which_ring(mol::MolGraph)
+    nodes = [Int[] for _ in vertices(mol)]
     for (i, cyc) in enumerate(sssr(mol))
         for n in cyc
             push!(nodes[n], i)
@@ -74,7 +71,7 @@ end
 
 
 """
-    sssrbondmembership(mol::GraphMol) -> Vector{Set{Int}}
+    edge_which_sssr(mol::MolGraph) -> Vector{Set{Int}}
 
 Return a vector of size ``n`` representing [`sssr`](@ref) membership of
 1 to ``n``th bonds of the given molecule.
@@ -82,34 +79,36 @@ Return a vector of size ``n`` representing [`sssr`](@ref) membership of
 SSSR membership is represented as a set of SSSR indices assigned to each rings.
 This means bonds that have the same SSSR index belong to the same SSSR.
 """
-@cachefirst function sssrbondmembership(mol::GraphMol)
-    edges = [Set{Int}() for n in 1:edgecount(mol)]
-    for (i, cyc) in enumerate(minimumcyclebasis(mol))
-        for e in cyc
-            push!(edges[e], i)
+function edge_which_ring(mol::MolGraph)
+    edges = [Int[] for n in 1:ne(mol)]
+    for (i, cyc) in enumerate(sssr(mol))
+        for j in 1:(length(cyc) - 1)
+            push!(edges[edge_rank(mol, cyc[j], cyc[j + 1])], i)
         end
+        push!(edges[edge_rank(mol, cyc[1], cyc[end])], i)
     end
     return edges
 end
 
 
 """
-    fusedrings(mol::UndirectedGraph) -> Vector{Set{Int}}
+    fused_rings(mol::MolGraph{T,V,E}) -> Vector{Vector{T}}
 
 Return vectors of fused ring node sets.
 
 A fused ring is defined as a 2-edge connected components in terms of graph theory.
 Spirocyclic structures are considered to be part of a fused ring.
 """
-@cachefirst function fusedrings(mol::GraphMol)
-    cobr = setdiff(edgeset(mol), bridges(mol))
-    subg = plaingraph(edgesubgraph(mol, cobr))
-    return connectedcomponents(subg)
+function fused_rings(mol::MolGraph)
+    has_prop(mol, :fused_rings) && return get_prop(mol, :fused_rings)
+    cobr = setdiff(Set(edges(mol)), bridges(mol.graph))
+    subg, vmap = induced_subgraph(mol.graph, cobr)
+    return  [vmap[c] for c in connected_components(subg)]
 end
 
 
 """
-    fusedringmembership(mol::UndirectedGraph) -> Vector{Int}
+    which_fused_ring(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing [`fusedrings`](@ref) membership of
 1 to ``n``th atoms of the given molecule.
@@ -117,9 +116,10 @@ Return a vector of size ``n`` representing [`fusedrings`](@ref) membership of
 Fused ring membership is represented as a set of fused ring indices assigned to each fused rings.
 This means atoms that have the same fused ring index belong to the same fused ring.
 """
-@cachefirst function fusedringmembership(mol::GraphMol)
-    arr = [Set{Int}() for i in 1:nodecount(mol)]
-    for (i, conn) in enumerate(fusedrings(mol))
+function which_fused_ring(mol::MolGraph)
+    has_prop(mol, :node_which_fused_ring) && return get_prop(mol, :node_which_fused_ring)
+    arr = [T[] for _ in vertices(mol)]
+    for (i, conn) in enumerate(fused_rings(mol))
         for n in conn
             push!(arr[n], i)
         end
@@ -129,55 +129,47 @@ end
 
 
 """
-    smallestsssr(mol::UndirectedGraph) -> Vector{Int}
+    smallest_ring(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the size of the smallest [`sssr`](@ref)
-that 1 to ``n``th atoms of the given molecule belong to.
+that 1 to ``n``th atoms of the given molecule belong to. 
 
+If the node is not in a ring, the value would be 0.
 This property corresponds to SMARTS `r` query.
 """
-@cachefirst function smallestsssr(mol::GraphMol)
+function smallest_ring(mol::MolGraph)
     sssr_ = sssr(mol)
-    arr = []
-    for ks in sssrmembership(mol)
-        val = isempty(ks) ? 0 : minimum([length(sssr_[k]) for k in ks])
-        push!(arr, val)
-    end
-    return arr
+    return [(isempty(ks) ? 0 : minimum(length.(sssr_[ks]))) for ks in which_ring(mol)]
 end
-smallestsssr(view::SubgraphView) = smallestsssr(view.graph)
 
 
 """
-    sssrcount(mol::UndirectedGraph) -> Vector{Int}
+    ring_count(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of [`sssr`](@ref)
 that 1 to ``n``th atoms of the given molecule belong to.
 
 This property corresponds to SMARTS `R` query.
 """
-@cachefirst sssrcount(mol::UndirectedGraph) = length.(sssrmembership(mol))
-sssrcount(view::SubgraphView) = sssrcount(view.graph)
+ring_count(mol::MolGraph) = length.(which_ring(mol))
 
 
 """
-    isringatom(mol::UndirectedGraph) -> Vector{Bool}
+    is_in_ring(mol::MolGraph) -> Vector{Bool}
 
 Return a vector of size ``n`` representing whether 1 to ``n``th atoms of
 the given molecule belong to a ring or not.
 """
-@cachefirst isringatom(mol::UndirectedGraph) = .!isempty.(sssrmembership(mol))
-isringatom(view::SubgraphView) = isringatom(view.graph)
+is_in_ring(mol::MolGraph) = .!isempty.(which_ring(mol))
 
 
 """
-    isringbond(mol::UndirectedGraph) -> Vector{Bool}
+    is_edge_in_ring(mol::MolGraph) -> Vector{Bool}
 
 Return a vector of size ``n`` representing whether 1 to ``n``th bonds of
 the given molecule belong to a ring or not.
 """
-@cachefirst isringbond(mol::UndirectedGraph) = .!isempty.(sssrbondmembership(mol))
-isringbond(view::SubgraphView) = isringbond(view.graph)
+is_edge_in_ring(mol::MolGraph) = .!isempty.(edge_which_ring(mol))
 
 
 
@@ -185,47 +177,47 @@ isringbond(view::SubgraphView) = isringbond(view.graph)
 # Elemental properties
 
 """
-    atomsymbol(mol::GraphMol) -> Vector{Symbol}
+    atom_symbol(mol::MolGraph) -> Vector{Symbol}
 
 Return a vector of size ``n`` representing atom symbols of 1 to ``n``th atoms of
 the given molecule.
 """
-@cachefirst atomsymbol(mol::UndirectedGraph) = getproperty.(nodeattrs(mol), :symbol)
+atom_symbol(mol::MolGraph) = getproperty.(mol.vprops, :symbol)
 
 
 """
-    charge(mol::GraphMol) -> Vector{Int}
+    charge(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing atom charges of 1 to ``n``th atoms of
 the given molecule.
 """
-@cachefirst charge(mol::UndirectedGraph) = getproperty.(nodeattrs(mol), :charge)
+charge(mol::MolGraph) = getproperty.(mol.vprops, :charge)
 
 
 """
-    multiplicity(mol::GraphMol) -> Vector{Int}
+    multiplicity(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing atom multiplicities of 1 to ``n``th atoms of
 the given molecule (1: non-radical, 2: radical, 3: biradical).
 """
-@cachefirst multiplicity(mol::UndirectedGraph) = getproperty.(nodeattrs(mol), :multiplicity)
+multiplicity(mol::MolGraph) = getproperty.(mol.vprops, :multiplicity)
 
 
 """
-    bondorder(mol::GraphMol) -> Vector{Int}
+    bond_order(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing bond order of 1 to ``n``th bonds of
 the given molecule.
 """
-@cachefirst bondorder(mol::UndirectedGraph) = getproperty.(edgeattrs(mol), :order)
-
+bond_order(mol::MolGraph) = getproperty.(mol.eprops, :order)
+bond_order_map(mol::MolGraph) = Dict(k => v[:order] for (k, v) in zip(edges(mol), mol.eprops))
 
 
 
 # Valence
 
 """
-    lonepair(mol::GraphMol) -> Vector{Union{Int,Nothing}}
+    lone_pair(mol::MolGraph) -> Vector{Union{Int,Nothing}}
 
 Return a vector of size ``n`` representing the number of lone pairs of
 1 to ``n``th atoms of the given molecule.
@@ -233,42 +225,40 @@ Return a vector of size ``n`` representing the number of lone pairs of
 The number of lone pair in inorganic atoms would be `nothing`.
 The result can take negative value if the atom has empty shells (e.g. B).
 """
-@cachefirst function lonepair(mol::GraphMol)
+function lone_pair(mol::MolGraph)
+    has_prop(mol, :node_lone_pair) && return get_prop(mol, :node_lone_pair)
     vec = Union{Int,Nothing}[]
-    atomsymbol_ = atomsymbol(mol)
+    atomsymbol_ = atom_symbol(mol)
     charge_ = charge(mol)
-    for i in 1:nodecount(mol)
+    for i in vertices(mol)
         num = get(LONEPAIR_COUNT, atomsymbol_[i], nothing)
         v = num === nothing ? nothing : num - charge_[i]
         push!(vec, v)
     end
     return vec
 end
-lonepair(view::SubgraphView) = lonepair(view.graph)
 
 
 """
-    apparentvalence(mol::GraphMol) -> Vector{Int}
+    apparent_valence(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of total bond order
 incident to 1 to ``n``th atoms of the given molecule.
 """
-@cachefirst function apparentvalence(mol::GraphMol)
-    vec = zeros(Int, nodecount(mol))
-    bondorder_ = bondorder(mol)
-    for i in 1:nodecount(mol)
-        for (inc, adj) in neighbors(mol, i)
-            vec[i] += bondorder_[inc]
-        end
+function apparent_valence(mol::MolGraph{T,V,E}) where {T,V,E}
+    has_prop(mol, :node_apparent_valence) && return get_prop(mol, :node_apparent_valence)
+    vec = zeros(Int, nv(mol))
+    bomap = bond_order_map(mol)
+    for e in edges(mol)
+        vec[src(e)] += bomap[e]
+        vec[dst(e)] += bomap[e]
     end
     return vec
 end
 
-apparentvalence(view::SubgraphView) = apparentvalence(view.graph)
-
 
 """
-    valence(mol::GraphMol) -> Vector{Union{Int,Nothing}}
+    valence(mol::MolGraph) -> Vector{Union{Int,Nothing}}
 
 Return a vector of size ``n`` representing the intrinsic valence of
 1 to ``n``th atoms of the given molecule.
@@ -277,11 +267,12 @@ The number of implicit hydrogens would be calculated based on the valence.
 The valence value in inorganic atoms would be `nothing`.
 This property corresponds to SMARTS `v` query.
 """
-@cachefirst function valence(mol::GraphMol)
+function valence(mol::MolGraph)
+    has_prop(mol, :node_valence) && return get_prop(mol, :node_valence)
     vec = Union{Int,Nothing}[]
-    atomsymbol_ = atomsymbol(mol)
-    lonepair_ = lonepair(mol)
-    for i in 1:nodecount(mol)
+    atomsymbol_ = atom_symbol(mol)
+    lonepair_ = lone_pair(mol)
+    for i in vertices(mol)
         if lonepair_[i] === nothing
             push!(vec, nothing)
         elseif atomsymbol_[i] === :H
@@ -292,34 +283,30 @@ This property corresponds to SMARTS `v` query.
     end
     return vec
 end
-valence(view::SubgraphView) = valence(view.graph)
 
 
 """
-    explicithconnected(mol::GraphMol) -> Vector{Int}
+    explicit_hydrogens(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of explicit hydrogens
 connected to 1 to ``n``th atoms of the given molecule.
 
-"Explicit" means hydrogens are connected to the heavy atom as atom nodes.
+"Explicit" means hydrogens are explicitly represented as graph nodes.
 """
-@cachefirst function explicithconnected(mol::GraphMol)
-    vec = zeros(Int, nodecount(mol))
-    atomsymbol_ = atomsymbol(mol)
-    for i in 1:nodecount(mol)
-        for (inc, adj) in neighbors(mol, i)
-            if atomsymbol_[adj] === :H
-                vec[i] += 1
-            end
+function explicit_hydrogens(mol::MolGraph)
+    vec = zeros(Int, nv(mol))
+    for (i, sym) in enumerate(atom_symbol(mol))
+        sym === :H || continue
+        for nbr in neighbors(mol, i)
+            vec[nbr] += 1
         end
     end
     return vec
 end
-explicithconnected(view::SubgraphView) = explicithconnected(view.graph)
 
 
 """
-    implicithconnected(mol::GraphMol) -> Vector{Int}
+    implicit_hydrogens(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of implicit hydrogens
 connected to 1 to ``n``th atoms of the given molecule.
@@ -327,73 +314,73 @@ connected to 1 to ``n``th atoms of the given molecule.
 "Implicit" means hydrogens are not represented as graph nodes,
 but it can be infered from the intrinsic valence of typical organic atoms.
 """
-@cachefirst function implicithconnected(mol::UndirectedGraph)
+function implicit_hydrogens(mol::MolGraph)
     hcnt = (v, av) -> v === nothing ? 0 : max(0, v - av)
-    return hcnt.(valence(mol), apparentvalence(mol))
+    return hcnt.(valence(mol), apparent_valence(mol))
 end
 
 
 """
-    heavyatomconnected(mol::GraphMol) -> Vector{Int}
+    heavyatoms(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of non-hydrogen atoms
 connected to 1 to ``n``th atoms of the given molecule.
 """
-@cachefirst heavyatomconnected(mol::UndirectedGraph) = nodedegree(mol) - explicithconnected(mol)
+heavy_atoms(mol::MolGraph) = degree(mol) - explicit_hydrogens(mol)
 
 
 """
-    hydrogenconnected(mol::GraphMol) -> Vector{Int}
+    hydrogenconnected(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of total hydrogens
 (implicit and explicit) connected to 1 to ``n``th atoms of the given molecule.
 
 This property corresponds to SMARTS `H` query.
 """
-@cachefirst hydrogenconnected(mol::UndirectedGraph) = explicithconnected(mol) + implicithconnected(mol)
+total_hydrogens(mol::MolGraph) = explicit_hydrogens(mol) + implicit_hydrogens(mol)
 
 
 """
-    connectivity(mol::GraphMol) -> Vector{Int}
+    connectivity(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of total atoms
 (implicit and explicit) connected to 1 to ``n``th atoms of the given molecule.
 
 This property corresponds to SMARTS `X` query.
 """
-@cachefirst connectivity(mol::UndirectedGraph) = nodedegree(mol) + implicithconnected(mol)
+connectivity(mol::MolGraph) = degree(mol) + implicit_hydrogens(mol)
 
 
 
 
 # Hydrogen bond donor/acceptor
 
-@cachefirst function ishacceptor(mol::UndirectedGraph)
+function is_hydrogen_acceptor(mol::MolGraph)
     ac = (sym, lp) -> lp === nothing ? false : sym in (:N, :O, :F) && lp > 0
-    return ac.(atomsymbol(mol), lonepair(mol))
+    return ac.(atom_symbol(mol), lone_pair(mol))
 end
 
 
 """
-    hacceptorcount(mol::GraphMol) -> Int
+    hacceptorcount(mol::MolGraph) -> Int
 
 Return the total number of hydrogen bond acceptors (N, O and F).
 """
-hacceptorcount(mol::GraphMol) = reduce(+, ishacceptor(mol); init=0)
+hydrogen_acceptor_count(mol::MolGraph) = reduce(+, is_hydrogen_acceptor(mol); init=0)
 
 
-@cachefirst function ishdonor(mol::UndirectedGraph)
+function is_hydrogen_donor(mol::MolGraph)
     dc = (sym, h) -> sym in (:N, :O) && h > 0
-    return dc.(atomsymbol(mol), hydrogenconnected(mol))
+    return dc.(atom_symbol(mol), total_hydrogens(mol))
 end
 
 
 """
-    hdonorcount(mol::GraphMol) -> Int
+    hdonorcount(mol::MolGraph) -> Int
 
 Return the total number of hydrogen bond donors (O and N attached to hydrogens).
 """
-hdonorcount(mol::GraphMol) = reduce(+, ishdonor(mol); init=0)
+hydrogen_donor_count(mol::MolGraph) = reduce(+, is_hydrogen_donor(mol); init=0)
 
 
 
@@ -401,32 +388,31 @@ hdonorcount(mol::GraphMol) = reduce(+, ishdonor(mol); init=0)
 # Rotatable bonds
 
 """
-    isrotatable(mol::GraphMol)
+    isrotatable(mol::MolGraph)
 
 Return a vector of size ``n`` representing whether 1 to ``n``th bonds
 of the given molecule are rotatable or not.
 """
-@cachefirst function isrotatable(mol::GraphMol)
-    nodedegree_ = nodedegree(mol)
-    isringbond_ = isringbond(mol)
-    bondorder_ = bondorder(mol)
+function is_rotatable(mol::MolGraph)
+    degree_ = degree(mol)
+    edgeinring_ = is_edge_in_ring(mol)
+    bondorder_ = bond_order(mol)
     vec = Bool[]
-    for (i, (u, v)) in enumerate(edgesiter(mol))
-        rot = (!isringbond_[i] && bondorder_[i] == 1
-            && nodedegree_[u] != 1 && nodedegree_[v] != 1)
+    for (i, e) in enumerate(edges(mol))
+        rot = (!edgeinring_[i] && bondorder_[i] == 1
+            && degree_[src(e)] != 1 && degree_[dst(e)] != 1)
         push!(vec, rot)
     end
     return vec
 end
-isrotatable(view::SubgraphView) = isrotatable(view.graph)
 
 
 """
-    rotatablecount(mol::GraphMol) -> Int
+    rotatablecount(mol::MolGraph) -> Int
 
 Return the total number of rotatable bonds.
 """
-rotatablecount(mol::GraphMol) = reduce(+, isrotatable(mol); init=0)
+rotatable_count(mol::MolGraph) = reduce(+, is_rotatable(mol); init=0)
 
 
 
@@ -434,20 +420,20 @@ rotatablecount(mol::GraphMol) = reduce(+, isrotatable(mol); init=0)
 # Composition
 
 """
-    atomcounter(mol::GraphMol) -> Dict{Symbol,Int}
+    atomcounter(mol::MolGraph) -> Dict{Symbol,Int}
 
 Count the number of atoms and return symbol => count dict.
 """
-@cachefirst function atomcounter(mol::GraphMol)
+function atom_counter(mol::MolGraph)
     counter = Dict{Symbol,Int}()
-    for sym in atomsymbol(mol)
+    for sym in atom_symbol(mol)
         if !haskey(counter, sym)
             counter[sym] = 1
         else
             counter[sym] += 1
         end
     end
-    hcnt = reduce(+, implicithconnected(mol); init=0)
+    hcnt = reduce(+, implicit_hydrogens(mol); init=0)
     if hcnt > 0
         if !haskey(counter, :H)
             counter[:H] = hcnt
@@ -460,18 +446,18 @@ end
 
 
 """
-    heavyatomcount(mol::GraphMol) -> Int
+    heavyatomcount(mol::MolGraph) -> Int
 
 Return the total number of non-hydrogen atoms.
 """
-function heavyatomcount(mol::GraphMol)
-    counter = atomcounter(mol)
+function heavy_atom_count(mol::MolGraph)
+    counter = atom_counter(mol)
     delete!(counter, :H)
     return reduce(+, values(counter); init=0)
 end
 
 
-function writeformula(counter::Dict{Symbol,Int})
+function write_formula(counter::Dict{Symbol,Int})
     strs = []
     if haskey(counter, :C)
         push!(strs, "C")
@@ -493,30 +479,30 @@ end
 
 
 """
-    molecularformula(mol::GraphMol) -> String
+    molecular_formula(mol::MolGraph) -> String
 
 Return the molecular formula in Hill system.
 """
-function molecularformula(mol::GraphMol)
-    counter = atomcounter(mol)
-    return writeformula(counter)
+function molecular_formula(mol::MolGraph)
+    counter = atom_counter(mol)
+    return write_formula(counter)
 end
 
 
 """
-    empiricalformula(mol::GraphMol) -> String
+    empirical_formula(mol::MolGraph) -> String
 
 Return the empirical formula in Hill system.
 """
-function empiricalformula(mol::GraphMol)
-    counter = atomcounter(mol)
+function empirical_formula(mol::MolGraph)
+    counter = atom_counter(mol)
     if length(counter) > 1
         dv = reduce(gcd, values(counter))
         for k in keys(counter)
             counter[k] = div(counter[k], dv)
         end
     end
-    return writeformula(counter)
+    return write_formula(counter)
 end
 
 
@@ -525,7 +511,7 @@ end
 # Hybridization
 
 """
-    pielectron(mol::GraphMol) -> Vector{Int}
+    pi_electron(mol::MolGraph) -> Vector{Int}
 
 Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
 of 1 to ``n``th atoms of the given molecule.
@@ -539,16 +525,16 @@ The counting of ``\\pi`` electrons is based on the following rules.
 
 These rules are applied for only typical organic atoms. The values for inorganic atoms will be 0.
 """
-@cachefirst function pielectron(mol::GraphMol)
-    atomsymbol_ = atomsymbol(mol)
+function pi_electron(mol::MolGraph)
+    atomsymbol_ = atom_symbol(mol)
     charge_ = charge(mol)
-    pie_ = apparentvalence(mol) - nodedegree(mol)
-    vec = zeros(Int, nodecount(mol))
-    for i in 1:nodecount(mol)
+    pie_ = apparent_valence(mol) - degree(mol)
+    vec = zeros(Int, nv(mol))
+    for i in vertices(mol)
         vec[i] = pie_[i]
         atomsymbol_[i] in (:N, :O, :S) || continue
-        for (inc, adj) in neighbors(mol, i)
-            if pie_[i] == 0 && pie_[adj] > 0 && charge_[i] == 0
+        for nbr in neighbors(mol, i)
+            if pie_[i] == 0 && pie_[nbr] > 0 && charge_[i] == 0
                 vec[i] = 2
                 break
             end
@@ -556,11 +542,10 @@ These rules are applied for only typical organic atoms. The values for inorganic
     end
     return vec
 end
-pielectron(view::SubgraphView) = pielectron(view.graph)
 
 
 """
-    hybridization(mol::GraphMol) -> Vector{Int}
+    hybridization(mol::MolGraph) -> Vector{Int}
 
 Returns a vector of size ``n`` representing the orbital hybridization symbols
 (`:sp3`, `:sp2`, `:sp` or `:none`) of 1 to ``n``th atoms of the given molecule.
@@ -568,13 +553,13 @@ Returns a vector of size ``n`` representing the orbital hybridization symbols
 The hybridization value in inorganic atoms and non-typical organic atoms will be `:none`
 (e.g. s, sp3d and sp3d2 orbitals).
 """
-@cachefirst function hybridization(mol::GraphMol)
-    atomsymbol_ = atomsymbol(mol)
-    pielectron_ = pielectron(mol)
+function hybridization(mol::MolGraph)
+    atomsymbol_ = atom_symbol(mol)
+    pielectron_ = pi_electron(mol)
     connectivity_ = connectivity(mol)
-    lonepair_ = lonepair(mol)
+    lonepair_ = lone_pair(mol)
     vec = Symbol[]
-    for i in 1:nodecount(mol)
+    for i in vertices(mol)
         if lonepair_[i] === nothing || atomsymbol_[i] === :H
             push!(vec, :none)
             continue
@@ -596,56 +581,52 @@ The hybridization value in inorganic atoms and non-typical organic atoms will be
     end
     return vec
 end
-hybridization(view::SubgraphView) = hybridization(view.graph)
 
 
 
 
 # Aromaticity
 
-@cachefirst function isaromaticring(mol::GraphMol)
-    atomsymbol_ = atomsymbol(mol)
-    nodedegree_ = nodedegree(mol)
-    pie_ = apparentvalence(mol) - nodedegree(mol)
-    lonepair_ = lonepair(mol)
-    carbonylO = findall(
+function is_ring_aromatic(mol::MolGraph)
+    has_prop(mol, :is_ring_aromatic) && return get_prop(mol, :is_ring_aromatic)
+    atomsymbol_ = atom_symbol(mol)
+    nodedegree_ = degree(mol)
+    pie_ = apparent_valence(mol) - degree(mol)
+    lonepair_ = lone_pair(mol)
+    carbonyl_o = findall(
         (atomsymbol_ .=== :O) .* (nodedegree_ .== 1) .* (pie_ .== 1))
-    carbonylC = falses(nodecount(mol))
-    for o in carbonylO
-        c = pop!(adjacencies(mol, o))
+    carbonyl_c = falses(nv(mol))
+    for o in carbonyl_o
+        c = neighbors(mol, o)[1]
         if atomsymbol_[c] === :C
-            carbonylC[c] = true
+            carbonyl_c[c] = true
         end
     end
-    arr = falses(circuitrank(mol))
-    for (i, ring) in enumerate(sssr(mol))
+    sssr_ = sssr(mol)
+    arr = falses(length(sssr_))
+    for (i, ring) in enumerate(sssr_)
         cnt = 0
         for r in ring
-            if carbonylC[r]
-                continue
-            elseif pie_[r] == 1
+            carbonyl_c[r] && continue
+            if pie_[r] == 1
                 cnt += 1
-            elseif lonepair_[r] === nothing
-                cnt = 0
-                break
-            elseif lonepair_[r] > 0
-                cnt += 2
-            elseif lonepair_[r] < 0
                 continue
-            else
-                cnt = 0
-                break
+            elseif lonepair_[r] !== nothing
+                if lonepair_[r] > 0
+                    cnt += 2
+                    continue
+                elseif lonepair_[r] < 0
+                    continue  # :B
+                end  # lonepair == 0
             end
+            cnt = 0
+            break
         end
-        if cnt % 4 == 2
-            # Huckel rule check
+        if cnt % 4 == 2  # Huckel rule check
             arr[i] = true
-            continue
-        end
-        if nodeattrtype(mol) === SmilesAtom
-            # SMILES aromatic atom
-            sub = nodesubgraph(mol, Set(ring))
-            if all(nodeattr(mol, n).isaromatic for n in nodeset(sub))
+        elseif vproptype(mol) <: SMILESAtom  # SMILES aromatic atom
+            subg, vmap = induced_subgraph(mol.graph, ring)
+            if all(get_prop(mol, vmap[n], :isaromatic) for n in vertices(subg))
                 arr[i] = true
             end
         end
@@ -655,7 +636,7 @@ end
 
 
 """
-    isaromatic(mol::GraphMol) -> Vector{Bool}
+    is_aromatic(mol::MolGraph) -> Vector{Bool}
 
 Returns a vector of size ``n`` representing whether 1 to ``n``th atoms
 of the given molecule belong to an aromatic ring or not.
@@ -664,52 +645,81 @@ Some kind of aromaticity resulting from long conjugated chains and charge
 delocalization may be unrecognizable. Also, non-classical aromaticity
 such as Moebius aromaticity is not considered.
 """
-@cachefirst function isaromatic(mol::GraphMol)
-    aromatic = falses(nodecount(mol))
-    for ring in sssr(mol)[isaromaticring(mol)]
-        sub = nodesubgraph(mol, Set(ring))
-        for n in nodeset(sub)
-            aromatic[n] = true
-        end
+function is_aromatic(mol::MolGraph)
+    aromatic = falses(nv(mol))
+    for ring in sssr(mol)[findall(is_ring_aromatic(mol))]
+        aromatic[ring] .= true
     end
     return aromatic
 end
-isaromatic(view::SubgraphView) = isaromatic(view.graph)
 
 
 """
-    isaromaticbond(mol::GraphMol) -> Vector{Bool}
+    is_edge_aromatic(mol::MolGraph) -> Vector{Bool}
 
 Returns a vector of size ``n`` representing whether 1 to ``n``th bonds
 of the given molecule belong to an aromatic ring or not.
 
 See [`isaromatic`](@ref).
 """
-@cachefirst function isaromaticbond(mol::GraphMol)
-    aromaticbond = falses(edgecount(mol))
-    for ring in sssr(mol)[isaromaticring(mol)]
-        sub = nodesubgraph(mol, Set(ring))
-        for e in edgeset(sub)
-            aromaticbond[e] = true
+function is_edge_aromatic(mol::MolGraph)
+    aromatic = falses(ne(mol))
+    for ring in sssr(mol)[findall(is_ring_aromatic(mol))]
+        for i in 1:(length(ring) - 1)
+            aromatic[edge_rank(mol, p[i], p[i + 1])] = true
         end
+        aromatic[edge_rank(mol, p[1], p[end])] = true
     end
-    return aromaticbond
+    return aromatic
 end
-isaromaticbond(view::SubgraphView) = isaromaticbond(view.graph)
 
 
 
 """
-    precalculate!(mol::GraphMol)
+    precalculate!(mol::MolGraph)
 
 Convenient method to pre-calculate and cache performance bottleneck descriptors.
 """
 function precalculate!(mol)
-    setcache!(mol, :minimumcyclebasis)
-    setcache!(mol, :sssr)
-    setcache!(mol, :lonepair)
-    setcache!(mol, :apparentvalence)
-    setcache!(mol, :valence)
-    setcache!(mol, :isaromaticring)
-    nodeattrtype(mol) === SmilesAtom && setcache!(mol, :coordgen)
+    mol.gprops[:sssr] = sssr(mol)
+    mol.gprops[:node_lone_pair] = lone_pair(mol)
+    mol.gprops[:node_apparent_valence] = apparent_valence(mol)
+    mol.gprops[:node_valence] = valence(mol)
+    mol.gprops[:is_ring_aromatic] = is_ring_aromatic(mol)
+    # if vproptype(mol) <: SMILESAtom
+    #     mol.gprops[:coordgen] = coordgen(mol)
 end
+
+
+# deprecated function names
+
+nodedegree = degree
+sssrmembership = which_ring
+sssrbondmembership = edge_which_ring
+fusedrings = fused_rings
+fusedringmembership = which_fused_ring
+smallestsssr = smallest_ring
+sssrcount = ring_count
+isringatom = is_in_ring
+isringbond = is_edge_in_ring
+atomsymbol(mol::MolGraph) = atom_symbol(mol)
+bondorder = bond_order
+lonepair = lone_pair
+heavyatomconnected = heavy_atoms
+explicithconnected = explicit_hydrogens
+implicithconnected = implicit_hydrogens
+hydrogenconnected = total_hydrogens
+ishdonor = is_hydrogen_donor
+hdonorcount = hydrogen_donor_count
+ishacceptor = is_hydrogen_acceptor
+hacceptorcount = hydrogen_acceptor_count
+isrotatable = is_rotatable
+rotatablecount = rotatable_count
+atomcounter = atom_counter
+heavyatomcount = heavy_atom_count
+molecularformula = molecular_formula
+empiricalformula = empirical_formula
+pielectron = pi_electron
+isaromaticring = is_ring_aromatic
+isaromatic = is_aromatic
+isaromaticbond = is_edge_aromatic
