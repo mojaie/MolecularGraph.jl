@@ -89,12 +89,12 @@ module MolecularGraph
     include("./smarts/molecule.jl")
 
     include("properties.jl")
+    include("mass.jl")
 
     """
     include("structurematch.jl")
     include("stereo.jl")
     include("preprocess.jl")
-    include("mass.jl")
     include("wclogp.jl")
     include("inchi.jl")
 

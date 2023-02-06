@@ -68,14 +68,12 @@ struct SDFAtom
     coords::Union{Vector{Float64}, Nothing}
     stereo::Symbol  # deprecated
 
-    function SDFAtom(sym, chg, mul, ms, coords, stereo)
+    function SDFAtom(sym=:C, chg=0, mul=1, ms=nothing, coords=nothing, stereo=:unspecified)
         haskey(ATOMSYMBOLMAP, string(sym)) || throw(ErrorException("Unsupported atom symbol: $(sym)"))
         new(sym, chg, mul, ms, coords, stereo)
     end
 end
 
-SDFAtom(sym, chg, mul, ms, coords) = SDFAtom(sym, chg, mul, ms, coords, :unspecified)
-SDFAtom() = SDFAtom(:C, 0, 1, nothing, nothing, :unspecified)
 SDFAtom(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFAtom(
     Symbol(d[T("symbol")]), d[T("charge")], d[T("multiplicity")],
     d[T("mass")], d[T("coords")], :unspecified)
@@ -104,10 +102,12 @@ struct SMILESAtom
     mass::Union{Int, Nothing}
     isaromatic::Union{Bool, Nothing}
     stereo::Symbol
+
+    function SMILESAtom(sym=:C, chg=0, mul=1, ms=nothing, isarom=false, stereo=:unspecified)
+        new(sym, chg, mul, ms, isarom, stereo)
+    end
 end
 
-
-SMILESAtom() = SMILESAtom(:C, 0, 1, nothing, false, :unspecified)
 SMILESAtom(d::Dict{T,U}) where {T<:Union{AbstractString,Symbol},U} = SMILESAtom(
     Symbol(get(d, T("symbol"), :C)),
     get(d, T("charge"), 0),

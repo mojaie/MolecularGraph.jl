@@ -2,45 +2,45 @@
 @testset "mass" begin
 
 @testset "mass" begin
-    iron = SDFileAtom(:Fe)
+    iron = SDFAtom(:Fe)
     @test atomnumber(iron) == 26
-    @test standardweight(iron) == (55.845, 0.002)
-    @test standardweight(Float64, iron) == 55.84
-    @test monoisotopicmass(iron) == (55.93493633, 4.9e-7)
-    @test monoisotopicmass(Float64, iron) == 55.934936
-    @test exactmass(iron) == (55.93493633, 4.9e-7)
-    @test exactmass(Float64, iron) == 55.934936
+    @test standard_weight_unc(iron) == (55.845, 0.002)
+    @test standard_weight(iron, 2) == 55.84
+    @test monoiso_mass_unc(iron) == (55.93493633, 4.9e-7)
+    @test monoiso_mass(iron, 6) == 55.934936
+    @test exact_mass_unc(iron) == (55.93493633, 4.9e-7)
+    @test exact_mass(iron, 6) == 55.934936
     
-    og = SDFileAtom(:Og)
+    og = SDFAtom(:Og)
     @test atomnumber(og) == 118
-    @test standardweight(og) === (NaN, NaN)
-    @test exactmass(og) === (NaN, NaN)
-    og294 = SDFileAtom(:Og, 0, 1, 294, [0.0, 0.0, 0.0])
-    @test monoisotopicmass(og294) === (NaN, NaN)
-    @test exactmass(og294) === (294.21392, 0.00071)
+    @test standard_weight_unc(og) === (NaN, NaN)
+    @test exact_mass_unc(og) === (NaN, NaN)
+    og294 = SDFAtom(:Og, 0, 1, 294, [0.0, 0.0, 0.0])
+    @test monoiso_mass_unc(og294) === (NaN, NaN)
+    @test exact_mass_unc(og294) === (294.21392, 0.00071)
 
     etoh = smilestomol("CCO")
-    wt = standardweight(etoh)
-    @test isapprox(wt[1], 46.069, atol=1e-3)
-    @test isapprox(wt[2], 0.004, atol=1e-3)
-    @test standardweight(Float64, etoh) == 46.07
-    iso = monoisotopicmass(etoh)
-    @test isapprox(iso[1], 46.0418648130, atol=1e-10)
-    @test isapprox(iso[2], 7.1e-10, atol=1e-10)
-    ex = exactmass(etoh)
-    @test isapprox(iso[1], 46.0418648130, atol=1e-10)
-    @test isapprox(iso[2], 7.1e-10, atol=1e-10)
+    wt, wtunc = standard_weight_unc(etoh)
+    @test isapprox(wt, 46.069, atol=1e-3)
+    @test isapprox(wtunc, 0.004, atol=1e-3)
+    @test standard_weight(etoh, 2) == 46.07
+    mo, mounc = monoiso_mass_unc(etoh)
+    @test isapprox(mo, 46.0418648130, atol=1e-10)
+    @test isapprox(mounc, 7.1e-10, atol=1e-10)
+    ex, exunc = exact_mass_unc(etoh)
+    @test isapprox(ex, 46.0418648130, atol=1e-10)
+    @test isapprox(exunc, 7.1e-10, atol=1e-10)
 
     etohd6 = smilestomol("[2H]C([2H])([2H])C([2H])([2H])O[2H]")
-    @test standardweight(Float64, etohd6) == 52.11
-    @test monoisotopicmass(Float64, etohd6) == 46.041865
-    @test exactmass(Float64, etohd6) == 52.079525
+    @test standard_weight(etohd6, 2) == 52.11
+    @test monoiso_mass(etohd6, 6) == 46.041865
+    @test exact_mass(etohd6, 6) == 52.079525
 end
 
-@testset "isotopiccomposition" begin
-    @test length(isotopiccomposition(:C, 100; threshold=0.01)) == 5
-    @test length(isotopiccomposition(:H, 1000; threshold=0.01)) == 2
-    @test length(isotopiccomposition(smilestomol("CCl"))) == 4
+@testset "isotopic_composition" begin
+    @test length(isotopic_composition(:C, 100; threshold=0.01)) == 5
+    @test length(isotopic_composition(:H, 1000; threshold=0.01)) == 2
+    @test length(isotopic_composition(smilestomol("CCl"))) == 4
     # display(simulatemassspec(smilestomol("CCl")))
 end
 

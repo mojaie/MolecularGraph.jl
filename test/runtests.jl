@@ -56,6 +56,7 @@ module MolecularGraphTest
     using Graphs
     using MolecularGraph
 
+    """
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
@@ -77,11 +78,13 @@ module MolecularGraphTest
 
 
     include("properties.jl")
+    """
+
+    include("mass.jl")
 
     """
     include("preprocess.jl")
     include("stereo.jl")
-    include("mass.jl")
     include("wclogp.jl")
     include("structurematch.jl")
     include("inchi.jl")
