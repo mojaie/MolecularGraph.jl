@@ -56,7 +56,7 @@ module MolecularGraphTest
     using Graphs
     using MolecularGraph
 
-    """
+
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
@@ -64,6 +64,7 @@ module MolecularGraphTest
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
+    include("inchi.jl")
 
     include("./smarts/base.jl")
     include("./smarts/logicaloperator.jl")
@@ -76,18 +77,16 @@ module MolecularGraphTest
 
     include("./graph/cycle.jl")
 
-
     include("properties.jl")
-    """
-
     include("mass.jl")
+    # include("stereo.jl")
+
+
 
     """
     include("preprocess.jl")
-    include("stereo.jl")
     include("wclogp.jl")
     include("structurematch.jl")
-    include("inchi.jl")
 
     include("./draw/base.jl")
     include("./draw/svg.jl")

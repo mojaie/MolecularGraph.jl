@@ -79,8 +79,11 @@ module MolecularGraph
 
     include("./graph/cycle.jl")
 
+    # include("stereo.jl")
+
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
+    include("inchi.jl")
 
     include("./smarts/base.jl")
     include("./smarts/atom.jl")
@@ -93,10 +96,8 @@ module MolecularGraph
 
     """
     include("structurematch.jl")
-    include("stereo.jl")
     include("preprocess.jl")
     include("wclogp.jl")
-    include("inchi.jl")
 
 
 

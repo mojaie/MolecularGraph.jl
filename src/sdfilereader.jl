@@ -178,7 +178,7 @@ function parse_ctab(::Type{T}, io::IO) where T <: AbstractMolGraph
         readuntil(io, ctab_only ? "M  V30 END CTAB\n" : "M  END\n")
     end
 
-    return T(SimpleGraph(edges), vprops, eprops)
+    return T(edges, vprops, eprops)
 end
 
 

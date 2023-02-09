@@ -20,7 +20,7 @@ end
 
 """
     inchi(molblock::String) -> String
-    inchi(mol::GraphMol) -> String
+    inchi(mol::MolGraph) -> String
 
 Generate InChI string from molblock string or molecule
 """
@@ -53,12 +53,12 @@ function inchi(molblock::String)
     return res
 end
 
-inchi(mol::GraphMol) = inchi(printv2mol(mol))
+inchi(mol::MolGraph) = inchi(printv2mol(mol))
 
 
 """
     inchikey(inchi::String) -> String
-    inchikey(mol::GraphMol) -> String
+    inchikey(mol::MolGraph) -> String
 
 Generate InChI key from InChI string or molecule
 """
@@ -76,4 +76,4 @@ function inchikey(inchi::Union{String,Nothing})
     return unsafe_string(ikeybuf)
 end
 
-inchikey(mol::GraphMol) = inchikey(inchi(mol))
+inchikey(mol::MolGraph) = inchikey(inchi(mol))
