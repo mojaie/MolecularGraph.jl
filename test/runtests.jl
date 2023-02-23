@@ -79,12 +79,12 @@ module MolecularGraphTest
 
     include("properties.jl")
     include("mass.jl")
+    include("preprocess.jl")
     # include("stereo.jl")
 
 
 
     """
-    include("preprocess.jl")
     include("wclogp.jl")
     include("structurematch.jl")
 
