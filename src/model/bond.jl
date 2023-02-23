@@ -4,8 +4,7 @@
 #
 
 export
-    SDFBond, SMILESBond,
-    setorder, setnotation, setstereo
+    SDFBond, SMILESBond
 
 
 struct SDFBond
@@ -28,10 +27,12 @@ struct SDFBond
     notation::Int
     isordered::Bool
     stereo::Symbol  # deprecated
+
+    function SDFBond(order=1, notation=0, isordered=true)
+        new(order, notation, isordered, :unspecified)
+    end
 end
 
-SDFBond(order, notation, isordered) = SDFBond(order, notation, isordered, :unspecified)
-SDFBond() = SDFBond(1, 0, true, :unspecified)
 SDFBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFBond(
     d[T("order")], d[T("notation")], d[T("isordered")])
 
@@ -45,12 +46,6 @@ function to_dict(b::SDFBond)
     return data
 end
 
-setorder(b::SDFBond, order
-    ) = SDFBond(order, b.notation, b.isordered, b.stereo)  # deprecated
-setnotation(b::SDFBond, notation
-    ) = SDFBond(b.order, notation, b.isordered, b.stereo)  # deprecated
-setstereo(edge::SDFBond, cistrans
-    ) = SDFBond(b.order, b.notation, b.isordered, cistrans)  # deprecated
 
 
 struct SMILESBond
@@ -58,10 +53,12 @@ struct SMILESBond
     isaromatic::Bool
     direction::Symbol  # :up or :down
     stereo::Symbol  # deprecated
+
+    function SMILESBond(order=1, isaromatic=false, direction=:unspecified)
+        new(order, isaromatic, direction, :unspecified)
+    end
 end
 
-SMILESBond(order, isaromatic, direction) = SMILESBond(order, isaromatic, direction, :unspecified)
-SMILESBond() = SMILESBond(1, false, :unspecified)
 SMILESBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SMILESBond(
     get(d, T("order"), 1),
     get(d, T("isaromatic"), false),
@@ -77,8 +74,3 @@ function todict(b::SMILESBond)
     end
     return data
 end
-
-setorder(b::SMILESBond, order
-    ) = SMILESBond(order, b.isaromatic, b.direction, b.stereo)  # deprecated
-setstereo(b::SMILESBond, cistrans
-    ) = SMILESBond(b.order, b.isaromatic, b.direction, cistrans)  # deprecated

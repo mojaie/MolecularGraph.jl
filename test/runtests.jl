@@ -3,18 +3,46 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-"""
-module MolecularGraphUtilTest
+module MolecularGraphTest
     using Test
-    using MolecularGraph.Util
+    using LinearAlgebra
+    using Logging
+    using Graphs
+    using MolecularGraph
+
+    include("./graph/cycle.jl")
+    include("./graph/matching.jl")
+
+    include("./model/atom.jl")
+    include("./model/bond.jl")
+    include("./model/molgraph.jl")
+    include("./model/query.jl")
+
+    include("sdfilereader.jl")
+    include("sdfilewriter.jl")
+    include("inchi.jl")
+
+    include("./smarts/base.jl")
+    include("./smarts/logicaloperator.jl")
+    include("./smarts/atom.jl")
+    include("./smarts/bond.jl")
+    include("./smarts/molecule.jl")
+    include("./smarts/smiles.jl")
+    include("./smarts/smarts.jl")
+
+    include("properties.jl")
+    include("mass.jl")
+    include("wclogp.jl")
+
+    include("stereo.jl")
+    include("preprocess.jl")
+
+    """
     include("./util/iterator.jl")
     include("./util/math.jl")
-end
 
-
-module MolecularGraphGraphTest
-    using Test
-    using MolecularGraph.Graph
+    include("./geometry/cartesian.jl")
+    include("./geometry/internal.jl")
 
     include("./graph/dfs.jl")
     include("./graph/shortestpath.jl")
@@ -38,54 +66,7 @@ module MolecularGraphGraphTest
     include("./graph/product.jl")
     include("./graph/isomorphism/vf2.jl")
     include("./graph/isomorphism/cliquebased.jl")
-end
 
-
-module MolecularGraphGeometryTest
-    using Test
-    using LinearAlgebra
-    using MolecularGraph.Geometry
-
-    include("./geometry/cartesian.jl")
-    include("./geometry/internal.jl")
-end
-"""
-
-module MolecularGraphTest
-    using Test
-    using Logging
-    using Graphs
-    using MolecularGraph
-
-    include("./graph/cycle.jl")
-    include("./graph/matching.jl")
-
-    include("./model/atom.jl")
-    include("./model/bond.jl")
-    include("./model/molgraph.jl")
-    include("./model/query.jl")
-
-    include("sdfilereader.jl")
-    include("sdfilewriter.jl")
-    include("inchi.jl")
-
-    include("./smarts/base.jl")
-    include("./smarts/logicaloperator.jl")
-    
-    include("./smarts/atom.jl")
-    include("./smarts/bond.jl")
-    include("./smarts/molecule.jl")
-    include("./smarts/smiles.jl")
-    include("./smarts/smarts.jl")
-
-    include("properties.jl")
-    include("mass.jl")
-    include("wclogp.jl")
-
-    include("preprocess.jl")
-    # include("stereo.jl")
-
-    """
     include("structurematch.jl")
 
     include("./draw/base.jl")

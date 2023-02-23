@@ -9,8 +9,8 @@ const SMILES_BOND_SYMBOL = Dict(
     '#' => (v -> v[1], [(:order, 3)]),
     '@' => (v -> v[1], [(:isring,)]),
     ':' => (v -> v[1], [(:isaromatic,)]),
-    '/' => (v -> v[1], [(:stereo, :up)]),
-    '\\' => (v -> v[1], [(:stereo, :down)])
+    '/' => (v -> v[1], [(:direction, :up)]),
+    '\\' => (v -> v[1], [(:direction, :down)])
 )
 
 
@@ -20,8 +20,8 @@ const SMARTS_BOND_SYMBOL = Dict(
     '#' => (v -> v[1] & ~v[2], [(:order, 3), (:isaromatic,)]),
     '@' => (v -> v[1], [(:isring,)]),
     ':' => (v -> v[1], [(:isaromatic,)]),
-    '/' => (v -> v[1], [(:stereo, :up)]),
-    '\\' => (v -> v[1], [(:stereo, :down)])
+    '/' => (v -> v[1], [(:direction, :up)]),
+    '\\' => (v -> v[1], [(:direction, :down)])
 )
 
 defaultbond(state::SMILESParser{T,V,E}) where {T,V,E} = E()

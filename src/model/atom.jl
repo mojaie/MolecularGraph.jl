@@ -4,8 +4,7 @@
 #
 
 export
-    SDFAtom, SMILESAtom,
-    setcharge, setstereo, atomnumber, atomsymbol
+    SDFAtom, SMILESAtom, atomnumber, atomsymbol
 
 
 const ATOMTABLE = let
@@ -88,11 +87,6 @@ function to_dict(a::SDFAtom)
     return data
 end
 
-setcharge(a::SDFAtom, chg
-    ) = SDFAtom(a.symbol, chg, a.multiplicity, a.mass, a.coords)  # deprecated
-
-setstereo(a::SDFAtom, direction) = SDFAtom(
-    a.symbol, a.charge, a.multiplicity, a.mass, a.coords, direction)  # deprecated
 
 
 struct SMILESAtom
@@ -126,12 +120,6 @@ function todict(a::SMILESAtom)
     end
     return data
 end
-
-setcharge(a::SMILESAtom, chg) = SMILESAtom(
-    a.symbol, chg, a.multiplicity, a.mass, a.isaromatic, a.stereo)
-
-setstereo(a::SMILESAtom, direction) = SMILESAtom(
-    a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, direction)
 
 
 """

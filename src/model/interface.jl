@@ -5,7 +5,7 @@
 
 import Graphs:
     AbstractGraph, edgetype, nv, ne, vertices, edges, is_directed,
-    has_vertex, has_edge, inneighbors, outneighbors, ordered_neighbors
+    has_vertex, has_edge, inneighbors, outneighbors
 
 export
     AbstractMolGraph, SimpleMolGraph, AbstractReaction,
@@ -80,7 +80,6 @@ edge_neighbors(mol::AbstractMolGraph, u::Integer, v::Integer) = (
     filter(n -> n != v, neighbors(mol, u)),
     filter(n -> n != u, neighbors(mol, v))
 )
-edge_neighbors(mol::AbstractMolGraph, e::Edge
-    ) = edge_neighbors(mol, undirectededge(mol, src(e), dst(e)))
+edge_neighbors(mol::AbstractMolGraph, e::Edge) = edge_neighbors(mol, src(e), dst(e))
 
 ordered_edge_neighbors = edge_neighbors

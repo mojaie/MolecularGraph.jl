@@ -93,8 +93,8 @@ end
 
 
 function printv2mol(io::IO, mol::MolGraph)
-    # ver = Util.VERSION
-    program = "MGjlv$(string(Util.MAJOR_VERSION)[end])$(string(Util.MINOR_VERSION)[end-1:end])"
+    # ver = VERSION
+    program = "MGjlv$(string(MAJOR_VERSION)[end])$(string(MINOR_VERSION)[end-1:end])"
     datetime = Dates.format(Dates.now(), "mmddyyHHMM")
     println(io)
     println(io, "  $(program)$(datetime)2D            ")

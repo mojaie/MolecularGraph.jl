@@ -27,6 +27,10 @@ end
     state = SMILESParser{SMILESMolGraph}(":")
     arom = bond!(state)
     @test arom[:isaromatic]
+
+    state = SMILESParser{SMILESMolGraph}("\\")
+    down = bond!(state)
+    @test down[:direction] === :down
 end
 
 @testset "smartsbond" begin

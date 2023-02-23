@@ -4,38 +4,54 @@
 #
 
 export
-    coordgen
+    coords2d, sdfcoords2d, sdfcoords2d!, coordgen, coordgen!
 
 using coordgenlibs_jll
 
 
+coords2d(mol::MolGraph) = get_descriptor(mol, :v_coords2d)
+
+
+function sdfcoords2d(mol::MolGraph)
+    coords = zeros(Float64, nv(mol), 2)
+    for i in vertices(mol)
+        coords[i, :] = get_prop(mol, i, :coords)[1:2]
+    end
+    return coords
+end
+sdfcoords2d!(mol::MolGraph) = set_descriptor!(mol, :v_coords2d, sdfcoords2d(mol))
+
+
+
+
 """
-    coordgen(mol::GraphMol) -> Tuple{Array{Int,1},Array{Int,1}}
+    coordgen(mol::MolGraph) -> Tuple{Array{Int,1},Array{Int,1}}
 
 Generate 2D coordinates by using Schrodinger's coordgenlibs.
 
 This will returns a tuple of `coords` and `styles` arrays. `coords` is a size(n, 2) matrix where n is atom count, which stores 2D coordinates (x, y) of each atoms. `styles` is a size e vector of wedge notation of stereobond, where e is bond count.
 """
-@cachefirst function coordgen(mol::GraphMol)
+function coordgen(mol::MolGraph)
     minmol = ccall((:getSketcherMinimizer, libcoordgen), Ptr{Cvoid}, ())
     atoms = Ptr{Cvoid}[]
     bonds = Ptr{Cvoid}[]
 
     # Atoms
-    for nattr in nodeattrs(mol)
+    for a in atom_symbols(mol)
         atom = ccall(
             (:setAtom, libcoordgen), Ptr{Cvoid},
-            (Ptr{Cvoid}, Int), minmol, atomnumber(nattr)
+            (Ptr{Cvoid}, Int), minmol, atomnumber(a)
         )
         push!(atoms, atom)
     end
 
     # Bonds
-    for (i, (u, v)) in enumerate(edgesiter(mol))
+    bondorder_ = bond_order(mol)
+    for (i, e) in enumerate(edges(mol))
         bond = ccall(
             (:setBond, libcoordgen), Ptr{Cvoid},
             (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-            minmol, atoms[u], atoms[v], edgeattr(mol, i).order
+            minmol, src(e), dst(e), bondorder_[i]
         )
         push!(bonds, bond)
     end
@@ -46,38 +62,20 @@ This will returns a tuple of `coords` and `styles` arrays. `coords` is a size(n,
     )
 
     # Stereocenter
-    for i in 1:nodecount(mol)
-        nattr = nodeattr(mol, i)
-        nattr.stereo in (:clockwise, :anticlockwise) || continue
-        direction = nattr.stereo === :clockwise
-        if degree(mol, i) == 4
-            f, s, t, _ = sort(collect(adjacencies(mol, i)))
-        elseif degree(mol, i) == 3
-            f, s, t = sort(collect(adjacencies(mol, i)))
-            if i < f || (i > s && i < t) # implicit H is the 1st or 3rd
-                direction = !direction
-            end
-        else
-            continue
-        end
+    for (n, stereo) in stereocenter(mol)
         ccall(
             (:setStereoCenter, libcoordgen), Cvoid,
             (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-            atoms[i], atoms[f], atoms[s], atoms[t], direction
+            n, stereo[1], stereo[2], stereo[3], stereo[4]
         )
     end
 
-    # StereoBond
-    for (i, (n1, n2)) in enumerate(edgesiter(mol))
-        eattr = edgeattr(mol, i)
-        eattr.stereo in (:cis, :trans) || continue
-        iscis = eattr.stereo === :cis
-        u = sort([adj for adj in adjacencies(mol, n1) if adj != n2])[1]
-        v = sort([adj for adj in adjacencies(mol, n2) if adj != n1])[1]
+    # Stereobond
+    for (e, stereo) in stereobond(mol)
         ccall(
             (:setStereoBond, libcoordgen), Cvoid,
             (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-            bonds[i], atoms[u], atoms[v], iscis
+            edge_rank(e), stereo[1], stereo[2], stereo[3]
         )
     end
 
@@ -88,8 +86,8 @@ This will returns a tuple of `coords` and `styles` arrays. `coords` is a size(n,
     )
 
     # Output
-    coords = zeros(Float64, nodecount(mol), 2)
-    for i in 1:nodecount(mol)
+    coords = zeros(Float64, nv(mol), 2)
+    for i in vertices(mol)
         px = ccall(
             (:getAtomX, libcoordgen), Float32, (Ptr{Cvoid},), atoms[i])
         py = ccall(
@@ -97,19 +95,26 @@ This will returns a tuple of `coords` and `styles` arrays. `coords` is a size(n,
         coords[i, :] = [px, py]
     end
     styles = Int[]
-    for i in 1:edgecount(mol)
+    for e in edges(mol)
         hasstereo = ccall(
             (:hasStereochemistryDisplay, libcoordgen), Bool,
-            (Ptr{Cvoid},), bonds[i])
+            (Ptr{Cvoid},), bonds[(e)])
         if !hasstereo
             push!(styles, 0)
             continue
         end
         iswedge = ccall(
-            (:isWedge, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
+            (:isWedge, libcoordgen), Bool, (Ptr{Cvoid},), bonds[edge_rank(e)])
         isrev = ccall(
-            (:isReversed, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
+            (:isReversed, libcoordgen), Bool, (Ptr{Cvoid},), bonds[edge_rank(e)])
         push!(styles, (iswedge ? 1 : 6) + (isrev ? 1 : 0))
     end
     return coords, styles
+end
+
+function coordgen!(mol::MolGraph)
+    coords, styles = coordgen(mol)
+    set_descriptor!(mol, :v_coords2d, coords)
+    set_descriptor!(mol, :v_styles, styles)
+    return
 end

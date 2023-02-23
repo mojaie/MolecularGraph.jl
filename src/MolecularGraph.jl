@@ -5,12 +5,6 @@
 
 module MolecularGraph
 
-    module Util
-        include("./util/meta.jl")
-        include("./util/iterator.jl")
-        include("./util/math.jl")
-    end
-
     """
     module Graph
         using ..Util
@@ -42,16 +36,6 @@ module MolecularGraph
         include("./graph/isomorphism/vf2.jl")
         include("./graph/isomorphism/cliquemcs.jl")
     end
-
-    module Geometry
-        using LinearAlgebra
-        using ..Util
-
-        include("./geometry/interface.jl")
-
-        include("./geometry/cartesian.jl")
-        include("./geometry/internal.jl")
-    end
     """
 
     using Dates
@@ -61,30 +45,32 @@ module MolecularGraph
     using Printf
     using Statistics
     using YAML
-    using .Util
-    # using .Graph
-    # using .Geometry
 
-    export Util  # , Graph, Geometry
+    include("./util/meta.jl")
+    include("./util/iterator.jl")
+    include("./util/math.jl")
+
+    include("./geometry/interface.jl")
+    include("./geometry/cartesian.jl")
+    include("./geometry/internal.jl")
 
     include("./graph/traversals.jl")
     include("./graph/cycle.jl")
     include("./graph/matching.jl")
 
     include("./model/interface.jl")
-    # include("./draw/interface.jl")
-
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/query.jl")
     include("./model/molgraph.jl")
 
-    # include("stereo.jl")
+    include("coords.jl")
+    include("stereo.jl")
+
+    # include("./draw/interface.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
-    include("inchi.jl")
-
     include("./smarts/base.jl")
     include("./smarts/atom.jl")
     include("./smarts/bond.jl")
@@ -92,16 +78,15 @@ module MolecularGraph
     include("./smarts/molecule.jl")
 
     include("properties.jl")
+    include("preprocess.jl")
     include("mass.jl")
     include("wclogp.jl")
-
-    include("preprocess.jl")
+    include("inchi.jl")
 
 
     """
     include("structurematch.jl")
 
-    include("coordgen.jl")
     include("./draw/draw2d.jl")
     include("./draw/svg.jl")
 
