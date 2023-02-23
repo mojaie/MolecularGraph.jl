@@ -9,7 +9,7 @@ export
     # resolvedefaultbond!
 
 
-mutable struct SMILESParser{V,E}
+mutable struct SMILESParser{T,V,E}
     input::String
     pos::Int
     done::Bool
@@ -17,18 +17,18 @@ mutable struct SMILESParser{V,E}
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
     ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
-    edges::Vector{Edge{Int}}
+    edges::Vector{Edge{T}}
     vprops::Vector{V}
     eprops::Vector{E}
-
-    function SMILESParser{V,E}(smiles) where {V,E}
-        new(smiles, 1, false, 0, 1, 1, Dict(), Edge{Int}[], V[], E[])
-    end
 end
 
-SMILESParser(smiles) = SMILESParser{SMILESAtom,SMILESBond}(smiles)
+SMILESParser{T}(smiles
+    ) where T <: SimpleMolGraph = SMILESParser{eltype(T),vproptype(T),eproptype(T)}(
+        smiles, 1, false, 0, 1, 1, Dict(), Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[])
 
-mutable struct SMARTSParser{V,E}
+
+
+mutable struct SMARTSParser{T,V,E}
     input::String
     pos::Int
     done::Bool
@@ -36,18 +36,15 @@ mutable struct SMARTSParser{V,E}
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
     ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
-    edges::Vector{Edge{Int}}
+    edges::Vector{Edge{T}}
     vprops::Vector{V}
     eprops::Vector{E}
-    connectivity::Vector{Vector{Int}}
-
-    function SMARTSParser{V,E}(smarts) where {V,E}
-        new(smarts, 1, false, 0, 1, 1, Dict(), Edge{Int}[], V[], E[], [])
-    end
+    connectivity::Vector{Vector{T}}
 end
 
-SMARTSParser(smarts) = SMARTSParser{QueryTruthTable,QueryTruthTable}(smarts)
-
+SMARTSParser{T}(smarts
+    ) where T <: SimpleMolGraph = SMARTSParser{eltype(T),vproptype(T),eproptype(T)}(
+        smarts, 1, false, 0, 1, 1, Dict(), Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[], [])
 
 
 """
@@ -62,13 +59,15 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. OpenSMILES Specification http://opensmiles.org/spec/open-smiles.html
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
-function smilestomol(smiles::AbstractString; kekulize=true)
-    state = SMILESParser(smiles)
+function smilestomol(::Type{T}, smiles::AbstractString) where T <: AbstractMolGraph
+    state = SMILESParser{T}(smiles)
     fragment!(state)
-    mol = MolGraph(state.edges, state.vprops, state.eprops)
+    mol = T(state.edges, state.vprops, state.eprops)
     #kekulize && kekulize!(mol)
     return mol
 end
+
+smilestomol(smiles::AbstractString) = smilestomol(MolGraph{Int,SMILESAtom,SMILESBond}, smiles)
 
 
 """
@@ -76,15 +75,10 @@ end
 
 Parse SMARTS string into `QueryMol` object.
 """
-function smartstomol(smarts::AbstractString; kekulize=true)
-    if occursin('.', smarts)
-        state = SMARTSParser(smarts)
-        componentquery!(state)
-    else
-        state = SMARTSParser(smarts)
-        fragment!(state)
-    end
-    mol = MolGraph(
+function smartstomol(::Type{T}, smarts::AbstractString) where T <: AbstractMolGraph
+    state = SMARTSParser{T}(smarts)
+    occursin('.', smarts) ? componentquery!(state) : fragment!(state)
+    mol = T(
         state.edges, state.vprops, state.eprops, Dict(:connectivity => state.connectivity))
     # setcache!(mol, :minimumcyclebasisnodes)
     # resolvedefaultbond!(mol)
@@ -93,6 +87,9 @@ function smartstomol(smarts::AbstractString; kekulize=true)
     # setdiastereo && setdiastereo!(mol)
     return mol
 end
+
+smartstomol(smarts::AbstractString
+    ) = smartstomol(MolGraph{Int,QueryTruthTable,QueryTruthTable}, smarts)
 
 
 

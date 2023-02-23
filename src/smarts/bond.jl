@@ -24,9 +24,9 @@ const SMARTS_BOND_SYMBOL = Dict(
     '\\' => (v -> v[1], [(:stereo, :down)])
 )
 
-defaultbond(state::SMILESParser{V,E}) where {V,E} = E()
-defaultbond(state::SMARTSParser{V,E}
-    ) where {V,E} = E(v -> v[1] & ~v[2] | v[2], [(:order, 1), (:isaromatic,)])
+defaultbond(state::SMILESParser{T,V,E}) where {T,V,E} = E()
+defaultbond(state::SMARTSParser{T,V,E}
+    ) where {T,V,E} = E(v -> v[1] & ~v[2] | v[2], [(:order, 1), (:isaromatic,)])
 
 
 """
@@ -57,7 +57,7 @@ end
 
 Bond <- BondSymbol?
 """
-function bond!(state::SMILESParser{V,E}) where {V,E}
+function bond!(state::SMILESParser{T,V,E}) where {T,V,E}
     q = bondsymbol!(state)
     q === nothing && return
     qd = Dict{Symbol,Any}()
@@ -73,7 +73,7 @@ end
 
 Bond <- '~' / (BondSymbol / LogicalCond)?
 """
-function bond!(state::SMARTSParser{V,E}) where {V,E}
+function bond!(state::SMARTSParser{T,V,E}) where {T,V,E}
     if read(state) == '~'
         forward!(state)
         return E(any_query(true)...)

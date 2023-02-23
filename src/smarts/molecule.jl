@@ -45,7 +45,7 @@ function fragment!(state::Union{SMILESParser,SMARTSParser})
 end
 
 
-function group!(state::Union{SMILESParser{V,E},SMARTSParser{V,E}}, bond) where {V,E}
+function group!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}, bond) where {T,V,E}
     """ Group <- Atom ((Bond? Group) / Chain)* Chain
     """
     a = atom!(state)
@@ -56,7 +56,7 @@ function group!(state::Union{SMILESParser{V,E},SMARTSParser{V,E}}, bond) where {
     push!(state.vprops, popfirst!(a))
     if bond !== nothing
         # Connect branch
-        push!(state.edges, undirectededge(state.branch, state.node))
+        push!(state.edges, undirectededge(T, state.branch, state.node))
         push!(state.eprops, bond)
     end
     center = state.node
@@ -64,7 +64,7 @@ function group!(state::Union{SMILESParser{V,E},SMARTSParser{V,E}}, bond) where {
         # hydrogens
         state.node += 1
         push!(state.vprops, h)
-        push!(state.edges, undirectededge(center, state.node))
+        push!(state.edges, undirectededge(T, center, state.node))
         push!(state.eprops, E())
     end
     state.branch = center
@@ -97,7 +97,7 @@ function group!(state::Union{SMILESParser{V,E},SMARTSParser{V,E}}, bond) where {
 end
 
 
-function chain!(state::Union{SMILESParser{V,E},SMARTSParser{V,E}}) where {V,E}
+function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,V,E}
     """ Chain <- (Bond? (Atom / RingLabel))+
     """
     u = state.branch
@@ -133,7 +133,7 @@ function chain!(state::Union{SMILESParser{V,E},SMARTSParser{V,E}}) where {V,E}
                 (v, rb) = state.ringlabel[num]
                 b = something(b, rb, defaultbond(state))
                 delete!(state.ringlabel, num) # Ring label is reusable
-                push!(state.edges, undirectededge(u, v))
+                push!(state.edges, undirectededge(T, u, v))
                 push!(state.eprops, b)
             else
                 state.ringlabel[num] = (u, b)
@@ -162,14 +162,14 @@ function chain!(state::Union{SMILESParser{V,E},SMARTSParser{V,E}}) where {V,E}
             end
         else
             b = something(b, defaultbond(state))
-            push!(state.edges, undirectededge(u, state.node))
+            push!(state.edges, undirectededge(T, u, state.node))
             push!(state.eprops, b)
         end
         center = state.node
         for h in a
             # hydrogens
             state.node += 1
-            push!(state.edges, undirectededge(center, state.node))
+            push!(state.edges, undirectededge(T, center, state.node))
             push!(state.eprops, E())
             push!(state.vprops, h)
         end

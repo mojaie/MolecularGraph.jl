@@ -74,8 +74,8 @@ module MolecularGraph
 
     include("./model/atom.jl")
     include("./model/bond.jl")
-    include("./model/molgraph.jl")
     include("./model/query.jl")
+    include("./model/molgraph.jl")
 
     include("./graph/cycle.jl")
 
@@ -113,6 +113,8 @@ module MolecularGraph
 
     function __init__()
         @require AbstractPlotting="537997a7-5e4e-5d89-9595-2241ea00577e" include("draw/draw3d.jl")
+        # TODO require coordgen
+        # TODO require inchi
     end
     """
 end

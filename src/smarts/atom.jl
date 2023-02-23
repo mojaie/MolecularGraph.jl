@@ -179,7 +179,7 @@ end
 
 Atom <- '[' AtomProp+ ']' / AtomSymbol
 """
-function atom!(state::SMILESParser{V,E}) where {V,E}
+function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
     sym1 = read(state)
     if sym1 == '['
         forward!(state)
@@ -214,7 +214,7 @@ end
 
 Atom <- '[' (AtomProp / LogicalOperator)+ ']' / AtomSymbol
 """
-function atom!(state::SMARTSParser{V,E}) where {V,E}
+function atom!(state::SMARTSParser{T,V,E}) where {T,V,E}
     sym1 = read(state)
     if sym1 == '['
         forward!(state)

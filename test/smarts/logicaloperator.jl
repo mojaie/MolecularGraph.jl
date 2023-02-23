@@ -20,57 +20,57 @@ using MolecularGraph:
         end
     end
 
-    state = SMARTSParser("!a")
+    state = SMARTSParser{SMARTSMolGraph}("!a")
     not1 = lgnot!(state, parseabc)
     @test QueryTruthTable(not1...) == QueryTruthTable(v -> ~v[1], [(:v, :a)])
 
-    state = SMARTSParser("a&b")
+    state = SMARTSParser{SMARTSMolGraph}("a&b")
     and1 = lghighand!(state, parseabc)
     @test QueryTruthTable(and1...) == QueryTruthTable(v -> v[1] & v[2], [(:v, :a), (:v, :b)])
 
-    state = SMARTSParser("abc")
+    state = SMARTSParser{SMARTSMolGraph}("abc")
     and2 = lghighand!(state, parseabc)
     @test QueryTruthTable(and2...) == QueryTruthTable(
         v -> v[1] & v[2] & v[3], [(:v, :a), (:v, :b), (:v, :c)])
 
-    state = SMARTSParser("!ab")
+    state = SMARTSParser{SMARTSMolGraph}("!ab")
     not2 = lghighand!(state, parseabc)
     @test QueryTruthTable(not2...) == QueryTruthTable(v -> ~v[1] & v[2], [(:v, :a), (:v, :b)])
 
-    state = SMARTSParser("a,b")
+    state = SMARTSParser{SMARTSMolGraph}("a,b")
     or1 = lgor!(state, parseabc)
     @test QueryTruthTable(or1...) == QueryTruthTable(v -> v[1] | v[2], [(:v, :a), (:v, :b)])
 
-    state = SMARTSParser("a;b")
+    state = SMARTSParser{SMARTSMolGraph}("a;b")
     and3 = lglowand!(state, parseabc)
     @test QueryTruthTable(and3...) == QueryTruthTable(v -> v[1] & v[2], [(:v, :a), (:v, :b)])
 
-    state = SMARTSParser("")
+    state = SMARTSParser{SMARTSMolGraph}("")
     null = lglowand!(state, parseabc)
     @test null === nothing
 
-    state = SMARTSParser("!a!b")
+    state = SMARTSParser{SMARTSMolGraph}("!a!b")
     not3 = lglowand!(state, parseabc)
     @test QueryTruthTable(not3...) == QueryTruthTable(v -> ~v[1] & ~v[2], [(:v, :a), (:v, :b)])
 
 
-    state = SMARTSParser("abcdef")
+    state = SMARTSParser{SMARTSMolGraph}("abcdef")
     and4 = lghighand!(state, parseabc)
     @test QueryTruthTable(and4...) == QueryTruthTable(
         v -> v[1] & v[2] & v[3], [(:v, :a), (:v, :b), (:v, :c)])
     @test state.pos == 4
 
-    state = SMARTSParser("a,b&c")
+    state = SMARTSParser{SMARTSMolGraph}("a,b&c")
     comp1 = lglowand!(state, parseabc)
     @test QueryTruthTable(comp1...) == QueryTruthTable(
         v -> v[1] | v[2] & v[3], [(:v, :a), (:v, :b), (:v, :c)])
 
-    state = SMARTSParser("a,b;c")
+    state = SMARTSParser{SMARTSMolGraph}("a,b;c")
     comp2 = lglowand!(state, parseabc)
     @test QueryTruthTable(comp2...) == QueryTruthTable(
         v -> (v[1] | v[2]) & v[3], [(:v, :a), (:v, :b), (:v, :c)])
 
-    state = SMARTSParser("ac;a!b,c;bx")
+    state = SMARTSParser{SMARTSMolGraph}("ac;a!b,c;bx")
     comp3 = lglowand!(state, parseabc)
     @test QueryTruthTable(comp3...) == QueryTruthTable(
         v -> v[1] & v[3] & (v[1] & ~v[2] | v[3]) & v[2], [(:v, :a), (:v, :b), (:v, :c)])
