@@ -33,7 +33,6 @@ module MolecularGraph
         include("./graph/dfs.jl")
         include("./graph/shortestpath.jl")
         include("./graph/bipartite.jl")
-        include("./graph/matching.jl")
         include("./graph/triangle.jl")
         include("./graph/clique.jl")
         include("./graph/connectivity.jl")
@@ -68,6 +67,9 @@ module MolecularGraph
 
     export Util  # , Graph, Geometry
 
+    include("./graph/traversals.jl")
+    include("./graph/cycle.jl")
+    include("./graph/matching.jl")
 
     include("./model/interface.jl")
     # include("./draw/interface.jl")
@@ -76,8 +78,6 @@ module MolecularGraph
     include("./model/bond.jl")
     include("./model/query.jl")
     include("./model/molgraph.jl")
-
-    include("./graph/cycle.jl")
 
     # include("stereo.jl")
 

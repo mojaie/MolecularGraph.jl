@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-@testset "graph.cycle" begin
+@testset "cycle" begin
 
 @testset "mincyclebasis" begin
     p5 = path_graph(5)
@@ -18,4 +18,4 @@
     @test length(mincyclebasis(cycs)) == 2
 end
 
-end # graph.cycle
+end # cycle

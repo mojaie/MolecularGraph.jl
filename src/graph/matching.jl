@@ -3,144 +3,124 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export maximummatching, isperfectmatching
+export max_matching, is_perfect_matching
 
 
-function backtrack(pred, n)
-    path = [n]
-    x = n
-    while pred[x] != x
-        x = pred[x]
-        pushfirst!(path, x)
-    end
-    return path
-end
-
-
-function findaugpath(G::UndirectedGraph, matching)
-    head = nodeset(G)  # Initial exposed node set
+function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
+    head = Set(vertices(g))  # Initial exposed node set
     for m in matching
-        (u, v) = getedge(G, m)
-        setdiff!(head, u, v)
+        setdiff!(head, src(m), dst(m))
     end
     @debug "head: $(head)"
-    pred = Dict{Int,Int}()  # F tree
+    pred = Dict{T,T}()  # F tree
     for v in head
         pred[v] = v
     end
     while !isempty(head)
         v = pop!(head)
         @debug "  v: $(v)"
-        unmarked = setdiff(edgeset(G), copy(matching))
-        for e in intersect(incidences(G, v), unmarked)
-            w = neighbors(G, v)[e]
+        unmarked = setdiff(Set(edges(g)), matching)
+        for w in neighbors(g, v)
+            undirectededge(T, v, w) in unmarked || continue
             @debug "    w: $(w)"
             if !(w in keys(pred))
-                e2s = intersect(incidences(G, w), matching)  # TODO use only() in Julia 1.4
-                @assert length(e2s) == 1
-                e2 = pop!(e2s)
-                x = neighbors(G, w)[e2]
+                incs = Set(undirectededge(T, w, nbr) for nbr in neighbors(g, w))
+                e2 = only(intersect(incs, matching))
+                x = src(e2) == w ? dst(e2) : src(e2)
                 @debug "      x: $(x)"
                 pred[w] = v
                 pred[x] = w
                 union!(head, x)
-            else
-                p1 = backtrack(pred, v)
-                p2 = backtrack(pred, w)
-                length(p2) % 2 == 1 || continue
-                if p1[1] != p2[1]
-                    P = vcat(p1, reverse(p2))
-                    @debug "      P: $(P) (extend tree)"
-                    return P
-                end
-                # Contraction
-                root = intersect(p1, p2)[end]
-                bpath = union([root], setdiff(p1, p2), reverse(setdiff(p2, p1)))
-                Gcont = edgecontraction(G, bpath)
-                b = Gcont.vnode
-                @debug "      Recursion: $(Gcont.collapsed) -> $(b)"
-                Mcont = setdiff(matching, edgeset(nodesubgraph(G, bpath)))
-                P = findaugpath(Gcont, Mcont)
-                @assert length(P) % 2 == 0
-                pos = findfirst(x -> x == b, P)
-                if pos === nothing
-                    @debug "      P: $(P) (no blossom in augpath)"
-                    return P
-                end
-                # Lifting
-                if pos == 1 || pos == length(P)
-                    nbrpos = pos == 1 ? 2 : length(P) - 1
-                    inc = findedgekey(Gcont, P[pos], P[nbrpos])
-                    dst = neighbors(G, P[nbrpos])[inc]
-                    if root == dst
-                        P[pos] = root
-                        @debug "      P: $(P) (blossom root is exposed)"
-                        return P
-                    end
-                else
-                    inedge = findedgekey(Gcont, P[pos], P[pos-1])
-                    outedge = findedgekey(Gcont, P[pos], P[pos+1])
-                    inlet = neighbors(G, P[pos-1])[inedge]
-                    outlet = neighbors(G, P[pos+1])[outedge]
-                    @assert inlet == root || outlet == root
-                    dst = inlet == root ? outlet : inlet
-                end
-                # Build blossom graph from edges
-                bgedges = Int[]
-                push!(bgedges, findedgekey(G, bpath[1], bpath[end]))
-                for i in 1:(length(bpath) - 1)
-                    push!(bgedges, findedgekey(G, bpath[i], bpath[i + 1]))
-                end
-                bgraph = edgesubgraph(G, bgedges)
-                # Find path in the blossom
-                r = shortestpathnodes(bgraph, root, dst)
-                if length(r) % 2 == 0
-                    # find even length path
-                    redges = shortestpathedges(bgraph, root, dst)
-                    cobg = edgesubgraph(bgraph, setdiff(bgedges, redges))
-                    r = shortestpathnodes(cobg, root, dst)
-                end
-                baug = pos % 2 == 0 ? reverse(r) : r
-                P = union(P[1:pos-1], baug, P[pos+1:end])
-                @debug "      P: $(P) (lifted)"
-                return P
+                continue
             end
+            p1 = bfs_path(pred, v)
+            p2 = bfs_path(pred, w)
+            length(p2) % 2 == 1 || continue  # if dist(w, root(w)) is odd, do nothing
+            if p1[1] != p2[1]
+                p = vcat(p1, reverse(p2))
+                @debug "      P: $(p) (extend tree)"
+                return p
+            end
+            # Contract a blossom
+            bsrc = intersect(p1, p2)[end]
+            bpath = union([bsrc], setdiff(p1, p2), reverse(setdiff(p2, p1)))
+            g_cont = copy(g)  # G'
+            gc_vrev = merge_vertices!(g_cont, bpath)
+            # induced_subgraph i in G' => vmap[i] in G
+            # merge_vertices! i in G => vrev[i] in G'
+            bn = minimum(bpath)  # contracted blossom
+            @debug "      Recursion: $(bpath) -> $(bn)"
+            cmat = Set(undirectededge(T, gc_vrev[src(e)], gc_vrev[dst(e)]) for e in matching)
+            m_cont = intersect(cmat, edges(g_cont))  # M'
+            p_cont = findaugpath(g_cont, m_cont)  # P'
+            # @assert length(p_cont) % 2 == 0
+            # Lifting
+            gc_vmap = Dict(v => i for (i, v) in enumerate(gc_vrev))
+            p = [gc_vmap[n] for n in p_cont]
+            if !(bn in p_cont)
+                @debug "      P: $(p) (no blossom in augpath)"
+                return p
+            end
+            pos = findfirst(x -> x == bn, p_cont)
+            if pos == 1 || pos == length(p)
+                nbrpos = pos == 1 ? 2 : length(p) - 1
+                bdst = bpath[findfirst(x -> has_edge(g, p[nbrpos], x), bpath)]
+                if bsrc == bdst
+                    p[pos] = bsrc
+                    @debug "      P: $(p) (blossom root is exposed)"
+                    return p
+                end
+            else
+                inlet = bpath[findfirst(x -> has_edge(g, p[pos-1], x), bpath)]
+                outlet = bpath[findfirst(x -> has_edge(g, p[pos+1], x), bpath)]
+                @assert inlet == bsrc || outlet == bsrc
+                bdst = inlet == bsrc ? outlet : inlet
+            end
+            r = noweight_shortestpath(g, bsrc, bdst)
+            if length(r) % 2 == 0
+                # find even length path
+                brk = (r[1], r[2])
+                rem_edge!(g, brk...)
+                r = noweight_shortestpath(g, bsrc, bdst)
+                add_edge!(g, undirectededge(T, brk...))
+            end
+            baug = pos % 2 == 0 ? reverse(r) : r
+            p = union(p[1:pos-1], baug, p[pos+1:end])
+            @debug "      P: $(p) (lifted)"
+            return p
         end
     end
     return Int[]
 end
 
 
-function findmaxmatch(G::UndirectedGraph, matching)
-    P = findaugpath(G, matching)
-    @assert length(P) % 2 == 0
-    if !isempty(P)
-        Pedges = Set{Int}()
-        for i in 1:length(P)-1
-            push!(Pedges, findedgekey(G, P[i], P[i+1]))
-        end
-        augment = symdiff(Pedges, matching)
-        @assert length(matching) + 1 == length(augment)
-        return findmaxmatch(G, augment)
-    else
-        return matching
+function findmaxmatch(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
+    P = findaugpath(g, matching)
+    # @assert length(P) % 2 == 0
+    isempty(P) && return matching
+    p_edges = Set{Edge{T}}()
+    for i in 1:length(P)-1
+        push!(p_edges, undirectededge(T, P[i], P[i + 1]))
     end
+    augment = symdiff(p_edges, matching)
+    # @assert length(matching) + 1 == length(augment)
+    return findmaxmatch(g, augment)
 end
 
 
 """
-    maximummatching(G::UndirectedGraph; method=:Blossom) -> Set{Int}
+    max_matching(G::SimpleGraph; method=:Blossom) -> Set{Int}
 
 Compute maximum cardinality matching by Edmonds' blossom algorithm and return the set of matched edges.
 """
-maximummatching(G::UndirectedGraph; method=:Blossom) = findmaxmatch(G, Set{Int}())
+max_matching(g::SimpleGraph{T}; method=:Blossom) where T = findmaxmatch(g, Set{Edge{T}}())
 
 
 """
-    isperfectmatching(G::UndirectedGraph) -> Bool
-    isperfectmatching(G::UndirectedGraph, matching::Set{Int}) -> Bool
+    is_perfect_matching(G::SimpleGraph) -> Bool
+    is_perfect_matching(G::SimpleGraph, matching::Set{Int}) -> Bool
 
 Return if the given graph has a perfect matching.
 """
-isperfectmatching(G::UndirectedGraph) = length(maximummatching(G)) * 2 == nodecount(G)
-isperfectmatching(G::UndirectedGraph, matching::Set{Int}) = length(matching) * 2 == nodecount(G)
+is_perfect_matching(g::SimpleGraph) = length(max_matching(g)) * 2 == nv(g)
+is_perfect_matching(g::SimpleGraph, matching) = length(matching) * 2 == nv(g)

@@ -53,9 +53,12 @@ end
 
 module MolecularGraphTest
     using Test
+    using Logging
     using Graphs
     using MolecularGraph
 
+    include("./graph/cycle.jl")
+    include("./graph/matching.jl")
 
     include("./model/atom.jl")
     include("./model/bond.jl")
@@ -75,14 +78,11 @@ module MolecularGraphTest
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
-    include("./graph/cycle.jl")
-
     include("properties.jl")
     include("mass.jl")
+
     include("preprocess.jl")
     # include("stereo.jl")
-
-
 
     """
     include("wclogp.jl")

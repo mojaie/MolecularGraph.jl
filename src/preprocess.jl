@@ -22,7 +22,7 @@ export
 
 
 """
-    kekulize(mol::SimpleMolGraph) -> Nothing
+    kekulize(mol::SimpleMolGraph) -> Vector{Int}
 
 Kekulize the molecule that has SMILES aromatic bonds.
 
@@ -44,13 +44,14 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
             end
         end
     end
-    subg, _ = induced_subgraph(mol.graph, nodes)
-    matching = maximummatching(subg)
-    isperfectmatching(subg, matching) || throw(ErrorException(
+    subg, vmap = induced_subgraph(mol.graph, nodes)
+    matching = max_matching(subg)
+    is_perfect_matching(subg, matching) || throw(ErrorException(
         "Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])"))
     arr = getproperty.(eprops(mol), :order)
     for e in matching
-        arr[edge_rank(e)] = 2
+        ge = undirectededge(T, vmap[src(e)], vmap[dst(e)])
+        arr[edge_rank(mol, ge)] = 2
     end
     return arr
 end

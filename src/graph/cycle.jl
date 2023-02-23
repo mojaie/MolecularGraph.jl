@@ -51,35 +51,6 @@ function disjointunion(g::SimpleGraph, h::SimpleGraph)
 end
 
 
-function noweight_shortestpath(g::SimpleGraph{T}, u::T, v::T) where T
-    # BFS based
-    # u == v && return T[]  # impossible in findmincycle
-    queue = [u]
-    pred = Dict{T,T}(u => 0)
-    while !isempty(queue)
-        i = popfirst!(queue)
-        for nbr in neighbors(g, i)
-            if !haskey(pred, nbr)
-                pred[nbr] = i
-                push!(queue, nbr)
-                if nbr == v  # target reached
-                    empty!(queue)
-                    break
-                end
-            end
-        end
-    end
-    # retrieve path from the tree
-    path = T[v]
-    p = v
-    while p != u
-        p = pred[p]
-        pushfirst!(path, p)
-    end
-    return path
-end
-
-
 function findmincycle(g::SimpleGraph, S::Set)
     subg, vmap = induced_subgraph(g, collect(setdiff(Set(edges(g)), S)))
     rev = Dict(v => i for (i, v) in enumerate(vmap))
