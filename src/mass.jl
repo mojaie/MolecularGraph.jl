@@ -49,9 +49,9 @@ monoiso_mass_unc(mol::MolGraph) = molecular_mass_unc(mol, monoiso_mass_unc)
 
 
 """
-    monoiso_mass(atomsymbol::Symbol, [digit::Int]) -> Float64
-    monoiso_mass(atom, [digit::Int]) -> Float64
-    monoiso_mass(mol::MolGraph, [digit::Int]) -> Float64
+    monoiso_mass(atomsymbol::Symbol, [digits::Int]) -> Float64
+    monoiso_mass(atom, [digits::Int]) -> Float64
+    monoiso_mass(mol::MolGraph, [digits::Int]) -> Float64
 
 Return monoisotopic mass of the atom/molecule.
 """
@@ -59,9 +59,9 @@ monoiso_mass(atomsymbol::Symbol) = monoiso_mass_unc(atomsymbol)[1]
 monoiso_mass(atom) = monoiso_mass_unc(atom)[1]
 monoiso_mass(mol::MolGraph) = monoiso_mass_unc(mol)[1]
 
-monoiso_mass(atomsymbol::Symbol, digit::Int) = round(monoiso_mass(atomsymbol), digits=digit)
-monoiso_mass(atom, digit::Int) = round(monoiso_mass(atom), digits=digit)
-monoiso_mass(mol::MolGraph, digit::Int) = round(monoiso_mass(mol), digits=digit)
+monoiso_mass(atomsymbol::Symbol, digits) = round(monoiso_mass(atomsymbol), digits=digits)
+monoiso_mass(atom, digits) = round(monoiso_mass(atom), digits=digits)
+monoiso_mass(mol::MolGraph, digits) = round(monoiso_mass(mol), digits=digits)
 
 
 """
@@ -102,9 +102,9 @@ exact_mass_unc(mol::MolGraph) = molecular_mass_unc(mol, exact_mass_unc)
 
 
 """
-    exact_mass(atomsymbol::Symbol, [digit::Int]) -> Float64
-    exact_mass(atom, [digit::Int]) -> Float64
-    exact_mass(mol::MolGraph, [digit::Int]) -> Float64
+    exact_mass(atomsymbol::Symbol, [digits::Int]) -> Float64
+    exact_mass(atom, [digits::Int]) -> Float64
+    exact_mass(mol::MolGraph, [digits::Int]) -> Float64
 
 Return calculated exact mass.
 """
@@ -112,9 +112,9 @@ exact_mass(atomsymbol::Symbol) = exact_mass_unc(atomsymbol)[1]
 exact_mass(atom) = exact_mass_unc(atom)[1]
 exact_mass(mol::MolGraph) = exact_mass_unc(mol)[1]
 
-exact_mass(atomsymbol::Symbol, digit::Int) = round(exact_mass(atomsymbol), digits=digit)
-exact_mass(atom, digit::Int) = round(exact_mass(atom), digits=digit)
-exact_mass(mol::MolGraph, digit::Int) = round(exact_mass(mol), digits=digit)
+exact_mass(atomsymbol::Symbol, digits) = round(exact_mass(atomsymbol), digits=digits)
+exact_mass(atom, digits) = round(exact_mass(atom), digits=digits)
+exact_mass(mol::MolGraph, digits) = round(exact_mass(mol), digits=digits)
 
 
 """
@@ -147,18 +147,18 @@ standard_weight_unc(atom) = standard_weight_unc(atom[:symbol], atom[:mass])
 standard_weight_unc(mol::MolGraph) = molecular_mass_unc(mol, standard_weight_unc)
 
 """
-    standard_weight(atomsymbol::Symbol, [digit::Int]) -> Float64
-    standard_weight(atom, [digit::Int]) -> Float64
-    standard_weight(mol::MolGraph, [digit::Int]) -> Float64
+    standard_weight(atomsymbol::Symbol, [digits::Int]) -> Float64
+    standard_weight(atom, [digits::Int]) -> Float64
+    standard_weight(mol::MolGraph, [digits::Int]) -> Float64
 
 Return standard atomic weight (or molecular weight).
 """
 standard_weight(atomsymbol::Symbol) = standard_weight_unc(atomsymbol)[1]
 standard_weight(atom) = standard_weight_unc(atom)[1]
 standard_weight(mol::MolGraph) = standard_weight_unc(mol)[1]
-standard_weight(atomsymbol::Symbol, digit::Int) = round(standard_weight(atomsymbol), digits=digit)
-standard_weight(atom, digit::Int) = round(standard_weight(atom), digits=digit)
-standard_weight(mol::MolGraph, digit::Int) = round(standard_weight(mol), digits=digit)
+standard_weight(atomsymbol::Symbol, digits) = round(standard_weight(atomsymbol), digits=digits)
+standard_weight(atom, digits) = round(standard_weight(atom), digits=digits)
+standard_weight(mol::MolGraph, digits) = round(standard_weight(mol), digits=digits)
 
 
 """

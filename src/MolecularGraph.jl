@@ -93,13 +93,13 @@ module MolecularGraph
 
     include("properties.jl")
     include("mass.jl")
+    include("wclogp.jl")
+
     include("preprocess.jl")
+
 
     """
     include("structurematch.jl")
-    include("wclogp.jl")
-
-
 
     include("coordgen.jl")
     include("./draw/draw2d.jl")

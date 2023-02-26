@@ -700,9 +700,9 @@ function is_edge_aromatic(mol::SimpleMolGraph)
     arr = falses(ne(mol))
     for ring in sssr(mol)[findall(is_ring_aromatic(mol))]
         for i in 1:(length(ring) - 1)
-            arr[edge_rank(mol, p[i], p[i + 1])] = true
+            arr[edge_rank(mol, ring[i], ring[i + 1])] = true
         end
-        arr[edge_rank(mol, p[1], p[end])] = true
+        arr[edge_rank(mol, ring[1], ring[end])] = true
     end
     return arr
 end

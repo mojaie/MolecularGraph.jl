@@ -5,12 +5,13 @@
 
 import Graphs:
     AbstractGraph, edgetype, nv, ne, vertices, edges, is_directed,
-    has_vertex, has_edge, inneighbors, outneighbors
+    has_vertex, has_edge, inneighbors, outneighbors, ordered_neighbors
 
 export
     AbstractMolGraph, SimpleMolGraph, AbstractReaction,
     ordered_neighbors, undirectededge,
-    vproptype, eproptype, props, vprops, eprops, get_prop, has_prop, edge_rank
+    vproptype, eproptype, props, vprops, eprops, get_prop, has_prop, edge_rank,
+    edge_neighbors, ordered_edge_neighbors
 
 
 abstract type AbstractMolGraph{T} <: AbstractGraph{T} end
@@ -71,3 +72,15 @@ get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
 get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
 has_prop(mol::SimpleMolGraph, prop::Symbol) = haskey(props(mol), prop)
 edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, undirectededge(mol, u, v))
+
+
+# convenient functions
+
+edge_neighbors(mol::AbstractMolGraph, u::Integer, v::Integer) = (
+    filter(n -> n != v, neighbors(mol, u)),
+    filter(n -> n != u, neighbors(mol, v))
+)
+edge_neighbors(mol::AbstractMolGraph, e::Edge
+    ) = edge_neighbors(mol, undirectededge(mol, src(e), dst(e)))
+
+ordered_edge_neighbors = edge_neighbors
