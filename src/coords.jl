@@ -37,7 +37,7 @@ function coordgen(mol::MolGraph)
     bonds = Ptr{Cvoid}[]
 
     # Atoms
-    for a in atom_symbols(mol)
+    for a in atom_symbol(mol)
         atom = ccall(
             (:setAtom, libcoordgen), Ptr{Cvoid},
             (Ptr{Cvoid}, Int), minmol, atomnumber(a)
@@ -51,7 +51,7 @@ function coordgen(mol::MolGraph)
         bond = ccall(
             (:setBond, libcoordgen), Ptr{Cvoid},
             (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-            minmol, src(e), dst(e), bondorder_[i]
+            minmol, atoms[src(e)], atoms[dst(e)], bondorder_[i]
         )
         push!(bonds, bond)
     end
@@ -62,21 +62,25 @@ function coordgen(mol::MolGraph)
     )
 
     # Stereocenter
-    for (n, stereo) in stereocenter(mol)
-        ccall(
-            (:setStereoCenter, libcoordgen), Cvoid,
-            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-            n, stereo[1], stereo[2], stereo[3], stereo[4]
-        )
+    if has_prop(mol, :stereocenter)
+        for (n, stereo) in get_prop(mol, :stereocenter)
+            ccall(
+                (:setStereoCenter, libcoordgen), Cvoid,
+                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
+                atoms[n], atoms[stereo[1]], atoms[stereo[2]], atoms[stereo[3]], stereo[4]
+            )
+        end
     end
 
     # Stereobond
-    for (e, stereo) in stereobond(mol)
-        ccall(
-            (:setStereoBond, libcoordgen), Cvoid,
-            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-            edge_rank(e), stereo[1], stereo[2], stereo[3]
-        )
+    if has_prop(mol, :stereobond)
+        for (e, stereo) in get_prop(mol, :stereobond)
+            ccall(
+                (:setStereoBond, libcoordgen), Cvoid,
+                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
+                bonds[edge_rank(mol, e)], atoms[stereo[1]], atoms[stereo[2]], stereo[3]
+            )
+        end
     end
 
     # Optimize
@@ -98,15 +102,15 @@ function coordgen(mol::MolGraph)
     for e in edges(mol)
         hasstereo = ccall(
             (:hasStereochemistryDisplay, libcoordgen), Bool,
-            (Ptr{Cvoid},), bonds[(e)])
+            (Ptr{Cvoid},), bonds[edge_rank(mol, e)])
         if !hasstereo
             push!(styles, 0)
             continue
         end
         iswedge = ccall(
-            (:isWedge, libcoordgen), Bool, (Ptr{Cvoid},), bonds[edge_rank(e)])
+            (:isWedge, libcoordgen), Bool, (Ptr{Cvoid},), bonds[edge_rank(mol, e)])
         isrev = ccall(
-            (:isReversed, libcoordgen), Bool, (Ptr{Cvoid},), bonds[edge_rank(e)])
+            (:isReversed, libcoordgen), Bool, (Ptr{Cvoid},), bonds[edge_rank(mol, e)])
         push!(styles, (iswedge ? 1 : 6) + (isrev ? 1 : 0))
     end
     return coords, styles

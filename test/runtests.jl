@@ -20,7 +20,6 @@ module MolecularGraphTest
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
-    include("inchi.jl")
 
     include("./smarts/base.jl")
     include("./smarts/logicaloperator.jl")
@@ -30,12 +29,15 @@ module MolecularGraphTest
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
+    include("stereo.jl")
+    include("preprocess.jl")
+    include("coords.jl")
+
     include("properties.jl")
     include("mass.jl")
     include("wclogp.jl")
+    include("inchi.jl")
 
-    include("stereo.jl")
-    include("preprocess.jl")
 
     """
     include("./util/iterator.jl")
