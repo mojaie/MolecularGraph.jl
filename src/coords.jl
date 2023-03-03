@@ -4,24 +4,31 @@
 #
 
 export
-    coords2d, sdfcoords2d, sdfcoords2d!, coordgen, coordgen!
+    coords2d, coords3d, coordgen, coordgen!
 
 using coordgenlibs_jll
 
 
-coords2d(mol::MolGraph) = get_descriptor(mol, :v_coords2d)
-
-
-function sdfcoords2d(mol::MolGraph)
+function coords2d(mol::SimpleMolGraph)
+    has_prop(mol, :v_coords2d) && return get_prop(mol, :v_coords2d)
     coords = zeros(Float64, nv(mol), 2)
+    # TODO: if coords not available, throw error and suggest to use coordgen
     for i in vertices(mol)
         coords[i, :] = get_prop(mol, i, :coords)[1:2]
     end
     return coords
 end
-sdfcoords2d!(mol::MolGraph) = set_descriptor!(mol, :v_coords2d, sdfcoords2d(mol))
 
 
+function coords3d(mol::SimpleMolGraph)
+    has_prop(mol, :v_coords3d) && return get_prop(mol, :v_coords3d)
+    coords = zeros(Float64, nv(mol), 3)
+    # TODO: if coords not available, throw error and suggest to use coordgen
+    for i in vertices(mol)
+        coords[i, :] = get_prop(mol, i, :coords)[1:3]
+    end
+    return coords
+end
 
 
 """
@@ -31,7 +38,7 @@ Generate 2D coordinates by using Schrodinger's coordgenlibs.
 
 This will returns a tuple of `coords` and `styles` arrays. `coords` is a size(n, 2) matrix where n is atom count, which stores 2D coordinates (x, y) of each atoms. `styles` is a size e vector of wedge notation of stereobond, where e is bond count.
 """
-function coordgen(mol::MolGraph)
+function coordgen(mol::SimpleMolGraph)
     minmol = ccall((:getSketcherMinimizer, libcoordgen), Ptr{Cvoid}, ())
     atoms = Ptr{Cvoid}[]
     bonds = Ptr{Cvoid}[]
@@ -98,27 +105,32 @@ function coordgen(mol::MolGraph)
             (:getAtomY, libcoordgen), Float32, (Ptr{Cvoid},), atoms[i])
         coords[i, :] = [px, py]
     end
-    styles = Int[]
-    for e in edges(mol)
+    styles = init_edge_descriptor(Symbol, mol)
+    for (i, e) in enumerate(edges(mol))
         hasstereo = ccall(
             (:hasStereochemistryDisplay, libcoordgen), Bool,
-            (Ptr{Cvoid},), bonds[edge_rank(mol, e)])
+            (Ptr{Cvoid},), bonds[i])
         if !hasstereo
-            push!(styles, 0)
+            styles[i] = :none
             continue
         end
         iswedge = ccall(
-            (:isWedge, libcoordgen), Bool, (Ptr{Cvoid},), bonds[edge_rank(mol, e)])
+            (:isWedge, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
         isrev = ccall(
-            (:isReversed, libcoordgen), Bool, (Ptr{Cvoid},), bonds[edge_rank(mol, e)])
-        push!(styles, (iswedge ? 1 : 6) + (isrev ? 1 : 0))
+            (:isReversed, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
+        if iswedge
+            styles[i] = isrev ? :up : :revup
+        else
+            styles[i] = isrev ? :down : :revdown
+        end
     end
+    # TODO: keep wave bond in SDFile
     return coords, styles
 end
 
 function coordgen!(mol::MolGraph)
     coords, styles = coordgen(mol)
-    set_descriptor!(mol, :v_coords2d, coords)
-    set_descriptor!(mol, :v_styles, styles)
+    set_prop!(mol, :v_coords2d, coords)
+    set_prop!(mol, :e_single_bond_style, styles)
     return
 end

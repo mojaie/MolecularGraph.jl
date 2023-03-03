@@ -67,12 +67,17 @@ props(mol::SimpleMolGraph) = mol.gprops
 props(mol::SimpleMolGraph, v::Integer) = vprops(mol)[v]
 props(mol::SimpleMolGraph, u::Integer, v::Integer) = props(mol, undirectededge(mol, u, v))
 get_prop(mol::SimpleMolGraph, prop::Symbol) = props(mol)[prop]
+# get_prop(mol::SimpleMolGraph, prop::Symbol, default) = get(props(mol), prop, default)
 get_prop(mol::SimpleMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
 get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
 get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
 has_prop(mol::SimpleMolGraph, prop::Symbol) = haskey(props(mol), prop)
 edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, undirectededge(mol, u, v))
 
+function set_prop!(mol::SimpleMolGraph, prop::Symbol, value)
+    mol.gprops[prop] = value
+    return value
+end
 
 # convenient functions
 

@@ -10,6 +10,13 @@ module MolecularGraphTest
     using Graphs
     using MolecularGraph
 
+    """
+    include("./util/iterator.jl")
+    include("./util/math.jl")
+
+    include("./geometry/cartesian.jl")
+    include("./geometry/internal.jl")
+
     include("./graph/cycle.jl")
     include("./graph/matching.jl")
 
@@ -37,15 +44,13 @@ module MolecularGraphTest
     include("mass.jl")
     include("wclogp.jl")
     include("inchi.jl")
+    """
 
+    #include("./draw/base.jl")
+    #include("./draw/svg.jl")
+    include("./draw/3d.jl")
 
     """
-    include("./util/iterator.jl")
-    include("./util/math.jl")
-
-    include("./geometry/cartesian.jl")
-    include("./geometry/internal.jl")
-
     include("./graph/dfs.jl")
     include("./graph/shortestpath.jl")
     include("./graph/generator.jl")
@@ -69,10 +74,7 @@ module MolecularGraphTest
     include("./graph/isomorphism/vf2.jl")
     include("./graph/isomorphism/cliquebased.jl")
 
-    include("structurematch.jl")
+    include("structurematch.jl"
 
-    include("./draw/base.jl")
-    include("./draw/svg.jl")
-    include("./draw/3d.jl")
     """
 end

@@ -10,7 +10,8 @@ export
     MolGraph, SDFMolGraph, SMILESMolGraph, SMARTSMolGraph,
     EditableMolGraph, Reaction,
     to_dict, to_json, setcache!,
-    descriptors, set_descriptor!, has_descriptor, get_descriptor
+    descriptors, set_descriptor!, has_descriptor, get_descriptor,
+    init_node_descriptor, init_edge_descriptor
 
 
 struct MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
@@ -121,7 +122,7 @@ init_edge_descriptor(::Type{T}, mol::MolGraph) where T <: Number = fill(zero(T),
 init_edge_descriptor(::Type{Vector{T}}, mol::MolGraph) where T = [T[] for _ in edges(mol)]
 
 function set_descriptor!(mol::MolGraph, desc::Symbol, value)
-    delete!(mol.descriptors, desc)  # remove old descriptor
+    # delete!(mol.descriptors, desc)  # remove old descriptor
     mol.descriptors[desc] = value
     return value
 end

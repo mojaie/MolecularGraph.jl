@@ -95,14 +95,14 @@ end
 
 
 """
-    drawsvg(mol::GraphMol, width::Int, height::Int)
+    drawsvg(mol::SimpleMolGraph, width::Int, height::Int)
 
 Generate molecular structure image as a SVG format string.
 
 `width` and `height` specifies the size of the image (width and height
 attribute of svg tag).
 """
-function drawsvg(mol::UndirectedGraph, width, height; kwargs...)
+function drawsvg(mol::SimpleMolGraph, width, height; kwargs...)
     canvas = SvgCanvas()
     draw2d!(canvas, mol; kwargs...)
     if haskey(kwargs, :highlight)
@@ -117,7 +117,7 @@ end
 
 import Base.Multimedia.display
 """
-    display(mol, x, y)
+    display(mol::SimpleMolGraph, x, y)
 
 Displays an SVG drawing with dimensions (x, y) in an HTML element for use in Pluto notebooks.
 Arguments
@@ -125,40 +125,37 @@ Arguments
 - `x::Int` the horizontal extent in pixels of the SVG to render (optional; default = 250)
 - `y::Int` the vertical extent in pixels of the SVG to render (optional; default = 250)
 """
-Base.Multimedia.display(mol::GraphMol, x::Int=250, y::Int=250) = HTML(drawsvg(mol, x, y))
+Base.Multimedia.display(mol::SimpleMolGraph, x::Int=250, y::Int=250) = HTML(drawsvg(mol, x, y))
 
 
 """
-    boundary(mol::GraphMol, coords::AbstractArray{Float64}
+    boundary(mol::SimpleMolGraph, coords::AbstractArray{Float64}
         ) -> (top, left, width, height, unit)
 
 Get boundaries and an appropriate bond length unit for the molecule drawing
 canvas.
 """
-function boundary(mol::GraphMol, coords::AbstractArray{Float64})
+function boundary(mol::SimpleMolGraph, coords::AbstractArray{Float64})
     (left, right) = extrema(x_components(coords))
     (bottom, top) = extrema(y_components(coords))
     width = right - left
     height = top - bottom
     dists = []
     # Size unit
-    for (u, v) in edgesiter(mol)
-        d = Geometry.distance(Point2D(coords, u), Point2D(coords, v))
+    for e in edges(mol)
+        d = distance(Point2D(coords, src(e)), Point2D(coords, dst(e)))
         if d > 0.0001  # Remove overlapped
             push!(dists, d)
         end
     end
     if isempty(dists)
         long = max(width, height)
-        unit = long > 0.0001 ? long / sqrt(nodecount(mol)) : 1
+        unit = long > 0.0001 ? long / sqrt(nv(mol)) : 1
     else
         unit = median(dists) # Median bond length
     end
     return (top, left, width, height, unit)
 end
-
-boundary(view::SubgraphView, coords::AbstractArray{Float64}
-    ) = boundary(view.graph, coords)
 
 
 """
@@ -193,78 +190,88 @@ function trimbond(canvas::SvgCanvas, seg, uvis, vvis)
 end
 
 
-function singlebond!(canvas::SvgCanvas, seg, ucolor, vcolor, uvis, vvis)
-    seg_ = trimbond(canvas, seg, uvis, vvis)
-    drawline!(canvas, seg_, ucolor, vcolor)
+function singlebond!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    drawline!(canvas, seg, ucolor, vcolor)
     return
 end
 
 
-function wedged!(canvas::SvgCanvas, seg, ucolor, vcolor, uvis, vvis)
-    seg_ = trimbond(canvas, seg, uvis, vvis)
-    drawwedge!(canvas, seg_, ucolor, vcolor)
+function wedged!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    drawwedge!(canvas, seg, ucolor, vcolor)
+    return
+end
+
+function reversed_wedged!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, v, u), vvis, uvis)
+    drawwedge!(canvas, seg, vcolor, ucolor)
+    return
+end
+
+function dashedwedged!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    drawdashedwedge!(canvas, seg, ucolor, vcolor)
+    return
+end
+
+function reversed_dashedwedged!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, v, u), vvis, uvis)
+    drawdashedwedge!(canvas, seg, vcolor, ucolor)
+    return
+end
+
+function wavesingle!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    drawwave!(canvas, seg, ucolor, vcolor)
     return
 end
 
 
-function dashedwedged!(canvas::SvgCanvas, seg, ucolor, vcolor, uvis, vvis)
-    seg_ = trimbond(canvas, seg, uvis, vvis)
-    drawdashedwedge!(canvas, seg_, ucolor, vcolor)
-    return
-end
-
-
-function wavesingle!(canvas::SvgCanvas, seg, ucolor, vcolor, uvis, vvis)
-    seg_ = trimbond(canvas, seg, uvis, vvis)
-    drawwave!(canvas, seg_, ucolor, vcolor)
-    return
-end
-
-
-function doublebond!(canvas::SvgCanvas, seg, ucolor, vcolor, uvis, vvis)
+function doublebond!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf / 2
-    seg_ = trimbond(canvas, seg, uvis, vvis)
-    seg1 = translate(seg_, pi / 2, dist)
-    seg2 = translate(seg_, -pi / 2, dist)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg1 = translate(seg, pi / 2, dist)
+    seg2 = translate(seg, -pi / 2, dist)
     drawline!(canvas, seg1, ucolor, vcolor)
     drawline!(canvas, seg2, ucolor, vcolor)
     return
 end
 
 
-function crossdouble!(canvas::SvgCanvas, seg, ucolor, vcolor, uvis, vvis)
+function crossdouble!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf / 2
-    seg_ = trimbond(canvas, seg, uvis, vvis)
-    cw = translate(seg_, pi / 2, dist)
-    ccw = translate(seg_, -pi / 2, dist)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    cw = translate(seg, pi / 2, dist)
+    ccw = translate(seg, -pi / 2, dist)
     drawline!(canvas, Segment(cw.u, ccw.v), ucolor, vcolor)
     drawline!(canvas, Segment(ccw.u, cw.v), ucolor, vcolor)
     return
 end
 
 
-function ringdouble!(canvas::SvgCanvas, seg, ucolor, vcolor, uvis, vvis, direction)
-    seg_ = trimbond(canvas, seg, uvis, vvis)
+function ringdouble!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis, direction)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf
-    segin = trim_uv(translate(seg_, direction, dist), canvas.triminnerf)
-    drawline!(canvas, seg_, ucolor, vcolor)
+    segin = trim_uv(translate(seg, direction, dist), canvas.triminnerf)
+    drawline!(canvas, seg, ucolor, vcolor)
     drawline!(canvas, segin, ucolor, vcolor)
     return
 end
 
 # NOTE: the direction is reversed due to x-axis reflection
-clockwisedouble!(canvas::SvgCanvas, seg, ucolor, vcolor, uvis, vvis
-    ) = ringdouble!(canvas, seg, ucolor, vcolor, uvis, vvis, pi / 2)
-counterdouble!(canvas::SvgCanvas, seg, ucolor, vcolor, uvis, vvis
-    ) = ringdouble!(canvas, seg, ucolor, vcolor, uvis, vvis, -pi / 2)
+clockwisedouble!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis
+    ) = ringdouble!(canvas, u, v, ucolor, vcolor, uvis, vvis, pi / 2)
+counterdouble!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis
+    ) = ringdouble!(canvas, u, v, ucolor, vcolor, uvis, vvis, -pi / 2)
 
 
-function triplebond!(canvas::SvgCanvas, seg, ucolor, vcolor, uvis, vvis)
+function triplebond!(canvas::SvgCanvas, u, v, ucolor, vcolor, uvis, vvis)
     dist = canvas.scalef * canvas.mbwidthf
-    seg_ = trimbond(canvas, seg, uvis, vvis)
-    seg1 = translate(seg_, pi / 2, dist)
-    seg2 = translate(seg_, -pi / 2, dist)
-    drawline!(canvas, seg_, ucolor, vcolor)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg1 = translate(seg, pi / 2, dist)
+    seg2 = translate(seg, -pi / 2, dist)
+    drawline!(canvas, seg, ucolor, vcolor)
     drawline!(canvas, seg1, ucolor, vcolor)
     drawline!(canvas, seg2, ucolor, vcolor)
     return
@@ -273,28 +280,30 @@ end
 
 const BOND_DRAWER = Dict(
     1 => Dict(
-        0 => singlebond!,
-        1 => wedged!,
-        6 => dashedwedged!,
-        4 => wavesingle!
+        :none => singlebond!,
+        :up => wedged!,
+        :down => dashedwedged!,
+        :revup => reversed_wedged!,
+        :revdown => reversed_dashedwedged!,
+        :unspecified => wavesingle!
     ),
     2 => Dict(
-        0 => clockwisedouble!,
-        1 => counterdouble!,
-        2 => doublebond!,
-        3 => crossdouble!
+        :none => doublebond!,
+        :clockwise => clockwisedouble!,
+        :anticlockwise => counterdouble!,
+        :unspecified => crossdouble!
     ),
     3 => Dict(
-        0 => triplebond!
+        :none => triplebond!
     )
 )
 
 setbond!(
-    canvas::SvgCanvas, order, notation, seg, ucolor, vcolor, uvis, vvis
-) = BOND_DRAWER[order][notation](canvas, seg, ucolor, vcolor, uvis, vvis)
+    canvas::SvgCanvas, order, notation, u, v, ucolor, vcolor, uvis, vvis
+) = BOND_DRAWER[order][notation](canvas, u, v, ucolor, vcolor, uvis, vvis)
 
 
-function setbondhighlight!(canvas::SvgCanvas, seg, color)
+function setbondhighlight!(canvas::SvgCanvas, u, v, color)
     cds = svgcoords(seg)
     c = svgcolor(color)
     elem = """<line $(cds) stroke="$(c)" stroke-width="10" stroke-linecap="round"/>
@@ -394,7 +403,7 @@ drawdashedline!(canvas::SvgCanvas, seg, ucolor, vcolor) = drawline!(
 
 function drawwedge!(canvas::SvgCanvas, seg, color)
     """ u ◀︎ v """
-    d = Geometry.distance(seg)
+    d = distance(seg)
     scalef = Point2D(d, d / 2 * canvas.wedgewidthf)
     rotatef = unitvector(seg)
     translf = seg.u
@@ -409,7 +418,7 @@ end
 function drawwedge!(canvas::SvgCanvas, seg, ucolor, vcolor)
     """ u ◀︎ v """
     ucolor == vcolor && return drawwedge!(canvas, seg, ucolor)
-    d = Geometry.distance(seg)
+    d = distance(seg)
     scalef = Point2D(d, d / 2 * canvas.wedgewidthf)
     rotatef = unitvector(seg)
     translf = seg.u
@@ -428,7 +437,7 @@ end
 
 function drawdashedwedge!(canvas::SvgCanvas, seg, color)
     """ u ◁ v """
-    d = Geometry.distance(seg)
+    d = distance(seg)
     scalef = Point2D(d / 7, d / 14 * canvas.wedgewidthf)
     rotatef = unitvector(seg)
     translf = seg.u
@@ -452,7 +461,7 @@ end
 function drawdashedwedge!(canvas::SvgCanvas, seg, ucolor, vcolor)
     """ u ◁ v """
     ucolor == vcolor && return drawdashedwedge!(canvas, seg, ucolor)
-    d = Geometry.distance(seg)
+    d = distance(seg)
     scalef = Point2D(d / 7, d / 14 * canvas.wedgewidthf)
     rotatef = unitvector(seg)
     translf = seg.u
@@ -476,7 +485,7 @@ end
 
 
 function drawwave!(canvas::SvgCanvas, seg, color)
-    d = Geometry.distance(seg)
+    d = distance(seg)
     scalef = Point2D(d / 7, d / 2 * canvas.wedgewidthf)
     rotatef = unitvector(seg)
     translf = seg.u
@@ -491,7 +500,7 @@ end
 
 function drawwave!(canvas::SvgCanvas, seg, ucolor, vcolor)
     ucolor == vcolor && return drawwave!(canvas, seg, ucolor)
-    d = Geometry.distance(seg)
+    d = distance(seg)
     scalef = Point2D(d / 7, d / 2 * canvas.wedgewidthf)
     rotatef = unitvector(seg)
     translf = seg.u

@@ -198,7 +198,7 @@ is_edge_in_ring(mol::EditableMolGraph) = Dict(i => !isempty(e) for (i, e) in edg
 Return a vector of size ``n`` representing atom symbols of 1 to ``n``th atoms of
 the given molecule.
 """
-atom_symbol(mol::MolGraph) = get(descriptors(mol), :v_symbol, getproperty.(vprops(mol), :symbol))
+atom_symbol(mol::MolGraph) = get(props(mol), :v_symbol, getproperty.(vprops(mol), :symbol))
 atom_symbol(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :symbol) for i in vertices(mol))
 
 
@@ -209,7 +209,7 @@ atom_symbol(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :symbol) for i i
 Return a vector of size ``n`` representing atom charges of 1 to ``n``th atoms of
 the given molecule.
 """
-charge(mol::MolGraph) = get(descriptors(mol), :v_charge, getproperty.(vprops(mol), :charge))
+charge(mol::MolGraph) = get(props(mol), :v_charge, getproperty.(vprops(mol), :charge))
 charge(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :charge) for i in vertices(mol))
 
 
@@ -220,7 +220,7 @@ charge(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :charge) for i in ver
 Return a vector of size ``n`` representing atom multiplicities of 1 to ``n``th atoms of
 the given molecule (1: non-radical, 2: radical, 3: biradical).
 """
-multiplicity(mol::MolGraph) = get(descriptors(mol), :v_multiplicity, getproperty.(vprops(mol), :multiplicity))
+multiplicity(mol::MolGraph) = get(props(mol), :v_multiplicity, getproperty.(vprops(mol), :multiplicity))
 multiplicity(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :multiplicity) for i in vertices(mol))
 
 
@@ -231,7 +231,7 @@ multiplicity(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :multiplicity) 
 Return a vector of size ``n`` representing bond order of 1 to ``n``th bonds of
 the given molecule.
 """
-bond_order(mol::MolGraph) = get(descriptors(mol), :e_order, getproperty.(eprops(mol), :order))
+bond_order(mol::MolGraph) = get(props(mol), :e_order, getproperty.(eprops(mol), :order))
 bond_order(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :order) for i in edges(mol))
 
 
