@@ -4,11 +4,11 @@
 #
 
 export
-    Point, Coordinates,
+    MGPoint, Coordinates,
     radiantophase
 
 
-abstract type Point end
+abstract type MGPoint end  # TODO: to be removed, replaced by GeometryBasics
 abstract type Coordinates end
 
 

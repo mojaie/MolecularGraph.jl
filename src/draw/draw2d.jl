@@ -4,7 +4,6 @@
 #
 
 export
-    DRAW_SETTING,
     atom_color, is_atom_visible,
     single_bond_style, double_bond_style,
     chargesign, atommarkup, atomhtml,
@@ -12,61 +11,12 @@ export
 
 
 """
-    DRAW_SETTING
-
-Default setting parameters of the molecule drawing canvas.
-
-# Required fields
-
-- `:display_terminal_carbon`(Bool) whether to display terminal C atom or not
-- `:double_bond_notation`(Symbol)
-    - `:alongside`: all double bonds are represented as a carbon skeleton and
-                    a segment alongside it.
-    - `:dual`: all double bonds are represented as two equal length parallel
-               segments.
-    - `:chain`: `:dual` for chain bonds and `:alongside` for ring bonds
-    - `:terminal`: `:dual` for terminal bonds (adjacent to degree=1 node) and
-                   `:alongside` for others (default)
-- `:atomcolor`(Dict{Symbol,Color}) atom symbol and bond colors for organic atoms
-- `:defaul_atom_color`(Dict{Symbol,Color}) colors for other atoms
-"""
-const DRAW_SETTING = Dict(
-    :display_terminal_carbon => false,
-    :double_bond_style => :terminal,  # :alongside, :dual, :chain, :terminal
-    :atom_color => Dict(
-        :H => Color(0, 0, 0),
-        :B => Color(128, 0, 0),
-        :C => Color(0, 0, 0),
-        :N => Color(0, 0, 255),
-        :O => Color(255, 0, 0),
-        :F => Color(0, 255, 0),
-        :Si => Color(128, 64, 192),
-        :P => Color(192, 0, 192),
-        :S => Color(192, 192, 0),
-        :Cl => Color(64, 192, 64),
-        :As => Color(128, 0, 128),
-        :Se => Color(128, 128, 0),
-        :Br => Color(0, 192, 0),
-        :I => Color(0, 128, 0)
-    ),
-    :default_atom_color => Color(0, 192, 192)
-)
-
-# For 3d rendering, we use white for hydrogen
-const DRAW_SETTING3 = (dct = deepcopy(DRAW_SETTING); dct[:atom_color][:H] = Color(255, 255, 255); dct)
-
-"""
     atomcolor(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Color}
 
 Return atom colors for molecule 2D drawing
 """
-atom_color(mol::SimpleMolGraph; kwargs...) = atom_color(atom_symbol(mol); kwargs...)
-
-function atom_color(syms::AbstractVector; setting=DRAW_SETTING, kwargs...)
-    atomc = setting[:atom_color]
-    dfc = setting[:default_atom_color]
-    return [get(atomc, sym, dfc) for sym in syms]
-end
+atom_color(mol::SimpleMolGraph; color_theme=DEFAULT_ATOM_COLOR
+    ) = [get(color_theme, sym, color_theme[:default]) for sym in atom_symbol(mol)]
 
 
 """
@@ -74,7 +24,7 @@ end
 
 Return whether the atom is visible in the 2D drawing.
 """
-function is_atom_visible(mol::SimpleMolGraph; setting=DRAW_SETTING, kwargs...)
+function is_atom_visible(mol::SimpleMolGraph; show_terminal_carbon=false)
     arr = (~).(init_node_descriptor(Bool, mol))
     deg_ = degree(mol)
     sym_ = atom_symbol(mol)
@@ -88,7 +38,7 @@ function is_atom_visible(mol::SimpleMolGraph; setting=DRAW_SETTING, kwargs...)
         mul_[i] == 1 || continue
         mas_[i] === nothing || continue
         deg_[i] == 0 && continue
-        deg_[i] == 1 && setting[:display_terminal_carbon] && continue
+        deg_[i] == 1 && show_terminal_carbon && continue
         if deg_[i] == 2
             nbrs = neighbors(mol, i)
             u = edge_rank(mol, undirectededge(mol, i, nbrs[1]))
@@ -153,7 +103,7 @@ function double_bond_style(mol::SimpleMolGraph)
 end
 
 
-function single_bond_style(mol::SimpleMolGraph; kwargs...)
+function single_bond_style(mol::SimpleMolGraph)
     # can be precalculated by coordgen
     has_prop(mol, :e_single_bond_style) && return get_prop(mol, :e_single_bond_style)
     bondorder = bond_order(mol)
@@ -230,8 +180,8 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     atomcolor_ = atom_color(mol; kwargs...)
     isatomvisible_ = is_atom_visible(mol; kwargs...)
     bondstyle_ = map(
-                single_bond_style(mol; kwargs...),
-                double_bond_style(mol; kwargs...),
+                single_bond_style(mol),
+                double_bond_style(mol),
                 bondorder_
             ) do sb, db, o
         if o == 1

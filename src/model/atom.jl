@@ -4,6 +4,7 @@
 #
 
 export
+    ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
     SDFAtom, SMILESAtom, atomnumber, atomsymbol
 
 

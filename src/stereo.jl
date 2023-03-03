@@ -93,7 +93,7 @@ end
 Set stereocenter information obtained from 2D SDFile.
 """
 function stereocenter_from_sdf2d!(mol::MolGraph)
-    crds = sdfcoords2d(mol)
+    crds = coords2d(mol)
     for i in vertices(mol)
         degree(mol.graph, i) in (3, 4) || continue
         nbrs = ordered_neighbors(mol, i)
@@ -168,7 +168,7 @@ end
 Return cis-trans diastereomerism information obtained from 2D SDFile.
 """
 function stereobond_from_sdf2d!(mol::MolGraph)
-    crds = sdfcoords2d(mol)
+    crds = coords2d(mol)
     for e in edges(mol)
         get_prop(mol, e, :order) == 2 || continue
         get_prop(mol, e, :notation) == 3 && continue  # stereochem unspecified

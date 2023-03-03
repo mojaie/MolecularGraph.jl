@@ -67,9 +67,11 @@ module MolecularGraph
     include("coords.jl")
     include("stereo.jl")
 
+    include("./draw/color.jl")
     include("./draw/interface.jl")
     include("./draw/draw2d.jl")
     include("./draw/svg.jl")
+    include("./draw/draw3d.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
@@ -86,18 +88,15 @@ module MolecularGraph
     include("inchi.jl")
 
 
+    """
     using Requires
 
     function __init__()
-        @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" include("draw/draw3d.jl")
+        @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" 
     end
 
-    """
     include("structurematch.jl")
-
-
     include("download.jl")
-
     include("libmoleculargraph.jl")
 
 

@@ -4,7 +4,7 @@
 #
 
 export
-    Canvas, Color,
+    Canvas,
     singlebond!,
     wedged!,
     dashedwedged!,
@@ -21,11 +21,6 @@ export
 
 
 
-struct Color
-    r::Int
-    g::Int
-    b::Int
-end
 
 
 abstract type Canvas end
