@@ -30,7 +30,6 @@ module MolecularGraph
         include("./graph/triangle.jl")
         include("./graph/clique.jl")
         include("./graph/connectivity.jl")
-        include("./graph/planarity.jl")
 
         include("./graph/isomorphism/edgeinduced.jl")
         include("./graph/isomorphism/vf2.jl")
@@ -57,6 +56,7 @@ module MolecularGraph
     include("./graph/traversals.jl")
     include("./graph/cycle.jl")
     include("./graph/matching.jl")
+    include("./graph/planarity.jl")
 
     include("./model/interface.jl")
     include("./model/atom.jl")

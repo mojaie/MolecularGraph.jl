@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using MolecularGraph.Graph: merge!
+using MolecularGraph: merge!
 
 @testset "graph.planarity" begin
 
@@ -99,33 +99,33 @@ using MolecularGraph.Graph: merge!
 end
 
 @testset "isplanar" begin
-    @test planaritytest(completebipartite(2,3))
-    @test !planaritytest(completebipartite(3,3))
-    @test planaritytest(completegraph(4))
-    @test !planaritytest(completegraph(5))
-    @test planaritytest(laddergraph(20))
-    @test planaritytest(circularladder(20))
-    @test !planaritytest(moebiusladder(20))
-    @test planaritytest(pathgraph(20))
-    disconn = plaingraph(11, [
+    @test planaritytest(complete_bipartite_graph(2,3))
+    @test !planaritytest(complete_bipartite_graph(3,3))
+    @test planaritytest(complete_graph(4))
+    @test !planaritytest(complete_graph(5))
+    @test planaritytest(ladder_graph(20))
+    @test planaritytest(circular_ladder_graph(20))
+    @test !planaritytest(smallgraph(:moebiuskantor))
+    @test planaritytest(path_graph(20))
+    disconn = SimpleGraph(Edge.([
         (1, 2), (2, 3), (3, 4), (6, 7), (6, 8),
         (6, 9), (10, 7), (10, 8), (10, 9), (11, 7), (11, 8), (11, 9)
-    ])
+    ]))
     @test !planaritytest(disconn)
 end
 
 @testset "isouterplanar" begin
-    @test outerplanaritytest(completebipartite(2,2))
-    @test !outerplanaritytest(completebipartite(2,3))
-    @test outerplanaritytest(completegraph(3))
-    @test !outerplanaritytest(completegraph(4))
-    @test outerplanaritytest(laddergraph(20))
-    @test !outerplanaritytest(circularladder(20))
-    @test outerplanaritytest(pathgraph(20))
-    disconn = plaingraph(10, [
+    @test outerplanaritytest(complete_bipartite_graph(2,2))
+    @test !outerplanaritytest(complete_bipartite_graph(2,3))
+    @test outerplanaritytest(complete_graph(3))
+    @test !outerplanaritytest(complete_graph(4))
+    @test outerplanaritytest(ladder_graph(20))
+    @test !outerplanaritytest(circular_ladder_graph(20))
+    @test outerplanaritytest(path_graph(20))
+    disconn = SimpleGraph(Edge.([
         (1, 2), (2, 3), (3, 4), (6, 7), (6, 8),
         (6, 9), (10, 7), (10, 8), (10, 9)
-    ])
+    ]))
     @test !outerplanaritytest(disconn)
 end
 
