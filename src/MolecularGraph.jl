@@ -19,7 +19,6 @@ module MolecularGraph
         include("./graph/multigraph.jl")
         include("./graph/dag.jl")
         include("./graph/subgraphview.jl")
-        include("./graph/product.jl")
         include("./graph/disjointunion.jl")
         include("./graph/contraction.jl")
         include("./graph/linegraph.jl")
@@ -28,7 +27,6 @@ module MolecularGraph
         include("./graph/shortestpath.jl")
         include("./graph/bipartite.jl")
         include("./graph/triangle.jl")
-        include("./graph/clique.jl")
         include("./graph/connectivity.jl")
 
         include("./graph/isomorphism/edgeinduced.jl")
@@ -53,16 +51,18 @@ module MolecularGraph
     include("./geometry/cartesian.jl")
     include("./geometry/internal.jl")
 
-    include("./graph/traversals.jl")
-    include("./graph/cycle.jl")
-    include("./graph/matching.jl")
-    include("./graph/planarity.jl")
-
     include("./model/interface.jl")
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/query.jl")
     include("./model/molgraph.jl")
+
+    include("./graph/product.jl")
+    include("./graph/traversals.jl")
+    include("./graph/cycle.jl")
+    include("./graph/matching.jl")
+    include("./graph/clique.jl")
+    include("./graph/planarity.jl")
 
     include("coords.jl")
     include("stereo.jl")

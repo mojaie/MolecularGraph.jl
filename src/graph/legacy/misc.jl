@@ -4,7 +4,7 @@
 #
 
 export
-    twocoloring, triangles
+    twocoloring, triangles, cartesianproduct
 
 
 """
@@ -63,4 +63,52 @@ function triangles(graph::UndirectedGraph)
         end
     end
     return triads
+end
+
+
+# Cartesian product
+#
+struct CartesianProductNode <: AbstractNode
+    g::Int
+    h::Int
+end
+
+
+struct CartesianProduct <: OrderedGraph
+    neighbormap::Vector{Dict{Int,Int}}
+    edges::Vector{Tuple{Int,Int}}
+    nodeattrs::Vector{CartesianProductNode}
+    cache::Dict{Symbol,Any}
+end
+
+
+"""
+    cartesianproduct(G::OrderedGraph, H::OrderedGraph) -> CartesianProduct
+
+Return the cartesian product of graphs G and H.
+"""
+function cartesianproduct(G::OrderedGraph, H::OrderedGraph)
+    product = CartesianProduct([], [], [], Dict())
+    ndict = Dict{Int,Dict{Int,Int}}() # Ref to node indices of the product
+    #Cartesian product nodes
+    nattrs = CartesianProductNode[]
+    for g in 1:nodecount(G)
+        ndict[g] = Dict{Int,Int}()
+        for h in 1:nodecount(H)
+            ndict[g][h] = addnode!(product, CartesianProductNode(g, h))
+        end
+    end
+    (nodecount(G) < 2 || nodecount(H) < 2) && return product
+    # Cartesian product edges
+    for i in 1:nodecount(G)
+        for (u, v) in edgesiter(H)
+            addedge!(product, ndict[i][u], ndict[i][v])
+        end
+    end
+    for i in 1:nodecount(H)
+        for (u, v) in edgesiter(G)
+            addedge!(product, ndict[u][i], ndict[v][i])
+        end
+    end
+    return product
 end

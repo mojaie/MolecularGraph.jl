@@ -4,118 +4,45 @@
 #
 
 export
-    ModularProduct, modularproduct,
-    CartesianProduct, cartesianproduct
+    ModularProduct, modular_product
 
 
 # Modular product
 
-struct ModularProductNode <: AbstractNode
-    g::Int
-    h::Int
+struct ModularProduct{T}
+    graph::SimpleGraph{T}
+    isconnected::Dict{Edge{T},Bool}
 end
 
-
-struct ModularProductEdge <: UndirectedEdge
-    hasedge::Bool
-end
-
-
-struct ModularProduct <: OrderedGraph
-    neighbormap::Vector{Dict{Int,Int}}
-    edges::Vector{Tuple{Int,Int}}
-    nodeattrs::Vector{ModularProductNode}
-    edgeattrs::Vector{ModularProductEdge}
-    cache::Dict{Symbol,Any}
-end
-
-
+# modular_product_reverse_map
+# i -> (div(i, nv(h)), mod(i, nv(h)))
 
 """
     modularproduct(G::OrderedGraph, H::OrderedGraph) -> ModularProduct
 
 Return the modular product of graphs G and H.
 """
-function modularproduct(G::OrderedGraph, H::OrderedGraph;
-            nodematcher=(g,h)->true,
-            edgefilter=(g1,g2,h1,h2)->hasedge(G,g1,g2)==hasedge(H,h1,h2),
-            kwargs...)
-    product = ModularProduct([], [], [], [], Dict())
-    ndict = Dict{Int,Dict{Int,Int}}() # Ref to node indices of the product
-    # Modular product nodes
-    for g in 1:nodecount(G)
-        ndict[g] = Dict{Int,Int}()
-        for h in 1:nodecount(H)
-            ndict[g][h] = addnode!(product, ModularProductNode(g, h))
-        end
-    end
-    (nodecount(G) < 2 || nodecount(H) < 2) && return product
-    # Modular product edges
-    for (g1, g2) in combinations(nodecount(G))
-        for (h1, h2) in combinations(nodecount(H))
+function modular_product(g::SimpleGraph{T}, h::SimpleGraph{T};
+            nodematcher=(g1,h1)->true,
+            edgefilter=(g1,g2,h1,h2)->has_edge(g,g1,g2)==has_edge(g,h1,h2),
+            kwargs...) where T
+    m = SimpleGraph(nv(g) * nv(h))
+    connected = Dict{Edge{T},Bool}()
+    id(i, j) = (i - 1) * nv(h) + j
+    for (g1, g2) in combinations(nv(g))
+        for (h1, h2) in combinations(nv(h))
             edgefilter(g1, g2, h1, h2) || continue
             if nodematcher(g1, h1) && nodematcher(g2, h2)
-                addedge!(
-                    product, ndict[g1][h1], ndict[g2][h2],
-                    ModularProductEdge(hasedge(G, g1, g2))
-                )
+                e = Edge{T}(id(g1, h1), id(g2, h2))  # g1 < g2 -> id(g1, h1) < id(g2, h2)
+                add_edge!(m, e)  
+                connected[e] = has_edge(g, g1, g2)
             end
             if nodematcher(g1, h2) && nodematcher(g2, h1)
-                addedge!(
-                    product, ndict[g1][h2], ndict[g2][h1],
-                    ModularProductEdge(hasedge(G, g1, g2))
-                )
+                e = Edge{T}(id(g1, h2), id(g2, h1))  # g1 < g2 -> id(g1, h2) < id(g2, h1)
+                add_edge!(m, e)
+                connected[e] = has_edge(g, g1, g2)
             end
         end
     end
-    return product
-end
-
-
-
-# Cartesian product
-
-struct CartesianProductNode <: AbstractNode
-    g::Int
-    h::Int
-end
-
-
-struct CartesianProduct <: OrderedGraph
-    neighbormap::Vector{Dict{Int,Int}}
-    edges::Vector{Tuple{Int,Int}}
-    nodeattrs::Vector{CartesianProductNode}
-    cache::Dict{Symbol,Any}
-end
-
-
-"""
-    cartesianproduct(G::OrderedGraph, H::OrderedGraph) -> CartesianProduct
-
-Return the cartesian product of graphs G and H.
-"""
-function cartesianproduct(G::OrderedGraph, H::OrderedGraph)
-    product = CartesianProduct([], [], [], Dict())
-    ndict = Dict{Int,Dict{Int,Int}}() # Ref to node indices of the product
-    #Cartesian product nodes
-    nattrs = CartesianProductNode[]
-    for g in 1:nodecount(G)
-        ndict[g] = Dict{Int,Int}()
-        for h in 1:nodecount(H)
-            ndict[g][h] = addnode!(product, CartesianProductNode(g, h))
-        end
-    end
-    (nodecount(G) < 2 || nodecount(H) < 2) && return product
-    # Cartesian product edges
-    for i in 1:nodecount(G)
-        for (u, v) in edgesiter(H)
-            addedge!(product, ndict[i][u], ndict[i][v])
-        end
-    end
-    for i in 1:nodecount(H)
-        for (u, v) in edgesiter(G)
-            addedge!(product, ndict[u][i], ndict[v][i])
-        end
-    end
-    return product
+    return ModularProduct(m, connected)
 end

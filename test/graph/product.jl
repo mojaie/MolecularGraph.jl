@@ -3,19 +3,14 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-@testset "graph.product" begin
+@testset "product" begin
 
-    @testset "modularproduct" begin
-        g = pathgraph(3)
-        prod = modularproduct(g, g)
-        @test nodecount(prod) == 9
-        @test edgecount(prod) == 10
-    end
+@testset "modularproduct" begin
+    g = path_graph(3)
+    prod = modular_product(g, g)
+    @test nv(prod.graph) == 9
+    @test ne(prod.graph) == 10
+end
 
-    @testset "cartesian.product" begin
-        g = pathgraph(5)
-        prod = cartesianproduct(g, g)
-        grid = squaregrid(5, 5)
-        @test is_isomorphic(prod, grid)
-    end
+
 end # graph.product

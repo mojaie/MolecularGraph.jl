@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-@testset "graph.triangle" begin
+@testset "misc" begin
 
 @testset "triangles" begin
     graph1 = pathgraph(5)
@@ -22,4 +22,11 @@
     @test length(triangles(graph4)) == 2
 end
 
-end # graph.triangle
+@testset "cartesian.product" begin
+    g = pathgraph(5)
+    prod = cartesianproduct(g, g)
+    grid = squaregrid(5, 5)
+    @test is_isomorphic(prod, grid)
+end
+
+end # misc
