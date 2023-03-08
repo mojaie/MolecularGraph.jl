@@ -5,36 +5,6 @@
 
 module MolecularGraph
 
-    """
-    module Graph
-        using ..Util
-
-        include("./graph/interface.jl")
-
-        include("./graph/plaingraph.jl")
-        include("./graph/plaindigraph.jl")
-        include("./graph/plainhypergraph.jl")
-
-        include("./graph/generator.jl")
-        include("./graph/multigraph.jl")
-        include("./graph/dag.jl")
-        include("./graph/subgraphview.jl")
-        include("./graph/disjointunion.jl")
-        include("./graph/contraction.jl")
-        include("./graph/linegraph.jl")
-
-        include("./graph/dfs.jl")
-        include("./graph/shortestpath.jl")
-        include("./graph/bipartite.jl")
-        include("./graph/triangle.jl")
-        include("./graph/connectivity.jl")
-
-        include("./graph/isomorphism/edgeinduced.jl")
-        include("./graph/isomorphism/vf2.jl")
-        include("./graph/isomorphism/cliquemcs.jl")
-    end
-    """
-
     using Dates
     using DelimitedFiles
     using Graphs
@@ -58,11 +28,17 @@ module MolecularGraph
     include("./model/molgraph.jl")
 
     include("./graph/product.jl")
+    include("./graph/linegraph.jl")
     include("./graph/traversals.jl")
     include("./graph/cycle.jl")
     include("./graph/matching.jl")
     include("./graph/clique.jl")
     include("./graph/planarity.jl")
+    # include("./graph/isomorphism_vf2.jl")
+    include("./graph/isomorphism_clique.jl")
+
+    # include("./graph/dag.jl")
+    # include("./graph/bipartite.jl")
 
     include("coords.jl")
     include("stereo.jl")
@@ -88,6 +64,7 @@ module MolecularGraph
     include("inchi.jl")
 
 
+
     """
     using Requires
 
@@ -98,7 +75,5 @@ module MolecularGraph
     include("structurematch.jl")
     include("download.jl")
     include("libmoleculargraph.jl")
-
-
     """
 end

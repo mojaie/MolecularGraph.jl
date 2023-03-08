@@ -4,28 +4,22 @@
 #
 
 export
-    ModularProduct, modular_product
+    modular_product
 
-
-# Modular product
-
-struct ModularProduct{T}
-    graph::SimpleGraph{T}
-    isconnected::Dict{Edge{T},Bool}
-end
-
-# modular_product_reverse_map
-# i -> (div(i, nv(h)), mod(i, nv(h)))
 
 """
-    modularproduct(G::OrderedGraph, H::OrderedGraph) -> ModularProduct
+    modularproduct(g::SimpleGraph{T}, h::SimpleGraph{T};
+        nodematcher=(g1,h1)->true,
+        edgefilter=(g1,g2,h1,h2)->has_edge(g,g1,g2)==has_edge(g,h1,h2)) where T
 
-Return the modular product of graphs G and H.
+Return the modular product `m` of graphs `g` and `h`, and a mapping whether
+the edge is connected or not.
+mapping g,h nodes to m nods is f(i, j) = (i - 1) * nv(h) + j and the reverse
+mapping is f(i) = (div(i - 1, nv(h)) + 1, mod(i - 1, nv(h))) + 1, where i in g and j in h.
 """
 function modular_product(g::SimpleGraph{T}, h::SimpleGraph{T};
             nodematcher=(g1,h1)->true,
-            edgefilter=(g1,g2,h1,h2)->has_edge(g,g1,g2)==has_edge(g,h1,h2),
-            kwargs...) where T
+            edgefilter=(g1,g2,h1,h2)->has_edge(g,g1,g2)==has_edge(g,h1,h2)) where T
     m = SimpleGraph(nv(g) * nv(h))
     connected = Dict{Edge{T},Bool}()
     id(i, j) = (i - 1) * nv(h) + j
@@ -44,5 +38,5 @@ function modular_product(g::SimpleGraph{T}, h::SimpleGraph{T};
             end
         end
     end
-    return ModularProduct(m, connected)
+    return m, connected
 end

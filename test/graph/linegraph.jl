@@ -3,14 +3,16 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-@testset "graph.linegraph" begin
-    p5L = linegraph(pathgraph(5))
-    @test nodecount(p5L) == 4
-    @test edgecount(p5L) == 3
-    c5L = linegraph(cyclegraph(5))
-    @test nodecount(c5L) == 5
-    @test edgecount(c5L) == 5
-    lad5L = linegraph(laddergraph(5))
-    @test nodecount(lad5L) == 13
-    @test edgecount(lad5L) == 22
-end # graph.linegraph
+@testset "line_graph" begin
+    p5L, revmap, shared = line_graph(path_graph(5))
+    @test nv(p5L) == 4
+    @test ne(p5L) == 3
+    @test length(revmap) == 4
+    @test length(shared) == 3
+    c5L, revmap, shared = line_graph(cycle_graph(5))
+    @test nv(c5L) == 5
+    @test ne(c5L) == 5
+    lad5L, revmap, shared = line_graph(ladder_graph(5))
+    @test nv(lad5L) == 13
+    @test ne(lad5L) == 22
+end # linegraph

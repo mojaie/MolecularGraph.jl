@@ -17,8 +17,7 @@ mutable struct FindCliqueState{T,G<:SimpleGraph{T}}
     status::Symbol
 end
 
-function FindCliqueState(g::G;
-        timeout=nothing, targetsize=nothing, kwargs...) where G
+function FindCliqueState(g::G; timeout=nothing, targetsize=nothing) where G
     expire = isnothing(timeout) ? nothing : (time_ns() + timeout * 1_000_000_000)::UInt64
     return FindCliqueState{eltype(g),G}(g, targetsize, expire, [], [], :ongoing)
 end
@@ -34,21 +33,19 @@ mutable struct FindConnCliqueState{T,G<:SimpleGraph{T}}
     status::Symbol
 end
 
-function FindConnCliqueState(g::G, isconn::Dict{Edge{T},Bool}; timeout=nothing, targetsize=nothing,
-        kwargs...) where {T,G}
+function FindConnCliqueState(g::G, isconn::Dict{Edge{T},Bool};
+        timeout=nothing, targetsize=nothing) where {T,G}
     expire = isnothing(timeout) ? nothing : (time_ns() + timeout * 1_000_000_000)::UInt64
     # connectivity adjlist
-    conn = Vector{T}[]
-    disconn = Vector{T}[]
+    conn = [T[] for _ in vertices(g)]
+    disconn = [T[] for _ in vertices(g)]
     for i in vertices(g)
-        conn[i] = []
-        disconn[i] = []
         for nbr in neighbors(g, i)
-            container = isconnected[undirectededge(T, i, nbr)] ? conn : disconn
-            push!(container[n], nbr)
+            container = isconn[undirectededge(T, i, nbr)] ? conn : disconn
+            push!(container[i], nbr)
         end
     end
-    return FindConnCliqueState{T,G}(graph, targetsize, conn, disconn, expire, [], :ongoing)
+    return FindConnCliqueState{T,G}(g, targetsize, conn, disconn, expire, [], :ongoing)
 end
 
 
@@ -158,7 +155,8 @@ maximum_clique(g; kwargs...
 
 
 """
-    find_conn_cliques(m::ModularProduct; kwargs...) -> FindConnCliqueState
+    find_conn_cliques(g::SimpleGraph{T}, isconn::Dict{Edge{T},Bool};
+        kwargs...) where T -> FindConnCliqueState
 
 Calculate maximal connected cliques.
 
@@ -169,9 +167,10 @@ Calculate maximal connected cliques.
    https://doi.org/10.1016/j.tcs.2005.09.038
 
 """
-function find_conn_cliques(m::ModularProduct{T}; kwargs...) where T
-    state = FindConnCliqueState(m.graph, m.isconnected; kwargs...)
-    nodes = Set(vertices(m.graph))
+function find_conn_cliques(g::SimpleGraph{T}, isconn::Dict{Edge{T},Bool};
+        kwargs...) where T
+    state = FindConnCliqueState(g, isconn; kwargs...)
+    nodes = Set(vertices(g))
     done = T[]
     for n in nodes
         R = T[n]
@@ -195,8 +194,8 @@ end
 Return all maximal connected cliques.
 
 """
-function maximal_conn_cliques(g; kwargs...)
-    state = find_conn_cliques(g; kwargs...)
+function maximal_conn_cliques(g, isconn; kwargs...)
+    state = find_conn_cliques(g, isconn; kwargs...)
     return state.cliques
 end
 
@@ -206,5 +205,5 @@ end
 Return a maximum connected clique.
 
 """
-maximum_conn_clique(g; kwargs...
-    ) = sortstablemax(maximal_conn_cliques(g; kwargs...), by=length, init=[])
+maximum_conn_clique(g, isconn; kwargs...
+    ) = sortstablemax(maximal_conn_cliques(g, isconn; kwargs...), by=length, init=[])

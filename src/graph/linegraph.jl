@@ -4,79 +4,30 @@
 #
 
 export
-    LineGraph, linegraph
-
-
-struct LineGraphNode <: AbstractNode
-    n1::Int
-    n2::Int
-end
-
-
-struct LineGraphEdge <: UndirectedEdge
-    node::Int
-end
-
-
-struct LineGraph <: OrderedGraph
-    neighbormap::Vector{Dict{Int,Int}}
-    edges::Vector{Tuple{Int,Int}}
-    nodeattrs::Vector{LineGraphNode}
-    edgeattrs::Vector{LineGraphEdge}
-    cache::Dict{Symbol,Any}
-end
+    line_graph
 
 
 """
-    linegraph(G::AbstractGraph) -> LineGraph
+    line_graph(G::SimpleGraph) -> SimpleGraph, Dict, Dict
 
-Generate line graph.
+Generate line graph, reverse mapping lg(v) -> g(e) and shared nodes mapping lg(e) -> g(v)
 """
-function linegraph(G::AbstractGraph)
-    L = LineGraph([], [], [], [], Dict())
-    nmap = Dict{Int,Int}()
-    for (i, e) in enumerate(edgeset(G))
-        (u, v) = getedge(G, e)
-        push!(L.nodeattrs, LineGraphNode(u, v))
-        push!(L.neighbormap, Dict())
-        nmap[e] = i
-    end
-    ecnt = 1
-    for n in nodeset(G)
-        degree(G, n) < 2 && continue
-        incs = collect(incidences(G, n))
-        for (e1, e2) in combinations(length(incs))
-            u, v = (incs[e1], incs[e2])
-            ne1 = nmap[u]
-            ne2 = nmap[v]
-            push!(L.edges, (ne1, ne2))
-            push!(L.edgeattrs, LineGraphEdge(n))
-            L.neighbormap[ne1][ecnt] = ne2
-            L.neighbormap[ne2][ecnt] = ne1
-            ecnt += 1
+function line_graph(g::SimpleGraph{T}) where T
+    l = SimpleGraph{T}(ne(g))
+    edge_rank = Dict(e => i for (i, e) in enumerate(edges(g)))
+    revmap = Dict(i => e for (i, e) in enumerate(edges(g)))
+    sharednode = Dict{Edge{T},T}()
+    for i in vertices(g)
+        degree(g, i) < 2 && continue
+        nbrs = neighbors(g, i)
+        for (m, n) in combinations(length(nbrs))
+            e = undirectededge(T,
+                edge_rank[undirectededge(T, i, nbrs[m])],
+                edge_rank[undirectededge(T, i, nbrs[n])]
+            )
+            add_edge!(l, e)
+            sharednode[e] = i
         end
     end
-    return L
-end
-
-function linegraph(G::OrderedGraph)
-    L = LineGraph([], [], [], [], Dict())
-    for (i, edge) in enumerate(edgesiter(G))
-        push!(L.nodeattrs, LineGraphNode(edge...))
-        push!(L.neighbormap, Dict())
-    end
-    ecnt = 1
-    for i in 1:nodecount(G)
-        degree(G, i) < 2 && continue
-        incs = collect(incidences(G, i))
-        for (e1, e2) in combinations(length(incs))
-            u, v = (incs[e1], incs[e2])
-            push!(L.edges, (u, v))
-            push!(L.edgeattrs, LineGraphEdge(i))
-            L.neighbormap[u][ecnt] = v
-            L.neighbormap[v][ecnt] = u
-            ecnt += 1
-        end
-    end
-    return L
+    return l, revmap, sharednode
 end

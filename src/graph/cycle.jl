@@ -4,7 +4,7 @@
 #
 
 export
-    mincyclebasis, edgemincyclebasis
+    mincyclebasis, edgemincyclebasis, disjoint_union
 
 
 function cotree_edges(g::SimpleGraph{T}) where T
@@ -44,7 +44,7 @@ function remap_edges(g::SimpleGraph{T}, func::Function) where T
 end
 
 
-function disjointunion(g::SimpleGraph, h::SimpleGraph)
+function disjoint_union(g::SimpleGraph, h::SimpleGraph)
     h_ = remap_edges(h, i -> i + nv(g))
     hvmap = Dict(i + nv(g) => i for i in vertices(h))
     return union(g, h_), hvmap
@@ -54,7 +54,7 @@ end
 function findmincycle(g::SimpleGraph, S::Set)
     subg, vmap = induced_subgraph(g, collect(setdiff(Set(edges(g)), S)))
     rev = Dict(v => i for (i, v) in enumerate(vmap))
-    U, hvmap = disjointunion(subg, subg)
+    U, hvmap = disjoint_union(subg, subg)
     hrev = Dict(v => k for (k, v) in hvmap)
     for s in S
         add_edge!(U, rev[src(s)], hrev[rev[dst(s)]])
