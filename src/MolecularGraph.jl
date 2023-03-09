@@ -34,7 +34,7 @@ module MolecularGraph
     include("./graph/matching.jl")
     include("./graph/clique.jl")
     include("./graph/planarity.jl")
-    # include("./graph/isomorphism_vf2.jl")
+    include("./graph/isomorphism_vf2.jl")
     include("./graph/isomorphism_clique.jl")
 
     # include("./graph/dag.jl")

@@ -30,6 +30,7 @@ function triangle_nodes(g::SimpleGraph{T}) where T
     return ts
 end
 
+
 function delta_y_correction!(mapping, g, h)  # edge mapping g(e) => h(e)
     """
     any node attr mismatch would break isomorphism of triangles (cannot be matched)
@@ -43,8 +44,7 @@ function delta_y_correction!(mapping, g, h)  # edge mapping g(e) => h(e)
         hs = Set{eltype(g)}()
         for e in te
             he = mapping[e]
-            push!(hs, src(he))
-            push!(hs, dst(he))
+            push!(hs, src(he), dst(he))
         end
         if length(hs) != 3
             delete!(mapping, te[1])  # remove arbitrary one edge in the triangle
@@ -56,34 +56,12 @@ function delta_y_correction!(mapping, g, h)  # edge mapping g(e) => h(e)
         gs = Set{eltype(h)}()
         for e in te
             ge = revmap[e]
-            push!(gs, src(ge))
-            push!(gs, dst(ge))
+            push!(gs, src(ge), dst(ge))
         end
         if length(gs) != 3
             delete!(mapping, revmap[te[1]])  # remove arbitrary one edge in the triangle
         end
     end
-end
-
-
-function delta_y_mismatch(G, H, mapping)
-    # Delta-Y check for edge induced subgraph isomorphism
-    gsub = edgesubgraph(G, Set(keys(mapping)))
-    hsub = edgesubgraph(H, Set(values(mapping)))
-    revmap = Dict(v => k for (k, v) in mapping)
-    return delta_y(gsub, hsub, mapping) || delta_y(hsub, gsub, revmap)
-end
-
-
-function delta_y(gsub, hsub, mapping)
-    for gn in triangles(gsub)
-        g_edges = edgeset(nodesubgraph(gsub, Set(gn)))
-        h_edges = Set([mapping[e] for e in g_edges])
-        if nodecount(edgesubgraph(hsub, h_edges)) != 3
-            return true
-        end
-    end
-    return false
 end
 
 

@@ -69,7 +69,7 @@ function dfs!(state::PlanarityTestState{T}, u::Int) where T
 end
 
 
-function merge!(ds1::PlanarityTestDS{T}, ds2::PlanarityTestDS{T}, cotree) where T
+function merge_ds!(ds1::PlanarityTestDS{T}, ds2::PlanarityTestDS{T}, cotree) where T
     if isempty(ds1)
         append!(ds1, ds2)
         @debug "Trunk"
@@ -151,7 +151,7 @@ function planaritytest(g::SimpleGraph{T}) where T
         @debug "inedge: $(e)"
         for i in state.loworder[e]
             @debug "stem: $(i), ds: $(ds[i])"
-            if !merge!(ds[e], ds[i], state.cotree)
+            if !merge_ds!(ds[e], ds[i], state.cotree)
                 return false
             end
         end
