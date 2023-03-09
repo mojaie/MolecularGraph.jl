@@ -36,7 +36,7 @@ end
 
     state = SMARTSParser{SMARTSMolGraph}("H41")
     h4 = QueryTruthTable(atomprop!(state)...)
-    @test h4 == QueryTruthTable(v -> v[1], [(:hydrogenconnected, 4)])
+    @test h4 == QueryTruthTable(v -> v[1], [(:total_hydrogens, 4)])
     @test state.pos == 3  # Next, read '1'
 
     state = SMARTSParser{SMARTSMolGraph}("X2")
@@ -165,21 +165,21 @@ end
     state = SMARTSParser{SMARTSMolGraph}("[CH2]")
     methylene = atom!(state)[1]
     @test methylene == QueryTruthTable(
-        v -> v[1] & ~v[2] & v[3], [(:symbol, :C), (:isaromatic,), (:hydrogenconnected, 2)])
+        v -> v[1] & ~v[2] & v[3], [(:symbol, :C), (:isaromatic,), (:total_hydrogens, 2)])
 
     state = SMARTSParser{SMARTSMolGraph}("[!C;R]")
     ringnotalp = atom!(state)[1]
     @test ringnotalp == QueryTruthTable(
-        v -> (~v[1] | v[2]) & ~v[3], [(:symbol, :C), (:isaromatic,), (:sssrcount, 0)])
+        v -> (~v[1] | v[2]) & ~v[3], [(:symbol, :C), (:isaromatic,), (:ring_count, 0)])
 
     state = SMARTSParser{SMARTSMolGraph}("[n&H1]")
     nh1 = atom!(state)[1]
     @test nh1 == QueryTruthTable(
-        v -> v[1] & v[2] & v[3], [(:symbol, :N), (:isaromatic,), (:hydrogenconnected, 1)])
+        v -> v[1] & v[2] & v[3], [(:symbol, :N), (:isaromatic,), (:total_hydrogens, 1)])
 
     state = SMARTSParser{SMARTSMolGraph}("[*r6]")
     sixmem = atom!(state)[1]
-    @test sixmem == QueryTruthTable(v -> v[1], [(:smallestsssr, 6)])
+    @test sixmem == QueryTruthTable(v -> v[1], [(:smallest_ring, 6)])
 
     state = SMARTSParser{SMARTSMolGraph}("[35*]")
     any35 = atom!(state)[1]

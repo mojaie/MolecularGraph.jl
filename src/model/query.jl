@@ -24,6 +24,7 @@ Base.isless(q::QueryLiteral, r::QueryLiteral
 
 
 struct QueryTruthTable
+    func::Function
     table::Matrix{Union{Bool,Nothing}}
     props::Vector{QueryLiteral}
 end
@@ -51,11 +52,13 @@ function QueryTruthTable(fml::Function, props::Vector{QueryLiteral})
             push!(values, vals)
         end
     end
-    return QueryTruthTable(transpose(hcat(values...)), props)
+    return QueryTruthTable(fml, transpose(hcat(values...)), props)
 end
 
 QueryTruthTable(fml::Function, props::Vector{T}
     ) where T <: Tuple = QueryTruthTable(fml, [QueryLiteral(p...) for p in props])
+
+Base.getindex(q::QueryTruthTable, prop::Symbol) = getproperty(q, prop)
 
 
 function issubset_arr(q, r)
@@ -182,10 +185,10 @@ function removehydrogens(qmol::QueryMol)
         else
             newq = nq
         end
-        # consider H nodes as a :hydrogenconnected query
+        # consider H nodes as a :total_hydrogens query
         adjhnfmls = collect(0:(hcntarr[n] - 1))
         if !isempty(adjhnfmls)
-            nfmls = [QueryFormula(:not, QueryFormula(:hydrogenconnected, i)) for i in adjhnfmls]
+            nfmls = [QueryFormula(:not, QueryFormula(:total_hydrogens, i)) for i in adjhnfmls]
             newq = QueryFormula(:and, Set([newq, nfmls...]))
         end
         setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
@@ -206,7 +209,7 @@ function inferaromaticity(qmol::QueryMol)
         issubset(nq, QueryFormula(:isaromatic, true), eval_recursive=false) && continue
         issubset(nq, QueryFormula(:isaromatic, false), eval_recursive=false) && continue
         # by topology query (!R, !r)
-        if issubset(nq, QueryFormula(:sssrcount, 0), eval_recursive=false)
+        if issubset(nq, QueryFormula(:ring_count, 0), eval_recursive=false)
             newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
             setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
             continue
@@ -227,12 +230,12 @@ function inferaromaticity(qmol::QueryMol)
         nonaromcnt = 0
         # hydrogen query
         if issubset(nq, QueryFormula(:and, Set([
-            QueryFormula(:not, QueryFormula(:hydrogenconnected, 0)),
-            QueryFormula(:not, QueryFormula(:hydrogenconnected, 1))
+            QueryFormula(:not, QueryFormula(:total_hydrogens, 0)),
+            QueryFormula(:not, QueryFormula(:total_hydrogens, 1))
         ])), eval_recursive=false)
             nonaromcnt += 2  # 2 is enough to be nonaromcnt > minacc
         elseif issubset(nq,
-                QueryFormula(:not, QueryFormula(:hydrogenconnected, 0)), eval_recursive=false)
+                QueryFormula(:not, QueryFormula(:total_hydrogens, 0)), eval_recursive=false)
             nonaromcnt += 1
         end
         # incidences
@@ -251,7 +254,7 @@ function inferaromaticity(qmol::QueryMol)
                 end
             end
             if (issubset(eq, QueryFormula(:isaromatic, false), eval_recursive=false)
-                    || issubset(eq, QueryFormula(:isring, false), eval_recursive=false))
+                    || issubset(eq, QueryFormula(:is_in_ring, false), eval_recursive=false))
                 if issubset(eq, QueryFormula(:not, QueryFormula(:order, 1)), eval_recursive=false)
                     nonaromcnt += 2  # 2 is enough to be nonaromcnt > minacc
                 else

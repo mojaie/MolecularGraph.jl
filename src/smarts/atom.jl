@@ -9,11 +9,11 @@
 
 const SMARTS_ATOM_COND_SYMBOL = Dict(
     'X' => :connectivity,
-    'D' => :nodedegree,
+    'D' => :degree,
     'v' => :valence,
-    'H' => :hydrogenconnected,
-    'r' => :smallestsssr,
-    'R' => :sssrcount
+    'H' => :total_hydrogens,
+    'r' => :smallest_ring,
+    'R' => :ring_count
 )
 
 const SMARTS_CHARGE_SIGN = Dict(
@@ -83,7 +83,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
             num = parse(Int, sym2)
             forward!(state)
         else
-            sym1 in ('r', 'R') && return (v -> ~v[1], [(:sssrcount, 0)])
+            sym1 in ('r', 'R') && return (v -> ~v[1], [(:ring_count, 0)])
             num = 1
         end
         return (v -> v[1], [(SMARTS_ATOM_COND_SYMBOL[sym1], num)])
@@ -196,8 +196,8 @@ function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
     for fml in q[2]  # operator is fixed to :eq so far
         qd[fml[1]] = length(fml) == 1 ? q[1](trues(length(q[2]))) : fml[2]
     end
-    if haskey(qd, :hydrogenconnected)  # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
-        hcnt = qd[:hydrogenconnected]
+    if haskey(qd, :total_hydrogens)  # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
+        hcnt = qd[:total_hydrogens]
         if !haskey(qd, :symbol)  # special case: [H2]
             qd[:symbol] = :H
             hcnt -= 1

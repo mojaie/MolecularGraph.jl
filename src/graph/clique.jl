@@ -17,7 +17,7 @@ mutable struct FindCliqueState{T,G<:SimpleGraph{T}}
     status::Symbol
 end
 
-function FindCliqueState(g::G; timeout=nothing, targetsize=nothing) where G
+function FindCliqueState(g::G; timeout=nothing, targetsize=nothing, kwargs...) where G
     expire = isnothing(timeout) ? nothing : (time_ns() + timeout * 1_000_000_000)::UInt64
     return FindCliqueState{eltype(g),G}(g, targetsize, expire, [], [], :ongoing)
 end
@@ -34,7 +34,7 @@ mutable struct FindConnCliqueState{T,G<:SimpleGraph{T}}
 end
 
 function FindConnCliqueState(g::G, isconn::Dict{Edge{T},Bool};
-        timeout=nothing, targetsize=nothing) where {T,G}
+        timeout=nothing, targetsize=nothing, kwargs...) where {T,G}
     expire = isnothing(timeout) ? nothing : (time_ns() + timeout * 1_000_000_000)::UInt64
     # connectivity adjlist
     conn = [T[] for _ in vertices(g)]

@@ -23,8 +23,8 @@ Lazy iterator that generate all isomorphism mappings between `G` and `H`.
 
 # Options
 
-- `nodematcher::Function`: a function for semantic node attribute matching (default: (a, b) -> true)
-- `edgematcher::Function`: a function for semantic edge attribute matching (default: (a, b) -> true)
+- `vmatch::Function`: a function for semantic node attribute matching (default: (a, b) -> true)
+- `ematch::Function`: a function for semantic edge attribute matching (default: (a, b) -> true)
 - `mandatory::Dict{Int,Int}`: mandatory node mapping (if matchtype=:edgeinduced, edge mapping)
 - `forbidden::Dict{Int,Int}`: forbidden node mapping (if matchtype=:edgeinduced, edge mapping)
 - `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time reached and return empty iterator (default: 10 seconds)
@@ -34,8 +34,8 @@ mutable struct VF2Matcher{T,U,G<:SimpleGraph{T},H<:SimpleGraph{U}}
     g::G
     h::H
     matchtype::Symbol
-    nodematcher::Function
-    edgematcher::Function
+    vmatch::Function
+    ematch::Function
     mandatory::Dict{T,U}
     forbidden::Dict{T,U}
     expire::Union{UInt64,Nothing}  # UInt64, nanoseconds
@@ -50,13 +50,13 @@ mutable struct VF2Matcher{T,U,G<:SimpleGraph{T},H<:SimpleGraph{U}}
 
     function VF2Matcher{T,U,G,H}(
                 g::G, h::H, matchtype::Symbol;
-                nodematcher=(a, b)->true, edgematcher=(a, b)->true,
+                vmatch=(a, b)->true, ematch=(a, b)->true,
                 mandatory=Dict(), forbidden=Dict(), timeout=nothing
             ) where {T,U,G<:SimpleGraph{T},H<:SimpleGraph{U}}
         expire = (timeout === nothing ?
             nothing : (time_ns() + timeout * 1_000_000_000)::UInt64)
         return new(
-            g, h, matchtype, nodematcher, edgematcher,
+            g, h, matchtype, vmatch, ematch,
             mandatory, forbidden, expire,
             [], nothing, Dict(), Dict(), Dict(), Dict(), false
         )
@@ -145,7 +145,7 @@ end
 
 
 function is_semantic_feasible(iter::VF2Matcher, gv, hv)
-    if !iter.nodematcher(gv, hv)
+    if !iter.vmatch(gv, hv)
         @debug "Infeasible: node attribute mismatch"
         return false
     end
@@ -153,7 +153,7 @@ function is_semantic_feasible(iter::VF2Matcher, gv, hv)
         haskey(iter.g_core, nbr) || continue
         (iter.matchtype === :monomorphic
             && !has_edge(iter.h, hv, iter.g_core[nbr])) && continue
-        if !iter.edgematcher(
+        if !iter.ematch(
                 undirectededge(iter.g, gv, nbr),
                 undirectededge(iter.h, hv, iter.g_core[nbr]))
             @debug "Infeasible: edge attribute mismatch"
@@ -319,29 +319,31 @@ end
 """
     edgesubgraph_isomorphisms(
         g::SimpleGraph, h::SimpleGraph;
-        nodematcher=(g,h)->true, edgematcher=(g,h)->true,
+        vmatch=(g,h)->true, ematch=(g,h)->true,
         kwargs...) -> Iterator
 
 Return an iterator that generate isomorphic mappings between `H` and edge-induced subgraphs of `G`.
 The returned iterator has `ig => ih` pairs that correspond to the indices of matching edges
 in `G` and `H`, respectively.
 
-`nodematcher` and `edgematcher` control the features needed to be counted as a match.
+`vmatch` and `ematch` control the features needed to be counted as a match.
 
 See [`Graph.edgesubgraph`](@ref) to construct the subgraphs that result from the match.
 """
 function edgesubgraph_isomorphisms(
-        g, h; nodematcher=(g,h)->true, edgematcher=(g,h)->true, kwargs...)
+        g, h; vmatch=(gv,hv)->true, ematch=(ge,he)->true, kwargs...)
     lg, grev, gsh = line_graph(g)
     lh, hrev, hsh = line_graph(h)
-    lgedge = lgedgematcher(lg, lh, gsh, hsh, nodematcher)
-    lgnode = lgnodematcher(lg, lh, grev, hrev, nodematcher, edgematcher)
+    lgnode = lgvmatch(lg, lh, grev, hrev, vmatch, ematch)
+    lgedge = lgematch(lg, lh, gsh, hsh, vmatch)
     matcher = VF2Matcher(
         lg, lh, :subgraph_isomorphic;
-        nodematcher=lgnode, edgematcher=lgedge, kwargs...)
-    return Iterators.filter(matcher) do mapping
-        emap = Dict(grev[m] => hrev[n] for (m, n) in mapping)
-        return !delta_y_exists(emap, g, h)
+        vmatch=lgnode, ematch=lgedge, kwargs...)
+    revmaped = Iterators.map(matcher) do mapping
+        return Dict(grev[m] => hrev[n] for (m, n) in mapping)
+    end
+    return Iterators.filter(revmaped) do mapping
+        return !delta_y_exists(mapping, g, h)
     end
 end
 

@@ -42,7 +42,7 @@ end
     notring = bond!(state)
     @test notring == QueryTruthTable(
         v -> v[1] & ~v[2] & ~v[3],
-        [(:order, 1), (:isaromatic,), (:isring,)])
+        [(:order, 1), (:isaromatic,), (:is_in_ring,)])
 end
 
 end # smiles.bond

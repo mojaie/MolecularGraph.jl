@@ -24,12 +24,14 @@ module MolecularGraphTest
 
     include("./graph/product.jl")
     include("./graph/cycle.jl")
+    include("./graph/bipartite.jl")
     include("./graph/matching.jl")
     include("./graph/planarity.jl")
     include("./graph/clique.jl")
     include("./graph/linegraph.jl")
     include("./graph/isomorphism_vf2.jl")
     include("./graph/isomorphism_clique.jl")
+    # include("./graph/dag.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
@@ -50,15 +52,10 @@ module MolecularGraphTest
     include("mass.jl")
     include("wclogp.jl")
     include("inchi.jl")
+    include("structurematch.jl")
 
     include("./draw/base.jl")
     include("./draw/svg.jl")
     include("./draw/3d.jl")
 
-    """
-    include("./graph/dag.jl")
-    include("./graph/bipartite.jl")
-
-    include("structurematch.jl")
-    """
 end

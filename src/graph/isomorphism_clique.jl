@@ -65,45 +65,45 @@ function delta_y_correction!(mapping, g, h)  # edge mapping g(e) => h(e)
 end
 
 
-function lgnodematcher(g::SimpleGraph, h::SimpleGraph, grev, hrev,
-                       nodematcher::Function, edgematcher::Function)
-    return function (gn, hn)
-        edgematcher(gn, hn) || return false
-        ge = grev[gn]
-        he = hrev[hn]
-        m1 = nodematcher(src(ge), src(he)) && nodematcher(dst(ge), dst(he))
-        m2 = nodematcher(src(ge), dst(he)) && nodematcher(dst(ge), src(he))
-        return m1 || m2
+function lgvmatch(g, h, grev, hrev, vmatch, ematch)
+    return function (lgn, lhn)
+        ge = grev[lgn]
+        he = hrev[lhn]
+        ematch(ge, he) || return false
+        return (
+            (vmatch(src(ge), src(he)) && vmatch(dst(ge), dst(he)))
+            || (vmatch(src(ge), dst(he)) && vmatch(dst(ge), src(he)))
+        )
     end
 end
 
 
-function lgedgematcher(g::SimpleGraph, h::SimpleGraph, gsh, hsh, nodematcher::Function)
-    return (ge, he) -> nodematcher(gsh[ge], hsh[he])
+function lgematch(g, h, gsh, hsh, vmatch)
+    return (lge, lhe) -> vmatch(gsh[lge], hsh[lhe])
 end
 
 
-function modprod_edge_filter(G, H, edgematcher)
+function modprod_edge_filter(g, h, ematch; kwargs...)
     return function (g1, g2, h1, h2)
-        has_edge(G, g1, g2) == has_edge(H, h1, h2) || return false
-        !has_edge(G, g1, g2) && return true
-        return edgematcher(undirectededge(G, g1, g2), undirectededge(H, h1, h2))
+        has_edge(g, g1, g2) === has_edge(h, h1, h2) || return false
+        !has_edge(g, g1, g2) && return true
+        return ematch(undirectededge(g, g1, g2), undirectededge(h, h1, h2))
     end
 end
 
 
-function tp_constraint_filter(G, H, edgematcher; diameter=nv(G), tolerance=0)
-    gdist = [gdistances(G, i) for i in vertices(G)]  # typemax(int) if not connected
-    hdist = [gdistances(G, i) for i in vertices(G)]
+function tp_constraint_filter(g, h, ematch; diameter=max(nv(g), nv(h)), tolerance=0, kwargs...)
+    gdist = [gdistances(g, i) for i in vertices(g)]  # typemax(int) if not connected
+    hdist = [gdistances(h, i) for i in vertices(h)]
     return function (g1, g2, h1, h2)
-        has_edge(G, g1, g2) === has_edge(H, h1, h2) || return false
-        if !has_edge(G, g1, g2)
+        has_edge(g, g1, g2) === has_edge(h, h1, h2) || return false
+        if !has_edge(g, g1, g2)
             gdist[g1][g2] > diameter && return false
             hdist[h1][h2] > diameter && return false
             abs(gdist[g1][g2] - hdist[h1][h2]) > tolerance && return false
             return true
         end
-        return edgematcher(undirectededge(G, g1, g2), undirectededge(H, h1, h2))
+        return ematch(undirectededge(g, g1, g2), undirectededge(h, h1, h2))
     end
 end
 
@@ -114,13 +114,13 @@ end
 Compute maximum common node-induced subgraph (MCIS) between graphs `g` and `h`.
 """
 function maximum_common_subgraph(g::SimpleGraph{T}, h::SimpleGraph{T};
-        nodematcher=(gn,hn)->true, edgematcher=(ge,he)->true,
+        vmatch=(gn,hn)->true, ematch=(ge,he)->true,
         topological=false, connected=false, kwargs...) where T
     (nv(g) == 0 || nv(h) == 0) && return MCSResult(Dict{T,T}(), :done)
     # Generate modular product
     modprodfunc = topological ? tp_constraint_filter : modprod_edge_filter
     prod, isconn = modular_product(g, h,
-        nodematcher=nodematcher, edgefilter=modprodfunc(g, h, edgematcher; kwargs...))
+        vmatch=vmatch, edgefilter=modprodfunc(g, h, ematch; kwargs...))
     # Clique detection
     cqstate = (connected ?
         find_conn_cliques(prod, isconn; kwargs...) : find_cliques(prod; kwargs...))
@@ -137,18 +137,18 @@ end
 Compute maximum common edge-induced subgraph (MCES) between graphs `g` and `h`.
 """
 function maximum_common_edge_subgraph(g::SimpleGraph{T}, h::SimpleGraph{T};
-        nodematcher=(gn,hn)->true, edgematcher=(gn,hn)->true,
+        vmatch=(gn,hn)->true, ematch=(ge,he)->true,
         topological=false, connected=false, kwargs...) where T
     (ne(g) == 0 || ne(h) == 0) && return MCSResult(Dict{Edge{T},Edge{T}}(), :done)
     # generate line graph
     lg, grev, gsh = line_graph(g)
     lh, hrev, hsh = line_graph(h)
-    nmatch = lgnodematcher(lg, lh, grev, hrev, nodematcher, edgematcher)
-    ematch = lgedgematcher(lg, lh, gsh, hsh, nodematcher)
+    lvm = lgvmatch(lg, lh, grev, hrev, vmatch, ematch)
+    lem = lgematch(lg, lh, gsh, hsh, vmatch)
     # Generate modular product
     modprodfilter = topological ? tp_constraint_filter : modprod_edge_filter
     prod, isconn = modular_product(lg, lh,
-        nodematcher=nmatch, edgefilter=modprodfilter(lg, lh, ematch; kwargs...))
+        vmatch=lvm, edgefilter=modprodfilter(lg, lh, lem; kwargs...))
     # Clique detection
     cqstate = (connected ?
         find_conn_cliques(prod, isconn; kwargs...) : find_cliques(prod; kwargs...))

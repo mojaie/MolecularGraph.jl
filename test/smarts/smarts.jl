@@ -20,7 +20,7 @@
     ether = smartstomol("[#6][OD2][#6]")
     @test props(ether, 1) == QueryTruthTable(v -> v[1], [(:symbol, :C)])
     @test props(ether, 2) == QueryTruthTable(
-        v -> v[1] & ~v[2] & v[3], [(:symbol, :O), (:isaromatic,), (:nodedegree, 2)])
+        v -> v[1] & ~v[2] & v[3], [(:symbol, :O), (:isaromatic,), (:degree, 2)])
 
     notH = smartstomol("[!#1]")
     @test props(notH, 1) == QueryTruthTable(v -> ~v[1], [(:symbol, :H)])

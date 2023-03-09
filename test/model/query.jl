@@ -23,7 +23,7 @@ end
 @testset "match" begin
     symC = QueryTruthTable(v -> v[1], [(:symbol, :C)])
     symN = QueryTruthTable(v -> v[1], [(:symbol, :N)])
-    hc1 = QueryTruthTable(v -> v[1], [(:hydrogenconnected, 1)])
+    hc1 = QueryTruthTable(v -> v[1], [(:total_hydrogens, 1)])
     ch1 = QueryTruthTable(v -> v[1], [(:charge, 1)])
     @test issubset(symC, symC)
     @test !issubset(symC, symN)
@@ -69,7 +69,7 @@ end
         v -> ~v[1] & (v[2] | v[3] | v[4]) & (v[5] | v[6] | v[7]),
         [
             (:isaromatic,), (:symbol, :O), (:symbol, :N), (:symbol, :S),
-            (:charge, 0), (:charge, 1), (:smallestsssr, 6)
+            (:charge, 0), (:charge, 1), (:smallest_ring, 6)
         ]
     )
     nested3 = QueryTruthTable(v -> ~v[1] & v[2] & (v[3] | v[4]), [
@@ -105,8 +105,8 @@ end
     and3 = QueryFormula(:and, Set([
         QueryFormula(:symbol, :N)
         QueryFormula(:or, Set([
-            QueryFormula(:hydrogenconnected, 2),
-            QueryFormula(:hydrogenconnected, 3)
+            QueryFormula(:total_hydrogens, 2),
+            QueryFormula(:total_hydrogens, 3)
         ]))
     ]))
     @test issubset(rec2, rec1)
