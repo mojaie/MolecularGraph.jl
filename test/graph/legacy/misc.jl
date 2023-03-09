@@ -29,4 +29,25 @@ end
     @test is_isomorphic(prod, grid)
 end
 
+@testset "twocoloring" begin
+    noedge = SubgraphView(pathgraph(5), Set(1:5), Set{Int}())
+    a, b = twocoloring(noedge)
+    @test length(a) == 5
+    @test isempty(b)
+    
+    K5_5 = completebipartite(5, 5)
+    a, b = twocoloring(K5_5)
+    @test length(a) == 5
+    @test length(b) == 5
+
+    CL5 = circularladder(5)
+    n = twocoloring(CL5)
+    @test n === nothing
+
+    CL6 = circularladder(6)
+    a, b = twocoloring(CL6)
+    @test length(a) == 6
+    @test length(b) == 6
+end
+
 end # misc

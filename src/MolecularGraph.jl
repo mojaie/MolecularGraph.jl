@@ -31,14 +31,13 @@ module MolecularGraph
     include("./graph/linegraph.jl")
     include("./graph/traversals.jl")
     include("./graph/cycle.jl")
+    include("./graph/bipartite.jl")
     include("./graph/matching.jl")
     include("./graph/clique.jl")
     include("./graph/planarity.jl")
     include("./graph/isomorphism_vf2.jl")
     include("./graph/isomorphism_clique.jl")
-
     # include("./graph/dag.jl")
-    # include("./graph/bipartite.jl")
 
     include("coords.jl")
     include("stereo.jl")
@@ -62,18 +61,7 @@ module MolecularGraph
     include("mass.jl")
     include("wclogp.jl")
     include("inchi.jl")
-
-
-
-    """
-    using Requires
-
-    function __init__()
-        @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" 
-    end
-
     include("structurematch.jl")
-    include("download.jl")
-    include("libmoleculargraph.jl")
-    """
+    # include("libmoleculargraph.jl")
+
 end

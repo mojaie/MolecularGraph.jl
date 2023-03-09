@@ -11,82 +11,54 @@ export
 
 
 mutable struct MaxCardMatchState
-    U::Set{Int}
-    V::Set{Int}
+    u::Set{Int}
+    v::Set{Int}
     adj::Dict{Int,Set{Int}}
     dist::Dict{Union{Int,Nothing},Union{Int,Nothing}}
     utov::Dict{Int,Union{Int,Nothing}}
     vtou::Dict{Int,Union{Int,Nothing}}
 
-    function MaxCardMatchState(U, V, adj::Dict)
-        new(Set(U), Set(V), adj, Dict(),
-            Dict(u => nothing for u in U), Dict(v => nothing for v in V))
+    function MaxCardMatchState(u, v, adj)
+        new(Set(u), Set(v), adj, Dict(),
+            Dict(i => nothing for i in u), Dict(i => nothing for i in v))
     end
 end
 
 
-function MaxCardMatchState(U, V, efunc::Function)
+function MaxCardMatchState(u, v, efunc::Function)
     # Generate bipartite relationship
     adj = Dict{Int,Set{Int}}()
-    for u in U
-        adj[u] = Set{Int}()
-        for v in V
-            if efunc(u, v)
-                push!(adj[u], v)
+    for i in u
+        adj[i] = Set{Int}()
+        for j in v
+            if efunc(i, j)
+                push!(adj[u], j)
             end
         end
     end
-    MaxCardMatchState(Set(U), Set(V), adj)
-end
-
-
-function maxcardmap(U, V, adj)
-    # Maximum cardinality mapping
-    state = MaxCardMatchState(U, V, adj)
-    maxcardmatch!(state)
-    mapping = Dict{Int,Int}()
-    for (u, v) in state.utov
-        if u !== nothing && v !== nothing
-            mapping[u] = v
-        end
-    end
-    return mapping
-end
-
-maxcard(U, V, adj) = length(maxcardmap(U, V, adj))
-
-
-function maxcardmatch!(state::MaxCardMatchState)
-    # Hopcroft-Karp method
-    while bfs!(state)
-        for u in state.U
-            if state.utov[u] === nothing
-                dfs!(state, u)
-            end
-        end
-    end
+    MaxCardMatchState(Set(u), Set(v), adj)
 end
 
 
 function bfs!(state::MaxCardMatchState)
     queue = []
-    for u in state.U
-        if state.utov[u] === nothing
-            state.dist[u] = 0
-            push!(queue, u)
+    for i in state.u
+        if state.utov[i] === nothing
+            state.dist[i] = 0
+            push!(queue, i)
         else
-            state.dist[u] = nothing
+            state.dist[i] = nothing
         end
     end
     state.dist[nothing] = nothing
     while !isempty(queue)
-        u = popfirst!(queue)
+        i = popfirst!(queue)
         ndist = state.dist[nothing]
-        if ndist === nothing || state.dist[u] < ndist
-            for v in state.adj[u]
-                m = state.vtou[v]
+        if ndist === nothing || state.dist[i] < ndist
+            for j in state.adj[i]
+                m = state.vtou[j]
                 if state.dist[m] === nothing
-                    state.dist[m] = state.dist[u] + 1
+                    state.dist[m] = state.dist[i] + 1
                     push!(queue, m)
                 end
             end
@@ -96,20 +68,48 @@ function bfs!(state::MaxCardMatchState)
 end
 
 
-function dfs!(state::MaxCardMatchState, u)
-    if u === nothing
+function dfs!(state::MaxCardMatchState, i)
+    if i === nothing
         return true
     end
-    for v in state.adj[u]
-        m = state.vtou[v]
-        if state.dist[m] == state.dist[u] + 1
+    for j in state.adj[i]
+        m = state.vtou[j]
+        if state.dist[m] == state.dist[i] + 1
             if dfs!(state, m)
-                state.vtou[v] = u
-                state.utov[u] = v
+                state.vtou[j] = i
+                state.utov[i] = j
                 return true
             end
         end
     end
-    state.dist[u] = nothing
+    state.dist[i] = nothing
     return false
 end
+
+
+function maxcardmatch!(state::MaxCardMatchState)
+    # Hopcroft-Karp method
+    while bfs!(state)
+        for i in state.u
+            if state.utov[i] === nothing
+                dfs!(state, i)
+            end
+        end
+    end
+end
+
+
+function maxcardmap(u, v, adj)
+    # Maximum cardinality mapping
+    state = MaxCardMatchState(u, v, adj)
+    maxcardmatch!(state)
+    mapping = Dict{Int,Int}()
+    for (i, j) in state.utov
+        if i !== nothing && j !== nothing
+            mapping[i] = j
+        end
+    end
+    return mapping
+end
+
+maxcard(u, v, adj) = length(maxcardmap(u, v, adj))
