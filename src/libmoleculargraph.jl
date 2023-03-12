@@ -7,7 +7,8 @@ using JSON
 export
     smilestomol, sdftomol,
     inchikey, standardweight,
-    hasexactmatch, hassubstructmatch, tcmcis, tcmces
+    has_exact_match, has_substruct_match,
+    tcmcis, tcmces
 
 
 Base.@ccallable function smilestomol(smiles::Ptr{UInt8})::Ptr{UInt8}
@@ -34,7 +35,7 @@ end
 
 Base.@ccallable function inchikey(mol::Ptr{UInt8})::Ptr{UInt8}
     return try
-        mol = graphmol(JSON.parse(unsafe_string(mol)))
+        mol = MolGraph(JSON.parse(unsafe_string(mol)))
         ikey = inchikey(mol)
         buf = IOBuffer(write=true)
         print(buf, ikey)
@@ -44,34 +45,34 @@ Base.@ccallable function inchikey(mol::Ptr{UInt8})::Ptr{UInt8}
     end
 end
 
-Base.@ccallable function standardweight(mol::Ptr{UInt8})::Cdouble
+Base.@ccallable function standard_weight(mol::Ptr{UInt8})::Cdouble
     return try
-        mol = graphmol(JSON.parse(unsafe_string(mol)))
-        return standardweight(Float64, mol)
+        mol = MolGraph(JSON.parse(unsafe_string(mol)))
+        return standard_weight(Float64, mol)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
 end
 
-Base.@ccallable function hasexactmatch(
+Base.@ccallable function has_exact_match(
         mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
     return try
-        mol1 = graphmol(JSON.parse(unsafe_string(mol1)))
-        mol2 = graphmol(JSON.parse(unsafe_string(mol2)))
+        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
+        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
         kwargs = JSON.parse(unsafe_string(kwargs))
-        return hasexactmatch(mol1, mol2; kwargs...)
+        return has_exact_match(mol1, mol2; kwargs...)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
 end
 
-Base.@ccallable function hassubstructmatch(
+Base.@ccallable function has_substruct_match(
         mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
     return try
-        mol1 = graphmol(JSON.parse(unsafe_string(mol1)))
-        mol2 = graphmol(JSON.parse(unsafe_string(mol2)))
+        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
+        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
         kwargs = JSON.parse(unsafe_string(kwargs))
-        return hassubstructmatch(mol1, mol2; kwargs...)
+        return has_substruct_match(mol1, mol2; kwargs...)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
@@ -80,8 +81,8 @@ end
 Base.@ccallable function tcmcis(
         mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
     return try
-        mol1 = graphmol(JSON.parse(unsafe_string(mol1)))
-        mol2 = graphmol(JSON.parse(unsafe_string(mol2)))
+        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
+        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
         kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
         return size(tcmcis(mol1, mol2; kwargs...))
     catch
@@ -92,8 +93,8 @@ end
 Base.@ccallable function tcmces(
         mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
     return try
-        mol1 = graphmol(JSON.parse(unsafe_string(mol1)))
-        mol2 = graphmol(JSON.parse(unsafe_string(mol2)))
+        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
+        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
         kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
         return size(tcmces(mol1, mol2; kwargs...))
     catch

@@ -23,7 +23,7 @@ struct MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
     edge_rank::Dict{Edge{T},T}
 
     function MolGraph{T,V,E}(
-            g=SimpleGraph{T}(), vprops=V[], eprops=E[], gprops=Dict()) where {T,V,E}
+            g=SimpleGraph{T}(), vprops=V[], eprops=E[], gprops=Dict(), desc=Dict()) where {T,V,E}
         nv(g) > length(vprops) && throw(ErrorException("Mismatch in the number of nodes and node properties"))
         ne(g) == length(eprops) || throw(ErrorException("Mismatch in the number of edges and edge properties"))
         # expand fadjlist for vprops of isolated nodes
@@ -35,7 +35,7 @@ struct MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
         for (i, e) in enumerate(edges(g))
             er[e] = i
         end
-        new(g, vprops, eprops, gprops, Dict(), er)
+        new(g, vprops, eprops, gprops, desc, er)
     end
 end
 
@@ -134,8 +134,8 @@ Convert molecule object into JSON compatible dictionary.
 """
 to_dict(mol::MolGraph) = Dict(
     "graph" => to_dict(mol.graph),
-    "vproptype" => string(eltype(mol.vprops)),
-    "eproptype" => string(eltype(mol.eprops)),
+    "vproptype" => string(vproptype(mol)),
+    "eproptype" => string(eproptype(mol)),
     "vprops" => [to_dict(vp) for vp in mol.vprops],
     "eprops" => [to_dict(ep) for vp in mol.eprops],
     "gprops" => Dict(string(k) => v for (k, v) in mol.gprops)

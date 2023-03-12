@@ -62,6 +62,6 @@ module MolecularGraph
     include("wclogp.jl")
     include("inchi.jl")
     include("structurematch.jl")
-    # include("libmoleculargraph.jl")
+    include("libmoleculargraph.jl")
 
 end
