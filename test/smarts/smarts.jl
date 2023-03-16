@@ -1,36 +1,37 @@
 
 @testset "smarts.smarts" begin
 
-@testset "chain" begin
+@testset "smarts" begin
+    SMARTSTT = MolGraph{Int,QueryTruthTable,QueryTruthTable}
     nullmol = smartstomol("")
     @test nv(nullmol) == 0
     @test ne(nullmol) == 0
 
-    aliphatic = smartstomol("C")
+    aliphatic = smartstomol(SMARTSTT, "C")
     @test props(aliphatic, 1) == QueryTruthTable(
-        v -> v[1] & ~v[2], [(:symbol, :C), (:isaromatic,)])
+        v -> v[2] & ~v[1], [(:isaromatic,), (:symbol, :C)])
     @test ne(aliphatic) == 0
 
-    carbonyl = smartstomol("[CX3]=[OX1]")
+    carbonyl = smartstomol(SMARTSTT, "[CX3]=[OX1]")
     @test props(carbonyl, 1) == QueryTruthTable(
-        v -> v[1] & ~v[2] & v[3], [(:symbol, :C), (:isaromatic,), (:connectivity, 3)])
+        v -> v[3] & ~v[2] & v[1], [(:connectivity, 3), (:isaromatic,), (:symbol, :C)])
     @test props(carbonyl, 2) == QueryTruthTable(
-        v -> v[1] & ~v[2] & v[3], [(:symbol, :O), (:isaromatic,), (:connectivity, 1)])
+        v -> v[3] & ~v[2] & v[1], [(:connectivity, 1), (:isaromatic,), (:symbol, :O)])
 
-    ether = smartstomol("[#6][OD2][#6]")
+    ether = smartstomol(SMARTSTT, "[#6][OD2][#6]")
     @test props(ether, 1) == QueryTruthTable(v -> v[1], [(:symbol, :C)])
     @test props(ether, 2) == QueryTruthTable(
-        v -> v[1] & ~v[2] & v[3], [(:symbol, :O), (:isaromatic,), (:degree, 2)])
+        v -> v[3] & ~v[2] & v[1], [(:degree, 2), (:isaromatic,), (:symbol, :O)])
 
-    notH = smartstomol("[!#1]")
+    notH = smartstomol(SMARTSTT, "[!#1]")
     @test props(notH, 1) == QueryTruthTable(v -> ~v[1], [(:symbol, :H)])
 
-    imine = smartstomol(raw"[$([CX3]([#6])[#6]),$([CX3H][#6])]=[$([NX2][#6]),$([NX2H])]")
+    imine = smartstomol(SMARTSTT, raw"[$([CX3]([#6])[#6]),$([CX3H][#6])]=[$([NX2][#6]),$([NX2H])]")
     @test props(imine, 1) == QueryTruthTable(
-        v -> v[1] | v[2], [(:recursive, "[CX3]([#6])[#6]"), (:recursive, "[CX3H][#6]")])
+        v -> v[1] | v[2], [(:recursive, "[CX3H][#6]"), (:recursive, "[CX3]([#6])[#6]")])
 
     @test props(imine, 2) == QueryTruthTable(
-        v -> v[1] | v[2], [(:recursive, "[NX2][#6]"), (:recursive, "[NX2H]")])
+        v -> v[1] | v[2], [(:recursive, "[NX2H]"), (:recursive, "[NX2][#6]")])
 end
 
-end # smarts.SMARTS
+end

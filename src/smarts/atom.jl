@@ -32,25 +32,37 @@ function atomsymbol!(state::Union{SMILESParser,SMARTSParser})
     sym2 = lookahead(state, 1)
     if sym1 == 'C' && sym2 == 'l'
         forward!(state, 2)
-        return (v -> v[1] & ~v[2], [(:symbol, :Cl), (:isaromatic,)])
+        return QueryOperator(:and, [
+            QueryLiteral(:symbol, :Cl),
+            QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        ])
     elseif sym1 == 'B' && sym2 == 'r'
         forward!(state, 2)
-        return (v -> v[1] & ~v[2], [(:symbol, :Br), (:isaromatic,)])
+        return QueryOperator(:and, [
+            QueryLiteral(:symbol, :Br),
+            QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        ])
     elseif sym1 in "BCNOPSFI"
         forward!(state)
-        return (v -> v[1] & ~v[2], [(:symbol, Symbol(sym1)), (:isaromatic,)])
+        return QueryOperator(:and, [
+            QueryLiteral(:symbol, Symbol(sym1)),
+            QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        ])
     elseif sym1 in "bcnops"
         forward!(state)
-        return (v -> v[1] & v[2], [(:symbol, Symbol(uppercase(sym1))), (:isaromatic,)])
+        return QueryOperator(:and, [
+            QueryLiteral(:symbol, Symbol(uppercase(sym1))),
+            QueryLiteral(:isaromatic)
+        ])
     elseif sym1 == 'A'
         forward!(state)
-        return (v -> ~v[1], [(:isaromatic,)])
+        return QueryOperator(:not, [QueryLiteral(:isaromatic)])
     elseif sym1 == 'a'
         forward!(state)
-        return (v -> v[1], [(:isaromatic,)])
+        return QueryLiteral(:isaromatic)
     elseif sym1 == '*'
         forward!(state)
-        return any_query(true)
+        return QueryAny(true)
     end
     # return nothing
 end
@@ -69,13 +81,14 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         # Two letter atoms
         forward!(state, 2)
         if string(uppercase(sym1), sym2) in ("As", "Se")
-            return (v -> v[1] & v[2], [
-                (:symbol, Symbol(uppercase(sym1), sym2)),
-                (:isaromatic, islowercase(sym1))
+            isarom = (islowercase(sym1) ? QueryLiteral(:isaromatic)
+                : QueryOperator(:not, [QueryLiteral(:isaromatic)]))
+            return QueryOperator(:and, [
+                QueryLiteral(:symbol, Symbol(uppercase(sym1), sym2)), isarom
             ])
         end
         isuppercase(sym1) || throw(ErrorException("aromatic $(sym1) is not supported"))
-        return (v -> v[1], [(:symbol, Symbol(sym1, sym2))])
+        return QueryLiteral(:symbol, Symbol(sym1, sym2))
     elseif haskey(SMARTS_ATOM_COND_SYMBOL, sym1)
         # Neighbor and ring conditions
         forward!(state)
@@ -83,24 +96,27 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
             num = parse(Int, sym2)
             forward!(state)
         else
-            sym1 in ('r', 'R') && return (v -> ~v[1], [(:ring_count, 0)])
+            sym1 in ('r', 'R') && return QueryOperator(:not, [QueryLiteral(:ring_count, 0)])
             num = 1
         end
-        return (v -> v[1], [(SMARTS_ATOM_COND_SYMBOL[sym1], num)])
+        return QueryLiteral(SMARTS_ATOM_COND_SYMBOL[sym1], num)
     elseif sym1 in ('A', 'a', '*')
         forward!(state)
-        sym1 == 'A' && return (v -> ~v[1], [(:isaromatic,)])
-        sym1 == 'a' && return (v -> v[1], [(:isaromatic,)])
-        sym1 == '*' && return any_query(true)
+        sym1 == 'A' && return QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        sym1 == 'a' && return QueryLiteral(:isaromatic)
+        sym1 == '*' && return QueryAny(true)
     elseif haskey(ATOMSYMBOLMAP, string(uppercase(sym1)))
         # Single letter atoms
         forward!(state)
         if uppercase(sym1) in "BCNOPS"
-            fml = islowercase(sym1) ? v -> v[1] & v[2] : v -> v[1] & ~v[2]
-            return (fml, [(:symbol, Symbol(uppercase(sym1))), (:isaromatic,)])
+            isarom = (islowercase(sym1) ? QueryLiteral(:isaromatic)
+                : QueryOperator(:not, [QueryLiteral(:isaromatic)]))
+            return QueryOperator(:and, [
+                QueryLiteral(:symbol, Symbol(uppercase(sym1))), isarom
+            ])
         end
         isuppercase(sym1) || throw(ErrorException("aromatic $(sym1) is not supported"))
-        return (v -> v[1], [(:symbol, Symbol(sym1))])
+        return QueryLiteral(:symbol, Symbol(sym1))
     elseif sym1 == '#'
         # Atomic number
         forward!(state)
@@ -110,7 +126,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         end
         num = parse(Int, SubString(state.input, start, state.pos))
         forward!(state)
-        return (v -> v[1], [(:symbol, atomsymbol(num))])
+        return QueryLiteral(:symbol, atomsymbol(num))
     elseif sym1 in keys(SMARTS_CHARGE_SIGN)
         # Charge
         forward!(state)
@@ -124,7 +140,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
                 chg += 1
             end
         end
-        return (v -> v[1], [(:charge, chg * SMARTS_CHARGE_SIGN[sym1])])
+        return QueryLiteral(:charge, chg * SMARTS_CHARGE_SIGN[sym1])
     elseif sym1 == '@'
         # Stereo
         # @ -> anticlockwise, @@ -> clockwise, ? -> or not specified
@@ -136,9 +152,9 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         end
         if read(state) == '?'
             forward!(state)
-            return (v -> ~v[1], [(:stereo, cw ? :anticlockwise : :clockwise)])
+            return QueryOperator(:not, [QueryLiteral(:stereo, cw ? :anticlockwise : :clockwise)])
         else
-            return (v -> v[1], [(:stereo, cw ? :clockwise : :anticlockwise)])
+            return QueryLiteral(:stereo, cw ? :clockwise : :anticlockwise)
         end
     elseif isdigit(sym1)
         # Isotope
@@ -148,7 +164,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         end
         num = SubString(state.input, start, state.pos)
         forward!(state)
-        return (v -> v[1], [(:mass, parse(Int, num))])
+        return QueryLiteral(:mass, parse(Int, num))
     elseif sym1 == '$' && sym2 == '('
         # Recursive
         forward!(state, 2)
@@ -168,7 +184,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         end
         q = SubString(state.input, start, state.pos - 1)
         forward!(state)
-        return (v -> v[1], [(:recursive, String(q))])
+        return QueryLiteral(:recursive, String(q))
     end
     # return nothing
 end
@@ -191,11 +207,7 @@ function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
         q = atomsymbol!(state)
         q === nothing && return V[] # termination token ().\0
     end
-    # :or queries are not included in SMILES, so just accumulate property tuples
-    qd = Dict{Symbol,Any}()
-    for fml in q[2]  # operator is fixed to :eq so far
-        qd[fml[1]] = length(fml) == 1 ? q[1](trues(length(q[2]))) : fml[2]
-    end
+    qd = smiles_dict(q)
     if haskey(qd, :total_hydrogens)  # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
         hcnt = qd[:total_hydrogens]
         if !haskey(qd, :symbol)  # special case: [H2]
@@ -227,5 +239,5 @@ function atom!(state::SMARTSParser{T,V,E}) where {T,V,E}
         q = atomsymbol!(state)
         q === nothing && return V[]  # termination token ().\0
     end
-    return [V(q...)]
+    return [V(q)]
 end

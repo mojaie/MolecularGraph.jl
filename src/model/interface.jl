@@ -79,6 +79,11 @@ function set_prop!(mol::SimpleMolGraph, prop::Symbol, value)
     return value
 end
 
+function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph{T,V,E}) where {T,V,E}
+    print(io, "{$(nv(g)), $(ne(g))} simple molecular graph $(typeof(g))")
+end
+
+
 # convenient functions
 
 edge_neighbors(mol::AbstractMolGraph, u::Integer, v::Integer) = (

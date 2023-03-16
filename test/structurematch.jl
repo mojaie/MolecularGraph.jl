@@ -143,7 +143,6 @@ end
     @test has_exact_match(halo, broad)
     @test !has_exact_match(halo, broad2)
 
-    """
     hetero = smartstomol("[!#6&!#7&!#8]1[#6][#6][#6][#6][#6]1")
     oxo = smartstomol("[#8]1[#6][#6][#6][#6][#6]1")
     sulfo = smartstomol("[#16]1[#6][#6][#6][#6][#6]1")
@@ -153,43 +152,41 @@ end
     @test has_exact_match(thiopyrylium, sulfo)
     @test has_exact_match(thiopyrylium, hetero)
 
-    diazocarbonyl1 = smartstomol(raw"[\$(N=N=C~C=O)]")
-    diazocarbonyl2 = smartstomol(raw"[\$(N=N=C~C=O),\$(N#N-C~C=O)]")
+    diazocarbonyl1 = smartstomol(raw"[$(N=N=C~C=O)]")
+    diazocarbonyl2 = smartstomol(raw"[$(N=N=C~C=O),$(N#N-C~C=O)]")
     @test has_exact_match(diazocarbonyl1, diazocarbonyl2)
     @test !has_exact_match(diazocarbonyl2, diazocarbonyl1)
 
-    nested = smartstomol(raw"[\$([CH]=[\$(NOC)])]C=O")
-    nestedor = smartstomol(raw"[\$([CH]=[\$(NOC),\$(NO[Si])])]")
+    nested = smartstomol(raw"[$([CH]=[$(NOC)])]C=O")
+    nestedor = smartstomol(raw"[$([CH]=[$(NOC),$(NO[Si])])]")
     @test has_substruct_match(nested, nestedor)
     @test !has_substruct_match(nestedor, nested)
 
-    naryl = smartstomol(raw"OP(=O)(=[S,O])[\$(Na)]")
+    naryl = smartstomol(raw"OP(=O)(=[S,O])[$(Na)]")
     phos = smartstomol(raw"OP(=O)(=[S,O])N")
-    phos2 = smartstomol(raw"[\$([S,O]=PN)]")
-    @test has_exact_match(naryl, phos)
-    @test !has_exact_match(phos, naryl)
-    @test has_substruct_match(phos, phos2)
+    phos2 = smartstomol(raw"[$([S,O]=PN)]")
+    @test has_substruct_match(naryl, phos)
+    @test !has_substruct_match(phos, phos2)
 
     tfas = smartstomol(raw"C(F)(F)(F)C(=O)S")
-    tfmk1 = smartstomol(raw"[\$(C(=O))]C(F)(F)(F)")
-    tfmk2 = smartstomol(raw"[\$(C(=O));!\$(C-N);!\$(C-O);!\$(C-S)]C(F)(F)(F)")
-    @test has_substruct_match(tfas, tfmk1)
+    tfmk1 = smartstomol(raw"PS[$(C(=O))](=O)C(F)(F)(F)")
+    tfmk2 = smartstomol(raw"[$(C(=O));!$(C-N);!$(C-O);!$(C-S)]C(F)(F)(F)")
+    @test has_substruct_match(tfmk1, tfas)
     @test !has_substruct_match(tfas, tfmk2)
 
     quart = smartstomol(raw"[C+,Cl+,I+,P+,S+]")
-    sulfonium = smartstomol(raw"[S+;X3;\$(S-C);!\$(S-[O;D1])]")
+    sulfonium = smartstomol(raw"[S+;X3;$(S-C);!$(S-[O;D1])]")
     cys = smartstomol(raw"NC(C=O)CS")
     @test has_exact_match(sulfonium, quart)
     @test !has_substruct_match(cys, sulfonium)
     @test !has_substruct_match(cys, quart)
-    """
 
     halobenzene = smartstomol(raw"c1c([O;D1])c(-[Cl,Br,I])cc(-[Cl,Br,I])c1")
     halo = smartstomol(raw"c[F,Cl,Br,I]")
     @test has_substruct_match(halobenzene, halo)
 
     pivoxil = smartstomol(raw"OCOC(=O)C([CH3])([CH3])[CH3]")
-    ester = smartstomol(raw"[#6]-C(=O)O-[#6]")
+    ester = smartstomol(raw"[#6]C(=O)O[#6]")
     @test has_substruct_match(pivoxil, ester)
 
     # global_logger(default_logger)

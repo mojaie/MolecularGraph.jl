@@ -10,11 +10,11 @@ using MolecularGraph: bondsymbol!, bond!
     @test implicit1 === nothing
 
     state = SMARTSParser{SMARTSMolGraph}("-")
-    explicit1 = QueryTruthTable(bondsymbol!(state)...)
-    @test explicit1 == QueryTruthTable(v -> v[1] & ~v[2], [(:order, 1), (:isaromatic,)])
+    explicit1 = QueryTruthTable(bondsymbol!(state))
+    @test explicit1 == QueryTruthTable(v -> v[2] & ~v[1], [(:isaromatic,), (:order, 1)])
 
     state = SMARTSParser{SMARTSMolGraph}(raw"\?")
-    stereo4 = QueryTruthTable(bondsymbol!(state)...)
+    stereo4 = QueryTruthTable(bondsymbol!(state))
     @test stereo4 == QueryTruthTable(v -> ~v[1], [(:stereo, :up)])
     @test state.pos == 3
 end
@@ -34,15 +34,15 @@ end
 end
 
 @testset "smartsbond" begin
-    state = SMARTSParser{SMARTSMolGraph}("~")
+    SMARTSTT = MolGraph{Int,QueryTruthTable,QueryTruthTable}
+    state = SMARTSParser{SMARTSTT}("~")
     anyb = bond!(state)
-    @test anyb == QueryTruthTable(any_query(true)...)
+    @test anyb == QueryTruthTable(v -> true, [])
 
-    state = SMARTSParser{SMARTSMolGraph}("-!@")
+    state = SMARTSParser{SMARTSTT}("-!@")
     notring = bond!(state)
     @test notring == QueryTruthTable(
-        v -> v[1] & ~v[2] & ~v[3],
-        [(:order, 1), (:isaromatic,), (:is_in_ring,)])
+        v -> v[3] & ~v[1] & ~v[2], [(:is_in_ring,), (:isaromatic,), (:order, 1)])
 end
 
 end # smiles.bond

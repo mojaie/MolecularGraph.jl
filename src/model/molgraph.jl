@@ -61,7 +61,7 @@ end
 
 SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
 SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
-SMARTSMolGraph = MolGraph{Int,QueryTruthTable,QueryTruthTable}
+SMARTSMolGraph = MolGraph{Int,QueryTree,QueryTree}
 
 MolGraph(g=SimpleGraph{Int}(), vprops=Dict{Symbol,Any}[], eprops=Dict{Symbol,Any}[], gprops=Dict()
     ) = MolGraph{eltype(g),eltype(vprops),eltype(eprops)}(g, vprops, eprops, gprops)

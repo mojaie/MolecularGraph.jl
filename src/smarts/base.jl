@@ -89,7 +89,7 @@ function smartstomol(::Type{T}, smarts::AbstractString) where T <: AbstractMolGr
 end
 
 smartstomol(smarts::AbstractString
-    ) = smartstomol(MolGraph{Int,QueryTruthTable,QueryTruthTable}, smarts)
+    ) = smartstomol(MolGraph{Int,QueryTree,QueryTree}, smarts)
 
 
 

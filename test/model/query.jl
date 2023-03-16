@@ -1,101 +1,135 @@
 
+using MolecularGraph:
+    querypropmap, generate_queryfunc, querymatch, optimize_query
+
 @testset "model.query" begin
 
-@testset "generation" begin
-    gen1 = QueryTruthTable(
-        and_query([
-            statement(:symbol, :C),
-            not_query(statement(:isaromatic)),
-            or_query([
-                statement(:connectivity, 3),
-                statement(:connectivity, 4)
-            ])
-        ])...
-    )
-    func1 = QueryTruthTable(
-        v -> v[1] & ~v[2] & (v[3] | v[4]),
-        [(:symbol, :C), (:isaromatic,), (:connectivity, 3), (:connectivity, 4)]
-    )
-    @test issubset(gen1, func1)
-    @test issubset(func1, gen1)
-end
+@testset "truthtable" begin
+    # tautology
+    """
+    q \\ r  T other F
+    T      T   F   F
+    other  T   ?   F
+    F      T   T   T
+    """
+    props = [(:symbol, :C)]
+    t = QueryTruthTable(v -> true, props)
+    f = QueryTruthTable(v -> false, props)
+    o = QueryTruthTable(v -> v[1], props)
+    @test t == t
+    @test f == f
+    @test !issubset(t, o)
+    @test !issubset(t, f)
+    @test issubset(o, t)
+    @test !issubset(o, f)
+    @test issubset(f, t)
+    @test issubset(f, o)
 
-@testset "match" begin
-    symC = QueryTruthTable(v -> v[1], [(:symbol, :C)])
-    symN = QueryTruthTable(v -> v[1], [(:symbol, :N)])
-    hc1 = QueryTruthTable(v -> v[1], [(:total_hydrogens, 1)])
-    ch1 = QueryTruthTable(v -> v[1], [(:charge, 1)])
-    @test issubset(symC, symC)
-    @test !issubset(symC, symN)
-    @test !issubset(symN, symC)
-    @test issubset(hc1, hc1)
-    @test !issubset(hc1, ch1)
-    @test !issubset(ch1, hc1)
+    props = [(:symbol, :C), (:symbol, :N)]
+    symC = QueryTruthTable(v -> v[1], props)
+    symN = QueryTruthTable(v -> v[2], props)
+    notN = QueryTruthTable(v -> ~v[2], props)
+    props = [(:total_hydrogens, 1), (:charge, 1)]
+    hc1 = QueryTruthTable(v -> v[1], props)
+    ch1 = QueryTruthTable(v -> v[2], props)
+    @test symC == symC
+    @test symC != symN
+    @test symN != symC
+    @test symN != notN
+    @test notN != symN
+    @test hc1 == hc1
+    @test hc1 != ch1
+    @test ch1 != hc1
 
-    notN = QueryTruthTable(v -> ~v[1], [(:symbol, :N)])
-    @test !issubset(symN, notN)
-    @test !issubset(notN, symN)
-
-    and1 = QueryTruthTable(v -> v[1] & v[2], [
-        (:isaromatic,), (:symbol, :N)
-    ])
-    and2 = QueryTruthTable(v -> v[1] & v[2] & v[3], [
-        (:charge, 1), (:isaromatic,), (:symbol, :N)
-    ])
-    @test issubset(and1, symN)
-    @test !issubset(symN, and1)
+    props = [(:charge, 1), (:isaromatic,), (:symbol, :N)]
+    and1 = QueryTruthTable(v -> v[2] & v[3], props)
+    and2 = QueryTruthTable(v -> v[1] & v[2] & v[3], props)
     @test issubset(and2, and1)
     @test !issubset(and1, and2)
 
-    or1 = QueryTruthTable(v -> v[1] | v[2], [
-        (:charge, 0), (:charge, 1)
-    ])
-    or2 = QueryTruthTable(v -> v[1] | v[2] | v[3], [
-        (:charge, -1), (:charge, 0), (:charge, 1)
-    ])
-    @test issubset(ch1, or1)
-    @test !issubset(or1, ch1)
+    props = [(:charge, -1), (:charge, 0), (:charge, 1)]
+    or1 = QueryTruthTable(v -> v[2] | v[3], props)
+    or2 = QueryTruthTable(v -> v[1] | v[2] | v[3], props)
     @test issubset(or1, or2)
     @test !issubset(or2, or1)
 
+    props = [
+        (:charge, 0), (:charge, 1), (:isaromatic,),
+        (:smallest_ring, 6), (:symbol, :N), (:symbol, :O), (:symbol, :S)
+    ]
     nested1 = QueryTruthTable(
-        v -> ~v[1] & (v[2] | v[3]) & (v[4] | v[5]),
-        [
-            (:isaromatic,), (:symbol, :O), (:symbol, :N),
-            (:charge, 0), (:charge, 1)
-        ]
-    )
+        v -> ~v[3] & (v[5] | v[6]) & (v[1] | v[2]), props)
     nested2 = QueryTruthTable(
-        v -> ~v[1] & (v[2] | v[3] | v[4]) & (v[5] | v[6] | v[7]),
-        [
-            (:isaromatic,), (:symbol, :O), (:symbol, :N), (:symbol, :S),
-            (:charge, 0), (:charge, 1), (:smallest_ring, 6)
-        ]
-    )
-    nested3 = QueryTruthTable(v -> ~v[1] & v[2] & (v[3] | v[4]), [
-        (:isaromatic,), (:symbol, :O), (:charge, 0), (:charge, 1)
-    ])
+        v -> ~v[3] & (v[5] | v[6] | v[7]) & (v[1] | v[2] | v[4]), props)
+    nested3 = QueryTruthTable(
+        v -> ~v[3] & v[6] & (v[1] | v[2]), props)
     @test issubset(nested1, nested2)
     @test !issubset(nested2, nested1)
     @test issubset(nested3, nested1)
     @test !issubset(nested1, nested3)
+end
 
-    # TODO: tautology
-    # TODO: wildcard
+@testset "querynode" begin
+    # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
+    @test QueryLiteral(:a, 2) > QueryLiteral(:a, 1)
+    @test QueryLiteral(:a, 2) < QueryLiteral(:b, 2)
+    @test ([QueryLiteral(:a, 1), QueryLiteral(:b, 2), QueryLiteral(:c, 3)]
+            == [QueryLiteral(:a, 1), QueryLiteral(:b, 2), QueryLiteral(:c, 3)])
 
-    # TODO: disjoint varaibles (e.g. (A=2)|(A=3) is a subset of ~(A=1))
-    """
-    OorS = QueryTruthTable(v -> v[1] | v[2], [
-        (:symbol, :O), (:symbol, :S)
+    isc = generate_queryfunc(
+        QueryLiteral(:symbol, :C), [QueryLiteral(:symbol, :C)])
+    @test isc([true])
+    notc = generate_queryfunc(
+        QueryOperator(:not, [QueryLiteral(:symbol, :C)]), [QueryLiteral(:symbol, :C)])
+    @test notc([false])
+    af = generate_queryfunc(QueryAny(false), [QueryLiteral(:symbol, :C)])
+    @test !af([true])
+    @test !af([false])
+
+    op1 = QueryOperator(:and, [
+        QueryLiteral(:symbol, :C),
+        QueryOperator(:not, [QueryLiteral(:isaromatic)]),
+        QueryOperator(:or, [
+            QueryLiteral(:connectivity, 3),
+            QueryLiteral(:connectivity, 4)
+        ])
     ])
-    @test issubset(OorS, notN)
-    @test !issubset(notN, OorS)
-    """
-    # TODO: recursive
+    @test length(querypropmap(op1)) == 3
+    tbl1 = QueryTruthTable(op1)
+    func1 = QueryTruthTable(
+        v -> v[4] & ~v[3] & (v[1] | v[2]),
+        [(:connectivity, 3), (:connectivity, 4), (:isaromatic,), (:symbol, :C)]
+    )
+    @test querymatch(tbl1, func1, true)
+    # global_logger(default_logger)
+end
 
+@testset "optimize" begin
+    # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
+    c1 = QueryOperator(:and, [QueryLiteral(:symbol, :C), QueryAny(true)])
+    @test optimize_query(c1) == QueryLiteral(:symbol, :C)
+    c2 = QueryOperator(:or, [QueryLiteral(:symbol, :C), QueryAny(true)])
+    @test optimize_query(c2) == QueryAny(true)
+    c3 = QueryOperator(:and, [QueryAny(false), QueryLiteral(:symbol, :C)])
+    @test optimize_query(c3) == QueryAny(false)
+    c4 = QueryOperator(:or, [QueryAny(false), QueryLiteral(:symbol, :C)])
+    @test optimize_query(c4) == QueryLiteral(:symbol, :C)
+
+    notn = QueryOperator(:not, [
+        QueryOperator(:and, [
+            QueryLiteral(:symbol, :N),
+            QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        ])
+    ])
+    notn_ = optimize_query(notn)
+    @test notn_.key === :or
+    @test notn_.value[1].key === :not
+    @test notn_.value[2] == QueryLiteral(:isaromatic)
+    # global_logger(default_logger)
 end
 
 """
+
 @testset "equivalence" begin
 
     rec1 = QueryFormula(:recursive, "[NH2]C")

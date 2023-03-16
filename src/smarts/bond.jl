@@ -4,29 +4,45 @@
 #
 
 const SMILES_BOND_SYMBOL = Dict(
-    '-' => (v -> v[1], [(:order, 1)]),
-    '=' => (v -> v[1], [(:order, 2)]),
-    '#' => (v -> v[1], [(:order, 3)]),
-    '@' => (v -> v[1], [(:is_in_ring,)]),
-    ':' => (v -> v[1], [(:isaromatic,)]),
-    '/' => (v -> v[1], [(:direction, :up)]),
-    '\\' => (v -> v[1], [(:direction, :down)])
+    '-' => QueryLiteral(:order, 1),
+    '=' => QueryLiteral(:order, 2),
+    '#' => QueryLiteral(:order, 3),
+    '@' => QueryLiteral(:is_in_ring),
+    ':' => QueryLiteral(:isaromatic),
+    '/' => QueryLiteral(:direction, :up),
+    '\\' => QueryLiteral(:direction, :down)
 )
 
 
 const SMARTS_BOND_SYMBOL = Dict(
-    '-' => (v -> v[1] & ~v[2], [(:order, 1), (:isaromatic,)]),
-    '=' => (v -> v[1] & ~v[2], [(:order, 2), (:isaromatic,)]),
-    '#' => (v -> v[1] & ~v[2], [(:order, 3), (:isaromatic,)]),
-    '@' => (v -> v[1], [(:is_in_ring,)]),
-    ':' => (v -> v[1], [(:isaromatic,)]),
-    '/' => (v -> v[1], [(:direction, :up)]),
-    '\\' => (v -> v[1], [(:direction, :down)])
+    '-' => QueryOperator(:and, [
+        QueryLiteral(:order, 1),
+        QueryOperator(:not, [QueryLiteral(:isaromatic)])
+    ]),
+    '=' => QueryOperator(:and, [
+        QueryLiteral(:order, 2),
+        QueryOperator(:not, [QueryLiteral(:isaromatic)])
+    ]),
+    '#' => QueryOperator(:and, [
+        QueryLiteral(:order, 3),
+        QueryOperator(:not, [QueryLiteral(:isaromatic)])
+    ]),
+    '@' => QueryLiteral(:is_in_ring),
+    ':' => QueryLiteral(:isaromatic),
+    '/' => QueryLiteral(:direction, :up),
+    '\\' => QueryLiteral(:direction, :down)
 )
+
 
 defaultbond(state::SMILESParser{T,V,E}) where {T,V,E} = E()
 defaultbond(state::SMARTSParser{T,V,E}
-    ) where {T,V,E} = E(v -> v[1] & ~v[2] | v[2], [(:order, 1), (:isaromatic,)])
+    ) where {T,V,E} = E(QueryOperator(:or, [
+        QueryOperator(:and, [
+            QueryLiteral(:order, 1),
+            QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        ]),
+        QueryLiteral(:isaromatic)
+    ]))
 
 
 """
@@ -40,10 +56,10 @@ function bondsymbol!(state::Union{SMILESParser,SMARTSParser})
     sym2 = lookahead(state, 1)
     if sym1 == '/' && sym2 == '?'
         forward!(state, 2)
-        return (v -> ~v[1], [(:stereo, :down)])
+        return QueryOperator(:not, [QueryLiteral(:stereo, :down)])
     elseif sym1 == '\\' && sym2 == '?'
         forward!(state, 2)
-        return (v -> ~v[1], [(:stereo, :up)])
+        return QueryOperator(:not, [QueryLiteral(:stereo, :up)])
     elseif sym1 in keys(mapping)
         forward!(state)
         return mapping[sym1]
@@ -60,11 +76,7 @@ Bond <- BondSymbol?
 function bond!(state::SMILESParser{T,V,E}) where {T,V,E}
     q = bondsymbol!(state)
     q === nothing && return
-    qd = Dict{Symbol,Any}()
-    for fml in q[2]  # operator is fixed to :eq so far
-        qd[fml[1]] = length(fml) == 1 ? q[1](trues(length(q[2]))) : fml[2]
-    end
-    return E(qd)
+    return E(smiles_dict(q))
 end
 
 
@@ -76,9 +88,9 @@ Bond <- '~' / (BondSymbol / LogicalCond)?
 function bond!(state::SMARTSParser{T,V,E}) where {T,V,E}
     if read(state) == '~'
         forward!(state)
-        return E(any_query(true)...)
+        return E(QueryAny(true))
     end
     q = lglowand!(state, bondsymbol!)
     q === nothing && return
-    return E(q...)
+    return E(q)
 end

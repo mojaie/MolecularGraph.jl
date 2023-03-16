@@ -104,6 +104,7 @@ end
 end
 
 @testset "aromatic" begin
+    default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
     phenol = smilestomol("C=1C=CC=CC=1O")  # not carbonyl O
     @test count(is_aromatic(phenol)) == 6
 
@@ -167,6 +168,7 @@ end
     
     # TODO: how to deal with tautomerism
     isocyanurate = smilestomol("ClN1C(=O)N(Cl)C(=O)N(Cl)C1=O")
+    global_logger(default_logger)
 end
 
 @testset "properties" begin

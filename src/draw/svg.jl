@@ -115,7 +115,7 @@ function drawsvg(mol::SimpleMolGraph, width, height; kwargs...)
 end
 
 
-import Base.Multimedia.display
+# import Base.Multimedia.display
 """
     display(mol::SimpleMolGraph, x, y)
 
@@ -125,7 +125,9 @@ Arguments
 - `x::Int` the horizontal extent in pixels of the SVG to render (optional; default = 250)
 - `y::Int` the vertical extent in pixels of the SVG to render (optional; default = 250)
 """
-Base.Multimedia.display(mol::SimpleMolGraph, x::Int=250, y::Int=250) = HTML(drawsvg(mol, x, y))
+# TODO: do not override display. use `show`
+# Base.Multimedia.display(mol::SimpleMolGraph, x::Int=250, y::Int=250) = HTML(drawsvg(mol, x, y))
+# Base.show(io::IO, m::MIME"image/svg+xml", mol::SimpleMolGraph) = show(io, m, drawsvg(mol, 250, 250))
 
 
 """

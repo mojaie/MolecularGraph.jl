@@ -10,7 +10,6 @@ module MolecularGraphTest
     using Graphs
     using MolecularGraph
 
-
     include("./util/iterator.jl")
     include("./util/math.jl")
 
@@ -52,10 +51,11 @@ module MolecularGraphTest
     include("mass.jl")
     include("wclogp.jl")
     include("inchi.jl")
+
     include("structurematch.jl")
+    include("querycontainment.jl")
 
     include("./draw/base.jl")
     include("./draw/svg.jl")
     include("./draw/3d.jl")
-
 end

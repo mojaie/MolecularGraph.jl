@@ -18,9 +18,9 @@ export
 """
     vmatchgen(mol1::MolGraph, mol2::MolGraph) -> Function
     vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2<:QueryTruthTable,E1,E2} -> Function
+        ) where {T1,T2,V1,V2<:QueryTree,E1,E2} -> Function
     vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1<:QueryTruthTable,V2<:QueryTruthTable,E1,E2}
+        ) where {T1,T2,V1<:QueryTree,V2<:QueryTree,E1,E2}
 
 Return a default vertex attribute matching function for graph isomorphism algorithms.
 """
@@ -33,7 +33,7 @@ function vmatchgen(mol1::MolGraph, mol2::MolGraph)
 end
 
 function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2<:QueryTruthTable,E1,E2}
+        ) where {T1,T2,V1,V2<:QueryTree,E1,E2}
     descriptors = Dict(  # precalculated descriptors
         :symbol => atom_symbol(mol1),
         :isaromatic => is_aromatic(mol1),
@@ -46,23 +46,23 @@ function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
         :smallest_ring => smallest_ring(mol1),
         :ring_count => ring_count(mol1),
     )
-    recursive = Dict{String,MolGraph}()  # cache recursive queries
+    recursive = Dict{String,MolGraph}()  # cache recursive mols
     matches = Dict{T1,Dict{T2,Bool}}()  # cache matches
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
-        qprop = get_prop(mol2, v2, :props)  # QueryLiteral
-        ts = falses(length(qprop))
+        tree = get_prop(mol2, v2, :tree)
+        qmap = values(querypropmap(tree))
+        qprop = isempty(qmap) ? Union{QueryLiteral}[] : union(qmap...)
+        arr = falses(length(qprop))
         for (i, p) in enumerate(qprop)
             if p.key == :recursive
-                if !haskey(recursive, p.value)
-                    recursive[p.value] = smartstomol(p.value)
-                end
-                ts[i] = has_substruct_match(mol1, recursive[p.value], mandatory=Dict(i => 1))
+                haskey(recursive, p.value) || (recursive[p.value] = smartstomol(p.value))
+                arr[i] = has_substruct_match(mol1, recursive[p.value], mandatory=Dict(v1 => 1))
             else
-                ts[i] = descriptors[p.key][v1] == p.value
+                arr[i] = descriptors[p.key][v1] == p.value
             end
         end
-        res = get_prop(mol2, v2, :func)(ts)
+        res = generate_queryfunc(tree, qprop)(arr)
         haskey(matches, v1) || (matches[v1] = Dict{T2,Bool}())
         matches[v1][v2] = res
         return res
@@ -70,12 +70,12 @@ function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
 end
 
 function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1<:QueryTruthTable,V2<:QueryTruthTable,E1,E2}
-    recursive = Dict{String,MolGraph}()  # cache recursive queries
+        ) where {T1,T2,V1<:QueryTree,V2<:QueryTree,E1,E2}
+    recursive = Dict{String,Dict{String,Bool}}()  # cache recursive queries
     matches = Dict{T1,Dict{T2,Bool}}()  # cache matches
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
-        res = issubset(props(mol1, v1), props(mol2, v2))
+        res = issubset(props(mol1, v1), props(mol2, v2); recursive_cache=recursive)
         haskey(matches, v1) || (matches[v1] = Dict{T2,Bool}())
         matches[v1][v2] = res
         return res
@@ -86,9 +86,9 @@ end
 """
     ematchgen(mol1::MolGraph, mol2::MolGraph) -> Function
     ematchgen(mol::MolGraph{T1,V1,E1}, qmol::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2,E1,E2<:QueryTruthTable}
+        ) where {T1,T2,V1,V2,E1,E2<:QueryTree}
     ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2,E1<:QueryTruthTable,E2<:QueryTruthTable}
+        ) where {T1,T2,V1,V2,E1<:QueryTree,E2<:QueryTree}
 
 Return a default edge attribute matching function for graph isomorphism algorithms.
 """
@@ -97,7 +97,7 @@ function ematchgen(mol1::MolGraph, mol2::MolGraph)
 end
 
 function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2,E1,E2<:QueryTruthTable}
+        ) where {T1,T2,V1,V2,E1,E2<:QueryTree}
     descriptors = Dict(  # precalculated descriptors
         :order => bond_order(mol1),
         :is_in_ring => is_edge_in_ring(mol1),
@@ -106,9 +106,11 @@ function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
     matches = Dict{Edge{T1},Dict{Edge{T2},Bool}}()  # cache matches
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
-        qprop = get_prop(mol2, e2, :props)  # QueryLiteral
-        res = get_prop(mol2, e2, :func)(
-            [descriptors[p.key][edge_rank(mol1, e1)] == p.value for p in qprop])
+        tree = get_prop(mol2, e2, :tree)
+        qmap = values(querypropmap(tree))
+        qprop = isempty(qmap) ? Union{QueryLiteral}[] : union(qmap...)
+        arr = [descriptors[p.key][edge_rank(mol1, e1)] == p.value for p in qprop]
+        res = generate_queryfunc(tree, qprop)(arr)
         haskey(matches, e1) || (matches[e1] = Dict{Edge{T2},Bool}())
         matches[e1][e2] = res
         return res
@@ -116,13 +118,11 @@ function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
 end
 
 function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2,E1<:QueryTruthTable,E2<:QueryTruthTable}
+        ) where {T1,T2,V1,V2,E1<:QueryTree,E2<:QueryTree}
     matches = Dict{Edge{T1},Dict{Edge{T2},Bool}}()  # cache matches
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
-        qtbl1 = get_prop(mol1, e1, :table)
-        qtbl2 = get_prop(mol2, e2, :table)
-        res = issubset(qtbl1, qtbl2)
+        res = issubset(props(mol1, e1), props(mol2, e2))
         haskey(matches, e1) || (matches[e1] = Dict{Edge{T2},Bool}())
         matches[e1][e2] = res
         return res

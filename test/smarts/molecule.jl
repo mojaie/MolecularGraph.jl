@@ -8,7 +8,7 @@ using MolecularGraph:
 @testset "chain" begin
     state = SMARTSParser{SMARTSMolGraph}("CCCCC")
     state.node = 1
-    push!(state.vprops, QueryTruthTable(v -> v[1], [(:symbol, :C)]))
+    push!(state.vprops, QueryTree(QueryLiteral(:symbol, :C)))
     forward!(state)
     chain!(state)
     @test length(state.edges) == 4
@@ -17,14 +17,14 @@ using MolecularGraph:
 
     state = SMARTSParser{SMARTSMolGraph}("C1CCCCC1")
     state.node = 1
-    push!(state.vprops, QueryTruthTable(v -> v[1], [(:symbol, :C)]))
+    push!(state.vprops, QueryTree(QueryLiteral(:symbol, :C)))
     forward!(state)
     chain!(state)
     @test state.edges[6] == Edge(1, 6)
 
     state = SMARTSParser{SMARTSMolGraph}("C%10CCCCC%10")
     state.node = 1
-    push!(state.vprops, QueryTruthTable(v -> v[1], [(:symbol, :C)]))
+    push!(state.vprops, QueryTree(QueryLiteral(:symbol, :C)))
     forward!(state)
     chain!(state)
     @test state.edges[6] == Edge(1, 6)
