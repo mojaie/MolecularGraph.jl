@@ -1,6 +1,7 @@
 
 using MolecularGraph:
-    querypropmap, generate_queryfunc, querymatch, optimize_query
+    querypropmap, generate_queryfunc, querymatch, optimize_query,
+    specialize_nonaromatic!, remove_hydrogens!
 
 @testset "model.query" begin
 
@@ -71,6 +72,39 @@ end
 
 @testset "querynode" begin
     # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
+    @test QueryAny(true) == QueryAny(true)
+    @test QueryAny(true) != QueryAny(false)
+    @test QueryLiteral(:a, 1) == QueryLiteral(:a, 1)
+    @test QueryLiteral(:a, "hoge") != QueryLiteral(:a, "fuga")
+    @test QueryLiteral(:charge, 2) != QueryLiteral(:total_hydrogens, 2)
+    @test QueryOperator(:and, [
+        QueryLiteral(:a, 1),
+        QueryOperator(:not, [QueryLiteral(:a, 1)]),
+        QueryOperator(:or, [QueryLiteral(:b, :hoge), QueryLiteral(:c, :fuga)]),
+
+    ]) == QueryOperator(:and, [
+        QueryOperator(:not, [QueryLiteral(:a, 1)]),
+        QueryOperator(:or, [QueryLiteral(:c, :fuga), QueryLiteral(:b, :hoge)]),
+        QueryLiteral(:a, 1)
+    ])
+    @test QueryOperator(:or, [
+        QueryOperator(:or, [
+            QueryOperator(:or, [
+                QueryOperator(:or, [QueryLiteral(:a, true), QueryLiteral(:b, false)]),
+                QueryLiteral(:c, false)
+            ]),
+            QueryLiteral(:d, false)
+        ])
+    ]) != QueryOperator(:or, [
+        QueryOperator(:or, [
+            QueryOperator(:or, [
+                QueryOperator(:or, [QueryLiteral(:a, true), QueryLiteral(:b, true)]),
+                QueryLiteral(:c, false)
+            ]),
+            QueryLiteral(:d, false)
+        ])
+    ])
+
     @test QueryLiteral(:a, 2) > QueryLiteral(:a, 1)
     @test QueryLiteral(:a, 2) < QueryLiteral(:b, 2)
     @test ([QueryLiteral(:a, 1), QueryLiteral(:b, 2), QueryLiteral(:c, 3)]
@@ -86,6 +120,32 @@ end
     @test !af([true])
     @test !af([false])
     # global_logger(default_logger)
+end
+
+@testset "pains" begin
+    narom = QueryOperator(:not, [QueryLiteral(:isaromatic)])
+    pains1 = smartstomol("n1(-[#6])c(c(-[#1])c(c1-[#6]=[#7]-[#7])-[#1])-[#1]")  # hzone_pyrrol(64)
+    specialize_nonaromatic!(pains1)
+    @test get_prop(pains1, 2, :tree) == QueryLiteral(:symbol, :C)  # -[#6] still can be aromatic
+    @test get_prop(pains1, 5, :tree) == QueryLiteral(:symbol, :H)  # non-aromatic symbols are not affected
+    @test get_prop(pains1, 8, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :C), narom])
+    @test get_prop(pains1, 9, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :N), narom])
+    @test get_prop(pains1, 10, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :N), narom])
+    remove_hydrogens!(pains1)
+    @test nv(pains1) == 9
+    @test degree(pains1, 3) == 2
+    @test degree(pains1, 4) == 2
+    @test degree(pains1, 6) == 2
+
+    pains2 = smartstomol("[!#6&!#1]=[#6]1[#6]=,:[#6][#6](=[!#6&!#1])[#6]=,:[#6]1")  # quinone_A(370)
+    specialize_nonaromatic!(pains2)
+    remove_hydrogens!(pains2)
+    @test get_prop(pains2, 1, :tree) == QueryOperator(:and, [
+        QueryOperator(:not, [QueryLiteral(:symbol, :C)]), QueryAny(true)])
+    @test get_prop(pains2, 2, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :C), narom])
+    @test get_prop(pains2, 4, :tree) == QueryLiteral(:symbol, :C)
+    @test get_prop(pains2, 6, :tree) == QueryOperator(:and, [
+        QueryOperator(:not, [QueryLiteral(:symbol, :C)]), QueryAny(true)])
 end
 
 @testset "optimize" begin
@@ -105,10 +165,10 @@ end
             QueryOperator(:not, [QueryLiteral(:isaromatic)])
         ])
     ])
-    notn_ = optimize_query(notn)
-    @test notn_.key === :or
-    @test notn_.value[1].key === :not
-    @test notn_.value[2] == QueryLiteral(:isaromatic)
+    @test optimize_query(notn) == QueryOperator(:or, [
+        QueryOperator(:not, [QueryLiteral(:symbol, :N)]),
+        QueryLiteral(:isaromatic)
+    ])
     # global_logger(default_logger)
 end
 

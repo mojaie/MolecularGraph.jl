@@ -4,15 +4,17 @@
 #
 
 export
-    QueryAny, QueryLiteral, QueryOperator, QueryTree, QueryTruthTable
-    # removehydrogens, inferaromaticity,
-    # query_relationship, filter_queries
+    QueryAny, QueryLiteral, QueryOperator, QueryTree, QueryTruthTable, SMARTSMolGraph
+    # removehydrogens
+
 
 
 struct QueryAny
     value::Bool
 end
 
+Base.:(==)(q::QueryAny, r::QueryAny) = q.value == r.value
+Base.hash(q::QueryAny, h::UInt) = hash(q.value, h)
 
 struct QueryLiteral
     operator::Symbol  # :eq, :gt?, :lt? ...
@@ -29,14 +31,17 @@ function Base.isless(q::QueryLiteral, r::QueryLiteral)
     q.operator > r.operator && return false
     return string(q.value) < string(r.value)
 end
-Base.:(==)(q::QueryLiteral, r::QueryLiteral; kwargs...
+Base.:(==)(q::QueryLiteral, r::QueryLiteral
     ) = q.key == r.key && q.operator == r.operator && string(q.value) == string(r.value)
-
+Base.hash(q::QueryLiteral, h::UInt) = hash(q.key, hash(q.operator, hash(q.value, h)))
 
 struct QueryOperator
     key::Symbol  # :and, :or, :not
     value::Vector{Union{QueryAny,QueryLiteral,QueryOperator}}
 end
+
+Base.:(==)(q::QueryOperator, r::QueryOperator) = q.key == r.key && issetequal(q.value, r.value)
+Base.hash(q::QueryOperator, h::UInt) = hash(q.key, hash(Set(q.value), h))
 
 struct QueryTree
     tree::Union{QueryAny,QueryLiteral,QueryOperator}
@@ -44,6 +49,7 @@ end
 
 Base.getindex(a::QueryTree, prop::Symbol) = getproperty(a, prop)
 
+SMARTSMolGraph = MolGraph{Int,QueryTree,QueryTree}
 
 """
     QueryTruthTable(fml::Function, props::Vector{QueryLiteral}) -> QueryTruthTable
@@ -62,7 +68,7 @@ struct QueryTruthTable
     props::Vector{QueryLiteral}
 end
 
-# Convenient constructors for testing
+# Convenient constructors just for testing
 QueryTruthTable(fml::Function, props::Vector{T}
     ) where T <: Tuple = QueryTruthTable(fml, [QueryLiteral(p...) for p in props])
 
@@ -74,6 +80,11 @@ function QueryTruthTable(tree::Union{QueryAny,QueryLiteral,QueryOperator})
 end
 
 
+"""
+    querypropmap(tree, props) -> Dict{Symbol,Vector{QueryLiteral}}
+
+Parse QueryLiteral tree and put QueryLiterals into bins labeled with their literal keys.
+"""
 function querypropmap(tree)
     if tree isa QueryAny
         return Dict{Symbol,Vector{QueryLiteral}}()
@@ -94,6 +105,14 @@ function querypropmap(tree)
 end
 
 
+"""
+    generate_queryfunc(tree, props) -> Function
+
+Generate query truthtable function from QueryLiteral tree and the property vector.
+
+The query truthtable function take a Vector{Bool} of length equal to `props` and
+returns output in Bool.
+"""
 function generate_queryfunc(tree, props)
     tree isa QueryAny && return arr -> tree.value
     if tree isa QueryLiteral
@@ -109,6 +128,12 @@ function generate_queryfunc(tree, props)
     end
 end
 
+
+"""
+    smiles_dict(tree) -> Dict{Symbol,Any}
+
+Convert QueryLiteral to Dict{Symbol,Any} to be provided to SMILES Atom/Bond constructor.
+"""
 function smiles_dict(tree)
     if tree isa QueryLiteral
         return Dict{Symbol,Any}(tree.key => tree.value)
@@ -124,6 +149,95 @@ function smiles_dict(tree)
     end
 end
 
+
+
+"""
+    specialize_nonaromatic!(q::MolGraph) -> Nothing
+
+Convert `[#atomnumber]` queries connected to explicit single bonds to be non-aromatic
+(e.g. -[#6]- -> -C-).
+
+Should be applied before `remove_hydrogens!`.
+This function is intended for generalization of PAINS query in PubChem dataset.
+"""
+function specialize_nonaromatic!(q::MolGraph{T,V,E}) where {T,V,E}
+    aromsyms = Set([:B, :C, :N, :O, :P, :S, :As, :Se])
+    exqs = Set(QueryOperator(:and, [
+        QueryLiteral(:order, i),
+        QueryOperator(:not, [QueryLiteral(:isaromatic)])
+    ]) for i in 1:3)
+    exbonds = Dict{Edge{T},Int}()
+    for e in edges(q)
+        tr = get_prop(q, e, :tree)
+        tr in exqs || continue
+        exbonds[e] = tr.value[1].value
+    end
+    for i in vertices(q)
+        p = get_prop(q, i, :tree)
+        p isa QueryLiteral && p.key === :symbol || continue
+        # number of explicitly non-aromatic incident bonds
+        cnt = sum(get(exbonds, undirectededge(q, i, nbr), 0) for nbr in neighbors(q, i))
+        p.value === :C && (cnt -= 1)  # carbon allows one non-aromatic
+        if p.value in aromsyms && cnt > 0
+            set_prop!(q, i, QueryTree(QueryOperator(:and, [
+                p, QueryOperator(:not, [QueryLiteral(:isaromatic)])
+            ])))
+        end
+    end
+end
+
+
+"""
+    resolve_not_hydrogen -> QueryMol
+
+Return the molecular query with hydrogen nodes removed.
+
+This function is intended for generalization of PAINS query in PubChem dataset.
+"""
+function resolve_not_hydrogen(tree)
+    tree isa QueryOperator || return tree
+    if tree.key === :not
+        cld = tree.value[1]
+        cld isa QueryLiteral && cld.key === :symbol && cld.value === :H && return QueryAny(true)
+    end
+    return QueryOperator(tree.key, [resolve_not_hydrogen(v) for v in tree.value])
+end
+
+
+"""
+    remove_hydrogens!(q::MolGraph) -> Nothing
+
+Remove hydrogens from the molecular query. 
+
+Should be applied after `specialize_nonaromatic!`.
+This function is intended for generalization of PAINS query in PubChem dataset.
+"""
+function remove_hydrogens!(q::MolGraph{T,V,E}) where {T,V<:QueryTree,E<:QueryTree}
+    # count H nodes and mark H nodes to remove
+    hnodes = T[]
+    hcntarr = zeros(Int, nv(q))
+    for n in vertices(q)
+        t = get_prop(q, n, :tree)
+        t == QueryLiteral(:symbol, :H) || continue
+        hcntarr[neighbors(q, n)[1]] += 1
+        push!(hnodes, n)
+    end
+    for n in setdiff(vertices(q), hnodes)  # heavy atom nodes
+        # no longer H nodes exist, so [!#1] may be [*]
+        t = resolve_not_hydrogen(get_prop(q, n, :tree))
+        # consider H nodes as a :total_hydrogens query
+        # C([H])([H]) -> [C;!H1;!H2]
+        hs = collect(0:(hcntarr[n] - 1))
+        if !isempty(hs)
+            clds = [QueryOperator(:not, [QueryLiteral(:total_hydrogens, i)]) for i in hs]
+            t = QueryOperator(:and, [t, clds...])
+        end
+        set_prop!(q, n, QueryTree(t))
+    end
+    return rem_vertices!(q, hnodes)
+end
+
+
 """
     optimize_query(tree) -> Union{QueryAny,QueryLiteral,QueryOperator}
 
@@ -138,9 +252,10 @@ Return optimized query.
 """
 function optimize_query(tree)
     tree isa QueryOperator || return tree
+    # Remove `:and` under `:not` by applying De Morgan's law (only the cases like [!C])
     if tree.key === :not
         cld = tree.value[1]
-        if cld.key === :and  # only the cases like [!C]
+        if cld.key === :and
             vals = Union{QueryAny,QueryLiteral,QueryOperator}[]
             for c in cld.value
                 push!(vals, c.key === :not ? c.value[1] : QueryOperator(:not, [c]))
@@ -149,6 +264,7 @@ function optimize_query(tree)
         end
         return tree
     end
+    # Absorption
     clds = Union{QueryAny,QueryLiteral,QueryOperator}[]
     for cld in tree.value
         op = optimize_query(cld)
@@ -162,301 +278,10 @@ function optimize_query(tree)
 end
 
 
-"""
-    removehydrogens(mol::QueryMol) -> QueryMol
-
-Return the molecular query with hydrogen nodes removed.
-
-function removehydrogens(qmol::QueryMol)
-    # count H nodes and mark H nodes to remove
-    hnodes = Set{Int}()
-    hcntarr = zeros(Int, nodecount(qmol))
-    for n in 1:nodecount(qmol)
-        nq = nodeattr(qmol, n).query
-        issubset(nq, QueryFormula(:symbol, :H), eval_recursive=false) || continue
-        degree(qmol, n) == 1 || throw(ErrorException("Invalid hydrogen valence"))
-        adj = iterate(adjacencies(qmol, n))[1]
-        hcntarr[adj] += 1
-        push!(hnodes, n)
+function optimize_query!(q::MolGraph)
+    specialize_nonaromatic!(q)
+    remove_hydrogens!(q)
+    for i in vertices(q)
+        set_prop!(q, i, optimize_query(p.tree))
     end
-    qmol_ = deepcopy(qmol)
-    heavynodes = setdiff(nodeset(qmol), hnodes)
-    for n in heavynodes
-        nq = nodeattr(qmol, n).query
-        # no longer H nodes exist, so [!#1] would be ignored
-        noth = QueryFormula(:not, QueryFormula(:symbol, :H))
-        if nq == noth
-            newq = QueryFormula(:any, true)
-        elseif nq.key === :and && noth in nq.value
-            if length(nq.value) == 2
-                newq = collect(setdiff(nq.value, [noth]))[1]
-            else
-                newq = QueryFormula(:and, setdiff(nq.value, [noth]))
-            end
-        else
-            newq = nq
-        end
-        # consider H nodes as a :total_hydrogens query
-        adjhnfmls = collect(0:(hcntarr[n] - 1))
-        if !isempty(adjhnfmls)
-            nfmls = [QueryFormula(:not, QueryFormula(:total_hydrogens, i)) for i in adjhnfmls]
-            newq = QueryFormula(:and, Set([newq, nfmls...]))
-        end
-        setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
-    end
-    return querymol(nodesubgraph(qmol_, heavynodes))
 end
-"""
-
-"""
-    inferatomaromaticity(qmol::QueryMol)
-
-Infer aromaticity of atoms and bonds, then return more specific query in the aspect of aromaticity.
-
-function inferaromaticity(qmol::QueryMol)
-    qmol_ = deepcopy(qmol)
-    for n in 1:nodecount(qmol)
-        nq = nodeattr(qmol, n).query
-        issubset(nq, QueryFormula(:isaromatic, true), eval_recursive=false) && continue
-        issubset(nq, QueryFormula(:isaromatic, false), eval_recursive=false) && continue
-        # by topology query (!R, !r)
-        if issubset(nq, QueryFormula(:ring_count, 0), eval_recursive=false)
-            newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
-            setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
-            continue
-        end
-        # by atom symbol
-        canbearom = [:B, :C, :N, :O, :P, :S, :As, :Se]
-        notaromfml = QueryFormula(:and, Set([
-            QueryFormula(:not, QueryFormula(:symbol, a)) for a in canbearom]))
-        if issubset(nq, notaromfml, eval_recursive=false)
-            newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
-            setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
-            continue
-        end
-        # by explicitly non-/aromatic incidences
-        noincacc = QueryFormula(:and, Set([
-            QueryFormula(:not, QueryFormula(:symbol, a)) for a in [:C, :N, :B]]))
-        minacc = issubset(nq, noincacc, eval_recursive=false) ? 0 : 1
-        nonaromcnt = 0
-        # hydrogen query
-        if issubset(nq, QueryFormula(:and, Set([
-            QueryFormula(:not, QueryFormula(:total_hydrogens, 0)),
-            QueryFormula(:not, QueryFormula(:total_hydrogens, 1))
-        ])), eval_recursive=false)
-            nonaromcnt += 2  # 2 is enough to be nonaromcnt > minacc
-        elseif issubset(nq,
-                QueryFormula(:not, QueryFormula(:total_hydrogens, 0)), eval_recursive=false)
-            nonaromcnt += 1
-        end
-        # incidences
-        hasarombond = false
-        for inc in incidences(qmol, n)
-            eq = edgeattr(qmol_, inc).query
-            if issubset(eq, QueryFormula(:isaromatic, true), eval_recursive=false)
-                hasarombond = true
-                break
-            end
-            if issubset(eq, QueryFormula(:order, 2), eval_recursive=false)
-                # C=O special case
-                adjq = nodeattr(qmol, neighbors(qmol, n)[inc]).query
-                if issubset(adjq, QueryFormula(:symbol, :O), eval_recursive=false)
-                    continue
-                end
-            end
-            if (issubset(eq, QueryFormula(:isaromatic, false), eval_recursive=false)
-                    || issubset(eq, QueryFormula(:is_in_ring, false), eval_recursive=false))
-                if issubset(eq, QueryFormula(:not, QueryFormula(:order, 1)), eval_recursive=false)
-                    nonaromcnt += 2  # 2 is enough to be nonaromcnt > minacc
-                else
-                    nonaromcnt += 1
-                end
-            end
-        end
-        if hasarombond
-            newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, true)]))
-            setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
-        elseif nonaromcnt > minacc
-            newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, false)]))
-            setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
-        end
-    end
-    # by Huckel rule
-    aromf = QueryFormula(:isaromatic, true)
-    aors = QueryFormula(:or, Set([
-        aromf,
-        QueryFormula(:and, Set([
-            QueryFormula(:order, 1),
-            QueryFormula(:isaromatic, false)
-        ]))
-    ]))
-    aord = QueryFormula(:or, Set([
-        aromf,
-        QueryFormula(:and, Set([
-            QueryFormula(:order, 2),
-            QueryFormula(:isaromatic, false)
-        ]))
-    ]))
-    for ring in sssr(qmol)
-        ringedges = edgeset(nodesubgraph(qmol, ring))
-        pcnt = 0
-        for n in ring
-            nq = nodeattr(qmol, n).query
-            if issubset(nq, QueryFormula(:isaromatic, true), eval_recursive=false)
-                pcnt += 1
-                continue
-            end
-            rincs = collect(intersect(incidences(qmol, n), ringedges))
-            uq = edgeattr(qmol, rincs[1]).query
-            vq = edgeattr(qmol, rincs[2]).query
-            if uq == aors && vq == aord || vq == aors && uq == aord
-                if issubset(nq, QueryFormula(:or,
-                            Set([QueryFormula(:symbol, a) for a in [:B, :C, :N, :P, :As]])),
-                        eval_recursive=false)
-                    pcnt += 1
-                    continue
-                end
-            elseif uq == aors && vq == aors
-                if issubset(nq, QueryFormula(:or,
-                            Set([QueryFormula(:symbol, a) for a in [:N, :O, :P, :S, :As, :Se]])),
-                        eval_recursive=false)
-                    pcnt += 2
-                    continue
-                elseif issubset(nq, QueryFormula(:symbol, :C), eval_recursive=false)
-                    outer = collect(setdiff(incidences(qmol, n), ringedges))
-                    if length(outer) == 1
-                        outerq = edgeattr(qmol, outer[1]).query
-                        oadjq = nodeattr(qmol, neighbors(qmol, n)[outer[1]]).query
-                        if issubset(outerq, QueryFormula(:order, 2), eval_recursive=false) && issubset(oadjq, QueryFormula(:symbol, :O), eval_recursive=false)
-                            continue
-                        end
-                    end
-                end
-            end
-            pcnt = 0
-            break
-        end
-        if pcnt % 4 == 2
-            for n in ring
-                nq = nodeattr(qmol, n).query
-                newq = QueryFormula(:and, Set([nq, QueryFormula(:isaromatic, true)]))
-                setnodeattr!(qmol_, n, SmartsAtom(tidyformula(newq)))
-            end
-            for e in ringedges
-                setedgeattr!(qmol_, e, SmartsBond(aromf))
-            end
-        end
-    end
-    return qmol_
-end
-
-
-
-
-const DEFAULT_QUERY_RELATIONS = let
-    qrfile = joinpath(dirname(@__FILE__), "../../assets/const/default_query_relations.yaml")
-    include_dependency(qrfile)
-    qrfile
-end
-
-
-
-struct DictDiGraph <: OrderedDiGraph
-    # TODO: should be moved to Graph module
-    # TODO: get rid of mutable Dict
-    outneighbormap::Vector{Dict{Int,Int}}
-    inneighbormap::Vector{Dict{Int,Int}}
-    edges::Vector{Tuple{Int,Int}}
-    nodeattrs::Vector{Dict}
-    edgeattrs::Vector{Dict}
-end
-"""
-
-"""
-    dictdigraph(view::DiSubgraphView{DictDiGraph}) -> DictDiGraph
-
-Generate a new `DictDiGraph` from a substructure view.
-
-Graph property caches and attributes are not inherited.
-
-function dictdigraph(view::DiSubgraphView{DictDiGraph})
-    newg = DictDiGraph([], [], [], [], [])
-    nkeys = sort(collect(nodeset(view)))
-    ekeys = sort(collect(edgeset(view)))
-    nmap = Dict{Int,Int}()
-    for (i, n) in enumerate(nkeys)
-        nmap[n] = i
-        push!(newg.nodeattrs, nodeattr(view, n))
-        push!(newg.outneighbormap, Dict())
-        push!(newg.inneighbormap, Dict())
-    end
-    for (i, e) in enumerate(ekeys)
-        (oldu, oldv) = getedge(view, e)
-        u = nmap[oldu]
-        v = nmap[oldv]
-        push!(newg.edges, (u, v))
-        push!(newg.edgeattrs, edgeattr(view, e))
-        newg.outneighbormap[u][i] = v
-        newg.inneighbormap[v][i] = u
-    end
-    return newg
-end
-"""
-
-"""
-    query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS) -> DictDiGraph
-
-Generate query relationship diagram.
-
-function query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS)
-    graph = DictDiGraph([], [], [], [], [])
-    keys = Dict()
-    for (i, rcd) in enumerate(YAML.load(open(sourcefile)))
-        rcd["parsed"] = smartstomol(rcd["query"])
-        addnode!(graph, rcd)
-        keys[rcd["key"]] = i
-    end
-    for rcd in nodeattrs(graph)
-        if haskey(rcd, "isa")
-            for e in rcd["isa"]
-                addedge!(graph, keys[rcd["key"]], keys[e], Dict("relation" => "isa"))
-            end
-        end
-        if haskey(rcd, "has")
-            for e in rcd["has"]
-                addedge!(graph, keys[rcd["key"]], keys[e], Dict("relation" => "has"))
-            end
-        end
-    end
-    return graph
-end
-"""
-
-"""
-    filter_queries(qr::DictDiGraph, mol::GraphMol) -> DictDiGraph
-
-Filter query relationship diagram by the given molecule.
-The filtered diagram represents query relationship that the molecule have.
-
-function filter_queries(qr::DictDiGraph, mol::GraphMol; filtering=true)
-    matched = Set{Int}()
-    for n in reversetopologicalsort(qr)
-        rcd = nodeattr(qr, n)
-        if filtering
-            if !issubset(successors(qr, n), matched)  # query containment filter
-                continue
-            end
-        end
-        # println("key: \$(rcd["key"])")
-        # println("query: \$(rcd["query"])")
-        # @time begin
-            matches = collect(substructmatches(mol, rcd["parsed"]))
-            if !isempty(matches)
-                push!(matched, n)
-                rcd["matched"] = Set([sort(collect(keys(m))) for m in matches])
-            end
-        # end
-    end
-    return dictdigraph(nodesubgraph(qr, matched))
-end
-"""

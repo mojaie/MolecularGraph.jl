@@ -3,109 +3,98 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-import Graphs:
-    add_vertex!, add_edge!, rem_vertex!, rem_vertices!, rem_edge!
+"""
+    MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
 
-export
-    MolGraph, SDFMolGraph, SMILESMolGraph, SMARTSMolGraph,
-    EditableMolGraph, Reaction,
-    to_dict, to_json, setcache!,
-    descriptors, set_descriptor!, has_descriptor, get_descriptor,
-    init_node_descriptor, init_edge_descriptor
+Basic molecular graph type.
 
-
+Note that graph manipulation (add/remove vertices/edges) functions are not
+efficient in `MolGraph`. For manual graph generation tasks, use `MolGraphGen` instead.
+"""
 struct MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
     graph::SimpleGraph{T}
     vprops::Vector{V}
     eprops::Vector{E}
     gprops::Dict{Symbol,Any}
     descriptors::Dict{Symbol,Any}
-    edge_rank::Dict{Edge{T},T}
+    edge_rank::Dict{Edge{T},Int}
 
-    function MolGraph{T,V,E}(
-            g=SimpleGraph{T}(), vprops=V[], eprops=E[], gprops=Dict(), desc=Dict()) where {T,V,E}
-        nv(g) > length(vprops) && throw(ErrorException("Mismatch in the number of nodes and node properties"))
-        ne(g) == length(eprops) || throw(ErrorException("Mismatch in the number of edges and edge properties"))
+    function MolGraph{T,V,E}(g::SimpleGraph,
+            vprop_list::Vector, eprop_list::Vector, gprop_map::Dict) where {T,V,E}
+        (nv(g) > length(vprop_list)
+            && throw(ErrorException("Mismatch in the number of nodes and node properties")))
+        (ne(g) == length(eprop_list)
+            || throw(ErrorException("Mismatch in the number of edges and edge properties")))
         # expand fadjlist for vprops of isolated nodes
-        for _ in nv(g):(length(vprops) - 1)
-            push!(g.fadjlist, Vector{T}())
+        for _ in nv(g):(length(vprop_list) - 1)
+            push!(g.fadjlist, T[])
         end
         # edge_rank mapping
         er = Dict{Edge{T},T}()
         for (i, e) in enumerate(edges(g))
             er[e] = i
         end
-        new(g, vprops, eprops, gprops, desc, er)
+        new(g, vprop_list, eprop_list, gprop_map, Dict(), er)
     end
 end
 
+MolGraph(g::SimpleGraph{T}, 
+    vprop_list::Vector{V}, eprop_list::Vector{E}, gprop_map::Dict=Dict()
+) where {T,V,E} = MolGraph{T,V,E}(g, vprop_list, eprop_list, gprop_map)
 
-struct EditableMolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
-    graph::SimpleGraph{T}
-    vprops::Dict{T,V}
-    eprops::Dict{Edge{T},E}
-    gprops::Dict{Symbol,Any}
+MolGraph{T,V,E}() where {T,V,E} = MolGraph(SimpleGraph{T}(), V[], E[], Dict())
+MolGraph() = MolGraph{Int,Any,Any}()
 
-    function EditableMolGraph{T,V,E}(
-            g=SimpleGraph{T}(), vprops=Dict{T,V}(), eprops=Dict{Edge{T},E}(), gprops=Dict()) where {T,V,E}
-        nv(g) > length(vprops) && throw(ErrorException("Mismatch in the number of nodes and node properties"))
-        ne(g) == length(eprops) || throw(ErrorException("Mismatch in the number of edges and edge properties"))
-        # expand fadjlist for vprops of isolated nodes
-        for _ in nv(g):(length(vprops) - 1)
-            push!(g.fadjlist, Vector{T}())
-        end
-        new(g, vprops, eprops, gprops)
-    end
-end
-
-
-SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
-SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
-SMARTSMolGraph = MolGraph{Int,QueryTree,QueryTree}
-
-MolGraph(g=SimpleGraph{Int}(), vprops=Dict{Symbol,Any}[], eprops=Dict{Symbol,Any}[], gprops=Dict()
-    ) = MolGraph{eltype(g),eltype(vprops),eltype(eprops)}(g, vprops, eprops, gprops)
-
-function MolGraph{T,V,E}(edge_list::AbstractVector{Edge{T}}, vprops=V[], eprops=E[], gprops=Dict()) where {T,V,E}
+function MolGraph{T,V,E}(edge_list::Vector{Edge{T}},
+        vprop_list::Vector{V}, eprop_list::Vector{E}, gprop_map::Dict=Dict()
+        ) where {T,V,E}
     # reorder edge properties
-    mapping = Dict(e => eprops[i] for (i, e) in enumerate(edge_list))
+    mapping = Dict(e => eprop_list[i] for (i, e) in enumerate(edge_list))
     g = SimpleGraph(edge_list)
-    new_eprops = E[]
-    for e in edges(g)
-        push!(new_eprops, mapping[e])
-    end
-    return MolGraph{T,V,E}(g, vprops, new_eprops, gprops)
+    new_eprops = [mapping[e] for e in edges(g)]
+    return MolGraph{T,V,E}(g, vprop_list, new_eprops, gprop_map)
 end
 
-MolGraph(edge_list::Vector, vprops=[], eprops=[], gprops=Dict()
-    ) = MolGraph{eltype(eltype(edge_list)),eltype(vprops),eltype(eprops)}(edge_list, vprops, eprops, gprops)
-
-
-function MolGraph(emol::EditableMolGraph)
-    vps = []
-    eps = []
-    for v in vertices(mol)
-        push!(vps, emol.vprops[v])
-    end
-    for e in edges(mol)
-        push!(eps, emol.eprops[e])
-    end
-    return MolGraph(emol.graph, vps, eps, emol.gprops)
-end
+MolGraph(edge_list::Vector{Edge{T}},
+    vprop_list::Vector{V}, eprop_list::Vector{E}, gprop_map::Dict=Dict()
+) where {T,V,E} = MolGraph{T,V,E}(edge_list, vprop_list, eprop_list, gprop_map)
 
 
 function MolGraph(data::Dict)
+    eltype = eval(Meta.parse(data["eltype"]))
     vproptype = eval(Meta.parse(data["vproptype"]))
     eproptype = eval(Meta.parse(data["eproptype"]))
-    g = SimpleGraph(Edge.(data["graph"]))
+    g = SimpleGraph([Edge(e...) for e in data["graph"]])
     vps = [vproptype(vp) for vp in data["vprops"]]
-    eps = [eproptype(vp) for ep in data["eprops"]]
+    eps = [eproptype(ep) for ep in data["eprops"]]
     gps = Dict(Symbol(k) => v for (k, v) in data["gprops"])
     return MolGraph(g, vps, eps, gps)
 end
 
 MolGraph(json::String) = MolGraph(JSON.parse(json))
 
+
+# Aliases
+SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
+SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
+
+
+"""
+    to_dict(mol::MolGraph) -> Dict{String,Any}
+
+Convert molecule object into JSON compatible dictionary.
+"""
+to_dict(mol::MolGraph) = Dict(
+    "eltype" => string(eltype(mol)),
+    "vproptype" => string(vproptype(mol)),
+    "eproptype" => string(eproptype(mol)),
+    "graph" => [[src(e), dst(e)] for e in edges(mol)],
+    "vprops" => [to_dict(vp) for vp in mol.vprops],
+    "eprops" => [to_dict(ep) for ep in mol.eprops],
+    "gprops" => Dict(string(k) => v for (k, v) in mol.gprops)
+)
+
+to_json(mol::MolGraph) = JSON.json(to_dict(mol))
 
 props(mol::MolGraph, e::Edge) = eprops(mol)[mol.edge_rank[e]]
 edge_rank(mol::MolGraph, e::Edge) = mol.edge_rank[e]
@@ -127,174 +116,109 @@ function set_descriptor!(mol::MolGraph, desc::Symbol, value)
     return value
 end
 
-"""
-    to_dict(mol::MolGraph) -> Dict{String,Any}
 
-Convert molecule object into JSON compatible dictionary.
-"""
-to_dict(mol::MolGraph) = Dict(
-    "graph" => to_dict(mol.graph),
-    "vproptype" => string(vproptype(mol)),
-    "eproptype" => string(eproptype(mol)),
-    "vprops" => [to_dict(vp) for vp in mol.vprops],
-    "eprops" => [to_dict(ep) for vp in mol.eprops],
-    "gprops" => Dict(string(k) => v for (k, v) in mol.gprops)
-)
-
-to_json(mol::MolGraph) = JSON.json(to_dict(mol))
-
-
-EditableMolGraph(
-    g=SimpleGraph{Int}(), vprops=Dict{Int,Dict{Symbol,Any}}(), eprops=Dict{Edge{Int},Dict{Symbol,Any}}(), gprops=Dict()
-) = EditableMolGraph{eltype(g),valtype(vprops),valtype(eprops)}(g, vprops, eprops, gprops)
-
-EditableMolGraph{T,V,E}(
-    edge_list::AbstractVector{Edge{T}}, vprops=Dict{T,V}(),
-    eprops=Dict{Edge{T},E}(), gprops=Dict()
-) where {T,V,E} = EditableMolGraph{T,V,E}(SimpleGraph(edge_list), vprops, eprops, gprops)
-
-EditableMolGraph(
-    edge_list::AbstractVector{T}, vprops=Dict(), eprops=Dict(), gprops=Dict()
-) where T = MolGraph{eltype(T),valtype(vprops),valtype(eprops)}(edge_list, vprops, eprops, gprops)
-
-function EditableMolGraph{T,V,E}(
-        edge_list::AbstractVector{Edge{T}}, vprops::AbstractVector{V},
-        eprops::AbstractVector{E}, gprops=Dict()) where {T,V,E}
-    # sdftomol, smilestomol interface
-    # TODO: need edge sanitization? -> undirectededge(T, e)
-    g = SimpleGraph(edge_list)
-    vps = Dict(v => vprops[v] for v in vertices(g))
-    eps = Dict(e => eprops[i] for (i, e) in enumerate(edge_list))  # reorder edge properties
-    return EditableMolGraph{T,V,E}(g, vps, eps, gprops)
-end
-
-
-function EditableMolGraph(mol::MolGraph{T,V,E}) where {T,V,E}
-    vps = Dict{T,V}()
-    eps = Dict{Edge{T},E}()
-    for v in vertices(mol)
-        vps[v] = mol.vprops[v]
+function update_edge_rank!(mol::MolGraph)
+    empty!(mol.edge_rank)
+    for (i, e) in enumerate(edges(mol.graph))
+        mol.edge_rank[e] = i
     end
-    for (i, e) in enumerate(edges(mol))
-        eps[e] = mol.eprops[i]
-    end
-    return EditableMolGraph(mol.graph, vps, eps, mol.gprops)
 end
 
 
-props(mol::EditableMolGraph, e::Edge) = mol.eprops[e]
-edge_rank(mol::EditableMolGraph, e::Edge) = e
-has_descriptor(mol::EditableMolGraph, desc::Symbol) = false
-init_node_descriptor(::Type{D}, mol::EditableMolGraph{T,V,E}, length::Int
-    ) where {D,T,V,E} = Dict{T,D}()
-init_node_descriptor(::Type{D}, mol::EditableMolGraph{T,V,E}
-    ) where {D>:Nothing,T,V,E} = Dict{T,D}(i => nothing for i in vertices(mol))
-init_node_descriptor(::Type{D}, mol::EditableMolGraph{T,V,E}
-    ) where {D<:Number,T,V,E} = Dict{T,D}(i => zero(D) for i in vertices(mol))
-init_node_descriptor(::Type{Vector{D}}, mol::EditableMolGraph{T,V,E}
-    ) where {D,T,V,E} = Dict{T,Vector{D}}(i => D[] for i in vertices(mol))
-init_edge_descriptor(::Type{D}, mol::EditableMolGraph{T,V,E}
-    ) where {D,T,V,E} = Dict{Edge{T},D}()
-init_edge_descriptor(::Type{D}, mol::EditableMolGraph{T,V,E}
-    ) where {D>:Nothing,T,V,E} = Dict{Edge{T},D}(e => nothing for e in edges(mol))
-init_edge_descriptor(::Type{D}, mol::EditableMolGraph{T,V,E}
-    ) where {D<:Number,T,V,E} = Dict{Edge{T},D}(e => zero(D) for e in edges(mol))
-init_edge_descriptor(::Type{Vector{D}}, mol::EditableMolGraph{T,V,E}
-    ) where {D,T,V,E} = Dict{T,Vector{D}}(e => D[] for e in edges(mol))
-
-function add_edge!(mol::EditableMolGraph{T,V,E}, e::Edge, prop::E) where {T,V,E}
-    add_edge!(mol.graph, e) || return false
-    mol.eprops[e] = prop
-    return true
-end
-add_edge!(mol::EditableMolGraph{T,V,E}, u::Integer, v::Integer, prop::E
-    ) where {T,V,E} = add_edge!(mol, undirectededge(mol, u, v), prop)
-
-function add_vertex!(mol::EditableMolGraph{T,V,E}, prop::V) where {T,V,E}
-    add_vertex!(mol.graph) || return false
-    mol.vprops[nv(mol.graph)] = prop
+function add_u_edge!(mol::MolGraph{T,V,E}, e::Edge, prop::E) where {T,V,E}
+    # Can be directly called if src < dst is guaranteed.
+    # Note: Not efficient. For frequent graph manipulation, use MolGraphGen instead.
+    add_edge!(mol.graph, e) || throw(ErrorException("failed to add edge $(e)"))
+    update_edge_rank!(mol)
+    insert!(mol.eprops, mol.edge_rank[e], prop)
+    # TODO: stereochemistry, empty descriptors
     return true
 end
 
-function rem_edge!(mol::EditableMolGraph, e::Edge)
-    rem_edge!(mol.graph, e) || return false
-    delete!(mol.eprops, e)
+
+function add_u_edges!(mol::MolGraph, elist, plist)
+    for e in elist
+        add_edge!(mol.graph, e) || throw(ErrorException("failed to add edge $(e)"))
+    end
+    update_edge_rank!(mol)
+    for (e, p) in zip(elist, plist)
+        insert!(mol.eprops, mol.edge_rank[e], p)
+    end
     return true
 end
-rem_edge!(mol::EditableMolGraph, u::Integer, v::Integer) = rem_edge!(mol, undirectededge(mol, u, v))
 
-function rem_vertex!(mol::EditableMolGraph, v::Integer)
-    for nbr in neighbors(mol, v)
-        rem_edge!(mol, undirectededge(mol, v, nbr)) || return false
+
+function add_vertex!(mol::MolGraph{T,V,E}, prop::V) where {T,V,E}
+    add_vertex!(mol.graph) || throw(ErrorException("failed to add vertex"))
+    push!(mol.vprops, prop)
+    # TODO: stereochemistry, empty descriptors
+    return true
+end
+
+
+function rem_u_edge!(mol::MolGraph, e::Edge)
+    # Can be directly called if src < dst is guaranteed.
+    # Not efficient. For frequent graph manipulation, use MolGraphGen instead.
+    rem_edge!(mol.graph, e) || throw(ErrorException("failed to remove edge $(e)"))
+    deleteat!(mol.eprops, mol.edge_rank[e])
+    update_edge_rank!(mol)
+    # TODO: stereochemistry, empty descriptors
+    return true
+end
+
+
+function rem_edges!(mol::MolGraph, edges)
+    for e in edges
+        rem_edge!(mol.graph, e) || throw(ErrorException("failed to remove edge $(e)"))
     end
-    rem_vertex!(mol.graph, v) || return false
+    deleteat!(mol.eprops, [mol.edge_rank[e] for e in edges])
+    update_edge_rank!(mol)
+    # TODO: stereochemistry, empty descriptors
+    return true
+end
+
+
+function rem_vertex!(mol::MolGraph, v::Integer)
+    # Not efficient. for frequent graph topology manipulation, use MolGraphGen instead.
+    incs = [undirectededge(mol, v, nbr) for nbr in neighbors(mol, v)]
+    rem_edges!(mol, incs)
+    rem_vertex!(mol.graph, v) || throw(ErrorException("failed to remove vertex $(v)"))
     mol.vprops[v] = mol.vprops[length(mol.vprops)]
-    delete!(mol.vprops, length(mol.vprops))
+    deleteat!(mol.vprops, length(mol.vprops))
+    update_edge_rank!(mol)
+    # TODO: stereochemistry, empty descriptors
     return true
 end
 
-function rem_vertices!(
-        mol::EditableMolGraph{T,V,E}, vs::AbstractVector{<:Integer}) where {T,V,E}
-    issubset(Set(vs), Set(vertices(mol))) || return false
-    subg, vmap = induced_subgraph(mol.graph, vs)
-    new_eprops = Dict{Edge{T},E}()
-    for e in edges(subg)
-        new_eprops[e] = mol.eprops[undirectededge(mol, vmap[src(e)], vmap[dst(e)])]
-    end
-    new_vprops = Dict{T,V}()
-    for v in vertices(subg)
-        new_vprops[v] = mol.vprops[vmap[v]]
-    end
-    mol.graph.ne = subg.ne
-    mol.graph.fadjlist = subg.fadjlist
+
+function rem_vertices!(mol::MolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
+    # Not efficient. for frequent graph topology manipulation, use MolGraphGen instead.
+    # TODO: if many vertices should be removed, induced_subgraph may be more efficient.
+    vmap = rem_vertices!(mol.graph, vs)
+    vps = mol.vprops[vmap]
+    emap = [mol.edge_rank[undirectededge(mol, vmap[src(e)], vmap[dst(e)])]
+        for e in edges(mol.graph)]
+    eps = mol.eprops[emap]
+    # TODO: compare empty!->append! and keep_order=true->deleteat!
     empty!(mol.vprops)
-    merge!(mol.vprops, new_vprops)
     empty!(mol.eprops)
-    merge!(new_eprops, new_eprops)
-    return true
+    empty!(mol.descriptors)
+    # TODO: stereochemistry
+    append!(mol.vprops, vps)
+    append!(mol.eprops, eps)
+    update_edge_rank!(mol)
+    return vmap
 end
 
 
-struct Reaction{T} <: AbstractReaction{T}
-    reactants::Vector{T}
-    products::Vector{T}
-    rprops::Dict{Symbol,Any}
+function _induced_subgraph(mol::T, vlist_or_elist) where {T<:MolGraph}
+    # Note that this will return substructure without calculated descriptors.
+    # In many cases, induced_subgraph(mol.graph, vlist_or_elist) is sufficient
+    subg, vmap = induced_subgraph(mol.graph, vlist_or_elist)
+    vps = mol.vprops[vmap]
+    emap = [mol.edge_rank[undirectededge(mol, vmap[src(e)], vmap[dst(e)])]
+        for e in edges(subg)]
+    eps = mol.eprops[emap]
+    # TODO: stereochemistry
+    return T(subg, vps, eps, mol.gprops), vmap
 end
-
-Reaction{T}() where T = Reaction{T}([], [], Dict())
-
-Base.eltype(::Type{Reaction{T}}) where T = T
-Base.eltype(rxn::Reaction{T}) where T = T
-
-
-""" TO BE REMOVED
-function remapnodes(graph::GraphMol, mapping::Dict{Int,Int})
-    newg = graphmol(graph)
-    for i in 1:nv(graph)
-        newg.nodeattrs[mapping[i]] = graph.nodeattrs[i]
-        newg.neighbormap[mapping[i]] = Dict(
-            k => mapping[v] for (k, v) in graph.neighbormap[i])
-    end
-    for i in 1:ne(graph)
-        u, v = graph.edges[i]
-        newg.edges[i] = (mapping[u], mapping[v])
-        newg.edgeattrs[i] = graph.edgeattrs[i]
-    end
-    merge!(newg.attributes, graph.attributes)
-    return newg
-end
-
-
-# Note: Unmarshal patch for Set
-# TODO: get rid of sets. convert to vectors
-function Unmarshal.unmarshal(::Type{Set{E}},
-    parsedJson::Union{Vector, AbstractArray},
-    verbose::Bool=false, verboseLvl::Int=0) where E
-    if verbose
-        prettyPrint(verboseLvl, "Set{\$E}")
-        verboseLvl += 1
-    end
-    Set(Unmarshal.unmarshal(
-        E, field, verbose, verboseLvl) for field in parsedJson)
-end
-"""

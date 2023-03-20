@@ -4,6 +4,8 @@
 #
 
 
+# query_relationship, filter_queries
+
 function resolve_disjoint_not(tree, propmap)
     tree isa QueryOperator || return tree
     if tree.key === :not
@@ -103,3 +105,85 @@ Base.:(==)(q::QueryTruthTable, r::QueryTruthTable; kwargs...) = querymatch(q, r,
 Base.:(==)(q::QueryTree, r::QueryTree; kwargs...) = querymatch(q, r, true; kwargs...)
 Base.issubset(q::QueryTruthTable, r::QueryTruthTable; kwargs...) = querymatch(q, r, false; kwargs...)
 Base.issubset(q::QueryTree, r::QueryTree; kwargs...) = querymatch(q, r, false; kwargs...)
+
+
+
+const DEFAULT_QUERY_RELATIONS = let
+    qrfile = joinpath(dirname(@__FILE__), "../../assets/const/default_query_relations.yaml")
+    include_dependency(qrfile)
+    qrfile
+end
+
+
+"""
+    query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS) -> DictDiGraph
+
+Generate query relationship diagram.
+"""
+function query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS)
+    # TODO: attributed graph (worth adding MetaGraph dependency?)
+    g = SimpleDiGraph{Int}()
+    vs = Dict{String,Any}[]
+    es = Dict{Edge{Int},Symbol}()
+    nrevmap = Dict{String,Int}()
+    for (i, rcd) in enumerate(YAML.load(open(sourcefile)))
+        rcd["parsed"] = smartstomol(rcd["query"])
+        nrevmap[rcd["key"]] = i
+        add_node!(g)
+        push!(vs, rcd)
+    end
+    for i in vertices(graph)
+        rcd = vs[i]
+        if haskey(rcd, "isa")
+            for k in rcd["isa"]
+                e = Edge{Int}(i => nrevmap[k])
+                addedge!(g, e)
+                es[e] = :isa
+            end
+        end
+        if haskey(rcd, "has")
+            for k in rcd["has"]
+                e = Edge{Int}(i => nrevmap[k])
+                addedge!(g, e)
+                es[e] = :has
+            end
+        end
+    end
+    return g, vs, es
+end
+
+
+"""
+    filter_queries(qr::SimpleDiGraph, vs, es, mol::MolGraph; filtering=true) -> DictDiGraph
+
+Filter query relationship diagram by the given molecule.
+The filtered diagram represents query relationship that the molecule have.
+"""
+function filter_queries(qr::SimpleDiGraph, vs, es, mol::MolGraph; filtering=true)
+    matched = Set{Int}()
+    vs_ = deepcopy(vs)
+    for n in topological_sort(reverse(qr))
+        rcd = vs_[n]
+        if filtering
+            if !issubset(outneighbors(qr, n), matched)  # query containment filter
+                continue
+            end
+        end
+        # println("key: \$(rcd["key"])")
+        # println("query: \$(rcd["query"])")
+        # @time begin
+        matches = collect(substruct_matches(mol, rcd["parsed"]))
+        if !isempty(matches)
+            push!(matched, n)
+            rcd["matched"] = Set([sort(collect(keys(m))) for m in matches])
+        end
+        # end
+    end
+    subg, nmap = induced_subgraph(qr, matched)
+    revmap = Dict(v => i for (i, v) in enumerate(nmap))
+    es_ = Dict{Edge{Int},Symbol}()
+    for (k, v) in es
+        src(k) in nmap && dst(k) in nmap && (es_[Edge{Int}(revmap[src(k)], revmap[dst(k)])] = v)
+    end
+    return subg, vs_[nmap], es_
+end

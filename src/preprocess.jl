@@ -103,16 +103,15 @@ end
 
 
 """
-    removehydrogens(mol::EditableMolGraph) -> GraphMol
+    removehydrogens(mol::MolGraph) -> GraphMol
 
 Return the molecule with hydrogen nodes removed.
 
 If option `all` is set to true (default), all hydrogens will be removed, otherwise only trivial hydrogens will be removed (see [`trivialhydrogens`](@ref)).
 """
-function remove_hydrogens!(mol::EditableMolGraph; all=true)
+function remove_hydrogens!(mol::MolGraph; all=true)
     hydrogens = all ? all_hydrogens : removable_hydrogens
-    ns = setdiff(vertices(mol), hydrogens(mol))  # should be a Set?
-    rem_vertices!(mol, ns)
+    rem_vertices!(mol, hydrogens(mol))
 end
 
 
@@ -121,7 +120,7 @@ end
 
 Return the molecule with all hydrogen nodes explicitly attached.
 """
-function add_hydrogens!(mol::EditableMolGraph{T,V,E}) where {T,V,E}
+function add_hydrogens!(mol::MolGraph{T,V,E}) where {T,V,E}
     implicit_hs = implicit_hydrogens(mol)
     for i in vertices(mol)
         for j in 1:implicit_hs[i]
@@ -149,8 +148,8 @@ Return the largest connected component of the molecular graph.
 
 This should be useful when you want to remove salt and water molecules from the molecular graph simply. On the other hand, this can remove important components from the mixture so carefully apply this preprocess method.
 """
-extract_largest_component!(mol::EditableMolGraph
-    ) = rem_vertices!(mol, largest_component_nodes(mol))
+extract_largest_component!(mol::MolGraph
+    ) = rem_vertices!(mol, setdiff(vertices(mol), largest_component_nodes(mol)))
 
 
 

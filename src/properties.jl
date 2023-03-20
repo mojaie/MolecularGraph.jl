@@ -164,7 +164,6 @@ that 1 to ``n``th atoms of the given molecule belong to.
 This property corresponds to SMARTS `R` query.
 """
 ring_count(mol::MolGraph) = get(descriptors(mol), :v_ring_count, length.(which_ring(mol)))
-ring_count(mol::EditableMolGraph) = Dict(i => length(v) for (i, v) in which_ring(mol))
 
 
 """
@@ -174,7 +173,6 @@ Return a vector of size ``n`` representing whether 1 to ``n``th atoms of
 the given molecule belong to a ring or not.
 """
 is_in_ring(mol::MolGraph) = get(descriptors(mol), :v_is_in_ring, .!isempty.(which_ring(mol)))
-is_in_ring(mol::EditableMolGraph) = Dict(i => !isempty(v) for (i, v) in which_ring(mol))
 
 
 """
@@ -184,8 +182,6 @@ Return a vector of size ``n`` representing whether 1 to ``n``th bonds of
 the given molecule belong to a ring or not.
 """
 is_edge_in_ring(mol::MolGraph) = get(descriptors(mol), :e_is_in_ring, .!isempty.(edge_which_ring(mol)))
-is_edge_in_ring(mol::EditableMolGraph) = Dict(i => !isempty(e) for (i, e) in edge_which_ring(mol))
-
 
 
 
@@ -193,46 +189,38 @@ is_edge_in_ring(mol::EditableMolGraph) = Dict(i => !isempty(e) for (i, e) in edg
 
 """
     atom_symbol(mol::MolGraph) -> Vector{Symbol}
-    atom_symbol(mol::EditableMolGraph) -> Vector{Symbol}
 
 Return a vector of size ``n`` representing atom symbols of 1 to ``n``th atoms of
 the given molecule.
 """
 atom_symbol(mol::MolGraph) = get(props(mol), :v_symbol, getproperty.(vprops(mol), :symbol))
-atom_symbol(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :symbol) for i in vertices(mol))
 
 
 """
     charge(mol::MolGraph) -> Vector{Int}
-    charge(mol::EditableMolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing atom charges of 1 to ``n``th atoms of
 the given molecule.
 """
 charge(mol::MolGraph) = get(props(mol), :v_charge, getproperty.(vprops(mol), :charge))
-charge(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :charge) for i in vertices(mol))
 
 
 """
     multiplicity(mol::MolGraph) -> Vector{Int}
-    multiplicity(mol::EditableMolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing atom multiplicities of 1 to ``n``th atoms of
 the given molecule (1: non-radical, 2: radical, 3: biradical).
 """
 multiplicity(mol::MolGraph) = get(props(mol), :v_multiplicity, getproperty.(vprops(mol), :multiplicity))
-multiplicity(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :multiplicity) for i in vertices(mol))
 
 
 """
     bond_order(mol::MolGraph) -> Vector{Int}
-    bond_order(mol::EditableMolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing bond order of 1 to ``n``th bonds of
 the given molecule.
 """
 bond_order(mol::MolGraph) = get(props(mol), :e_order, getproperty.(eprops(mol), :order))
-bond_order(mol::EditableMolGraph) = Dict(i => get_prop(mol, i, :order) for i in edges(mol))
 
 
 # mass -> src/mass.jl

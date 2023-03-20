@@ -19,6 +19,7 @@ module MolecularGraphTest
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
+    include("./model/molgraphgen.jl")
     include("./model/query.jl")
 
     include("./graph/product.jl")
@@ -57,4 +58,5 @@ module MolecularGraphTest
     include("./draw/base.jl")
     include("./draw/svg.jl")
     include("./draw/3d.jl")
+
 end

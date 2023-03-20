@@ -3,6 +3,9 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+# TODO: all imports and exports here
+
 module MolecularGraph
 
     using Dates
@@ -24,8 +27,9 @@ module MolecularGraph
     include("./model/interface.jl")
     include("./model/atom.jl")
     include("./model/bond.jl")
-    include("./model/query.jl")
     include("./model/molgraph.jl")
+    include("./model/molgraphgen.jl")
+    include("./model/query.jl")
 
     include("./graph/product.jl")
     include("./graph/linegraph.jl")

@@ -38,11 +38,11 @@ end
 
 
 """
-    remove_stereo_hydrogens!(mol::EditableMolGraph) -> Bool
+    remove_stereo_hydrogens!(mol::MolGraph) -> Bool
 
 Safely remove explicit hydrogens connected to stereocenters.
 """
-function remove_stereo_hydrogen!(mol::EditableMolGraph{T,V,E}, v::T) where {T,V,E}
+function remove_stereo_hydrogen!(mol::MolGraph{T,V,E}, v::T) where {T,V,E}
     """
     [C@@]([H])(C)(N)O -> C, N, O, (H), @
     ([H])[C@@](C)(N)O -> C, N, O, (H), @

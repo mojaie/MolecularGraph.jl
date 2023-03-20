@@ -27,8 +27,7 @@
 end
 
 @testset "all_hydrogens" begin
-    ethanol = smilestomol(
-        EditableMolGraph{Int,SMILESAtom,SMILESBond}, "[H]C([H])([H])C([H])([H])O")
+    ethanol = smilestomol("[H]C([H])([H])C([H])([H])O")
     @test all_hydrogens(ethanol) == [1, 3, 4, 6, 7]
     remove_hydrogens!(ethanol)
     @test nv(ethanol) == 3
@@ -37,7 +36,7 @@ end
 
 @testset "removable_hydrogens" begin
     ethanold3 = smilestomol(
-        EditableMolGraph{Int,SMILESAtom,SMILESBond}, "[2H]C([2H])([2H])C([H])([H])O")
+        MolGraph{Int,SMILESAtom,SMILESBond}, "[2H]C([2H])([2H])C([H])([H])O")
     @test removable_hydrogens(ethanold3) == [6, 7]
     remove_hydrogens!(ethanold3, all=false)
     @test nv(ethanold3) == 6
@@ -47,14 +46,14 @@ end
 end
 
 @testset "add_hydrogens" begin
-    neop = smilestomol(EditableMolGraph{Int,SMILESAtom,SMILESBond}, "CC(C)(C)CO")
+    neop = smilestomol(MolGraph{Int,SMILESAtom,SMILESBond}, "CC(C)(C)CO")
     add_hydrogens!(neop)
     @test nv(neop) == 18
     @test ne(neop) == 17
 end
 
 @testset "largest_component" begin
-    thiols = smilestomol(EditableMolGraph{Int,SMILESAtom,SMILESBond}, "CCCCS.SCCCCC")
+    thiols = smilestomol(MolGraph{Int,SMILESAtom,SMILESBond}, "CCCCS.SCCCCC")
     @test largest_component_nodes(thiols) == collect(6:11)
     extract_largest_component!(thiols)
     @test nv(thiols) == 6
