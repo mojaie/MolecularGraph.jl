@@ -51,8 +51,7 @@ function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
         tree = get_prop(mol2, v2, :tree)
-        qmap = values(querypropmap(tree))
-        qprop = isempty(qmap) ? Union{QueryLiteral}[] : union(qmap...)
+        qprop = union(QueryLiteral[], values(querypropmap(tree))...)
         arr = falses(length(qprop))
         for (i, p) in enumerate(qprop)
             if p.key == :recursive
@@ -107,8 +106,7 @@ function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
         tree = get_prop(mol2, e2, :tree)
-        qmap = values(querypropmap(tree))
-        qprop = isempty(qmap) ? Union{QueryLiteral}[] : union(qmap...)
+        qprop = union(QueryLiteral[], values(querypropmap(tree))...)
         arr = [descriptors[p.key][edge_rank(mol1, e1)] == p.value for p in qprop]
         res = generate_queryfunc(tree, qprop)(arr)
         haskey(matches, e1) || (matches[e1] = Dict{Edge{T2},Bool}())

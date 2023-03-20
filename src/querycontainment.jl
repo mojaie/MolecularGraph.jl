@@ -70,7 +70,8 @@ function generate_truthtable(q, r; recursive_cache=nothing, kwargs...)
     qt = resolve_recursive(qt, rpropmap, recursive_cache)
     rt = resolve_recursive(rt, qpropmap, recursive_cache)
     # reconstruct functions
-    props = sort(union(values(querypropmap(qt))..., values(querypropmap(rt))...))
+    props = sort(union(
+        QueryLiteral[], values(querypropmap(qt))..., values(querypropmap(rt))...))
     qfunc = generate_queryfunc(qt, props)
     rfunc = generate_queryfunc(rt, props)
     return (QueryTruthTable(qfunc, props), QueryTruthTable(rfunc, props))

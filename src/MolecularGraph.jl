@@ -37,7 +37,6 @@ module MolecularGraph
     include("./graph/planarity.jl")
     include("./graph/isomorphism_vf2.jl")
     include("./graph/isomorphism_clique.jl")
-    # include("./graph/dag.jl")
 
     include("coords.jl")
     include("stereo.jl")
@@ -64,5 +63,4 @@ module MolecularGraph
     include("structurematch.jl")
     include("querycontainment.jl")
     include("libmoleculargraph.jl")
-
 end

@@ -68,7 +68,7 @@ QueryTruthTable(fml::Function, props::Vector{T}
 
 function QueryTruthTable(tree::Union{QueryAny,QueryLiteral,QueryOperator})
     tree isa QueryAny && return QueryTruthTable(x -> tree.value, [])
-    props = sort(union(values(querypropmap(tree))...))
+    props = sort(union(QueryLiteral[], values(querypropmap(tree))...))
     qfunc = generate_queryfunc(tree, props)
     return QueryTruthTable(qfunc, props)
 end

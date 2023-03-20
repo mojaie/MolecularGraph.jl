@@ -106,6 +106,13 @@ end
 
 @testset "querycontainment" begin
     # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
+
+    # no properties
+    fmr = smartstomol("*1***1")
+    three = smartstomol("***")
+    @test has_substruct_match(fmr, three)
+    @test !has_substruct_match(three, fmr)
+
     tmse = smartstomol("O[Si](C)(C)C")
     tms = smartstomol("C[Si](C)C")
     @test has_substruct_match(tmse, tms)
@@ -113,8 +120,7 @@ end
 
     primary = smartstomol("[CH2][OH]")
     alcohol = smartstomol("C[OH]")
-    @test has_substruct_match(primary, alcohol)
-    @test !has_substruct_match(alcohol, primary)
+    @test has_exact_match(primary, alcohol)
     @test !has_exact_match(alcohol, primary)
 
     pyrrole = smartstomol("[nH]1cccc1")
@@ -123,8 +129,8 @@ end
     cyclicamine = smartstomol("[#7]1[#6][#6][#6][#6]1")
     @test !has_substruct_match(pyridine, pyrrole)
     @test !has_substruct_match(pyrrole, pyrrolidine)
-    @test has_substruct_match(pyrrole, cyclicamine)
-    @test has_substruct_match(pyrrolidine, cyclicamine)
+    @test has_exact_match(pyrrole, cyclicamine)
+    @test has_exact_match(pyrrolidine, cyclicamine)
 
     carbonylazide = smartstomol("O=CN=[N+]=[N-]")
     azide = smartstomol("N=[N+]=[N-]")
@@ -165,7 +171,8 @@ end
     naryl = smartstomol(raw"OP(=O)(=[S,O])[$(Na)]")
     phos = smartstomol(raw"OP(=O)(=[S,O])N")
     phos2 = smartstomol(raw"[$([S,O]=PN)]")
-    @test has_substruct_match(naryl, phos)
+    @test has_exact_match(naryl, phos)
+    @test !has_exact_match(phos, naryl)
     @test !has_substruct_match(phos, phos2)
 
     tfas = smartstomol(raw"C(F)(F)(F)C(=O)S")
@@ -187,7 +194,9 @@ end
 
     pivoxil = smartstomol(raw"OCOC(=O)C([CH3])([CH3])[CH3]")
     ester = smartstomol(raw"[#6]C(=O)O[#6]")
+    ester2 = smartstomol(raw"[#6]-C(=O)O-[#6]")  # MLSMR structural alert Ester
     @test has_substruct_match(pivoxil, ester)
+    @test !has_substruct_match(pivoxil, ester2)
 
     # global_logger(default_logger)
 end

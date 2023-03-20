@@ -30,7 +30,6 @@ module MolecularGraphTest
     include("./graph/linegraph.jl")
     include("./graph/isomorphism_vf2.jl")
     include("./graph/isomorphism_clique.jl")
-    # include("./graph/dag.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
