@@ -6,7 +6,6 @@
 export
     SMILESParser, SMARTSParser,
     smilestomol, smartstomol
-    # resolvedefaultbond!
 
 
 mutable struct SMILESParser{T,V,E}
@@ -105,7 +104,7 @@ function lookahead(state::Union{SMILESParser,SMARTSParser}, pos::Int)
         if isascii(c)
             return state.input[newpos]
         else
-            throw(ErrorException("invalid charactor $(c)"))
+            error("invalid charactor $(c)")
         end
     end
 end
@@ -119,71 +118,12 @@ function forward!(state::Union{SMILESParser,SMARTSParser}, num::Int)
     if state.pos > length(state.input)
         state.done = true
     elseif state.done
-        throw(ErrorException("charactors in the buffer were used up"))
+        error("charactors in the buffer were used up")
     elseif state.pos < 1
-        throw(ErrorException("no more backtracking!"))
+        error("no more backtracking!")
     end
 end
 
 forward!(state) = forward!(state, 1)
 backtrack!(state, num) = forward!(state, -num)
 backtrack!(state) = backtrack!(state, 1)
-
-
-
-"""
-    resolvedefaultbond(qmol::QueryMol) -> Nothing
-
-Resolve default SMARTS bonds.
-function resolvedefaultbond!(qmol::QueryMol)
-    aromfml = QueryFormula(:isaromatic, true)
-    singlefml = QueryFormula(:and, Set([
-        QueryFormula(:order, 1),
-        QueryFormula(:isaromatic, false)
-    ]))
-    notaromsymfml = QueryFormula(:and, Set([
-        QueryFormula(:not, QueryFormula(:symbol, s)) for s in [:B, :C, :N, :O, :P, :S, :As, :Se]
-    ]))
-    # extract explicitly aromatic bonds
-    arombonds = Set([])
-    for ring in minimumcyclebasisnodes(qmol)
-        isarom = true
-        for n in ring
-            nq = nodeattr(qmol, n).query
-            if !issubset(nq, QueryFormula(:isaromatic, true), eval_recursive=false)
-                isarom = false
-                break
-            end
-        end
-        if isarom
-            union!(arombonds, edgeset(nodesubgraph(qmol, ring)))
-        end
-    end
-    # CC, cC, Cc, [#6]C, C[#6], A*, *A -> -
-    # cc, c[#6], [#6]c, [#6][#6] -> -,:
-    # cc in the same aromatic ring -> :
-    for e in 1:edgecount(qmol)
-        q = edgeattr(qmol, e).query
-        q == QueryFormula(:defaultbond, true) || continue
-        if e in arombonds
-            setedgeattr!(qmol, e, SmartsBond(aromfml))
-            continue
-        end
-        (u, v) = getedge(qmol, e)
-        uq = nodeattr(qmol, u).query
-        unotarom = (issubset(uq,
-            QueryFormula(:isaromatic, false), eval_recursive=false)
-            || issubset(uq, notaromsymfml, eval_recursive=false))
-        vq = nodeattr(qmol, v).query
-        vnotarom = (issubset(vq,
-            QueryFormula(:isaromatic, false), eval_recursive=false)
-            || issubset(vq, notaromsymfml, eval_recursive=false))
-        if unotarom || vnotarom
-            setedgeattr!(qmol, e, SmartsBond(singlefml))
-        else
-            setedgeattr!(qmol, e, SmartsBond(QueryFormula(:or, Set([singlefml, aromfml]))))
-        end
-    end
-end
-
-"""

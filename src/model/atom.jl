@@ -60,36 +60,54 @@ const ATOM_VANDERWAALS_RADII = let
 end
 
 
+"""
+    atomnumber(atomsymbol::Symbol) -> Int
+
+Return atom number.
+"""
+atomnumber(atomsymbol::Symbol) = ATOMSYMBOLMAP[string(atomsymbol)]
+
+
+"""
+    atomsymbol(n::Int) -> Symbol
+
+Return atom symbol of given atomic number.
+"""
+atomsymbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
+
+
+"""
+    SDFAtom
+
+SDFile (CTAB) atom property type.
+"""
 struct SDFAtom
     symbol::Symbol
     charge::Int
     multiplicity::Int
     mass::Union{Int, Nothing}
     coords::Union{Vector{Float64}, Nothing}
-    stereo::Symbol  # deprecated
 
-    function SDFAtom(sym=:C, chg=0, mul=1, ms=nothing, coords=nothing, stereo=:unspecified)
-        haskey(ATOMSYMBOLMAP, string(sym)) || throw(ErrorException("Unsupported atom symbol: $(sym)"))
-        new(sym, chg, mul, ms, coords, stereo)
+    function SDFAtom(sym=:C, chg=0, mul=1, ms=nothing, coords=nothing)
+        haskey(ATOMSYMBOLMAP, string(sym)) || error("Unsupported atom symbol: $(sym)")
+        new(sym, chg, mul, ms, coords)
     end
 end
 
 SDFAtom(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFAtom(
     Symbol(d[T("symbol")]), d[T("charge")], d[T("multiplicity")],
-    d[T("mass")], d[T("coords")], :unspecified)
+    d[T("mass")], d[T("coords")])
 
 Base.getindex(a::SDFAtom, prop::Symbol) = getproperty(a, prop)
-
-function to_dict(a::SDFAtom)
-    data = Dict{String,Any}()
-    for field in fieldnames(SDFAtom)
-        data[string(field)] = getfield(a, field)
-    end
-    return data
-end
+to_dict(a::SDFAtom) = Dict{String,Any}(
+    string(field) => getfield(a, field) for field in fieldnames(SDFAtom))
 
 
+"""
+    SMILESAtom
 
+SMILES atom property type.
+"""
 struct SMILESAtom
     symbol::Symbol
     charge::Int
@@ -104,40 +122,11 @@ struct SMILESAtom
 end
 
 SMILESAtom(d::Dict{T,U}) where {T<:Union{AbstractString,Symbol},U} = SMILESAtom(
-    Symbol(get(d, T("symbol"), :C)),
-    get(d, T("charge"), 0),
-    get(d, T("multiplicity"), 1),
-    get(d, T("mass"), nothing),
-    get(d, T("isaromatic"), false),
-    Symbol(get(d, T("stereo"), :unspecified))
+    Symbol(get(d, T("symbol"), :C)), get(d, T("charge"), 0),
+    get(d, T("multiplicity"), 1), get(d, T("mass"), nothing),
+    get(d, T("isaromatic"), false), Symbol(get(d, T("stereo"), :unspecified))
 )
 
 Base.getindex(a::SMILESAtom, prop::Symbol) = getproperty(a, prop)
-
-function todict(a::SMILESAtom)
-    data = Dict{String,Any}()
-    for field in fieldnames(SMILESAtom)
-        data[string(field)] = getfield(a, field)
-    end
-    return data
-end
-
-
-"""
-    atomnumber(atomsymbol::Symbol) -> Int
-    atomnumber(atom::Atom) -> Int
-
-Return atom number.
-"""
-atomnumber(atomsymbol::Symbol) = ATOMSYMBOLMAP[string(atomsymbol)]
-atomnumber(a::SDFAtom) = atomnumber(a.symbol)
-atomnumber(a::SMILESAtom) = atomnumber(a.symbol)
-
-
-
-"""
-    atomsymbol(n::Int) -> Symbol
-
-Return atom symbol of given atomic number.
-"""
-atomsymbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
+to_dict(a::SMILESAtom) = Dict{String,Any}(
+    string(field) => getfield(a, field) for field in fieldnames(SMILESAtom))

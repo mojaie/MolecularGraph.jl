@@ -12,7 +12,8 @@ import Graphs:
 export
     AbstractMolGraph, SimpleMolGraph,
     MolGraph, SDFMolGraph, SMILESMolGraph,
-    MolGraphGen,
+    MolGraphGen, SMARTSMolGraph,
+    QueryAny, QueryLiteral, QueryOperator, QueryTree, QueryTruthTable,
     AbstractReaction, Reaction,
     to_dict, to_json,
     ordered_neighbors, undirectededge, edge_rank,
@@ -25,6 +26,7 @@ export
     set_prop!,
     edge_neighbors, ordered_edge_neighbors
 
+    # removehydrogens
 
 abstract type AbstractMolGraph{T} <: AbstractGraph{T} end
 abstract type SimpleMolGraph{T,V,E} <: AbstractMolGraph{T} end  # mol graph that have SimpleGraph
@@ -125,7 +127,7 @@ function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph{T,V,E}) where {
 end
 
 
-Base.:(==)(g::AbstractMolGraph, h::AbstractMolGraph
+Base.:(==)(g::SimpleMolGraph, h::SimpleMolGraph
     ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops
 
 
@@ -145,18 +147,24 @@ ordered_edge_neighbors = edge_neighbors
 
 Convert molecule object into JSON compatible dictionary.
 """
-to_dict
+to_dict(mol::AbstractMolGraph) = error("method to_dict not implemented")
+to_dict(atom_or_bond::Dict) = atom_or_bond
+
 
 """
     to_json(mol::MolGraph) -> String
 
-Convert molecule object into JSON compatible dictionary.
+Convert molecule object into JSON String.
 """
-to_json
+to_json(mol::AbstractMolGraph) = JSON.json(to_dict(mol))
 
 
-# Reaction
 
+"""
+    Reaction{T}
+
+Reaction type.
+"""
 struct Reaction{T} <: AbstractReaction{T}
     reactants::Vector{T}
     products::Vector{T}

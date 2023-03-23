@@ -3,13 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    atom_color, is_atom_visible,
-    single_bond_style, double_bond_style,
-    chargesign, atommarkup, atomhtml,
-    draw2d!, drawatomindex!, sethighlight!
-
-
 """
     atomcolor(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Color}
 

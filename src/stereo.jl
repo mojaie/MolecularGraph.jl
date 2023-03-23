@@ -213,10 +213,8 @@ function stereobond_from_smiles!(mol::MolGraph)
         end
         isempty(sds) && continue
         isempty(dds) && continue
-        length(sds) == 2 && sds[1][2] == sds[2][2] && throw(
-            ErrorException("Invalid diastereomer representation"))
-        length(dds) == 2 && dds[1][2] == dds[2][2] && throw(
-            ErrorException("Invalid diastereomer representation"))
+        length(sds) == 2 && sds[1][2] == sds[2][2] && error("Invalid diastereomer representation")
+        length(dds) == 2 && dds[1][2] == dds[2][2] && error("Invalid diastereomer representation")
         """
         follows OpenSMILES specification http://opensmiles.org/opensmiles.html#chirality
           -> "up-ness" or "down-ness" of each single bond is relative to the carbon atom

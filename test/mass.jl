@@ -3,7 +3,6 @@
 
 @testset "mass" begin
     iron = SDFAtom(:Fe)
-    @test atomnumber(iron) == 26
     @test standard_weight_unc(iron) == (55.845, 0.002)
     @test standard_weight(iron, 2) == 55.84
     @test monoiso_mass_unc(iron) == (55.93493633, 4.9e-7)
@@ -12,7 +11,6 @@
     @test exact_mass(iron, 6) == 55.934936
     
     og = SDFAtom(:Og)
-    @test atomnumber(og) == 118
     @test standard_weight_unc(og) === (NaN, NaN)
     @test exact_mass_unc(og) === (NaN, NaN)
     og294 = SDFAtom(:Og, 0, 1, 294, [0.0, 0.0, 0.0])

@@ -141,7 +141,7 @@ function parse_ctab(::Type{T}, io::IO) where T <: AbstractMolGraph
             # n3d = parse(Int, count_line[8])  # 3D constraint, not implemented
             # chiral = parse(Int, count_line[9])  # chiralflag, not implemented
         else
-            throw(ErrorException("Unsupported format: not V2000 or V3000 file"))
+            error("Unsupported format: not V2000 or V3000 file")
         end
     end
 
@@ -184,7 +184,7 @@ end
 
 function parse_rxn(::Type{T}, io::IO) where T <: AbstractReaction
     line1 = readline(io)  # $RXN
-    startswith(line1, "\$RXN") || throw(ErrorException("\$RXN token not found"))
+    startswith(line1, "\$RXN") || error("\$RXN token not found")
     ver = line1 == "\$RXN V3000" ? :v3 : :v2
     line2 = readline(io)  # name line, not implemented
     line3 = readline(io)  # format properties, not implemented
@@ -305,7 +305,7 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractReact
             throw(e)
         end
     end
-    rxn === nothing && throw(ErrorException("Invalid token: $(fmt_line)"))
+    rxn === nothing && error("Invalid token: $(fmt_line)")
     op = parse_rdf_options(reader.io)
     merge!(rxn.rprops, op)
     return (rxn, state + 1)

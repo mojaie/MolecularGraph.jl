@@ -83,7 +83,7 @@ end
 function querymatch(q::QueryTruthTable, r::QueryTruthTable, exactmatch; maxsize=2^20, kwargs...)
     # truth table vector match
     # TODO: naive implementation costs worst O(2^n)
-    q.props == r.props || throw(ErrorException("query property mismatch"))
+    q.props == r.props || error("query property mismatch")
     nlit = length(q.props)
     for i in 1:(2^nlit)
         i > maxsize && (@info "MolecularGraph.querymatch: maxsize reached"; return false)

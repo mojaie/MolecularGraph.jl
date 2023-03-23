@@ -7,18 +7,22 @@ export
     SDFBond, SMILESBond
 
 
+"""
+    SDFBond
+
+SDFile (CTAB) bond property type.
+
+* SDFile bond notation
+    * Single bond
+        * 0: u - v
+        * 1: u ◀ v (Up-arrow)
+        * 4: u ~ v (Up or down)
+        * 6: u ◁ v (Down-arrow)
+    * Double bond
+        * 0: v = u
+        * 3: u x v (Cis-Trans Unknown)
+"""
 struct SDFBond
-    """Bond
-    * SDFile bond notation
-        * Single bond
-            * 0: u - v
-            * 1: u ◀ v (Up-arrow)
-            * 4: u ~ v (Up or down)
-            * 6: u ◁ v (Down-arrow)
-        * Double bond
-            * 0: v = u
-            * 3: u x v (Cis-Trans Unknown)
-    """
     order::Int
     notation::Int
     isordered::Bool
@@ -32,17 +36,15 @@ SDFBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFBond(
     d[T("order")], d[T("notation")], d[T("isordered")])
 
 Base.getindex(b::SDFBond, prop::Symbol) = getproperty(b, prop)
-
-function to_dict(b::SDFBond)
-    data = Dict{String,Any}()
-    for field in fieldnames(SDFBond)
-        data[string(field)] = getfield(b, field)
-    end
-    return data
-end
+to_dict(b::SDFBond) = Dict{String,Any}(
+    string(field) => getfield(b, field) for field in fieldnames(SDFBond))
 
 
+"""
+    SMILESBond
 
+SMILES bond property type.
+"""
 struct SMILESBond
     order::Int
     isaromatic::Bool
@@ -60,11 +62,6 @@ SMILESBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SMILESBond(
 )
 
 Base.getindex(b::SMILESBond, prop::Symbol) = getproperty(b, prop)
+to_dict(b::SMILESBond) = Dict{String,Any}(
+    string(field) => getfield(b, field) for field in fieldnames(SMILESBond))
 
-function todict(b::SMILESBond)
-    data = Dict{String,Any}()
-    for field in fieldnames(SMILESBond)
-        data[string(field)] = getfield(b, field)
-    end
-    return data
-end

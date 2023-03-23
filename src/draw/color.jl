@@ -1,5 +1,7 @@
-
-export Color, DEFAULT_ATOM_COLOR, RASMOL_ATOM_COLOR
+#
+# This file is a part of MolecularGraph.jl
+# Licensed under the MIT License http://opensource.org/licenses/MIT
+#
 
 # TODO: common draw color theme based on Colors.jl
 

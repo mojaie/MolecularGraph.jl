@@ -87,7 +87,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
                 QueryLiteral(:symbol, Symbol(uppercase(sym1), sym2)), isarom
             ])
         end
-        isuppercase(sym1) || throw(ErrorException("aromatic $(sym1) is not supported"))
+        isuppercase(sym1) || error("aromatic $(sym1) is not supported")
         return QueryLiteral(:symbol, Symbol(sym1, sym2))
     elseif haskey(SMARTS_ATOM_COND_SYMBOL, sym1)
         # Neighbor and ring conditions
@@ -115,7 +115,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
                 QueryLiteral(:symbol, Symbol(uppercase(sym1))), isarom
             ])
         end
-        isuppercase(sym1) || throw(ErrorException("aromatic $(sym1) is not supported"))
+        isuppercase(sym1) || error("aromatic $(sym1) is not supported")
         return QueryLiteral(:symbol, Symbol(sym1))
     elseif sym1 == '#'
         # Atomic number
@@ -201,7 +201,7 @@ function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
         forward!(state)
         q = lghighand!(state, atomprop!)
         symcls = read(state)
-        symcls == ']' || throw(ErrorException("(atom!) unexpected token: $(symcls)"))
+        symcls == ']' || error("(atom)! unexpected token: $(symcls)")
         forward!(state)
     else
         q = atomsymbol!(state)
@@ -231,9 +231,9 @@ function atom!(state::SMARTSParser{T,V,E}) where {T,V,E}
     if sym1 == '['
         forward!(state)
         q = lglowand!(state, atomprop!)
-        q === nothing && throw(ErrorException("(atom!) empty atomprop"))
+        q === nothing && error("(atom!) empty atomprop")
         symcls = read(state)
-        symcls == ']' || throw(ErrorException("(atom!) unexpected token: $(symcls)"))
+        symcls == ']' || error("(atom!) unexpected token: $(symcls)")
         forward!(state)
     else
         q = atomsymbol!(state)

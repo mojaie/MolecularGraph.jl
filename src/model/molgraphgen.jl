@@ -20,9 +20,9 @@ struct MolGraphGen{T,V,E} <: SimpleMolGraph{T,V,E}
     function MolGraphGen{T,V,E}(g::SimpleGraph,
             vprop_map::Dict, eprop_map::Dict, gprop_map::Dict) where {T,V,E}
         (nv(g) > length(vprop_map)
-            && throw(ErrorException("Mismatch in the number of nodes and node properties")))
+            && error("Mismatch in the number of nodes and node properties"))
         (ne(g) == length(eprop_map)
-            || throw(ErrorException("Mismatch in the number of edges and edge properties")))
+            || error("Mismatch in the number of edges and edge properties"))
         # expand fadjlist for vprops of isolated nodes
         for _ in nv(g):(length(vprop_map) - 1)
             push!(g.fadjlist, T[])
@@ -88,18 +88,13 @@ end
 
 MolGraphGen(json::String) = MolGraphGen(JSON.parse(json))
 
-
 to_dict(mol::MolGraphGen) = to_dict(MolGraph(mol))
-to_json(mol::MolGraphGen) = JSON.json(to_dict(mol))
-
 props(mol::MolGraphGen, e::Edge) = mol.eprops[e]
-edge_rank(mol::MolGraphGen, e::Edge) = e
-has_descriptor(mol::MolGraphGen, desc::Symbol) = false
 
 
 function add_u_edge!(mol::MolGraphGen{T,V,E}, e::Edge, prop::E) where {T,V,E}
     # Can be directly called if src < dst is guaranteed.
-    add_edge!(mol.graph, e) || throw(ErrorException("failed to add edge $(e)"))
+    add_edge!(mol.graph, e) || error("failed to add edge $(e)")
     mol.eprops[e] = prop
     # TODO: stereochemistry, empty descriptors
     return true
@@ -115,7 +110,7 @@ end
 
 
 function add_vertex!(mol::MolGraphGen{T,V,E}, prop::V) where {T,V,E}
-    add_vertex!(mol.graph) || throw(ErrorException("failed to add vertex"))
+    add_vertex!(mol.graph) || error("failed to add vertex")
     mol.vprops[nv(mol.graph)] = prop
     # TODO: stereochemistry, empty descriptors
     return true
@@ -124,7 +119,7 @@ end
 
 function rem_u_edge!(mol::MolGraphGen, e::Edge)
     # Can be directly called if src < dst is guaranteed.
-    rem_edge!(mol.graph, e) || throw(ErrorException("failed to remove edge $(e)"))
+    rem_edge!(mol.graph, e) || error("failed to remove edge $(e)")
     delete!(mol.eprops, e)
     # TODO: stereochemistry, empty descriptors
     return true
@@ -142,7 +137,7 @@ end
 function rem_vertex!(mol::MolGraphGen, v::Integer)
     incs = [undirectededge(mol, v, nbr) for nbr in neighbors(mol, v)]
     rem_edges!(mol, incs)
-    rem_vertex!(mol.graph, v) || throw(ErrorException("failed to remove vertex $(v)"))
+    rem_vertex!(mol.graph, v) || error("failed to remove vertex $(v)")
     mol.vprops[v] = mol.vprops[nv(mol)]
     delete!(mol.vprops, nv(mol))
     # TODO: stereochemistry, empty descriptors

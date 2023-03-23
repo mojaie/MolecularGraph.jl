@@ -46,8 +46,8 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     end
     subg, vmap = induced_subgraph(mol.graph, nodes)
     matching = max_matching(subg)
-    is_perfect_matching(subg, matching) || throw(ErrorException(
-        "Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])"))
+    is_perfect_matching(subg, matching) || error(
+        "Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])")
     arr = getproperty.(eprops(mol), :order)
     for e in matching
         ge = undirectededge(T, vmap[src(e)], vmap[dst(e)])
@@ -109,7 +109,7 @@ Return the molecule with hydrogen nodes removed.
 
 If option `all` is set to true (default), all hydrogens will be removed, otherwise only trivial hydrogens will be removed (see [`trivialhydrogens`](@ref)).
 """
-function remove_hydrogens!(mol::MolGraph; all=true)
+function remove_hydrogens!(mol::SimpleMolGraph; all=true)
     hydrogens = all ? all_hydrogens : removable_hydrogens
     rem_vertices!(mol, hydrogens(mol))
 end

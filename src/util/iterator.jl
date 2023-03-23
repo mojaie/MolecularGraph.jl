@@ -46,8 +46,7 @@ function combinations(n::Int, k::Int=2)
     if k < 0
         throw(DomainError(k, "k should not be negative"))
     elseif k > n
-        throw(ErrorException(
-            "$(k) should be equal or less than the collection size"))
+        error("$(k) should be equal or less than the collection size")
     elseif k == 0
         return (Int[],)
     else

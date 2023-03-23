@@ -31,8 +31,7 @@ module MolecularGraph
     include("./model/molgraphgen.jl")
     include("./model/query.jl")
 
-    include("./graph/product.jl")
-    include("./graph/linegraph.jl")
+    include("./graph/operators.jl")
     include("./graph/traversals.jl")
     include("./graph/cycle.jl")
     include("./graph/bipartite.jl")

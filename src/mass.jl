@@ -90,8 +90,7 @@ function exact_mass_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
     pred = rcd -> rcd["Number"] == number
     iso = ATOMTABLE[atomnumber(atomsymbol)]["Isotopes"]
     k = findfirst(pred.(iso))
-    k === nothing && throw(
-        ErrorException("No isotope data for $(number)$(atomsymbol)"))
+    k === nothing && error("No isotope data for $(number)$(atomsymbol)")
     mass = iso[k]["Mass"]
     unc = iso[k]["MassUncertainty"]
     return (mass, unc)

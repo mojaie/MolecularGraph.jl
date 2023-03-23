@@ -3,6 +3,8 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+using Printf
+
 export
     Canvas,
     singlebond!,
@@ -17,11 +19,21 @@ export
     atomsymbolright!,
     atomsymbolcenter!,
     atomsymbolleft!,
-    atom_annotation!
+    atom_annotation!,
 
+    Color,
+    DEFAULT_ATOM_COLOR,
+    RASMOL_ATOM_COLOR,
 
+    SvgCanvas,
+    tosvg,
+    drawsvg,
+    initcanvas!,
 
-
+    atom_color, is_atom_visible,
+    single_bond_style, double_bond_style,
+    chargesign, atommarkup, atomhtml,
+    draw2d!, drawatomindex!, sethighlight!
 
 abstract type Canvas end
 

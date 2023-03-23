@@ -3,14 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    SvgCanvas,
-    tosvg,
-    drawsvg,
-    initcanvas!
-
-using Printf
-
 
 mutable struct SvgCanvas <: Canvas
     fontweight::String

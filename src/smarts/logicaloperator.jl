@@ -25,7 +25,7 @@ function lglowand!(state::SMARTSParser, func)
         end
         break
     end
-    isempty(qs) && throw(ErrorException("(lglowand!) invalid AND(;) operation"))
+    isempty(qs) && error("(lglowand!) invalid AND(;) operation")
     length(qs) == 1 && return qs[1]
     return QueryOperator(:and, qs)
 end
@@ -52,7 +52,7 @@ function lgor!(state::SMARTSParser, func)
         end
         break
     end
-    isempty(qs) && throw(ErrorException("(lgor!) invalid OR(,) operation"))
+    isempty(qs) && error("(lgor!) invalid OR(,) operation")
     length(qs) == 1 && return qs[1]
     return QueryOperator(:or, qs)
 end
@@ -75,7 +75,7 @@ function lghighand!(state::Union{SMILESParser,SMARTSParser}, func)
         read(state) == '&' && forward!(state)
         q = isa(state, SMILESParser) ? func(state) : lgnot!(state, func)
     end
-    isempty(qs) && throw(ErrorException("(lghighand!) invalid AND(&) operation"))
+    isempty(qs) && error("(lghighand!) invalid AND(&) operation")
     length(qs) == 1 && return qs[1]
     return QueryOperator(:and, qs)
 end
@@ -93,7 +93,7 @@ function lgnot!(state::SMARTSParser, func)
     if read(state) == '!'
         forward!(state)
         q = func(state)
-        q === nothing && throw(ErrorException("(lgnot!) invalid NOT(!) operation"))
+        q === nothing && error("(lgnot!) invalid NOT(!) operation")
         return QueryOperator(:not, [q])
     end
     return func(state)  # can be Nothing if the parser get stop token

@@ -25,7 +25,7 @@ function component!(state::SMARTSParser)
     push!(state.connectivity, [state.root])  # Set connectivity restriction
     fragment!(state)
     c2 = read(state)
-    c2 == ')' || throw(ErrorException("component not closed: $(c2) found at $(state.pos)"))
+    c2 == ')' || error("component not closed: $(c2) found at $(state.pos)")
     forward!(state)
 end
 
@@ -36,12 +36,8 @@ function fragment!(state::Union{SMILESParser,SMARTSParser})
     read(state) == '\0' && return  # Empty molecule
     group!(state, nothing)
     # Validity check
-    state.node + 1 == state.root && throw(
-        ErrorException("empty group: $(read(state)) found at $(state.pos)")
-    )
-    length(state.ringlabel) == 0 || throw(
-        ErrorException("unclosed ring: $(collect(keys(state.ringlabel))[1])")
-    )
+    state.node + 1 == state.root && error("empty group: $(read(state)) found at $(state.pos)")
+    length(state.ringlabel) == 0 || error("unclosed ring: $(collect(keys(state.ringlabel))[1])")
 end
 
 
@@ -49,9 +45,8 @@ function group!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}, bond) whe
     """ Group <- Atom ((Bond? Group) / Chain)* Chain
     """
     a = atom!(state)
-    isempty(a) && throw(
-        ErrorException("unexpected token: branch starts with '(' at $(state.pos)")
-    ) # ex. CC((CC)C)C  TODO: is still valid?
+    isempty(a) && error(
+        "unexpected token: branch starts with '(' at $(state.pos)")  # ex. CC((CC)C)C  TODO: is still valid?
     state.node += 1
     push!(state.vprops, popfirst!(a))
     if bond !== nothing
@@ -82,8 +77,7 @@ function group!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}, bond) whe
             # ex. CC(C)(C) should be CC(C)C but acceptable
             raw"""
             if state.done || read(state) in ")."
-                throw(ErrorException(
-                    "unexpected token: branch ends with ')' at $(state.pos)"))
+                error("unexpected token: branch ends with ')' at $(state.pos)")
             end
             """
         else
@@ -145,10 +139,8 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
         a = atom!(state)
         if isempty(a)
             c = read(state)
-            c in "().\0" || throw(ErrorException("unexpected token: $(c) at $(state.pos)"))
-            b === :disconn && throw(
-                ErrorException("unexpected token: $(read(state)) at $(state.pos)")
-            )
+            c in "().\0" || error("unexpected token: $(c) at $(state.pos)")
+            b === :disconn && error("unexpected token: $(read(state)) at $(state.pos)")
             break
         else
             state.node += 1

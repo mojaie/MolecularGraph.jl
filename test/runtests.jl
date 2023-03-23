@@ -22,13 +22,12 @@ module MolecularGraphTest
     include("./model/molgraphgen.jl")
     include("./model/query.jl")
 
-    include("./graph/product.jl")
+    include("./graph/operators.jl")
     include("./graph/cycle.jl")
     include("./graph/bipartite.jl")
     include("./graph/matching.jl")
     include("./graph/planarity.jl")
     include("./graph/clique.jl")
-    include("./graph/linegraph.jl")
     include("./graph/isomorphism_vf2.jl")
     include("./graph/isomorphism_clique.jl")
 

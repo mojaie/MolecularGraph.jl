@@ -22,9 +22,9 @@ struct MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
     function MolGraph{T,V,E}(g::SimpleGraph,
             vprop_list::Vector, eprop_list::Vector, gprop_map::Dict) where {T,V,E}
         (nv(g) > length(vprop_list)
-            && throw(ErrorException("Mismatch in the number of nodes and node properties")))
+            && error("Mismatch in the number of nodes and node properties"))
         (ne(g) == length(eprop_list)
-            || throw(ErrorException("Mismatch in the number of edges and edge properties")))
+            || error("Mismatch in the number of edges and edge properties"))
         # expand fadjlist for vprops of isolated nodes
         for _ in nv(g):(length(vprop_list) - 1)
             push!(g.fadjlist, T[])
@@ -74,16 +74,12 @@ end
 MolGraph(json::String) = MolGraph(JSON.parse(json))
 
 
-# Aliases
-SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
-SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
+# MolGraph type aliases
+
+const SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
+const SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
 
 
-"""
-    to_dict(mol::MolGraph) -> Dict{String,Any}
-
-Convert molecule object into JSON compatible dictionary.
-"""
 to_dict(mol::MolGraph) = Dict(
     "eltype" => string(eltype(mol)),
     "vproptype" => string(vproptype(mol)),
@@ -94,7 +90,6 @@ to_dict(mol::MolGraph) = Dict(
     "gprops" => Dict(string(k) => v for (k, v) in mol.gprops)
 )
 
-to_json(mol::MolGraph) = JSON.json(to_dict(mol))
 
 props(mol::MolGraph, e::Edge) = eprops(mol)[mol.edge_rank[e]]
 edge_rank(mol::MolGraph, e::Edge) = mol.edge_rank[e]
@@ -128,7 +123,7 @@ end
 function add_u_edge!(mol::MolGraph{T,V,E}, e::Edge, prop::E) where {T,V,E}
     # Can be directly called if src < dst is guaranteed.
     # Note: Not efficient. For frequent graph manipulation, use MolGraphGen instead.
-    add_edge!(mol.graph, e) || throw(ErrorException("failed to add edge $(e)"))
+    add_edge!(mol.graph, e) || error("failed to add edge $(e)")
     update_edge_rank!(mol)
     insert!(mol.eprops, mol.edge_rank[e], prop)
     # TODO: stereochemistry, empty descriptors
@@ -138,7 +133,7 @@ end
 
 function add_u_edges!(mol::MolGraph, elist, plist)
     for e in elist
-        add_edge!(mol.graph, e) || throw(ErrorException("failed to add edge $(e)"))
+        add_edge!(mol.graph, e) || error("failed to add edge $(e)")
     end
     update_edge_rank!(mol)
     for (e, p) in zip(elist, plist)
@@ -149,7 +144,7 @@ end
 
 
 function add_vertex!(mol::MolGraph{T,V,E}, prop::V) where {T,V,E}
-    add_vertex!(mol.graph) || throw(ErrorException("failed to add vertex"))
+    add_vertex!(mol.graph) || error("failed to add vertex")
     push!(mol.vprops, prop)
     # TODO: stereochemistry, empty descriptors
     return true
@@ -159,7 +154,7 @@ end
 function rem_u_edge!(mol::MolGraph, e::Edge)
     # Can be directly called if src < dst is guaranteed.
     # Not efficient. For frequent graph manipulation, use MolGraphGen instead.
-    rem_edge!(mol.graph, e) || throw(ErrorException("failed to remove edge $(e)"))
+    rem_edge!(mol.graph, e) || error("failed to remove edge $(e)")
     deleteat!(mol.eprops, mol.edge_rank[e])
     update_edge_rank!(mol)
     # TODO: stereochemistry, empty descriptors
@@ -169,7 +164,7 @@ end
 
 function rem_edges!(mol::MolGraph, edges)
     for e in edges
-        rem_edge!(mol.graph, e) || throw(ErrorException("failed to remove edge $(e)"))
+        rem_edge!(mol.graph, e) || error("failed to remove edge $(e)")
     end
     deleteat!(mol.eprops, [mol.edge_rank[e] for e in edges])
     update_edge_rank!(mol)
@@ -182,7 +177,7 @@ function rem_vertex!(mol::MolGraph, v::Integer)
     # Not efficient. for frequent graph topology manipulation, use MolGraphGen instead.
     incs = [undirectededge(mol, v, nbr) for nbr in neighbors(mol, v)]
     rem_edges!(mol, incs)
-    rem_vertex!(mol.graph, v) || throw(ErrorException("failed to remove vertex $(v)"))
+    rem_vertex!(mol.graph, v) || error("failed to remove vertex $(v)")
     mol.vprops[v] = mol.vprops[length(mol.vprops)]
     deleteat!(mol.vprops, length(mol.vprops))
     update_edge_rank!(mol)

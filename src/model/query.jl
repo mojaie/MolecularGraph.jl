@@ -3,12 +3,11 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    QueryAny, QueryLiteral, QueryOperator, QueryTree, QueryTruthTable, SMARTSMolGraph
-    # removehydrogens
+"""
+    QueryAny
 
-
-
+Query component type that generate tautology function (arg -> true/false).
+"""
 struct QueryAny
     value::Bool
 end
@@ -16,6 +15,12 @@ end
 Base.:(==)(q::QueryAny, r::QueryAny) = q.value == r.value
 Base.hash(q::QueryAny, h::UInt) = hash(q.value, h)
 
+
+"""
+    QueryLiteral
+
+General query component type (arg -> key[arg] == value).
+"""
 struct QueryLiteral
     operator::Symbol  # :eq, :gt?, :lt? ...
     key::Symbol
@@ -35,6 +40,12 @@ Base.:(==)(q::QueryLiteral, r::QueryLiteral
     ) = q.key == r.key && q.operator == r.operator && string(q.value) == string(r.value)
 Base.hash(q::QueryLiteral, h::UInt) = hash(q.key, hash(q.operator, hash(q.value, h)))
 
+
+"""
+    QueryOperator
+
+Query component type for logical operators (arg -> q1[arg] && q2[arg]).
+"""
 struct QueryOperator
     key::Symbol  # :and, :or, :not
     value::Vector{Union{QueryAny,QueryLiteral,QueryOperator}}
@@ -43,13 +54,23 @@ end
 Base.:(==)(q::QueryOperator, r::QueryOperator) = q.key == r.key && issetequal(q.value, r.value)
 Base.hash(q::QueryOperator, h::UInt) = hash(q.key, hash(Set(q.value), h))
 
+
+"""
+    QueryTree
+
+Query component containar type for molecular graph properties.
+"""
 struct QueryTree
     tree::Union{QueryAny,QueryLiteral,QueryOperator}
 end
 
 Base.getindex(a::QueryTree, prop::Symbol) = getproperty(a, prop)
 
-SMARTSMolGraph = MolGraph{Int,QueryTree,QueryTree}
+
+# MolGraphGen type aliases
+
+const SMARTSMolGraph = MolGraphGen{Int,QueryTree,QueryTree}
+
 
 """
     QueryTruthTable(fml::Function, props::Vector{QueryLiteral}) -> QueryTruthTable
@@ -160,7 +181,7 @@ Convert `[#atomnumber]` queries connected to explicit single bonds to be non-aro
 Should be applied before `remove_hydrogens!`.
 This function is intended for generalization of PAINS query in PubChem dataset.
 """
-function specialize_nonaromatic!(q::MolGraph{T,V,E}) where {T,V,E}
+function specialize_nonaromatic!(q::SimpleMolGraph{T,V,E}) where {T,V,E}
     aromsyms = Set([:B, :C, :N, :O, :P, :S, :As, :Se])
     exqs = Set(QueryOperator(:and, [
         QueryLiteral(:order, i),
@@ -212,7 +233,7 @@ Remove hydrogens from the molecular query.
 Should be applied after `specialize_nonaromatic!`.
 This function is intended for generalization of PAINS query in PubChem dataset.
 """
-function remove_hydrogens!(q::MolGraph{T,V,E}) where {T,V<:QueryTree,E<:QueryTree}
+function remove_hydrogens!(q::SimpleMolGraph{T,V,E}) where {T,V<:QueryTree,E<:QueryTree}
     # count H nodes and mark H nodes to remove
     hnodes = T[]
     hcntarr = zeros(Int, nv(q))
@@ -278,7 +299,7 @@ function optimize_query(tree)
 end
 
 
-function optimize_query!(q::MolGraph)
+function optimize_query!(q::SimpleMolGraph)
     specialize_nonaromatic!(q)
     remove_hydrogens!(q)
     for i in vertices(q)
