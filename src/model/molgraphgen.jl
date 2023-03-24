@@ -89,7 +89,7 @@ end
 MolGraphGen(json::String) = MolGraphGen(JSON.parse(json))
 
 to_dict(mol::MolGraphGen) = to_dict(MolGraph(mol))
-props(mol::MolGraphGen, e::Edge) = mol.eprops[e]
+edge_rank(mol::MolGraphGen, e::Edge) = e
 
 
 function add_u_edge!(mol::MolGraphGen{T,V,E}, e::Edge, prop::E) where {T,V,E}

@@ -54,7 +54,7 @@ end
     edges = Edge.([(1,2), (1,3), (1,4), (1,5)])
     uns1 = MolGraph(edges, atoms, bonds)
     stereocenter_from_sdf2d!(uns1)
-    @test !has_prop(uns1, :stereocenter)
+    @test isempty(get_prop(uns1, :stereocenter))
 
     bonds = [
         SDFBond(1, 0),
@@ -124,7 +124,7 @@ end
     ]
     wrong1 = MolGraph(edges, atoms, bonds)
     stereocenter_from_sdf2d!(wrong1)
-    @test !has_prop(wrong1, :stereocenter)
+    @test isempty(get_prop(wrong1, :stereocenter))
 
     bonds = [
         SDFBond(1, 1),
@@ -134,7 +134,7 @@ end
     ]
     wrong2 = MolGraph(edges, atoms, bonds)
     stereocenter_from_sdf2d!(wrong2)
-    @test !has_prop(wrong2, :stereocenter)
+    @test isempty(get_prop(wrong2, :stereocenter))
 
     bonds = [
         SDFBond(1, 1),
@@ -144,7 +144,7 @@ end
     ]
     wrong3 = MolGraph(edges, atoms, bonds)
     stereocenter_from_sdf2d!(wrong3)
-    @test !has_prop(wrong3, :stereocenter)
+    @test isempty(get_prop(wrong3, :stereocenter))
 
     bonds = [
         SDFBond(1, 1),
@@ -154,7 +154,7 @@ end
     ]
     wrong4 = MolGraph(edges, atoms, bonds)
     stereocenter_from_sdf2d!(wrong4)
-    @test !has_prop(wrong4, :stereocenter)
+    @test isempty(get_prop(wrong4, :stereocenter))
 
     # degree=3
     atoms = [
@@ -171,7 +171,7 @@ end
     edges = Edge.([(1,2), (1,3), (1,4)])
     uns2 = MolGraph(edges, atoms, bonds)
     stereocenter_from_sdf2d!(uns2)
-    @test !has_prop(uns2, :stereocenter)
+    @test isempty(get_prop(uns2, :stereocenter))
 
     bonds = [
         SDFBond(1, 1), SDFBond(1, 0), SDFBond(1, 0)
@@ -192,7 +192,7 @@ end
     ]
     wrong5 = MolGraph(edges, atoms, bonds)
     stereocenter_from_sdf2d!(wrong5)
-    @test !has_prop(wrong5, :stereocenter)
+    @test isempty(get_prop(wrong5, :stereocenter))
     # global_logger(default_logger)
 end
 
@@ -219,7 +219,7 @@ end
     atoms[4] = SDFAtom(:C, 0, 1, nothing, [2.0, 0.0])
     mol3 = MolGraph(edges, atoms, bonds)
     stereobond_from_sdf2d!(mol3)
-    @test !has_prop(mol3, :stereobond)
+    @test isempty(get_prop(mol3, :stereobond))
 end
 
 @testset "stereobond_from_smiles" begin

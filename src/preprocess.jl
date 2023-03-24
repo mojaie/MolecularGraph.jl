@@ -120,7 +120,7 @@ end
 
 Return the molecule with all hydrogen nodes explicitly attached.
 """
-function add_hydrogens!(mol::MolGraph{T,V,E}) where {T,V,E}
+function add_hydrogens!(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     implicit_hs = implicit_hydrogens(mol)
     for i in vertices(mol)
         for j in 1:implicit_hs[i]
@@ -133,7 +133,7 @@ end
 
 
 """
-    largest_component_nodes(mol::GraphMol) -> Set{Int}
+    largest_component_nodes(mol::SimpleMolGraph) -> Vector{Int}
 
 Return a set of nodes in the largest connected component.
 """
@@ -142,19 +142,19 @@ largest_component_nodes(mol::SimpleMolGraph{T,V,E}
 
 
 """
-    extractlargestcomponent(mol::GraphMol) -> GraphMol
+    extract_largest_component!(mol::SimpleMolGraph) -> Nothing
 
 Return the largest connected component of the molecular graph.
 
 This should be useful when you want to remove salt and water molecules from the molecular graph simply. On the other hand, this can remove important components from the mixture so carefully apply this preprocess method.
 """
-extract_largest_component!(mol::MolGraph
+extract_largest_component!(mol::SimpleMolGraph
     ) = rem_vertices!(mol, setdiff(vertices(mol), largest_component_nodes(mol)))
 
 
 
 """
-    protonate_acids(mol::SimpleMolGraph) -> GraphMol
+    protonate_acids(mol::SimpleMolGraph) -> Vector{Int}
 
 Protonate oxo(thio) anion groups of the molecule.
 """
@@ -176,7 +176,7 @@ protonate_acids!(mol::MolGraph) = set_prop!(mol, :v_charge, protonate_acids(mol)
 
 
 """
-    deprotonate_oniums(mol::SimpleMolGraph) -> Nothing
+    deprotonate_oniums(mol::SimpleMolGraph) -> Vector{Int}
 
 Deprotonate onium groups of the molecule.
 """

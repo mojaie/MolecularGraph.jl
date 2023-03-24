@@ -61,9 +61,7 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 function smilestomol(::Type{T}, smiles::AbstractString) where T <: AbstractMolGraph
     state = SMILESParser{T}(smiles)
     fragment!(state)
-    mol = T(state.edges, state.vprops, state.eprops)
-    #kekulize && kekulize!(mol)
-    return mol
+    return T(state.edges, state.vprops, state.eprops)
 end
 
 smilestomol(smiles::AbstractString) = smilestomol(MolGraph{Int,SMILESAtom,SMILESBond}, smiles)

@@ -15,7 +15,8 @@ export
 Set stereocenter information to graph properties.
 """
 function set_stereocenter!(
-        mol::SimpleMolGraph{T,V,E}, center, looking_from, v1, v2, is_clockwise) where {T,V,E}
+        mol::SimpleMolGraph{T,V,E}, center,
+        looking_from, v1, v2, is_clockwise) where {T,V,E}
     if !haskey(mol.gprops, :stereocenter)
         mol.gprops[:stereocenter] = Dict{T,Tuple{T,T,T,Bool}}()
     end
@@ -38,11 +39,11 @@ end
 
 
 """
-    remove_stereo_hydrogens!(mol::MolGraph) -> Bool
+    remove_stereo_hydrogen!(mol::SimpleMolGraph, v::Integer) -> Bool
 
-Safely remove explicit hydrogens connected to stereocenters.
+Safely remove explicit hydrogens connected to stereocenter node `v`.
 """
-function remove_stereo_hydrogen!(mol::MolGraph{T,V,E}, v::T) where {T,V,E}
+function remove_stereo_hydrogen!(mol::SimpleMolGraph, v::Integer)
     """
     [C@@]([H])(C)(N)O -> C, N, O, (H), @
     ([H])[C@@](C)(N)O -> C, N, O, (H), @
@@ -88,11 +89,13 @@ end
 
 
 """
-    stereocenter_from_sdf2d!(mol::MolGraph) -> Nothing
+    stereocenter_from_sdf2d(mol::MolGraph{T,V,E}
+        ) where {T,V,E} -> Dict{T,Tuple{T,T,T,Bool}}()
 
-Set stereocenter information obtained from 2D SDFile.
+Return stereocenter information obtained from 2D SDFile.
 """
-function stereocenter_from_sdf2d!(mol::MolGraph)
+function stereocenter_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E}
+    centers = Dict{T,Tuple{T,T,T,Bool}}()
     crds = coords2d(mol)
     for i in vertices(mol)
         degree(mol.graph, i) in (3, 4) || continue
@@ -119,7 +122,7 @@ function stereocenter_from_sdf2d!(mol::MolGraph)
         if length(nbrs) == 3
             if upcnt + dwcnt == 1
                 # if there is implicit hydrogen, an up-wedge -> clockwise, a down-edge -> ccw
-                set_stereocenter!(mol, i, ons[1], ons[2], ons[3], dwcnt == 0)
+                centers[i] = (ons[1], ons[2], ons[3], dwcnt == 0)
             else
                 # @debug "Ambiguous stereochemistry (maybe need explicit hydrogen)"
                 # need warning?
@@ -138,36 +141,58 @@ function stereocenter_from_sdf2d!(mol::MolGraph)
             # need warning?
             continue
         elseif upcnt != 0
-            set_stereocenter!(mol, i, ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
+            centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
         else  # down wedges only
-            set_stereocenter!(mol, i, ons[1], ons[2], ons[3], ods[2] === :down || ods[4] === :down)
+            centers[i] = (ons[1], ons[2], ons[3], ods[2] === :down || ods[4] === :down)
         end
     end
+    return centers
 end
+
+"""
+    stereocenter_from_sdf2d!(mol::MolGraph) -> Nothing
+
+Set stereocenter information obtained from 2D SDFile.
+"""
+stereocenter_from_sdf2d!(mol::MolGraph
+    ) = set_prop!(mol, :stereocenter,  stereocenter_from_sdf2d(mol))
 
 
 """
-    stereocenter_from_smiles(mol::MolGraph) -> Nothing
+    stereocenter_from_smiles(mol::MolGraph{T,V,E}
+        ) where {T,V,E} -> Dict{T,Tuple{T,T,T,Bool}}()
 
 Return stereocenter information obtained from SMILES.
 """
-function stereocenter_from_smiles!(mol::MolGraph)
+function stereocenter_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E}
+    centers = Dict{T,Tuple{T,T,T,Bool}}()
     for i in vertices(mol)
         degree(mol.graph, i) in (3, 4) || continue
         direction = get_prop(mol, i, :stereo)
         direction === :unspecified && continue
         nbrs = ordered_neighbors(mol, i)
-        set_stereocenter!(mol, i, nbrs[1], nbrs[2], nbrs[3], direction === :clockwise)
+        centers[i] = (nbrs[1], nbrs[2], nbrs[3], direction === :clockwise)
     end
+    return centers
 end
+
+"""
+    stereocenter_from_smiles!(mol::MolGraph) -> Nothing
+
+Set stereocenter information obtained from SMILES.
+"""
+stereocenter_from_smiles!(mol::MolGraph
+    ) = set_prop!(mol, :stereocenter,  stereocenter_from_smiles(mol))
 
 
 """
-    stereobond_from_sdf2d(mol::MolGraph) -> Nothing
+    stereobond_from_sdf2d(mol::MolGraph{T,V,E}
+        ) where {T,V,E} -> Dict{Edge{T},Tuple{T,T,Bool}}()
 
 Return cis-trans diastereomerism information obtained from 2D SDFile.
 """
-function stereobond_from_sdf2d!(mol::MolGraph)
+function stereobond_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E}
+    stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
     crds = coords2d(mol)
     for e in edges(mol)
         get_prop(mol, e, :order) == 2 || continue
@@ -183,17 +208,28 @@ function stereobond_from_sdf2d!(mol::MolGraph)
         n2p = cond(n2.x, n2.y)
         n1p * n2p == 0 && continue  # 180° bond angle
         is_cis = n1p * n2p > 0
-        set_stereobond!(mol, e, snbrs[1], dnbrs[1], is_cis)
+        stereobonds[e] = (snbrs[1], dnbrs[1], is_cis)
     end
+    return stereobonds
 end
+
+"""
+    stereobond_from_sdf2d!(mol::MolGraph) -> Nothing
+
+Set cis-trans diastereomerism information obtained from 2D SDFile.
+"""
+stereobond_from_sdf2d!(mol::MolGraph
+    ) = set_prop!(mol, :stereobond, stereobond_from_sdf2d(mol))
 
 
 """
-    stereobond_from_smiles!(mol::MolGraph) -> Nothing
+    stereobond_from_smiles(mol::MolGraph{T,V,E}
+        ) where {T,V,E} -> Dict{Edge{T},Tuple{T,T,Bool}}()
 
 Return cis-trans diastereomerism information obtained from SMILES.
 """
-function stereobond_from_smiles!(mol::MolGraph)
+function stereobond_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E}
+    stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
     for e in edges(mol)
         get_prop(mol, e, :order) == 2 || continue
         degree(mol.graph, src(e)) in (2, 3) || continue
@@ -221,10 +257,18 @@ function stereobond_from_smiles!(mol::MolGraph)
         e.g.  C(\\F)=C/F -> trans
         """
         is_cis = (sds[1][2] !== dds[1][2]) == (sds[1][1] < src(e))
-        set_stereobond!(mol, e, sds[1][1], dds[1][1], is_cis)
+        stereobonds[e] = (sds[1][1], dds[1][1], is_cis)
     end
+    return stereobonds
 end
 
+"""
+    stereobond_from_smiles!(mol::MolGraph) -> Nothing
+
+Set cis-trans diastereomerism information obtained from SMILES.
+"""
+stereobond_from_smiles!(mol::MolGraph
+    ) = set_prop!(mol, :stereobond, stereobond_from_smiles(mol))
 
 # TODO: axial chirality
 # TODO: hypervalent chirality

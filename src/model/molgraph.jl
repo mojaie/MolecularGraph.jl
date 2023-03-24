@@ -90,8 +90,6 @@ to_dict(mol::MolGraph) = Dict(
     "gprops" => Dict(string(k) => v for (k, v) in mol.gprops)
 )
 
-
-props(mol::MolGraph, e::Edge) = eprops(mol)[mol.edge_rank[e]]
 edge_rank(mol::MolGraph, e::Edge) = mol.edge_rank[e]
 descriptors(mol::MolGraph) = mol.descriptors
 get_descriptor(mol::MolGraph, desc::Symbol) = descriptors(mol)[desc]

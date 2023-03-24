@@ -107,19 +107,8 @@ function drawsvg(mol::SimpleMolGraph, width, height; kwargs...)
 end
 
 
-# import Base.Multimedia.display
-"""
-    display(mol::SimpleMolGraph, x, y)
-
-Displays an SVG drawing with dimensions (x, y) in an HTML element for use in Pluto notebooks.
-Arguments
-- `mol::GraphMol` the `GraphMol` object to display
-- `x::Int` the horizontal extent in pixels of the SVG to render (optional; default = 250)
-- `y::Int` the vertical extent in pixels of the SVG to render (optional; default = 250)
-"""
-# TODO: do not override display. use `show`
-# Base.Multimedia.display(mol::SimpleMolGraph, x::Int=250, y::Int=250) = HTML(drawsvg(mol, x, y))
-# Base.show(io::IO, m::MIME"image/svg+xml", mol::SimpleMolGraph) = show(io, m, drawsvg(mol, 250, 250))
+# Custom pretty printing for Plute notebook environment
+Base.show(io::IO, m::MIME"text/html", mol::SimpleMolGraph) = show(io, m, HTML(drawsvg(mol, 250, 250)))
 
 
 """

@@ -89,7 +89,7 @@ function double_bond_style(mol::SimpleMolGraph)
         for i in 1:length(ordered)
             e = edge_rank(mol, undirectededge(mol, rr[i], rr[i + 1]))
             bondorder_[e] == 2 || continue
-            arr[e] = rr[i] < rr[i + 1] ? :anticlockwise : :clockwise
+            arr[e] = rr[i] < rr[i + 1] ? :clockwise : :anticlockwise
         end
     end
     return arr
@@ -160,8 +160,14 @@ atomhtml(
 Draw molecular image to the canvas.
 """
 function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
+    # get coords
+    if !hasfield(vproptype(mol), :coords) && !has_prop(mol, :v_coords2d)  # default SMILESAtom
+        crds, sb_style = coordgen(mol)
+    else  # SDFAtom or has coordgen! precache
+        crds = coords2d(mol)
+        sb_style = single_bond_style(mol)
+    end
     # Canvas settings
-    crds = coords2d(mol)
     initcanvas!(canvas, crds, boundary(mol, crds))
     canvas.valid || return
 
@@ -173,7 +179,7 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     atomcolor_ = atom_color(mol; kwargs...)
     isatomvisible_ = is_atom_visible(mol; kwargs...)
     bondstyle_ = map(
-                single_bond_style(mol),
+                sb_style,
                 double_bond_style(mol),
                 bondorder_
             ) do sb, db, o

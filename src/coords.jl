@@ -36,9 +36,18 @@ end
 
 Generate 2D coordinates by using Schrodinger's coordgenlibs.
 
-This will returns a tuple of `coords` and `styles` arrays. `coords` is a size(n, 2) matrix where n is atom count, which stores 2D coordinates (x, y) of each atoms. `styles` is a size e vector of wedge notation of stereobond, where e is bond count.
+This will returns a tuple of `coords` and `styles` arrays. `coords` is a size(n, 2) matrix
+where n is atom count, which stores 2D coordinates (x, y) of each atoms.
+`styles` is a size e vector of wedge notation of stereobond, where e is bond count.
 """
 function coordgen(mol::SimpleMolGraph)
+    # properties and descriptors
+    bondorder_ = bond_order(mol)
+    stereocenters = (has_prop(mol, :stereocenter) ? get_prop(mol, :stereocenter) : 
+        (hasfield(vproptype(mol), :stereo) ? stereocenter_from_smiles(mol) : stereocenter_from_sdf2d(mol)))
+    stereobonds = (has_prop(mol, :stereobond) ? get_prop(mol, :stereobond) : 
+        (hasfield(vproptype(mol), :stereo) ? stereobond_from_smiles(mol) : stereobond_from_sdf2d(mol)))
+
     minmol = ccall((:getSketcherMinimizer, libcoordgen), Ptr{Cvoid}, ())
     atoms = Ptr{Cvoid}[]
     bonds = Ptr{Cvoid}[]
@@ -53,7 +62,6 @@ function coordgen(mol::SimpleMolGraph)
     end
 
     # Bonds
-    bondorder_ = bond_order(mol)
     for (i, e) in enumerate(edges(mol))
         bond = ccall(
             (:setBond, libcoordgen), Ptr{Cvoid},
@@ -69,25 +77,21 @@ function coordgen(mol::SimpleMolGraph)
     )
 
     # Stereocenter
-    if has_prop(mol, :stereocenter)
-        for (n, stereo) in get_prop(mol, :stereocenter)
-            ccall(
-                (:setStereoCenter, libcoordgen), Cvoid,
-                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-                atoms[n], atoms[stereo[1]], atoms[stereo[2]], atoms[stereo[3]], stereo[4]
-            )
-        end
+    for (n, stereo) in stereocenters
+        ccall(
+            (:setStereoCenter, libcoordgen), Cvoid,
+            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
+            atoms[n], atoms[stereo[1]], atoms[stereo[2]], atoms[stereo[3]], stereo[4]
+        )
     end
 
     # Stereobond
-    if has_prop(mol, :stereobond)
-        for (e, stereo) in get_prop(mol, :stereobond)
-            ccall(
-                (:setStereoBond, libcoordgen), Cvoid,
-                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-                bonds[edge_rank(mol, e)], atoms[stereo[1]], atoms[stereo[2]], stereo[3]
-            )
-        end
+    for (e, stereo) in stereobonds
+        ccall(
+            (:setStereoBond, libcoordgen), Cvoid,
+            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
+            bonds[edge_rank(mol, e)], atoms[stereo[1]], atoms[stereo[2]], stereo[3]
+        )
     end
 
     # Optimize
@@ -119,9 +123,9 @@ function coordgen(mol::SimpleMolGraph)
         isrev = ccall(
             (:isReversed, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
         if iswedge
-            styles[i] = isrev ? :up : :revup
+            styles[i] = isrev ? :revup : :up
         else
-            styles[i] = isrev ? :down : :revdown
+            styles[i] = isrev ? :revdown : :down
         end
     end
     # TODO: keep wave bond in SDFile

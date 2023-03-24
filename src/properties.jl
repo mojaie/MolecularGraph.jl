@@ -708,8 +708,7 @@ function precalculate!(mol::MolGraph)
     apparent_valence!(mol)
     valence!(mol)
     is_ring_aromatic!(mol)
-    # if vproptype(mol) <: SMILESAtom
-    #     mol.gprops[:coordgen] = coordgen(mol)
+    hasfield(vproptype(mol), :coords) || coordgen!(mol)
 end
 
 

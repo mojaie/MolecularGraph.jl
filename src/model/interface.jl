@@ -94,6 +94,7 @@ vprops(mol::SimpleMolGraph) = mol.vprops
 eprops(mol::SimpleMolGraph) = mol.eprops
 props(mol::SimpleMolGraph) = mol.gprops
 props(mol::SimpleMolGraph, v::Integer) = vprops(mol)[v]
+props(mol::SimpleMolGraph, e::Edge) = eprops(mol)[edge_rank(mol, e)]
 props(mol::SimpleMolGraph, u::Integer, v::Integer) = props(mol, undirectededge(mol, u, v))
 get_prop(mol::SimpleMolGraph, prop::Symbol) = props(mol)[prop]
 # get_prop(mol::SimpleMolGraph, prop::Symbol, default) = get(props(mol), prop, default)
@@ -109,17 +110,14 @@ add_edges!(mol::SimpleMolGraph, elist, plist) = add_u_edges!(mol,
 
 function set_prop!(mol::SimpleMolGraph{T,V,E}, v::T, value::V) where {T,V,E}
     mol.vprops[v] = value
-    return value
 end
 
 function set_prop!(mol::SimpleMolGraph{T,V,E}, e::Edge{T}, value::E) where {T,V,E}
     mol.eprops[e] = value
-    return value
 end
 
 function set_prop!(mol::SimpleMolGraph, prop::Symbol, value)
     mol.gprops[prop] = value
-    return value
 end
 
 function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph{T,V,E}) where {T,V,E}

@@ -22,8 +22,8 @@
         @test sb[9] === :down  # 4 ◁ 8
         @test sb[10] === :unspecified # 5 ~ 11
         db = double_bond_style(mol)
-        @test db[1] === :anticlockwise  # 2 ニ 1
-        @test db[18] === :clockwise # 17 ニ 18
+        @test db[1] === :clockwise  # 2 ニ 1
+        @test db[18] === :anticlockwise # 17 ニ 18
         @test db[12] === :none  # 10 = 13
     end
 
