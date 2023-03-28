@@ -94,15 +94,15 @@ Generate molecular structure image as a SVG format string.
 `width` and `height` specifies the size of the image (width and height
 attribute of svg tag).
 """
-function drawsvg(mol::SimpleMolGraph, width, height; kwargs...)
+function drawsvg(mol::SimpleMolGraph, width, height;
+        atomhighlight=eltype(mol)[], bondhighlight=Edge{eltype(mol)}[], highlightcolor=Color(253, 216, 53),
+        atomindex=false, indexcolor=Color(0, 0, 0), indexbgcolor=Color(240, 240, 255),
+        kwargs...)
     canvas = SvgCanvas()
     draw2d!(canvas, mol; kwargs...)
-    if haskey(kwargs, :highlight)
-        sethighlight!(canvas, kwargs[:highlight])
-    end
-    if haskey(kwargs, :atomindex) && kwargs[:atomindex]
-        drawatomindex!(canvas, mol)
-    end
+    sethighlight!(canvas, intersect(atomhighlight, findall(is_atom_visible(mol))), highlightcolor)
+    sethighlight!(canvas, bondhighlight, highlightcolor)
+    atomindex && drawatomindex!(canvas, is_atom_visible(mol), indexcolor, indexbgcolor)
     return tosvg(canvas, width, height)
 end
 
@@ -287,7 +287,7 @@ setbond!(
 
 
 function setbondhighlight!(canvas::SvgCanvas, u, v, color)
-    cds = svgcoords(seg)
+    cds = svgcoords(Segment{Point2D}(canvas.coords, u, v))
     c = svgcolor(color)
     elem = """<line $(cds) stroke="$(c)" stroke-width="10" stroke-linecap="round"/>
     """

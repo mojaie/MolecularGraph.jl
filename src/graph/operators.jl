@@ -4,7 +4,18 @@
 #
 
 export
-    modular_product, line_graph
+    induced_subgraph_edges, modular_product, line_graph
+
+
+"""
+    induced_subgraph_edges(g, node_list)
+
+Return the node-induced subgraph edges.
+"""
+function induced_subgraph_edges(g, node_list)
+    subg, vmap = induced_subgraph(g, node_list)
+    return [undirectededge(g, vmap[src(e)], vmap[dst(e)]) for e in edges(subg)]
+end
 
 
 """

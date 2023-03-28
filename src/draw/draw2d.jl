@@ -8,7 +8,7 @@
 
 Return atom colors for molecule 2D drawing
 """
-atom_color(mol::SimpleMolGraph; color_theme=DEFAULT_ATOM_COLOR
+atom_color(mol::SimpleMolGraph; color_theme=DEFAULT_ATOM_COLOR, kwargs...
     ) = [get(color_theme, sym, color_theme[:default]) for sym in atom_symbol(mol)]
 
 
@@ -17,7 +17,7 @@ atom_color(mol::SimpleMolGraph; color_theme=DEFAULT_ATOM_COLOR
 
 Return whether the atom is visible in the 2D drawing.
 """
-function is_atom_visible(mol::SimpleMolGraph; show_terminal_carbon=false)
+function is_atom_visible(mol::SimpleMolGraph; show_terminal_carbon=false, kwargs...)
     arr = (~).(init_node_descriptor(Bool, mol))
     deg_ = degree(mol)
     sym_ = atom_symbol(mol)
@@ -47,9 +47,7 @@ end
 
 
 
-function double_bond_style(mol::SimpleMolGraph)
-    bondorder_ = bond_order(mol)
-    coords = coords2d(mol)
+function double_bond_style(mol::SimpleMolGraph, bondorder_, coords)
     arr = init_edge_descriptor(Symbol, mol)
     for (i, e) in enumerate(edges(mol))
         if bondorder_[i] != 2
@@ -67,12 +65,12 @@ function double_bond_style(mol::SimpleMolGraph)
             continue
         end
         sdbs = map(snbrs) do snbr
-            se = edge_rank(mol, undirectededge(mol, src(e), snbr))
-            bondorder(mol)[se] == 2
+            se = edge_rank(mol, src(e), snbr)
+            bondorder_[se] == 2
         end
         ddbs = map(dnbrs) do dnbr
-            de = edge_rank(mol, undirectededge(mol, dst(e), dnbr))
-            bondorder(mol)[de] == 2
+            de = edge_rank(mol, dst(e), dnbr)
+            bondorder_[de] == 2
         end
         if any(sdbs) || any(ddbs)
             arr[i] = :none  # allene-like
@@ -87,12 +85,18 @@ function double_bond_style(mol::SimpleMolGraph)
         ordered = cw ? ring : reverse(ring)
         rr = vcat(ordered, ordered)
         for i in 1:length(ordered)
-            e = edge_rank(mol, undirectededge(mol, rr[i], rr[i + 1]))
+            e = edge_rank(mol, rr[i], rr[i + 1])
             bondorder_[e] == 2 || continue
             arr[e] = rr[i] < rr[i + 1] ? :clockwise : :anticlockwise
         end
     end
     return arr
+end
+
+function double_bond_style(mol::SimpleMolGraph)
+    bondorder_ = bond_order(mol)
+    coords = coords2d(mol)
+    return double_bond_style(mol, bondorder_, coords)
 end
 
 
@@ -180,7 +184,7 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     isatomvisible_ = is_atom_visible(mol; kwargs...)
     bondstyle_ = map(
                 sb_style,
-                double_bond_style(mol),
+                double_bond_style(mol, bondorder_, crds),
                 bondorder_
             ) do sb, db, o
         if o == 1
@@ -244,28 +248,24 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
 end
 
 
-function drawatomindex!(canvas::Canvas, mol::SimpleMolGraph;
-                        color=Color(0, 0, 0), bgcolor=Color(240, 240, 255))
-    isatomvisible_ = is_atom_visible(mol)
-    for i in vertices(mol)
-        offset = isatomvisible_[i] ? (0.0, canvas.fontsize/2.0) : (0.0, 0.0)
+function drawatomindex!(canvas::Canvas, isatomvisible, color, bgcolor)
+    for (i, v) in enumerate(isatomvisible)
+        offset = v ? (0.0, canvas.fontsize/2.0) : (0.0, 0.0)
         pos = Point2D(canvas.coords, i) + offset
         setatomnote!(canvas, pos, string(i), color, bgcolor)
     end
-    return
 end
 
 
-function sethighlight!(
-        canvas::Canvas, substr::SimpleMolGraph; color=Color(253, 216, 53))
-    isatomvisible_ = isatomvisible(substr)
-    for e in edges(substr)
+function sethighlight!(canvas::Canvas, edge_list::Vector{<:Edge}, color)
+    for e in edge_list
         setbondhighlight!(canvas, src(e), dst(e), color)
     end
-    for i in vertices(substr)
-        isatomvisible_[i] || continue
+end
+
+function sethighlight!(canvas::Canvas, node_list::Vector{<:Integer}, color)
+    for i in node_list
         pos = Point2D(canvas.coords, i)
         setatomhighlight!(canvas, pos, color)
     end
-    return
 end
