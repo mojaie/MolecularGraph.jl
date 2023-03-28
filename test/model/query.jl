@@ -1,7 +1,7 @@
 
 using MolecularGraph:
     querypropmap, generate_queryfunc, querymatch, optimize_query,
-    specialize_nonaromatic!, remove_hydrogens!
+    fragment!,specialize_nonaromatic!, remove_hydrogens!
 
 @testset "model.query" begin
 
@@ -122,32 +122,6 @@ end
     # global_logger(default_logger)
 end
 
-@testset "pains" begin
-    narom = QueryOperator(:not, [QueryLiteral(:isaromatic)])
-    pains1 = smartstomol("n1(-[#6])c(c(-[#1])c(c1-[#6]=[#7]-[#7])-[#1])-[#1]")  # hzone_pyrrol(64)
-    specialize_nonaromatic!(pains1)
-    @test get_prop(pains1, 2, :tree) == QueryLiteral(:symbol, :C)  # -[#6] still can be aromatic
-    @test get_prop(pains1, 5, :tree) == QueryLiteral(:symbol, :H)  # non-aromatic symbols are not affected
-    @test get_prop(pains1, 8, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :C), narom])
-    @test get_prop(pains1, 9, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :N), narom])
-    @test get_prop(pains1, 10, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :N), narom])
-    remove_hydrogens!(pains1)
-    @test nv(pains1) == 9
-    @test degree(pains1, 3) == 2
-    @test degree(pains1, 4) == 2
-    @test degree(pains1, 6) == 2
-
-    pains2 = smartstomol("[!#6&!#1]=[#6]1[#6]=,:[#6][#6](=[!#6&!#1])[#6]=,:[#6]1")  # quinone_A(370)
-    specialize_nonaromatic!(pains2)
-    remove_hydrogens!(pains2)
-    @test get_prop(pains2, 1, :tree) == QueryOperator(:and, [
-        QueryOperator(:not, [QueryLiteral(:symbol, :C)]), QueryAny(true)])
-    @test get_prop(pains2, 2, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :C), narom])
-    @test get_prop(pains2, 4, :tree) == QueryLiteral(:symbol, :C)
-    @test get_prop(pains2, 6, :tree) == QueryOperator(:and, [
-        QueryOperator(:not, [QueryLiteral(:symbol, :C)]), QueryAny(true)])
-end
-
 @testset "optimize" begin
     # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
     c1 = QueryOperator(:and, [QueryLiteral(:symbol, :C), QueryAny(true)])
@@ -170,6 +144,32 @@ end
         QueryLiteral(:isaromatic)
     ])
     # global_logger(default_logger)
+end
+
+@testset "pains" begin
+    narom = QueryOperator(:not, [QueryLiteral(:isaromatic)])
+    state = SMARTSParser{MolGraph{Int,QueryTree,QueryTree}}(
+        "n1(-[#6])c(c(-[#1])c(c1-[#6]=[#7]-[#7])-[#1])-[#1]")  # hzone_pyrrol(64)
+    fragment!(state)
+    pains1 = MolGraph{Int,QueryTree,QueryTree}(
+        state.edges, state.vprops, state.eprops, Dict(:connectivity => state.connectivity))
+    specialize_nonaromatic!(pains1)
+    @test get_prop(pains1, 2, :tree) == QueryLiteral(:symbol, :C)  # -[#6] still can be aromatic
+    @test get_prop(pains1, 5, :tree) == QueryLiteral(:symbol, :H)  # non-aromatic symbols are not affected
+    @test get_prop(pains1, 8, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :C), narom])
+    @test get_prop(pains1, 9, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :N), narom])
+    @test get_prop(pains1, 10, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :N), narom])
+    remove_hydrogens!(pains1)
+    @test nv(pains1) == 9
+    @test degree(pains1, 3) == 2
+    @test degree(pains1, 4) == 2
+    @test degree(pains1, 6) == 2
+
+    pains2 = smartstomol("[!#6&!#1]=[#6]1[#6]=,:[#6][#6](=[!#6&!#1])[#6]=,:[#6]1")  # quinone_A(370)
+    @test get_prop(pains2, 1, :tree) == QueryOperator(:not, [QueryLiteral(:symbol, :C)])
+    @test get_prop(pains2, 2, :tree) == QueryOperator(:and, [QueryLiteral(:symbol, :C), narom])
+    @test get_prop(pains2, 4, :tree) == QueryLiteral(:symbol, :C)
+    @test get_prop(pains2, 6, :tree) == QueryOperator(:not, [QueryLiteral(:symbol, :C)])
 end
 
 end # model.query

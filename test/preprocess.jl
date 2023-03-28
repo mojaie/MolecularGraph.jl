@@ -4,26 +4,25 @@
 
 @testset "kekulize" begin
     null = smilestomol("")
-    @test isempty(kekulize(null))
+    @test isempty(bond_order(null))
 
     furan = smilestomol("o1cccc1")
-    @test sum(kekulize(furan)) == 7
+    @test sum(bond_order(furan)) == 7
 
     pyrrole = smilestomol("[nH]1cccc1")
-    @test sum(kekulize(pyrrole)) == 8
-    wrongpyrrole = smilestomol("n1cccc1")
-    @test_throws ErrorException kekulize(wrongpyrrole)
+    @test sum(bond_order(pyrrole)) == 8
+    @test_throws ErrorException smilestomol("n1cccc1")  # Wrong pyrrole
 
     pyrene = smilestomol("c1cc2cccc3ccc4cccc1c4c32")
-    p = kekulize(pyrene)
+    p = bond_order(pyrene)
     @test sum(p .== 1) == 11
     @test sum(p .== 2) == 8
     
     pyridineoxide = smilestomol("[n+]1([O-])ccccc1")
-    @test sum(kekulize(pyridineoxide) .== 2) == 3
+    @test sum(bond_order(pyridineoxide) .== 2) == 3
 
     c60 = smilestomol("c12c3c4c5c1c6c7c8c2c9c1c3c2c3c4c4c%10c5c5c6c6c7c7c%11c8c9c8c9c1c2c1c2c3c4c3c4c%10c5c5c6c6c7c7c%11c8c8c9c1c1c2c3c2c4c5c6c3c7c8c1c23")
-    @test sum(kekulize(c60) .== 2) == 30
+    @test sum(bond_order(c60) .== 2) == 30
 end
 
 @testset "all_hydrogens" begin
@@ -99,7 +98,7 @@ end
     @test carr[[1, 2]] == [-1, 1]
     @test oarr[1] == 1
 
-    noxide = smilestomol("[n]1(=O)ccccc1")
+    noxide = smilestomol("[n]1(=O)ccccc1")  # incorrect n-oxide but valid
     carr, oarr = depolarize(noxide)
     @test carr[[1, 2]] == [0, 0]
     @test oarr[1] == 2

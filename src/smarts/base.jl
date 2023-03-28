@@ -58,13 +58,18 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. OpenSMILES Specification http://opensmiles.org/spec/open-smiles.html
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
-function smilestomol(::Type{T}, smiles::AbstractString) where T <: AbstractMolGraph
+function smilestomol(::Type{T}, smiles::AbstractString;
+        kekulize=true, stereo=true) where T <: AbstractMolGraph
     state = SMILESParser{T}(smiles)
     fragment!(state)
-    return T(state.edges, state.vprops, state.eprops)
+    mol = T(state.edges, state.vprops, state.eprops)
+    kekulize && kekulize!(mol)
+    stereo && (stereocenter_from_smiles!(mol); stereobond_from_smiles!(mol))
+    return mol
 end
 
-smilestomol(smiles::AbstractString) = smilestomol(MolGraph{Int,SMILESAtom,SMILESBond}, smiles)
+smilestomol(smiles::AbstractString; kwargs...
+    ) = smilestomol(MolGraph{Int,SMILESAtom,SMILESBond}, smiles; kwargs...)
 
 
 """
@@ -77,11 +82,13 @@ function smartstomol(::Type{T}, smarts::AbstractString) where T <: AbstractMolGr
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
     mol = T(
         state.edges, state.vprops, state.eprops, Dict(:connectivity => state.connectivity))
-    # setcache!(mol, :minimumcyclebasisnodes)
-    # resolvedefaultbond!(mol)
-    # mol = inferaromaticity(removehydrogens(mol))
-    # kekulize && kekulize!(mol)
-    # setdiastereo && setdiastereo!(mol)
+    if vproptype(mol) <: QueryTree  # vproptype(mol) can be QueryTruthTable for testing
+        specialize_nonaromatic!(mol)  # TODO: may be special case for PAINS
+        remove_hydrogens!(mol)  # TODO: may be special case for PAINS
+        for i in vertices(mol)
+            set_prop!(mol, i, QueryTree(optimize_query(get_prop(mol, i, :tree))))
+        end
+    end
     return mol
 end
 

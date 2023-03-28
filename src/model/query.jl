@@ -181,7 +181,7 @@ Convert `[#atomnumber]` queries connected to explicit single bonds to be non-aro
 Should be applied before `remove_hydrogens!`.
 This function is intended for generalization of PAINS query in PubChem dataset.
 """
-function specialize_nonaromatic!(q::SimpleMolGraph{T,V,E}) where {T,V,E}
+function specialize_nonaromatic!(q::SimpleMolGraph{T,V,E}) where {T,V<:QueryTree,E<:QueryTree}
     aromsyms = Set([:B, :C, :N, :O, :P, :S, :As, :Se])
     exqs = Set(QueryOperator(:and, [
         QueryLiteral(:order, i),
@@ -273,7 +273,7 @@ Return optimized query.
 """
 function optimize_query(tree)
     tree isa QueryOperator || return tree
-    # Remove `:and` under `:not` by applying De Morgan's law (only the cases like [!C])
+    # Remove `:and` under `:not`
     if tree.key === :not
         cld = tree.value[1]
         if cld.key === :and
@@ -296,13 +296,4 @@ function optimize_query(tree)
     isempty(clds) && return QueryAny(tree.key === :and)
     length(clds) == 1 && return clds[1]
     return QueryOperator(tree.key, clds)
-end
-
-
-function optimize_query!(q::SimpleMolGraph)
-    specialize_nonaromatic!(q)
-    remove_hydrogens!(q)
-    for i in vertices(q)
-        set_prop!(q, i, optimize_query(p.tree))
-    end
 end

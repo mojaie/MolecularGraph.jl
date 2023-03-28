@@ -32,14 +32,21 @@ Kekulization is necessary for molecules parsed from SMILES. If not kekulized, so
 """
 function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     nodes = T[]
+    bondorder = getproperty.(eprops(mol), :order)  # use unmodified primary property
     for i in vertices(mol)
         get_prop(mol, i, :isaromatic) === nothing && continue
         get_prop(mol, i, :isaromatic) || continue
-        if get_prop(mol, i, :symbol) === :C
+        sym = get_prop(mol, i, :symbol)
+        deg = degree(mol.graph, i)
+        if sym === :C
             push!(nodes, i)
-        elseif get_prop(mol, i, :symbol) in (:N, :P, :As)
-            if (degree(mol.graph, i) == 2 ||
-                    (degree(mol.graph, i) == 3 && get_prop(mol, i, :charge) == 1))
+        elseif sym in (:N, :P, :As)
+            deg in (2, 3) || error(
+                "Kekulization failed: invalid aromatic $(sym) with valence $(deg)")
+            if deg == 2 || ( # pyridyl
+                        get_prop(mol, i, :charge) == 1  # [n+][O-]
+                        || any(bondorder[edge_rank(mol, i, nbr)] == 2 for nbr in neighbors(mol, i))  # n=O
+                    )
                 push!(nodes, i)
             end
         end
@@ -48,12 +55,10 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     matching = max_matching(subg)
     is_perfect_matching(subg, matching) || error(
         "Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])")
-    arr = getproperty.(eprops(mol), :order)
     for e in matching
-        ge = undirectededge(T, vmap[src(e)], vmap[dst(e)])
-        arr[edge_rank(mol, ge)] = 2
+        bondorder[edge_rank(mol, vmap[src(e)], vmap[dst(e)])] = 2
     end
-    return arr
+    return bondorder
 end
 kekulize!(mol::MolGraph) = set_prop!(mol, :e_order, kekulize(mol))
 
