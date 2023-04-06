@@ -93,7 +93,7 @@ function mincyclebasis(g::SimpleGraph{T}) where T
         N = length(S)  # N: circuit rank
         for k in 1:N
             p = findmincycle(subg, S[k])
-            push!(cycles, p)  # TODO: apply vmap
+            push!(cycles, vmap[p])
             minedges = [undirectededge(T, p[i], p[i + 1]) for i in 1:(length(p) - 1)]
             for i in (k + 1):N
                 if length(intersect(S[i], minedges)) % 2 == 1
