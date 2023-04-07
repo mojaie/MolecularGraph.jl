@@ -23,7 +23,7 @@ function is_atom_visible(mol::SimpleMolGraph; show_terminal_carbon=false, kwargs
     sym_ = atom_symbol(mol)
     chg_ = charge(mol)
     mul_ = multiplicity(mol)
-    mas_ = getproperty.(vprops(mol), :mass)
+    mas_ = [get_prop(mol, i, :mass) for i in vertices(mol)]
     bondorder_ = bond_order(mol)
     for i in vertices(mol)
         sym_[i] === :C || continue
@@ -102,10 +102,11 @@ end
 
 function single_bond_style(mol::SimpleMolGraph)
     # can be precalculated by coordgen
-    has_prop(mol, :e_single_bond_style) && return get_prop(mol, :e_single_bond_style)
+    has_state(mol, :e_single_bond_style) && return get_state(mol, :e_single_bond_style)
     bondorder = bond_order(mol)
-    bondnotation = getproperty.(eprops(mol), :notation)
-    isordered = getproperty.(eprops(mol), :isordered)
+    
+    bondnotation = [get_prop(mol, e, :notation) for e in edges(mol)]
+    isordered = [get_prop(mol, e, :isordered) for e in edges(mol)]
     arr = init_edge_descriptor(Symbol, mol)
     for (i, e) in enumerate(edges(mol))
         if bondorder[i] != 1
@@ -165,7 +166,7 @@ Draw molecular image to the canvas.
 """
 function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     # get coords
-    if !hasfield(vproptype(mol), :coords) && !has_prop(mol, :v_coords2d)  # default SMILESAtom
+    if !hasfield(vproptype(mol), :coords) && !has_state(mol, :v_coords2d)  # default SMILESAtom
         crds, sb_style = coordgen(mol)
     else  # SDFAtom or has coordgen! precache
         crds = coords2d(mol)

@@ -11,7 +11,7 @@
 
     atoms = [SDFAtom(),SDFAtom(),SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond(),SDFBond(),SDFBond()]
-    molstar = MolGraph(star_graph(5), atoms, bonds)
+    molstar = MolGraph(collect(edges(star_graph(5))), atoms, bonds)
     @test nv(molstar) == 5
     @test ne(molstar) == 4
     @test nv(zero(molstar)) == 0
@@ -56,9 +56,9 @@ end
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, Dict(:hoge => 2))
     @test get_prop(mol, 3, 2, :order) == 1
     @test edge_rank(mol, 2, 3) == 2
-    @test set_descriptor!(mol, :test, collect(1:3)) == collect(1:3)
-    @test has_descriptor(mol, :test)
-    @test get_descriptor(mol, :test) == collect(1:3)
+    @test set_state!(mol, :test, collect(1:3)) == collect(1:3)
+    @test has_state(mol, :test)
+    @test get_state(mol, :test) == collect(1:3)
 end
 
 @testset "modification" begin
@@ -72,11 +72,11 @@ end
     @test add_edge!(mol, Edge(3, 4), SDFBond())  # CCCO
     @test degree(mol.graph, 3) == 2
     @test get_prop(mol, Edge(3, 4), :order) == 1
-    @test length(mol.edge_rank) == 3
+    # @test length(mol.edge_rank) == 3    move to properties
     add_edge!(mol, Edge(1, 4), SDFBond())  # C1CCO1
     @test rem_edge!(mol, Edge(3, 4))  # C1CC.O1
     @test degree(mol.graph, 3) == 1
-    @test length(mol.edge_rank) == 3
+    # @test length(mol.edge_rank) == 3    move to properties
     @test add_edge!(mol, 4, 3, SDFBond())  # C1CCO1
     @test rem_vertex!(mol, 2)  # COC
     @test degree(mol.graph, 1) == 1
@@ -84,21 +84,25 @@ end
     @test degree(mol.graph, 3) == 1
     @test length(mol.edge_rank) == 2
 
-    mol = MolGraph(smallgraph(:dodecahedral), collect(1:20), collect(1:30))  # MolGraph{Int,Int,Int}
-    @test rem_edges!(mol, Edge.([(1, 2), (1, 20), (11, 12), (19, 20)]))
+    mol = MolGraph(collect(edges(smallgraph(:dodecahedral))), collect(1:20), collect(1:30))  # MolGraph{Int,Int,Int}
+    for e in Edge.([(1, 2), (1, 20), (11, 12), (19, 20)])
+        rem_edge!(mol, e)
+    end
     @test isempty(intersect(mol.eprops, [1, 3, 20, 30]))
-    add_edges!(mol, Edge.([(1, 2), (1, 20), (11, 12), (19, 20)]), [1, 3, 20, 30])
-    @test mol.eprops == collect(1:30)
+    for (e, p) in zip(Edge.([(1, 2), (1, 20), (11, 12), (19, 20)]), [1, 3, 20, 30])
+        add_edge!(mol, e, p)
+    end
+    @test issetequal(values(mol.eprops), collect(1:30))
     vmap = rem_vertices!(mol, [1, 3, 5, 7, 9])
     @test ne(mol) == 16
-    @test vmap == mol.vprops
-    mol = MolGraph(smallgraph(:dodecahedral), collect(1:20), collect(1:30))
+    @test issetequal(vmap, values(mol.vprops))
+    mol = MolGraph(collect(edges(smallgraph(:dodecahedral))), collect(1:20), collect(1:30))
     subg, vmap = induced_subgraph(mol, [6, 7, 8, 15, 16])
     @test ne(subg) == 5
-    @test vmap == subg.vprops
+    @test issetequal(vmap, values(subg.vprops))
     subg, vmap = induced_subgraph(mol, Edge.([(1, 2), (1, 11), (1, 20), (4, 20), (19, 20)]))
     @test nv(subg) == 6
-    @test sum(subg.eprops) == 45  # edge_rank 1,2,3,9,30
+    @test sum(values(subg.eprops)) == 45  # edge_rank 1,2,3,9,30
 end
 
 @testset "serialization" begin

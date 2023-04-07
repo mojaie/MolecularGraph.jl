@@ -38,7 +38,7 @@ function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
         :symbol => atom_symbol(mol1),
         :isaromatic => is_aromatic(mol1),
         :charge => charge(mol1),
-        :mass => getproperty.(vprops(mol1), :mass),
+        :mass => [get_prop(mol1, i, :mass) for i in vertices(mol1)],
         :connectivity => connectivity(mol1),
         :degree => degree(mol1),
         :valence => valence(mol1),

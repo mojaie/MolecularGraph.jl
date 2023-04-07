@@ -10,7 +10,7 @@ using coordgenlibs_jll
 
 
 function coords2d(mol::SimpleMolGraph)
-    has_prop(mol, :v_coords2d) && return get_prop(mol, :v_coords2d)
+    has_state(mol, :v_coords2d) && return get_state(mol, :v_coords2d)
     coords = zeros(Float64, nv(mol), 2)
     # TODO: if coords not available, throw error and suggest to use coordgen
     for i in vertices(mol)
@@ -21,7 +21,7 @@ end
 
 
 function coords3d(mol::SimpleMolGraph)
-    has_prop(mol, :v_coords3d) && return get_prop(mol, :v_coords3d)
+    has_state(mol, :v_coords3d) && return get_state(mol, :v_coords3d)
     coords = zeros(Float64, nv(mol), 3)
     # TODO: if coords not available, throw error and suggest to use coordgen
     for i in vertices(mol)
@@ -134,7 +134,7 @@ end
 
 function coordgen!(mol::MolGraph)
     coords, styles = coordgen(mol)
-    set_prop!(mol, :v_coords2d, coords)
-    set_prop!(mol, :e_single_bond_style, styles)
+    set_state!(mol, :v_coords2d, coords)
+    set_state!(mol, :e_single_bond_style, styles)
     return
 end

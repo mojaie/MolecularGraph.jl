@@ -20,8 +20,7 @@ export
     vproptype, eproptype,
     props, vprops, eprops,
     get_prop, has_prop,
-    add_edges!, rem_edges!,
-    descriptors, set_descriptor!, has_descriptor, get_descriptor,
+    set_state!, has_state, get_state,
     init_node_descriptor, init_edge_descriptor,
     set_prop!,
     edge_neighbors, ordered_edge_neighbors
@@ -90,23 +89,21 @@ vproptype(::Type{<:SimpleMolGraph{T,V,E}}) where {T,V,E} = V
 vproptype(mol::T) where T<:SimpleMolGraph = vproptype(T)
 eproptype(::Type{<:SimpleMolGraph{T,V,E}}) where {T,V,E} = E
 eproptype(mol::T) where T<:SimpleMolGraph = eproptype(T)
-vprops(mol::SimpleMolGraph) = mol.vprops
-eprops(mol::SimpleMolGraph) = mol.eprops
-props(mol::SimpleMolGraph) = mol.gprops
-props(mol::SimpleMolGraph, v::Integer) = vprops(mol)[v]
-props(mol::SimpleMolGraph, e::Edge) = eprops(mol)[edge_rank(mol, e)]
+vprops(mol::SimpleMolGraph) = mol.vprops  # TODO: necessary?
+eprops(mol::SimpleMolGraph) = mol.eprops  # TODO: necessary?
+props(mol::SimpleMolGraph) = mol.gprops  # TODO: necessary?
+props(mol::SimpleMolGraph, v::Integer) = mol.vprops[v]
+props(mol::SimpleMolGraph, e::Edge) = mol.eprops[e]
 props(mol::SimpleMolGraph, u::Integer, v::Integer) = props(mol, undirectededge(mol, u, v))
-get_prop(mol::SimpleMolGraph, prop::Symbol) = props(mol)[prop]
+get_prop(mol::SimpleMolGraph, prop::Symbol) = mol.gprops[prop]
 # get_prop(mol::SimpleMolGraph, prop::Symbol, default) = get(props(mol), prop, default)
 get_prop(mol::SimpleMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
 get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
 get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
-has_prop(mol::SimpleMolGraph, prop::Symbol) = haskey(props(mol), prop)
+has_prop(mol::SimpleMolGraph, prop::Symbol) = haskey(mol.gprops, prop)
+edge_rank(mol::SimpleMolGraph, e::Edge) = mol.edge_rank[e]
 edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, undirectededge(mol, u, v))
 
-
-add_edges!(mol::SimpleMolGraph, elist, plist) = add_u_edges!(mol,
-    [undirectededge(mol, src(e), dst(e)) for e in elist], plist)
 
 function set_prop!(mol::SimpleMolGraph{T,V,E}, v::T, value::V) where {T,V,E}
     mol.vprops[v] = value

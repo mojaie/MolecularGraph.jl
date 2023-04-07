@@ -18,10 +18,11 @@ function molecular_mass_unc(mol::MolGraph, massfunc)
     mass = 0.0
     unc = 0.0
     hm, hu = massfunc(:H)
-    for (v, hcnt) in zip(mol.vprops, implicit_hydrogens(mol))
-        m, u = massfunc(v)
-        mass += m + hm * hcnt
-        unc += u + hu * hcnt
+    imp_hs = implicit_hydrogens(mol)
+    for i in vertices(mol)
+        m, u = massfunc(props(mol, i))
+        mass += m + hm * imp_hs[i]
+        unc += u + hu * imp_hs[i]
     end
     return (mass, unc)
 end

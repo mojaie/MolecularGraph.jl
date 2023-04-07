@@ -46,6 +46,18 @@ SMARTSParser{T}(smarts
         smarts, 1, false, 0, 1, 1, Dict(), Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[], [])
 
 
+function smiles_on_update!(mol)
+    kekulize!(mol)
+    coordgen!(mol)
+    # recalculate bottleneck descriptors
+    sssr!(mol)
+    lone_pair!(mol)
+    apparent_valence!(mol)
+    valence!(mol)
+    is_ring_aromatic!(mol)
+end
+
+
 """
     smilestomol(smiles::AbstractString) -> GraphMol{SmilesAtom,SmilesBond}
 
@@ -58,13 +70,13 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. OpenSMILES Specification http://opensmiles.org/spec/open-smiles.html
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
-function smilestomol(::Type{T}, smiles::AbstractString;
-        kekulize=true, stereo=true) where T <: AbstractMolGraph
+function smilestomol(::Type{T}, smiles::AbstractString) where T <: AbstractMolGraph
     state = SMILESParser{T}(smiles)
     fragment!(state)
-    mol = T(state.edges, state.vprops, state.eprops)
-    kekulize && kekulize!(mol)
-    stereo && (stereocenter_from_smiles!(mol); stereobond_from_smiles!(mol))
+    mol = T(state.edges, state.vprops, state.eprops, Dict(), Dict(:on_update => smiles_on_update!))
+    stereocenter_from_smiles!(mol)
+    stereobond_from_smiles!(mol)
+    dispatch!(mol, :on_update)
     return mol
 end
 

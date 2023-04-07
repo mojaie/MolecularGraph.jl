@@ -103,6 +103,16 @@ function ctab_props_v2(io::IO)
 end
 
 
+function sdf_on_update!(mol)
+    # recalculate bottleneck descriptors
+    sssr!(mol)
+    lone_pair!(mol)
+    apparent_valence!(mol)
+    valence!(mol)
+    is_ring_aromatic!(mol)
+end
+
+
 function parse_ctab(::Type{T}, io::IO) where T <: AbstractMolGraph
     line1 = readline(io)  # name line, not implemented
     if startswith(line1, "M  V30")  # v3 no header (rxnfile)
@@ -178,7 +188,7 @@ function parse_ctab(::Type{T}, io::IO) where T <: AbstractMolGraph
         readuntil(io, ctab_only ? "M  V30 END CTAB\n" : "M  END\n")
     end
 
-    return T(edges, vprops, eprops)
+    return T(edges, vprops, eprops, Dict(), Dict(:on_update => sdf_on_update!))
 end
 
 

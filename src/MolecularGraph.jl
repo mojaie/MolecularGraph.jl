@@ -28,7 +28,7 @@ module MolecularGraph
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
-    include("./model/molgraphgen.jl")
+    # include("./model/molgraphgen.jl")
     include("./model/query.jl")
 
     include("./graph/operators.jl")

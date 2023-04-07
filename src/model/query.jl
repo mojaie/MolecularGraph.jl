@@ -67,9 +67,9 @@ end
 Base.getindex(a::QueryTree, prop::Symbol) = getproperty(a, prop)
 
 
-# MolGraphGen type aliases
+# MolGraph type aliases
 
-const SMARTSMolGraph = MolGraphGen{Int,QueryTree,QueryTree}
+const SMARTSMolGraph = MolGraph{Int,QueryTree,QueryTree}
 
 
 """
