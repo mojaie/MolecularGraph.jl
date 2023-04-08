@@ -60,7 +60,7 @@ function group!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}, bond) whe
         state.node += 1
         push!(state.vprops, h)
         push!(state.edges, undirectededge(T, center, state.node))
-        push!(state.eprops, E())
+        push!(state.eprops, defaultbond(state))
     end
     state.branch = center
     while true
@@ -162,7 +162,7 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
             # hydrogens
             state.node += 1
             push!(state.edges, undirectededge(T, center, state.node))
-            push!(state.eprops, E())
+            push!(state.eprops, defaultbond(state))
             push!(state.vprops, h)
         end
         u = center

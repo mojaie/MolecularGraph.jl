@@ -161,7 +161,7 @@ function smiles_dict(tree)
     elseif tree.key === :not  # -> :not is only for aromatic in SMILES
         d = only(smiles_dict(tree.value[1]))
         return Dict{Symbol,Any}(d.first => ~d.second)
-    else
+    else  # :and
         d = Dict{Symbol,Any}()
         for q in tree.value
             merge!(d, smiles_dict(q))

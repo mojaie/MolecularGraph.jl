@@ -34,7 +34,12 @@ const SMARTS_BOND_SYMBOL = Dict(
 )
 
 
-defaultbond(state::SMILESParser{T,V,E}) where {T,V,E} = E()
+defaultbond(state::SMILESParser{T,V,E}) where {T,V,E} = E(
+    Dict(
+        :order => 1,
+        :isaromatic => false,
+        :direction => :unspecified
+    ))
 defaultbond(state::SMARTSParser{T,V,E}
     ) where {T,V,E} = E(QueryOperator(:or, [
         QueryOperator(:and, [
@@ -76,7 +81,14 @@ Bond <- BondSymbol?
 function bond!(state::SMILESParser{T,V,E}) where {T,V,E}
     q = bondsymbol!(state)
     q === nothing && return
-    return E(smiles_dict(q))
+    qd = smiles_dict(q)
+    default_qd = Dict(
+        :order => 1,
+        :isaromatic => false,
+        :direction => :unspecified
+    )
+    merge!(default_qd, qd)
+    return E(default_qd)
 end
 
 
