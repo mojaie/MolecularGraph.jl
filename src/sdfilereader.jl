@@ -104,6 +104,8 @@ end
 
 
 function sdf_on_update!(mol)
+    update_edge_rank!(mol)
+    mol.state[:has_updates] = false
     # recalculate bottleneck descriptors
     sssr!(mol)
     lone_pair!(mol)

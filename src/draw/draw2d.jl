@@ -165,6 +165,7 @@ atomhtml(
 Draw molecular image to the canvas.
 """
 function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
+    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
     # get coords
     if !hasfield(vproptype(mol), :coords) && !has_state(mol, :v_coords2d)  # default SMILESAtom
         crds, sb_style = coordgen(mol)

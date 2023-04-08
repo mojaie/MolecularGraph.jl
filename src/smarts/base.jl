@@ -47,6 +47,8 @@ SMARTSParser{T}(smarts
 
 
 function smiles_on_update!(mol)
+    update_edge_rank!(mol)
+    mol.state[:has_updates] = false
     kekulize!(mol)
     coordgen!(mol)
     # recalculate bottleneck descriptors

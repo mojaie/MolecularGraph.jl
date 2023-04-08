@@ -34,7 +34,7 @@ function MolGraph{T,V,E}(g::SimpleGraph,
     end
     default_config = Dict(
         :has_updates => false,
-        :on_update => mol -> update_edge_rank!(mol)
+        :on_update => mol -> (update_edge_rank!(mol); mol.state[:has_updates] = false)
     )
     merge!(default_config, config_map)
     mol = MolGraph{T,V,E}(g, vprop_map, eprop_map, gprop_map, default_config, er)
@@ -127,10 +127,6 @@ function update_edge_rank!(mol::MolGraph)
     end
 end
 
-function default_dispatch(mol)
-    update_edge_rank!(mol)
-end
-
 
 function add_u_edge!(mol::MolGraph{T,V,E}, e::Edge, prop::E) where {T,V,E}
     # Can be directly called if src < dst is guaranteed.
@@ -144,6 +140,7 @@ end
 function add_vertex!(mol::MolGraph{T,V,E}, prop::V) where {T,V,E}
     add_vertex!(mol.graph) || return false
     mol.vprops[nv(mol.graph)] = prop
+    mol.state[:has_updates] = true
     return true
 end
 
@@ -152,18 +149,24 @@ function rem_u_edge!(mol::MolGraph, e::Edge)
     # Can be directly called if src < dst is guaranteed.
     rem_edge!(mol.graph, e) || return false
     delete!(mol.eprops, e)
+    mol.state[:has_updates] = true
     return true
 end
 
 
 function rem_vertex!(mol::MolGraph, v::Integer)
-    nv(mol) < v && return false
-    for nbr in neighbors(mol, v)
-        rem_edge!(mol, v, nbr)
+    nv_ = nv(mol)
+    edges_ = collect(edges(mol))
+    rem_vertex!(mol.graph, v) || return false
+    # last index node is re-indexed to the removed node
+    mol.vprops[v] = mol.vprops[nv_]
+    delete!(mol.vprops, nv_)
+    for e in edges_
+        (src(e) == v || dst(e) == v) && delete!(mol.eprops, e)
+        src(e) == nv_ && (mol.eprops[undirectededge(mol, v, dst(e))] = mol.eprops[e]; delete!(mol.eprops, e))
+        dst(e) == nv_ && (mol.eprops[undirectededge(mol, src(e), v)] = mol.eprops[e]; delete!(mol.eprops, e))
     end
-    rem_vertex!(mol.graph, v)
-    mol.vprops[v] = mol.vprops[nv(mol)]
-    delete!(mol.vprops, nv(mol))
+    mol.state[:has_updates] = true
     return true
 end
 
@@ -182,7 +185,7 @@ function rem_vertices!(mol::MolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
         mol.eprops[e] = mol.eprops[_e]
         delete!(mol.eprops, _e)
     end
-    # TODO: stereochemistry
+    mol.state[:has_updates] = true
     return vmap
 end
 
