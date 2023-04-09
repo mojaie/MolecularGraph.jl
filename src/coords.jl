@@ -43,10 +43,8 @@ where n is atom count, which stores 2D coordinates (x, y) of each atoms.
 function coordgen(mol::SimpleMolGraph)
     # properties and descriptors
     bondorder_ = bond_order(mol)
-    stereocenters = (has_prop(mol, :stereocenter) ? get_prop(mol, :stereocenter) : 
-        (hasfield(vproptype(mol), :stereo) ? stereocenter_from_smiles(mol) : stereocenter_from_sdf2d(mol)))
-    stereobonds = (has_prop(mol, :stereobond) ? get_prop(mol, :stereobond) : 
-        (hasfield(vproptype(mol), :stereo) ? stereobond_from_smiles(mol) : stereobond_from_sdf2d(mol)))
+    stereocenters = get_prop(mol, :stereocenter)
+    stereobonds = get_prop(mol, :stereobond)
 
     minmol = ccall((:getSketcherMinimizer, libcoordgen), Ptr{Cvoid}, ())
     atoms = Ptr{Cvoid}[]
