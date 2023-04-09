@@ -284,8 +284,7 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractMolGr
             throw(e)
         end
     end
-    op = parse_options(reader.io)
-    merge!(mol.gprops, op)
+    mol.gprops[:metadata] = parse_options(reader.io)
     return (mol, state + 1)
 end
 
@@ -320,8 +319,7 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractReact
         end
     end
     rxn === nothing && error("Invalid token: $(fmt_line)")
-    op = parse_rdf_options(reader.io)
-    merge!(rxn.rprops, op)
+    rxn.rprops[:metadata] = parse_rdf_options(reader.io)
     return (rxn, state + 1)
 end
 

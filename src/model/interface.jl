@@ -19,7 +19,7 @@ export
     ordered_neighbors, undirectededge, edge_rank,
     vproptype, eproptype,
     props, vprops, eprops,
-    get_prop, has_prop,
+    get_prop, has_prop, metadata,
     set_state!, has_state, get_state,
     init_node_descriptor, init_edge_descriptor,
     set_prop!,
@@ -101,9 +101,9 @@ get_prop(mol::SimpleMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
 get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
 get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
 has_prop(mol::SimpleMolGraph, prop::Symbol) = haskey(mol.gprops, prop)
+metadata(mol::SimpleMolGraph) = mol.gprops[:metadata]
 edge_rank(mol::SimpleMolGraph, e::Edge) = mol.edge_rank[e]
 edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, undirectededge(mol, u, v))
-
 
 function set_prop!(mol::SimpleMolGraph{T,V,E}, v::T, value::V) where {T,V,E}
     mol.vprops[v] = value
