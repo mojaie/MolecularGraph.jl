@@ -117,7 +117,7 @@ function sdf_on_update!(mol)
 end
 
 
-function parse_ctab(::Type{T}, io::IO) where T <: AbstractMolGraph
+function parse_ctab(::Type{T}, io::IO, updater) where T <: AbstractMolGraph
     line1 = readline(io)  # name line, not implemented
     if startswith(line1, "M  V30")  # v3 no header (rxnfile)
         startswith(line1, "M  V30 BEGIN CTAB") || readuntil(io, "M  V30 BEGIN CTAB\n")  # skip END tags
@@ -192,11 +192,11 @@ function parse_ctab(::Type{T}, io::IO) where T <: AbstractMolGraph
         readuntil(io, ctab_only ? "M  V30 END CTAB\n" : "M  END\n")
     end
 
-    return T(edges, vprops, eprops, Dict(), Dict(:on_update => sdf_on_update!))
+    return T(edges, vprops, eprops, Dict(), Dict(:on_update => updater))
 end
 
 
-function parse_rxn(::Type{T}, io::IO) where T <: AbstractReaction
+function parse_rxn(::Type{T}, io::IO, updater) where T <: AbstractReaction
     line1 = readline(io)  # $RXN
     startswith(line1, "\$RXN") || error("\$RXN token not found")
     ver = line1 == "\$RXN V3000" ? :v3 : :v2
@@ -217,11 +217,11 @@ function parse_rxn(::Type{T}, io::IO) where T <: AbstractReaction
     end
     for _ in 1:rcount
         ver === :v2 && readuntil(io, "\$MOL\n")
-        push!(rxn.reactants, parse_ctab(eltype(T), io))
+        push!(rxn.reactants, parse_ctab(eltype(T), io, updater))
     end
     for _ in 1:pcount
         ver === :v2 && readuntil(io, "\$MOL\n")
-        push!(rxn.products, parse_ctab(eltype(T), io))
+        push!(rxn.products, parse_ctab(eltype(T), io, updater))
     end
     ver === :v3 && readuntil(io, "M  END\n")
     return rxn
@@ -266,6 +266,7 @@ end
 struct SDFileReader{T}
     io::IO
     unsupported::Symbol  # :error, :log, :ignore
+    updater::Function
 end
 
 Base.IteratorSize(::Type{SDFileReader{T}}) where T = Base.SizeUnknown()
@@ -274,7 +275,7 @@ Base.IteratorEltype(::Type{SDFileReader{T}}) where T = Base.EltypeUnknown()
 function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractMolGraph
     eof(reader.io) && return nothing
     mol = try
-        parse_ctab(T, reader.io)
+        parse_ctab(T, reader.io, reader.updater)
     catch e
         reader.unsupported === :error && throw(e)
         if e isa ErrorException  # Compatibility error
@@ -301,13 +302,13 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractReact
     rxn = try
         if startswith(fmt_line, "\$MFMT")
             unmark(reader.io)
-            parse_ctab(T, reader.io)
+            parse_ctab(T, reader.io, reader.updater)
         elseif startswith(fmt_line, "\$RFMT")
             unmark(reader.io)
-            parse_rxn(T, reader.io)
+            parse_rxn(T, reader.io, reader.updater)
         elseif startswith(fmt_line, "\$RXN")  # .rxn
             reset(reader.io)
-            parse_rxn(T, reader.io)
+            parse_rxn(T, reader.io, reader.updater)
         end
     catch e
         reader.unsupported === :error && throw(e)
@@ -337,15 +338,15 @@ If this behavior is not desirable, you can use the customized supplier function
 instead of default supplier `nohaltsupplier`
 
 """
-sdfilereader(::Type{T}, file::IO; unsupported=:log
-    ) where T <: AbstractMolGraph = SDFileReader{T}(file, unsupported)
+sdfilereader(::Type{T}, file::IO; unsupported=:log, updater=sdf_on_update!
+    ) where T <: AbstractMolGraph = SDFileReader{T}(file, unsupported, updater)
 sdfilereader(file::IO; kwargs...) = sdfilereader(SDFMolGraph, file; kwargs...)
 sdfilereader(::Type{T}, path::AbstractString; kwargs...
     ) where T <: AbstractMolGraph = sdfilereader(T, open(path); kwargs...)
 sdfilereader(path::AbstractString; kwargs...) = sdfilereader(SDFMolGraph, open(path); kwargs...)
 
-rdfilereader(::Type{T}, file::IO; unsupported=:log
-    ) where T <: AbstractReaction = SDFileReader{T}(file, unsupported)
+rdfilereader(::Type{T}, file::IO; unsupported=:log, updater=sdf_on_update!
+    ) where T <: AbstractReaction = SDFileReader{T}(file, unsupported, updater)
 rdfilereader(file::IO; kwargs...) = rdfilereader(Reaction{SDFMolGraph}, file; kwargs...)
 rdfilereader(::Type{T}, path::AbstractString; kwargs...
     ) where T <: AbstractReaction = rdfilereader(T, open(path); kwargs...)
@@ -361,11 +362,11 @@ rdfilereader(path::AbstractString; kwargs...) = rdfilereader(Reaction{SDFMolGrap
 Read a SDFile(.sdf or .mol) and parse it into a molecule object with the given type. The given
 argument should be a file input stream or a file path.
 """
-sdftomol(::Type{T}, io::IO
-    ) where T <: AbstractMolGraph = iterate(sdfilereader(T, io, unsupported=:error))[1]
-sdftomol(file::IO) = sdftomol(SDFMolGraph, file)
-sdftomol(::Type{T}, path::AbstractString) where T <: AbstractMolGraph = sdftomol(T, open(path))
-sdftomol(path::AbstractString) = sdftomol(SDFMolGraph, open(path))
+sdftomol(::Type{T}, io::IO; kwargs...
+    ) where T <: AbstractMolGraph = iterate(sdfilereader(T, io, unsupported=:error; kwargs...))[1]
+sdftomol(file::IO; kwargs...) = sdftomol(SDFMolGraph, file; kwargs...)
+sdftomol(::Type{T}, path::AbstractString; kwargs...) where T <: AbstractMolGraph = sdftomol(T, open(path); kwargs...)
+sdftomol(path::AbstractString; kwargs...) = sdftomol(SDFMolGraph, open(path); kwargs...)
 
 
 """
@@ -377,9 +378,9 @@ sdftomol(path::AbstractString) = sdftomol(SDFMolGraph, open(path))
 Read a RXN file and parse it into a reaction object with the given type. The given
 argument should be a file input stream or a file path.
 """
-rxntoreaction(::Type{T}, io::IO
-    ) where T <: AbstractReaction = iterate(rdfilereader(T, io, unsupported=:error))[1]
-rxntoreaction(file::IO) = rxntoreaction(Reaction{SDFMolGraph}, file)
-rxntoreaction(::Type{T}, path::AbstractString
-    ) where T <: AbstractReaction = rxntoreaction(T, open(path))
-rxntoreaction(path::AbstractString) = rxntoreaction(Reaction{SDFMolGraph}, open(path))
+rxntoreaction(::Type{T}, io::IO; kwargs...
+    ) where T <: AbstractReaction = iterate(rdfilereader(T, io, unsupported=:error; kwargs...))[1]
+rxntoreaction(file::IO; kwargs...) = rxntoreaction(Reaction{SDFMolGraph}, file; kwargs...)
+rxntoreaction(::Type{T}, path::AbstractString; kwargs...
+    ) where T <: AbstractReaction = rxntoreaction(T, open(path); kwargs...)
+rxntoreaction(path::AbstractString; kwargs...) = rxntoreaction(Reaction{SDFMolGraph}, open(path); kwargs...)

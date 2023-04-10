@@ -16,8 +16,7 @@ export
     is_rotatable, rotatable_count,
     atom_counter, heavy_atom_count, molecular_formula, empirical_formula,
     pi_electron, hybridization,
-    is_ring_aromatic, is_ring_aromatic!, is_aromatic, is_edge_aromatic,
-    precalculate!
+    is_ring_aromatic, is_ring_aromatic!, is_aromatic, is_edge_aromatic
 
 
 const LONEPAIR_COUNT = Dict(
@@ -120,7 +119,7 @@ function fused_rings(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :on_update)
     has_state(mol, :fused_rings) && return get_state(mol, :fused_rings)
     cobr = setdiff(Set(edges(mol)), bridges(mol.graph))
-    subg, vmap = induced_subgraph(mol.graph, cobr)
+    subg, vmap = induced_subgraph(mol.graph, collect(cobr))
     return  [vmap[c] for c in connected_components(subg)]
 end
 
@@ -860,6 +859,8 @@ end
 
 is_edge_aromatic!(mol::SimpleMolGraph) = set_state!(
     mol, :e_is_aromatic, is_edge_aromatic(mol.graph, sssr(mol), is_ring_aromatic(mol)))
+
+
 
 # deprecated function names
 

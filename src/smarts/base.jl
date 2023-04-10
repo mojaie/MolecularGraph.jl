@@ -74,12 +74,10 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. OpenSMILES Specification http://opensmiles.org/spec/open-smiles.html
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
-function smilestomol(::Type{T}, smiles::AbstractString) where T <: AbstractMolGraph
+function smilestomol(::Type{T}, smiles::AbstractString; updater=smiles_on_update!) where T <: AbstractMolGraph
     state = SMILESParser{T}(smiles)
     fragment!(state)
-    mol = T(state.edges, state.vprops, state.eprops, Dict(), Dict(:on_update => smiles_on_update!))
-    stereocenter_from_smiles!(mol)
-    stereobond_from_smiles!(mol)
+    mol = T(state.edges, state.vprops, state.eprops, Dict(), Dict(:on_update => updater))
     dispatch!(mol, :on_update)
     return mol
 end
@@ -93,11 +91,12 @@ smilestomol(smiles::AbstractString; kwargs...
 
 Parse SMARTS string into `QueryMol` object.
 """
-function smartstomol(::Type{T}, smarts::AbstractString) where T <: AbstractMolGraph
+function smartstomol(::Type{T}, smarts::AbstractString; updater=x->()) where T <: AbstractMolGraph
     state = SMARTSParser{T}(smarts)
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
     mol = T(
-        state.edges, state.vprops, state.eprops, Dict(:connectivity => state.connectivity))
+        state.edges, state.vprops, state.eprops,
+        Dict(:connectivity => state.connectivity), Dict(:on_update => updater))
     if vproptype(mol) <: QueryTree  # vproptype(mol) can be QueryTruthTable for testing
         specialize_nonaromatic!(mol)  # TODO: may be special case for PAINS
         remove_hydrogens!(mol)  # TODO: may be special case for PAINS
