@@ -64,7 +64,7 @@ svgtransform(tf::Array{Float64,2}
     ) = @sprintf "%.2f %.2f %.2f %.2f %.2f %.2f" tf[1] tf[2] tf[4] tf[5] tf[7] tf[8]
 
 
-function tosvg(canvas::SvgCanvas, width, height)
+function tosvg(canvas::SvgCanvas)
     vbWf = @sprintf "%.2f" canvas.viewboxW
     vbHf = @sprintf "%.2f" canvas.viewboxH
     bgc = svgcolor(canvas.bgcolor)
@@ -75,7 +75,7 @@ function tosvg(canvas::SvgCanvas, width, height)
      preserveAspectRatio="xMidYMid meet"
      font-weight="$(canvas.fontweight)"
      font-family="$(canvas.fontfamily)"
-     width="$(round(Int, width))" height="$(round(Int, height))"
+     width="100%" height="100%"
      viewBox="0 0 $(vbWf) $(vbHf)">
     """
     bg = """<rect x="0" y="0" width="$(vbWf)" height="$(vbHf)"
@@ -94,7 +94,7 @@ Generate molecular structure image as a SVG format string.
 `width` and `height` specifies the size of the image (width and height
 attribute of svg tag).
 """
-function drawsvg(mol::SimpleMolGraph, width, height;
+function drawsvg(mol::SimpleMolGraph;
         atomhighlight=eltype(mol)[], bondhighlight=Edge{eltype(mol)}[], highlightcolor=Color(253, 216, 53),
         atomindex=false, indexcolor=Color(0, 0, 0), indexbgcolor=Color(240, 240, 255),
         kwargs...)
@@ -103,12 +103,32 @@ function drawsvg(mol::SimpleMolGraph, width, height;
     sethighlight!(canvas, intersect(atomhighlight, findall(is_atom_visible(mol))), highlightcolor)
     sethighlight!(canvas, bondhighlight, highlightcolor)
     atomindex && drawatomindex!(canvas, is_atom_visible(mol), indexcolor, indexbgcolor)
-    return tosvg(canvas, width, height)
+    return tosvg(canvas)
+end
+
+function html_fixed_size(svg, width, height)
+    HTML("""<div style="width:$(width)px;height:$(height)px">$(svg)</div>""")
+end
+
+function html_grid(svgs, cols, rowheight)
+    width = floor(Int, 100 / cols)
+    htmls = []
+    for row in Iterators.partition(svgs, cols)
+        push!(htmls, """<div style="display:grid; grid-template-columns:repeat($(cols), 1fr); grid-template-rows:$(rowheight)px;">""")
+        for img in row
+            push!(htmls, img)
+        end
+        push!(htmls, "</div>")
+    end
+    return HTML(join(htmls, ""))
 end
 
 
 # Custom pretty printing for Plute notebook environment
-Base.show(io::IO, m::MIME"text/html", mol::SimpleMolGraph) = show(io, m, HTML(drawsvg(mol, 250, 250)))
+Base.show(io::IO, m::MIME"text/html", mol::SimpleMolGraph
+    ) = show(io, m, html_fixed_size(drawsvg(mol), 250, 250))
+Base.show(io::IO, m::MIME"text/html", mols::Vector{<:SimpleMolGraph}
+    ) = show(io, m, html_grid(drawsvg.(mols), 3, 250))
 
 
 """

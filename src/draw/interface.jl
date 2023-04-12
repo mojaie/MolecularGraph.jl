@@ -30,6 +30,9 @@ export
     drawsvg,
     initcanvas!,
 
+    html_fixed_size,
+    html_grid,
+
     atom_color, is_atom_visible,
     single_bond_style, double_bond_style,
     chargesign, atommarkup, atomhtml,

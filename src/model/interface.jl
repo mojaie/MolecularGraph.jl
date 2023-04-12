@@ -22,7 +22,7 @@ export
     get_prop, has_prop, metadata,
     set_state!, has_state, get_state,
     init_node_descriptor, init_edge_descriptor,
-    set_prop!,
+    set_prop!, update_edge_rank!,
     edge_neighbors, ordered_edge_neighbors
 
     # removehydrogens
