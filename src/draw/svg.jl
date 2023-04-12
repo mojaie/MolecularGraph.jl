@@ -100,7 +100,11 @@ function drawsvg(mol::SimpleMolGraph;
         kwargs...)
     canvas = SvgCanvas()
     draw2d!(canvas, mol; kwargs...)
-    sethighlight!(canvas, intersect(atomhighlight, findall(is_atom_visible(mol))), highlightcolor)
+    # highlight atoms if is_atom_visible=true or no incident edges
+    enodes = Set(vcat([[src(e), dst(e)] for e in bondhighlight]...))
+	nodes_to_show = collect(setdiff(
+        atomhighlight, setdiff(enodes, findall(is_atom_visible(mol)))))
+    sethighlight!(canvas, nodes_to_show, highlightcolor)
     sethighlight!(canvas, bondhighlight, highlightcolor)
     atomindex && drawatomindex!(canvas, is_atom_visible(mol), indexcolor, indexbgcolor)
     return tosvg(canvas)
