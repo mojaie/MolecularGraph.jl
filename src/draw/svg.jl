@@ -101,7 +101,8 @@ function drawsvg(mol::SimpleMolGraph;
     canvas = SvgCanvas()
     draw2d!(canvas, mol; kwargs...)
     # highlight atoms if is_atom_visible=true or no incident edges
-    enodes = Set(vcat([[src(e), dst(e)] for e in bondhighlight]...))
+    # setdiff(Int[], []) -> Any[], setdiff(Int[], Int[]) -> Int[]  ???
+    enodes = Set{eltype(mol)}(vcat([[src(e), dst(e)] for e in bondhighlight]...))
 	nodes_to_show = collect(setdiff(
         atomhighlight, setdiff(enodes, findall(is_atom_visible(mol)))))
     sethighlight!(canvas, nodes_to_show, highlightcolor)
@@ -110,10 +111,23 @@ function drawsvg(mol::SimpleMolGraph;
     return tosvg(canvas)
 end
 
-function html_fixed_size(svg, width, height)
-    HTML("""<div style="width:$(width)px;height:$(height)px">$(svg)</div>""")
-end
 
+"""
+    html_fixed_size(svg, width, height)
+
+Generate fixed-size HTML wrapper for the SVG element.
+"""
+html_fixed_size(svg, width, height
+    ) = HTML("""<div style="width:$(width)px;height:$(height)px">$(svg)</div>""")
+
+
+"""
+    html_grid(svgs, cols, rowheight)
+
+Generate grid layout HTML wrapper for the SVG elements.
+
+The number of columns and grid row height in pixel must be specified.
+"""
 function html_grid(svgs, cols, rowheight)
     width = floor(Int, 100 / cols)
     htmls = []
