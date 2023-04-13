@@ -52,7 +52,6 @@ function smiles_on_update!(mol)
     stereocenter_from_smiles!(mol)
     stereobond_from_smiles!(mol)
     kekulize!(mol)
-    coordgen!(mol)
     # recalculate bottleneck descriptors
     sssr!(mol)
     lone_pair!(mol)
@@ -98,8 +97,8 @@ function smartstomol(::Type{T}, smarts::AbstractString; updater=x->()) where T <
         state.edges, state.vprops, state.eprops,
         Dict(:connectivity => state.connectivity), Dict(:on_update => updater))
     if vproptype(mol) <: QueryTree  # vproptype(mol) can be QueryTruthTable for testing
-        specialize_nonaromatic!(mol)  # TODO: may be special case for PAINS
-        remove_hydrogens!(mol)  # TODO: may be special case for PAINS
+        specialize_nonaromatic!(mol)
+        remove_hydrogens!(mol)
         for i in vertices(mol)
             set_prop!(mol, i, QueryTree(optimize_query(get_prop(mol, i, :tree))))
         end

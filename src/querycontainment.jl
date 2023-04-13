@@ -24,7 +24,7 @@ function resolve_disjoint_not(tree, propmap)
 end
 
 
-function resolve_recursive(tree, propmap, rec_cache=nothing)
+function resolve_recursive(tree, propmap, rec_cache)
     tree isa QueryAny && return tree
     if tree.key === :recursive
         vals = Union{QueryAny,QueryLiteral,QueryOperator}[]
@@ -80,13 +80,13 @@ function generate_truthtable(q, r; recursive_cache=nothing, kwargs...)
 end
 
 
-function querymatch(q::QueryTruthTable, r::QueryTruthTable, exactmatch; maxsize=2^20, kwargs...)
+function querymatch(q::QueryTruthTable, r::QueryTruthTable, exactmatch; maxsize=14, kwargs...)
     # truth table vector match
     # TODO: naive implementation costs worst O(2^n)
     q.props == r.props || error("query property mismatch")
     nlit = length(q.props)
+    nlit > maxsize && (@info "MolecularGraph.querymatch: maxsize exceeded"; return false)
     for i in 1:(2^nlit)
-        i > maxsize && (@info "MolecularGraph.querymatch: maxsize reached"; return false)
         arr = isone.(digits(i-1, base=2, pad=nlit)[1:nlit])
         qout = q.func(arr)
         rout = r.func(arr)

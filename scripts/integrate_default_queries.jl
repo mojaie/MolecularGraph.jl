@@ -36,11 +36,19 @@ function run()
     dupes = Set{Int}()
     isaedges = Set{Edge{Int}}()
     hasedges = Set{Edge{Int}}()
+    skip = [
+        "str_alert_221", "str_alert_222", "str_alert_247", "str_alert_1003",
+        "str_alert_246", "str_alert_381"
+    ] # Too long
     for (u, v) in combinations(length(fgrecords))
-        if u + 1 == v
-            @debug "---" fgrecords[u]["key"]
-            u % 50 == 0 && println(u, " records processed...")
+        if fgrecords[u]["key"] in skip || fgrecords[v]["key"] in skip
+            continue
         end
+        if u + 1 == v
+            @info "---" fgrecords[u]["key"]
+            u % 50 == 0 && @info u " records processed..."
+        end
+        # @info fgrecords[u]["key"] fgrecords[v]["key"]
         u in dupes && continue
         umol = fgrecords[u]["qmol"]
         vmol = fgrecords[v]["qmol"]
@@ -62,20 +70,20 @@ function run()
             aliastext = join([fgrecords[v]["source"], fgrecords[v]["name"], fgrecords[v]["query"]], ": ")
             push!(fgrecords[u]["aliases"], aliastext)
             push!(dupes, v)
-            @debug "dupes" ukey vkey
+            # @info "dupes" ukey vkey
         elseif uv  # has_exact_match(umol, vmol)
             push!(isaedges, Edge(u, v))
-            @debug "isa" ukey vkey
+            # @info "isa" ukey vkey
         elseif vu  # has_exact_match(vmol, umol)
             push!(isaedges, Edge(v, u))
-            @debug "isa" vkey ukey
+            # @info "isa" vkey ukey
         else
             if uvsub
                 push!(hasedges, Edge(u, v))
-                @debug "has" ukey vkey
+                # @info "has" ukey vkey
             elseif vusub
                 push!(hasedges, Edge(v, u))
-                @debug "has" vkey ukey
+                # @info "has" vkey ukey
             end
         end
     end
