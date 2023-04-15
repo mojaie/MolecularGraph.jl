@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export query_containment_diagram, filter_queries
+export query_containment_diagram, find_queries
 
 
 const DEFAULT_QUERIES = let
@@ -160,36 +160,81 @@ Base.issubset(q::QueryTree, r::QueryTree; kwargs...) = querymatch(q, r, false; k
 
 Generate query containment diagram.
 """
-function query_containment_diagram(;sourcefile=DEFAULT_QUERIES)
+function query_containment_diagram(;sources=[], sourcefile=DEFAULT_QUERIES)
+    # filter sources
+    filtered = Dict{String,Dict}()
+    for rcd in YAML.load(open(sourcefile))
+        (isempty(sources) || (rcd["source"] in sources)) || continue
+        filtered[rcd["key"]] = rcd
+    end
+    # merge duplicate entries
+    dupes = Set{String}()
+    merged = Dict{String,Dict}()
+    for rcd in values(filtered)
+        rcd["key"] in dupes && continue
+        newrcd = Dict(
+            "key" => rcd["key"],
+            "parsed" => smartstomol(rcd["query"]),
+            "sources" => [rcd["source"]],
+            "info" => [Dict(
+                "name" => rcd["name"],
+                "query" => rcd["query"],
+                "source" => rcd["source"]
+            )]
+        )
+        haskey(rcd, "isa") && (newrcd["isa"] = rcd["isa"])
+        haskey(rcd, "has") && (newrcd["has"] = rcd["has"])
+        if haskey(rcd, "aliases")
+            for aliase in rcd["aliases"]
+                if aliase in keys(filtered)
+                    arcd = filtered[aliase]
+                    push!(newrcd["info"], Dict(
+                        "name" => arcd["name"],
+                        "query" => arcd["query"],
+                        "source" => arcd["source"]
+                    ))
+                end
+                push!(dupes, aliase)
+            end
+        end
+        merged[rcd["key"]] = newrcd
+    end
+    # generate graph
     # TODO: should be MetaGraph
     g = SimpleDiGraph{Int}()
-    vs = Dict{Int,Dict}()
-    es = Dict{Edge{Int},Symbol}()
+    vprops = Dict{Int,Dict}()
+    eprops = Dict{Edge{Int},Symbol}()
     nrevmap = Dict{String,Int}()
-    for (i, rcd) in enumerate(YAML.load(open(sourcefile)))
-        rcd["parsed"] = smartstomol(rcd["query"])
-        nrevmap[rcd["key"]] = i
+    for (i, (k, rcd)) in enumerate(merged)
+        nrevmap[k] = i
         add_vertex!(g)
-        vs[i] = rcd
+        vprops[i] = rcd
     end
     for i in vertices(g)
-        rcd = vs[i]
-        if haskey(rcd, "isa")
-            for k in rcd["isa"]
+        if haskey(vprops[i], "isa")
+            for k in vprops[i]["isa"]
+                haskey(nrevmap, k) || continue  # in filtered source
                 e = Edge{Int}(i => nrevmap[k])
                 add_edge!(g, e)
-                es[e] = :isa
+                eprops[e] = :isa
             end
         end
-        if haskey(rcd, "has")
-            for k in rcd["has"]
+        if haskey(vprops[i], "has")
+            for k in vprops[i]["has"]
+                haskey(nrevmap, k) || continue  # in filtered source
                 e = Edge{Int}(i => nrevmap[k])
                 add_edge!(g, e)
-                es[e] = :has
+                eprops[e] = :has
             end
         end
     end
-    return g, vs, es
+    # transitive reduction
+    new_g = transitivereduction(g)
+    new_eprops = Dict{Edge{Int},Symbol}()
+    for e in edges(new_g)
+        new_eprops[e] = eprops[e]
+    end
+    return new_g, vprops, new_eprops
 end
 
 
@@ -200,7 +245,7 @@ end
 Find query relationship diagram by the given molecule.
 The filtered diagram represents query relationship that the molecule have.
 """
-function find_queries(mol::MolGraph, query_diagram; subsets=[], filtering=true)
+function find_queries(mol::MolGraph, query_diagram; sources=[], filtering=true)
     qr, vs, es = query_diagram
     matched = Set{Int}()
     vs_ = deepcopy(vs)
@@ -217,15 +262,24 @@ function find_queries(mol::MolGraph, query_diagram; subsets=[], filtering=true)
         matches = collect(substruct_matches(mol, rcd["parsed"]))
         if !isempty(matches)
             push!(matched, n)
-            rcd["matched"] = Set([sort(collect(keys(m))) for m in matches])
+            rcd["matched"] = [collect(s) for s in Set(keys(m) for m in matches)]
         end
         # end
     end
-    subg, nmap = induced_subgraph(qr, collect(matched))
+    filtered = Int[]
+    for m in matched
+        (isempty(sources) || !isempty(intersect(vs_[m]["sources"], sources))) || continue
+        push!(filtered, m)
+    end
+    subg, nmap = induced_subgraph(qr, filtered)
     revmap = Dict(v => i for (i, v) in enumerate(nmap))
     es_ = Dict{Edge{Int},Symbol}()
     for (k, v) in es
         src(k) in nmap && dst(k) in nmap && (es_[Edge{Int}(revmap[src(k)], revmap[dst(k)])] = v)
     end
-    return subg, vs_[nmap], es_
+    new_vs = Dict{Int,Dict}()
+    for (i, v) in enumerate(nmap)
+        new_vs[i] = vs_[nmap[i]]
+    end
+    return subg, new_vs, es_
 end

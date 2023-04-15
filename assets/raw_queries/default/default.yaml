@@ -24,13 +24,13 @@
 
 - key: aromatic_oxygen
   query: "o"
+- key: phenolic_hydroxyl
+  query: "[$([OH]c)]"
 - key: peroxide
   query: "OO"
 
 - key: alcohol
   query: "C[OH]"
-- key: phenolic_hydroxyl
-  query: "[$([OH])c]"
 - key: primary_alcohol
   query: "[$([CH2][#6])][OH]"
 - key: secondary_alcohol

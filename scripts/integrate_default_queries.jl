@@ -8,9 +8,9 @@ using YAML
 using Graphs
 using MolecularGraph
 
-const INPUT_DIR = joinpath(PROJECT_DIR, "./assets/raw/functionalgroup")
-const INPUT_SA_DIR = joinpath(PROJECT_DIR, "./assets/raw/structuralalerts")
-const OUTPUT_FILE = joinpath(PROJECT_DIR, "./assets/const/default_query_relations_new.yaml")
+const INPUT_DIR = joinpath(PROJECT_DIR, "./assets/raw_queries/default")
+const INPUT_SA_DIR = joinpath(PROJECT_DIR, "./assets/raw_queries/ChEMBL")
+const OUTPUT_FILE = joinpath(PROJECT_DIR, "./assets/const/default_queries_new.yaml")
 
 
 function run()
@@ -19,41 +19,35 @@ function run()
     append!(paths, [joinpath(INPUT_SA_DIR, f) for f in readdir(INPUT_SA_DIR)])
 
     # read list of functional groups from .yaml files
-    fgrecords = []
+    vprops = Dict{String,Any}[]
     for p in paths
         basename(p) == ".DS_Store" && continue
         for rcd in YAML.load(open(p))
             rcd["qmol"] = smartstomol(rcd["query"])
             rcd["source"] = split(basename(p), ".")[1]
-            if !haskey(rcd, "name")
-                rcd["name"] = rcd["key"]
-            end
-            push!(fgrecords, rcd)
+            haskey(rcd, "name") || (rcd["name"] = rcd["key"])
+            push!(vprops, rcd)
         end
     end
     
     # Detect query relationships
-    dupes = Set{Int}()
     isaedges = Set{Edge{Int}}()
     hasedges = Set{Edge{Int}}()
-    skip = [
+    skip = [  # has atoms with too complicated queries
         "str_alert_221", "str_alert_222", "str_alert_247", "str_alert_1003",
         "str_alert_246", "str_alert_381"
-    ] # Too long
-    for (u, v) in combinations(length(fgrecords))
-        if fgrecords[u]["key"] in skip || fgrecords[v]["key"] in skip
-            continue
-        end
+    ]
+    for (u, v) in combinations(length(vprops))
+        ukey = vprops[u]["key"]
+        vkey = vprops[v]["key"]
+        (ukey in skip || vkey in skip) && continue
         if u + 1 == v
-            @info "---" fgrecords[u]["key"]
-            u % 50 == 0 && @info u " records processed..."
+            @info "--- $(ukey)"
+            u % 50 == 0 && @info "===== $(u) records processed..."
         end
         # @info fgrecords[u]["key"] fgrecords[v]["key"]
-        u in dupes && continue
-        umol = fgrecords[u]["qmol"]
-        vmol = fgrecords[v]["qmol"]
-        ukey = fgrecords[u]["key"]
-        vkey = fgrecords[v]["key"]
+        umol = vprops[u]["qmol"]
+        vmol = vprops[v]["qmol"]
         uvmap = collect(substruct_matches(umol, vmol))
         vumap = collect(substruct_matches(vmol, umol))
         uvsub = !isempty(uvmap)
@@ -61,63 +55,44 @@ function run()
         uv = uvsub && length(uvmap[1]) == nv(umol)
         vu = vusub && length(vumap[1]) == nv(vmol)
         if uv && vu  # equivalent query
-            if !haskey(fgrecords[u], "aliases")
-                fgrecords[u]["aliases"] = []
+            if !haskey(vprops[u], "aliases")
+                vprops[u]["aliases"] = []
             end
-            if !haskey(fgrecords[v], "aliases")
-                fgrecords[v]["aliases"] = []
+            if !haskey(vprops[v], "aliases")
+                vprops[v]["aliases"] = []
             end
-            aliastext = join([fgrecords[v]["source"], fgrecords[v]["name"], fgrecords[v]["query"]], ": ")
-            push!(fgrecords[u]["aliases"], aliastext)
-            push!(dupes, v)
+            push!(vprops[u]["aliases"], vkey)
+            push!(vprops[v]["aliases"], ukey)
             # @info "dupes" ukey vkey
-        elseif uv  # has_exact_match(umol, vmol)
-            push!(isaedges, Edge(u, v))
+        end
+        if uv  # has_exact_match(umol, vmol)
+            haskey(vprops[u], "isa") || (vprops[u]["isa"] = [])
+            push!(vprops[u]["isa"], vkey)
             # @info "isa" ukey vkey
         elseif vu  # has_exact_match(vmol, umol)
-            push!(isaedges, Edge(v, u))
+            haskey(vprops[v], "isa") || (vprops[v]["isa"] = [])
+            push!(vprops[v]["isa"], ukey)
             # @info "isa" vkey ukey
-        else
-            if uvsub
-                push!(hasedges, Edge(u, v))
-                # @info "has" ukey vkey
-            elseif vusub
-                push!(hasedges, Edge(v, u))
-                # @info "has" vkey ukey
-            end
+        elseif uvsub
+            haskey(vprops[u], "has") || (vprops[u]["has"] = [])
+            push!(vprops[u]["has"], vkey)
+            # @info "has" ukey vkey
+        elseif vusub
+            haskey(vprops[v], "has") || (vprops[v]["has"] = [])
+            push!(vprops[v]["has"], ukey)
+            # @info "has" vkey ukey
         end
     end
-    # Generate relationship graph
-    @assert isempty(intersect(isaedges, hasedges))
-    g = SimpleDiGraph(collect(union(isaedges, hasedges)))
-    g = transitivereduction(g)
-    # Add relationship to records
-    for e in edges(g)
-        (src(e) in dupes || dst(e) in dupes) && continue
-        if e in isaedges
-            if !haskey(fgrecords[src(e)], "isa")
-                fgrecords[src(e)]["isa"] = []
-            end
-            push!(fgrecords[src(e)]["isa"], fgrecords[dst(e)]["key"])
-        elseif e in hasedges
-            if !haskey(fgrecords[src(e)], "has")
-                fgrecords[src(e)]["has"] = []
-            end
-            push!(fgrecords[src(e)]["has"], fgrecords[dst(e)]["key"])
-        end
-    end
-    filtered = []
-    for (i, rcd) in enumerate(fgrecords)
-        i in dupes && continue
+    # cleanup
+    for (i, rcd) in enumerate(vprops)
         delete!(rcd, "qmol")
         # sort terms for consistency in diff check
-        haskey(rcd, "isa") && (rcd["isa"] = sort(rcd["isa"]))
-        haskey(rcd, "has") && (rcd["has"] = sort(rcd["has"]))
-        haskey(rcd, "aliases") && (rcd["aliases"] = sort(rcd["aliases"]))
-        push!(filtered, rcd)
+        haskey(rcd, "isa") && (vprops[i]["isa"] = sort(rcd["isa"]))
+        haskey(rcd, "has") && (vprops[i]["has"] = sort(rcd["has"]))
+        haskey(rcd, "aliases") && (vprops[i]["aliases"] = sort(rcd["aliases"]))
     end
     # Write records to the file
-    YAML.write_file(OUTPUT_FILE, filtered)
+    YAML.write_file(OUTPUT_FILE, vprops)
 end
 
 
