@@ -3,217 +3,217 @@
 
 # 3-membered
 
-- key: ThreeMemberedRing
+- key: three_membered_ring
   query: "*1**1"
-- key: Cyclopropane
+- key: cyclopropane
   query: "C1CC1"
-- key: Epoxide
+- key: epoxide
   query: "O1CC1"
-- key: Aziridine
+- key: aziridine
   query: "N1CC1"
 
 
 # 4-membered
 
-- key: FourMemberedRing
+- key: four_membered_ring
   query: "*1***1"
-- key: Cyclobutane
+- key: cyclobutane
   query: "C1CCC1"
-- key: Oxetane
+- key: oxetane
   query: "O1CCC1"
-- key: Azetidine
+- key: azetidine
   query: "N1CCC1"
 
 
 # 5-membered
 
-- key: Cyclopentane
+- key: cyclopentane
   query: "C1CCCC1"
 
-- key: Tetrahydrofuran
+- key: tetrahydrofuran
   query: "O1CCCC1"
 
-- key: Pyrrolidine
+- key: pyrrolidine
   query: "N1CCCC1"
 
-- key: Hydantoin
+- key: hydantoin
   query: "N1C(=O)NCC1=O"
-- key: Thiazolidinedione
+- key: thiazolidinedione
   query: "N1C(=O)SCC1=O"
-- key: Rhodanine
+- key: rhodanine
   query: "N1C(=S)SCC1=O"
 
 
 
 # 5-membered aromatic
 
-- key: Furan
+- key: furan
   query: "o1cccc1"
 
-- key: Pyrrole
+- key: pyrrole
   query: "n1cccc1"
-- key: Imidazole
+- key: imidazole
   query: "n1cncc1"
-- key: Tetrazole
+- key: tetrazole
   query: "n1nnnc1"
 
-- key: Thiophene
+- key: thiophene
   query: "s1cccc1"
 
-- key: Furazan
+- key: furazan
   query: "c1nonc1"
-- key: Oxazole
+- key: oxazole
   query: "o1cncc1"
-- key: Thiazole
+- key: thiazole
   query: "s1cncc1"
 
 
 # 6-membered
 
-- key: Cyclohexane
+- key: cyclohexane
   query: "C1CCCCC1"
 
-- key: Piperidine
+- key: piperidine
   query: "N1CCCCC1"
-- key: Piperazine
+- key: piperazine
   query: "N1CCNCC1"
 
-- key: Morpholine
+- key: morpholine
   query: "N1CCOCC1"
 
 
 # 6-membered aromatic
 
-- key: Phenyl
+- key: phenyl
   query: "c1ccccc1"
 
-- key: Pyridine
+- key: pyridine
   query: "n1ccccc1"
-- key: Pyrazine
+- key: pyrazine
   query: "n1ccncc1"
-- key: Pyrimidine
+- key: pyrimidine
   query: "n1cnccc1"
-- key: Pyridazine
+- key: pyridazine
   query: "n1ncccc1"
 
 
 # 7-membered
 
-- key: Azepane
+- key: azepane
   query: "N1CCCCCC1"
 
 
 # Substituted ring
 
-- key: Benzyl
+- key: benzyl
   query: "Cc1ccccc1"
-- key: Biphenyl
+- key: biphenyl
   query: "c1ccccc1c1ccccc1"
 
 # O
 
-- key: Phenoxy
+- key: phenoxy
   query: "Oc1ccccc1"
-- key: Benzoyl
+- key: benzoyl
   query: "O=Cc1ccccc1"
-- key: Benzoate
+- key: benzoate
   query: "OC(=O)c1ccccc1"
-- key: Catechol
+- key: catechol
   query: "Oc1ccccc1O"
-- key: Hydroquinone
+- key: hydroquinone
   query: "Oc1ccc(O)cc1"
-- key: Quinone
+- key: quinone
   query: "O=C1C=CC(=O)C=C1"
-- key: Orthoquinone
+- key: orthoquinone
   query: "O=C1C=CC=CC1=O"
 
 # O, N
 
-- key: Phenylamine
+- key: phenylamine
   query: "Nc1ccccc1"
-- key: Aniline
+- key: aniline
   query: "O=CNc1ccccc1"
-- key: Benzamide
+- key: benzamide
   query: "NC(=O)c1ccccc1"
-- key: Anilide
+- key: anilide
   query: "O=CNc1ccccc1"
-- key: Succinimide
+- key: succinimide
   query: "O=C1CCC(=O)N1"
-- key: Maleimide
+- key: maleimide
   query: "O=C1C=CC(=O)N1"
-- key: Betalactam
+- key: betalactam
   query: "N1C(=O)CC1"
 
 # O, S
 
-- key: Tosyl
+- key: tosyl
   query: "O=S(=O)c1ccc([CH3])cc1"
-- key: Tosylate
+- key: tosylate
   query: "OS(=O)(=O)c1ccc([CH3])cc1"
 
 
 # 2-fused rings
 
-- key: Norbornane
+- key: norbornane
   query: "C12CCC(CC1)C2"
-- key: Adamantane
+- key: adamantane
   query: "C12CC3CC(C2)CC(C3)C1"
 
-- key: Naphthalene
+- key: naphthalene
   query: "c1cccc2c1cccc2"
 
 # O
 
-- key: Benzofuran
+- key: benzofuran
   query: "c1cccc2c1occ2"
-- key: Coumarin
+- key: coumarin
   query: "O=c1ccc2ccccc2o1"
-- key: Chromone
+- key: chromone
   query: "O=c1ccoc2ccccc12"
-- key: Flavone
+- key: flavone
   query: "O=c1cc(c3ccccc3)oc2ccccc12"
-- key: Isoflavone
+- key: isoflavone
   query: "O=c1c(c3ccccc3)coc2ccccc12"
 
 # N
 
-- key: Tropane
+- key: tropane
   query: "C12CCCC(CC1)N2C"
-- key: Quinuclidine
+- key: quinuclidine
   query: "N12CCC(CC1)CC2"
 
-- key: Indole
+- key: indole
   query: "c1cccc2c1ncc2"
-- key: Benzimidazole
+- key: benzimidazole
   query: "c1cccc2c1ncn2"
-- key: Quinoline
+- key: quinoline
   query: "c1cccc2c1nccc2"
-- key: Acridine
+- key: acridine
   query: "c1cccc2c1nc1ccccc1c2"
-- key: Purine
+- key: purine
   query: "n1cncc2c1ncn2"
-- key: Pteridin
+- key: pteridin
   query: "n1ccnc2c1cncn2"
 
 # N, O, S
 
-- key: Benzothiophene
+- key: benzothiophene
   query: "c1cccc2c1scc2"
-- key: Benzofurazan
+- key: benzofurazan
   query: "c1cccc2c1non2"
-- key: Benzothiazole
+- key: benzothiazole
   query: "c1cccc2c1ncs2"
 
 
 # 3-fused rings
 
-- key: Anthracene
+- key: anthracene
   query: "c1cccc2c1cc1ccccc1c2"
 
-- key: Dibenzofuran
+- key: dibenzofuran
   query: "c1cccc2c1oc1ccccc12"
 
-- key: Carbazole
+- key: carbazole
   query: "c1cccc2c1nc1ccccc12"
-- key: Betacarboline
+- key: betacarboline
   query: "c1cccc2c1nc1cnccc12"
