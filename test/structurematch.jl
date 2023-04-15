@@ -198,6 +198,12 @@ end
     @test has_substruct_match(pivoxil, ester)
     @test !has_substruct_match(pivoxil, ester2)
 
+    carbon = smartstomol("C")
+    # BMS structural alert 'contains metal'
+    # Just for int overflow check (set max property size cutoff, do not generate 2^61 truthtable)
+    metals = smartstomol(raw"[$([Ru]),$([Rh]),$([Se]),$([Pd]),$([Sc]),$([Bi]),$([Sb]),$([Ag]),$([Ti]),$([Al]),$([Cd]),$([V]),$([In]),$([Cr]),$([Sn]),$([Mn]),$([La]),$([Fe]),$([Er]),$([Tm]),$([Yb]),$([Lu]),$([Hf]),$([Ta]),$([W]),$([Re]),$([Co]),$([Os]),$([Ni]),$([Ir]),$([Cu]),$([Zn]),$([Ga]),$([Ge]),$([As]),$([Y]),$([Zr]),$([Nb]),$([Ce]),$([Pr]),$([Nd]),$([Sm]),$([Eu]),$([Gd]),$([Tb]),$([Dy]),$([Ho]),$([Pt]),$([Au]),$([Hg]),$([Tl]),$([Pb]),$([Ac]),$([Th]),$([Pa]),$([Mo]),$([U]),$([Tc]),$([Te]),$([Po]),$([At])]")
+    @test !has_substruct_match(carbon, metal)
+
     # global_logger(default_logger)
 end
 

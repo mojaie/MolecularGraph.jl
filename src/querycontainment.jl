@@ -3,9 +3,27 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+export query_containment_diagram, filter_queries
 
-# query_relationship, filter_queries
 
+const DEFAULT_QUERIES = let
+    qrfile = joinpath(dirname(@__FILE__), "../assets/const/default_queries.yaml")
+    include_dependency(qrfile)
+    qrfile
+end
+
+
+
+"""
+    resolve_disjoint_not(tree, propmap) -> QueryTree
+
+Resolve relationship between a `:not` query and a `:or` query and returns `QueryTree` that
+the relationship is resolved.
+
+For example, the results of `[!#7]` (not nitrogen) is included in the results of `[#8,#16]`
+(oxygen or sulfur), so `[!#7]` can be converted to an equivalent query `[!#7,#8,#16]` to
+generate a truthtable with common properties.
+"""
 function resolve_disjoint_not(tree, propmap)
     tree isa QueryOperator || return tree
     if tree.key === :not
@@ -24,6 +42,16 @@ function resolve_disjoint_not(tree, propmap)
 end
 
 
+"""
+    resolve_recursive(tree, propmap) -> QueryTree
+
+Resolve relationship between `:recursive` queries and returns `QueryTree` that the
+relationship is resolved.
+
+For example, the results of `[\$(C)]` is included in the results of `[\$(CO)]`,
+so `[\$(C)]` can be converted to an equivalent query ``[\$(C),\$(CO)]` to
+generate a truthtable with common properties.
+"""
 function resolve_recursive(tree, propmap, rec_cache)
     tree isa QueryAny && return tree
     if tree.key === :recursive
@@ -58,6 +86,11 @@ function resolve_recursive(tree, propmap, rec_cache)
 end
 
 
+"""
+    generate_truthtable(q, r; recursive_cache=nothing) -> QueryTruthTable
+
+Generate truthtable to compare queries.
+"""
 function generate_truthtable(q, r; recursive_cache=nothing, kwargs...)
     qt = optimize_query(q.tree)
     rt = optimize_query(r.tree)
@@ -96,55 +129,62 @@ function querymatch(q::QueryTruthTable, r::QueryTruthTable, exactmatch; maxsize=
     return true
 end
 
+
+
 function querymatch(q::QueryTree, r::QueryTree, exactmatch; kwargs...)
     qtbl, rtbl = generate_truthtable(q, r; kwargs...)
     return querymatch(qtbl, rtbl, exactmatch; kwargs...)
 end
 
+"""
+    Base.:(==)(q::QueryTruthTable, r::QueryTruthTable; kwargs...) 
+
+Returns whether the two queries are equivalent
+"""
 Base.:(==)(q::QueryTruthTable, r::QueryTruthTable; kwargs...) = querymatch(q, r, true; kwargs...)
 Base.:(==)(q::QueryTree, r::QueryTree; kwargs...) = querymatch(q, r, true; kwargs...)
+
+"""
+    Base.issubset(q::QueryTruthTable, r::QueryTruthTable; kwargs...) 
+
+Returns whether all the results of query `q` is included in the results of query `r`
+"""
 Base.issubset(q::QueryTruthTable, r::QueryTruthTable; kwargs...) = querymatch(q, r, false; kwargs...)
 Base.issubset(q::QueryTree, r::QueryTree; kwargs...) = querymatch(q, r, false; kwargs...)
 
 
 
-const DEFAULT_QUERY_RELATIONS = let
-    qrfile = joinpath(dirname(@__FILE__), "../../assets/const/default_query_relations.yaml")
-    include_dependency(qrfile)
-    qrfile
-end
-
-
 """
-    query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS) -> DictDiGraph
+    query_containment_diagram(;sourcefile=DEFAULT_QUERY_DEFAULT_QUERIES
+        ) -> DictDiGraph, vprops, eprops
 
-Generate query relationship diagram.
+Generate query containment diagram.
 """
-function query_relationship(;sourcefile=DEFAULT_QUERY_RELATIONS)
-    # TODO: attributed graph (worth adding MetaGraph dependency?)
+function query_containment_diagram(;sourcefile=DEFAULT_QUERIES)
+    # TODO: should be MetaGraph
     g = SimpleDiGraph{Int}()
-    vs = Dict{String,Any}[]
+    vs = Dict{Int,Dict}()
     es = Dict{Edge{Int},Symbol}()
     nrevmap = Dict{String,Int}()
     for (i, rcd) in enumerate(YAML.load(open(sourcefile)))
         rcd["parsed"] = smartstomol(rcd["query"])
         nrevmap[rcd["key"]] = i
-        add_node!(g)
-        push!(vs, rcd)
+        add_vertex!(g)
+        vs[i] = rcd
     end
-    for i in vertices(graph)
+    for i in vertices(g)
         rcd = vs[i]
         if haskey(rcd, "isa")
             for k in rcd["isa"]
                 e = Edge{Int}(i => nrevmap[k])
-                addedge!(g, e)
+                add_edge!(g, e)
                 es[e] = :isa
             end
         end
         if haskey(rcd, "has")
             for k in rcd["has"]
                 e = Edge{Int}(i => nrevmap[k])
-                addedge!(g, e)
+                add_edge!(g, e)
                 es[e] = :has
             end
         end
@@ -154,12 +194,14 @@ end
 
 
 """
-    filter_queries(qr::SimpleDiGraph, vs, es, mol::MolGraph; filtering=true) -> DictDiGraph
+    find_queries(mol::MolGraph, query_diagram; subsets=[], filtering=true
+        ) -> DictDiGraph, vprops, eprops
 
-Filter query relationship diagram by the given molecule.
+Find query relationship diagram by the given molecule.
 The filtered diagram represents query relationship that the molecule have.
 """
-function filter_queries(qr::SimpleDiGraph, vs, es, mol::MolGraph; filtering=true)
+function find_queries(mol::MolGraph, query_diagram; subsets=[], filtering=true)
+    qr, vs, es = query_diagram
     matched = Set{Int}()
     vs_ = deepcopy(vs)
     for n in topological_sort(reverse(qr))
@@ -179,7 +221,7 @@ function filter_queries(qr::SimpleDiGraph, vs, es, mol::MolGraph; filtering=true
         end
         # end
     end
-    subg, nmap = induced_subgraph(qr, matched)
+    subg, nmap = induced_subgraph(qr, collect(matched))
     revmap = Dict(v => i for (i, v) in enumerate(nmap))
     es_ = Dict{Edge{Int},Symbol}()
     for (k, v) in es
