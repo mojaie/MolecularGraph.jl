@@ -3,6 +3,9 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+# TODO: migrate to GeometryBasics
+
 export
     Point2D, Point3D, Segment,
     toarray, x_components, y_components, z_components,
@@ -12,18 +15,18 @@ export
     transformmatrix, rotation
 
 
-struct Point2D <: Point
+struct Point2D <: MGPoint
     x::Float64
     y::Float64
 end
 
-struct Point3D <: Point
+struct Point3D <: MGPoint
     x::Float64
     y::Float64
     z::Float64
 end
 
-struct Segment{T<:Point}
+struct Segment{T<:MGPoint}
     u::T
     v::T
 end
@@ -45,7 +48,7 @@ Point3D(coords::AbstractMatrix{T}, i::Int
     ) where {T<:Real} = Point3D(coords[i, 1:3])
 
 Segment{T}(coords::AbstractMatrix{Float64}, u::Int, v::Int
-    ) where {T<:Point} = Segment(T(coords, u), T(coords, v))
+    ) where {T<:MGPoint} = Segment(T(coords, u), T(coords, v))
 
 
 Base.:+(u::Point2D, v::Point2D) = Point2D(u.x + v.x,  u.y + v.y)
@@ -71,7 +74,7 @@ Base.:*(f::Real, s::Segment) = Segment(s.u * f, s.v * f)
 
 toarray(p::Point2D) = [p.x, p.y]
 toarray(p::Point3D) = [p.x, p.y, p.z]
-toarray(u::Point, v::Point) = transpose(hcat(toarray(u), toarray(v)))
+toarray(u::MGPoint, v::MGPoint) = transpose(hcat(toarray(u), toarray(v)))
 toarray(s::Segment) = toarray(s.u, s.v)
 toarray(coords::AbstractMatrix{T}) where {T<:Real} = coords
 toarray(coords::AbstractMatrix{T}, i::Int
@@ -86,45 +89,45 @@ y_components(coords::AbstractMatrix{T}) where {T<:Real} = @view coords[:, 2]
 z_components(coords::AbstractMatrix{T}) where {T<:Real} = @view coords[:, 3]
 
 
-LinearAlgebra.norm(p::Point) = norm(toarray(p))
-LinearAlgebra.normalize(p::Point) = Point2D(normalize(toarray(p)))
-LinearAlgebra.dot(u::Point, v::Point) = dot(toarray(u), toarray(v))
+LinearAlgebra.norm(p::MGPoint) = norm(toarray(p))
+LinearAlgebra.normalize(p::MGPoint) = Point2D(normalize(toarray(p)))
+LinearAlgebra.dot(u::MGPoint, v::MGPoint) = dot(toarray(u), toarray(v))
 
 
 """
-    distance(u::Point, v::Point) -> Float64
+    distance(u::MGPoint, v::MGPoint) -> Float64
     distance(s::Segment) -> Float64
     distance(coords::AbstractMatrix{T}) where {T<:Real} -> Float64
 
 Return distance between two endpoints.
 """
-distance(u::Point, v::Point) = norm(v - u)
+distance(u::MGPoint, v::MGPoint) = norm(v - u)
 distance(s::Segment) = distance(s.u, s.v)
 distance(coords::AbstractMatrix{T}
     ) where {T<:Real} = norm(coords[2, :] - coords[1, :])
 
 
 """
-    unitvector(u::Point, v::Point) -> Point
-    unitvector(s::Segment) -> Point
+    unitvector(u::MGPoint, v::MGPoint) -> MGPoint
+    unitvector(s::Segment) -> MGPoint
     unitvector(coords::AbstractMatrix{T}) where {T<:Real} -> AbstractMatrix
 
 Return u -> v vector of length 1.
 """
-unitvector(u::Point, v::Point) = normalize(v - u)
+unitvector(u::MGPoint, v::MGPoint) = normalize(v - u)
 unitvector(s::Segment) = unitvector(s.u, s.v)
 unitvector(coords::AbstractMatrix{T}
     ) where {T<:Real} = normalize(coords[2, :] - coords[1, :])
 
 
 """
-    midpoint(u::Point, v::Point) -> Point
-    midpoint(s::Segment) -> Point
+    midpoint(u::MGPoint, v::MGPoint) -> MGPoint
+    midpoint(s::Segment) -> MGPoint
     midpoint(coords::AbstractMatrix{T}) where {T<:Real} -> AbstractMatrix
 
 Return the midpoint of u and v.
 """
-midpoint(u::Point, v::Point) = (u + v) * 0.5
+midpoint(u::MGPoint, v::MGPoint) = (u + v) * 0.5
 midpoint(s::Segment) = midpoint(s.u, s.v)
 midpoint(coords::AbstractMatrix{T}
     ) where {T<:Real} = (s[1, :] + s[2, :]) * 0.5

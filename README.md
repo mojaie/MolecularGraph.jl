@@ -15,31 +15,89 @@ MolecularGraph.jl
 <img src="./assets/image/mcsdemo.png" width="400"/><img src="./assets/image/funcgroupdemo.png" width="400"/><img src="./assets/image/massspecdemo.png" width="400"/>
 
 
+Documentation and API Reference
+------------------------------------
 
-## Usage
-
-- [Try it with Jupyter notebook tutorials](https://github.com/mojaie/MolecularGraph.jl_notebook)
-- [Documentation and API Reference](https://mojaie.github.io/MolecularGraph.jl/dev)
-
+[Documentation and API Reference](https://mojaie.github.io/MolecularGraph.jl/dev)
 
 
-## Features
+How to use
+------------------------------------
+
+[Pluto.jl notebook tutorials](https://github.com/mojaie/MolecularGraph.jl_notebook)
+
+To run codes in your environment, see `Edit or run this notebook` instruction shown in the top-right of the tutorial pages below.
+
+- [Getting started](https://mojaie.github.io/MolecularGraph.jl_notebook/getting_started.jl.html)
+- [Molecular graph basics](https://mojaie.github.io/MolecularGraph.jl_notebook/molecular_graph_basics.jl.html)
+  - Scope of MolecularGraph.jl
+  - Considerations in molecular graph implementation
+  - Basic operations provided by Graphs.jl interface
+  - MolGraph type and atom/bond properties
+- [Properties and descriptors](https://mojaie.github.io/MolecularGraph.jl_notebook/properties_and_descriptors.jl.html)
+  - Built-in molecule properties and descriptors
+    - Lipinski's Rule of five (RO5)
+    - Molecular formula
+    - Atom and bond properties
+    - Graph topology (ring and fused ring)
+  - Auto-update mechanism of properties
+- [Preprocessing](https://mojaie.github.io/MolecularGraph.jl_notebook/preprocessing.jl.html)
+  - Remove hydrogen vertices
+  - Extract molecules of interest
+  - Standardize charges
+  - Dealing with resonance structure
+  - Customize property updater
+- [Mass and isotopes](https://mojaie.github.io/MolecularGraph.jl_notebook/mass_and_isotopes.jl.html)
+  - Molecular weight and exact mass
+  - Uncertainty
+  - Isotopic composition
+  - Simulate mass spectrum
+- [Substructure and query](https://mojaie.github.io/MolecularGraph.jl_notebook/substructure_and_query.jl.html)
+  - Substructure match
+  - InChI and InChIKey
+  - SMARTS query
+  - Structural alerts (e.g. PAINS)
+  - Functional group analysis
+  - Query containment
+- [Maximum common substructure (MCS)](https://mojaie.github.io/MolecularGraph.jl_notebook/maximum_common_substructure.jl.html)
+  - Maximum common induced substructure (MCIS)
+  - Maximum common edge-induced substructure (MCES)
+  - Connected or disconnected MCS
+  - Working with larger molecules
+  - Topological constraint (tdMCS)
+- [Drawing molecule](https://mojaie.github.io/MolecularGraph.jl_notebook/drawing_molecule.jl.html)
+  - Settings of 2D structure images
+    - Change image size
+    - Layout for web and Pluto notebook
+  - Regenerate 2D coordinates
+  - 3D molecule rendering using Makie.jl
+
+
+Features
+------------------
 
 - Chemical structure file I/O
   - 2D structure image drawing and export to SVG
-  - 3D structure drawing
-  - SDFile import/export (.sdf, .mol)
-  - SMILES/SMARTS parser
+  - 3D structure drawing ([Makie.jl](https://github.com/MakieOrg/Makie.jl))
+  - SDFile reader/writer (.sdf, .mol)
+  - SMILES/SMARTS parser (only reader)
+  - Coordinates generation ([coordgenlibs](https://github.com/schrodinger/coordgenlibs))
 
-- Database
-  - InChI ([InChI](https://www.inchi-trust.org/))
-  - Serialization (molecule object <-> JSON)
-
-- Basic descriptors
+- Properties and descriptors
   - H-bond donor/acceptor
   - rotatable bonds
   - Aromaticity
   - Wildman-Crippen logP
+
+- Substructure and query
+  - InChI ([InChI](https://www.inchi-trust.org/))
+  - Serialization (molecule object <-> JSON)
+  - Subgraph isomorphism detection with VF2 algorithm
+    - SMARTS query match
+    - Monomorphism, node-induced and edge-induced match
+    - Constraints (mandatory/forbidden vertex mapping)
+  - Functional group query set
+  - Structural alerts detection with ChEMBL dataset
 
 - Atomic mass
   - standard atomic/molecular weight
@@ -55,20 +113,6 @@ MolecularGraph.jl
     - Kekulization
   - Graph traversal
 
-- 2D geometry
-  - Stereochemistry drawing
-  - Coordinates generation ([coordgenlibs](https://github.com/schrodinger/coordgenlibs))
-
-- Sub(super)structure
-  - Library search by using SMARTS query
-  - Subgraph isomorphism detection with VF2 algorithm
-  - Monomorphism, node-induced and edge-induced
-  - Constraints (mandatory/forbidden mapping)
-
-- SMARTS query-based substructure analysis
-  - functional group mining
-  - structural alerts (by using ChEMBL dataset)
-
 - Maximum common substructure (MCS)
   - By clique detection algorithm
   - Node-induced (MCIS) and edge-induced (MCES)
@@ -77,14 +121,14 @@ MolecularGraph.jl
   - Diameter restriction (MCS-DR) and graph-based local similarity (GLS)
 
 
-
-## License
+License
+-----------------
 
 [MIT license](http://opensource.org/licenses/MIT)  
 See [Assets/README.md](https://github.com/mojaie/MolecularGraph.jl/tree/master/assets) for details of external data sets and their licenses.
 
 
+Copyright
+-----------------
 
-## Copyright
-
-(C) 2018-2022 Seiji Matsuoka and contributors
+(C) 2018-2023 Seiji Matsuoka and contributors

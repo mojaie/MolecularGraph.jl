@@ -3,164 +3,73 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    DRAW_SETTING,
-    atomcolor, isatomvisible, sdfcoords2d, coords2d,
-    chargesign, atommarkup, atomhtml,
-    draw2d!, drawatomindex!, sethighlight!
-
 
 """
-    DRAW_SETTING
-
-Default setting parameters of the molecule drawing canvas.
-
-# Required fields
-
-- `:display_terminal_carbon`(Bool) whether to display terminal C atom or not
-- `:double_bond_notation`(Symbol)
-    - `:alongside`: all double bonds are represented as a carbon skeleton and
-                    a segment alongside it.
-    - `:dual`: all double bonds are represented as two equal length parallel
-               segments.
-    - `:chain`: `:dual` for chain bonds and `:alongside` for ring bonds
-    - `:terminal`: `:dual` for terminal bonds (adjacent to degree=1 node) and
-                   `:alongside` for others (default)
-- `:atomcolor`(Dict{Symbol,Color}) atom symbol and bond colors for organic atoms
-- `:defaul_atom_color`(Dict{Symbol,Color}) colors for other atoms
-"""
-const DRAW_SETTING = Dict(
-    :display_terminal_carbon => false,
-    :double_bond_style => :terminal,  # :alongside, :dual, :chain, :terminal
-    :atomcolor => Dict(
-        :H => Color(0, 0, 0),
-        :B => Color(128, 0, 0),
-        :C => Color(0, 0, 0),
-        :N => Color(0, 0, 255),
-        :O => Color(255, 0, 0),
-        :F => Color(0, 255, 0),
-        :Si => Color(128, 64, 192),
-        :P => Color(192, 0, 192),
-        :S => Color(192, 192, 0),
-        :Cl => Color(64, 192, 64),
-        :As => Color(128, 0, 128),
-        :Se => Color(128, 128, 0),
-        :Br => Color(0, 192, 0),
-        :I => Color(0, 128, 0)
-    ),
-    :default_atom_color => Color(0, 192, 192)
-)
-
-# For 3d rendering, we use white for hydrogen
-const DRAW_SETTING3 = (dct = deepcopy(DRAW_SETTING); dct[:atomcolor][:H] = Color(255, 255, 255); dct)
-
-"""
-    atomcolor(mol::GraphMol; setting=DRAW_SETTING) -> Vector{Color}
-
-Return atom colors for molecule 2D drawing
-"""
-@cachefirst function atomcolor(
-        mol::GraphMol; kwargs...)
-    atomcolor(atomsymbol(mol); kwargs...)
-end
-
-function atomcolor(syms::AbstractVector; setting=DRAW_SETTING, kwargs...)
-    atomc = setting[:atomcolor]
-    dfc = setting[:default_atom_color]
-    return [get(atomc, sym, dfc) for sym in syms]
-end
-
-atomcolor(view::SubgraphView; kwargs...) = atomcolor(view.graph; kwargs...)
-
-
-"""
-    isatomvisible(mol::GraphMol; setting=DRAW_SETTING) -> Vector{Bool}
+    isatomvisible(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Bool}
 
 Return whether the atom is visible in the 2D drawing.
 """
-@cachefirst function isatomvisible(mol::GraphMol; setting=DRAW_SETTING, kwargs...)
-    termc = setting[:display_terminal_carbon]
-    vec = trues(nodecount(mol))
-    deg_ = nodedegree(mol)
-    sym_ = atomsymbol(mol)
+function is_atom_visible(mol::SimpleMolGraph; show_terminal_carbon=false, kwargs...)
+    arr = (~).(init_node_descriptor(Bool, mol))
+    deg_ = degree(mol)
+    sym_ = atom_symbol(mol)
     chg_ = charge(mol)
     mul_ = multiplicity(mol)
-    mas_ = getproperty.(nodeattrs(mol), :mass)
-    for i in 1:nodecount(mol)
+    mas_ = [get_prop(mol, i, :mass) for i in vertices(mol)]
+    bondorder_ = bond_order(mol)
+    for i in vertices(mol)
         sym_[i] === :C || continue
         chg_[i] == 0 || continue
         mul_[i] == 1 || continue
         mas_[i] === nothing || continue
         deg_[i] == 0 && continue
-        deg_[i] == 1 && termc && continue
+        deg_[i] == 1 && show_terminal_carbon && continue
         if deg_[i] == 2
-            incs = collect(incidences(mol, i))
-            if bondorder(mol)[incs[1]] == 2 && bondorder(mol)[incs[2]] == 2
+            nbrs = neighbors(mol, i)
+            u = edge_rank(mol, undirectededge(mol, i, nbrs[1]))
+            v = edge_rank(mol, undirectededge(mol, i, nbrs[2]))
+            if (bondorder_[u] == 2 && bondorder_[v] == 2)
                 continue # allene-like
             end
         end
-        vec[i] = 0
+        arr[i] = false
     end
-    return vec
+    return arr
 end
 
-isatomvisible(view::SubgraphView; kwargs...
-    ) = isatomvisible(view.graph; kwargs...)
 
 
-
-@cachefirst function sdfcoords2d(mol::SDFile)
-    coords = zeros(Float64, nodecount(mol), 2)
-    for (i, node) in enumerate(nodeattrs(mol))
-        coords[i, :] = node.coords[1:2]
-    end
-    return coords
-end
-
-sdfcoords2d(view::SubgraphView) = sdfcoords2d(view.graph)
-
-
-
-@cachefirst function coords2d(
-        mol::GraphMol; forcecoordgen=false, setting=DRAW_SETTING, kwargs...)
-    if nodeattrtype(mol) === SDFileAtom && !forcecoordgen
-        coords = sdfcoords2d(mol)
-        style = getproperty.(edgeattrs(mol), :notation)
-    else
-        coords, style = coordgen(mol)
-    end
-    bondorder_ = bondorder(mol)
-
-    # All double bonds to be "="
-    if setting[:double_bond_style] == :dual
-        for b in findall(bondorder_ .== 2)
-            style[b] = 2
+function double_bond_style(mol::SimpleMolGraph, bondorder_, coords)
+    arr = init_edge_descriptor(Symbol, mol)
+    for (i, e) in enumerate(edges(mol))
+        if bondorder_[i] != 2
+            arr[i] = :none
+            continue
         end
-        return
+        # TODO: other bond types which have notation
+        if eproptype(mol) <: SDFBond && get_prop(mol, e, :notation) === 3
+            arr[i] = :unspecified  # u x v (explicitly unspecified or racemic)
+            continue
+        end
+        snbrs, dnbrs = edge_neighbors(mol, e)
+        if length(snbrs) == 0 || length(dnbrs) == 0
+            arr[i] = :none  # double bond at the end of chain
+            continue
+        end
+        sdbs = map(snbrs) do snbr
+            se = edge_rank(mol, src(e), snbr)
+            bondorder_[se] == 2
+        end
+        ddbs = map(dnbrs) do dnbr
+            de = edge_rank(mol, dst(e), dnbr)
+            bondorder_[de] == 2
+        end
+        if any(sdbs) || any(ddbs)
+            arr[i] = :none  # allene-like
+            continue
+        end
+        arr[i] = :clockwise
     end
-
-    # Or only non-ring bonds to be "="
-    if setting[:double_bond_style] == :terminal
-        for i in findall(nodedegree(mol) .== 1)
-            b = collect(incidences(mol, i))[1]
-            if bondorder_[b] == 2
-                style[b] = 2
-            end
-        end
-        for i in findall(nodedegree(mol) .== 2)
-            incs = collect(incidences(mol, i))
-            if bondorder_[incs[1]] == 2 && bondorder_[incs[2]] == 2
-                # allene-like
-                style[incs[1]] = 2
-                style[incs[2]] = 2
-            end
-        end
-    elseif setting[:double_bond_style] == :chain
-        for b in findall(.!isringbond(mol) .* (bondorder_ .== 2))
-            style[b] = 2
-        end
-    end
-
     # Align double bonds alongside the ring
     for ring in sort(sssr(mol), by=length, rev=true)
         cw = isclockwise(toarray(coords, ring))
@@ -168,19 +77,44 @@ sdfcoords2d(view::SubgraphView) = sdfcoords2d(view.graph)
         ordered = cw ? ring : reverse(ring)
         rr = vcat(ordered, ordered)
         for i in 1:length(ordered)
-            e = findedgekey(mol, rr[i], rr[i + 1])
-            (u, v) = getedge(mol, e)
-            if bondorder_[e] == 2 && u != rr[i]
-                style[e] = 1
-            end
+            e = edge_rank(mol, rr[i], rr[i + 1])
+            bondorder_[e] == 2 || continue
+            arr[e] = rr[i] < rr[i + 1] ? :clockwise : :anticlockwise
         end
     end
-
-    return coords, style
+    return arr
 end
 
-coords2d(view::SubgraphView; kwargs...) = coords2d(view.graph; kwargs...)
+function double_bond_style(mol::SimpleMolGraph)
+    bondorder_ = bond_order(mol)
+    coords = coords2d(mol)
+    return double_bond_style(mol, bondorder_, coords)
+end
 
+
+function single_bond_style(mol::SimpleMolGraph)
+    # can be precalculated by coordgen
+    has_state(mol, :e_single_bond_style) && return get_state(mol, :e_single_bond_style)
+    bondorder = bond_order(mol)
+    
+    bondnotation = [get_prop(mol, e, :notation) for e in edges(mol)]
+    isordered = [get_prop(mol, e, :isordered) for e in edges(mol)]
+    arr = init_edge_descriptor(Symbol, mol)
+    for (i, e) in enumerate(edges(mol))
+        if bondorder[i] != 1
+            arr[i] = :none
+        elseif bondnotation[i] == 1
+            arr[i] = isordered[i] ? :up : :revup
+        elseif bondnotation[i] == 6
+            arr[i] = isordered[i] ? :down : :revdown
+        elseif bondnotation[i] == 4
+            arr[i] = :unspecified
+        else
+            arr[i] = :none
+        end
+    end
+    return arr
+end
 
 
 """
@@ -222,50 +156,61 @@ atomhtml(
 
 Draw molecular image to the canvas.
 """
-function draw2d!(canvas::Canvas, mol::UndirectedGraph; kwargs...)
+function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
+    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
+    # get coords
+    if !hasfield(vproptype(mol), :coords) && !has_state(mol, :v_coords2d)  # default SMILESAtom
+        crds, sb_style = coordgen(mol)
+    else  # SDFAtom or has coordgen! precache
+        crds = coords2d(mol)
+        sb_style = single_bond_style(mol)
+    end
     # Canvas settings
-    coords_, bondstyles_ = coords2d(mol; kwargs...)
-    initcanvas!(canvas, coords_, boundary(mol, coords_))
+    initcanvas!(canvas, crds, boundary(mol, crds))
     canvas.valid || return
 
     # Properties
-    atomsymbol_ = atomsymbol(mol)
-    atomcolor_ = atomcolor(mol; kwargs...)
+    atomsymbol_ = atom_symbol(mol)
     charge_ = charge(mol)
-    isatomvisible_ = isatomvisible(mol; kwargs...)
-    bondorder_ = bondorder(mol)
-    implicithconnected_ = implicithconnected(mol)
+    implicith_ = implicit_hydrogens(mol)
+    bondorder_ = bond_order(mol)
+    atomcolor_ = atom_color(mol; kwargs...)
+    isatomvisible_ = is_atom_visible(mol; kwargs...)
+    bondstyle_ = map(
+                sb_style,
+                double_bond_style(mol, bondorder_, crds),
+                bondorder_
+            ) do sb, db, o
+        if o == 1
+            sb
+        elseif o == 2
+            db
+        else
+            :none
+        end
+    end
 
     # Draw bonds
-    for i in edgeset(mol)
-        (u, v) = getedge(mol, i)
-        if bondorder_[i] == 1 && bondstyles_[i] in (2, 7)
-            # cordgen reverse bonds
-            (t, s) = (u, v)
-            bs = bondstyles_[i] - 1
-        else
-            (s, t) = (u, v)
-            bs = bondstyles_[i]
-        end
+    for (i, e) in enumerate(edges(mol))
+        s, d = Tuple(e)
         setbond!(
-            canvas, bondorder_[i], bs,
-            Segment{Point2D}(canvas.coords, s, t),
-            atomcolor_[u], atomcolor_[v],
-            isatomvisible_[u], isatomvisible_[v]
+            canvas, bondorder_[i], bondstyle_[i], s, d,
+            atomcolor_[s], atomcolor_[d],
+            isatomvisible_[s], isatomvisible_[d]
         )
     end
 
     # Draw atoms
-    for i in nodeset(mol)
+    for i in vertices(mol)
         isatomvisible_[i] || continue
         pos = Point2D(canvas.coords, i)
         # Determine text direction
-        if implicithconnected_[i] > 0
+        if implicith_[i] > 0
             cosnbrs = []
             hrzn = pos + (1.0, 0.0)
-            for adj in adjacencies(mol, i)
-                posnbr = Point2D(canvas.coords, adj)
-                dist = Geometry.distance(pos, posnbr)
+            for nbr in neighbors(mol, i)
+                posnbr = Point2D(canvas.coords, nbr)
+                dist = distance(pos, posnbr)
                 if dist > 0
                     dp = dot(hrzn - pos, posnbr - pos)
                     push!(cosnbrs, dp / dist)
@@ -275,14 +220,14 @@ function draw2d!(canvas::Canvas, mol::UndirectedGraph; kwargs...)
                 # [atom]< or isolated node(ex. H2O, HCl)
                 setatomright!(
                     canvas, pos, atomsymbol_[i], atomcolor_[i],
-                    implicithconnected_[i], charge_[i]
+                    implicith_[i], charge_[i]
                 )
                 continue
             elseif maximum(cosnbrs) < 0
                 # >[atom]
                 setatomleft!(
                     canvas, pos, atomsymbol_[i], atomcolor_[i],
-                    implicithconnected_[i], charge_[i]
+                    implicith_[i], charge_[i]
                 )
                 continue
             end
@@ -290,36 +235,31 @@ function draw2d!(canvas::Canvas, mol::UndirectedGraph; kwargs...)
         # -[atom]- or no hydrogens
         setatomcenter!(
             canvas, pos, atomsymbol_[i], atomcolor_[i],
-            implicithconnected_[i], charge_[i]
+            implicith_[i], charge_[i]
         )
     end
     return
 end
 
 
-function drawatomindex!(canvas::Canvas, mol::UndirectedGraph;
-                        color=Color(0, 0, 0), bgcolor=Color(240, 240, 255))
-    isatomvisible_ = isatomvisible(mol)
-    for i in nodeset(mol)
-        offset = isatomvisible_[i] ? (0.0, canvas.fontsize/2.0) : (0.0, 0.0)
+function drawatomindex!(canvas::Canvas, isatomvisible, color, bgcolor)
+    for (i, v) in enumerate(isatomvisible)
+        offset = v ? (0.0, canvas.fontsize/2.0) : (0.0, 0.0)
         pos = Point2D(canvas.coords, i) + offset
         setatomnote!(canvas, pos, string(i), color, bgcolor)
     end
-    return
 end
 
 
-function sethighlight!(
-        canvas::Canvas, substr::UndirectedGraph; color=Color(253, 216, 53))
-    # isatomvisible_ = isatomvisible(substr)
-    for i in edgeset(substr)
-        (u, v) = getedge(substr, i)
-        setbondhighlight!(canvas, Segment{Point2D}(canvas.coords, u, v), color)
+function sethighlight!(canvas::Canvas, edge_list::Vector{<:Edge}, color)
+    for e in edge_list
+        setbondhighlight!(canvas, src(e), dst(e), color)
     end
-    for i in nodeset(substr)
-        # isatomvisible_[i] || continue
+end
+
+function sethighlight!(canvas::Canvas, node_list::Vector{<:Integer}, color)
+    for i in node_list
         pos = Point2D(canvas.coords, i)
         setatomhighlight!(canvas, pos, color)
     end
-    return
 end

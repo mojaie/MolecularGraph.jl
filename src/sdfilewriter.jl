@@ -7,61 +7,50 @@ export
     printv2mol, printv2sdf, sdfilewriter
 
 
-function printv2atoms(io::IO, mol::SDFile)
-    for (i, atom) in enumerate(nodeattrs(mol))
-        x, y, z = atom.coords
-        xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atom.symbol)
+function printv2atoms(io::IO, mol::SDFMolGraph)
+    for i in vertices(mol)
+        x, y, z = get_prop(mol, i, :coords)
+        xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(get_prop(mol, i, :symbol))
         println(io, "$(xyzsym) 0  0  0  0  0  0  0  0  0  0  0  0")
     end
-    return
 end
 
-function printv2atoms(io::IO, mol::SMILES, coords)
-    for (i, atom) in enumerate(nodeattrs(mol))
+function printv2atoms(io::IO, mol::SMILESMolGraph, coords)
+    for i in vertices(mol)
         x, y = coords[i, 1:2]
         z = 0.0
-        xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atom.symbol)
+        xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(get_prop(mol, i, :symbol))
         println(io, "$(xyzsym) 0  0  0  0  0  0  0  0  0  0  0  0")
     end
-    return
 end
 
 
-function printv2bonds(io::IO, mol::SDFile)
-    for (i, (u, v)) in enumerate(edgesiter(mol))
-        bond = edgeattr(mol, i)
-        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v bond.order bond.notation
+function printv2bonds(io::IO, mol::SDFMolGraph)
+    for e in edges(mol)
+        u, v = get_prop(mol, e, :isordered) ? (src(e), dst(e)) : (dst(e), src(e))
+        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v get_prop(mol, e, :order) get_prop(mol, e, :notation)
         println(io, uv)
     end
-    return
 end
 
 
-function printv2bonds(io::IO, mol::SMILES, styles)
-    for (i, (u, v)) in enumerate(edgesiter(mol))
-        bond = edgeattr(mol, i)
-        if styles[i] in (2, 7)
-            f, s = (v, u)
-            notation = styles[i] - 1
-        else
-            f, s = (u, v)
-            notation = styles[i]
-        end
-        uv = @sprintf "%3d%3d%3d%3d  0  0  0" f s bond.order notation
+function printv2bonds(io::IO, mol::SMILESMolGraph, styles)
+    for (i, e) in enumerate(edges(mol))
+        u, v = get_prop(mol, e, :isordered) ? (src(e), dst(e)) : (dst(e), src(e))
+        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v get_prop(mol, e, :order) styles[i]
         println(io, uv)
     end
-    return
 end
 
 
-function printv2properties(io::IO, mol::GraphMol)
+function printv2properties(io::IO, mol::MolGraph)
     charges = Tuple{Int,Int}[]
     radicals = Tuple{Int,Int}[]
     masses = Tuple{Int,Float64}[]
-    for (i, atom) in enumerate(nodeattrs(mol))
-        atom.charge == 0 || push!(charges, (i, atom.charge))
-        atom.multiplicity == 1 || push!(radicals, (i, atom.multiplicity))
-        atom.mass === nothing || push!(masses, (i, atom.mass))
+    for i in vertices(mol)
+        get_prop(mol, i, :charge) == 0 || push!(charges, (i, get_prop(mol, i, :charge)))
+        get_prop(mol, i, :multiplicity) == 1 || push!(radicals, (i, get_prop(mol, i, :multiplicity)))
+        get_prop(mol, i, :mass) === nothing || push!(masses, (i, get_prop(mol, i, :mass)))
     end
     if !isempty(charges)
         head = @sprintf "M  CHG%3d" length(charges)
@@ -90,29 +79,30 @@ function printv2properties(io::IO, mol::GraphMol)
         end
         println(io)
     end
-    return
 end
 
 
-function printv2data(io::IO, mol::GraphMol)
-    for (key, val) in mol.attributes
+function printv2data(io::IO, mol::MolGraph)
+    for (key, val) in props(mol)
         println(io, "> <$(string(key))>")
         println(io, string(val))
         println(io, "")
     end
-    return
 end
 
 
-function printv2mol(io::IO, mol::GraphMol)
+function printv2mol(io::IO, mol::MolGraph)
+    # ver = VERSION
+    program = "MGjlv$(string(MAJOR_VERSION)[end])$(string(MINOR_VERSION)[end-1:end])"
+    datetime = Dates.format(Dates.now(), "mmddyyHHMM")
     println(io)
-    println(io, "MolecularGraph.jl version $(Util.VERSION)")
+    println(io, "  $(program)$(datetime)2D            ")
     println(io)
-    ncnt = nodecount(mol)
-    ecnt = edgecount(mol)
+    ncnt = nv(mol)
+    ecnt = ne(mol)
     header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
     println(io, header)
-    if nodeattrtype(mol) === SmilesAtom
+    if vproptype(mol) === SMILESAtom
         coords, styles = coordgen(mol)
         printv2atoms(io, mol, coords)
         printv2bonds(io, mol, styles)
@@ -122,11 +112,10 @@ function printv2mol(io::IO, mol::GraphMol)
     end
     printv2properties(io, mol)
     println(io, "M  END")
-    return
 end
 
 
-function printv2mol(mol::GraphMol)
+function printv2mol(mol::MolGraph)
     buf = IOBuffer(write=true)
     printv2mol(buf, mol)
     res = String(take!(buf))
@@ -135,11 +124,10 @@ function printv2mol(mol::GraphMol)
 end
 
 
-function printv2sdf(io::IO, mol::GraphMol)
+function printv2sdf(io::IO, mol::MolGraph)
     printv2mol(io, mol)
     printv2data(io, mol)
     println(io, raw"$$$$")
-    return
 end
 
 

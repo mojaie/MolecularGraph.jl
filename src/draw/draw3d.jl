@@ -3,66 +3,80 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-# This is loaded via @require
+import MakieCore: plot!
+import GeometryBasics: Point
 
-using .AbstractPlotting: RGB, N0f8, Vec3f0, Scene, SceneSpace, Axis, meshscatter!, scatter!, lines!
+using MakieCore: @recipe, Theme, meshscatter!, lines!, mesh!
+using Colors: RGB
+using GeometryBasics: mesh, Cylinder
 
-export spacefilling, ballstick
+export atom_radius
 
-colortype(c::Color) = RGB{N0f8}(c.r/255, c.g/255, c.b/255)
+colortype(c::Color) = RGB{Float32}(c.r/255, c.g/255, c.b/255)
+
+
+function atom_radius(mol::SimpleMolGraph; mapping=ATOM_VANDERWAALS_RADII)
+    desc = init_node_descriptor(Float64, mol)
+    for i in vertices(mol)
+        an = atomnumber(get_prop(mol, i, :symbol))
+        desc[i] = mapping[an]
+        mapping === ATOM_COVALENT_RADII || continue
+        isa(r, Real) && continue
+        # Carbon and a few metals have multiple values
+        if an == 6
+            d = degree(mol, i)
+            key = d == 3 ? "Csp3" :
+                d == 2 ? "Csp2" : "Csp"
+            desc[i] = r[key]
+        else
+            # For metals, it's safest to choose the smallest radius
+            desc[i] = minimum(values(r))
+        end
+    end
+    return desc
+end
+
 
 """
-    spacefilling(mol::UndirectGraph; radius="van der Waals", tform=identity, H::Bool=true)
+    spacefilling(mol::SimpleMolGraph; radius="van der Waals", tform=identity, H::Bool=true)
+
+Makie.jl recipe for drawing 3D space filling model.
 
 Represent `mol` as a space-filling (Calotte) model in three dimensions. `mol` should have 3d atom positions represented
 in Angstroms. (3D SDF files can be downloaded from sites such as PubChem.) The two supported options for `radius` are
 `"van der Waals"` and `"covalent"`; the former are available only for main-group elements, and the latter are available for
 all.
 
-`tform(xyz)` optionally transforms the positions before plotting them. `H=false` causes hydrogens to be omitted from the plot.
 
-This function requires that you load one of the backends of the Makie/WGLMakie/CairoMakie family.
+This function requires that you load one of the backends of the GLMakie/WGLMakie/CairoMakie family.
+
+example:
+
+scene = Scene(camera = cam3d!, show_axis = false)
 """
-spacefilling(mol::UndirectedGraph; kwargs...) = spacefilling!(Scene(), mol; kwargs...)
-
-function spacefilling!(scene::Scene, mol::UndirectedGraph; radius::String="van der Waals", tform=identity, H::Bool=true)
-    syms = [a.symbol for a in nodeattrs(mol)]
-    pos = reduce(hcat, [tform(atom.coords) for atom in nodeattrs(mol)])
-    size(pos, 1) == 3 || error("this plots only in 3d")
-    if !H
-        keep = syms .!= :H
-        syms, pos = syms[keep], pos[:,keep]
-        atomidx = findall(keep)
-    else
-        atomidx = collect(1:length(syms))
-    end
-    isvdW = radius == "van der Waals"
-    radii = map(atomidx, syms) do idx, sym
-        an = ATOMSYMBOLMAP[string(sym)]
-        if isvdW
-            r = ATOM_VANDERWAALS_RADII[an]
-        else
-            r = ATOM_COVALENT_RADII[an]
-            if !isa(r, Real)
-                # Carbon and a few metals have multiple values
-                if an == 6
-                    nbrs = neighbors(mol, idx)
-                    key = nbrs == 3 ? "Csp3" :
-                        nbrs == 2 ? "Csp2" : "Csp"
-                    r = r[key]
-                else
-                    # For metals, it's safest to choose the smallest radius
-                    r = minimum(values(r))
-                end
-            end
-        end
-        r
-    end
-    return axisoff!(meshscatter!(scene, pos[1,:], pos[2,:], pos[3,:], color=colortype.(atomcolor(syms; setting=DRAW_SETTING3)), markersize=radii, markerspace=SceneSpace))
+@recipe(SpaceFilling, mol) do scene
+    Theme(
+        colortheme=RASMOL_ATOM_COLOR,
+        radii=ATOM_VANDERWAALS_RADII
+    )
 end
 
+function plot!(sc::SpaceFilling{<:Tuple{<:SimpleMolGraph}})
+    mol = sc[1][]
+    crds = coords3d(mol)
+    col = colortype.(atom_color(mol, color_theme=sc.colortheme[]))
+    rd = atom_radius(mol, mapping=sc.radii[])
+    meshscatter!(sc, crds[:, 1], crds[:, 2], crds[:, 3];
+        color=col,
+        markersize=rd
+    )
+end
+
+
 """
-    ballstick(mol::UndirectGraph; tform=identity, H::Bool=true, markersize=1)
+    ballstick(mol::SimpleMolGraph; tform=identity, H::Bool=true, markersize=1)
+
+Makie.jl recipe for drawing 3D ball-and-stick model.
 
 Represent `mol` as a ball-and-stick model in three dimensions. `mol` should have 3d atom positions represented
 in Angstroms. 3D SDF files can be downloaded from sites such as PubChem.
@@ -70,33 +84,62 @@ in Angstroms. 3D SDF files can be downloaded from sites such as PubChem.
 `tform(xyz)` optionally transforms the positions before plotting them. `H=false` causes hydrogens to be omitted from the plot.
 `markersize` specifies the diameter of the balls, in Angstroms.
 
-This function requires that you load one of the backends of the Makie/WGLMakie/CairoMakie family.
+This function requires that you load one of the backends of the GLMakie/WGLMakie/CairoMakie family.
 """
-ballstick(mol::UndirectedGraph; kwargs...) = ballstick!(Scene(), mol; kwargs...)
-
-function ballstick!(scene::Scene, mol::UndirectedGraph; tform=identity, H::Bool=true, markersize=1)
-    syms = [a.symbol for a in nodeattrs(mol)]
-    pos = reduce(hcat, [tform(atom.coords) for atom in nodeattrs(mol)])
-    size(pos, 1) == 3 || error("this plots only in 3d")
-    bondinfo = map(edgesiter(mol), edgeattrs(mol)) do e, attr
-        ([Vec3f0(pos[:,e[1]]), Vec3f0(pos[:,e[2]])], attr.order)
-    end
-    if !H
-        keep = syms .!= :H
-        syms, pos = syms[keep], pos[:,keep]
-        bondinfo = [bi for (bi, e) in zip(bondinfo, edgesiter(mol)) if (keep[e[1]] & keep[e[2]])]
-    end
-    scene = scatter!(scene, pos[1,:], pos[2,:], pos[3,:], color=colortype.(atomcolor(syms; setting=DRAW_SETTING3)), markersize=markersize, markerspace=SceneSpace)
-    for (l, w) in bondinfo
-        lines!(scene, l, linewidth=10*w)
-    end
-    return axisoff!(scene)
+@recipe(BallStick, mol) do scene
+    Theme(
+        colortheme=RASMOL_ATOM_COLOR,
+        bonddiameter=0.2
+    )
 end
 
-axisoff!(scene::Scene) = (axisoff!(scene[Axis]); return scene)
-function axisoff!(ax)
-    # ax.showgrid[] = (false, false, false)   # disabled due to https://github.com/JuliaPlots/Makie.jl/issues/774
-    ax.showaxis[] = (false, false, false)
-    ax.showticks[] = (false, false, false)
-    return ax
+function plot!(sc::BallStick{<:Tuple{<:SimpleMolGraph}})
+    mol = sc[1][]
+    crds = coords3d(mol)
+    col = colortype.(atom_color(mol, color_theme=sc.colortheme[]))
+    meshscatter!(sc, crds[:, 1], crds[:, 2], crds[:, 3];
+        color=col,
+        markersize=0.4
+    )
+    diam = sc.bonddiameter[]
+    for e in edges(mol)
+        b = Cylinder(
+            Point(crds[src(e), :]...),
+            Point(crds[dst(e), :]...), float(0.1*get_prop(mol, e, :order)))
+        me = mesh(b)
+        mesh!(sc, me, color=:gray)
+        """
+        lines!(sc,
+            crds[[src(e), dst(e)], 1],
+            crds[[src(e), dst(e)], 2],
+            crds[[src(e), dst(e)], 3],
+            linewidth=10*get_prop(mol, e, :order)
+        )
+        """
+    end
 end
+
+# TODO: double/triple bond drawing
+# TODO: bond color corresponds to connecting atom
+"""
+meshscatter!(sc, crds[:, 1], crds[:, 2], crds[:, 3];
+        color=atomcolor,
+        markersize=0.3
+    )
+
+sc = Scene(camera = cam3d!, show_axis = false)
+center!(sc)
+
+
+meshscatter(crds[:, 1], crds[:, 2], crds[:, 3];
+    color=atomcolor,
+    markersize=radius,
+    axis=(;show_axis=false)
+)
+
+sc = Scene(camera=cam3d!, show_axis=false)
+a = Cylinder(GeometryBasics.Point(0.0, 0.0, 0.0), GeometryBasics.Point(1.0, 1.0, 1.0), 0.2)
+mesh = GeometryBasics.mesh(a)
+mesh!(sc, mesh, color=:gray)
+mol = sdftomol(joinpath(@__DIR__, "assets", "test", "aspirin_3d.sdf"))
+"""

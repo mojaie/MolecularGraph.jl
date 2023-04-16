@@ -12,9 +12,7 @@ export
 
 
 """
-    VF2Matcher{T1<:UndirectedGraph,T2<:UndirectedGraph}(
-        G::T1, H::T2, matchtype::Symbol; kwargs...
-    )
+    VF2Matcher{T,U,G<:SimpleGraph{T},H<:SimpleGraph{U}}
 
 Lazy iterator that generate all isomorphism mappings between `G` and `H`.
 
@@ -25,51 +23,51 @@ Lazy iterator that generate all isomorphism mappings between `G` and `H`.
 
 # Options
 
-- `nodematcher::Function`: a function for semantic node attribute matching (default: (a, b) -> true)
-- `edgematcher::Function`: a function for semantic edge attribute matching (default: (a, b) -> true)
+- `vmatch::Function`: a function for semantic node attribute matching (default: (a, b) -> true)
+- `ematch::Function`: a function for semantic edge attribute matching (default: (a, b) -> true)
 - `mandatory::Dict{Int,Int}`: mandatory node mapping (if matchtype=:edgeinduced, edge mapping)
 - `forbidden::Dict{Int,Int}`: forbidden node mapping (if matchtype=:edgeinduced, edge mapping)
 - `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time reached and return empty iterator (default: 10 seconds)
 
 """
-mutable struct VF2Matcher{T1<:UndirectedGraph,T2<:UndirectedGraph}
-    G::T1
-    H::T2
+mutable struct VF2Matcher{T,U,G<:SimpleGraph{T},H<:SimpleGraph{U}}
+    g::G
+    h::H
     matchtype::Symbol
-    nodematcher::Function
-    edgematcher::Function
-    mandatory::Dict{Int,Int}
-    forbidden::Dict{Int,Int}
-    expire::Union{UInt64,Nothing} # UInt64, nanoseconds
+    vmatch::Function
+    ematch::Function
+    mandatory::Dict{T,U}
+    forbidden::Dict{T,U}
+    expire::Union{UInt64,Nothing}  # UInt64, nanoseconds
 
-    stack::Vector{Tuple{Symbol,Int,Int}}
-    currentpair::Union{Tuple{Int,Int},Nothing}
-    g_core::Dict{Int,Int}
-    h_core::Dict{Int,Int}
-    g_term::Dict{Int,Int}
-    h_term::Dict{Int,Int}
+    stack::Vector{Tuple{Symbol,T,U}}
+    currentpair::Union{Tuple{T,U},Nothing}
+    g_core::Dict{T,U}
+    h_core::Dict{T,U}
+    g_term::Dict{T,U}
+    h_term::Dict{T,U}
     timedout::Bool
 
-    function VF2Matcher{T1,T2}(
-                G::T1, H::T2, matchtype::Symbol;
-                nodematcher=(a, b)->true, edgematcher=(a, b)->true,
+    function VF2Matcher{T,U,G,H}(
+                g::G, h::H, matchtype::Symbol;
+                vmatch=(a, b)->true, ematch=(a, b)->true,
                 mandatory=Dict(), forbidden=Dict(), timeout=nothing
-            ) where {T1<:UndirectedGraph,T2<:UndirectedGraph}
+            ) where {T,U,G<:SimpleGraph{T},H<:SimpleGraph{U}}
         expire = (timeout === nothing ?
             nothing : (time_ns() + timeout * 1_000_000_000)::UInt64)
         return new(
-            G, H, matchtype, nodematcher, edgematcher,
+            g, h, matchtype, vmatch, ematch,
             mandatory, forbidden, expire,
             [], nothing, Dict(), Dict(), Dict(), Dict(), false
         )
     end
 end
-VF2Matcher(
-    G::UndirectedGraph, H::UndirectedGraph, matchtype::Symbol; kwargs...
-) = VF2Matcher{typeof(G),typeof(H)}(G, H, matchtype; kwargs...)
+
+VF2Matcher(g::SimpleGraph, h::SimpleGraph, matchtype::Symbol; kwargs...
+    ) = VF2Matcher{eltype(g),eltype(h),typeof(g),typeof(h)}(g, h, matchtype; kwargs...)
 
 
-function candidatepairs(iter::VF2Matcher)
+function candidatepairs(iter::VF2Matcher{T,U,G,H}) where {T,U,G,H}
     # Mandatory pair
     md = setdiff(keys(iter.mandatory), keys(iter.g_core))
     if !isempty(md)
@@ -77,34 +75,34 @@ function candidatepairs(iter::VF2Matcher)
         return [(n, iter.mandatory[n])]
     end
 
-    pairs = Tuple{Int,Int}[]
+    pairs = Tuple{T,U}[]
     g_cand = setdiff(keys(iter.g_term), keys(iter.g_core))
     h_cand = setdiff(keys(iter.h_term), keys(iter.h_core))
     if isempty(g_cand) || isempty(h_cand)
         # New connected component
-        g_cand = setdiff(nodeset(iter.G), keys(iter.g_core))
-        h_cand = setdiff(nodeset(iter.H), keys(iter.h_core))
+        g_cand = setdiff(Set(vertices(iter.g)), keys(iter.g_core))
+        h_cand = setdiff(Set(vertices(iter.h)), keys(iter.h_core))
     end
     if !isempty(h_cand)
         # improved pivot for monomorphism match with many isolated nodes
         h_sorted = sort!(collect(h_cand))
-        h_min = h_sorted[argmax([degree(iter.H, n) for n in h_sorted])]
-        for g in g_cand
+        h_min = h_sorted[argmax([degree(iter.h, n) for n in h_sorted])]
+        for i in g_cand
             # Forbidden pair
-            if haskey(iter.forbidden, g) && iter.forbidden[g] == h_min
+            if haskey(iter.forbidden, i) && iter.forbidden[i] == h_min
                 continue
             end
-            push!(pairs, (g, h_min))
+            push!(pairs, (i, h_min))
         end
     end
     return pairs
 end
 
 
-function is_feasible(iter::VF2Matcher, g, h)
+function is_feasible(iter::VF2Matcher, gv, hv)
     # Note: assume simple graph (no self loops and multi edges)
-    g_nbrs = adjacencies(iter.G, g)
-    h_nbrs = adjacencies(iter.H, h)
+    g_nbrs = neighbors(iter.g, gv)
+    h_nbrs = neighbors(iter.h, hv)
     if iter.matchtype !== :monomorphic
         for n in intersect(g_nbrs, keys(iter.g_core))
             if !(iter.g_core[n] in h_nbrs)
@@ -131,8 +129,8 @@ function is_feasible(iter::VF2Matcher, g, h)
             return false
         end
 
-        g_new_count = length(setdiff(nodeset(iter.G), keys(iter.g_term)))
-        h_new_count = length(setdiff(nodeset(iter.H), keys(iter.h_term)))
+        g_new_count = length(setdiff(Set(vertices(iter.g)), keys(iter.g_term)))
+        h_new_count = length(setdiff(Set(vertices(iter.h)), keys(iter.h_term)))
         if iter.matchtype === :isomorphic && g_new_count != h_new_count
             @debug "Infeasible: yet unexplored nodes"
             return false
@@ -146,16 +144,18 @@ function is_feasible(iter::VF2Matcher, g, h)
 end
 
 
-function is_semantic_feasible(iter::VF2Matcher, g, h)
-    if !iter.nodematcher(g, h)
+function is_semantic_feasible(iter::VF2Matcher, gv, hv)
+    if !iter.vmatch(gv, hv)
         @debug "Infeasible: node attribute mismatch"
         return false
     end
-    for (inc, adj) in neighbors(iter.G, g)
-        haskey(iter.g_core, adj) || continue
-        hinc = findedgekey(iter.H, h, iter.g_core[adj])
-        iter.matchtype === :monomorphic && hinc === nothing && continue
-        if !iter.edgematcher(inc, hinc)
+    for nbr in neighbors(iter.g, gv)
+        haskey(iter.g_core, nbr) || continue
+        (iter.matchtype === :monomorphic
+            && !has_edge(iter.h, hv, iter.g_core[nbr])) && continue
+        if !iter.ematch(
+                undirectededge(iter.g, gv, nbr),
+                undirectededge(iter.h, hv, iter.g_core[nbr]))
             @debug "Infeasible: edge attribute mismatch"
             return false
         end
@@ -174,11 +174,11 @@ function expand!(iter::VF2Matcher, g, h)
     if !haskey(iter.h_term, h)
         iter.h_term[h] = depth
     end
-    g_nbrset = union([adjacencies(iter.G, n) for n in keys(iter.g_core)]...)
+    g_nbrset = union([neighbors(iter.g, n) for n in keys(iter.g_core)]...)
     for n in setdiff(g_nbrset, keys(iter.g_term))
         iter.g_term[n] = depth
     end
-    h_nbrset = union([adjacencies(iter.H, n) for n in keys(iter.h_core)]...)
+    h_nbrset = union([neighbors(iter.h, n) for n in keys(iter.h_core)]...)
     for n in setdiff(h_nbrset, keys(iter.h_term))
         iter.h_term[n] = depth
     end
@@ -225,7 +225,7 @@ function Base.iterate(iter::VF2Matcher, state=nothing)
         expand!(iter, g1, h1)
         iter.currentpair = (g1, h1)
         @debug "depth" length(iter.g_core)
-        if length(iter.g_core) == nodecount(iter.H)
+        if length(iter.g_core) == nv(iter.h)
             @debug "done" iter.g_core
             return (copy(iter.g_core), state)
         elseif iter.expire !== nothing && time_ns() > iter.expire
@@ -242,110 +242,135 @@ function Base.iterate(iter::VF2Matcher, state=nothing)
     return  # no match found
 end
 
-# TODO: get rid of generics
-Base.IteratorSize(::Type{VF2Matcher{T1,T2}}) where {T1<:UndirectedGraph,T2<:UndirectedGraph} = Base.SizeUnknown()
-Base.IteratorEltype(::Type{VF2Matcher{T1,T2}}) where {T1<:UndirectedGraph,T2<:UndirectedGraph} = Base.EltypeUnknown()
-
+Base.IteratorSize(::Type{<:VF2Matcher}) = Base.SizeUnknown()
+Base.IteratorEltype(::Type{<:VF2Matcher}) = Base.EltypeUnknown()
 
 
 # Graph isomorphism
 
 """
-    isomorphisms(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> Iterator
+    isomorphisms(g::SimpleGraph, h::SimpleGraph; kwargs...) -> Iterator
 
 Return an iterator that generate isomorphic mappings between `G` and `H`.
 The returned iterator has `ig => ih` pairs that correspond to the indices of matching nodes in `G` and `H`, respectively.
 """
-isomorphisms(G, H; kwargs...) = VF2Matcher(G, H, :isomorphic; kwargs...) 
+isomorphisms(g, h; kwargs...) = VF2Matcher(g, h, :isomorphic; kwargs...) 
 
 
 """
-    is_isomorphic(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> Bool
+    is_isomorphic(g::SimpleGraph, h::SimpleGraph; kwargs...) -> Bool
 
 Return whether `G` and `H` are isomorphic.
 """
-is_isomorphic(G, H; kwargs...) = !isempty(isomorphisms(G, H; kwargs...))
+is_isomorphic(g, h; kwargs...) = !isempty(isomorphisms(g, h; kwargs...))
 
 
 # Node-induced subgraph isomorphism
 
 """
-    nodesubgraph_isomorphisms(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> Iterator
+    nodesubgraph_isomorphisms(g::SimpleGraph, h::SimpleGraph; kwargs...) -> Iterator
 
 Return an iterator that generate isomorphic mappings between `H` and node-induced subgraphs of `G`.
 The returned iterator has `ig => ih` pairs that correspond to the indices of matching nodes in `G` and `H`, respectively.
 """
-nodesubgraph_isomorphisms(G, H; kwargs...
-    ) = VF2Matcher(G, H, :subgraph_isomorphic; kwargs...) 
+nodesubgraph_isomorphisms(g, h; kwargs...
+    ) = VF2Matcher(g, h, :subgraph_isomorphic; kwargs...) 
 
 
 """
-    nodesubgraph_is_isomorphic(G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> Bool
+    nodesubgraph_is_isomorphic(g::SimpleGraph, h::SimpleGraph; kwargs...) -> Bool
 
 Return whether a node-induced subgraph of `G` is isomorphic to `H`.
 """
-nodesubgraph_is_isomorphic(G, H; kwargs...
-    ) = !isempty(nodesubgraph_isomorphisms(G, H; kwargs...))
+nodesubgraph_is_isomorphic(g, h; kwargs...
+    ) = !isempty(nodesubgraph_isomorphisms(g, h; kwargs...))
 
+
+
+# delta-Y filter for edge-induced subgraph isomorphisms
+function delta_y_exists(mapping, g, h)  # edge mapping g(e) => h(e)
+    revmap = Dict(v => k for (k, v) in mapping)
+    for t in triangle_nodes(g)
+        te = Edge{eltype(g)}.([(t[1], t[2]), (t[2], t[3]), (t[1], t[3])])
+        issubset(te, keys(mapping)) || continue
+        hs = Set{eltype(g)}()
+        for e in te
+            he = mapping[e]
+            push!(hs, src(he), dst(he))
+        end
+        length(hs) == 3 || return true
+    end
+    for t in triangle_nodes(h)
+        te = Edge{eltype(h)}.([(t[1], t[2]), (t[2], t[3]), (t[1], t[3])])
+        issubset(te, values(mapping)) || continue
+        gs = Set{eltype(h)}()
+        for e in te
+            ge = revmap[e]
+            push!(gs, src(ge), dst(ge))
+        end
+        length(gs) == 3 || return true
+    end
+    return false
+end
 
 
 # Edge-induced subgraph isomorphism
 
 """
     edgesubgraph_isomorphisms(
-        G::UndirectedGraph, H::UndirectedGraph;
-        nodematcher=(g,h)->true, edgematcher=(g,h)->true,
+        g::SimpleGraph, h::SimpleGraph;
+        vmatch=(g,h)->true, ematch=(g,h)->true,
         kwargs...) -> Iterator
 
 Return an iterator that generate isomorphic mappings between `H` and edge-induced subgraphs of `G`.
-The returned iterator has `ig => ih` pairs that correspond to the indices of matching edges in `G` and `H`, respectively.
+The returned iterator has `ig => ih` pairs that correspond to the indices of matching edges
+in `G` and `H`, respectively.
 
-`nodematcher` and `edgematcher` control the features needed to be counted as a match.
+`vmatch` and `ematch` control the features needed to be counted as a match.
 
 See [`Graph.edgesubgraph`](@ref) to construct the subgraphs that result from the match.
 """
 function edgesubgraph_isomorphisms(
-        G, H; nodematcher=(g,h)->true, edgematcher=(g,h)->true, kwargs...)
-    lg = linegraph(G)
-    lh = linegraph(H)
-    lgedge = lgedgematcher(lg, lh, nodematcher)
-    lgnode = lgnodematcher(lg, lh, nodematcher, edgematcher)
+        g, h; vmatch=(gv,hv)->true, ematch=(ge,he)->true, kwargs...)
+    lg, grev, gsh = line_graph(g)
+    lh, hrev, hsh = line_graph(h)
+    lgnode = lgvmatch(lg, lh, grev, hrev, vmatch, ematch)
+    lgedge = lgematch(lg, lh, gsh, hsh, vmatch)
     matcher = VF2Matcher(
         lg, lh, :subgraph_isomorphic;
-        nodematcher=lgnode, edgematcher=lgedge, kwargs...)
-    return Iterators.filter(matcher) do mapping
-        return !delta_y_mismatch(G, H, mapping)
+        vmatch=lgnode, ematch=lgedge, kwargs...)
+    revmaped = Iterators.map(matcher) do mapping
+        return Dict(grev[m] => hrev[n] for (m, n) in mapping)
+    end
+    return Iterators.filter(revmaped) do mapping
+        return !delta_y_exists(mapping, g, h)
     end
 end
 
 
 """
-    edgesubgraph_is_isomorphic(
-        G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> Bool
+    edgesubgraph_is_isomorphic(g::SimpleGraph, h::SimpleGraph; kwargs...) -> Bool
 
 Return whether an edge-induced subgraph of `G` is isomorphic to `H`.
 """
-edgesubgraph_is_isomorphic(G, H; kwargs...
-    ) = !isempty(edgesubgraph_isomorphisms(G, H; kwargs...))
+edgesubgraph_is_isomorphic(g, h; kwargs...) = !isempty(edgesubgraph_isomorphisms(g, h; kwargs...))
 
 
 # Subgraph monomorphism
 
 """
-    subgraph_monomorphisms(
-        G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> Iterator
+    subgraph_monomorphisms(g::SimpleGraph, h::SimpleGraph; kwargs...) -> Iterator
 
 Generate monomorphism mappings between `H` and subgraphs of `G`.
-The returned iterator has `ig => ih` pairs that correspond to the indices of matching nodes in `G` and `H`, respectively.
+The returned iterator has `ig => ih` pairs that correspond to the indices of
+matching nodes in `G` and `H`, respectively.
 """
-subgraph_monomorphisms(G, H; kwargs...) = VF2Matcher(G, H, :monomorphic; kwargs...)
+subgraph_monomorphisms(g, h; kwargs...) = VF2Matcher(g, h, :monomorphic; kwargs...)
 
 
 """
-    subgraph_is_monomorphic(
-        G::UndirectedGraph, H::UndirectedGraph; kwargs...) -> Bool
+    subgraph_is_monomorphic(g::SimpleGraph, h::SimpleGraph; kwargs...) -> Bool
 
 Return whether a subgraph of `G` is monomorphic to `H`.
 """
-subgraph_is_monomorphic(G, H; kwargs...
-    ) = !isempty(subgraph_monomorphisms(G, H; kwargs...))
+subgraph_is_monomorphic(g, h; kwargs...) = !isempty(subgraph_monomorphisms(g, h; kwargs...))

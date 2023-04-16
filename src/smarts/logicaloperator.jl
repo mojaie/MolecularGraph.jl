@@ -12,25 +12,22 @@ LogicalLowAnd <- Or (';' Or)*
 The argument `func` is a parser function which has a parser state as an argument,
 process tokens found in the given text, and returns nothing if no valid tokens were found.
 """
-function lglowand!(state::SmartsParserState, func)
-    fmls = Set{QueryFormula}()
-    fml = lgor!(state, func)
-    fml === nothing && return
-    while fml !== nothing
-        push!(fmls, fml)
+function lglowand!(state::SMARTSParser, func)
+    qs = []
+    q = lgor!(state, func)
+    q === nothing && return
+    while q !== nothing
+        push!(qs, q)
         if read(state) == ';'
             forward!(state)
-            fml = lgor!(state, func)
-        else
-            break
+            q = lgor!(state, func)
+            continue
         end
+        break
     end
-    @assert !isempty(fmls) "(lglowand!) invalid AND(;) operation"
-    if length(fmls) == 1
-        return collect(fmls)[1]
-    else
-        return QueryFormula(:and, fmls)
-    end
+    isempty(qs) && error("(lglowand!) invalid AND(;) operation")
+    length(qs) == 1 && return qs[1]
+    return QueryOperator(:and, qs)
 end
 
 
@@ -42,25 +39,22 @@ Or <- And (',' And)*
 The argument `func` is a parser function which has a parser state as an argument,
 process tokens found in the given text, and returns nothing if no valid tokens were found.
 """
-function lgor!(state::SmartsParserState, func)
-    fmls = Set{QueryFormula}()
-    fml = lghighand!(state, func)
-    fml === nothing && return
-    while fml !== nothing
-        push!(fmls, fml)
+function lgor!(state::SMARTSParser, func)
+    qs = []
+    q = lghighand!(state, func)
+    q === nothing && return
+    while q !== nothing
+        push!(qs, q)
         if read(state) == ','
             forward!(state)
-            fml = lghighand!(state, func)
-        else
-            break
+            q = lghighand!(state, func)
+            continue
         end
+        break
     end
-    @assert !isempty(fmls) "(lgor!) invalid OR(,) operation"
-    if length(fmls) == 1
-        return collect(fmls)[1]
-    else
-        return QueryFormula(:or, fmls)
-    end
+    isempty(qs) && error("(lgor!) invalid OR(,) operation")
+    length(qs) == 1 && return qs[1]
+    return QueryOperator(:or, qs)
 end
 
 
@@ -72,26 +66,18 @@ And <- Not ('&'? Not)*
 The argument `func` is a parser function which has a parser state as an argument,
 process tokens found in the given text, and returns nothing if no valid tokens were found.
 """
-function lghighand!(state::SmartsParserState, func)
-    fmls = Set{QueryFormula}()
-    fml = lgnot!(state, func)
-    fml === nothing && return
-    while fml !== nothing
-        push!(fmls, fml)
-        if read(state) == '&'
-            forward!(state)
-        end
-        fml = lgnot!(state, func)
+function lghighand!(state::Union{SMILESParser,SMARTSParser}, func)
+    qs = []
+    q = isa(state, SMILESParser) ? func(state) : lgnot!(state, func)
+    q === nothing && return
+    while q !== nothing
+        push!(qs, q)
+        read(state) == '&' && forward!(state)
+        q = isa(state, SMILESParser) ? func(state) : lgnot!(state, func)
     end
-    @assert !isempty(fmls) "(lghighand!) invalid AND(&) operation"
-    setdiff!(fmls, [QueryFormula(:any, true)])
-    if isempty(fmls)
-        return QueryFormula(:any, true)
-    elseif length(fmls) == 1
-        return collect(fmls)[1]
-    else
-        return QueryFormula(:and, fmls)
-    end
+    isempty(qs) && error("(lghighand!) invalid AND(&) operation")
+    length(qs) == 1 && return qs[1]
+    return QueryOperator(:and, qs)
 end
 
 
@@ -103,12 +89,12 @@ Not <- '!'? Element
 The argument `func` is a parser function which has a parser state as an argument,
 process tokens found in the given text, and returns nothing if no valid tokens were found.
 """
-function lgnot!(state::SmartsParserState, func)
+function lgnot!(state::SMARTSParser, func)
     if read(state) == '!'
         forward!(state)
-        fml = func(state)
-        @assert fml !== nothing "(lgnot!) invalid NOT(!) operation"
-        return QueryFormula(:not, fml)
+        q = func(state)
+        q === nothing && error("(lgnot!) invalid NOT(!) operation")
+        return QueryOperator(:not, [q])
     end
     return func(state)  # can be Nothing if the parser get stop token
 end

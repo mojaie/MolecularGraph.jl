@@ -1,265 +1,253 @@
+#
+# This file is a part of MolecularGraph.jl
+# Licensed under the MIT License http://opensource.org/licenses/MIT
+#
 
 @testset "stereo" begin
 
-@testset "stereohydrogens" begin
-    LAla1 = parse(SMILES, "N[C@@H](C)C(=O)O")
-    @test LAla1.nodeattrs[2].stereo == :clockwise
-    LAla1 = removestereohydrogens(LAla1)
-    @test nodecount(LAla1) == 6
-    @test LAla1.nodeattrs[2].stereo == :clockwise
-    @test LAla1.nodeattrs[3].symbol == :C
-    LAla1 = addstereohydrogens(LAla1)
-    @test nodecount(LAla1) == 7
-    @test LAla1.nodeattrs[2].stereo == :clockwise
-    @test LAla1.nodeattrs[3].symbol == :H
+@testset "stereo_hydrogen" begin
+    LAla1 = smilestomol("N[C@@H](C)C(=O)O")
+    @test get_prop(LAla1, 2, :stereo) === :clockwise
+    stereocenter_from_smiles!(LAla1)
+    @test get_prop(LAla1, :stereocenter)[2] == (1, 3, 4, true)
+    @test remove_stereo_hydrogen!(LAla1, 2)
+    @test get_prop(LAla1, :stereocenter)[2] == (1, 4, 5, true)
 
-    LAla2 = parse(SMILES, "N[C@@](C)([H])C(=O)O")
-    LAla2 = removestereohydrogens(LAla2)
-    @test nodecount(LAla2) == 6
-    @test LAla2.nodeattrs[2].stereo == :anticlockwise
+    LAla2 = smilestomol("N[C@](C)([H])C(=O)O")
+    @test get_prop(LAla2, 2, :stereo) === :anticlockwise
+    stereocenter_from_smiles!(LAla2)
+    @test get_prop(LAla2, :stereocenter)[2] == (1, 3, 4, false)
+    @test remove_stereo_hydrogen!(LAla2, 2)
+    @test get_prop(LAla2, :stereocenter)[2] == (1, 3, 5, true)
     
-    LAla3 = parse(SMILES, "[H][C@@](C)(N)C(=O)O")
-    LAla3 = removestereohydrogens(LAla3)
-    @test nodecount(LAla3) == 6
-    @test LAla3.nodeattrs[1].stereo == :clockwise
+    LAla3 = smilestomol("[H][C@@](C(=O)O)(C)N")
+    @test get_prop(LAla3, 2, :stereo) === :clockwise
+    stereocenter_from_smiles!(LAla3)
+    @test get_prop(LAla3, :stereocenter)[2] == (1, 3, 6, true)
+    @test remove_stereo_hydrogen!(LAla3, 2)
+    @test get_prop(LAla3, :stereocenter)[2] == (3, 6, 1, false)
 
-    LAla4 = parse(SMILES, "N[C@@](C)(C(=O)O)[H]")
-    LAla4 = removestereohydrogens(LAla4)
-    @test nodecount(LAla4) == 6
-    @test LAla4.nodeattrs[2].stereo == :clockwise
+    LAla4 = smilestomol("OC(=O)[C@]([H])(C)N")
+    @test get_prop(LAla4, 4, :stereo) === :anticlockwise
+    stereocenter_from_smiles!(LAla4)
+    @test get_prop(LAla4, :stereocenter)[4] == (2, 5, 6, false)
+    @test remove_stereo_hydrogen!(LAla4, 4)
+    @test get_prop(LAla4, :stereocenter)[4] == (2, 6, 5, false)
 end
 
-@testset "setdiastereosmiles" begin
-    mol1 = parse(SMILES, "C/C=C\\C")
-    setdiastereo!(mol1)
-    @test mol1.edgeattrs[2].stereo === :cis
-
-    mol2 = parse(SMILES, "C/C=C/C")
-    setdiastereo!(mol2)
-    @test mol2.edgeattrs[2].stereo === :trans
-
-    cis = parse(SMILES, "C(/C)=C/C")
-    setdiastereo!(cis)
-    @test cis.edgeattrs[2].stereo === :cis
-
-    mol3 = parse(SMILES, "C\\C([H])=C([H])/C")
-    setdiastereo!(mol3)
-    @test mol3.edgeattrs[3].stereo === :trans
-
-    mol4 = parse(SMILES, "C/C=C(\\C=C)/C=C(/C)C")
-    setdiastereo!(mol4)
-    @test mol4.edgeattrs[2].stereo === :cis
-    @test mol4.edgeattrs[4].stereo === :unspecified
-    @test mol4.edgeattrs[6].stereo === :trans
-end
-
-@testset "setdiastereosdfile" begin
-    bonds = [
-        SDFileBond(1), SDFileBond(2), SDFileBond(3),
-    ]
-    
-    atoms = [
-        SDFileAtom(:C, 0, 1, nothing, [-0.5, 1.41]),
-        SDFileAtom(:C, 0, 1, nothing, [0.0, 0.0]),
-        SDFileAtom(:C, 0, 1, nothing, [1.0, 0.0]),
-        SDFileAtom(:C, 0, 1, nothing, [1.5, 1.41])
-    ]
-    mol1 = graphmol([(1,2), (2,3), (3,4)], atoms, bonds)
-    setdiastereo!(mol1)
-    @test mol1.edgeattrs[2].stereo === :cis
-
-    atoms[4] = SDFileAtom(:C, 0, 1, nothing, [1.5, -1.41])
-    mol2 = graphmol([(1,2), (2,3), (3,4)], atoms, bonds)
-    setdiastereo!(mol2)
-    @test mol2.edgeattrs[2].stereo === :trans
-
-    atoms[4] = SDFileAtom(:C, 0, 1, nothing, [2.0, 0.0])
-    mol3 = graphmol([(1,2), (2,3), (3,4)], atoms, bonds)
-    setdiastereo!(mol3)
-    @test mol3.edgeattrs[2].stereo === :unspecified
-end
-
-@testset "setstereocenter" begin
+@testset "stereocenter_from_sdf2d" begin
     # degree=4
+    # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
     atoms = [
-        SDFileAtom(:C, 0, 1, nothing, [0.0, 0.0]),
-        SDFileAtom(:C, 0, 1, nothing, [-1.41, 0.5]),
-        SDFileAtom(:C, 0, 1, nothing, [1.41, 0.5]),
-        SDFileAtom(:C, 0, 1, nothing, [-0.5, -1.41]),
-        SDFileAtom(:C, 0, 1, nothing, [0.5, -1.41])
+        SDFAtom(:C, 0, 1, nothing, [0.0, 0.0]),
+        SDFAtom(:C, 0, 1, nothing, [-1.41, 0.5]),
+        SDFAtom(:C, 0, 1, nothing, [1.41, 0.5]),
+        SDFAtom(:C, 0, 1, nothing, [-0.5, -1.41]),
+        SDFAtom(:C, 0, 1, nothing, [0.5, -1.41])
     ]
+    bonds = [
+        SDFBond(1, 0),
+        SDFBond(1, 0),
+        SDFBond(1, 0),
+        SDFBond(1, 0)
+    ]
+    edges = Edge.([(1,2), (1,3), (1,4), (1,5)])
+    uns1 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(uns1)
+    @test isempty(get_prop(uns1, :stereocenter))
 
     bonds = [
-        SDFileBond(1, 0),
-        SDFileBond(1, 0),
-        SDFileBond(1, 0),
-        SDFileBond(1, 0)
+        SDFBond(1, 0),
+        SDFBond(1, 0),
+        SDFBond(1, 1),
+        SDFBond(1, 6)
     ]
-    uns1 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(uns1)
-    @test uns1.nodeattrs[1].stereo === :unspecified
+    mol1 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(mol1)
+    @test get_prop(mol1, :stereocenter)[1] === (2, 3, 5, false)
 
     bonds = [
-        SDFileBond(1, 0),
-        SDFileBond(1, 0),
-        SDFileBond(1, 1),
-        SDFileBond(1, 6)
+        SDFBond(1, 1),
+        SDFBond(1, 0),
+        SDFBond(1, 6),
+        SDFBond(1, 0)
     ]
-    mol1 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(mol1)
-    @test mol1.nodeattrs[1].stereo === :clockwise
+    mol2 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(mol2)
+    @test get_prop(mol2, :stereocenter)[1] === (2, 3, 5, true)
 
     bonds = [
-        SDFileBond(1, 1),
-        SDFileBond(1, 0),
-        SDFileBond(1, 6),
-        SDFileBond(1, 0)
+        SDFBond(1, 1),
+        SDFBond(1, 0),
+        SDFBond(1, 0),
+        SDFBond(1, 1)
     ]
-    mol2 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(mol2)
-    @test mol2.nodeattrs[1].stereo === :anticlockwise
+    mol3 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(mol3)
+    @test get_prop(mol3, :stereocenter)[1] === (2, 3, 5, true)
 
     bonds = [
-        SDFileBond(1, 1),
-        SDFileBond(1, 0),
-        SDFileBond(1, 0),
-        SDFileBond(1, 1)
+        SDFBond(1, 6),
+        SDFBond(1, 0),
+        SDFBond(1, 0),
+        SDFBond(1, 6)
     ]
-    mol3 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(mol3)
-    @test mol3.nodeattrs[1].stereo === :anticlockwise
+    mol4 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(mol4)
+    @test get_prop(mol4, :stereocenter)[1] === (2, 3, 5, false)
 
     bonds = [
-        SDFileBond(1, 6),
-        SDFileBond(1, 0),
-        SDFileBond(1, 0),
-        SDFileBond(1, 6)
+        SDFBond(1, 0),
+        SDFBond(1, 1),
+        SDFBond(1, 0),
+        SDFBond(1, 0)
     ]
-    mol4 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(mol4)
-    @test mol4.nodeattrs[1].stereo === :clockwise
+    mol5 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(mol5)
+    @test get_prop(mol5, :stereocenter)[1] === (2, 3, 5, false)
 
     bonds = [
-        SDFileBond(1, 0),
-        SDFileBond(1, 1),
-        SDFileBond(1, 0),
-        SDFileBond(1, 0)
+        SDFBond(1, 0),
+        SDFBond(1, 0),
+        SDFBond(1, 6),
+        SDFBond(1, 0)
     ]
-    mol5 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(mol5)
-    @test mol5.nodeattrs[1].stereo === :clockwise
+    mol6 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(mol6)
+    @test get_prop(mol6, :stereocenter)[1] === (2, 3, 5, true)
 
     bonds = [
-        SDFileBond(1, 0),
-        SDFileBond(1, 0),
-        SDFileBond(1, 6),
-        SDFileBond(1, 0)
+        SDFBond(1, 6),
+        SDFBond(1, 6),
+        SDFBond(1, 6),
+        SDFBond(1, 0)
     ]
-    mol6 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(mol6)
-    @test mol6.nodeattrs[1].stereo === :anticlockwise
+    wrong1 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(wrong1)
+    @test isempty(get_prop(wrong1, :stereocenter))
 
     bonds = [
-        SDFileBond(1, 6),
-        SDFileBond(1, 6),
-        SDFileBond(1, 6),
-        SDFileBond(1, 0)
+        SDFBond(1, 1),
+        SDFBond(1, 0),
+        SDFBond(1, 1),
+        SDFBond(1, 1)
     ]
-    wrong1 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(wrong1)
-    @test wrong1.nodeattrs[1].stereo === :atypical
+    wrong2 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(wrong2)
+    @test isempty(get_prop(wrong2, :stereocenter))
 
     bonds = [
-        SDFileBond(1, 1),
-        SDFileBond(1, 0),
-        SDFileBond(1, 1),
-        SDFileBond(1, 1)
+        SDFBond(1, 1),
+        SDFBond(1, 0),
+        SDFBond(1, 0),
+        SDFBond(1, 6)
     ]
-    wrong2 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(wrong2)
-    @test wrong2.nodeattrs[1].stereo === :atypical
+    wrong3 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(wrong3)
+    @test isempty(get_prop(wrong3, :stereocenter))
 
     bonds = [
-        SDFileBond(1, 1),
-        SDFileBond(1, 0),
-        SDFileBond(1, 0),
-        SDFileBond(1, 6)
+        SDFBond(1, 1),
+        SDFBond(1, 1),
+        SDFBond(1, 0),
+        SDFBond(1, 0)
     ]
-    wrong3 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(wrong3)
-    @test wrong3.nodeattrs[1].stereo === :atypical
-
-    bonds = [
-        SDFileBond(1, 1),
-        SDFileBond(1, 1),
-        SDFileBond(1, 0),
-        SDFileBond(1, 0)
-    ]
-    wrong4 = graphmol([(1,2), (1,3), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(wrong4)
-    @test wrong4.nodeattrs[1].stereo === :atypical
+    wrong4 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(wrong4)
+    @test isempty(get_prop(wrong4, :stereocenter))
 
     # degree=3
     atoms = [
-        SDFileAtom(:C, 0, 1, nothing, [0.0, 0.0]),
-        SDFileAtom(:C, 0, 1, nothing, [0.0, 1.0]),
-        SDFileAtom(:C, 0, 1, nothing, [1.41, -0.5]),
-        SDFileAtom(:C, 0, 1, nothing, [-1.41, -0.5])
+        SDFAtom(:C, 0, 1, nothing, [0.0, 0.0]),
+        SDFAtom(:C, 0, 1, nothing, [0.0, 1.0]),
+        SDFAtom(:C, 0, 1, nothing, [1.41, -0.5]),
+        SDFAtom(:C, 0, 1, nothing, [-1.41, -0.5])
     ]
+    bonds = [
+        SDFBond(1, 0),
+        SDFBond(1, 0),
+        SDFBond(1, 0)
+    ]
+    edges = Edge.([(1,2), (1,3), (1,4)])
+    uns2 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(uns2)
+    @test isempty(get_prop(uns2, :stereocenter))
 
     bonds = [
-        SDFileBond(1, 0),
-        SDFileBond(1, 0),
-        SDFileBond(1, 0)
+        SDFBond(1, 1), SDFBond(1, 0), SDFBond(1, 0)
     ]
-    uns2 = graphmol([(1,2), (1,3), (1,4)], atoms, bonds)
-    setstereocenter!(uns2)
-    @test uns2.nodeattrs[1].stereo === :unspecified
+    implh1 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(implh1)
+    @test get_prop(implh1, :stereocenter)[1] === (2, 3, 4, true)
 
     bonds = [
-        SDFileBond(1, 1), SDFileBond(1, 0), SDFileBond(1, 0)
+        SDFBond(1, 0), SDFBond(1, 6), SDFBond(1, 0)
     ]
-    implh1 = graphmol([(1,2), (1,3), (1,4)], atoms, bonds)
-    setstereocenter!(implh1)
-    @test implh1.nodeattrs[1].stereo === :anticlockwise
+    implh2 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(implh2)
+    @test get_prop(implh2, :stereocenter)[1] === (2, 3, 4, false)
 
     bonds = [
-        SDFileBond(1, 0), SDFileBond(1, 6), SDFileBond(1, 0)
+        SDFBond(1, 0), SDFBond(1, 6), SDFBond(1, 1)
     ]
-    implh2 = graphmol([(1,2), (1,3), (1,4)], atoms, bonds)
-    setstereocenter!(implh2)
-    @test implh2.nodeattrs[1].stereo === :clockwise
-
-    bonds = [
-        SDFileBond(1, 0), SDFileBond(1, 6), SDFileBond(1, 1)
-    ]
-    wrong5 = graphmol([(1,2), (1,3), (1,4)], atoms, bonds)
-    setstereocenter!(wrong5)
-    @test wrong5.nodeattrs[1].stereo === :atypical
+    wrong5 = MolGraph(edges, atoms, bonds)
+    stereocenter_from_sdf2d!(wrong5)
+    @test isempty(get_prop(wrong5, :stereocenter))
+    # global_logger(default_logger)
 end
 
-@testset "sdfhydrogens" begin
+@testset "stereobond_from_sdf2d" begin
     atoms = [
-        SDFileAtom(:C, 0, 1, nothing, [0.0, 0.0]),
-        SDFileAtom(:H, 0, 1, nothing, [0.5, 1.41]),
-        SDFileAtom(:C, 0, 1, nothing, [-0.5, 1.41]),
-        SDFileAtom(:N, 0, 1, nothing, [1.41, -0.5]),
-        SDFileAtom(:O, 0, 1, nothing, [-1.41, -0.5])
+        SDFAtom(:C, 0, 1, nothing, [-0.5, 1.41]),
+        SDFAtom(:C, 0, 1, nothing, [0.0, 0.0]),
+        SDFAtom(:C, 0, 1, nothing, [1.0, 0.0]),
+        SDFAtom(:C, 0, 1, nothing, [1.5, 1.41])
     ]
     bonds = [
-        SDFileBond(1, 1),
-        SDFileBond(1, 6),
-        SDFileBond(1, 0),
-        SDFileBond(1, 0)
+        SDFBond(1), SDFBond(2), SDFBond(3),
     ]
-    mol1 = graphmol([(1,3), (1,2), (1,4), (1,5)], atoms, bonds)
-    setstereocenter!(mol1)
-    mol1 = removestereohydrogens(mol1)
-    @test nodecount(mol1) == 4
-    @test mol1.nodeattrs[1].stereo === :anticlockwise
-    mol1 = addstereohydrogens(mol1)
-    @test nodecount(mol1) == 5
-    @test mol1.nodeattrs[1].stereo === :anticlockwise
+    edges = Edge.([(1,2), (2,3), (3,4)])
+    mol1 = MolGraph(edges, atoms, bonds)
+    stereobond_from_sdf2d!(mol1)
+    @test get_prop(mol1, :stereobond)[Edge(2 => 3)] === (1, 4, true)
+
+    atoms[4] = SDFAtom(:C, 0, 1, nothing, [1.5, -1.41])
+    mol2 = MolGraph(edges, atoms, bonds)
+    stereobond_from_sdf2d!(mol2)
+    @test get_prop(mol2, :stereobond)[Edge(2 => 3)] === (1, 4, false)
+
+    atoms[4] = SDFAtom(:C, 0, 1, nothing, [2.0, 0.0])
+    mol3 = MolGraph(edges, atoms, bonds)
+    stereobond_from_sdf2d!(mol3)
+    @test isempty(get_prop(mol3, :stereobond))
+end
+
+@testset "stereobond_from_smiles" begin
+    # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
+    mol1 = smilestomol("C/C=C\\C")
+    stereobond_from_smiles!(mol1)
+    @test get_prop(mol1, :stereobond)[Edge(2 => 3)] === (1, 4, true)
+
+    mol2 = smilestomol("C/C=C/C")
+    stereobond_from_smiles!(mol2)
+    @test get_prop(mol2, :stereobond)[Edge(2 => 3)] === (1, 4, false)
+
+    # follows OpenSMILES specification http://opensmiles.org/opensmiles.html#chirality
+    # -> "up-ness" or "down-ness" of each single bond is relative to the carbon atom
+    cis = smilestomol("C(/C)=C/C")
+    stereobond_from_smiles!(cis)
+    @test get_prop(cis, :stereobond)[Edge(1 => 3)] === (2, 4, true)  # cis
+
+    mol3 = smilestomol("C\\C([H])=C([H])/C")
+    stereobond_from_smiles!(mol3)
+    @test get_prop(mol3, :stereobond)[Edge(2 => 4)] === (1, 6, true)
+
+    mol4 = smilestomol("C/C=C(\\C=C)/C=C(/C)C")
+    stereobond_from_smiles!(mol4)
+    @test get_prop(mol4, :stereobond)[Edge(2 => 3)] === (1, 4, true)
+    @test !haskey(get_prop(mol4, :stereobond), Edge(4 => 5))
+    @test get_prop(mol4, :stereobond)[Edge(6 => 7)] === (3, 8, false)
+    # global_logger(default_logger)
 end
 
 end # stereo

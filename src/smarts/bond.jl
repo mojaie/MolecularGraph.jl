@@ -4,38 +4,50 @@
 #
 
 const SMILES_BOND_SYMBOL = Dict(
-    '-' => QueryFormula(:bondorder, 1),
-    '=' => QueryFormula(:bondorder, 2),
-    '#' => QueryFormula(:bondorder, 3),
-    '@' => QueryFormula(:isringbond, true),
-    ':' => QueryFormula(:isaromaticbond, true),
-    '/' => QueryFormula(:stereo, :up),
-    '\\' => QueryFormula(:stereo, :down)
+    '-' => QueryLiteral(:order, 1),
+    '=' => QueryLiteral(:order, 2),
+    '#' => QueryLiteral(:order, 3),
+    '@' => QueryLiteral(:is_in_ring),
+    ':' => QueryLiteral(:isaromatic),
+    '/' => QueryLiteral(:direction, :up),
+    '\\' => QueryLiteral(:direction, :down)
 )
 
 
 const SMARTS_BOND_SYMBOL = Dict(
-    '-' => QueryFormula(:and, Set([
-        QueryFormula(:bondorder, 1)
-        QueryFormula(:isaromaticbond, false)
-    ])),
-    '=' => QueryFormula(:and, Set([
-        QueryFormula(:bondorder, 2)
-        QueryFormula(:isaromaticbond, false)
-    ])),
-    '#' => QueryFormula(:and, Set([
-        QueryFormula(:bondorder, 3)
-        QueryFormula(:isaromaticbond, false)
-    ])),
-    '@' => QueryFormula(:isringbond, true),
-    ':' => QueryFormula(:isaromaticbond, true),
-    '/' => QueryFormula(:stereo, :up),
-    '\\' => QueryFormula(:stereo, :down)
+    '-' => QueryOperator(:and, [
+        QueryLiteral(:order, 1),
+        QueryOperator(:not, [QueryLiteral(:isaromatic)])
+    ]),
+    '=' => QueryOperator(:and, [
+        QueryLiteral(:order, 2),
+        QueryOperator(:not, [QueryLiteral(:isaromatic)])
+    ]),
+    '#' => QueryOperator(:and, [
+        QueryLiteral(:order, 3),
+        QueryOperator(:not, [QueryLiteral(:isaromatic)])
+    ]),
+    '@' => QueryLiteral(:is_in_ring),
+    ':' => QueryLiteral(:isaromatic),
+    '/' => QueryLiteral(:direction, :up),
+    '\\' => QueryLiteral(:direction, :down)
 )
 
 
-defaultbond(state::SmilesParser) = SmilesBond()
-defaultbond(state::SmartsParser) = SmartsBond(QueryFormula(:defaultbond, true))
+defaultbond(state::SMILESParser{T,V,E}) where {T,V,E} = E(
+    Dict(
+        :order => 1,
+        :isaromatic => false,
+        :direction => :unspecified
+    ))
+defaultbond(state::SMARTSParser{T,V,E}
+    ) where {T,V,E} = E(QueryOperator(:or, [
+        QueryOperator(:and, [
+            QueryLiteral(:order, 1),
+            QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        ]),
+        QueryLiteral(:isaromatic)
+    ]))
 
 
 """
@@ -43,38 +55,22 @@ defaultbond(state::SmartsParser) = SmartsBond(QueryFormula(:defaultbond, true))
 
 BondSymbol <- [-=#@:/\\] / '/?' / '\\?'
 """
-function bondsymbol!(state::SmilesParser)
+function bondsymbol!(state::Union{SMILESParser,SMARTSParser})
+    mapping = isa(state, SMILESParser) ? SMILES_BOND_SYMBOL : SMARTS_BOND_SYMBOL
     sym1 = read(state)
     sym2 = lookahead(state, 1)
     if sym1 == '/' && sym2 == '?'
         forward!(state, 2)
-        return QueryFormula(:not, QueryFormula(:stereo, :down))
+        return QueryOperator(:not, [QueryLiteral(:stereo, :down)])
     elseif sym1 == '\\' && sym2 == '?'
         forward!(state, 2)
-        return QueryFormula(:not, QueryFormula(:stereo, :up))
-    elseif sym1 in keys(SMARTS_BOND_SYMBOL)
+        return QueryOperator(:not, [QueryLiteral(:stereo, :up)])
+    elseif sym1 in keys(mapping)
         forward!(state)
-        return SMILES_BOND_SYMBOL[sym1]
+        return mapping[sym1]
     end
     # Implicit single bond returns nothing
 end
-
-function bondsymbol!(state::SmartsParser)
-    sym1 = read(state)
-    sym2 = lookahead(state, 1)
-    if sym1 == '/' && sym2 == '?'
-        forward!(state, 2)
-        return QueryFormula(:not, QueryFormula(:stereo, :down))
-    elseif sym1 == '\\' && sym2 == '?'
-        forward!(state, 2)
-        return QueryFormula(:not, QueryFormula(:stereo, :up))
-    elseif sym1 in keys(SMARTS_BOND_SYMBOL)
-        forward!(state)
-        return SMARTS_BOND_SYMBOL[sym1]
-    end
-    # Implicit single bond returns nothing
-end
-
 
 
 """
@@ -82,18 +78,17 @@ end
 
 Bond <- BondSymbol?
 """
-function bond!(state::SmilesParser)
-    fml = bondsymbol!(state)
-    if fml === nothing
-        return
-    elseif fml.key == :bondorder
-        return SmilesBond(fml.value)
-    elseif fml.key == :isaromaticbond
-        return SmilesBond(1, true, :unspecified)
-    elseif fml.key == :stereo
-        return SmilesBond(1, false, fml.value)
-    end
-    # return nothing
+function bond!(state::SMILESParser{T,V,E}) where {T,V,E}
+    q = bondsymbol!(state)
+    q === nothing && return
+    qd = smiles_dict(q)
+    default_qd = Dict(
+        :order => 1,
+        :isaromatic => false,
+        :direction => :unspecified
+    )
+    merge!(default_qd, qd)
+    return E(default_qd)
 end
 
 
@@ -102,15 +97,12 @@ end
 
 Bond <- '~' / (BondSymbol / LogicalCond)?
 """
-function bond!(state::SmartsParser)
+function bond!(state::SMARTSParser{T,V,E}) where {T,V,E}
     if read(state) == '~'
         forward!(state)
-        return SmartsBond()
+        return E(QueryAny(true))
     end
-    fml = lglowand!(state, bondsymbol!)
-    if fml !== nothing
-        fml = tidyformula(fml)
-        return SmartsBond(fml)
-    end
-    # return nothing: Invalid bond token or implicit single bond
+    q = lglowand!(state, bondsymbol!)
+    q === nothing && return
+    return E(q)
 end

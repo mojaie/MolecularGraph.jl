@@ -4,16 +4,13 @@
 #
 
 export
-    kekulize!, kekulize,
-    trivialhydrogens, allhydrogens,
-    removehydrogens, addhydrogens,
-    largestcomponentnodes, extractlargestcomponent,
-    protonateacids!, protonateacids,
-    deprotonateoniums!, deprotonateoniums,
-    depolarize!, depolarize,
-    polarize!, polarize,
-    totriplebond!, totriplebond,
-    toallenelike!, toallenelike
+    kekulize, kekulize!,
+    removable_hydrogens, all_hydrogens,
+    remove_hydrogens!, add_hydrogens!,
+    largest_component_nodes, extract_largest_component!,
+    protonate_acids, protonate_acids!, deprotonate_oniums, deprotonate_oniums!,
+    depolarize, depolarize!, polarize, polarize!,
+    to_triple_bond, to_triple_bond!, to_allene_like, to_allene_like!
 
 
 # TODO: large conjugated system
@@ -25,7 +22,7 @@ export
 
 
 """
-    kekulize!(mol::SMILES) -> Nothing
+    kekulize(mol::SimpleMolGraph) -> Vector{Int}
 
 Kekulize the molecule that has SMILES aromatic bonds.
 
@@ -33,69 +30,62 @@ SMILES allows aromatic atoms in small letters - b, c, n, o, p, s, [as] and [se].
 
 Kekulization is necessary for molecules parsed from SMILES. If not kekulized, some bond valence and implicit hydrogen properties would be wrong.
 """
-function kekulize!(mol::SMILES)
-    nodes = Set{Int}()
-    for i in 1:nodecount(mol)
-        nodeattr(mol, i).isaromatic === nothing && continue
-        nodeattr(mol, i).isaromatic || continue
-        if atomsymbol(mol)[i] === :C
+function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+    nodes = T[]
+    bondorder = [get_prop(mol, e, :order) for e in edges(mol)]  # use unmodified primary property
+    for i in vertices(mol)
+        get_prop(mol, i, :isaromatic) === nothing && continue
+        get_prop(mol, i, :isaromatic) || continue
+        sym = get_prop(mol, i, :symbol)
+        deg = degree(mol.graph, i)
+        if sym === :C
             push!(nodes, i)
-        elseif atomsymbol(mol)[i] in (:N, :P, :As)
-            if (degree(mol, i) == 2 ||
-                (degree(mol, i) == 3 && nodeattr(mol, i).charge == 1))
+        elseif sym in (:N, :P, :As)
+            deg in (2, 3) || error(
+                "Kekulization failed: invalid aromatic $(sym) with valence $(deg)")
+            if deg == 2 || ( # pyridyl
+                        get_prop(mol, i, :charge) == 1  # [n+][O-]
+                        || any(bondorder[edge_rank(mol, i, nbr)] == 2 for nbr in neighbors(mol, i))  # n=O
+                    )
                 push!(nodes, i)
             end
         end
     end
-    subg = nodesubgraph(mol, nodes)
-    matching = maximummatching(subg)
-    isperfectmatching(subg, matching) || throw(
-        ErrorException("Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])"))
+    subg, vmap = induced_subgraph(mol.graph, nodes)
+    matching = max_matching(subg)
+    is_perfect_matching(subg, matching) || error(
+        "Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])")
     for e in matching
-        setedgeattr!(mol, e, setorder(edgeattr(mol, e), 2))
+        bondorder[edge_rank(mol, vmap[src(e)], vmap[dst(e)])] = 2
     end
-    return mol
+    return bondorder
 end
+kekulize!(mol::MolGraph) = set_state!(mol, :e_order, kekulize(mol))
 
 
 """
-    kekulize(mol::SMILES) -> SMILES
+    removable_hydrogens(mol::SimpleMolGraph) -> Set{Int}
 
-Return the kekulized molecule. See [`kekulize!`](@ref).
+Return a vector of removable hydrogen nodes.
+
+removable means not charged, no unpaired electron, no specific mass,
+non-stereospecific and attached to organic heavy atoms.
 """
-function kekulize(mol::SMILES)
-    newmol = graphmol(mol)
-    kekulize!(newmol)
-    return newmol
-end
-
-
-
-"""
-    trivialhydrogens(mol::GraphMol) -> Set{Int}
-
-Return a set of trivial hydrogen nodes.
-
-"Trivial" means not charged, no unpaired electron, no specific mass, non-stereospecific and attached to organic heavy atoms. Note that stereochemstry of SDFile molecules will not be considered until `setstereocenter!` is applied.
-"""
-function trivialhydrogens(mol::GraphMol)
-    hs = Set{Int}()
-    organic_heavy = (
-        :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I)
-    for (i, atom) in enumerate(nodeattrs(mol))
-        atom.symbol == :H || continue
-        atom.charge == 0 || continue
-        atom.multiplicity == 1 || continue
-        atom.mass === nothing || continue
-        @assert atom.stereo === :unspecified
-        degree(mol, i) == 1 || continue
-        (inc, adj) = iterate(neighbors(mol, i))[1]
-        nodeattr(mol, adj).symbol in organic_heavy || continue
-        edgeattr(mol, inc).order == 1 || continue
-        nodeattr(mol, adj).stereo === :unspecified || continue
-        if nodeattr(mol, adj) isa SmilesAtom
-            @assert !nodeattr(mol, adj).isaromatic
-        end
+function removable_hydrogens(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+    hs = T[]
+    organic_heavy = Set([
+        :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I
+    ])
+    for i in vertices(mol)
+        get_prop(mol, i, :symbol) === :H || continue
+        get_prop(mol, i, :charge) == 0 || continue
+        get_prop(mol, i, :multiplicity) == 1 || continue
+        get_prop(mol, i, :mass) === nothing || continue
+        degree(mol.graph, i) == 1 || continue
+        nbr = neighbors(mol, i)[1]
+        get_prop(mol, nbr, :symbol) in organic_heavy || continue
+        get_prop(mol, i, nbr, :order) == 1 || continue
+        # TODO: check stereo
         push!(hs, i)
     end
     return hs
@@ -103,14 +93,14 @@ end
 
 
 """
-    allhydrogens(mol::GraphMol) -> Set{Int}
+    allhydrogens(mol::SimpleMolGraph) -> Set{Int}
 
 Return a set of all hydrogen nodes.
 """
-function allhydrogens(mol::GraphMol)
-    hs = Set{Int}()
-    for (i, atom) in enumerate(nodeattrs(mol))
-        atom.symbol == :H || continue
+function all_hydrogens(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+    hs = T[]
+    for i in vertices(mol)
+        get_prop(mol, i, :symbol) === :H || continue
         push!(hs, i)
     end
     return hs
@@ -118,16 +108,15 @@ end
 
 
 """
-    removehydrogens(mol::GraphMol) -> GraphMol
+    removehydrogens(mol::MolGraph) -> GraphMol
 
 Return the molecule with hydrogen nodes removed.
 
 If option `all` is set to true (default), all hydrogens will be removed, otherwise only trivial hydrogens will be removed (see [`trivialhydrogens`](@ref)).
 """
-function removehydrogens(mol::GraphMol; all=true)
-    hydrogens = all ? allhydrogens : trivialhydrogens
-    ns = setdiff(nodeset(mol), hydrogens(mol))
-    return graphmol(nodesubgraph(mol, ns))
+function remove_hydrogens!(mol::SimpleMolGraph; all=true)
+    hydrogens = all ? all_hydrogens : removable_hydrogens
+    rem_vertices!(mol, hydrogens(mol))
 end
 
 
@@ -136,192 +125,155 @@ end
 
 Return the molecule with all hydrogen nodes explicitly attached.
 """
-function addhydrogens(mol::GraphMol{A,B}) where {A<:Atom,B<:Bond}
-    implicithconnected_ = implicithconnected(mol)
-    newmol = graphmol(mol)
-    for i in 1:nodecount(mol)
-        for j in 1:implicithconnected_[i]
-            addedge!(newmol, i, addnode!(newmol, A(:H)), B())
+function add_hydrogens!(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+    implicit_hs = implicit_hydrogens(mol)
+    for i in vertices(mol)
+        for j in 1:implicit_hs[i]
+            add_vertex!(mol, V(:H))
+            add_edge!(mol, i, nv(mol), E())
         end
     end
-    return newmol
 end
 
 
 
 """
-    largestcomponentnodes(mol::GraphMol) -> Set{Int}
+    largest_component_nodes(mol::SimpleMolGraph) -> Vector{Int}
 
 Return a set of nodes in the largest connected component.
 """
-largestcomponentnodes(mol::GraphMol
-    ) = sortstablemax(connectedcomponents(mol), by=length, init=Set{Int}())
+largest_component_nodes(mol::SimpleMolGraph{T,V,E}
+    ) where {T,V,E} = sortstablemax(connected_components(mol.graph), by=length, init=T[])
 
 
 """
-    extractlargestcomponent(mol::GraphMol) -> GraphMol
+    extract_largest_component!(mol::SimpleMolGraph) -> Nothing
 
 Return the largest connected component of the molecular graph.
 
 This should be useful when you want to remove salt and water molecules from the molecular graph simply. On the other hand, this can remove important components from the mixture so carefully apply this preprocess method.
 """
-extractlargestcomponent(mol::GraphMol
-    ) = graphmol(nodesubgraph(mol, largestcomponentnodes(mol)))
+extract_largest_component!(mol::SimpleMolGraph
+    ) = rem_vertices!(mol, setdiff(vertices(mol), largest_component_nodes(mol)))
 
 
 
 """
-    protonateacids!(mol::GraphMol) -> GraphMol
+    protonate_acids(mol::SimpleMolGraph) -> Vector{Int}
 
 Protonate oxo(thio) anion groups of the molecule.
 """
-function protonateacids!(mol::GraphMol)
+function protonate_acids(mol::SimpleMolGraph)
     atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)
     connectivity_ = connectivity(mol)
+    arr = copy(charge_)
     for o in findall(charge_ .== -1)
         atomsymbol_[o] in (:O, :S) || continue
         @assert connectivity_[o] == 1
-        nbr = pop!(adjacencies(mol, o))
+        nbr = neighbors(mol, o)[1]
         charge_[nbr] == 1 && continue  # polarized double bond
-        setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
+        arr[o] = 0
     end
-    clearcache!(mol)
+    return arr
 end
+protonate_acids!(mol::MolGraph) = set_state!(mol, :v_charge, protonate_acids(mol))
 
 
 """
-    protonateacids(mol::GraphMol) -> GraphMol
-
-Return the molecule with its oxo(thio) anion groups protonated.
-
-See [`protonateacids!`](@ref).
-"""
-function protonateacids(mol::GraphMol)
-    newmol = graphmol(mol)
-    protonateacids!(newmol)
-    return newmol
-end
-
-
-"""
-    deprotonateoniums!(mol::GraphMol) -> Nothing
+    deprotonate_oniums(mol::SimpleMolGraph) -> Vector{Int}
 
 Deprotonate onium groups of the molecule.
 """
-function deprotonateoniums!(mol::GraphMol)
-    hydrogenconnected_ = hydrogenconnected(mol)
+function deprotonate_oniums(mol::SimpleMolGraph)
+    hydrogens_ = total_hydrogens(mol)
     charge_ = charge(mol)
+    arr = copy(charge_)
     for o in findall(charge_ .== 1)
-        hydrogenconnected_[o] > 0 || continue
-        setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
+        hydrogens_[o] > 0 || continue
+        arr[o] = 0
     end
-    clearcache!(mol)
+    return arr
 end
+deprotonate_oniums!(mol::MolGraph) = set_state!(mol, :v_charge, deprotonate_oniums(mol))
 
 
 """
-    deprotonateoniums(mol::GraphMol) -> GraphMol
-
-Return the molecule with its onium groups deprotonated.
-
-See [`deprotonateoniums!`](@ref).
-"""
-function deprotonateoniums(mol::GraphMol)
-    newmol = graphmol(mol)
-    deprotonateoniums!(newmol)
-    return newmol
-end
-
-
-"""
-    depolarize!(mol::GraphMol; negative=:O, positive=[:C, :P]) -> Nothing
+    depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P]) -> Nothing
 
 Depolarize dipole double bonds of the molecule.
 """
-function depolarize!(mol::GraphMol; negative=:O, positive=[:C, :P])
+function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
     atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)
     connectivity_ = connectivity(mol)
     isaromatic_ = isaromatic(mol)
+    carr = copy(charge_)
+    oarr = copy(bond_order(mol))
     for o in findall(charge_ .== -1)
         atomsymbol_[o] === negative || continue
         @assert connectivity_[o] == 1
-        (inc, adj) = iterate(neighbors(mol, o))[1]
-        atomsymbol_[adj] in positive || continue
-        charge_[adj] == 1 || continue
-        isaromatic_[adj] && continue
-        setnodeattr!(mol, o, setcharge(nodeattr(mol, o), 0))
-        setnodeattr!(mol, adj, setcharge(nodeattr(mol, adj), 0))
-        setedgeattr!(mol, inc, setorder(edgeattr(mol, inc), 2))
+        nbr = neighbors(mol, o)[1]
+        atomsymbol_[nbr] in positive || continue
+        charge_[nbr] == 1 || continue
+        isaromatic_[nbr] && continue
+        carr[o] = 0
+        carr[nbr] = 0
+        oarr[edge_rank(mol, o, nbr)] = 2
     end
-    clearcache!(mol)
+    return carr, oarr
+end
+function depolarize!(mol::MolGraph)
+    carr, oarr = depolarize(mol)
+    set_state!(mol, :v_charge, carr)
+    set_state!(mol, :e_order, oarr)
+    return carr, oarr
 end
 
 
 """
-    depolarize(mol::GraphMol) -> GraphMol
-
-Return the molecule with its dipole double bonds depolarized.
-
-See [`depolarize!`](@ref).
-"""
-function depolarize(mol::GraphMol; kwargs...)
-    newmol = graphmol(mol)
-    depolarize!(newmol; kwargs...)
-    return newmol
-end
-
-
-"""
-    polarize!(mol::GraphMol; negative=:O, positive=[:N, :S]) -> Nothing
+    polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S]) -> Nothing
 
 Polarize dipole double bonds of the molecule.
 """
-function polarize!(mol::GraphMol, negative=:O, positive=[:N, :S])
+function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
     atomsymbol_ = atomsymbol(mol)
     charge_ = charge(mol)
     bondorder_ = bondorder(mol)
     connectivity_ = connectivity(mol)
+    carr = copy(charge_)
+    oarr = copy(bondorder_)
     for o in findall(connectivity_ .== 1)
         atomsymbol_[o] === negative || continue
         charge_[o] == 0 || continue
-        (inc, adj) = iterate(neighbors(mol, o))[1]
-        atomsymbol_[adj] in positive || continue
-        charge_[adj] == 0 || continue
-        bondorder_[inc] == 2 || continue
-        setnodeattr!(mol, o, setcharge(nodeattr(mol, o), -1))
-        setnodeattr!(mol, adj, setcharge(nodeattr(mol, adj), 1))
-        setedgeattr!(mol, inc, setorder(edgeattr(mol, inc), 1))
+        nbr = neighbors(mol, o)[1]
+        atomsymbol_[nbr] in positive || continue
+        charge_[nbr] == 0 || continue
+        bondorder_[edge_rank(mol, o, nbr)] == 2 || continue
+        carr[o] = -1
+        carr[nbr] = 1
+        oarr[edge_rank(mol, o, nbr)] = 1
     end
-    clearcache!(mol)
+    return carr, oarr
 end
-
-
-"""
-    polarize(mol::GraphMol) -> GraphMol
-
-Return the molecule with its dipole double bonds polarized.
-
-See [`polarize!`](@ref).
-"""
-function polarize(mol::GraphMol; kwargs...)
-    newmol = graphmol(mol)
-    polarize!(newmol; kwargs...)
-    return newmol
+function polarize!(mol::MolGraph)
+    carr, oarr = polarize(mol)
+    set_state!(mol, :v_charge, carr)
+    set_state!(mol, :e_order, oarr)
+    return carr, oarr
 end
 
 
 
-function find13dipoles(mol::GraphMol)
+function find_dipoles(mol::SimpleMolGraph)
     charge_ = charge(mol)
-    pie_ = apparentvalence(mol) - nodedegree(mol)
+    pie_ = apparent_valence(mol) - degree(mol)
     triads = Tuple{Int,Int,Int}[]
     for c in findall((pie_ .== 2) .* (charge_ .== 1))
         negs = Int[]
         notnegs = Int[]
-        for (inc, adj) in neighbors(mol, c)
-            push!(charge_[adj] == -1 ? negs : notnegs, adj)
+        for nbr in neighbors(mol, c)
+            push!(charge_[nbr] == -1 ? negs : notnegs, nbr)
         end
         (length(negs) == 1 && length(notnegs) == 1) || continue
         push!(triads, (negs[1], c, notnegs[1]))
@@ -331,62 +283,52 @@ end
 
 
 """
-    totriplebond!(mol::GraphMol) -> Nothing
+    to_triple_bond(mol::SimpleMolGraph) -> Nothing
 
 Standardize the molecule so that all 1,3-dipole groups are represented as triple bond and single bond (e.g. Diazo group C=[N+]=[N-] -> [C-][N+]#N).
 """
-function totriplebond!(mol::GraphMol)
-    for (first, center, third) in find13dipoles(mol)
-        fe = findedgekey(mol, first, center)
-        te = findedgekey(mol, center, third)
-        edgeattr(mol, fe).order == 2 || continue
-        setnodeattr!(mol, first, setcharge(nodeattr(mol, first), 0))
-        setnodeattr!(mol, third, setcharge(nodeattr(mol, third), -1))
-        setedgeattr!(mol, fe, setorder(edgeattr(mol, fe), 3))
-        setedgeattr!(mol, te, setorder(edgeattr(mol, te), 1))
+function to_triple_bond(mol::SimpleMolGraph)
+    carr = copy(charge(mol))
+    oarr = copy(bond_order(mol))
+    for (first, center, third) in find_dipoles(mol)
+        get_prop(mol, first, center, :order) == 2 || continue
+        carr[first] = 0
+        carr[third] = -1
+        oarr[edge_rank(mol, first, center)] = 3
+        oarr[edge_rank(mol, center, third)] = 1
     end
-    clearcache!(mol)
+    return carr, oarr
+end
+
+function to_triple_bond!(mol::MolGraph)
+    carr, oarr = to_triple_bond(mol)
+    set_state!(mol, :v_charge, carr)
+    set_state!(mol, :e_order, oarr)
+    return carr, oarr
 end
 
 
 """
-    totriplebond(mol::GraphMol) -> GraphMol
-
-Return the molecule standardized as the same way as [`totriplebond!`](@ref).
-"""
-function totriplebond(mol::GraphMol)
-    newmol = graphmol(mol)
-    totriplebond!(newmol)
-    return newmol
-end
-
-
-"""
-    toallenelike!(mol::GraphMol) -> Nothing
+    to_allene_like(mol::SimpleMolGraph) -> Nothing
 
 Standardize the molecule so that all 1,3-dipole groups are represented as allene-like structure (e.g. Diazo group [C-][N+]#N -> C=[N+]=[N-]).
 """
-function toallenelike!(mol::GraphMol)
-    for (first, center, third) in find13dipoles(mol)
-        fe = findedgekey(mol, first, center)
-        te = findedgekey(mol, center, third)
-        edgeattr(mol, fe).order == 1 || continue
-        setnodeattr!(mol, first, setcharge(nodeattr(mol, first), 0))
-        setnodeattr!(mol, third, setcharge(nodeattr(mol, third), -1))
-        setedgeattr!(mol, fe, setorder(edgeattr(mol, fe), 2))
-        setedgeattr!(mol, te, setorder(edgeattr(mol, te), 2))
+function to_allene_like(mol::SimpleMolGraph)
+    carr = copy(charge(mol))
+    oarr = copy(bond_order(mol))
+    for (first, center, third) in find_dipoles(mol)
+        get_prop(mol, first, center, :order) == 1 || continue
+        carr[first] = 0
+        carr[third] = -1
+        oarr[edge_rank(mol, first, center)] = 2
+        oarr[edge_rank(mol, center, third)] = 2
     end
-    clearcache!(mol)
+    return carr, oarr
 end
 
-
-"""
-    toallenelike(mol::GraphMol) -> GraphMol
-
-Return the molecule standardized as the same way as [`toallenelike!`](@ref).
-"""
-function toallenelike(mol::GraphMol)
-    newmol = graphmol(mol)
-    toallenelike!(newmol)
-    return newmol
+function to_allene_like!(mol::MolGraph)
+    carr, oarr = to_allene_like(mol)
+    set_state!(mol, :v_charge, carr)
+    set_state!(mol, :e_order, oarr)
+    return carr, oarr
 end

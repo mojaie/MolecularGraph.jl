@@ -3,102 +3,66 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+# TODO: all imports and exports here
+
 module MolecularGraph
 
-    module Util
-        include("./util/meta.jl")
-        include("./util/iterator.jl")
-        include("./util/math.jl")
-    end
-
-    module Graph
-        using ..Util
-
-        include("./graph/interface.jl")
-
-        include("./graph/plaingraph.jl")
-        include("./graph/plaindigraph.jl")
-        include("./graph/plainhypergraph.jl")
-
-        include("./graph/generator.jl")
-        include("./graph/multigraph.jl")
-        include("./graph/dag.jl")
-        include("./graph/subgraphview.jl")
-        include("./graph/product.jl")
-        include("./graph/disjointunion.jl")
-        include("./graph/contraction.jl")
-        include("./graph/linegraph.jl")
-
-        include("./graph/dfs.jl")
-        include("./graph/shortestpath.jl")
-        include("./graph/bipartite.jl")
-        include("./graph/matching.jl")
-        include("./graph/triangle.jl")
-        include("./graph/clique.jl")
-        include("./graph/connectivity.jl")
-        include("./graph/cycle.jl")
-        include("./graph/planarity.jl")
-
-        include("./graph/isomorphism/edgeinduced.jl")
-        include("./graph/isomorphism/vf2.jl")
-        include("./graph/isomorphism/cliquemcs.jl")
-    end
-
-    module Geometry
-        using LinearAlgebra
-        using ..Util
-
-        include("./geometry/interface.jl")
-
-        include("./geometry/cartesian.jl")
-        include("./geometry/internal.jl")
-    end
-
+    using Dates
+    using DelimitedFiles
+    using Graphs
     using LinearAlgebra
+    using Printf
     using Statistics
     using YAML
-    using DelimitedFiles
-    using .Util
-    using .Graph
-    using .Geometry
 
-    export Util, Graph, Geometry
+    include("./util/meta.jl")
+    include("./util/iterator.jl")
+    include("./util/math.jl")
+
+    include("./geometry/interface.jl")
+    include("./geometry/cartesian.jl")
+    include("./geometry/internal.jl")
 
     include("./model/interface.jl")
-    include("./draw/interface.jl")
-
     include("./model/atom.jl")
     include("./model/bond.jl")
     include("./model/molgraph.jl")
     include("./model/query.jl")
 
-    include("structurematch.jl")
-    include("stereo.jl")
-    include("preprocess.jl")
-    include("properties.jl")
-    include("mass.jl")
-    include("wclogp.jl")
-    include("inchi.jl")
+    include("./graph/operators.jl")
+    include("./graph/traversals.jl")
+    include("./graph/cycle.jl")
+    include("./graph/bipartite.jl")
+    include("./graph/matching.jl")
+    include("./graph/clique.jl")
+    include("./graph/planarity.jl")
+    include("./graph/isomorphism_vf2.jl")
+    include("./graph/isomorphism_clique.jl")
 
+    include("coords.jl")
+    include("stereo.jl")
+
+    include("./draw/color.jl")
+    include("./draw/interface.jl")
+    include("./draw/draw2d.jl")
+    include("./draw/svg.jl")
+    include("./draw/draw3d.jl")
+
+    include("sdfilereader.jl")
+    include("sdfilewriter.jl")
     include("./smarts/base.jl")
     include("./smarts/atom.jl")
     include("./smarts/bond.jl")
     include("./smarts/logicaloperator.jl")
     include("./smarts/molecule.jl")
 
-    include("coordgen.jl")
-    include("./draw/draw2d.jl")
-    include("./draw/svg.jl")
-
-    include("download.jl")
-    include("sdfilereader.jl")
-    include("sdfilewriter.jl")
-
+    include("properties.jl")
+    include("preprocess.jl")
+    include("mass.jl")
+    include("wclogp.jl")
+    include("inchi.jl")
+    include("structurematch.jl")
+    include("querycontainment.jl")
     include("libmoleculargraph.jl")
-
-    using Requires
-
-    function __init__()
-        @require AbstractPlotting="537997a7-5e4e-5d89-9595-2241ea00577e" include("draw/draw3d.jl")
-    end
 end

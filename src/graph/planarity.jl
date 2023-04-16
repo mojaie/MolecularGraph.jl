@@ -8,50 +8,50 @@ export
     isplanar, isouterplanar
 
 
-PlanarityTestDS = Vector{Vector{Vector{Int}}}
+PlanarityTestDS{T} = Vector{Vector{Vector{T}}}
 
 
-struct PlanarityTestState
-    graph::PlainGraph
+struct PlanarityTestState{T}
+    graph::SimpleGraph{T}
 
-    rank::Dict{Int,Int} # tree node n, dfsindex(n)
-    inedge::Dict{Int,Int} # tree node n, inedge(n)
-    isthick::Dict{Int,Bool} # edge e, isthick(e)
+    rank::Dict{T,Int} # tree node n, dfsindex(n)
+    inedge::Dict{T,Edge{T}} # tree node n, inedge(n)
+    isthick::Dict{Edge{T},Bool} # edge e, isthick(e)
 
-    source::Dict{Int,Int} # edge e, source node dfsindex
-    loworder::Dict{Int,Vector{Int}} # tree edge e, list of outedge o in low(o) order
-    cotree::Dict{Int,Int} # cotree edge e, low(e)
-    treeedge::Vector{Int} # tree edges in dfs order
-
-    function PlanarityTestState(graph)
-        new(graph, Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), [])
-    end
+    source::Dict{Edge{T},Int} # edge e, source node dfsindex
+    loworder::Dict{Edge{T},Vector{Edge{T}}} # tree edge e, list of outedge o in low(o) order
+    cotree::Dict{Edge{T},Int} # cotree edge e, low(e)
+    treeedge::Vector{Edge{T}} # tree edges in dfs order
 end
 
+PlanarityTestState(g::SimpleGraph{T}
+    ) where T = PlanarityTestState{T}(g, Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), [])
 
-function dfs!(state::PlanarityTestState, u::Int)
+
+function dfs!(state::PlanarityTestState{T}, u::Int) where T
     state.rank[u] = length(state.rank) + 1
-    buckets = Dict{Int,Vector{Int}}() # low(e), edges
-    lows = Dict{Int,Int}() # edge, lownode(e)
-    for (inc, adj) in neighbors(state.graph, u)
+    buckets = Dict{T,Vector{Edge{T}}}() # low(e), edges
+    lows = Dict{Edge{T},T}() # edge, lownode(e)
+    for nbr in neighbors(state.graph, u)
+        inc = undirectededge(state.graph, u, nbr)
         inc == get(state.inedge, u, nothing) && continue # Predecessor
         haskey(state.cotree, inc) && continue # Visited
         state.source[inc] = state.rank[u]
-        if !haskey(state.rank, adj)
+        if !haskey(state.rank, nbr)
             # Tree node
             push!(state.treeedge, inc)
-            state.inedge[adj] = inc
-            low = dfs!(state, adj)
+            state.inedge[nbr] = inc
+            low = dfs!(state, nbr)
         else
             # Cotree node
-            low = adj
-            state.cotree[inc] = state.rank[adj]
+            low = nbr
+            state.cotree[inc] = state.rank[nbr]
             state.isthick[inc] = false
         end
         low === nothing && continue
         lows[inc] = low
         rank = state.rank[low]
-        haskey(buckets, rank) || (buckets[rank] = Int[])
+        haskey(buckets, rank) || (buckets[rank] = Edge{T}[])
         push!(buckets[rank], inc)
     end
     u in keys(state.inedge) || return # Root
@@ -59,7 +59,7 @@ function dfs!(state::PlanarityTestState, u::Int)
     inedge = state.inedge[u]
     fringes = [i for i in values(state.cotree) if i < state.rank[u]]
     state.isthick[inedge] = length(unique(fringes)) > 1
-    sorted = Int[]
+    sorted = Edge{T}[]
     for k in sort(collect(keys(buckets)))
         append!(sorted, sort(buckets[k], by=x->state.isthick[x]))
     end
@@ -69,7 +69,7 @@ function dfs!(state::PlanarityTestState, u::Int)
 end
 
 
-function merge!(ds1::PlanarityTestDS, ds2::PlanarityTestDS, cotree::Dict{Int,Int})
+function merge_ds!(ds1::PlanarityTestDS{T}, ds2::PlanarityTestDS{T}, cotree) where T
     if isempty(ds1)
         append!(ds1, ds2)
         @debug "Trunk"
@@ -78,7 +78,7 @@ function merge!(ds1::PlanarityTestDS, ds2::PlanarityTestDS, cotree::Dict{Int,Int
     @assert !isempty(ds2)
     b1 = cotree[ds1[1][1][1]]
     b2 = cotree[ds2[1][1][1]]
-    newds = PlanarityTestDS()
+    newds = PlanarityTestDS{T}()
     lowtop = 0
     while lowtop <= b2 && !isempty(ds1)
         pair = popfirst!(ds1)
@@ -99,7 +99,7 @@ function merge!(ds1::PlanarityTestDS, ds2::PlanarityTestDS, cotree::Dict{Int,Int
         push!(newds, [[], []])
     end
 
-    fused1 = Int[]
+    fused1 = T[]
     while !isempty(ds1)
         pair = popfirst!(ds1)
         if !isempty(pair[1]) && !isempty(pair[2])
@@ -110,7 +110,7 @@ function merge!(ds1::PlanarityTestDS, ds2::PlanarityTestDS, cotree::Dict{Int,Int
     end
     append!(newds[end][1], fused1)
 
-    fused2 = Int[]
+    fused2 = T[]
     for (i, pair) in enumerate(ds2)
         if !isempty(pair[1]) && !isempty(pair[2])
             @debug "Not planer: dichromatic branch cannot be merged"
@@ -132,10 +132,10 @@ function merge!(ds1::PlanarityTestDS, ds2::PlanarityTestDS, cotree::Dict{Int,Int
 end
 
 
-function planaritytest(graph::OrderedGraph)
+function planaritytest(g::SimpleGraph{T}) where T
     # Do DFS to determine treeedge, cotree, loworder, source
-    state = PlanarityTestState(plaingraph(graph))
-    nodes = nodeset(graph)
+    state = PlanarityTestState(g)
+    nodes = Set(vertices(g))
     while !isempty(nodes)
         n = pop!(nodes)
         dfs!(state, n)
@@ -144,14 +144,14 @@ function planaritytest(graph::OrderedGraph)
     @debug state
 
     # L-R check
-    ds = Dict(c => Vector{Vector{Int}}[[[c], []]] for c in keys(state.cotree))
+    ds = Dict(c => Vector{Vector{Edge{T}}}[[[c], []]] for c in keys(state.cotree))
     while !isempty(state.treeedge)
         e = pop!(state.treeedge)
-        ds[e] = PlanarityTestDS()
+        ds[e] = PlanarityTestDS{Edge{T}}()
         @debug "inedge: $(e)"
         for i in state.loworder[e]
             @debug "stem: $(i), ds: $(ds[i])"
-            if !merge!(ds[e], ds[i], state.cotree)
+            if !merge_ds!(ds[e], ds[i], state.cotree)
                 return false
             end
         end
@@ -169,19 +169,21 @@ function planaritytest(graph::OrderedGraph)
 end
 
 
-function outerplanaritytest(graph::UndirectedGraph)
-    # Add a node connects all other nodes
-    newg = plaingraph(graph)
-    newnode = addnode!(newg)
-    for n in nodeset(graph)
-        addedge!(newg, newnode, n)
+function outerplanaritytest(g::SimpleGraph)
+    # Add a node connects all other nodes.
+    # If the modified graph is planer, the original graph is outerplaner.
+    newg = copy(g)
+    add_vertex!(newg)
+    newnode = vertices(newg)[end]
+    for i in vertices(g)
+        add_edge!(newg, newnode, i)
     end
     return planaritytest(newg)
 end
 
 
 """
-    isplanar(graph::UndirectedGraph) -> Bool
+    isplanar(graph::SimpleGraph) -> Bool
 
 Return whether the graph is planar.
 
@@ -192,27 +194,21 @@ Return whether the graph is planar.
    https://doi.org/10.1016/j.ejc.2011.09.012
 1. Trémaux trees and planarity. https://arxiv.org/abs/math/0610935
 """
-function isplanar(graph::UndirectedGraph)
-    if isdefined(graph, :cache) && haskey(graph.cache, :isouterplanar)
-        graph.cache[:isouterplanar] && return true
-    end
-    edgecount(graph) < 9 && return true
-    edgecount(graph) > nodecount(graph) * 3 - 6 && return false
-    return planaritytest(graph)
+function isplanar(g::SimpleGraph)
+    ne(g) < 9 && return true
+    ne(g) > nv(g) * 3 - 6 && return false
+    return planaritytest(g)
 end
 
 
 """
-    isouterplanar(graph::UndirectedGraph) -> Bool
+    isouterplanar(graph::SimpleGraph) -> Bool
 
 Return whether the graph is outerplanar. The outerplanarity test is based on
 a planarity test (see [`isplanar`](@ref)).
 """
-function isouterplanar(graph::UndirectedGraph)
-    if isdefined(graph, :cache) && haskey(graph.cache, :isplanar)
-        graph.cache[:isplanar] || return false
-    end
-    edgecount(graph) < 6 && return true
-    edgecount(graph) > nodecount(graph) * 2 - 6 && return false
-    return outerplanaritytest(graph)
+function isouterplanar(g::SimpleGraph)
+    ne(g) < 6 && return true
+    ne(g) > nv(g) * 2 - 6 && return false
+    return outerplanaritytest(g)
 end

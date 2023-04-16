@@ -4,110 +4,77 @@
 #
 
 export
-    maximalcliques, maximumclique,
-    maximalconncliques, maximumconnclique
+    find_cliques, maximal_cliques, maximum_clique,
+    find_conn_cliques, maximal_conn_cliques, maximum_conn_clique
 
 
-mutable struct FindCliqueState{T<:UndirectedGraph}
-    graph::T
-    targetsize::Union{Int,Nothing} # Int
-
-    adjacencies::Dict{Int,BitSet}
+mutable struct FindCliqueState{T,G<:SimpleGraph{T}}
+    graph::G
+    targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
     expire::Union{UInt64,Nothing} # UInt64, nanoseconds
-    Q::Vector{Int}
-
-    cliques::Vector{Set{Int}}
+    Q::Vector{T}
+    cliques::Vector{Vector{T}}
     status::Symbol
-
-    function FindCliqueState{T}(graph; timeout=nothing, targetsize=nothing,
-                kwargs...) where {T<:UndirectedGraph}
-        if timeout !== nothing
-            expire = (time_ns() + timeout * 1_000_000_000)::UInt64
-        else
-            expire = nothing
-        end
-        # fast adjacency access
-        adj = Dict{Int,BitSet}()
-        for n in nodeset(graph)
-            adj[n] = adjacencies(graph, n)
-        end
-        new(graph, targetsize, adj, expire, [], [], :ongoing)
-    end
 end
-FindCliqueState(graph::UndirectedGraph; kwargs...) = FindCliqueState{typeof(graph)}(graph; kwargs...)
+
+function FindCliqueState(g::G; timeout=nothing, targetsize=nothing, kwargs...) where G
+    expire = isnothing(timeout) ? nothing : (time_ns() + timeout * 1_000_000_000)::UInt64
+    return FindCliqueState{eltype(g),G}(g, targetsize, expire, [], [], :ongoing)
+end
 
 
-mutable struct FindConnCliqueState{T<:ModularProduct}
-    graph::T
-    targetsize::Union{Int,Nothing} # Int
-
-    adjacencies::Dict{Int,BitSet}
-    connected::Dict{Int,BitSet}
-    disconn::Dict{Int,BitSet}
+mutable struct FindConnCliqueState{T,G<:SimpleGraph{T}}
+    graph::G
+    targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
+    connected::Vector{Vector{T}}
+    disconn::Vector{Vector{T}}
     expire::Union{UInt64,Nothing} # UInt64, nanoseconds
-
-    cliques::Vector{Set{Int}}
+    cliques::Vector{Vector{T}}
     status::Symbol
-
-    function FindConnCliqueState{T}(graph; timeout=nothing, targetsize=nothing,
-                kwargs...) where {T<:ModularProduct}
-        if timeout !== nothing
-            expire = (time_ns() + timeout * 1_000_000_000)::UInt64
-        else
-            expire = nothing
-        end
-        # fast adjacency access
-        adj = Dict{Int,BitSet}()
-        conn = Dict{Int,BitSet}()
-        disconn = Dict{Int,BitSet}()
-        for n in nodeset(graph)
-            adj[n] = BitSet()
-            conn[n] = BitSet()
-            disconn[n] = BitSet()
-            for (i, a) in neighbors(graph, n)
-                push!(adj[n], a)
-                if edgeattr(graph, i).hasedge
-                    push!(conn[n], a)
-                else
-                    push!(disconn[n], a)
-                end
-            end
-        end
-        new(graph, targetsize, adj, conn, disconn, expire, [], :ongoing)
-    end
 end
-FindConnCliqueState(graph::ModularProduct; kwargs...) = FindConnCliqueState{typeof(graph)}(graph; kwargs...)
 
+function FindConnCliqueState(g::G, isconn::Dict{Edge{T},Bool};
+        timeout=nothing, targetsize=nothing, kwargs...) where {T,G}
+    expire = isnothing(timeout) ? nothing : (time_ns() + timeout * 1_000_000_000)::UInt64
+    # connectivity adjlist
+    conn = [T[] for _ in vertices(g)]
+    disconn = [T[] for _ in vertices(g)]
+    for i in vertices(g)
+        for nbr in neighbors(g, i)
+            container = isconn[undirectededge(T, i, nbr)] ? conn : disconn
+            push!(container[i], nbr)
+        end
+    end
+    return FindConnCliqueState{T,G}(g, targetsize, conn, disconn, expire, [], :ongoing)
+end
 
 
 function expand!(state::FindCliqueState, subg, cand)
     (state.status == :timedout || state.status == :targetreached) && return
     if isempty(subg)
         # Report max clique
-        push!(state.cliques, Set(state.Q))
+        push!(state.cliques, copy(state.Q))
         return
     elseif state.expire !== nothing && time_ns() > state.expire
         state.status = :timedout
         return
     elseif state.targetsize !== nothing && length(state.Q) >= state.targetsize
         state.status = :targetreached
-        push!(state.cliques, Set(state.Q))
+        push!(state.cliques, copy(state.Q))
         return
     end
-    candnbrcnt(n) = length(intersect(cand, state.adjacencies[n]))
+    candnbrcnt(n) = length(intersect(cand, neighbors(state.graph, n)))
     pivot = sortstablemax(subg, by=candnbrcnt)
-    copv = setdiff(cand, state.adjacencies[pivot])
-
+    copv = setdiff(cand, neighbors(state.graph, pivot))
     for q in copv
         push!(state.Q, q)
-        qnbrs = state.adjacencies[q]
+        qnbrs = neighbors(state.graph, q)
         subgq = intersect(subg, qnbrs)
         candq = intersect(cand, qnbrs)
         expand!(state, subgq, candq)
         pop!(cand, q)
         pop!(state.Q)
     end
-    return
 end
 
 function expandconn!(state::FindConnCliqueState, R, P, Q, X, Y)
@@ -129,23 +96,22 @@ function expandconn!(state::FindConnCliqueState, R, P, Q, X, Y)
         Rnew = union(R, [n])
         Qnew = intersect(Q, state.disconn[n])
         Pnew = union(
-            intersect(P, state.adjacencies[n]),
+            intersect(P, neighbors(state.graph, n)),
             intersect(Q, state.connected[n]))
         Ynew = intersect(Y, state.disconn[n])
         Xnew = union(
-            intersect(X, state.adjacencies[n]),
+            intersect(X, neighbors(state.graph, n)),
             intersect(Y, state.connected[n]))
         expandconn!(state, Rnew, Pnew, Qnew, Xnew, Ynew)
         push!(X, n)
     end
-    return
 end
 
 
 """
-    maximalcliques(graph::UndirectedGraph; kwargs...) -> FindCliqueState
+    find_cliques(graph::UndirectedGraph; kwargs...) -> FindCliqueState
 
-Return maximal cliques.
+Calculate maximal cliques.
 
 # Reference
 
@@ -157,30 +123,42 @@ Return maximal cliques.
    cliques. Theoretical Computer Science, 407(1–3), 564–568.
    https://doi.org/10.1016/j.tcs.2008.05.010
 """
-function maximalcliques(graph::UndirectedGraph; kwargs...)
-    state = FindCliqueState(graph; kwargs...)
-    expand!(state, BitSet(nodeset(graph)), BitSet(nodeset(graph)))
+function find_cliques(g::SimpleGraph; kwargs...)
+    state = FindCliqueState(g; kwargs...)
+    expand!(state, Set(vertices(g)), Set(vertices(g)))
     if state.status == :ongoing
         state.status = :done
     end
     return state
 end
 
+"""
+    maximal_cliques(g: kwargs...) -> Vector{Vector{Int}}
+
+Return all maximal cliques.
 
 """
-    maximumclique(state::FindCliqueState) -> Set{Int}
+function maximal_cliques(g; kwargs...)
+    state = find_cliques(g; kwargs...)
+    return state.cliques
+end
+
+"""
+    maximum_clique(g; kwargs...) -> Vector{Int}
 
 Return a maximum clique.
 
 """
-maximumclique(state::FindCliqueState) = sortstablemax(state.cliques, by=length, init=[])
+maximum_clique(g; kwargs...
+    ) = sortstablemax(maximal_cliques(g; kwargs...), by=length, init=[])
 
 
 
 """
-    maximalconncliques(graph::ModularProduct; kwargs...) -> FindConnCliqueState
+    find_conn_cliques(g::SimpleGraph{T}, isconn::Dict{Edge{T},Bool};
+        kwargs...) where T -> FindConnCliqueState
 
-Return maximal connected cliques.
+Calculate maximal connected cliques.
 
 # Reference
 
@@ -189,12 +167,13 @@ Return maximal connected cliques.
    https://doi.org/10.1016/j.tcs.2005.09.038
 
 """
-function maximalconncliques(graph::ModularProduct; kwargs...)
-    state = FindConnCliqueState(graph; kwargs...)
-    nodes = BitSet(nodeset(graph))
-    done = BitSet()
+function find_conn_cliques(g::SimpleGraph{T}, isconn::Dict{Edge{T},Bool};
+        kwargs...) where T
+    state = FindConnCliqueState(g, isconn; kwargs...)
+    nodes = Set(vertices(g))
+    done = T[]
     for n in nodes
-        R = BitSet([n])
+        R = T[n]
         P = intersect(setdiff(nodes, done), state.connected[n])
         Q = intersect(setdiff(nodes, done), state.disconn[n])
         X = intersect(state.connected[n], done)
@@ -210,9 +189,21 @@ end
 
 
 """
-    maximumclique(state::FindConnCliqueState) -> Set{Int}
+    maximal_conn_cliques(g: kwargs...) -> Vector{Vector{Int}}
+
+Return all maximal connected cliques.
+
+"""
+function maximal_conn_cliques(g, isconn; kwargs...)
+    state = find_conn_cliques(g, isconn; kwargs...)
+    return state.cliques
+end
+
+"""
+    maximum_conn_clique(g; kwargs...) -> Vector{Int}
 
 Return a maximum connected clique.
 
 """
-maximumclique(state::FindConnCliqueState) = sortstablemax(state.cliques, by=length, init=[])
+maximum_conn_clique(g, isconn; kwargs...
+    ) = sortstablemax(maximal_conn_cliques(g, isconn; kwargs...), by=length, init=[])

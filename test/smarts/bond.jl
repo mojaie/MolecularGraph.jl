@@ -5,45 +5,44 @@ using MolecularGraph: bondsymbol!, bond!
 @testset "smarts.bond" begin
 
 @testset "bondsymbol" begin
-    state = SmartsParser("", false)
+    state = SMARTSParser{SMARTSMolGraph}("")
     implicit1 = bondsymbol!(state)
     @test implicit1 === nothing
 
-    state = SmartsParser("-", false)
-    explicit1 = bondsymbol!(state)
-    @test explicit1 == QueryFormula(:and, Set([
-        QueryFormula(:bondorder, 1),
-        QueryFormula(:isaromaticbond, false)
-    ]))
+    state = SMARTSParser{SMARTSMolGraph}("-")
+    explicit1 = QueryTruthTable(bondsymbol!(state))
+    @test explicit1 == QueryTruthTable(v -> v[2] & ~v[1], [(:isaromatic,), (:order, 1)])
 
-    state = SmartsParser("\\?", false)
-    stereo4 = bondsymbol!(state)
-    @test stereo4 == QueryFormula(:not, QueryFormula(:stereo, :up))
+    state = SMARTSParser{SMARTSMolGraph}(raw"\?")
+    stereo4 = QueryTruthTable(bondsymbol!(state))
+    @test stereo4 == QueryTruthTable(v -> ~v[1], [(:stereo, :up)])
     @test state.pos == 3
 end
 
 @testset "bond" begin
-    state = SmilesParser("#", true)
+    state = SMILESParser{SMILESMolGraph}("#")
     triple = bond!(state)
-    @test triple.order == 3
+    @test triple[:order] == 3
 
-    state = SmilesParser(":", true)
+    state = SMILESParser{SMILESMolGraph}(":")
     arom = bond!(state)
-    @test arom.isaromatic == true
+    @test arom[:isaromatic]
+
+    state = SMILESParser{SMILESMolGraph}("\\")
+    down = bond!(state)
+    @test down[:direction] === :down
 end
 
 @testset "smartsbond" begin
-    state = SmartsParser("~", false)
+    SMARTSTT = MolGraph{Int,QueryTruthTable,QueryTruthTable}
+    state = SMARTSParser{SMARTSTT}("~")
     anyb = bond!(state)
-    @test anyb.query == QueryFormula(:any, true)
+    @test anyb == QueryTruthTable(v -> true, [])
 
-    state = SmartsParser("-!@", false)
+    state = SMARTSParser{SMARTSTT}("-!@")
     notring = bond!(state)
-    @test notring.query == QueryFormula(:and, Set([
-        QueryFormula(:bondorder, 1),
-        QueryFormula(:isaromaticbond, false),
-        QueryFormula(:isringbond, false)
-    ]))
+    @test notring == QueryTruthTable(
+        v -> v[3] & ~v[1] & ~v[2], [(:is_in_ring,), (:isaromatic,), (:order, 1)])
 end
 
 end # smiles.bond

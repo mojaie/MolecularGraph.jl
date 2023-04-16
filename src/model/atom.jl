@@ -4,8 +4,8 @@
 #
 
 export
-    SDFileAtom, SmilesAtom,
-    setcharge, setstereo, atomnumber, todict
+    ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
+    SDFAtom, SMILESAtom, atomnumber, atomsymbol
 
 
 const ATOMTABLE = let
@@ -60,100 +60,12 @@ const ATOM_VANDERWAALS_RADII = let
 end
 
 
-struct SDFileAtom <: Atom
-    symbol::Symbol
-    charge::Int
-    multiplicity::Int
-    mass::Union{Int, Nothing}
-    coords::Union{Vector{Float64}, Nothing}
-    stereo::Symbol
-
-    function SDFileAtom(sym, chg, multi, mass, coords, stereo)
-        new(sym, chg, multi, mass, coords, stereo)
-    end
-end
-
-SDFileAtom() = SDFileAtom(:C, 0, 1, nothing, nothing)
-SDFileAtom(sym) = SDFileAtom(sym, 0, 1, nothing, nothing)
-SDFileAtom(sym, chg) = SDFileAtom(sym, chg, 1, nothing, nothing)
-SDFileAtom(sym, chg, multi, mass, coords
-    ) = SDFileAtom(sym, chg, multi, mass, coords, :unspecified)
-
-SDFileAtom(data::Dict{String,Any}) = SDFileAtom(
-    Symbol(data["symbol"]),
-    data["charge"],
-    data["multiplicity"],
-    data["mass"],
-    data["coords"],
-    Symbol(data["stereo"])
-)
-
-function todict(a::SDFileAtom)
-    data = Dict{String,Any}()
-    for field in fieldnames(SDFileAtom)
-        data[string(field)] = getfield(a, field)
-    end
-    return data
-end
-
-setcharge(a::SDFileAtom, chg
-    ) = SDFileAtom(a.symbol, chg, a.multiplicity, a.mass, a.coords)
-
-setstereo(a::SDFileAtom, direction) = SDFileAtom(
-    a.symbol, a.charge, a.multiplicity, a.mass, a.coords, direction)
-
-
-
-struct SmilesAtom <: Atom
-    symbol::Symbol
-    charge::Int
-    multiplicity::Int
-    mass::Union{Int, Nothing}
-    isaromatic::Union{Bool, Nothing}
-    stereo::Symbol
-
-    function SmilesAtom(sym, chg, multi, mass, aromatic, stereo)
-        new(sym, chg, multi, mass, aromatic, stereo)
-    end
-end
-
-SmilesAtom() = SmilesAtom(:C, 0, 1, nothing, nothing, :unspecified)
-SmilesAtom(sym) = SmilesAtom(sym, 0, 1, nothing, nothing, :unspecified)
-SmilesAtom(sym, chg) = SmilesAtom(sym, chg, 1, nothing, nothing, :unspecified)
-
-SmilesAtom(data::Dict{String,Any}) = SmilesAtom(
-    Symbol(data["symbol"]),
-    data["charge"],
-    data["multiplicity"],
-    data["mass"],
-    data["isaromatic"],
-    Symbol(data["stereo"])
-)
-
-function todict(a::SmilesAtom)
-    data = Dict{String,Any}()
-    for field in fieldnames(SmilesAtom)
-        data[string(field)] = getfield(a, field)
-    end
-    return data
-end
-
-setcharge(a::SmilesAtom, chg) = SmilesAtom(
-    a.symbol, chg, a.multiplicity, a.mass, a.isaromatic, a.stereo)
-
-setstereo(a::SmilesAtom, direction) = SmilesAtom(
-    a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, direction)
-
-
 """
     atomnumber(atomsymbol::Symbol) -> Int
-    atomnumber(atom::Atom) -> Int
 
 Return atom number.
 """
 atomnumber(atomsymbol::Symbol) = ATOMSYMBOLMAP[string(atomsymbol)]
-atomnumber(atom::Atom) = atomnumber(atom.symbol)
-
 
 
 """
@@ -162,3 +74,59 @@ atomnumber(atom::Atom) = atomnumber(atom.symbol)
 Return atom symbol of given atomic number.
 """
 atomsymbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
+
+
+"""
+    SDFAtom
+
+SDFile (CTAB) atom property type.
+"""
+struct SDFAtom
+    symbol::Symbol
+    charge::Int
+    multiplicity::Int
+    mass::Union{Int, Nothing}
+    coords::Union{Vector{Float64}, Nothing}
+
+    function SDFAtom(sym=:C, chg=0, mul=1, ms=nothing, coords=nothing)
+        haskey(ATOMSYMBOLMAP, string(sym)) || error("Unsupported atom symbol: $(sym)")
+        new(sym, chg, mul, ms, coords)
+    end
+end
+
+SDFAtom(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFAtom(
+    Symbol(d[T("symbol")]), d[T("charge")], d[T("multiplicity")],
+    d[T("mass")], d[T("coords")])
+
+Base.getindex(a::SDFAtom, prop::Symbol) = getproperty(a, prop)
+to_dict(a::SDFAtom) = Dict{String,Any}(
+    string(field) => getfield(a, field) for field in fieldnames(SDFAtom))
+
+
+"""
+    SMILESAtom
+
+SMILES atom property type.
+"""
+struct SMILESAtom
+    symbol::Symbol
+    charge::Int
+    multiplicity::Int
+    mass::Union{Int, Nothing}
+    isaromatic::Union{Bool, Nothing}
+    stereo::Symbol
+
+    function SMILESAtom(sym=:C, chg=0, mul=1, ms=nothing, isarom=false, stereo=:unspecified)
+        new(sym, chg, mul, ms, isarom, stereo)
+    end
+end
+
+SMILESAtom(d::Dict{T,U}) where {T<:Union{AbstractString,Symbol},U} = SMILESAtom(
+    Symbol(get(d, T("symbol"), :C)), get(d, T("charge"), 0),
+    get(d, T("multiplicity"), 1), get(d, T("mass"), nothing),
+    get(d, T("isaromatic"), false), Symbol(get(d, T("stereo"), :unspecified))
+)
+
+Base.getindex(a::SMILESAtom, prop::Symbol) = getproperty(a, prop)
+to_dict(a::SMILESAtom) = Dict{String,Any}(
+    string(field) => getfield(a, field) for field in fieldnames(SMILESAtom))

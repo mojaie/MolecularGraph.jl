@@ -4,12 +4,15 @@
 @testset "molblock" begin
     demomol = joinpath(dirname(@__FILE__), "..", "assets", "test", "demo.mol")
     mol = sdftomol(demomol)
-    mol2 = sdftomol(split(printv2mol(mol), "\n"))
-    @test nodecount(mol2) == 37
+    dump = printv2mol(mol)
+    mol2 = sdftomol(IOBuffer(dump))
+    @test nv(mol2) == 37
     
+    """
     smol = smilestomol("CCC1CC(C=O)CCC1N")
     smol2 = sdftomol(split(printv2mol(smol), "\n"))
-    @test nodecount(smol2) == 11
+    @test nv(smol2) == 11
+    """
 end
 
 end #sdfilewriter

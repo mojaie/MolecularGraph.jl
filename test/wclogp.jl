@@ -10,7 +10,7 @@
     @test wclogphydrogentype(mol1) == [
         :H1, :H1, :H1, :H1, :undef, :undef, :H1, :undef, :H2
     ]
-    @test wclogp(mol1) == 1.40
+    @test wclogp(mol1, 2) == 1.40
 
     mol2 = smilestomol("C1=CC=CC=C1C2=CC=CC=N2")
     @test wclogptype(mol2) == [
@@ -21,7 +21,7 @@
         :H1, :H1, :H1, :H1, :H1, :undef, :undef,
         :H1, :H1, :H1, :H1, :undef
     ]
-    @test wclogp(mol2) == 2.75
+    @test wclogp(mol2, 2) == 2.75
 
     # Test molecules
     TESTMOL_DIR = joinpath(dirname(@__FILE__), "..", "assets", "test")

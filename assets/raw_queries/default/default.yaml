@@ -3,287 +3,289 @@
 
 # Carbon
 
-- key: IsoButyl
+- key: iso_butyl
   query: "C[CH]([CH3])[CH3]"
-- key: TertiaryButyl
+- key: tertiary_butyl
   query: "C([CH3])([CH3])[CH3]"
 
-- key: Alkene
+- key: alkene
   query: "C=C"
-- key: Alkyne
+- key: alkyne
   query: "C#C"
-- key: Allene
+- key: allene
   query: "C=C=C"
-- key: Diene
+- key: diene
   query: "C=CC=C"
-- key: Triene
+- key: triene
   query: "C=CC=CC=C"
 
 
 # Oxygen
 
-- key: AromaticOxygen
+- key: aromatic_oxygen
   query: "o"
-- key: Peroxide
+- key: phenolic_hydroxyl
+  query: "[$([OH]c)]"
+- key: peroxide
   query: "OO"
 
-- key: Alcohol
+- key: alcohol
   query: "C[OH]"
-- key: PhenolicHydroxyl
-  query: "c[OH]"
-- key: PrimaryAlcohol
+- key: primary_alcohol
   query: "[$([CH2][#6])][OH]"
-- key: SecondaryAlcohol
+- key: secondary_alcohol
   query: "[$([CH]([#6])[#6])][OH]"
-- key: TertiaryAlcohol
+- key: tertiary_alcohol
   query: "[$([CH0]([#6])([#6])[#6])][OH]"
-- key: ArylAlcohol
+- key: aryl_alcohol
   query: "[$(Cc)][OH]"
-- key: GeminalDiol
+- key: geminal_diol
   query: "[OH]C[OH]"
 
-- key: Ether
+- key: ether
   query: "[#6]O[#6]"
-- key: ArylEther
+- key: aryl_ether
   query: "cO[#6]"
-- key: Acetal
+- key: acetal
   query: "[#6]OCO[#6]"
-- key: Orthoester
+- key: orthoester
   query: "[#6]OC(O[#6])O[#6]"
-- key: Hemiacetal
+- key: hemiacetal
   query: "[#6]OC[OH]"
 
-- key: Carbonyl
+- key: carbonyl
   query: "[#6]=O"
-- key: Formyl
+- key: formyl
   query: "[CH]=O"
-- key: Acyl
+- key: acyl
   query: "O=C[#6]"
-- key: Acetyl
+- key: acetyl
   query: "O=C[CH3]"
-- key: Ketone
+- key: ketone
   query: "[$(C([#6])[#6])]=O"
-- key: AlkylKetone
+- key: alkyl_ketone
   query: "[$(C(C)C)]=O"
-- key: ArylKetone
+- key: aryl_Ketone
   query: "[$(C(c)[#6])]=O"
-- key: Ketene
+- key: ketene
   query: "C=C=O"
-- key: AlphaBetaUnsaturatedCarbonyl
+- key: alpha,beta-unsaturated_carbonyl
   query: "C=CC=O"
 
-- key: Carboxylate
+- key: carboxylate
   query: "O=CO"
-- key: Carboxyl
+- key: carboxyl
   query: "O=C[OH]"
-- key: Ester
+- key: ester
   query: "[$(C[#6])](=O)[$(O(C)[#6])]"
-- key: Pivaloyl
+- key: pivaloyl
   query: "OC(=O)C([CH3])([CH3])[CH3]"
-- key: Pivoxil
+- key: pivoxil
   query: "OCOC(=O)C([CH3])([CH3])[CH3]"
 
 
 # Nitrogen
-- key: Amine
+- key: amine
   query: "[$(N[#6])]"
-- key: PrimaryAmine
+- key: primary_amine
   query: "[$([NH2][#6])]"
-- key: SecondaryAmine
+- key: secondary_amine
   query: "[$([NH]([#6])[#6])]"
-- key: TertiaryAmine
+- key: tertiary_amine
   query: "[$([NH0]([#6])([#6])[#6])]"
-- key: QuarternaryAmmonium
+- key: quarternary_ammonium
   query: "[$([N+]([#6])([#6])([#6])[#6])]"
-- key: AromaticNitrogen
+- key: aromatic_nitrogen
   query: "n"
-- key: ArylAmine
+- key: aryl_amine
   query: "[$(Nc)]"
 
-- key: Imine
+- key: imine
   query: "C=N"
-- key: Nitrile
+- key: nitrile
   query: "C#N"
-- key: Hydrazine
+- key: hydrazine
   query: "NN"
-- key: Hydrazone
+- key: hydrazone
   query: "NN=C"
-- key: Hydrazide
+- key: hydrazide
   query: "NNC=O"
-- key: Azo
+- key: azo
   query: "N=N"
-- key: Azide1
+- key: azide1
   query: "N=[N+]=[N-]"
-- key: Azide2
+- key: azide2
   query: "[N-][N+]#N"
-- key: Amidine
+- key: amidine
   query: "NC=N"
-- key: Guanidine
+- key: guanidine
   query: "NC(=N)N"
+- key: biguanide
+  query: "NC(=N)NC(=N)N"
 
 
 # O, N
 
-- key: Amide
+- key: amide
   query: "O=CN"
-- key: Carbamoyl
+- key: carbamoyl
   query: "O=C[NH2]"
-- key: SecondaryAmide
+- key: secondary_amide
   query: "O=C[NH][#6]"
-- key: TertiaryAmide
+- key: tertiary_amide
   query: "O=C[NH0]([#6])[#6]"
-- key: Nitro
+- key: nitro
   query: "O=[N+][O-]"
-- key: Nitroso
+- key: nitroso
   query: "N=O"
-- key: AmineOxide
+- key: amine_oxide
   query: "[#7+][O-]"
-- key: Oxime
+- key: oxime
   query: "C=NO"
-- key: Cyanate
+- key: cyanate
   query: "OC#N"
-- key: Isocyanate
+- key: isocyanate
   query: "N=C=O"
-- key: Carbamide
+- key: carbamide
   query: "NC(=O)N"
 
 
 # Sulfur
 
-- key: Sulfide
+- key: sulfide
   query: "S"
-- key: AromaticSulfur
+- key: aromatic_sulfur
   query: "s"
-- key: Disulfide
+- key: disulfide
   query: "SS"
-- key: Thiol
+- key: thiol
   query: "[#6][SH]"
-- key: ArylThiol
+- key: aryl_thiol
   query: "c[SH]"
-- key: Thioether
+- key: thioether
   query: "[#6]S[#6]"
-- key: Thiocarbonyl
+- key: thiocarbonyl
   query: "C=S"
-- key: Thial
+- key: thial
   query: "[CH]=S"
-- key: Thioketone
+- key: thioketone
   query: "[#6]C(=S)[#6]"
-- key: Dithiocarboxylate
+- key: dithiocarboxylate
   query: "S=CS"
 
 
 # O, N, S
 
-- key: Sulfoxide1
+- key: sulfoxide1
   query: "[#16]=O"
-- key: Sulfoxide2
+- key: sulfoxide2
   query: "[#16+][O-]"
-- key: Sulfinate
+- key: sulfinate
   query: "O=SO"
-- key: Sulfone
+- key: sulfone
   query: "O=S=O"
-- key: Mesyl
+- key: mesyl
   query: "O=S(=O)[CH3]"
-- key: Sulfonate
+- key: sulfonate
   query: "O=S(=O)O"
-- key: Mesylate
+- key: mesylate
   query: "OS(=O)(=O)[CH3]"
-- key: Sulfoneamide
+- key: sulfoneamide
   query: "O=S(=O)N"
-- key: Sulfamide
+- key: sulfamide
   query: "NS(=O)(=O)N"
-- key: Thiocyanate
+- key: thiocyanate
   query: "S-C#N"
-- key: Isothiocyanate
+- key: isothiocyanate
   query: "N=C=S"
-- key: Thiocarbamide
+- key: thiocarbamide
   query: "NC(=S)N"
 
 
 # Phosphorus
 
-- key: Phosphine
+- key: phosphine
   query: "P"
-- key: AromaticPhosphorus
+- key: aromatic_phosphorus
   query: "p"
-- key: PhosphineOxide1
+- key: phosphine_oxide1
   query: "[#15]=O"
-- key: PhosphineOxide2
+- key: phosphine_oxide2
   query: "[#15+][O-]"
-- key: Thiophosphinate
+- key: thiophosphinate
   query: "[O,S]=P[O,S]"
-- key: Phosphinate
+- key: phosphinate
   query: "O=PO"
-- key: Thiophosphonate
+- key: thiophosphonate
   query: "[O,S]=P([O,S])[O,S]"
-- key: Phosphonate
+- key: phosphonate
   query: "O=P(O)O"
-- key: Thiophosphate
+- key: thiophosphate
   query: "[O,S]=P([O,S])([O,S])[O,S]"
-- key: Phosphate
+- key: phosphate
   query: "O=P(O)(O)O"
-- key: Thiophosphoramidate
+- key: thiophosphoramidate
   query: "[O,S]=P(N)([O,S])[O,S]"
-- key: Phosphoramidate
+- key: phosphoramidate
   query: "O=P(N)(O)O"
-- key: Thiophosphordiamidate
+- key: thiophosphordiamidate
   query: "[O,S]=P(N)(N)[O,S]"
-- key: Phosphordiamidate
+- key: phosphordiamidate
   query: "O=P(N)(N)O"
-- key: Thiophosphoramide
+- key: thiophosphoramide
   query: "S=P(N)(N)N"
-- key: Phosphoramide
+- key: phosphoramide
   query: "O=P(N)(N)N"
 
 
 # Boron
 
-- key: Borane
+- key: borane
   query: "B"
-- key: AromaticBorane
+- key: aromatic_borane
   query: "b"
-- key: Borinate
+- key: borinate
   query: "BO"
-- key: Boronate
+- key: boronate
   query: "OBO"
-- key: Borate
+- key: borate
   query: "OB(O)O"
 
 
 # Halogen
 
-- key: Alkylhalide
+- key: alkylhalide
   query: "C[F,Cl,Br,I]"
-- key: Alkylfluoride
+- key: alkylfluoride
   query: "CF"
-- key: Alkylchloride
+- key: alkylchloride
   query: "CCl"
-- key: Alkylbromide
+- key: alkylbromide
   query: "CBr"
-- key: Alkyliodide
+- key: alkyliodide
   query: "CI"
 
-- key: Arylhalide
+- key: arylhalide
   query: "c[F,Cl,Br,I]"
-- key: Arylfluoride
+- key: arylfluoride
   query: "cF"
-- key: Arylchloride
+- key: arylchloride
   query: "cCl"
-- key: Arylbromide
+- key: arylbromide
   query: "cBr"
-- key: Aryliodide
+- key: aryliodide
   query: "cI"
 
-- key: Acylhalide
+- key: acylhalide
   query: "C(=O)[F,Cl,Br,I]"
-- key: Acylfluoride
+- key: acylfluoride
   query: "C(=O)F"
-- key: Acylchloride
+- key: acylchloride
   query: "C(=O)Cl"
-- key: Acylbromide
+- key: acylbromide
   query: "C(=O)Br"
-- key: Acyliodide
+- key: acyliodide
   query: "C(=O)I"
 
-- key: Triflate
+- key: triflate
   query: "OS(=O)(=O)C(F)(F)F"

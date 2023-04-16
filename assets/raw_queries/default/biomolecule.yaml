@@ -3,80 +3,80 @@
 
 # Amino acid
 
-- key: AminoAcidResidue
+- key: amino_acid_residue
   query: "NCC=O"
-- key: Gly
+- key: glycine
   query: "N[CH2]C=O"
-- key: Ala
+- key: alanine
   query: "NC(C=O)C"
-- key: Asn
+- key: asparagine
   query: "NC(C=O)CC(=O)N"
-- key: Asp
+- key: aspartic acid
   query: "NC(C=O)CC(=O)O"
-- key: Gln
+- key: glutamine
   query: "NC(C=O)CCC(=O)N"
-- key: Glu
+- key: glutamic acid
   query: "NC(C=O)CCC(=O)O"
-- key: Lys
+- key: lysine
   query: "NC(C=O)CCCCN"
-- key: Arg
+- key: arginine
   query: "NC(C=O)CCCNC(=N)N"
-- key: His
+- key: histidine
   query: "NC(C=O)Cn1cncc1"
-- key: Val
+- key: valine
   query: "NC(C=O)C(C)C"
-- key: Ile
+- key: isoleucine
   query: "NC(C=O)C(C)CC"
-- key: Leu
+- key: leucine
   query: "NC(C=O)CC(C)C"
-- key: Cys
+- key: cysteine
   query: "NC(C=O)CS"
-- key: Met
+- key: methionine
   query: "NC(C=O)CCSC"
-- key: Ser
+- key: serine
   query: "NC(C=O)CO"
-- key: Thr
+- key: threonine
   query: "NC(C=O)C(O)C"
-- key: Phe
+- key: phenylalanine
   query: "NC(C=O)Cc1ccccc1"
-- key: Tyr
+- key: tyrosine
   query: "NC(C=O)Cc1ccc(O)cc1"
-- key: Trp
+- key: tryptophan
   query: "NC(C=O)Cc1cnc2c1cccc2"
-- key: Pro
+- key: proline
   query: "N1C(C=O)CCC1"
 
 
 # Nuculeic acid
 
-- key: Adenine
+- key: adenine
   query: "n1cnc(N)c2c1ncn2"
-- key: Guanine
+- key: guanine
   query: "n1c(N)nc(=O)c2c1ncn2"
-- key: Thymine
+- key: thymine
   query: "n1c(=O)nc(=O)c(C)c1"
-- key: Cytosine
+- key: cytosine
   query: "n1c(=O)nc(N)cc1"
-- key: Uracil
+- key: uracil
   query: "n1c(=O)nc(=O)cc1"
 
 
 # Sugar
 
-- key: Aldopentose
+- key: aldopentose
   query: "OCC(O1)C(O)C(O)C1O"
-- key: Ketopentose
+- key: ketopentose
   query: "O1CC(O)C(O)C1(O)CO"
-- key: Aldohexose
+- key: aldohexose
   query: "OCC(O1)C(O)C(O)C(O)C1O"
-- key: Ketohexose
+- key: ketohexose
   query: "OCC(O1)C(O)C(O)C1(O)CO"
 
 
 
 
-- key: Glycerol
+- key: glycerol
   query: "OCC(O)CO"
 
-- key: Choline
+- key: choline
   query: "OCC[N+](C)(C)C"

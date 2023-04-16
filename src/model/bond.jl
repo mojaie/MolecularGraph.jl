@@ -4,89 +4,64 @@
 #
 
 export
-    SDFileBond, SmilesBond,
-    setorder, setnotation, setstereo, todict
+    SDFBond, SMILESBond
 
 
-struct SDFileBond <: Bond
-    """Bond
-    * Notation
-        * Single bond
-            * 0: u - v
-            * 1: u ◀ v (Up-arrow)
-            * 2: v ◀ u -> for SMILES coordgen compatibility
-            * 4: u ~ v (Up or down)
-            * 6: u ◁ v (Down-arrow)
-            * 7: v ◁ u -> for SMILES coordgen compatibility
-        * Double bond
-            * 0: v ニ u (clockwise, default)
-            * 1: u ニ v (counter-clockwise)
-            * 2: u ＝ v (equal length, for terminal bond by default)
-            * 3: u × v (Cis-Trans Unknown)
-    """
+"""
+    SDFBond
+
+SDFile (CTAB) bond property type.
+
+* SDFile bond notation
+    * Single bond
+        * 0: u - v
+        * 1: u ◀ v (Up-arrow)
+        * 4: u ~ v (Up or down)
+        * 6: u ◁ v (Down-arrow)
+    * Double bond
+        * 0: v = u
+        * 3: u x v (Cis-Trans Unknown)
+"""
+struct SDFBond
     order::Int
     notation::Int
-    stereo::Symbol
-end
+    isordered::Bool
 
-SDFileBond() = SDFileBond(1, 0, :unspecified)
-SDFileBond(order) = SDFileBond(order, 0, :unspecified)
-SDFileBond(order, notation) = SDFileBond(order, notation, :unspecified)
-
-SDFileBond(data::Dict{String,Any}) = SDFileBond(
-    data["order"],
-    data["notation"],
-    Symbol(data["stereo"])
-)
-
-function todict(b::SDFileBond)
-    data = Dict{String,Any}()
-    for field in fieldnames(SDFileBond)
-        data[string(field)] = getfield(b, field)
+    function SDFBond(order=1, notation=0, isordered=true)
+        new(order, notation, isordered)
     end
-    return data
 end
 
-setorder(edge::SDFileBond, order
-    ) = SDFileBond(order, edge.notation, edge.stereo)
+SDFBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFBond(
+    d[T("order")], d[T("notation")], d[T("isordered")])
 
-setnotation(edge::SDFileBond, notation
-    ) = SDFileBond(edge.order, notation, edge.stereo)
-
-setstereo(edge::SDFileBond, cistrans
-    ) = SDFileBond(edge.order, edge.notation, cistrans)
+Base.getindex(b::SDFBond, prop::Symbol) = getproperty(b, prop)
+to_dict(b::SDFBond) = Dict{String,Any}(
+    string(field) => getfield(b, field) for field in fieldnames(SDFBond))
 
 
+"""
+    SMILESBond
 
-struct SmilesBond <: Bond
+SMILES bond property type.
+"""
+struct SMILESBond
     order::Int
     isaromatic::Bool
-    direction::Symbol
-    stereo::Symbol
+    direction::Symbol  # :up, :down or :unspecified
+
+    function SMILESBond(order=1, isaromatic=false, direction=:unspecified)
+        new(order, isaromatic, direction)
+    end
 end
 
-SmilesBond() = SmilesBond(1, false, :unspecified, :unspecified)
-SmilesBond(order) = SmilesBond(order, false, :unspecified, :unspecified)
-SmilesBond(order, isaromatic, direction
-    ) = SmilesBond(order, isaromatic, direction, :unspecified)
-
-SmilesBond(data::Dict{String,Any}) = SmilesBond(
-    data["order"],
-    data["isaromatic"],
-    Symbol(data["direction"]),
-    Symbol(data["stereo"])
+SMILESBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SMILESBond(
+    get(d, T("order"), 1),
+    get(d, T("isaromatic"), false),
+    get(d, T("direction"), :unspecified)
 )
 
-function todict(b::SmilesBond)
-    data = Dict{String,Any}()
-    for field in fieldnames(SmilesBond)
-        data[string(field)] = getfield(b, field)
-    end
-    return data
-end
+Base.getindex(b::SMILESBond, prop::Symbol) = getproperty(b, prop)
+to_dict(b::SMILESBond) = Dict{String,Any}(
+    string(field) => getfield(b, field) for field in fieldnames(SMILESBond))
 
-setorder(edge::SmilesBond, order
-    ) = SmilesBond(order, edge.isaromatic, edge.direction, edge.stereo)
-
-setstereo(edge::SmilesBond, cistrans
-    ) = SmilesBond(edge.order, edge.isaromatic, edge.direction, cistrans)

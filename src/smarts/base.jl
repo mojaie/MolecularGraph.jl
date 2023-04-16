@@ -4,69 +4,60 @@
 #
 
 export
-    SmartsAtom, SmartsBond, SMARTS,
-    SmilesParser, SmartsParser,
-    smilestomol, smartstomol,
-    resolvedefaultbond!
+    SMILESParser, SMARTSParser,
+    smilestomol, smartstomol
 
 
-struct SmartsAtom <: QueryAtom
-    query::QueryFormula
-end
-
-
-struct SmartsBond <: QueryBond
-    query::QueryFormula
-end
-
-SmartsBond() = SmartsBond(QueryFormula(:any, true))
-
-
-SMARTS = QueryMol{SmartsAtom,SmartsBond}
-
-
-
-mutable struct SmartsParserState{N<:AbstractNode,E<:UndirectedEdge}
+mutable struct SMILESParser{T,V,E}
     input::String
-    allow_disconnected::Bool
-
     pos::Int
     done::Bool
     node::Int # No. of current node
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
     ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
-
-    edges::Vector{Tuple{Int,Int}}
-    nodeattrs::Vector{N}
-    edgeattrs::Vector{E}
-    connectivity::Vector{Vector{Int}}
-
-    function SmartsParserState{N,E}(str, disconn
-            ) where {N<:AbstractNode,E<:UndirectedEdge}
-        new(str, disconn, 1, false, 0, 1, 1, Dict(), [], [], [], [])
-    end
+    edges::Vector{Edge{T}}
+    vprops::Vector{V}
+    eprops::Vector{E}
 end
 
-SmilesParser = SmartsParserState{SmilesAtom,SmilesBond}
-SmartsParser = SmartsParserState{SmartsAtom,SmartsBond}
+SMILESParser{T}(smiles
+    ) where T <: SimpleMolGraph = SMILESParser{eltype(T),vproptype(T),eproptype(T)}(
+        smiles, 1, false, 0, 1, 1, Dict(), Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[])
 
 
-function Base.parse(::Type{SMILES}, str::AbstractString)
-    state = SmilesParser(str, true)
-    fragment!(state)
-    return graphmol(state.edges, state.nodeattrs, state.edgeattrs)
+
+mutable struct SMARTSParser{T,V,E}
+    input::String
+    pos::Int
+    done::Bool
+    node::Int # No. of current node
+    branch::Int # No. of node at the current branch root
+    root::Int # No. of node at the current tree root
+    ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
+    edges::Vector{Edge{T}}
+    vprops::Vector{V}
+    eprops::Vector{E}
+    connectivity::Vector{Vector{T}}
 end
 
-function Base.parse(::Type{SMARTS}, str::AbstractString)
-    if occursin('.', str)
-        state = SmartsParser(str, true)
-        componentquery!(state)
-    else
-        state = SmartsParser(str, false)
-        fragment!(state)
-    end
-    return querymol(state.edges, state.nodeattrs, state.edgeattrs, state.connectivity)
+SMARTSParser{T}(smarts
+    ) where T <: SimpleMolGraph = SMARTSParser{eltype(T),vproptype(T),eproptype(T)}(
+        smarts, 1, false, 0, 1, 1, Dict(), Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[], [])
+
+
+function smiles_on_update!(mol)
+    update_edge_rank!(mol)
+    mol.state[:has_updates] = false
+    stereocenter_from_smiles!(mol)
+    stereobond_from_smiles!(mol)
+    kekulize!(mol)
+    # recalculate bottleneck descriptors
+    sssr!(mol)
+    lone_pair!(mol)
+    apparent_valence!(mol)
+    valence!(mol)
+    is_ring_aromatic!(mol)
 end
 
 
@@ -82,12 +73,16 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. OpenSMILES Specification http://opensmiles.org/spec/open-smiles.html
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
-function smilestomol(smiles::AbstractString)
-    mol = parse(SMILES, smiles)
-    kekulize!(mol)
-    setdiastereo!(mol)
+function smilestomol(::Type{T}, smiles::AbstractString; updater=smiles_on_update!) where T <: AbstractMolGraph
+    state = SMILESParser{T}(smiles)
+    fragment!(state)
+    mol = T(state.edges, state.vprops, state.eprops, Dict(), Dict(:on_update => updater))
+    dispatch!(mol, :on_update)
     return mol
 end
+
+smilestomol(smiles::AbstractString; kwargs...
+    ) = smilestomol(MolGraph{Int,SMILESAtom,SMILESBond}, smiles; kwargs...)
 
 
 """
@@ -95,16 +90,30 @@ end
 
 Parse SMARTS string into `QueryMol` object.
 """
-function smartstomol(smarts::AbstractString)
-    qmol = parse(SMARTS, smarts)
-    setcache!(qmol, :minimumcyclebasisnodes)
-    resolvedefaultbond!(qmol)
-    qmol = inferaromaticity(removehydrogens(qmol))
-    return qmol
+function smartstomol(::Type{T}, smarts::AbstractString; updater=x->()) where T <: AbstractMolGraph
+    state = SMARTSParser{T}(smarts)
+    occursin('.', smarts) ? componentquery!(state) : fragment!(state)
+    mol = T(
+        state.edges, state.vprops, state.eprops,
+        Dict(:connectivity => state.connectivity), Dict(:on_update => updater))
+    if vproptype(mol) <: QueryTree  # vproptype(mol) can be QueryTruthTable for testing
+        specialize_nonaromatic!(mol)
+        remove_hydrogens!(mol)
+        for i in vertices(mol)
+            set_prop!(mol, i, QueryTree(optimize_query(get_prop(mol, i, :tree))))
+        end
+    end
+    return mol
 end
 
+smartstomol(smarts::AbstractString
+    ) = smartstomol(MolGraph{Int,QueryTree,QueryTree}, smarts)
 
-function lookahead(state::SmartsParserState, pos::Int)
+
+
+# internal parser methods
+
+function lookahead(state::Union{SMILESParser,SMARTSParser}, pos::Int)
     # Negative pos can be used
     newpos = state.pos + pos
     if newpos > length(state.input) || newpos < 1
@@ -114,7 +123,7 @@ function lookahead(state::SmartsParserState, pos::Int)
         if isascii(c)
             return state.input[newpos]
         else
-            throw(ErrorException("invalid charactor $(c)"))
+            error("invalid charactor $(c)")
         end
     end
 end
@@ -122,76 +131,18 @@ end
 Base.read(state) = lookahead(state, 0)  # TODO: rename
 
 
-function forward!(state::SmartsParserState, num::Int)
+function forward!(state::Union{SMILESParser,SMARTSParser}, num::Int)
     # Negative num can be used
     state.pos += num
     if state.pos > length(state.input)
         state.done = true
     elseif state.done
-        throw(ErrorException("charactors in the buffer were used up"))
+        error("charactors in the buffer were used up")
     elseif state.pos < 1
-        throw(ErrorException("no more backtracking!"))
+        error("no more backtracking!")
     end
 end
 
 forward!(state) = forward!(state, 1)
 backtrack!(state, num) = forward!(state, -num)
 backtrack!(state) = backtrack!(state, 1)
-
-
-
-"""
-    resolvedefaultbond(qmol::QueryMol) -> Nothing
-
-Resolve default SMARTS bonds.
-"""
-function resolvedefaultbond!(qmol::QueryMol)
-    aromfml = QueryFormula(:isaromaticbond, true)
-    singlefml = QueryFormula(:and, Set([
-        QueryFormula(:bondorder, 1),
-        QueryFormula(:isaromaticbond, false)
-    ]))
-    notaromsymfml = QueryFormula(:and, Set([
-        QueryFormula(:not, QueryFormula(:atomsymbol, s)) for s in [:B, :C, :N, :O, :P, :S, :As, :Se]
-    ]))
-    # extract explicitly aromatic bonds
-    arombonds = Set([])
-    for ring in minimumcyclebasisnodes(qmol)
-        isarom = true
-        for n in ring
-            nq = nodeattr(qmol, n).query
-            if !issubset(nq, QueryFormula(:isaromatic, true), eval_recursive=false)
-                isarom = false
-                break
-            end
-        end
-        if isarom
-            union!(arombonds, edgeset(nodesubgraph(qmol, ring)))
-        end
-    end
-    # CC, cC, Cc, [#6]C, C[#6], A*, *A -> -
-    # cc, c[#6], [#6]c, [#6][#6] -> -,:
-    # cc in the same aromatic ring -> :
-    for e in 1:edgecount(qmol)
-        q = edgeattr(qmol, e).query
-        q == QueryFormula(:defaultbond, true) || continue
-        if e in arombonds
-            setedgeattr!(qmol, e, SmartsBond(aromfml))
-            continue
-        end
-        (u, v) = getedge(qmol, e)
-        uq = nodeattr(qmol, u).query
-        unotarom = (issubset(uq,
-            QueryFormula(:isaromatic, false), eval_recursive=false)
-            || issubset(uq, notaromsymfml, eval_recursive=false))
-        vq = nodeattr(qmol, v).query
-        vnotarom = (issubset(vq,
-            QueryFormula(:isaromatic, false), eval_recursive=false)
-            || issubset(vq, notaromsymfml, eval_recursive=false))
-        if unotarom || vnotarom
-            setedgeattr!(qmol, e, SmartsBond(singlefml))
-        else
-            setedgeattr!(qmol, e, SmartsBond(QueryFormula(:or, Set([singlefml, aromfml]))))
-        end
-    end
-end

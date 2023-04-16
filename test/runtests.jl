@@ -3,63 +3,32 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
-module MolecularGraphUtilTest
-    using Test
-    using MolecularGraph.Util
-    include("./util/iterator.jl")
-    include("./util/math.jl")
-end
-
-
-module MolecularGraphGraphTest
-    using Test
-    using MolecularGraph.Graph
-
-    include("./graph/dfs.jl")
-    include("./graph/shortestpath.jl")
-    include("./graph/generator.jl")
-
-    include("./graph/plaingraph.jl")
-    include("./graph/plaindigraph.jl")
-    include("./graph/plainhypergraph.jl")
-
-    include("./graph/multigraph.jl")
-    include("./graph/dag.jl")
-    include("./graph/cycle.jl")
-    include("./graph/connectivity.jl")
-    include("./graph/subgraphview.jl")
-    include("./graph/disjointunion.jl")
-    include("./graph/linegraph.jl")
-
-    include("./graph/triangle.jl")
-    include("./graph/clique.jl")
-    include("./graph/bipartite.jl")
-    include("./graph/planarity.jl")
-    include("./graph/product.jl")
-    include("./graph/isomorphism/vf2.jl")
-    include("./graph/isomorphism/cliquebased.jl")
-end
-
-
-module MolecularGraphGeometryTest
+module MolecularGraphTest
     using Test
     using LinearAlgebra
-    using MolecularGraph.Geometry
+    using Logging
+    using Graphs
+    using MolecularGraph
+
+    include("./util/iterator.jl")
+    include("./util/math.jl")
 
     include("./geometry/cartesian.jl")
     include("./geometry/internal.jl")
-end
-
-
-module MolecularGraphTest
-    using Test
-    using MolecularGraph
-    using MolecularGraph.Graph
 
     include("./model/atom.jl")
+    include("./model/bond.jl")
     include("./model/molgraph.jl")
     include("./model/query.jl")
+
+    include("./graph/operators.jl")
+    include("./graph/cycle.jl")
+    include("./graph/bipartite.jl")
+    include("./graph/matching.jl")
+    include("./graph/planarity.jl")
+    include("./graph/clique.jl")
+    include("./graph/isomorphism_vf2.jl")
+    include("./graph/isomorphism_clique.jl")
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
@@ -72,15 +41,20 @@ module MolecularGraphTest
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
 
-    include("properties.jl")
-    include("preprocess.jl")
     include("stereo.jl")
+    include("preprocess.jl")
+    include("coords.jl")
+
+    include("properties.jl")
     include("mass.jl")
     include("wclogp.jl")
-    include("structurematch.jl")
     include("inchi.jl")
+
+    include("structurematch.jl")
+    include("querycontainment.jl")
 
     include("./draw/base.jl")
     include("./draw/svg.jl")
     include("./draw/3d.jl")
+
 end

@@ -35,3 +35,10 @@ Mendez D, Gaulton A, Bento AP, Chambers J, De Veij M, Félix E, Magariños MP, M
 
 If ChEMBL is incorporated into other works, we ask that the ChEMBL IDs are preserved, and that the release number of ChEMBL is clearly displayed.
 ```
+
+
+## Sources of structure data files for testing
+
+- PubChem https://pubchem.ncbi.nlm.nih.gov/
+- Rhea https://www.rhea-db.org/
+- Marvin JS https://chemaxon.com/

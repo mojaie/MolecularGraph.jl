@@ -4,22 +4,25 @@
 #
 
 export
-    monoisotopicmass, nominalmass, exactmass, standardweight,
-    isotopiccomposition, massspecpeaks, simulatemassspec
+    monoiso_mass_unc, monoiso_mass, nominal_mass,
+    exact_mass_unc, exact_mass,
+    standard_weight_unc, standard_weight,
+    isotopic_composition, massspec_peaks, simulate_massspec
 
 
 const DEFAULT_WEIGHT_DIGITS = 2
 const DEFAULT_MASS_DIGITS = 6
 
 
-function molecularmass(mol::GraphMol, massfunc, implicithfunc)
+function molecular_mass_unc(mol::MolGraph, massfunc)
     mass = 0.0
     unc = 0.0
-    hm, hu = implicithfunc(:H)
-    for (atom, hcnt) in zip(nodeattrs(mol), implicithconnected(mol))
-        m, u = massfunc(atom)
-        mass += m + hm * hcnt
-        unc += u + hu * hcnt
+    hm, hu = massfunc(:H)
+    imp_hs = implicit_hydrogens(mol)
+    for i in vertices(mol)
+        m, u = massfunc(props(mol, i))
+        mass += m + hm * imp_hs[i]
+        unc += u + hu * imp_hs[i]
     end
     return (mass, unc)
 end
@@ -27,145 +30,104 @@ end
 
 
 """
-    monoisotopicmass(atomsymbol::Symbol) -> Tuple{Float64,Float64}
-    monoisotopicmass(atom::Atom) -> Tuple{Float64,Float64}
-    monoisotopicmass(mol::GraphMol) -> Tuple{Float64,Float64}
+    monoiso_mass_unc(atomsymbol::Symbol) -> Tuple{Float64,Float64}
+    monoiso_mass_unc(atom) -> Tuple{Float64,Float64}
+    monoiso_mass_unc(mol::MolGraph) -> Tuple{Float64,Float64}
 
 Return a tuple of monoisotopic mass of the atom/molecule and its uncertainty.
 
 Monoisotopic mass is the relative atomic mass of the most abundant isotope. Even if there is specific `Atom.mass` value, it will be ignored.
 """
-function monoisotopicmass(atomsymbol::Symbol)
+function monoiso_mass_unc(atomsymbol::Symbol)
     num = atomnumber(atomsymbol)
     mass = ATOMTABLE[num]["Monoisotopic"]
     unc = ATOMTABLE[num]["MonoisotopicUncertainty"]
     return (mass, unc)
 end
 
-monoisotopicmass(atom::Atom) = monoisotopicmass(atom.symbol)
-monoisotopicmass(mol::GraphMol
-    ) = molecularmass(mol, monoisotopicmass, monoisotopicmass)
+monoiso_mass_unc(atom) = monoiso_mass_unc(atom[:symbol])
+monoiso_mass_unc(mol::MolGraph) = molecular_mass_unc(mol, monoiso_mass_unc)
 
 
 """
-    monoisotopicmass(::Type{Float64}, atomsymbol::Symbol) -> Float64
-    monoisotopicmass(::Type{Float64}, atom::Atom) -> Float64
-    monoisotopicmass(::Type{Float64}, mol::GraphMol) -> Float64
+    monoiso_mass(atomsymbol::Symbol, [digits::Int]) -> Float64
+    monoiso_mass(atom, [digits::Int]) -> Float64
+    monoiso_mass(mol::MolGraph, [digits::Int]) -> Float64
 
-Return monoisotopic mass of the atom/molecule rounded to `digits=6`.
+Return monoisotopic mass of the atom/molecule.
 """
-function monoisotopicmass(::Type{Float64}, atomsymbol::Symbol)
-    mass, unc = monoisotopicmass(atomsymbol)
-    mass === NaN && return NaN
-    return round(mass, digits=DEFAULT_MASS_DIGITS)
-end
+monoiso_mass(atomsymbol::Symbol) = monoiso_mass_unc(atomsymbol)[1]
+monoiso_mass(atom) = monoiso_mass_unc(atom)[1]
+monoiso_mass(mol::MolGraph) = monoiso_mass_unc(mol)[1]
 
-monoisotopicmass(::Type{Float64}, atom::Atom
-    ) = monoisotopicmass(Float64, atom.symbol)
-
-function monoisotopicmass(::Type{Float64}, mol::GraphMol)
-    mass, unc = molecularmass(mol, monoisotopicmass, monoisotopicmass)
-    mass === NaN && return NaN
-    return round(mass, digits=DEFAULT_MASS_DIGITS)
-end
+monoiso_mass(atomsymbol::Symbol, digits) = round(monoiso_mass(atomsymbol), digits=digits)
+monoiso_mass(atom, digits) = round(monoiso_mass(atom), digits=digits)
+monoiso_mass(mol::MolGraph, digits) = round(monoiso_mass(mol), digits=digits)
 
 
 """
-    monoisotopicmass(::Type{T}, atomsymbol::Symbol) where {T<:Integer} -> T
-    monoisotopicmass(::Type{T}, atom::Atom) where {T<:Integer} -> T
-    monoisotopicmass(::Type{T}, mol::GraphMol) where {T<:Integer} -> T
-    nominalmass(atomsymbol::Symbol) -> Int
-    nominalmass(atom::Atom) -> Int
-    nominalmass(mol::GraphMol) -> Int
+    nominal_mass(atomsymbol::Symbol) -> Int
+    nominal_mass(atom) -> Int
+    nominal_mass(mol::MolGraph) -> Int
 
 Return nominal mass of the atom/molecule.
 """
-monoisotopicmass(::Type{T}, atomsymbol::Symbol
-    ) where {T<:Integer} = round(T, monoisotopicmass(Float64, atomsymbol))
-
-monoisotopicmass(::Type{T}, atom::Atom
-    ) where {T<:Integer} = round(T, monoisotopicmass(Float64, atom.symbol))
-
-monoisotopicmass(::Type{T}, mol::GraphMol
-    ) where {T<:Integer} = round(T, monoisotopicmass(Float64, mol))
-
-nominalmass(atomsymbol::Symbol) = monoisotopicmass(Int, atomsymbol)
-nominalmass(atom::Atom) = monoisotopicmass(Int, atom)
-nominalmass(mol::GraphMol) = monoisotopicmass(Int, mol)
-
+nominal_mass(atomsymbol::Symbol) = round(Int, monoiso_mass(atomsymbol))
+nominal_mass(atom) = round(Int, monoiso_mass(atom))
+nominal_mass(mol::MolGraph) = round(Int, monoiso_mass(mol))
 
 
 """
-    exactmass(atomsymbol::Symbol) -> Tuple{Float64,Float64}
-    exactmass(atomsymbol::Symbol, number::Int) -> Tuple{Float64,Float64}
-    exactmass(atom::Atom) -> Tuple{Float64,Float64}
-    exactmass(mol::GraphMol) -> Tuple{Float64,Float64}
+    exact_mass_unc(atomsymbol::Symbol, [number::Union{Int, Nothing}]) -> Tuple{Float64,Float64}
+    exact_mass_unc(atom) -> Tuple{Float64,Float64}
+    exact_mass_unc(mol::MolGraph) -> Tuple{Float64,Float64}
 
 Return a tuple of calculated exact mass and its uncertainty.
 
 If `number` is not given or `Atom.mass` is not specified, monoisotopic mass will be used instead.
 """
-exactmass(atomsymbol::Symbol) = monoisotopicmass(atomsymbol)
-
-function exactmass(atomsymbol::Symbol, number::Int)
+function exact_mass_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
+    number === nothing && return monoiso_mass_unc(atomsymbol)
     pred = rcd -> rcd["Number"] == number
     iso = ATOMTABLE[atomnumber(atomsymbol)]["Isotopes"]
     k = findfirst(pred.(iso))
-    k === nothing && throw(
-        ErrorException("No isotope data for $(number)$(atomsymbol)"))
+    k === nothing && error("No isotope data for $(number)$(atomsymbol)")
     mass = iso[k]["Mass"]
     unc = iso[k]["MassUncertainty"]
     return (mass, unc)
 end
 
-function exactmass(atom::Atom)
-    atom.mass === nothing || return exactmass(atom.symbol, atom.mass)
-    return monoisotopicmass(atom.symbol)
-end
-
-exactmass(mol::GraphMol) = molecularmass(mol, exactmass, monoisotopicmass)
+exact_mass_unc(atom) = exact_mass_unc(atom[:symbol], atom[:mass])
+exact_mass_unc(mol::MolGraph) = molecular_mass_unc(mol, exact_mass_unc)
 
 
 """
-    exactmass(::Type{Float64}, atomsymbol::Symbol) -> Float64
-    exactmass(::Type{Float64}, atomsymbol::Symbol, number::Int) -> Float64
-    exactmass(::Type{Float64}, atom::Atom) -> Float64
-    exactmass(::Type{Float64}, mol::GraphMol) -> Float64
+    exact_mass(atomsymbol::Symbol, [digits::Int]) -> Float64
+    exact_mass(atom, [digits::Int]) -> Float64
+    exact_mass(mol::MolGraph, [digits::Int]) -> Float64
 
-Return calculated exact mass rounded to `digit=6`.
+Return calculated exact mass.
 """
-exactmass(::Type{Float64}, atomsymbol::Symbol
-    ) = monoisotopicmass(Float64, atomsymbol)
+exact_mass(atomsymbol::Symbol) = exact_mass_unc(atomsymbol)[1]
+exact_mass(atom) = exact_mass_unc(atom)[1]
+exact_mass(mol::MolGraph) = exact_mass_unc(mol)[1]
 
-function exactmass(::Type{Float64}, atomsymbol::Symbol, number::Int)
-    mass, unc = exactmass(atomsymbol, number)
-    mass === NaN && return NaN
-    return round(mass, digits=DEFAULT_MASS_DIGITS)
-end
-
-function exactmass(::Type{Float64}, atom::Atom)
-    atom.mass === nothing || return exactmass(Float64, atom.symbol, atom.mass)
-    return monoisotopicmass(Float64, atom.symbol)
-end
-
-function exactmass(::Type{Float64}, mol::GraphMol)
-    mass, unc = molecularmass(mol, exactmass, monoisotopicmass)
-    mass === NaN && return NaN
-    return round(mass, digits=DEFAULT_MASS_DIGITS)
-end
-
+exact_mass(atomsymbol::Symbol, digits) = round(exact_mass(atomsymbol), digits=digits)
+exact_mass(atom, digits) = round(exact_mass(atom), digits=digits)
+exact_mass(mol::MolGraph, digits) = round(exact_mass(mol), digits=digits)
 
 
 """
-    standardweight(atomsymbol::Symbol) -> Tuple{Float64,Float64}
-    standardweight(atom::Atom) -> Tuple{Float64,Float64}
-    standardweight(mol::GraphMol) -> Tuple{Float64,Float64}
+    standard_weight_unc(atomsymbol::Symbol) -> Tuple{Float64,Float64}
+    standard_weight_unc(atom) -> Tuple{Float64,Float64}
+    standard_weight_unc(mol::MolGraph) -> Tuple{Float64,Float64}
 
 Return a tuple of standard atomic weight (or molecular weight) and its uncertainty.
 
 If `Atom.mass` is specified, calculated exact mass of the atom will be used instead. 
 """
-function standardweight(atomsymbol::Symbol)
+function standard_weight_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
+    number === nothing || return exact_mass_unc(atomsymbol, number)
     num = atomnumber(atomsymbol)
     wt = ATOMTABLE[num]["Weight"]
     unctype = ATOMTABLE[num]["WeightType"]
@@ -181,53 +143,35 @@ function standardweight(atomsymbol::Symbol)
     return (wt, unc)
 end
 
-function standardweight(atom::Atom)
-    atom.mass === nothing || return exactmass(atom.symbol, atom.mass)
-    return standardweight(atom.symbol)
-end
-
-standardweight(mol::GraphMol
-    ) = molecularmass(mol, standardweight, standardweight)
-
-
+standard_weight_unc(atom) = standard_weight_unc(atom[:symbol], atom[:mass])
+standard_weight_unc(mol::MolGraph) = molecular_mass_unc(mol, standard_weight_unc)
 
 """
-    standardweight(::Type{Float64}, atomsymbol::Symbol) -> Float64
-    standardweight(::Type{Float64}, atom::Atom) -> Float64
-    standardweight(::Type{Float64}, mol::GraphMol) -> Float64
+    standard_weight(atomsymbol::Symbol, [digits::Int]) -> Float64
+    standard_weight(atom, [digits::Int]) -> Float64
+    standard_weight(mol::MolGraph, [digits::Int]) -> Float64
 
-Return standard atomic weight (or molecular weight) rounded to `digit=2`.
+Return standard atomic weight (or molecular weight).
 """
-function standardweight(::Type{Float64}, atomsymbol::Symbol)
-    wt, unc = standardweight(atomsymbol)
-    wt === NaN && return NaN
-    return round(wt, digits=DEFAULT_WEIGHT_DIGITS)
-end
-
-function standardweight(::Type{Float64}, atom::Atom)
-    atom.mass === nothing || return exactmass(Float64, atom.symbol, atom.mass)
-    return standardweight(Float64, atom.symbol)
-end
-
-function standardweight(::Type{Float64}, mol::GraphMol)
-    wt, unc = molecularmass(mol, standardweight, standardweight)
-    wt === NaN && return NaN
-    return round(wt, digits=DEFAULT_WEIGHT_DIGITS)
-end
-
+standard_weight(atomsymbol::Symbol) = standard_weight_unc(atomsymbol)[1]
+standard_weight(atom) = standard_weight_unc(atom)[1]
+standard_weight(mol::MolGraph) = standard_weight_unc(mol)[1]
+standard_weight(atomsymbol::Symbol, digits) = round(standard_weight(atomsymbol), digits=digits)
+standard_weight(atom, digits) = round(standard_weight(atom), digits=digits)
+standard_weight(mol::MolGraph, digits) = round(standard_weight(mol), digits=digits)
 
 
 """
     isotopiccomposition(atomsymbol::Symbol, number::Int; threshold=0.001
         ) -> Vector{Tuple{Float64,Float64}}
-    isotopiccomposition(mol::GraphMol; threshold=0.001
+    isotopiccomposition(mol::MolGraph; threshold=0.001
         ) -> Vector{Tuple{Float64,Float64}}
 
 Return isotopic composition of the atoms/molecule as a vector of tuples of mass and composition.
 
 Records that have lower abundance than the given threshold will be filtered out (default 0.001 = 0.1%)
 """
-function isotopiccomposition(atomsymbol::Symbol, number::Int; threshold=0.001)
+function isotopic_composition(atomsymbol::Symbol, number::Int; threshold=0.001)
     z = atomnumber(atomsymbol)
     isotopes = []
     for iso in ATOMTABLE[z]["Isotopes"]
@@ -258,11 +202,11 @@ function isotopiccomposition(atomsymbol::Symbol, number::Int; threshold=0.001)
 end
 
 
-function isotopiccomposition(mol::GraphMol; threshold=0.001)
+function isotopic_composition(mol::MolGraph; threshold=0.001)
     data = Tuple{Float64,Float64}[]
     for tup in Iterators.product(
-            (isotopiccomposition(sym, cnt; threshold=threshold)
-            for (sym, cnt) in atomcounter(mol))...)
+            (isotopic_composition(sym, cnt; threshold=threshold)
+            for (sym, cnt) in atom_counter(mol))...)
         mass = 0.0
         comp = 1.0
         for t in tup
@@ -277,14 +221,14 @@ end
 
 
 """
-    massspecpeaks(mol::GraphMol; threshold=0.001) -> Matrix{Float64}
+    massspec_peaks(mol::MolGraph; threshold=0.001) -> Matrix{Float64}
 
 Return a vector of tuples of each isotopic masses and their relative intensity in the simulated mass spectrum (base peak intensity = 100).
 
 Records that have lower abundance (not peak intensity) than the given threshold will be filtered out (default 0.001 = 0.1%)
 """
-function massspecpeaks(mol::GraphMol; threshold=0.001)
-    isocomp = isotopiccomposition(mol; threshold=threshold)
+function massspec_peaks(mol::MolGraph; threshold=0.001)
+    isocomp = isotopic_composition(mol; threshold=threshold)
     bp = maximum(x->x[2], isocomp)
     data = Tuple{Float64,Float64}[]
     for (mass, comp) in isocomp
@@ -304,12 +248,14 @@ end
 
 
 """
-    simulatemassspec(peaks::Vector{Tuple{Float64,Float64}};
+    simulate_massspec(peaks::Vector{Tuple{Float64,Float64}};
         resolution=10000, rate=0.01) -> Matrix{Float64}
-    simulatemassspec(mol::GraphMol;
+    simulate_massspec(mol::MolGraph;
         threshold=0.001, resolution=10000, rate=0.01) -> Matrix{Float64}
 
 Return a matrix of simulate mass spectrum (dim 1: datapoints, dim 2: mass and intensity).
+
+Note that the peaks are just calculated from the isotopic composition of atoms (not intended for simulation of fragmentation).
 
 # Usage (with Plot.jl)
 ```julia
@@ -326,7 +272,7 @@ plot(
 )
 ```
 """
-function simulatemassspec(
+function simulate_massspec(
         peaks::Vector{Tuple{Float64,Float64}}; resolution=10000, rate=0.001)
     fs = Function[]
     for (mass, intensity) in peaks
@@ -339,5 +285,19 @@ function simulatemassspec(
     return hcat(arr, superposed.(arr))
 end
 
-simulatemassspec(mol::GraphMol; kwargs...
-    ) =  simulatemassspec(massspecpeaks(mol; kwargs...); kwargs...)
+simulate_massspec(mol::MolGraph; kwargs...
+    ) = simulate_massspec(massspec_peaks(mol; kwargs...); kwargs...)
+
+
+
+# deprecated names
+export
+    monoisotopicmass, nominalmass, exactmass,
+    isotopiccomposition, massspecpeaks, simulatemassspec
+
+monoisotopicmass = monoiso_mass
+nominalmass = nominal_mass
+exactmass = exact_mass
+isotopiccomposition = isotopic_composition
+massspecpeaks = massspec_peaks
+simulatemassspec = simulate_massspec

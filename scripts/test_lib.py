@@ -29,27 +29,27 @@ print(ikey.decode("utf-8"))
 
 julia.sdftomol.argtypes = [c_char_p]
 julia.sdftomol.restype = c_char_p
-julia.standardweight.argtypes = [c_char_p]
-julia.standardweight.restype = c_double
+julia.standard_weight.argtypes = [c_char_p]
+julia.standard_weight.restype = c_double
 
 with open(scriptdir.parent / "assets/test/demo.mol") as f:
     sdf = f.read()
 mol2 = julia.sdftomol(sdf.encode())
-mw = julia.standardweight(mol2)
+mw = julia.standard_weight(mol2)
 print(mw)
 
-julia.hasexactmatch.argtypes = [c_char_p, c_char_p, c_char_p]
-julia.hasexactmatch.restype = c_int
-julia.hassubstructmatch.argtypes = [c_char_p, c_char_p, c_char_p]
-julia.hassubstructmatch.restype = c_int
+julia.has_exact_match.argtypes = [c_char_p, c_char_p, c_char_p]
+julia.has_exact_match.restype = c_int
+julia.has_substruct_match.argtypes = [c_char_p, c_char_p, c_char_p]
+julia.has_substruct_match.restype = c_int
 julia.tcmcis.argtypes = [c_char_p, c_char_p, c_char_p]
 julia.tcmcis.restype = c_int
 julia.tcmces.argtypes = [c_char_p, c_char_p, c_char_p]
 julia.tcmces.restype = c_int
 
-match1 = julia.hasexactmatch(mol1, mol2, json.dumps({}).encode())
+match1 = julia.has_exact_match(mol1, mol2, json.dumps({}).encode())
 print(match1)
-match2 = julia.hassubstructmatch(mol1, mol2, json.dumps({}).encode())
+match2 = julia.has_substruct_match(mol1, mol2, json.dumps({}).encode())
 print(match2)
 cnt1 = julia.tcmcis(mol1, mol2, json.dumps({"diameter": 2, "tolerance": 1}).encode())
 print(cnt1)
