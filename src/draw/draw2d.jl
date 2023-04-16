@@ -3,14 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-"""
-    atomcolor(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Color}
-
-Return atom colors for molecule 2D drawing
-"""
-atom_color(mol::SimpleMolGraph; color_theme=DEFAULT_ATOM_COLOR, kwargs...
-    ) = [get(color_theme, sym, color_theme[:default]) for sym in atom_symbol(mol)]
-
 
 """
     isatomvisible(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Bool}

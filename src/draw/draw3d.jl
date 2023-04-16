@@ -5,11 +5,12 @@
 
 import MakieCore: plot!
 import GeometryBasics: Point
+
 using MakieCore: @recipe, Theme, meshscatter!, lines!, mesh!
 using Colors: RGB
 using GeometryBasics: mesh, Cylinder
 
-export atom_radius, spacefilling, spacefilling!, ballstick, ballstick!
+export atom_radius
 
 colortype(c::Color) = RGB{Float32}(c.r/255, c.g/255, c.b/255)
 
@@ -63,7 +64,7 @@ end
 function plot!(sc::SpaceFilling{<:Tuple{<:SimpleMolGraph}})
     mol = sc[1][]
     crds = coords3d(mol)
-    col = colortype.(atom_color(mol, mapping=sc.colortheme[]))
+    col = colortype.(atom_color(mol, color_theme=sc.colortheme[]))
     rd = atom_radius(mol, mapping=sc.radii[])
     meshscatter!(sc, crds[:, 1], crds[:, 2], crds[:, 3];
         color=col,
@@ -95,7 +96,7 @@ end
 function plot!(sc::BallStick{<:Tuple{<:SimpleMolGraph}})
     mol = sc[1][]
     crds = coords3d(mol)
-    col = colortype.(atom_color(mol, mapping=sc.colortheme[]))
+    col = colortype.(atom_color(mol, color_theme=sc.colortheme[]))
     meshscatter!(sc, crds[:, 1], crds[:, 2], crds[:, 3];
         color=col,
         markersize=0.4

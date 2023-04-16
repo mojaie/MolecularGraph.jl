@@ -66,3 +66,12 @@ const RASMOL_ATOM_COLOR = Dict(
     :Li => Color(178,34,34),
     :He => Color(255,192,203)
 )
+
+
+"""
+    atomcolor(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Color}
+
+Return atom colors for molecule 2D drawing
+"""
+atom_color(mol::SimpleMolGraph; color_theme=DEFAULT_ATOM_COLOR, kwargs...
+    ) = [get(color_theme, sym, color_theme[:default]) for sym in atom_symbol(mol)]

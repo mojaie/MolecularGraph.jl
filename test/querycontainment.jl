@@ -31,13 +31,13 @@ end
 @testset "resolve_recursive" begin
     rec1 = QueryLiteral(:recursive, "[#6][NH]")  # [$([#6][NH])]
     rec2 = QueryLiteral(:recursive, "[#6]N")  # [$([#6]N)]
-    rec1_ = resolve_recursive(rec1, querypropmap(rec2))  # [$([#6][NH]);#6;$([#6]N)]
+    rec1_ = resolve_recursive(rec1, querypropmap(rec2), nothing)  # [$([#6][NH]);#6;$([#6]N)]
     @test rec1_ == QueryOperator(:and, [
         QueryLiteral(:recursive, "[#6][NH]"),
         QueryLiteral(:recursive, "[#6]N"),
         QueryLiteral(:symbol, :C)
     ])
-    rec2_ = resolve_recursive(rec2, querypropmap(rec1))  # [$([#6]N);#6]
+    rec2_ = resolve_recursive(rec2, querypropmap(rec1), nothing)  # [$([#6]N);#6]
     @test rec2_ == QueryOperator(:and, [
         QueryLiteral(:recursive, "[#6]N"),
         QueryLiteral(:symbol, :C)
@@ -51,9 +51,9 @@ end
         QueryLiteral(:symbol, :N),
         QueryOperator(:not, [QueryLiteral(:isaromatic)])
     ])  # N
-    aromn_ = resolve_recursive(aromn, querypropmap(nonan))  # [nH]
+    aromn_ = resolve_recursive(aromn, querypropmap(nonan), nothing)  # [nH]
     @test aromn_ == aromn
-    nonan_ = resolve_recursive(nonan, querypropmap(aromn))  # N
+    nonan_ = resolve_recursive(nonan, querypropmap(aromn), nothing)  # N
     @test nonan_ == nonan
 end
 
