@@ -121,6 +121,7 @@ struct SMILESAtom
     end
 end
 
+# U may be necessary to determine whether T is String (for seriarization) or Symbol (for SMILES parser)
 SMILESAtom(d::Dict{T,U}) where {T<:Union{AbstractString,Symbol},U} = SMILESAtom(
     Symbol(get(d, T("symbol"), :C)), get(d, T("charge"), 0),
     get(d, T("multiplicity"), 1), get(d, T("mass"), nothing),

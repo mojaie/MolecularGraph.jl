@@ -6,7 +6,7 @@
 using JSON
 export
     smilestomol, sdftomol,
-    inchikey, standardweight,
+    inchikey, standard_weight,
     has_exact_match, has_substruct_match,
     tcmcis, tcmces
 
@@ -15,7 +15,7 @@ Base.@ccallable function smilestomol(smiles::Ptr{UInt8})::Ptr{UInt8}
     return try
         mol = smilestomol(unsafe_string(smiles))
         buf = IOBuffer(write=true)
-        JSON.print(buf, todict(mol))
+        JSON.print(buf, to_dict(mol))
         return pointer(buf.data)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
@@ -24,9 +24,9 @@ end
 
 Base.@ccallable function sdftomol(sdf::Ptr{UInt8})::Ptr{UInt8}
     return try
-        mol = sdftomol(split(unsafe_string(sdf), "\n"))
+        mol = sdftomol(IOBuffer(unsafe_string(sdf)))
         buf = IOBuffer(write=true)
-        JSON.print(buf, todict(mol))
+        JSON.print(buf, to_dict(mol))
         return pointer(buf.data)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
@@ -48,7 +48,7 @@ end
 Base.@ccallable function standard_weight(mol::Ptr{UInt8})::Cdouble
     return try
         mol = MolGraph(JSON.parse(unsafe_string(mol)))
-        return standard_weight(Float64, mol)
+        return standard_weight(mol, 2)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end

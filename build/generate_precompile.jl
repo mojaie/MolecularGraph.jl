@@ -19,15 +19,15 @@ function run()
     fpath = joinpath(dirname(@__FILE__), "../assets/test/demo.mol")
     sdf = read(open(fpath), String)
     mol2 = JSON.parse(unsafe_string(sdftomol(pointer(sdf))))
-    mw2 = standardweight(pointer(JSON.json(mol2)))
+    mw2 = standard_weight(pointer(JSON.json(mol2)))
     @debug mw2
 
-    res = hasexactmatch(
+    res = has_exact_match(
         pointer(JSON.json(mol1)),
         pointer(JSON.json(mol2)),
         pointer(JSON.json(Dict())))
     @debug res
-    res = hassubstructmatch(
+    res = has_substruct_match(
         pointer(JSON.json(mol1)),
         pointer(JSON.json(mol2)),
         pointer(JSON.json(Dict())))

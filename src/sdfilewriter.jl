@@ -7,43 +7,28 @@ export
     printv2mol, printv2sdf, sdfilewriter
 
 
-function printv2atoms(io::IO, mol::SDFMolGraph)
-    for i in vertices(mol)
-        x, y, z = get_prop(mol, i, :coords)
-        xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(get_prop(mol, i, :symbol))
-        println(io, "$(xyzsym) 0  0  0  0  0  0  0  0  0  0  0  0")
-    end
-end
-
-function printv2atoms(io::IO, mol::SMILESMolGraph, coords)
+function printv2atoms(io::IO, mol::SimpleMolGraph, coords)
     for i in vertices(mol)
         x, y = coords[i, 1:2]
-        z = 0.0
+        z = 0.0  # TODO: keep 3D
         xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(get_prop(mol, i, :symbol))
         println(io, "$(xyzsym) 0  0  0  0  0  0  0  0  0  0  0  0")
     end
 end
 
 
-function printv2bonds(io::IO, mol::SDFMolGraph)
-    for e in edges(mol)
-        u, v = get_prop(mol, e, :isordered) ? (src(e), dst(e)) : (dst(e), src(e))
-        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v get_prop(mol, e, :order) get_prop(mol, e, :notation)
-        println(io, uv)
-    end
-end
-
-
-function printv2bonds(io::IO, mol::SMILESMolGraph, styles)
+function printv2bonds(io::IO, mol::SimpleMolGraph, styles)
     for (i, e) in enumerate(edges(mol))
-        u, v = get_prop(mol, e, :isordered) ? (src(e), dst(e)) : (dst(e), src(e))
-        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v get_prop(mol, e, :order) styles[i]
+        u, v = styles[i] in (:revup, :revdown) ? (dst(e), src(e)) : (src(e), dst(e))
+        # TODO: double bond, unknown
+        direction = styles[i] in (:up, :revup) ? 1 : (styles in (:down, :revdown) ? 6 : 0)
+        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v get_prop(mol, e, :order) direction
         println(io, uv)
     end
 end
 
 
-function printv2properties(io::IO, mol::MolGraph)
+function printv2properties(io::IO, mol::SimpleMolGraph)
     charges = Tuple{Int,Int}[]
     radicals = Tuple{Int,Int}[]
     masses = Tuple{Int,Float64}[]
@@ -82,7 +67,7 @@ function printv2properties(io::IO, mol::MolGraph)
 end
 
 
-function printv2data(io::IO, mol::MolGraph)
+function printv2data(io::IO, mol::SimpleMolGraph)
     for (key, val) in props(mol)
         println(io, "> <$(string(key))>")
         println(io, string(val))
@@ -91,7 +76,7 @@ function printv2data(io::IO, mol::MolGraph)
 end
 
 
-function printv2mol(io::IO, mol::MolGraph)
+function printv2mol(io::IO, mol::SimpleMolGraph)
     # ver = VERSION
     program = "MGjlv$(string(MAJOR_VERSION)[end])$(string(MINOR_VERSION)[end-1:end])"
     datetime = Dates.format(Dates.now(), "mmddyyHHMM")
@@ -102,20 +87,20 @@ function printv2mol(io::IO, mol::MolGraph)
     ecnt = ne(mol)
     header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
     println(io, header)
-    if vproptype(mol) === SMILESAtom
+    if !hasfield(vproptype(mol), :coords) && !has_state(mol, :v_coords2d)  # default SMILESAtom
         coords, styles = coordgen(mol)
         printv2atoms(io, mol, coords)
         printv2bonds(io, mol, styles)
     else
-        printv2atoms(io, mol)
-        printv2bonds(io, mol)
+        printv2atoms(io, mol, coords2d(mol))
+        printv2bonds(io, mol, single_bond_style(mol))
     end
     printv2properties(io, mol)
     println(io, "M  END")
 end
 
 
-function printv2mol(mol::MolGraph)
+function printv2mol(mol::SimpleMolGraph)
     buf = IOBuffer(write=true)
     printv2mol(buf, mol)
     res = String(take!(buf))
@@ -124,7 +109,7 @@ function printv2mol(mol::MolGraph)
 end
 
 
-function printv2sdf(io::IO, mol::MolGraph)
+function printv2sdf(io::IO, mol::SimpleMolGraph)
     printv2mol(io, mol)
     printv2data(io, mol)
     println(io, raw"$$$$")

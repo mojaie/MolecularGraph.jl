@@ -1,8 +1,8 @@
 char* smilestomol(char*);
 char* sdftomol(char*);
 char* inchikey(char*);
-double standardweight(char*);
-int hasexactmatch(char*, char*, char*);
-int hassubstructmatch(char*, char*, char*);
+double standard_weight(char*);
+int has_exact_match(char*, char*, char*);
+int has_substruct_match(char*, char*, char*);
 int tcmcis(char*, char*, char*);
 int tcmces(char*, char*, char*);

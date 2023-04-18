@@ -113,6 +113,14 @@ end
     mol2 = MolGraph(j)
     @test mol == mol2
     @test mol !== mol2
+    atoms = [SMILESAtom(),SMILESAtom(),SMILESAtom()]
+    bonds = [SMILESBond(),SMILESBond()]
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, Dict(:hoge => 2))
+    j = to_json(mol)
+    mol2 = MolGraph(j)
+    @test mol == mol2
+    @test mol !== mol2
+
 end
 
 end  # model.molgraph

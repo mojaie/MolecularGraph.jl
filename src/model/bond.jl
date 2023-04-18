@@ -56,10 +56,7 @@ struct SMILESBond
 end
 
 SMILESBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SMILESBond(
-    get(d, T("order"), 1),
-    get(d, T("isaromatic"), false),
-    get(d, T("direction"), :unspecified)
-)
+    d[T("order")], d[T("isaromatic")], Symbol(d[T("direction")]))
 
 Base.getindex(b::SMILESBond, prop::Symbol) = getproperty(b, prop)
 to_dict(b::SMILESBond) = Dict{String,Any}(

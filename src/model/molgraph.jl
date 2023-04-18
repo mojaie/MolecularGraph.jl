@@ -78,7 +78,8 @@ function MolGraph(data::Dict)
     g = SimpleGraph([Edge(e...) for e in data["graph"]])
     vps = Dict(i => vproptype(vp) for (i, vp) in enumerate(data["vprops"]))
     eps = Dict(e => eproptype(ep) for (e, ep) in zip(edges(g), data["eprops"]))
-    gps = Dict(Symbol(k) => v for (k, v) in data["gprops"])
+    gps = Dict{Symbol,Any}(
+        Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["gprops"])
     return MolGraph(g, vps, eps, gps)
 end
 
@@ -98,7 +99,7 @@ to_dict(mol::MolGraph) = Dict(
     "graph" => [[src(e), dst(e)] for e in edges(mol)],
     "vprops" => [to_dict(props(mol, i)) for i in vertices(mol)],
     "eprops" => [to_dict(props(mol, e)) for e in edges(mol)],
-    "gprops" => Dict(string(k) => v for (k, v) in mol.gprops)
+    "gprops" => [[string(k), string(typeof(v)), to_dict(v)] for (k, v) in mol.gprops]
 )
 
 dispatch!(mol, event) = mol.state[event](mol)

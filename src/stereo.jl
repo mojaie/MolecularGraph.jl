@@ -4,9 +4,39 @@
 #
 
 export
+    Stereocenter, Stereobond,
     set_stereocenter!, set_stereobond!, remove_stereo_hydrogen!,
     stereocenter_from_smiles!, stereocenter_from_sdf2d!,
     stereobond_from_smiles!, stereobond_from_sdf2d!
+
+struct Stereocenter{T} <: AbstractDict{T,Tuple{T,T,T,Bool}}
+    mapping::Dict{T,Tuple{T,T,T,Bool}}
+end
+
+Stereocenter{T}(data::Vector=[]) where T = Stereocenter{T}(
+    Dict{T,Tuple{T,T,T,Bool}}(i => tuple(val...) for (i, val) in data))
+
+Base.iterate(stereo::Stereocenter) = iterate(stereo.mapping)
+Base.iterate(stereo::Stereocenter, i) = iterate(stereo.mapping, i)
+Base.length(stereo::Stereocenter) = length(stereo.mapping)
+Base.get(stereo::Stereocenter, k, v) = get(stereo.mapping, k, v)
+Base.setindex!(stereo::Stereocenter, v, k) = setindex!(stereo.mapping, v, k)
+to_dict(stereo::Stereocenter) = [[i, val] for (i, val) in stereo.mapping]
+
+
+struct Stereobond{T} <: AbstractDict{Edge{T},Tuple{T,T,Bool}}
+    mapping::Dict{Edge{T},Tuple{T,T,Bool}}
+end
+
+Stereobond{T}(data::Vector=[]) where T = Stereobond{T}(
+    Dict{Edge{T},Tuple{T,T,Bool}}(Edge{T}(s, d) => tuple(val...) for (s, d, val) in data))
+
+Base.iterate(stereo::Stereobond) = iterate(stereo.mapping)
+Base.iterate(stereo::Stereobond, i) = iterate(stereo.mapping, i)
+Base.length(stereo::Stereobond) = length(stereo.mapping)
+Base.get(stereo::Stereobond, k, v) = get(stereo.mapping, k, v)
+Base.setindex!(stereo::Stereobond, v, k) = setindex!(stereo.mapping, v, k)
+to_dict(stereo::Stereobond) = [[src(e), dst(e), val] for (e, val) in stereo.mapping]
 
 
 """
@@ -18,7 +48,7 @@ function set_stereocenter!(
         mol::SimpleMolGraph{T,V,E}, center,
         looking_from, v1, v2, is_clockwise) where {T,V,E}
     if !haskey(mol.gprops, :stereocenter)
-        mol.gprops[:stereocenter] = Dict{T,Tuple{T,T,T,Bool}}()
+        mol.gprops[:stereocenter] = Stereocenter{T}()
     end
     mol.gprops[:stereocenter][center] = (looking_from, v1, v2, is_clockwise)
 end
@@ -32,7 +62,7 @@ Set stereocenter information to graph properties.
 function set_stereobond!(
         mol::SimpleMolGraph{T,V,E}, bond, v1, v2, is_cis) where {T,V,E}
     if !haskey(mol.gprops, :stereobond)
-        mol.gprops[:stereobond] = Dict{Edge{T},Tuple{T,T,Bool}}()
+        mol.gprops[:stereobond] = Stereobond{T}()
     end
     mol.gprops[:stereobond][bond] = (v1, v2, is_cis)
 end
@@ -89,13 +119,12 @@ end
 
 
 """
-    stereocenter_from_sdf2d(mol::MolGraph{T,V,E}
-        ) where {T,V,E} -> Dict{T,Tuple{T,T,T,Bool}}()
+    stereocenter_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E} -> Stereocenter{T}
 
 Return stereocenter information obtained from 2D SDFile.
 """
 function stereocenter_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E}
-    centers = Dict{T,Tuple{T,T,T,Bool}}()
+    centers = Stereocenter{T}()
     crds = coords2d(mol)
     for i in vertices(mol)
         degree(mol.graph, i) in (3, 4) || continue
@@ -159,13 +188,11 @@ stereocenter_from_sdf2d!(mol::MolGraph
 
 
 """
-    stereocenter_from_smiles(mol::MolGraph{T,V,E}
-        ) where {T,V,E} -> Dict{T,Tuple{T,T,T,Bool}}()
-
+    stereocenter_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E} -> Stereocenter{T}
 Return stereocenter information obtained from SMILES.
 """
 function stereocenter_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E}
-    centers = Dict{T,Tuple{T,T,T,Bool}}()
+    centers = Stereocenter{T}()
     for i in vertices(mol)
         degree(mol.graph, i) in (3, 4) || continue
         direction = get_prop(mol, i, :stereo)
@@ -186,13 +213,12 @@ stereocenter_from_smiles!(mol::MolGraph
 
 
 """
-    stereobond_from_sdf2d(mol::MolGraph{T,V,E}
-        ) where {T,V,E} -> Dict{Edge{T},Tuple{T,T,Bool}}()
+    stereobond_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E} -> Stereobond{T}
 
 Return cis-trans diastereomerism information obtained from 2D SDFile.
 """
 function stereobond_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E}
-    stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
+    stereobonds = Stereobond{T}()
     crds = coords2d(mol)
     for e in edges(mol)
         get_prop(mol, e, :order) == 2 || continue
@@ -223,13 +249,12 @@ stereobond_from_sdf2d!(mol::MolGraph
 
 
 """
-    stereobond_from_smiles(mol::MolGraph{T,V,E}
-        ) where {T,V,E} -> Dict{Edge{T},Tuple{T,T,Bool}}()
+    stereobond_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E} -> Stereobond{T}
 
 Return cis-trans diastereomerism information obtained from SMILES.
 """
 function stereobond_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E}
-    stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
+    stereobonds = Stereobond{T}()
     for e in edges(mol)
         get_prop(mol, e, :order) == 2 || continue
         degree(mol.graph, src(e)) in (2, 3) || continue

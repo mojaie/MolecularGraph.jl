@@ -229,7 +229,7 @@ end
 
 
 function parse_options(io::IO)
-    options = Dict{Symbol,Any}()
+    options = Metadata()
     while true
         eof(io) && break
         line = readline(io)
@@ -237,14 +237,14 @@ function parse_options(io::IO)
         # Some inappropriate signs are accepted for practical use
         m = match(r">.*?<([\w -.%=/]+)>", line)
         if m !== nothing
-            options[Symbol(m[1])] = readuntil(io, "\n\n")
+            options[m[1]] = readuntil(io, "\n\n")
         end
     end
     return options
 end
 
 function parse_rdf_options(io::IO)
-    options = Dict{Symbol,Any}()
+    options = Metadata()
     while true
         eof(io) && break
         mark(io)
@@ -257,7 +257,7 @@ function parse_rdf_options(io::IO)
         unmark(io)
         dtype = match(r"\$DTYPE (.*?)", line)[1]
         datum = match(r"\$DATUM (.*?)", readline(io))[1]
-        options[Symbol(dtype)] = datum
+        options[dtype] = datum
     end
     return options
 end
