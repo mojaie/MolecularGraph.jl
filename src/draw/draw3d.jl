@@ -4,18 +4,25 @@
 #
 
 import MakieCore: plot!
-import GeometryBasics: Point
 
 using MakieCore: @recipe, Theme, meshscatter!, lines!, mesh!
-using Colors: RGB
-using GeometryBasics: mesh, Cylinder
+using Colors: RGBA
+using GeometryBasics: mesh, Cylinder, Sphere, Point
+using LinearAlgebra: cross
 
 export atom_radius
+export spacefilling, spacefilling!, ballstick, ballstick!, stick, stick!, wire, wire!
 
-colortype(c::Color) = RGB{Float32}(c.r/255, c.g/255, c.b/255)
+colortype(c::Color, alpha=1.0) = RGBA{Float32}(c.r/255, c.g/255, c.b/255, alpha)
 
+const DEFAULT_BALL_DIAMETER = float(0.4)
+const DEFAULT_STICK_DIAMETER = float(0.33)
+const DEFAULT_WIRE_DIAMETER = float(0.1)
+
+const Z_DIR = [0,0,1]
 
 function atom_radius(mol::SimpleMolGraph; mapping=ATOM_VANDERWAALS_RADII)
+    isa(mapping, Real) && return fill(mapping, nv(mol))
     desc = init_node_descriptor(Float64, mol)
     for i in vertices(mol)
         an = atomnumber(get_prop(mol, i, :symbol))
@@ -38,108 +45,152 @@ end
 
 
 """
-    spacefilling(mol::SimpleMolGraph; radius="van der Waals", tform=identity, H::Bool=true)
-
-Makie.jl recipe for drawing 3D space filling model.
+    spacefilling(mol::UndirectedGraph; radii="van der Waals")
 
 Represent `mol` as a space-filling (Calotte) model in three dimensions. `mol` should have 3d atom positions represented
-in Angstroms. (3D SDF files can be downloaded from sites such as PubChem.) The two supported options for `radius` are
+in Angstroms. (3D SDF files can be downloaded from sites such as PubChem.) The two supported options for `radii` are
 `"van der Waals"` and `"covalent"`; the former are available only for main-group elements, and the latter are available for
 all.
 
-
-This function requires that you load one of the backends of the GLMakie/WGLMakie/CairoMakie family.
-
-example:
-
-scene = Scene(camera = cam3d!, show_axis = false)
+This function requires that you load one of the backends of the Makie/GLMakie/CairoMakie family.
 """
-@recipe(SpaceFilling, mol) do scene
-    Theme(
-        colortheme=RASMOL_ATOM_COLOR,
-        radii=ATOM_VANDERWAALS_RADII
-    )
+function spacefilling(args...; radii="van der Waals", kwargs...)
+    figaxplot = moldisplay(args...; radii=(radii == "covalent" ? ATOM_COVALENT_RADII : ATOM_VANDERWAALS_RADII), showbonds=false, kwargs...)
+    figaxplot.axis.show_axis[] = false
+    return figaxplot
 end
+spacefilling!(args...; radii="van der Waals", kwargs...) = 
+    moldisplay!(args...; radii=(radii == "covalent" ? ATOM_COVALENT_RADII : ATOM_VANDERWAALS_RADII), showbonds=false, kwargs...)
 
-function plot!(sc::SpaceFilling{<:Tuple{<:SimpleMolGraph}})
-    mol = sc[1][]
-    crds = coords3d(mol)
-    col = colortype.(atom_color(mol, color_theme=sc.colortheme[]))
-    rd = atom_radius(mol, mapping=sc.radii[])
-    meshscatter!(sc, crds[:, 1], crds[:, 2], crds[:, 3];
-        color=col,
-        markersize=rd
-    )
-end
 
 
 """
-    ballstick(mol::SimpleMolGraph; tform=identity, H::Bool=true, markersize=1)
-
-Makie.jl recipe for drawing 3D ball-and-stick model.
+    ballstick(mol::UndirectedGraph; radii=0.3, bonddiameter=0.1)
 
 Represent `mol` as a ball-and-stick model in three dimensions. `mol` should have 3d atom positions represented
 in Angstroms. 3D SDF files can be downloaded from sites such as PubChem.
 
-`tform(xyz)` optionally transforms the positions before plotting them. `H=false` causes hydrogens to be omitted from the plot.
-`markersize` specifies the diameter of the balls, in Angstroms.
+`radii` optionally specifies the radii of the balls, in Angstroms.
+`bonddiameter` optionally specifies the radii of the sticks, in Angstroms.
 
-This function requires that you load one of the backends of the GLMakie/WGLMakie/CairoMakie family.
+This function requires that you load one of the backends of the Makie/GLMakie/CairoMakie family.
 """
-@recipe(BallStick, mol) do scene
+function ballstick(args...; radii=DEFAULT_BALL_DIAMETER, bonddiameter=DEFAULT_WIRE_DIAMETER, kwargs...)
+    figaxplot = moldisplay(args...; radii=float(radii), bonddiameter=float(bonddiameter), multiplebonds=true, kwargs...)
+    figaxplot.axis.show_axis[] = false
+    return figaxplot
+end
+ballstick!(args...; radii=DEFAULT_BALL_DIAMETER, bonddiameter=DEFAULT_WIRE_DIAMETER, kwargs...) = moldisplay!(args...; radii=float(radii), bonddiameter=float(bonddiameter), multiplebonds=true, kwargs...)
+
+
+"""
+    stick(mol::UndirectedGraph; size=0.3)
+
+Represent `mol` as a stick model in three dimensions. `mol` should have 3d atom positions represented
+in Angstroms. 3D SDF files can be downloaded from sites such as PubChem.
+
+`size` optionally specifies the width of the sticks, in Angstroms.
+
+This function requires that you load one of the backends of the Makie/GLMakie/CairoMakie family.
+"""
+function stick(args...; size=DEFAULT_STICK_DIAMETER, kwargs...)
+    figaxplot = moldisplay(args...; radii=float(size), bonddiameter=float(size), multiplebonds=false, kwargs...)
+    figaxplot.axis.show_axis[] = false
+    return figaxplot
+end
+stick!(args...; size=DEFAULT_STICK_DIAMETER, kwargs...) = moldisplay!(args...; radii=float(size), bonddiameter=float(size), multiplebonds=false, kwargs...)
+
+
+"""
+    wire(mol::UndirectedGraph; size=0.1)
+
+Represent `mol` as a wire-frame model in three dimensions. `mol` should have 3d atom positions represented
+in Angstroms. 3D SDF files can be downloaded from sites such as PubChem.
+
+`size` optionally specifies the width of the bonds, in Angstroms.
+
+This function requires that you load one of the backends of the Makie/GLMakie/CairoMakie family.
+"""
+function wire(args...; size=DEFAULT_WIRE_DIAMETER, kwargs...) 
+    figaxplot = moldisplay(args...; bondwidth=float(size), showatoms=false, multiplebonds=true, kwargs...)
+    figaxplot.axis.show_axis[] = false
+    return figaxplot
+end
+wire!(args...; size=DEFAULT_WIRE_DIAMETER, kwargs...) = moldisplay!(args...; bondwidth=float(size), showatoms=false, multiplebonds=true, kwargs...)
+
+
+
+@recipe(MolDisplay, mol) do scene
     Theme(
+        radii=DEFAULT_BALL_DIAMETER,
+        bonddiameter=DEFAULT_WIRE_DIAMETER,
         colortheme=RASMOL_ATOM_COLOR,
-        bonddiameter=0.2
+        multiplebonds=true,
+        showbonds=true,
+        showatoms=true,
+        alpha=1.0,
     )
 end
 
-function plot!(sc::BallStick{<:Tuple{<:SimpleMolGraph}})
-    mol = sc[1][]
-    crds = coords3d(mol)
-    col = colortype.(atom_color(mol, color_theme=sc.colortheme[]))
-    meshscatter!(sc, crds[:, 1], crds[:, 2], crds[:, 3];
-        color=col,
-        markersize=0.4
-    )
-    diam = sc.bonddiameter[]
-    for e in edges(mol)
-        b = Cylinder(
-            Point(crds[src(e), :]...),
-            Point(crds[dst(e), :]...), float(0.1*get_prop(mol, e, :order)))
-        me = mesh(b)
-        mesh!(sc, me, color=:gray)
-        """
-        lines!(sc,
-            crds[[src(e), dst(e)], 1],
-            crds[[src(e), dst(e)], 2],
-            crds[[src(e), dst(e)], 3],
-            linewidth=10*get_prop(mol, e, :order)
-        )
-        """
+function plot!(md::MolDisplay{<:NTuple{<:Any,<:SimpleMolGraph}})
+    mols = [md[i][] for i=1:length(md)]
+    radii = md[:radii][]
+    for mol in mols
+        crds = coords3d(mol)
+        col = colortype.(atom_color(mol, color_theme=md.colortheme[]), md[:alpha][])
+        if md[:showatoms][]
+            rd = atom_radius(mol; mapping=radii)
+            drawatoms!(md, crds, col, rd)
+        end
+        if md[:showbonds][]
+            syms = [get_prop(mol, i, :symbol) for i in vertices(mol)]
+            nbrs = [degree(mol, i) for i in vertices(mol)]
+            for e in edges(mol)
+                drawbond!(md, mol, e, crds, col, syms, nbrs; bonddiameter=md[:bonddiameter][], multiplebonds=md[:multiplebonds][])
+            end
+        end
     end
+    return md
 end
 
-# TODO: double/triple bond drawing
-# TODO: bond color corresponds to connecting atom
-"""
-meshscatter!(sc, crds[:, 1], crds[:, 2], crds[:, 3];
-        color=atomcolor,
-        markersize=0.3
-    )
+drawatoms!(f, crds, col, rd; kwargs...) = meshscatter!(f, crds[:, 1], crds[:, 2], crds[:, 3]; color=col, markersize=rd);
 
-sc = Scene(camera = cam3d!, show_axis = false)
-center!(sc)
-
-
-meshscatter(crds[:, 1], crds[:, 2], crds[:, 3];
-    color=atomcolor,
-    markersize=radius,
-    axis=(;show_axis=false)
-)
-
-sc = Scene(camera=cam3d!, show_axis=false)
-a = Cylinder(GeometryBasics.Point(0.0, 0.0, 0.0), GeometryBasics.Point(1.0, 1.0, 1.0), 0.2)
-mesh = GeometryBasics.mesh(a)
-mesh!(sc, mesh, color=:gray)
-mol = sdftomol(joinpath(@__DIR__, "assets", "test", "aspirin_3d.sdf"))
-"""
+function drawbond!(f, mol::SimpleMolGraph, e, crds, col, syms, nbrs; bonddiameter=DEFAULT_BOND_DIAMETER, multiplebonds=false, kwargs...)
+    order = multiplebonds ? get_prop(mol, e, :order) : 1
+    atomidx1, atomidx2 = e.src, e.dst
+    pos1, pos2 = crds[atomidx1,:], crds[atomidx2,:]   
+    normaldir = Z_DIR
+    if order > 1
+        ng1, ng2 = nbrs[atomidx1], nbrs[atomidx2]
+        # determine the plane for double bonds
+        if ng1 == 3
+            neighs = filter(x -> x != atomidx2, (neighbors(mol, atomidx1)))
+            @assert length(neighs) == 2
+            npos1, npos2 = crds[neighs[1],:], crds[neighs[2],:]
+            normaldir = cross(npos1, npos2)
+        elseif ng2 == 3
+            neighs = filter(x -> x != atomidx1, (neighbors(mol, atomidx2)))
+            @assert length(neighs) == 2
+            npos1, npos2 = crds[neighs[1],:], crds[neighs[2],:]
+            normaldir = cross(npos1, npos2)
+        end
+    end
+    sepdir = normalize(cross(normaldir, pos2 .- pos1))
+    dists = (bonddiameter * 2.5) .* collect(-0.5 * (order-1): 0.5 * (order-1))
+    for dist in dists
+        dvec = dist * sepdir
+        p1, p2 = Point((pos1 .+ dvec)...), Point((pos2 .+ dvec)...)
+        if syms[atomidx1] == syms[atomidx2]
+            cyl = Cylinder(p1, p2, bonddiameter)
+            mesh!(f, cyl; color=col[atomidx1], kwargs...)
+        else
+            midpoint = 0.5 .* (p1 .+ p2)
+            pm = Point(midpoint...)
+            cyl1 = Cylinder(p1, pm, bonddiameter)
+            cyl2 = Cylinder(p2, pm, bonddiameter)
+            mesh!(f, cyl1; color=col[atomidx1], kwargs...)
+            mesh!(f, cyl2; color=col[atomidx2], kwargs...)
+        end
+    end
+    return f
+end
