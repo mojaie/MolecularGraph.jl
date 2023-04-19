@@ -5,30 +5,28 @@
 
 
 """
-    isatomvisible(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Bool}
+    is_atom_visible(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Bool}
 
 Return whether the atom is visible in the 2D drawing.
+`show_carbon`: `simple` - does not show carbon labels, `terminal` - show only terminal carbonlabels,
+`all` - show all carbon labels.
 """
-function is_atom_visible(mol::SimpleMolGraph; show_terminal_carbon=false, kwargs...)
-    arr = (~).(init_node_descriptor(Bool, mol))
-    deg_ = degree(mol)
-    sym_ = atom_symbol(mol)
-    chg_ = charge(mol)
-    mul_ = multiplicity(mol)
-    mas_ = [get_prop(mol, i, :mass) for i in vertices(mol)]
-    bondorder_ = bond_order(mol)
-    for i in vertices(mol)
-        sym_[i] === :C || continue
-        chg_[i] == 0 || continue
-        mul_[i] == 1 || continue
-        mas_[i] === nothing || continue
-        deg_[i] == 0 && continue
-        deg_[i] == 1 && show_terminal_carbon && continue
-        if deg_[i] == 2
-            nbrs = neighbors(mol, i)
-            u = edge_rank(mol, undirectededge(mol, i, nbrs[1]))
-            v = edge_rank(mol, undirectededge(mol, i, nbrs[2]))
-            if (bondorder_[u] == 2 && bondorder_[v] == 2)
+function is_atom_visible(g, sym, chg, mul, ms, bo; show_carbon=:simple, kwargs...)
+    arr = trues(nv(g))
+    show_carbon === :all && return arr
+    er = Dict(e => i for (i, e) in enumerate(edges(g)))
+    for i in vertices(g)
+        sym[i] === :C || continue
+        chg[i] == 0 || continue
+        mul[i] == 1 || continue
+        ms[i] === nothing || continue
+        degree(g, i) == 0 && continue
+        degree(g, i) == 1 && show_carbon === :terminal && continue
+        if degree(g, i) == 2
+            nbrs = neighbors(g, i)
+            u = er[undirectededge(g, i, nbrs[1])]
+            v = er[undirectededge(g, i, nbrs[2])]
+            if (bo[u] == 2 && bo[v] == 2)
                 continue # allene-like
             end
         end
@@ -37,31 +35,36 @@ function is_atom_visible(mol::SimpleMolGraph; show_terminal_carbon=false, kwargs
     return arr
 end
 
+function is_atom_visible(mol::SimpleMolGraph; show_carbon=:simple, kwargs...)
+    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
+    return is_atom_visible(mol.graph, atom_symbol(mol), charge(mol), multiplicity(mol),
+        [get_prop(mol, i, :mass) for i in vertices(mol)], bond_order(mol); kwargs...)
+end
 
 
-function double_bond_style(mol::SimpleMolGraph, bondorder_, coords)
-    arr = init_edge_descriptor(Symbol, mol)
-    for (i, e) in enumerate(edges(mol))
+function double_bond_style(g, bondorder_, ntt, coords, sssr_)
+    arr = Vector{Symbol}(undef, ne(g))
+    er = Dict(e => i for (i, e) in enumerate(edges(g)))
+    for (i, e) in enumerate(edges(g))
         if bondorder_[i] != 2
             arr[i] = :none
             continue
         end
-        # TODO: other bond types which have notation
-        if eproptype(mol) <: SDFBond && get_prop(mol, e, :notation) === 3
+        if ntt[i] == 3
             arr[i] = :unspecified  # u x v (explicitly unspecified or racemic)
             continue
         end
-        snbrs, dnbrs = edge_neighbors(mol, e)
+        snbrs, dnbrs = edge_neighbors(g, e)
         if length(snbrs) == 0 || length(dnbrs) == 0
             arr[i] = :none  # double bond at the end of chain
             continue
         end
         sdbs = map(snbrs) do snbr
-            se = edge_rank(mol, src(e), snbr)
+            se = er[undirectededge(g, src(e), snbr)]
             bondorder_[se] == 2
         end
         ddbs = map(dnbrs) do dnbr
-            de = edge_rank(mol, dst(e), dnbr)
+            de = er[undirectededge(g, dst(e), dnbr)]
             bondorder_[de] == 2
         end
         if any(sdbs) || any(ddbs)
@@ -71,13 +74,13 @@ function double_bond_style(mol::SimpleMolGraph, bondorder_, coords)
         arr[i] = :clockwise
     end
     # Align double bonds alongside the ring
-    for ring in sort(sssr(mol), by=length, rev=true)
+    for ring in sort(sssr_, by=length, rev=true)
         cw = isclockwise(toarray(coords, ring))
         cw === nothing && continue
         ordered = cw ? ring : reverse(ring)
         rr = vcat(ordered, ordered)
         for i in 1:length(ordered)
-            e = edge_rank(mol, rr[i], rr[i + 1])
+            e = er[undirectededge(g, rr[i], rr[i + 1])]
             bondorder_[e] == 2 || continue
             arr[e] = rr[i] < rr[i + 1] ? :clockwise : :anticlockwise
         end
@@ -86,21 +89,16 @@ function double_bond_style(mol::SimpleMolGraph, bondorder_, coords)
 end
 
 function double_bond_style(mol::SimpleMolGraph)
-    bondorder_ = bond_order(mol)
-    coords = coords2d(mol)
-    return double_bond_style(mol, bondorder_, coords)
+    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
+    ntt = hasfield(eproptype(mol), :notation
+        ) ? [get_prop(mol, e, :notation) for e in edges(mol)] : zeros(ne(mol))
+    return double_bond_style(mol.graph, bond_order(mol), ntt, coords2d(mol), sssr(mol))
 end
 
 
-function single_bond_style(mol::SimpleMolGraph)
-    # can be precalculated by coordgen
-    has_state(mol, :e_single_bond_style) && return get_state(mol, :e_single_bond_style)
-    bondorder = bond_order(mol)
-    
-    bondnotation = [get_prop(mol, e, :notation) for e in edges(mol)]
-    isordered = [get_prop(mol, e, :isordered) for e in edges(mol)]
-    arr = init_edge_descriptor(Symbol, mol)
-    for (i, e) in enumerate(edges(mol))
+function single_bond_style(bondorder, bondnotation, isordered)
+    arr = Vector{Symbol}(undef, length(bondorder))
+    for i in 1:length(bondorder)
         if bondorder[i] != 1
             arr[i] = :none
         elseif bondnotation[i] == 1
@@ -115,6 +113,34 @@ function single_bond_style(mol::SimpleMolGraph)
     end
     return arr
 end
+
+function single_bond_style(mol::SimpleMolGraph)
+    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
+    # can be precalculated by coordgen
+    has_state(mol, :e_single_bond_style) && return get_state(mol, :e_single_bond_style)
+    return single_bond_style(
+        bond_order(mol), [get_prop(mol, e, :notation) for e in edges(mol)],
+        [get_prop(mol, e, :isordered) for e in edges(mol)]
+    )
+end
+
+
+function bond_style(bondorder, singlebondstyle, doublebondstyle)
+    arr = Vector{Symbol}(undef, length(bondorder))
+    for i in 1:length(bondorder)
+        if bondorder[i] == 1
+            arr[i] = singlebondstyle[i]
+        elseif bondorder[i] == 2
+            arr[i] = doublebondstyle[i]
+        else
+            arr[i] = :none
+        end
+    end
+    return arr
+end
+
+bond_style(mol::SimpleMolGraph) = bond_style(bond_order(mol), single_bond_style(mol), double_bond_style(mol))
+
 
 
 """
@@ -157,7 +183,6 @@ atomhtml(
 Draw molecular image to the canvas.
 """
 function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
     # get coords
     if !hasfield(vproptype(mol), :coords) && !has_state(mol, :v_coords2d)  # default SMILESAtom
         crds, sb_style = coordgen(mol)
@@ -176,19 +201,7 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     bondorder_ = bond_order(mol)
     atomcolor_ = atom_color(mol; kwargs...)
     isatomvisible_ = is_atom_visible(mol; kwargs...)
-    bondstyle_ = map(
-                sb_style,
-                double_bond_style(mol, bondorder_, crds),
-                bondorder_
-            ) do sb, db, o
-        if o == 1
-            sb
-        elseif o == 2
-            db
-        else
-            :none
-        end
-    end
+    bondstyle_ = bond_style(bondorder_, sb_style, double_bond_style(mol))
 
     # Draw bonds
     for (i, e) in enumerate(edges(mol))

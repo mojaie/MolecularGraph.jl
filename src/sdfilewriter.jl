@@ -7,22 +7,36 @@ export
     printv2mol, printv2sdf, sdfilewriter
 
 
-function printv2atoms(io::IO, mol::SimpleMolGraph, coords)
-    for i in vertices(mol)
+function sdf_bond_style(bondorder, bondstyle)
+    arr = zeros(length(bondorder))
+    for i in 1:length(bondorder)
+        if bondstyle[i] in (:up, :revup)
+            arr[i] = 1
+        elseif bondstyle[i] in (:down, :revdown)
+            arr[i] = 6
+        elseif bondstyle[i] === :unspecified
+            arr[i] = bondorder[i] == 2 ? 3 : 4
+        end
+    end
+    return arr
+end
+
+
+function printv2atoms(io::IO, g, atomsymbol, coords)
+    for i in vertices(g)
         x, y = coords[i, 1:2]
         z = 0.0  # TODO: keep 3D
-        xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(get_prop(mol, i, :symbol))
+        xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atomsymbol[i])
         println(io, "$(xyzsym) 0  0  0  0  0  0  0  0  0  0  0  0")
     end
 end
 
 
-function printv2bonds(io::IO, mol::SimpleMolGraph, styles)
-    for (i, e) in enumerate(edges(mol))
+function printv2bonds(io::IO, g, bondorder, styles)
+    sdfstyles = sdf_bond_style(bondorder, styles)
+    for (i, e) in enumerate(edges(g))
         u, v = styles[i] in (:revup, :revdown) ? (dst(e), src(e)) : (src(e), dst(e))
-        # TODO: double bond, unknown
-        direction = styles[i] in (:up, :revup) ? 1 : (styles in (:down, :revdown) ? 6 : 0)
-        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v get_prop(mol, e, :order) direction
+        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v bondorder[i] sdfstyles[i]
         println(io, uv)
     end
 end
@@ -87,13 +101,19 @@ function printv2mol(io::IO, mol::SimpleMolGraph)
     ecnt = ne(mol)
     header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
     println(io, header)
+    bondorder = bond_order(mol)
     if !hasfield(vproptype(mol), :coords) && !has_state(mol, :v_coords2d)  # default SMILESAtom
         coords, styles = coordgen(mol)
-        printv2atoms(io, mol, coords)
-        printv2bonds(io, mol, styles)
+        printv2atoms(io, mol.graph, atom_symbol(mol), coords)
+        # TODO: cis-trans unspecified double bond in SMILES
+        printv2bonds(io, mol.graph, bondorder,
+            bond_style(bondorder, styles, 
+                double_bond_style(mol.graph, bond_order(mol), zeros(ne(mol)), coords, sssr(mol))
+            )
+        )
     else
-        printv2atoms(io, mol, coords2d(mol))
-        printv2bonds(io, mol, single_bond_style(mol))
+        printv2atoms(io, mol.graph, atom_symbol(mol), coords2d(mol))
+        printv2bonds(io, mol.graph, bondorder, bond_style(bondorder, single_bond_style(mol), double_bond_style(mol)))
     end
     printv2properties(io, mol)
     println(io, "M  END")

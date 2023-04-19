@@ -140,11 +140,13 @@ Base.:(==)(g::SimpleMolGraph, h::SimpleMolGraph
 
 # convenient functions
 
-edge_neighbors(mol::AbstractMolGraph, u::Integer, v::Integer) = (
-    filter(n -> n != v, neighbors(mol, u)),
-    filter(n -> n != u, neighbors(mol, v))
+edge_neighbors(g::SimpleGraph, u::Integer, v::Integer) = (
+    filter(n -> n != v, neighbors(g, u)),
+    filter(n -> n != u, neighbors(g, v))
 )
-edge_neighbors(mol::AbstractMolGraph, e::Edge) = edge_neighbors(mol, src(e), dst(e))
+edge_neighbors(g::SimpleGraph, e::Edge) = edge_neighbors(g, src(e), dst(e))
+edge_neighbors(mol::AbstractMolGraph, u, v) = edge_neighbors(mol.graph, u, v)
+edge_neighbors(mol::AbstractMolGraph, e) = edge_neighbors(mol.graph, e)
 
 ordered_edge_neighbors = edge_neighbors
 
@@ -156,6 +158,8 @@ Convert molecule object into JSON compatible dictionary.
 """
 to_dict(mol::AbstractMolGraph) = error("method to_dict not implemented")
 to_dict(atom_or_bond::Dict) = atom_or_bond
+to_dict(metadata::AbstractString) = metadata
+to_dict(value::Number) = value
 
 
 """

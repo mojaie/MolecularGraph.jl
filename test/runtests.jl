@@ -10,7 +10,6 @@ module MolecularGraphTest
     using Graphs
     using MolecularGraph
 
-    """
     include("./util/iterator.jl")
     include("./util/math.jl")
 
@@ -41,7 +40,6 @@ module MolecularGraphTest
     include("./smarts/molecule.jl")
     include("./smarts/smiles.jl")
     include("./smarts/smarts.jl")
-    """
 
     include("stereo.jl")
     include("preprocess.jl")
