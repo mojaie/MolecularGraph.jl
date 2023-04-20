@@ -60,7 +60,7 @@ function ctab_bond_v2(::Type{T}, B, line) where T <: Integer
     d["notation"] = parse(Int, line[10:12])
     d["isordered"] = u < v
     u, v = d["isordered"] ? (u, v) : (v, u)
-    return (undirectededge(T, u, v), B(d))
+    return (u_edge(T, u, v), B(d))
 end
 
 function ctab_bond_v3(::Type{T}, B, line) where T <: Integer
@@ -71,7 +71,7 @@ function ctab_bond_v3(::Type{T}, B, line) where T <: Integer
     d["notation"] = get(props, :CFG, 0)  # TODO: not compatible with v2
     d["isordered"] = u < v
     u, v = d["isordered"] ? (u, v) : (v, u)
-    return (undirectededge(T, u, v), B(d))
+    return (u_edge(T, u, v), B(d))
 end
 
 function ctab_props_v2(io::IO)

@@ -16,7 +16,7 @@ function cotree_edges(g::SimpleGraph{T}) where T
         i = pop!(stack)
         for nbr in neighbors(g, i)
             if !(nbr in visited)
-                push!(stedges, undirectededge(T, i, nbr))
+                push!(stedges, u_edge(T, i, nbr))
                 push!(visited, nbr)
                 push!(stack, nbr)
             end
@@ -94,7 +94,7 @@ function mincyclebasis(g::SimpleGraph{T}) where T
         for k in 1:N
             p = findmincycle(subg, S[k])
             push!(cycles, vmap[p])
-            minedges = [undirectededge(T, p[i], p[i + 1]) for i in 1:(length(p) - 1)]
+            minedges = [u_edge(T, p[i], p[i + 1]) for i in 1:(length(p) - 1)]
             for i in (k + 1):N
                 if length(intersect(S[i], minedges)) % 2 == 1
                     S[i] = symdiff(S[i], S[k])
@@ -109,8 +109,8 @@ end
 function edgemincyclebasis(g::SimpleGraph{T}) where T
     cycles = Vector{Edge{T}}[]
     for p in mincyclebasis(g)
-        minedges = [undirectededge(T, p[i], p[i + 1]) for i in 1:(length(p) - 1)]
-        push!(minedges, undirectededge(T, p[1], p[end]))
+        minedges = [u_edge(T, p[i], p[i + 1]) for i in 1:(length(p) - 1)]
+        push!(minedges, u_edge(T, p[1], p[end]))
         push!(cycles, minedges)
     end
     return cycles

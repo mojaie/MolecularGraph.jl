@@ -14,7 +14,7 @@ Return the node-induced subgraph edges.
 """
 function induced_subgraph_edges(g, node_list)
     subg, vmap = induced_subgraph(g, node_list)
-    return [undirectededge(g, vmap[src(e)], vmap[dst(e)]) for e in edges(subg)]
+    return [u_edge(g, vmap[src(e)], vmap[dst(e)]) for e in edges(subg)]
 end
 
 
@@ -68,9 +68,9 @@ function line_graph(g::SimpleGraph{T}) where T
         degree(g, i) < 2 && continue
         nbrs = neighbors(g, i)
         for (m, n) in combinations(length(nbrs))
-            e = undirectededge(T,
-                edge_rank[undirectededge(T, i, nbrs[m])],
-                edge_rank[undirectededge(T, i, nbrs[n])]
+            e = u_edge(T,
+                edge_rank[u_edge(T, i, nbrs[m])],
+                edge_rank[u_edge(T, i, nbrs[n])]
             )
             add_edge!(l, e)
             sharednode[e] = i

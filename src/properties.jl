@@ -844,9 +844,9 @@ function is_edge_aromatic(g, sssr_, is_ring_arom)
     er = Dict(e => i for (i, e) in enumerate(edges(g)))
     for ring in sssr_[findall(is_ring_arom)]
         for i in 1:(length(ring) - 1)
-            arr[er[undirectededge(g, ring[i], ring[i + 1])]] = true
+            arr[er[u_edge(g, ring[i], ring[i + 1])]] = true
         end
-        arr[er[undirectededge(g, ring[1], ring[end])]] = true
+        arr[er[u_edge(g, ring[1], ring[end])]] = true
     end
     return arr
 end

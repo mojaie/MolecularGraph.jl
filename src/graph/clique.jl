@@ -41,7 +41,7 @@ function FindConnCliqueState(g::G, isconn::Dict{Edge{T},Bool};
     disconn = [T[] for _ in vertices(g)]
     for i in vertices(g)
         for nbr in neighbors(g, i)
-            container = isconn[undirectededge(T, i, nbr)] ? conn : disconn
+            container = isconn[u_edge(T, i, nbr)] ? conn : disconn
             push!(container[i], nbr)
         end
     end

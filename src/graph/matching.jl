@@ -21,10 +21,10 @@ function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
         @debug "  v: $(v)"
         unmarked = setdiff(Set(edges(g)), matching)
         for w in neighbors(g, v)
-            undirectededge(T, v, w) in unmarked || continue
+            u_edge(T, v, w) in unmarked || continue
             @debug "    w: $(w)"
             if !(w in keys(pred))
-                incs = Set(undirectededge(T, w, nbr) for nbr in neighbors(g, w))
+                incs = Set(u_edge(T, w, nbr) for nbr in neighbors(g, w))
                 e2 = only(intersect(incs, matching))
                 x = src(e2) == w ? dst(e2) : src(e2)
                 @debug "      x: $(x)"
@@ -50,7 +50,7 @@ function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
             # merge_vertices! i in G => vrev[i] in G'
             bn = minimum(bpath)  # contracted blossom
             @debug "      Recursion: $(bpath) -> $(bn)"
-            cmat = Set(undirectededge(T, gc_vrev[src(e)], gc_vrev[dst(e)]) for e in matching)
+            cmat = Set(u_edge(T, gc_vrev[src(e)], gc_vrev[dst(e)]) for e in matching)
             m_cont = intersect(cmat, edges(g_cont))  # M'
             p_cont = findaugpath(g_cont, m_cont)  # P'
             # @assert length(p_cont) % 2 == 0
@@ -82,7 +82,7 @@ function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
                 brk = (r[1], r[2])
                 rem_edge!(g, brk...)
                 r = noweight_shortestpath(g, bsrc, bdst)
-                add_edge!(g, undirectededge(T, brk...))
+                add_edge!(g, u_edge(T, brk...))
             end
             baug = pos % 2 == 0 ? reverse(r) : r
             p = union(p[1:pos-1], baug, p[pos+1:end])
@@ -100,7 +100,7 @@ function findmaxmatch(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
     isempty(P) && return matching
     p_edges = Set{Edge{T}}()
     for i in 1:length(P)-1
-        push!(p_edges, undirectededge(T, P[i], P[i + 1]))
+        push!(p_edges, u_edge(T, P[i], P[i + 1]))
     end
     augment = symdiff(p_edges, matching)
     # @assert length(matching) + 1 == length(augment)

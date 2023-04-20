@@ -24,8 +24,8 @@ function is_atom_visible(g, sym, chg, mul, ms, bo; show_carbon=:simple, kwargs..
         degree(g, i) == 1 && show_carbon === :terminal && continue
         if degree(g, i) == 2
             nbrs = neighbors(g, i)
-            u = er[undirectededge(g, i, nbrs[1])]
-            v = er[undirectededge(g, i, nbrs[2])]
+            u = er[u_edge(g, i, nbrs[1])]
+            v = er[u_edge(g, i, nbrs[2])]
             if (bo[u] == 2 && bo[v] == 2)
                 continue # allene-like
             end
@@ -60,11 +60,11 @@ function double_bond_style(g, bondorder_, ntt, coords, sssr_)
             continue
         end
         sdbs = map(snbrs) do snbr
-            se = er[undirectededge(g, src(e), snbr)]
+            se = er[u_edge(g, src(e), snbr)]
             bondorder_[se] == 2
         end
         ddbs = map(dnbrs) do dnbr
-            de = er[undirectededge(g, dst(e), dnbr)]
+            de = er[u_edge(g, dst(e), dnbr)]
             bondorder_[de] == 2
         end
         if any(sdbs) || any(ddbs)
@@ -80,7 +80,7 @@ function double_bond_style(g, bondorder_, ntt, coords, sssr_)
         ordered = cw ? ring : reverse(ring)
         rr = vcat(ordered, ordered)
         for i in 1:length(ordered)
-            e = er[undirectededge(g, rr[i], rr[i + 1])]
+            e = er[u_edge(g, rr[i], rr[i + 1])]
             bondorder_[e] == 2 || continue
             arr[e] = rr[i] < rr[i + 1] ? :clockwise : :anticlockwise
         end

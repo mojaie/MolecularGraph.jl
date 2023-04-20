@@ -152,8 +152,8 @@ function rem_vertex!(mol::MolGraph, v::Integer)
     delete!(mol.vprops, nv_)
     for e in edges_
         (src(e) == v || dst(e) == v) && delete!(mol.eprops, e)
-        src(e) == nv_ && (mol.eprops[undirectededge(mol, v, dst(e))] = mol.eprops[e]; delete!(mol.eprops, e))
-        dst(e) == nv_ && (mol.eprops[undirectededge(mol, src(e), v)] = mol.eprops[e]; delete!(mol.eprops, e))
+        src(e) == nv_ && (mol.eprops[u_edge(mol, v, dst(e))] = mol.eprops[e]; delete!(mol.eprops, e))
+        dst(e) == nv_ && (mol.eprops[u_edge(mol, src(e), v)] = mol.eprops[e]; delete!(mol.eprops, e))
     end
     mol.state[:has_updates] = true
     return true
@@ -169,7 +169,7 @@ function rem_vertices!(mol::MolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
         delete!(mol.vprops, v)
     end
     for e in edges(mol)
-        _e = undirectededge(T, vmap[src(e)], vmap[dst(e)])
+        _e = u_edge(T, vmap[src(e)], vmap[dst(e)])
         e == _e && continue
         mol.eprops[e] = mol.eprops[_e]
         delete!(mol.eprops, _e)
@@ -183,7 +183,7 @@ function _induced_subgraph(mol::T, vlist_or_elist) where {T<:MolGraph}
     # In many cases, induced_subgraph(mol.graph, vlist_or_elist) is sufficient
     subg, vmap = induced_subgraph(mol.graph, vlist_or_elist)
     vps = Dict(v => mol.vprops[vmap[v]] for v in vertices(subg))
-    eps = Dict(e => mol.eprops[undirectededge(mol, vmap[src(e)], vmap[dst(e)])]
+    eps = Dict(e => mol.eprops[u_edge(mol, vmap[src(e)], vmap[dst(e)])]
         for e in edges(subg))
     return T(subg, vps, eps, mol.gprops, mol.state), vmap
 end

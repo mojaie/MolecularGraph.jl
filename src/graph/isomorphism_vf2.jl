@@ -154,8 +154,8 @@ function is_semantic_feasible(iter::VF2Matcher, gv, hv)
         (iter.matchtype === :monomorphic
             && !has_edge(iter.h, hv, iter.g_core[nbr])) && continue
         if !iter.ematch(
-                undirectededge(iter.g, gv, nbr),
-                undirectededge(iter.h, hv, iter.g_core[nbr]))
+                u_edge(iter.g, gv, nbr),
+                u_edge(iter.h, hv, iter.g_core[nbr]))
             @debug "Infeasible: edge attribute mismatch"
             return false
         end

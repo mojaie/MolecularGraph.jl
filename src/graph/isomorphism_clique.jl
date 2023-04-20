@@ -87,7 +87,7 @@ function modprod_edge_filter(g, h, ematch; kwargs...)
     return function (g1, g2, h1, h2)
         has_edge(g, g1, g2) === has_edge(h, h1, h2) || return false
         !has_edge(g, g1, g2) && return true
-        return ematch(undirectededge(g, g1, g2), undirectededge(h, h1, h2))
+        return ematch(u_edge(g, g1, g2), u_edge(h, h1, h2))
     end
 end
 
@@ -103,7 +103,7 @@ function tp_constraint_filter(g, h, ematch; diameter=max(nv(g), nv(h)), toleranc
             abs(gdist[g1][g2] - hdist[h1][h2]) > tolerance && return false
             return true
         end
-        return ematch(undirectededge(g, g1, g2), undirectededge(h, h1, h2))
+        return ematch(u_edge(g, g1, g2), u_edge(h, h1, h2))
     end
 end
 

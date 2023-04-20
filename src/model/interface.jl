@@ -16,7 +16,7 @@ export
     QueryAny, QueryLiteral, QueryOperator, QueryTree, QueryTruthTable,
     AbstractReaction, Reaction,
     Metadata, to_dict, to_json,
-    ordered_neighbors, undirectededge, edge_rank,
+    ordered_neighbors, u_edge, edge_rank,
     vproptype, eproptype,
     props, vprops, eprops,
     get_prop, has_prop, metadata,
@@ -66,10 +66,10 @@ Base.zero(::Type{G}) where G <: AbstractMolGraph = G()
 # SimpleGraph interface
 Base.copy(mol::SimpleMolGraph) = deepcopy(mol)
 add_edge!(mol::SimpleMolGraph, u::Integer, v::Integer, prop
-    ) = add_u_edge!(mol, undirectededge(mol, u, v), prop)
+    ) = add_u_edge!(mol, u_edge(mol, u, v), prop)
 add_edge!(mol::SimpleMolGraph, e::Edge, prop
     ) = add_edge!(mol, src(e), dst(e), prop)
-rem_edge!(mol::SimpleMolGraph, u::Integer, v::Integer) = rem_u_edge!(mol, undirectededge(mol, u, v))
+rem_edge!(mol::SimpleMolGraph, u::Integer, v::Integer) = rem_u_edge!(mol, u_edge(mol, u, v))
 rem_edge!(mol::SimpleMolGraph, e::Edge) = rem_edge!(mol, src(e), dst(e))
 induced_subgraph(mol::T, vlist::AbstractVector{U}
     ) where {T<:SimpleMolGraph, U<:Integer} = _induced_subgraph(mol, vlist)
@@ -84,17 +84,17 @@ induced_subgraph(mol::T, elist::AbstractVector{U}
 ordered_neighbors = neighbors
 
 """
-    undirectededge(::Type{T}, src, dst) where T <: Integer -> Edge{T}
-    undirectededge(g::SimpleGraph{T}, src, dst) where T -> Edge{T}
-    undirectededge(mol::AbstractMolGraph{T}, src, dst) where T -> Edge{T}
+    u_edge(::Type{T}, src, dst) where T <: Integer -> Edge{T}
+    u_edge(g::SimpleGraph{T}, src, dst) where T -> Edge{T}
+    u_edge(mol::AbstractMolGraph{T}, src, dst) where T -> Edge{T}
 
 A workaround for UndirectedEdge that are not yet implemented in SimpleGraph
 """
-undirectededge(::Type{T}, src, dst) where T <: Integer = src < dst ? Edge{T}(src, dst) : Edge{T}(dst, src)
-undirectededge(g::SimpleGraph{T}, src, dst) where T = undirectededge(T, src, dst)
-undirectededge(mol::AbstractMolGraph{T}, src, dst) where T = undirectededge(T, src, dst)
-undirectededge(g, e) = undirectededge(g, src(e), dst(e))
-undirectededge(e::Edge{T}) where T = undirectededge(T, src(e), dst(e))
+u_edge(::Type{T}, src, dst) where T <: Integer = src < dst ? Edge{T}(src, dst) : Edge{T}(dst, src)
+u_edge(g::SimpleGraph{T}, src, dst) where T = u_edge(T, src, dst)
+u_edge(mol::AbstractMolGraph{T}, src, dst) where T = u_edge(T, src, dst)
+u_edge(g, e) = u_edge(g, src(e), dst(e))
+u_edge(e::Edge{T}) where T = u_edge(T, src(e), dst(e))
 
 # SimpleMolGraph interface (node/edge primary attributes)
 vproptype(::Type{<:SimpleMolGraph{T,V,E}}) where {T,V,E} = V
@@ -106,7 +106,7 @@ eprops(mol::SimpleMolGraph) = mol.eprops  # TODO: necessary?
 props(mol::SimpleMolGraph) = mol.gprops  # TODO: necessary?
 props(mol::SimpleMolGraph, v::Integer) = mol.vprops[v]
 props(mol::SimpleMolGraph, e::Edge) = mol.eprops[e]
-props(mol::SimpleMolGraph, u::Integer, v::Integer) = props(mol, undirectededge(mol, u, v))
+props(mol::SimpleMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
 get_prop(mol::SimpleMolGraph, prop::Symbol) = mol.gprops[prop]
 # get_prop(mol::SimpleMolGraph, prop::Symbol, default) = get(props(mol), prop, default)
 get_prop(mol::SimpleMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
@@ -115,7 +115,7 @@ get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol,
 has_prop(mol::SimpleMolGraph, prop::Symbol) = haskey(mol.gprops, prop)
 metadata(mol::SimpleMolGraph) = mol.gprops[:metadata]
 edge_rank(mol::SimpleMolGraph, e::Edge) = mol.edge_rank[e]
-edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, undirectededge(mol, u, v))
+edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, u_edge(mol, u, v))
 
 function set_prop!(mol::SimpleMolGraph{T,V,E}, v::T, value::V) where {T,V,E}
     mol.vprops[v] = value

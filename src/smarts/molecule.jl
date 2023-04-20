@@ -51,7 +51,7 @@ function group!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}, bond) whe
     push!(state.vprops, popfirst!(a))
     if bond !== nothing
         # Connect branch
-        push!(state.edges, undirectededge(T, state.branch, state.node))
+        push!(state.edges, u_edge(T, state.branch, state.node))
         push!(state.eprops, bond)
     end
     center = state.node
@@ -59,7 +59,7 @@ function group!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}, bond) whe
         # hydrogens
         state.node += 1
         push!(state.vprops, h)
-        push!(state.edges, undirectededge(T, center, state.node))
+        push!(state.edges, u_edge(T, center, state.node))
         push!(state.eprops, defaultbond(state))
     end
     state.branch = center
@@ -127,7 +127,7 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
                 (v, rb) = state.ringlabel[num]
                 b = something(b, rb, defaultbond(state))
                 delete!(state.ringlabel, num) # Ring label is reusable
-                push!(state.edges, undirectededge(T, u, v))
+                push!(state.edges, u_edge(T, u, v))
                 push!(state.eprops, b)
             else
                 state.ringlabel[num] = (u, b)
@@ -154,14 +154,14 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
             end
         else
             b = something(b, defaultbond(state))
-            push!(state.edges, undirectededge(T, u, state.node))
+            push!(state.edges, u_edge(T, u, state.node))
             push!(state.eprops, b)
         end
         center = state.node
         for h in a
             # hydrogens
             state.node += 1
-            push!(state.edges, undirectededge(T, center, state.node))
+            push!(state.edges, u_edge(T, center, state.node))
             push!(state.eprops, defaultbond(state))
             push!(state.vprops, h)
         end

@@ -197,7 +197,7 @@ function specialize_nonaromatic!(q::SimpleMolGraph{T,V,E}) where {T,V<:QueryTree
         p = get_prop(q, i, :tree)
         p isa QueryLiteral && p.key === :symbol || continue
         # number of explicitly non-aromatic incident bonds
-        cnt = sum(get(exbonds, undirectededge(q, i, nbr), 0) for nbr in neighbors(q, i); init=0)
+        cnt = sum(get(exbonds, u_edge(q, i, nbr), 0) for nbr in neighbors(q, i); init=0)
         p.value === :C && (cnt -= 1)  # carbon allows one non-aromatic
         if p.value in aromsyms && cnt > 0
             set_prop!(q, i, QueryTree(QueryOperator(:and, [

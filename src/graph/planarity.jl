@@ -33,7 +33,7 @@ function dfs!(state::PlanarityTestState{T}, u::Int) where T
     buckets = Dict{T,Vector{Edge{T}}}() # low(e), edges
     lows = Dict{Edge{T},T}() # edge, lownode(e)
     for nbr in neighbors(state.graph, u)
-        inc = undirectededge(state.graph, u, nbr)
+        inc = u_edge(state.graph, u, nbr)
         inc == get(state.inedge, u, nothing) && continue # Predecessor
         haskey(state.cotree, inc) && continue # Visited
         state.source[inc] = state.rank[u]

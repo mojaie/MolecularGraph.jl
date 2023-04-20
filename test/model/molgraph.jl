@@ -37,7 +37,7 @@ end
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, Dict(:hoge => 2))
-    @test undirectededge(mol, 2, 1) == Edge(1 => 2)
+    @test u_edge(mol, 2, 1) == Edge(1 => 2)
     @test eltype(mol) === Int
     @test edgetype(mol) === Edge{Int}
     @test vproptype(mol) === SDFAtom
