@@ -85,8 +85,15 @@ function printv2data(io::IO, mol::SimpleMolGraph)
 end
 
 
-function printv2mol(io::IO, mol::SimpleMolGraph)
-    # ver = VERSION
+function printv2mol(io::IO, mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+    # resume stereo hydrogens
+    for center in get_prop(mol, :stereocenter)
+        if degree(mol, center) == 3
+            add_vertex!(mol, V(:H))
+            add_edge!(mol, center, nv(mol), E())
+        end
+    end
+    # write
     program = "MGjlv$(string(MAJOR_VERSION)[end])$(string(MINOR_VERSION)[end-1:end])"
     datetime = Dates.format(Dates.now(), "mmddyyHHMM")
     println(io)
@@ -97,15 +104,15 @@ function printv2mol(io::IO, mol::SimpleMolGraph)
     header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
     println(io, header)
     bondorder = bond_order(mol)
-    if !hasfield(vproptype(mol), :coords) && !has_cache(mol, :v_coords2d)  # default SMILESAtom
-        coords, styles = coordgen(mol)
-        printv2atoms(io, mol.graph, atom_symbol(mol), coords)
-        printv2bonds(io, mol.graph, bondorder, styles)  # TODO: unspecified stereochem in SMILES
-    else  # SDFAtom or has coordgen! precache
+    if has_coords(mol)  # SDFAtom or has coordgen! precache
         styles = (has_cache(mol, :e_coordgen_bond_style) ?
             get_cache(mol, :e_coordgen_bond_style) : sdf_bond_style(mol))
         printv2atoms(io, mol.graph, atom_symbol(mol), coords2d(mol))
         printv2bonds(io, mol.graph, bondorder, styles)
+    else  # default SMILESAtom
+        coords, styles = coordgen(mol)
+        printv2atoms(io, mol.graph, atom_symbol(mol), coords)
+        printv2bonds(io, mol.graph, bondorder, styles)  # TODO: unspecified stereochem in SMILES
     end
     printv2properties(io, mol)
     println(io, "M  END")

@@ -4,15 +4,26 @@
 #
 
 export
-    coords2d, coords3d, coordgen, coordgen!
+    has_coords, coords2d, coords3d, coordgen, coordgen!
 
 using coordgenlibs_jll
+
+
+function has_coords(mol::SimpleMolGraph)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_coords2d) && return true
+    hasfield(vproptype(mol), :coords) || return false
+    for i in vertices(mol)
+        isnothing(get_prop(mol, i, :coords)) && return false
+    end
+    return true
+end
 
 
 function coords2d(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_coords2d) && return get_cache(mol, :v_coords2d)
-    hasfield(vproptype(mol), :coords) || error("no coordinates. use coordgen")
+    has_coords(mol) || error("no coordinates. use coordgen")
     coords = zeros(Float64, nv(mol), 2)
     for i in vertices(mol)
         coords[i, :] = get_prop(mol, i, :coords)[1:2]
@@ -24,7 +35,7 @@ end
 function coords3d(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_coords3d) && return get_cache(mol, :v_coords3d)
-    hasfield(vproptype(mol), :coords) || error("no coordinates. use coordgen")
+    has_coords(mol) || error("no coordinates. use coordgen")
     coords = zeros(Float64, nv(mol), 3)
     for i in vertices(mol)
         coords[i, :] = get_prop(mol, i, :coords)[1:3]

@@ -71,7 +71,8 @@ end
 """
     remove_stereo_hydrogen!(mol::SimpleMolGraph, v::Integer) -> Bool
 
-Safely remove explicit hydrogens connected to stereocenter node `v`.
+Safely remove explicit hydrogens connected to stereocenter node `v` and return
+the vertex index of the removed hydrogen.
 """
 function remove_stereo_hydrogen!(mol::SimpleMolGraph, v::Integer)
     """
@@ -83,20 +84,20 @@ function remove_stereo_hydrogen!(mol::SimpleMolGraph, v::Integer)
     """
     nbrs = neighbors(mol, v)
     hpos = findfirst(x -> get_prop(mol, x, :symbol) === :H, nbrs)
-    hpos === nothing && return false  # no removable hydrogens
+    hpos === nothing && error("no removable hydrogens")
     h = nbrs[hpos]
-    rem_vertex!(mol, h) || return false  # failed to remove hydrogen node
+    rem_vertex!(mol, h) || error("failed to remove hydrogen node")
     stereo = get_prop(mol, :stereocenter)[v]
     vs = collect(stereo[1:3])
     spos = findfirst(x -> x == h, vs)
-    spos === nothing && return true  # hydrogen at the lowest priority can be removed safely
+    spos === nothing && return h  # hydrogen at the lowest priority can be removed safely
     is_rev = spos in [1, 3]
     rest = setdiff(nbrs, vs)  # the lowest node index
     resti = isempty(rest) ? h : rest[1]  # rest is empty if the lowest node is the end node.
     popat!(vs, spos)
     push!(vs, resti)
     set_stereocenter!(mol, v, vs[1], vs[2], vs[3], xor(stereo[4], is_rev))
-    return true
+    return h
 end
 
 

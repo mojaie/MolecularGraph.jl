@@ -170,12 +170,12 @@ Draw molecular image to the canvas.
 function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     # get coords
-    if !hasfield(vproptype(mol), :coords) && !has_cache(mol, :v_coords2d)  # default SMILESAtom
-        crds, default_bond_style = coordgen(mol)
-    else  # SDFAtom or has coordgen! precache
+    if has_coords(mol)  # SDFAtom or has coordgen! precache
         crds = coords2d(mol)
         default_bond_style = (has_cache(mol, :e_coordgen_bond_style) ? 
             get_cache(mol, :e_coordgen_bond_style) : sdf_bond_style(mol))
+    else  # default SMILESAtom
+        crds, default_bond_style = coordgen(mol)
     end
     # Canvas settings
     initcanvas!(canvas, crds, boundary(mol, crds))

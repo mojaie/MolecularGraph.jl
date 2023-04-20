@@ -25,23 +25,30 @@
     @test sum(bond_order(c60) .== 2) == 30
 end
 
-@testset "all_hydrogens" begin
+@testset "remove_hydrogens" begin
     ethanol = smilestomol("[H]C([H])([H])C([H])([H])O")
     @test all_hydrogens(ethanol) == [1, 3, 4, 6, 7]
-    remove_hydrogens!(ethanol)
+    vmap = remove_all_hydrogens!(ethanol)
     @test nv(ethanol) == 3
     @test ne(ethanol) == 2
-end
+    @test vmap == [8, 2, 5]
 
-@testset "removable_hydrogens" begin
     ethanold3 = smilestomol(
         MolGraph{Int,SMILESAtom,SMILESBond}, "[2H]C([2H])([2H])C([H])([H])O")
     @test removable_hydrogens(ethanold3) == [6, 7]
-    remove_hydrogens!(ethanold3, all=false)
+    vmap = remove_hydrogens!(ethanold3)
     @test nv(ethanold3) == 6
     @test ne(ethanold3) == 5
-    LAla = smilestomol("[H]N([H])[C@][H](C)C(=O)O")
-    @test removable_hydrogens(LAla) == [1, 3]
+    @test vmap == [1, 2, 3, 4, 5, 8]
+
+    LAla = smilestomol("[H]N([H])[C@]([H])(C)C(=O)O")
+    LAla2 = copy(LAla)
+    @test removable_hydrogens(LAla2) == [1, 3]
+    vmap = remove_hydrogens!(LAla2)
+    @test vmap == [9, 2, 8, 4, 5, 6, 7]
+    @test all_hydrogens(LAla) == [1, 3, 5]
+    vmap = remove_all_hydrogens!(LAla)
+    @test vmap == [8, 2, 7, 4, 9, 6]
 end
 
 @testset "add_hydrogens" begin

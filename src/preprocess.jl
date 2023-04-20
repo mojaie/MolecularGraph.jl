@@ -6,33 +6,25 @@
 export
     kekulize, kekulize!,
     removable_hydrogens, all_hydrogens,
-    remove_hydrogens!, add_hydrogens!,
+    remove_hydrogens!, remove_all_hydrogens!, add_hydrogens!,
     largest_component_nodes, extract_largest_component!,
     protonate_acids, protonate_acids!, deprotonate_oniums, deprotonate_oniums!,
     depolarize, depolarize!, polarize, polarize!,
     to_triple_bond, to_triple_bond!, to_allene_like, to_allene_like!
 
 
-# TODO: large conjugated system
-# TODO: salts and waters should detected by functional group analysis
-# TODO: Phosphate, diphosphate, sulfate, nitrate, acetate,
-# maleate, fumarate, succinate, citrate, tartrate, oxalate,
-# mesylate, tosylate, besylate,
-# benzoate, gluconate
-
-
 """
     kekulize(mol::SimpleMolGraph) -> Vector{Int}
 
-Kekulize the molecule that has SMILES aromatic bonds.
+Return an array of bond orders with kekulization applied.
 
-SMILES allows aromatic atoms in small letters - b, c, n, o, p, s, [as] and [se]. Once these are stored in `SmilesAtom.isaromatic` field, then `kekulize` will place double bonds to satisfy valences.
-
-Kekulization is necessary for molecules parsed from SMILES. If not kekulized, some bond valence and implicit hydrogen properties would be wrong.
+Double bonds and single bonds will be assigned to aromatic rings which consist of SMILES
+lowercase atoms (called Kekulization). Kekulization is necessary for the valence and
+implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
 """
 function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     nodes = T[]
-    bondorder = [get_prop(mol, e, :order) for e in edges(mol)]  # use unmodified primary property
+    bondorder = [get_prop(mol, e, :order) for e in edges(mol)]
     for i in vertices(mol)
         get_prop(mol, i, :isaromatic) === nothing && continue
         get_prop(mol, i, :isaromatic) || continue
@@ -64,12 +56,12 @@ kekulize!(mol::MolGraph) = set_cache!(mol, :e_order, kekulize(mol))
 
 
 """
-    removable_hydrogens(mol::SimpleMolGraph) -> Set{Int}
+    removable_hydrogens(mol::SimpleMolGraph{T,V,E}) -> Vector{T}
 
 Return a vector of removable hydrogen nodes.
 
-removable means not charged, no unpaired electron, no specific mass,
-non-stereospecific and attached to organic heavy atoms.
+Removable hydrogens are not charged, have no unpaired electron, have no specific mass,
+are non-stereospecific and are attached to organic heavy atoms.
 """
 function removable_hydrogens(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     hs = T[]
@@ -85,7 +77,7 @@ function removable_hydrogens(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
         nbr = neighbors(mol, i)[1]
         get_prop(mol, nbr, :symbol) in organic_heavy || continue
         get_prop(mol, i, nbr, :order) == 1 || continue
-        # TODO: check stereo
+        haskey(get_prop(mol, :stereocenter), nbr) && continue
         push!(hs, i)
     end
     return hs
@@ -93,9 +85,9 @@ end
 
 
 """
-    allhydrogens(mol::SimpleMolGraph) -> Set{Int}
+    all_hydrogens(mol::SimpleMolGraph{T,V,E}) -> Vector{T}
 
-Return a set of all hydrogen nodes.
+Return a vector of all hydrogen nodes.
 """
 function all_hydrogens(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     hs = T[]
@@ -108,20 +100,38 @@ end
 
 
 """
-    removehydrogens(mol::MolGraph) -> GraphMol
+    remove_hydrogens!(mol::SimpleMolGraph{T,V,E}) -> Vector{T}
 
-Return the molecule with hydrogen nodes removed.
+Remove following hydrogen vertices from the molecule: that are not charged, have no
+unpaired electron, have no specific mass, are non-stereospecific and are
+attached to organic heavy atoms.
 
-If option `all` is set to true (default), all hydrogens will be removed, otherwise only trivial hydrogens will be removed (see [`removable_hydrogens`](@ref)).
+This returns vmap array similar to [`rem_vertices!`](@ref).
 """
-function remove_hydrogens!(mol::SimpleMolGraph; all=true)
-    hydrogens = all ? all_hydrogens : removable_hydrogens
-    rem_vertices!(mol, hydrogens(mol))
+remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(mol))
+
+
+"""
+    remove_all_hydrogens!(mol::SimpleMolGraph{T,V,E}) -> Vector{T}
+
+Remove all hydrogen vertices from the molecule.
+
+This returns vmap array similar to [`rem_vertices!`](@ref).
+"""
+function remove_all_hydrogens!(mol::SimpleMolGraph)
+    vmap = collect(vertices(mol))
+    for center in keys(get_prop(mol, :stereocenter))
+        removed = remove_stereo_hydrogen!(mol, center)
+        vmap[removed] = vmap[end]
+        pop!(vmap)
+    end
+    vmap2 = rem_vertices!(mol, all_hydrogens(mol))
+    return vmap[vmap2]
 end
 
 
 """
-    addhydrogens(mol::GraphMol) -> GraphMol
+    add_hydrogens!(mol::SimpleMolGraph)
 
 Return the molecule with all hydrogen nodes explicitly attached.
 """
@@ -140,7 +150,7 @@ end
 """
     largest_component_nodes(mol::SimpleMolGraph) -> Vector{Int}
 
-Return a set of nodes in the largest connected component.
+Return a vector of nodes in the largest connected component.
 """
 largest_component_nodes(mol::SimpleMolGraph{T,V,E}
     ) where {T,V,E} = sortstablemax(connected_components(mol.graph), by=length, init=T[])
@@ -177,6 +187,7 @@ function protonate_acids(mol::SimpleMolGraph)
     end
     return arr
 end
+
 protonate_acids!(mol::MolGraph) = set_cache!(mol, :v_charge, protonate_acids(mol))
 
 
@@ -195,6 +206,7 @@ function deprotonate_oniums(mol::SimpleMolGraph)
     end
     return arr
 end
+
 deprotonate_oniums!(mol::MolGraph) = set_cache!(mol, :v_charge, deprotonate_oniums(mol))
 
 
@@ -223,6 +235,7 @@ function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
     end
     return carr, oarr
 end
+
 function depolarize!(mol::MolGraph)
     carr, oarr = depolarize(mol)
     set_cache!(mol, :v_charge, carr)
@@ -256,6 +269,7 @@ function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
     end
     return carr, oarr
 end
+
 function polarize!(mol::MolGraph)
     carr, oarr = polarize(mol)
     set_cache!(mol, :v_charge, carr)
