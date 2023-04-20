@@ -8,7 +8,7 @@ export
 
 
 function sdf_bond_style(bondorder, bondstyle)
-    arr = zeros(length(bondorder))
+    arr = zeros(Int, length(bondorder))
     for i in 1:length(bondorder)
         if bondstyle[i] in (:up, :revup)
             arr[i] = 1
@@ -102,7 +102,7 @@ function printv2mol(io::IO, mol::SimpleMolGraph)
     header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
     println(io, header)
     bondorder = bond_order(mol)
-    if !hasfield(vproptype(mol), :coords) && !has_state(mol, :v_coords2d)  # default SMILESAtom
+    if !hasfield(vproptype(mol), :coords) && !has_cache(mol, :v_coords2d)  # default SMILESAtom
         coords, styles = coordgen(mol)
         printv2atoms(io, mol.graph, atom_symbol(mol), coords)
         # TODO: cis-trans unspecified double bond in SMILES

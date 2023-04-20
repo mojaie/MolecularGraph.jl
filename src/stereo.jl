@@ -184,7 +184,7 @@ end
 Set stereocenter information obtained from 2D SDFile.
 """
 stereocenter_from_sdf2d!(mol::MolGraph
-    ) = set_prop!(mol, :stereocenter,  stereocenter_from_sdf2d(mol))
+    ) = begin mol.gprops[:stereocenter] = stereocenter_from_sdf2d(mol) end
 
 
 """
@@ -209,7 +209,7 @@ end
 Set stereocenter information obtained from SMILES.
 """
 stereocenter_from_smiles!(mol::MolGraph
-    ) = set_prop!(mol, :stereocenter,  stereocenter_from_smiles(mol))
+    ) = begin mol.gprops[:stereocenter] = stereocenter_from_smiles(mol) end
 
 
 """
@@ -245,7 +245,7 @@ end
 Set cis-trans diastereomerism information obtained from 2D SDFile.
 """
 stereobond_from_sdf2d!(mol::MolGraph
-    ) = set_prop!(mol, :stereobond, stereobond_from_sdf2d(mol))
+    ) = begin mol.gprops[:stereobond] = stereobond_from_sdf2d(mol) end
 
 
 """
@@ -293,8 +293,7 @@ end
 Set cis-trans diastereomerism information obtained from SMILES.
 """
 stereobond_from_smiles!(mol::MolGraph
-    ) = set_prop!(mol, :stereobond, stereobond_from_smiles(mol))
+    ) = begin mol.gprops[:stereobond] = stereobond_from_smiles(mol) end
 
 # TODO: axial chirality
 # TODO: hypervalent chirality
-

@@ -27,18 +27,14 @@ function MolGraph{T,V,E}(g::SimpleGraph,
     for _ in nv(g):(length(vprop_map) - 1)
         push!(g.fadjlist, T[])
     end
-    # edge_rank mapping
-    er = Dict{Edge{T},T}()
-    for (i, e) in enumerate(edges(g))
-        er[e] = i
-    end
     default_config = Dict(
         :has_updates => false,
-        :on_update => mol -> (update_edge_rank!(mol); mol.state[:has_updates] = false)
+        :updater => mol -> (update_edge_rank!(mol); clear_caches!(mol); set_state!(mol, :has_updates, false)),
+        :caches => Dict{Symbol,Any}()
     )
     merge!(default_config, config_map)
-    mol = MolGraph{T,V,E}(g, vprop_map, eprop_map, gprop_map, default_config, er)
-    dispatch!(mol, :on_update)
+    mol = MolGraph{T,V,E}(g, vprop_map, eprop_map, gprop_map, default_config, Dict{Edge{T},T}())
+    dispatch!(mol, :updater)
     return mol
 end
 
@@ -103,23 +99,15 @@ to_dict(mol::MolGraph) = Dict(
 )
 
 dispatch!(mol, event) = mol.state[event](mol)
-# descriptors(mol::MolGraph) = mol.descriptors
+
 get_state(mol::MolGraph, sym::Symbol) = mol.state[sym]
 has_state(mol::MolGraph, sym::Symbol) = haskey(mol.state, sym)
-init_node_descriptor(::Type{T}, mol::MolGraph) where T = Vector{T}(undef, nv(mol))
-init_node_descriptor(::Type{T}, mol::MolGraph) where T >: Nothing = Vector{T}(nothing, nv(mol))
-init_node_descriptor(::Type{T}, mol::MolGraph) where T <: Number = fill(zero(T), nv(mol))
-init_node_descriptor(::Type{Vector{T}}, mol::MolGraph) where T = [T[] for _ in vertices(mol)]
-init_edge_descriptor(::Type{T}, mol::MolGraph) where T = Vector{T}(undef, ne(mol))
-init_edge_descriptor(::Type{T}, mol::MolGraph) where T >: Nothing = Vector{T}(nothing, ne(mol))
-init_edge_descriptor(::Type{T}, mol::MolGraph) where T <: Number = fill(zero(T), ne(mol))
-init_edge_descriptor(::Type{Vector{T}}, mol::MolGraph) where T = [T[] for _ in edges(mol)]
+set_state!(mol::MolGraph, sym::Symbol, value) = begin mol.state[sym] = value end
 
-function set_state!(mol::MolGraph, sym::Symbol, value)
-    mol.state[sym] = value
-    return value
-end
-
+get_cache(mol::MolGraph, sym::Symbol) = mol.state[:caches][sym]
+has_cache(mol::MolGraph, sym::Symbol) = haskey(mol.state[:caches], sym)
+set_cache!(mol::MolGraph, sym::Symbol, value) = begin mol.state[:caches][sym] = value end
+clear_caches!(mol::MolGraph) = empty!(mol.state[:caches])
 
 function update_edge_rank!(mol::MolGraph)
     empty!(mol.edge_rank)

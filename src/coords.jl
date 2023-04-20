@@ -10,8 +10,8 @@ using coordgenlibs_jll
 
 
 function coords2d(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_coords2d) && return get_state(mol, :v_coords2d)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_coords2d) && return get_cache(mol, :v_coords2d)
     hasfield(vproptype(mol), :coords) || error("no coordinates. use coordgen")
     coords = zeros(Float64, nv(mol), 2)
     for i in vertices(mol)
@@ -22,8 +22,8 @@ end
 
 
 function coords3d(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_coords3d) && return get_state(mol, :v_coords3d)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_coords3d) && return get_cache(mol, :v_coords3d)
     hasfield(vproptype(mol), :coords) || error("no coordinates. use coordgen")
     coords = zeros(Float64, nv(mol), 3)
     for i in vertices(mol)
@@ -130,7 +130,7 @@ end
 
 
 function coordgen(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
     return coordgen(
         mol.graph, atom_symbol(mol), bond_order(mol),
         get_prop(mol, :stereocenter), get_prop(mol, :stereobond)
@@ -143,6 +143,6 @@ function coordgen!(mol::SimpleMolGraph)
         mol.graph, atom_symbol(mol), bond_order(mol),
         get_prop(mol, :stereocenter), get_prop(mol, :stereobond)
     )
-    set_state!(mol, :v_coords2d, coords)
-    set_state!(mol, :e_single_bond_style, styles)
+    set_cache!(mol, :v_coords2d, coords)
+    set_cache!(mol, :e_single_bond_style, styles)
 end

@@ -60,7 +60,7 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     end
     return bondorder
 end
-kekulize!(mol::MolGraph) = set_state!(mol, :e_order, kekulize(mol))
+kekulize!(mol::MolGraph) = set_cache!(mol, :e_order, kekulize(mol))
 
 
 """
@@ -177,7 +177,7 @@ function protonate_acids(mol::SimpleMolGraph)
     end
     return arr
 end
-protonate_acids!(mol::MolGraph) = set_state!(mol, :v_charge, protonate_acids(mol))
+protonate_acids!(mol::MolGraph) = set_cache!(mol, :v_charge, protonate_acids(mol))
 
 
 """
@@ -195,7 +195,7 @@ function deprotonate_oniums(mol::SimpleMolGraph)
     end
     return arr
 end
-deprotonate_oniums!(mol::MolGraph) = set_state!(mol, :v_charge, deprotonate_oniums(mol))
+deprotonate_oniums!(mol::MolGraph) = set_cache!(mol, :v_charge, deprotonate_oniums(mol))
 
 
 """
@@ -225,8 +225,8 @@ function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
 end
 function depolarize!(mol::MolGraph)
     carr, oarr = depolarize(mol)
-    set_state!(mol, :v_charge, carr)
-    set_state!(mol, :e_order, oarr)
+    set_cache!(mol, :v_charge, carr)
+    set_cache!(mol, :e_order, oarr)
     return carr, oarr
 end
 
@@ -258,8 +258,8 @@ function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
 end
 function polarize!(mol::MolGraph)
     carr, oarr = polarize(mol)
-    set_state!(mol, :v_charge, carr)
-    set_state!(mol, :e_order, oarr)
+    set_cache!(mol, :v_charge, carr)
+    set_cache!(mol, :e_order, oarr)
     return carr, oarr
 end
 
@@ -302,8 +302,8 @@ end
 
 function to_triple_bond!(mol::MolGraph)
     carr, oarr = to_triple_bond(mol)
-    set_state!(mol, :v_charge, carr)
-    set_state!(mol, :e_order, oarr)
+    set_cache!(mol, :v_charge, carr)
+    set_cache!(mol, :e_order, oarr)
     return carr, oarr
 end
 
@@ -328,7 +328,7 @@ end
 
 function to_allene_like!(mol::MolGraph)
     carr, oarr = to_allene_like(mol)
-    set_state!(mol, :v_charge, carr)
-    set_state!(mol, :e_order, oarr)
+    set_cache!(mol, :v_charge, carr)
+    set_cache!(mol, :e_order, oarr)
     return carr, oarr
 end

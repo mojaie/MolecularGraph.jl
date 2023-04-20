@@ -21,7 +21,7 @@ export
     props, vprops, eprops,
     get_prop, has_prop, metadata,
     set_state!, has_state, get_state,
-    init_node_descriptor, init_edge_descriptor,
+    set_cache!, has_cache, get_cache, clear_cache!,
     set_prop!, update_edge_rank!,
     edge_neighbors, ordered_edge_neighbors
 
@@ -119,14 +119,17 @@ edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, undirect
 
 function set_prop!(mol::SimpleMolGraph{T,V,E}, v::T, value::V) where {T,V,E}
     mol.vprops[v] = value
+    set_state!(mol, :has_updates, true)
 end
 
 function set_prop!(mol::SimpleMolGraph{T,V,E}, e::Edge{T}, value::E) where {T,V,E}
     mol.eprops[e] = value
+    set_state!(mol, :has_updates, true)
 end
 
 function set_prop!(mol::SimpleMolGraph, prop::Symbol, value)
     mol.gprops[prop] = value
+    set_state!(mol, :has_updates, true)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph{T,V,E}) where {T,V,E}

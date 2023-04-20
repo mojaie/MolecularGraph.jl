@@ -23,7 +23,7 @@ const Z_DIR = [0,0,1]
 
 function atom_radius(mol::SimpleMolGraph; mapping=ATOM_VANDERWAALS_RADII)
     isa(mapping, Real) && return fill(mapping, nv(mol))
-    desc = init_node_descriptor(Float64, mol)
+    desc = zeros(Float64, nv(mol))
     for i in vertices(mol)
         an = atomnumber(get_prop(mol, i, :symbol))
         desc[i] = mapping[an]

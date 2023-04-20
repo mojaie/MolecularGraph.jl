@@ -48,7 +48,9 @@ SMARTSParser{T}(smarts
 
 function smiles_on_update!(mol)
     update_edge_rank!(mol)
-    mol.state[:has_updates] = false
+    clear_caches!(mol)
+    set_state!(mol, :has_updates, false)
+    # preprocessing
     stereocenter_from_smiles!(mol)
     stereobond_from_smiles!(mol)
     kekulize!(mol)
@@ -76,8 +78,8 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 function smilestomol(::Type{T}, smiles::AbstractString; updater=smiles_on_update!) where T <: AbstractMolGraph
     state = SMILESParser{T}(smiles)
     fragment!(state)
-    mol = T(state.edges, state.vprops, state.eprops, Dict(), Dict(:on_update => updater))
-    dispatch!(mol, :on_update)
+    mol = T(state.edges, state.vprops, state.eprops, Dict(), Dict(:updater => updater))
+    dispatch!(mol, :updater)
     return mol
 end
 
@@ -95,7 +97,7 @@ function smartstomol(::Type{T}, smarts::AbstractString; updater=x->()) where T <
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
     mol = T(
         state.edges, state.vprops, state.eprops,
-        Dict(:connectivity => state.connectivity), Dict(:on_update => updater))
+        Dict(:connectivity => state.connectivity), Dict(:updater => updater))
     if vproptype(mol) <: QueryTree  # vproptype(mol) can be QueryTruthTable for testing
         specialize_nonaromatic!(mol)
         remove_hydrogens!(mol)

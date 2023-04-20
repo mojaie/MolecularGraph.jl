@@ -29,7 +29,7 @@ const D_BLOCK = (:Fe, :Co, :Cu, :Zn, :Tc, :Cd, :Pt, :Au, :Hg, :Gd)
 Return Wildman-Crippen LogP atom types.
 """
 function wclogptype(mol::MolGraph)
-    atomtypes = init_node_descriptor(Symbol, mol)
+    atomtypes = Vector{Symbol}(undef, nv(mol))
     fill!(atomtypes, :undef)
     atomsymbol_ = atom_symbol(mol)
     charge_ = charge(mol)
@@ -289,7 +289,7 @@ end
 
 
 function wclogphydrogentype(mol::MolGraph)
-    atomtypes = init_node_descriptor(Symbol, mol)
+    atomtypes = Vector{Symbol}(undef, nv(mol))
     fill!(atomtypes, :undef)
     atomsymbol_ = atom_symbol(mol)
     degree_ = degree(mol)
@@ -334,7 +334,7 @@ end
 
 
 function wclogpcontrib(mol::MolGraph)
-    contrib = init_node_descriptor(Float64, mol)
+    contrib = zeros(Float64, nv(mol))
     atomsymbol_ = atom_symbol(mol)
     heavyatoms_ = heavy_atoms(mol)
     hydrogens_ = total_hydrogens(mol)

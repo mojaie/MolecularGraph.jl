@@ -36,7 +36,7 @@ function is_atom_visible(g, sym, chg, mul, ms, bo; show_carbon=:simple, kwargs..
 end
 
 function is_atom_visible(mol::SimpleMolGraph; show_carbon=:simple, kwargs...)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
     return is_atom_visible(mol.graph, atom_symbol(mol), charge(mol), multiplicity(mol),
         [get_prop(mol, i, :mass) for i in vertices(mol)], bond_order(mol); kwargs...)
 end
@@ -89,7 +89,7 @@ function double_bond_style(g, bondorder_, ntt, coords, sssr_)
 end
 
 function double_bond_style(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
     ntt = hasfield(eproptype(mol), :notation
         ) ? [get_prop(mol, e, :notation) for e in edges(mol)] : zeros(ne(mol))
     return double_bond_style(mol.graph, bond_order(mol), ntt, coords2d(mol), sssr(mol))
@@ -115,9 +115,9 @@ function single_bond_style(bondorder, bondnotation, isordered)
 end
 
 function single_bond_style(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
     # can be precalculated by coordgen
-    has_state(mol, :e_single_bond_style) && return get_state(mol, :e_single_bond_style)
+    has_cache(mol, :e_single_bond_style) && return get_cache(mol, :e_single_bond_style)
     return single_bond_style(
         bond_order(mol), [get_prop(mol, e, :notation) for e in edges(mol)],
         [get_prop(mol, e, :isordered) for e in edges(mol)]
@@ -184,7 +184,7 @@ Draw molecular image to the canvas.
 """
 function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     # get coords
-    if !hasfield(vproptype(mol), :coords) && !has_state(mol, :v_coords2d)  # default SMILESAtom
+    if !hasfield(vproptype(mol), :coords) && !has_cache(mol, :v_coords2d)  # default SMILESAtom
         crds, sb_style = coordgen(mol)
     else  # SDFAtom or has coordgen! precache
         crds = coords2d(mol)

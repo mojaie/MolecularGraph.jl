@@ -38,12 +38,12 @@ of 1 to ``n``th atoms of the given molecule.
 This property corresponds to SMARTS `D` query.
 """
 function Graphs.degree(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_degree) && return get_state(mol, :v_degree)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_degree) && return get_cache(mol, :v_degree)
     return degree(mol.graph)
 end
 
-degree!(mol::SimpleMolGraph) = set_state!(mol, :v_degree, degree(mol.graph))
+degree!(mol::SimpleMolGraph) = set_cache!(mol, :v_degree, degree(mol.graph))
 
 
 """
@@ -54,12 +54,12 @@ Return vectors of ring nodes representing small set of smallest rings (SSSR).
 See [`mincyclebasis`](@ref).
 """
 function sssr(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :sssr) && return get_state(mol, :sssr)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :sssr) && return get_cache(mol, :sssr)
     return mincyclebasis(mol.graph)
 end
 
-sssr!(mol::SimpleMolGraph) = set_state!(mol, :sssr, mincyclebasis(mol.graph))
+sssr!(mol::SimpleMolGraph) = set_cache!(mol, :sssr, mincyclebasis(mol.graph))
 
 
 """
@@ -72,9 +72,9 @@ SSSR membership is represented as a vector of SSSR indices assigned to each ring
 This means nodes that have the same SSSR index belong to the same SSSR.
 """
 function which_ring(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_which_ring) && return get_state(mol, :v_which_ring)
-    arr = init_node_descriptor(Vector{Int}, mol)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_which_ring) && return get_cache(mol, :v_which_ring)
+    arr = [Int[] for _ in vertices(mol)]
     for (i, cyc) in enumerate(sssr(mol))
         for n in cyc
             push!(arr[n], i)
@@ -94,9 +94,9 @@ SSSR membership is represented as a set of SSSR indices assigned to each rings.
 This means bonds that have the same SSSR index belong to the same SSSR.
 """
 function edge_which_ring(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :e_which_ring) && return get_state(mol, :e_which_ring)
-    arr = init_edge_descriptor(Vector{Int}, mol)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :e_which_ring) && return get_cache(mol, :e_which_ring)
+    arr = [Int[] for _ in 1:ne(mol)]
     for (i, cyc) in enumerate(sssr(mol))
         for j in 1:(length(cyc) - 1)
             push!(arr[edge_rank(mol, cyc[j], cyc[j + 1])], i)
@@ -116,8 +116,8 @@ A fused ring is defined as a 2-edge connected components in terms of graph theor
 Spirocyclic structures are considered to be part of a fused ring.
 """
 function fused_rings(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :fused_rings) && return get_state(mol, :fused_rings)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :fused_rings) && return get_cache(mol, :fused_rings)
     cobr = setdiff(Set(edges(mol)), bridges(mol.graph))
     subg, vmap = induced_subgraph(mol.graph, collect(cobr))
     return  [vmap[c] for c in connected_components(subg)]
@@ -134,9 +134,9 @@ Fused ring membership is represented as a set of fused ring indices assigned to 
 This means atoms that have the same fused ring index belong to the same fused ring.
 """
 function which_fused_ring(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_which_fused_ring) && return get_state(mol, :v_which_fused_ring)
-    arr = init_node_descriptor(Vector{Int}, mol)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_which_fused_ring) && return get_cache(mol, :v_which_fused_ring)
+    arr = [Int[] for _ in vertices(mol)]
     for (i, conn) in enumerate(fused_rings(mol))
         for n in conn
             push!(arr[n], i)
@@ -156,11 +156,11 @@ If the node is not in a ring, the value would be 0.
 This property corresponds to SMARTS `r` query.
 """
 function smallest_ring(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_smallest_ring) && return get_state(mol, :v_smallest_ring)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_smallest_ring) && return get_cache(mol, :v_smallest_ring)
     sssr_ = sssr(mol)
     whichring_ = which_ring(mol)
-    arr = init_node_descriptor(Int, mol)
+    arr = zeros(Int, nv(mol))
     for i in vertices(mol)
         rs = whichring_[i]
         isempty(rs) && continue
@@ -179,8 +179,8 @@ that 1 to ``n``th atoms of the given molecule belong to.
 This property corresponds to SMARTS `R` query.
 """
 function ring_count(mol::MolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_ring_count) && return get_state(mol, :v_ring_count)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_ring_count) && return get_cache(mol, :v_ring_count)
     return length.(which_ring(mol))
 end
 
@@ -192,8 +192,8 @@ Return a vector of size ``n`` representing whether 1 to ``n``th atoms of
 the given molecule belong to a ring or not.
 """
 function is_in_ring(mol::MolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_is_in_ring) && return get_state(mol, :v_is_in_ring)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_is_in_ring) && return get_cache(mol, :v_is_in_ring)
     return .!isempty.(which_ring(mol))
 end
 
@@ -205,8 +205,8 @@ Return a vector of size ``n`` representing whether 1 to ``n``th bonds of
 the given molecule belong to a ring or not.
 """
 function is_edge_in_ring(mol::MolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :e_is_in_ring) && return get_state(mol, :e_is_in_ring)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :e_is_in_ring) && return get_cache(mol, :e_is_in_ring)
     return .!isempty.(edge_which_ring(mol))
 end
 
@@ -220,13 +220,13 @@ Return a vector of size ``n`` representing atom symbols of 1 to ``n``th atoms of
 the given molecule.
 """
 function atom_symbol(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_symbol) && return get_state(mol, :v_symbol)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_symbol) && return get_cache(mol, :v_symbol)
     return [get_prop(mol, i, :symbol) for i in vertices(mol)]
 end
 
 atom_symbol!(mol::SimpleMolGraph
-    ) = set_state!(mol, :v_symbol, [get_prop(mol, i, :symbol) for i in vertices(mol)])
+    ) = set_cache!(mol, :v_symbol, [get_prop(mol, i, :symbol) for i in vertices(mol)])
 
 """
     charge(mol::MolGraph) -> Vector{Int}
@@ -235,14 +235,14 @@ Return a vector of size ``n`` representing atom charges of 1 to ``n``th atoms of
 the given molecule.
 """
 function charge(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_charge) && return get_state(mol, :v_charge)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_charge) && return get_cache(mol, :v_charge)
     return [get_prop(mol, i, :charge) for i in vertices(mol)]
 end
 
 # kekulize! or charge standardization (e.g. polarize!) would be reset
 charge!(mol::SimpleMolGraph
-    ) = set_state!(mol, :v_charge, [get_prop(mol, i, :charge) for i in vertices(mol)])
+    ) = set_cache!(mol, :v_charge, [get_prop(mol, i, :charge) for i in vertices(mol)])
 
 
 """
@@ -252,8 +252,8 @@ Return a vector of size ``n`` representing atom multiplicities of 1 to ``n``th a
 the given molecule (1: non-radical, 2: radical, 3: biradical).
 """
 function multiplicity(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_multiplicity) && return get_state(mol, :v_multiplicity)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_multiplicity) && return get_cache(mol, :v_multiplicity)
     return [get_prop(mol, i, :multiplicity) for i in vertices(mol)]
 end
 
@@ -265,8 +265,8 @@ Return a vector of size ``n`` representing bond order of 1 to ``n``th bonds of
 the given molecule.
 """
 function bond_order(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :e_order) && return get_state(mol, :e_order)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :e_order) && return get_cache(mol, :e_order)
     return [get_prop(mol, e, :order) for e in edges(mol)]
 end
 
@@ -297,13 +297,13 @@ function lone_pair(symbol_arr, charge_arr)
 end
 
 function lone_pair(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_lone_pair) && return get_state(mol, :v_lone_pair)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_lone_pair) && return get_cache(mol, :v_lone_pair)
     return lone_pair(atom_symbol(mol), charge(mol))
 end
 
 lone_pair!(mol::SimpleMolGraph
-    ) = set_state!(mol, :v_lone_pair, lone_pair(atom_symbol(mol), charge(mol)))
+    ) = set_cache!(mol, :v_lone_pair, lone_pair(atom_symbol(mol), charge(mol)))
 
 
 """
@@ -323,12 +323,12 @@ function apparent_valence(g, order_arr)
 end
 
 function apparent_valence(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_apparent_valence) && return get_state(mol, :v_apparent_valence)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_apparent_valence) && return get_cache(mol, :v_apparent_valence)
     return apparent_valence(mol.graph, bond_order(mol))
 end
 
-apparent_valence!(mol::SimpleMolGraph) = set_state!(
+apparent_valence!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_apparent_valence, apparent_valence(mol.graph, bond_order(mol)))
 
 
@@ -352,13 +352,13 @@ function valence(symbol_arr, lone_pair_arr)
 end
 
 function valence(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_valence) && return get_state(mol, :v_valence)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_valence) && return get_cache(mol, :v_valence)
     return valence(atom_symbol(mol), lone_pair(mol))
 end
 
 valence!(mol::SimpleMolGraph
-    ) = set_state!(mol, :v_valence, valence(atom_symbol(mol), lone_pair(mol)))
+    ) = set_cache!(mol, :v_valence, valence(atom_symbol(mol), lone_pair(mol)))
 
 
 """
@@ -381,12 +381,12 @@ function explicit_hydrogens(g, symbol_arr)
 end
 
 function explicit_hydrogens(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_explicit_hydrogens) && return get_state(mol, :v_explicit_hydrogens)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_explicit_hydrogens) && return get_cache(mol, :v_explicit_hydrogens)
     return explicit_hydrogens(mol.graph, atom_symbol(mol))
 end
 
-explicit_hydrogens!(mol::SimpleMolGraph) = set_state!(
+explicit_hydrogens!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_explicit_hydrogens, explicit_hydrogens(mol.graph, atom_symbol(mol)))
 
 
@@ -409,12 +409,12 @@ function implicit_hydrogens(valence_arr, app_valence_arr)
 end
 
 function implicit_hydrogens(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_implicit_hydrogens) && return get_state(mol, :v_implicit_hydrogens)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_implicit_hydrogens) && return get_cache(mol, :v_implicit_hydrogens)
     return implicit_hydrogens(valence(mol), apparent_valence(mol))
 end
 
-implicit_hydrogens!(mol::SimpleMolGraph) = set_state!(
+implicit_hydrogens!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_implicit_hydrogens, implicit_hydrogens(valence(mol), apparent_valence(mol)))
 
 
@@ -425,12 +425,12 @@ Return a vector of size ``n`` representing the number of non-hydrogen atoms
 connected to 1 to ``n``th atoms of the given molecule.
 """
 function heavy_atoms(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_heavy_atoms) && return get_state(mol, :v_heavy_atoms)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_heavy_atoms) && return get_cache(mol, :v_heavy_atoms)
     return degree(mol) - explicit_hydrogens(mol)
 end
 
-heavy_atoms!(mol::SimpleMolGraph) = set_state!(
+heavy_atoms!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_heavy_atoms, degree(mol) - explicit_hydrogens(mol))
 
 
@@ -444,12 +444,12 @@ Return a vector of size ``n`` representing the number of total hydrogens
 This property corresponds to SMARTS `H` query.
 """
 function total_hydrogens(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_total_hydrogens) && return get_state(mol, :v_total_hydrogens)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_total_hydrogens) && return get_cache(mol, :v_total_hydrogens)
     return explicit_hydrogens(mol) + implicit_hydrogens(mol)
 end
 
-total_hydrogens!(mol::SimpleMolGraph) = set_state!(
+total_hydrogens!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_total_hydrogens, explicit_hydrogens(mol) + implicit_hydrogens(mol))
 
 
@@ -462,12 +462,12 @@ Return a vector of size ``n`` representing the number of total atoms
 This property corresponds to SMARTS `X` query.
 """
 function connectivity(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_connectivity) && return get_state(mol, :v_connectivity)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_connectivity) && return get_cache(mol, :v_connectivity)
     return degree(mol) + implicit_hydrogens(mol)
 end
 
-connectivity!(mol::SimpleMolGraph) = set_state!(
+connectivity!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_connectivity, degree(mol) + implicit_hydrogens(mol))
 
 
@@ -480,12 +480,12 @@ function is_hydrogen_acceptor(symbol_arr, lone_pair_arr)
 end
 
 function is_hydrogen_acceptor(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_is_hydrogen_acceptor) && return get_state(mol, :v_is_hydrogen_acceptor)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_is_hydrogen_acceptor) && return get_cache(mol, :v_is_hydrogen_acceptor)
     return is_hydrogen_acceptor(atom_symbol(mol), lone_pair(mol))
 end
 
-is_hydrogen_acceptor!(mol::SimpleMolGraph) = set_state!(
+is_hydrogen_acceptor!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_is_hydrogen_acceptor, is_hydrogen_acceptor(atom_symbol(mol), lone_pair(mol)))
 
 
@@ -503,12 +503,12 @@ function is_hydrogen_donor(symbol_arr, total_hydrogens_arr)
 end
 
 function is_hydrogen_donor(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_is_hydrogen_donor) && return get_state(mol, :v_is_hydrogen_donor)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_is_hydrogen_donor) && return get_cache(mol, :v_is_hydrogen_donor)
     return is_hydrogen_donor(atom_symbol(mol), total_hydrogens(mol))
 end
 
-is_hydrogen_donor!(mol::SimpleMolGraph) = set_state!(
+is_hydrogen_donor!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_is_hydrogen_donor, is_hydrogen_donor(atom_symbol(mol), total_hydrogens(mol)))
 
 
@@ -540,12 +540,12 @@ function is_rotatable(edge_list, degree_arr, edge_in_ring_arr, order_arr)
 end
 
 function is_rotatable(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :e_is_rotatable) && return get_state(mol, :e_is_rotatable)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :e_is_rotatable) && return get_cache(mol, :e_is_rotatable)
     return is_rotatable(edges(mol), degree(mol), is_edge_in_ring(mol), bond_order(mol))
 end
 
-is_rotatable!(mol::SimpleMolGraph) = set_state!(
+is_rotatable!(mol::SimpleMolGraph) = set_cache!(
     mol, :e_is_rotatable,
     is_rotatable(edges(mol), degree(mol), is_edge_in_ring(mol), bond_order(mol)))
 
@@ -683,13 +683,13 @@ function pi_electron(g, degree_arr, symbol_arr, charge_arr, app_valence_arr)
 end
 
 function pi_electron(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_pi_electron) && return get_state(mol, :v_pi_electron)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_pi_electron) && return get_cache(mol, :v_pi_electron)
     return pi_electron(
         mol.graph, degree(mol), atom_symbol(mol), charge(mol), apparent_valence(mol))
 end
 
-pi_electron!(mol::SimpleMolGraph) = set_state!(
+pi_electron!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_pi_electron,
     pi_electron(
         mol.graph, degree(mol), atom_symbol(mol), charge(mol), apparent_valence(mol)))
@@ -730,12 +730,12 @@ function hybridization(symbol_arr, lone_pair_arr, connectivity_arr, pi_electron_
 end
 
 function hybridization(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_hybridization) && return get_state(mol, :v_hybridization)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_hybridization) && return get_cache(mol, :v_hybridization)
     return hybridization(atom_symbol(mol), lone_pair(mol), connectivity(mol), pi_electron(mol))
 end
 
-hybridization!(mol::SimpleMolGraph) = set_state!(
+hybridization!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_hybridization,
     hybridization(atom_symbol(mol), lone_pair(mol), connectivity(mol), pi_electron(mol)))
 
@@ -786,8 +786,8 @@ function is_ring_aromatic(g, degree_arr, sssr_, symbol_arr, smiles_isaromatic_ar
 end
 
 function is_ring_aromatic(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :is_ring_aromatic) && return get_state(mol, :is_ring_aromatic)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :is_ring_aromatic) && return get_cache(mol, :is_ring_aromatic)
     arom_arr = (hasfield(vproptype(mol), :isaromatic)
         ? [get_prop(mol, i, :isaromatic) for i in vertices(mol)] : falses(nv(mol)))
     return is_ring_aromatic(
@@ -797,7 +797,7 @@ end
 function is_ring_aromatic!(mol::SimpleMolGraph)
     arom_arr = (hasfield(vproptype(mol), :isaromatic)
         ? [get_prop(mol, i, :isaromatic) for i in vertices(mol)] : falses(nv(mol)))
-    set_state!(mol, :is_ring_aromatic, is_ring_aromatic(
+    set_cache!(mol, :is_ring_aromatic, is_ring_aromatic(
         mol.graph, degree(mol), sssr(mol), atom_symbol(mol), arom_arr, lone_pair(mol), apparent_valence(mol)))
 end
 
@@ -822,12 +822,12 @@ end
 
 
 function is_aromatic(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :v_is_aromatic) && return get_state(mol, :v_is_aromatic)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_is_aromatic) && return get_cache(mol, :v_is_aromatic)
     return is_aromatic(mol.graph, sssr(mol), is_ring_aromatic(mol))
 end
 
-is_aromatic!(mol::SimpleMolGraph) = set_state!(
+is_aromatic!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_is_aromatic, is_aromatic(mol.graph, sssr(mol), is_ring_aromatic(mol)))
 
 
@@ -852,12 +852,12 @@ function is_edge_aromatic(g, sssr_, is_ring_arom)
 end
 
 function is_edge_aromatic(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :on_update)
-    has_state(mol, :e_is_aromatic) && return get_state(mol, :e_is_aromatic)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :e_is_aromatic) && return get_cache(mol, :e_is_aromatic)
     return is_edge_aromatic(mol.graph, sssr(mol), is_ring_aromatic(mol))
 end
 
-is_edge_aromatic!(mol::SimpleMolGraph) = set_state!(
+is_edge_aromatic!(mol::SimpleMolGraph) = set_cache!(
     mol, :e_is_aromatic, is_edge_aromatic(mol.graph, sssr(mol), is_ring_aromatic(mol)))
 
 

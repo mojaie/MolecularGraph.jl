@@ -105,7 +105,9 @@ end
 
 function sdf_on_update!(mol)
     update_edge_rank!(mol)
-    mol.state[:has_updates] = false
+    clear_caches!(mol)
+    set_state!(mol, :has_updates, false)
+    # preprocessing
     stereocenter_from_sdf2d!(mol)
     stereobond_from_sdf2d!(mol)
     # recalculate bottleneck descriptors
@@ -192,7 +194,7 @@ function parse_ctab(::Type{T}, io::IO, updater) where T <: AbstractMolGraph
         readuntil(io, ctab_only ? "M  V30 END CTAB\n" : "M  END\n")
     end
 
-    return T(edges, vprops, eprops, Dict(), Dict(:on_update => updater))
+    return T(edges, vprops, eprops, Dict(), Dict(:updater => updater))
 end
 
 

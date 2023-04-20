@@ -65,7 +65,7 @@ end
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, Dict(:hoge => 2))  # CCC
-    @test 3 == set_prop!(mol, :fuga, 3)
+    set_prop!(mol, :fuga, 3)
     @test get_prop(mol, :fuga) == 3
     @test add_vertex!(mol, SDFAtom(:O))  # CCC.O
     @test get_prop(mol, 4, :symbol) === :O
