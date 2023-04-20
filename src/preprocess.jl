@@ -112,7 +112,7 @@ end
 
 Return the molecule with hydrogen nodes removed.
 
-If option `all` is set to true (default), all hydrogens will be removed, otherwise only trivial hydrogens will be removed (see [`trivialhydrogens`](@ref)).
+If option `all` is set to true (default), all hydrogens will be removed, otherwise only trivial hydrogens will be removed (see [`removable_hydrogens`](@ref)).
 """
 function remove_hydrogens!(mol::SimpleMolGraph; all=true)
     hydrogens = all ? all_hydrogens : removable_hydrogens

@@ -155,7 +155,7 @@ end
     exact_matches(mol1, mol2; kwargs...) -> Iterator
 
 Return a lazy iterator that generate node mappings between `mol` and `query` if these are exactly same.
-See [`MolecularGraph.structmatches`](@ref) for available options.
+See [`substruct_matches`](@ref) for available options.
 """
 function exact_matches(mol1::MolGraph, mol2::MolGraph;
         vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2), kwargs...)
@@ -169,7 +169,7 @@ end
     has_exact_match(mol1, mol2; kwargs...) -> Bool
 
 Return whether `mol` and `query` have exactly the same structure.
-See [`MolecularGraph.structmatches`](@ref) for available options.
+See [`substruct_matches`](@ref) for available options.
 """
 has_exact_match(mol1, mol2; kwargs...) = !isempty(exact_matches(mol1, mol2; kwargs...))
 
@@ -178,7 +178,6 @@ has_exact_match(mol1, mol2; kwargs...) = !isempty(exact_matches(mol1, mol2; kwar
     substruct_matches(mol1, mol2; kwargs...) -> Iterator
 
 Return a lazy iterator that generate node mappings between `mol` and `query` if `mol` has `query` as a substructure.
-See [`MolecularGraph.structmatches`](@ref) for available options.
 
 # options
 
@@ -201,7 +200,7 @@ end
     has_substruct_match(mol1, mol2; kwargs...) -> Bool
 
 Return whether `mol` has `query` as a substructure.
-See [`MolecularGraph.structmatches`](@ref) for available options.
+See [`substruct_matches`](@ref) for available options.
 """
 has_substruct_match(mol1, mol2; kwargs...) = !isempty(substruct_matches(mol1, mol2; kwargs...))
 
@@ -210,7 +209,7 @@ has_substruct_match(mol1, mol2; kwargs...) = !isempty(substruct_matches(mol1, mo
     node_substruct_matches(mol1, mol2; kwargs...) -> Iterator
 
 Return a lazy iterator that generate node mappings between `mol` and `query` if `mol` has `query` as a substructure.
-See [`MolecularGraph.structmatches`](@ref) for available options.
+See [`substruct_matches`](@ref) for available options.
 """
 function node_substruct_matches(mol1::MolGraph, mol2::MolGraph;
         vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2), kwargs...)
@@ -224,7 +223,7 @@ end
     has_node_substruct_match(mol1, mol2; kwargs...) -> Bool
 
 Return whether `mol` has `query` as a substructure.
-See [`MolecularGraph.structmatches`](@ref) for available options.
+See [`substruct_matches`](@ref) for available options.
 """
 has_node_substruct_match(mol1, mol2; kwargs...) = !isempty(node_substruct_matches(mol1, mol2; kwargs...))
 
@@ -233,7 +232,7 @@ has_node_substruct_match(mol1, mol2; kwargs...) = !isempty(node_substruct_matche
     edge_substruct_matches(mol1, mol2; kwargs...) -> Iterator
 
 Return a lazy iterator that generate node mappings between `mol` and `query` if `mol` has `query` as a substructure.
-See [`MolecularGraph.structmatches`](@ref) for available options.
+See [`substruct_matches`](@ref) for available options.
 """
 function edge_substruct_matches(mol1::MolGraph, mol2::MolGraph;
         vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2), kwargs...)
@@ -247,7 +246,7 @@ end
     has_edge_substruct_match(mol1, mol2; kwargs...) -> Bool
 
 Return whether `mol` has `query` as a substructure.
-See [`MolecularGraph.structmatches`](@ref) for available options.
+See [`substruct_matches`](@ref) for available options.
 """
 has_edge_substruct_match(mol1, mol2; kwargs...) = !isempty(edge_substruct_matches(mol1, mol2; kwargs...))
 
@@ -335,7 +334,7 @@ tcmces(mol1, mol2, vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); k
 """
     nmap = emaptonmap(emap, mol, query)
 
-Convert an edge-based mapping, of the form returned by [`edgesubgraphmatches`](@ref), into
+Convert an edge-based mapping, of the form returned by [`edge_substruct_matches`](@ref), into
 a map between nodes. Commonly, `nmap[i]` is a length-1 vector `[j]`, where `i=>j` is the mapping
 from `nodeattr(query, i)` to `nodeattr(mol, j)`. In cases where the mapping is ambiguous,
 `nmap[i]` may be multivalued.

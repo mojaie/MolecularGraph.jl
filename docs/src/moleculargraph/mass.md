@@ -1,6 +1,5 @@
 
-# Molecular mass/weight
-
+# Molecular mass and weight
 
 ```@autodocs
 Modules = [MolecularGraph]

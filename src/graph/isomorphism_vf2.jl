@@ -328,7 +328,7 @@ in `G` and `H`, respectively.
 
 `vmatch` and `ematch` control the features needed to be counted as a match.
 
-See [`Graph.edgesubgraph`](@ref) to construct the subgraphs that result from the match.
+See `Graphs.induced_subgraph` to construct the subgraphs that result from the match.
 """
 function edgesubgraph_isomorphisms(
         g, h; vmatch=(gv,hv)->true, ematch=(ge,he)->true, kwargs...)

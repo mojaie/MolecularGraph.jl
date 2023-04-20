@@ -1,10 +1,9 @@
 
-# Molecular queries
-
+# Stereochemistry
 
 ```@autodocs
 Modules = [MolecularGraph]
-Pages   = ["./model/query.jl", "querycontainment.jl"]
+Pages   = ["stereo.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

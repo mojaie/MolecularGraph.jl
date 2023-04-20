@@ -1,10 +1,9 @@
 
-# Cartesian
-
+# InChI
 
 ```@autodocs
-Modules = [Geometry]
-Pages   = ["geometry/cartesian.jl"]
+Modules = [MolecularGraph]
+Pages   = ["inchi.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

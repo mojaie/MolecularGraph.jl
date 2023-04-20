@@ -11,17 +11,23 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "MolecularGraph" => [
-            "Molecule" => "moleculargraph/molecule.md",
+            "Molecular graph models" => "moleculargraph/model.md",
             "I/O" => "moleculargraph/io.md",
             "Structure drawing" => "moleculargraph/draw.md",
-            "Chemical properties" => "moleculargraph/properties.md",
+            "Coordinates" => "moleculargraph/coordinates.md",
+            "Properties and descriptors" => "moleculargraph/properties.md",
+            "Structure match" => "moleculargraph/structurematch.md",
+            "Molecular queries" => "moleculargraph/query.md",
+            "InChI" => "moleculargraph/inchi.md",
+            "Graph algorithims" => "moleculargraph/graph.md",
             "Preprocessing" => "moleculargraph/preprocess.md",
             "Molecular mass/weight" => "moleculargraph/mass.md",
-            "Structure match" => "moleculargraph/structurematch.md",
-            "Molecular queries" => "moleculargraph/query.md"
+            "Stereochemistry" => "moleculargraph/stereo.md"
         ],
-        "MolecularGraph.Graph" => "graph.md",
-        "MolecularGraph.Geometry" => "geometry.md"
+        "Implementation notes" => [
+            "Concept of molecular graph models" => "notes/concept.md",
+            "Miscellaneous" => "notes/misc.md"
+        ]
     ],
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true"

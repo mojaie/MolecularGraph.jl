@@ -22,7 +22,7 @@ Order   = [:constant, :function, :type]
 ```
 
 
-## SMILES/SMARTS
+## SMILES/SMARTS reader
 
 ```@autodocs
 Modules = [MolecularGraph]

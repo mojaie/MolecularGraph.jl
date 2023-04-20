@@ -51,7 +51,7 @@ degree!(mol::SimpleMolGraph) = set_state!(mol, :v_degree, degree(mol.graph))
 
 Return vectors of ring nodes representing small set of smallest rings (SSSR).
 
-See [`Graph.minimumcyclebasis`](@ref).
+See [`mincyclebasis`](@ref).
 """
 function sssr(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :on_update)
@@ -127,7 +127,7 @@ end
 """
     which_fused_ring(mol::SimpleMolGraph) -> Vector{Vector{Int}}
 
-Return a vector of size ``n`` representing [`fusedrings`](@ref) membership of
+Return a vector of size ``n`` representing [`fused_rings`](@ref) membership of
 1 to ``n``th atoms of the given molecule.
 
 Fused ring membership is represented as a set of fused ring indices assigned to each fused rings.
@@ -837,7 +837,7 @@ is_aromatic!(mol::SimpleMolGraph) = set_state!(
 Returns a vector of size ``n`` representing whether 1 to ``n``th bonds
 of the given molecule belong to an aromatic ring or not.
 
-See [`isaromatic`](@ref).
+See [`is_aromatic`](@ref).
 """
 function is_edge_aromatic(g, sssr_, is_ring_arom)
     arr = falses(ne(g))
