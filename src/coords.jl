@@ -144,5 +144,5 @@ function coordgen!(mol::SimpleMolGraph)
         get_prop(mol, :stereocenter), get_prop(mol, :stereobond)
     )
     set_cache!(mol, :v_coords2d, coords)
-    set_cache!(mol, :e_single_bond_style, styles)
+    set_cache!(mol, :e_coordgen_bond_style, styles)
 end

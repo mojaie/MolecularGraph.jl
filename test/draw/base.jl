@@ -17,11 +17,11 @@
     @testset "bondstyle" begin
         ASSET_DIR = joinpath(dirname(@__FILE__), "..", "..", "assets", "test")
         mol = sdftomol(open(joinpath(ASSET_DIR, "demo.mol")))
-        sb = single_bond_style(mol)
+        sb = sdf_bond_style(mol)
         @test sb[7] === :up  # 3 ◀ 7
         @test sb[9] === :down  # 4 ◁ 8
         @test sb[10] === :unspecified # 5 ~ 11
-        db = double_bond_style(mol)
+        db = double_bond_style(mol.graph, bond_order(mol), coords2d(mol), sssr(mol))
         @test db[1] === :clockwise  # 2 ニ 1
         @test db[18] === :anticlockwise # 17 ニ 18
         @test db[12] === :none  # 10 = 13

@@ -318,7 +318,7 @@ const BOND_DRAWER = Dict(
         :none => doublebond!,
         :clockwise => clockwisedouble!,
         :anticlockwise => counterdouble!,
-        :unspecified => crossdouble!
+        :cis_trans => crossdouble!
     ),
     3 => Dict(
         :none => triplebond!

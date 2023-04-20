@@ -42,16 +42,12 @@ function is_atom_visible(mol::SimpleMolGraph; show_carbon=:simple, kwargs...)
 end
 
 
-function double_bond_style(g, bondorder_, ntt, coords, sssr_)
+function double_bond_style(g, bondorder_, coords, sssr_)
     arr = Vector{Symbol}(undef, ne(g))
     er = Dict(e => i for (i, e) in enumerate(edges(g)))
     for (i, e) in enumerate(edges(g))
         if bondorder_[i] != 2
             arr[i] = :none
-            continue
-        end
-        if ntt[i] == 3
-            arr[i] = :unspecified  # u x v (explicitly unspecified or racemic)
             continue
         end
         snbrs, dnbrs = edge_neighbors(g, e)
@@ -88,18 +84,13 @@ function double_bond_style(g, bondorder_, ntt, coords, sssr_)
     return arr
 end
 
-function double_bond_style(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    ntt = hasfield(eproptype(mol), :notation
-        ) ? [get_prop(mol, e, :notation) for e in edges(mol)] : zeros(ne(mol))
-    return double_bond_style(mol.graph, bond_order(mol), ntt, coords2d(mol), sssr(mol))
-end
 
-
-function single_bond_style(bondorder, bondnotation, isordered)
+function sdf_bond_style(bondorder, bondnotation, isordered)
     arr = Vector{Symbol}(undef, length(bondorder))
     for i in 1:length(bondorder)
-        if bondorder[i] != 1
+        if bondnotation[i] == 3
+            arr[i] = :cis_trans
+        elseif bondorder[i] != 1
             arr[i] = :none
         elseif bondnotation[i] == 1
             arr[i] = isordered[i] ? :up : :revup
@@ -114,33 +105,27 @@ function single_bond_style(bondorder, bondnotation, isordered)
     return arr
 end
 
-function single_bond_style(mol::SimpleMolGraph)
+function sdf_bond_style(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    # can be precalculated by coordgen
-    has_cache(mol, :e_single_bond_style) && return get_cache(mol, :e_single_bond_style)
-    return single_bond_style(
-        bond_order(mol), [get_prop(mol, e, :notation) for e in edges(mol)],
+    return sdf_bond_style(
+        bond_order(mol),
+        [get_prop(mol, e, :notation) for e in edges(mol)],
         [get_prop(mol, e, :isordered) for e in edges(mol)]
     )
 end
 
 
-function bond_style(bondorder, singlebondstyle, doublebondstyle)
-    arr = Vector{Symbol}(undef, length(bondorder))
+function bond_style(g, bondorder, defaultbondstyle, coords_, sssr_)
+    doublebondstyle = double_bond_style(g, bondorder, coords_, sssr_)
+    arr = copy(defaultbondstyle)
     for i in 1:length(bondorder)
-        if bondorder[i] == 1
-            arr[i] = singlebondstyle[i]
-        elseif bondorder[i] == 2
+        defaultbondstyle[i] === :cis_trans && continue
+        if bondorder[i] == 2
             arr[i] = doublebondstyle[i]
-        else
-            arr[i] = :none
         end
     end
     return arr
 end
-
-bond_style(mol::SimpleMolGraph) = bond_style(bond_order(mol), single_bond_style(mol), double_bond_style(mol))
-
 
 
 """
@@ -183,17 +168,18 @@ atomhtml(
 Draw molecular image to the canvas.
 """
 function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
     # get coords
     if !hasfield(vproptype(mol), :coords) && !has_cache(mol, :v_coords2d)  # default SMILESAtom
-        crds, sb_style = coordgen(mol)
+        crds, default_bond_style = coordgen(mol)
     else  # SDFAtom or has coordgen! precache
         crds = coords2d(mol)
-        sb_style = single_bond_style(mol)
+        default_bond_style = (has_cache(mol, :e_coordgen_bond_style) ? 
+            get_cache(mol, :e_coordgen_bond_style) : sdf_bond_style(mol))
     end
     # Canvas settings
     initcanvas!(canvas, crds, boundary(mol, crds))
     canvas.valid || return
-
     # Properties
     atomsymbol_ = atom_symbol(mol)
     charge_ = charge(mol)
@@ -201,7 +187,7 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     bondorder_ = bond_order(mol)
     atomcolor_ = atom_color(mol; kwargs...)
     isatomvisible_ = is_atom_visible(mol; kwargs...)
-    bondstyle_ = bond_style(bondorder_, sb_style, double_bond_style(mol))
+    bondstyle_ = bond_style(mol.graph, bondorder_, default_bond_style, crds, sssr(mol))
 
     # Draw bonds
     for (i, e) in enumerate(edges(mol))

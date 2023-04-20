@@ -7,19 +7,15 @@ export
     printv2mol, printv2sdf, sdfilewriter
 
 
-function sdf_bond_style(bondorder, bondstyle)
-    arr = zeros(Int, length(bondorder))
-    for i in 1:length(bondorder)
-        if bondstyle[i] in (:up, :revup)
-            arr[i] = 1
-        elseif bondstyle[i] in (:down, :revdown)
-            arr[i] = 6
-        elseif bondstyle[i] === :unspecified
-            arr[i] = bondorder[i] == 2 ? 3 : 4
-        end
-    end
-    return arr
-end
+const BOND_STYLE_TO_SDF = Dict(
+    :none => 0,
+    :up => 1,
+    :revup => 1,
+    :down => 6,
+    :revdown => 6,
+    :unspecified => 4,
+    :cis_trans => 3
+)
 
 
 function printv2atoms(io::IO, g, atomsymbol, coords)
@@ -33,10 +29,9 @@ end
 
 
 function printv2bonds(io::IO, g, bondorder, styles)
-    sdfstyles = sdf_bond_style(bondorder, styles)
     for (i, e) in enumerate(edges(g))
         u, v = styles[i] in (:revup, :revdown) ? (dst(e), src(e)) : (src(e), dst(e))
-        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v bondorder[i] sdfstyles[i]
+        uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v bondorder[i] BOND_STYLE_TO_SDF[styles[i]]
         println(io, uv)
     end
 end
@@ -105,15 +100,12 @@ function printv2mol(io::IO, mol::SimpleMolGraph)
     if !hasfield(vproptype(mol), :coords) && !has_cache(mol, :v_coords2d)  # default SMILESAtom
         coords, styles = coordgen(mol)
         printv2atoms(io, mol.graph, atom_symbol(mol), coords)
-        # TODO: cis-trans unspecified double bond in SMILES
-        printv2bonds(io, mol.graph, bondorder,
-            bond_style(bondorder, styles, 
-                double_bond_style(mol.graph, bond_order(mol), zeros(ne(mol)), coords, sssr(mol))
-            )
-        )
-    else
+        printv2bonds(io, mol.graph, bondorder, styles)  # TODO: unspecified stereochem in SMILES
+    else  # SDFAtom or has coordgen! precache
+        styles = (has_cache(mol, :e_coordgen_bond_style) ?
+            get_cache(mol, :e_coordgen_bond_style) : sdf_bond_style(mol))
         printv2atoms(io, mol.graph, atom_symbol(mol), coords2d(mol))
-        printv2bonds(io, mol.graph, bondorder, bond_style(bondorder, single_bond_style(mol), double_bond_style(mol)))
+        printv2bonds(io, mol.graph, bondorder, styles)
     end
     printv2properties(io, mol)
     println(io, "M  END")
