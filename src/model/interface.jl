@@ -21,7 +21,7 @@ export
     props, vprops, eprops,
     get_prop, has_prop, metadata,
     set_state!, has_state, get_state,
-    set_cache!, has_cache, get_cache, clear_cache!,
+    set_cache!, has_cache, get_cache, clear_caches!,
     set_prop!, update_edge_rank!,
     edge_neighbors, ordered_edge_neighbors
 

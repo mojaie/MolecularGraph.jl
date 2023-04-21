@@ -124,29 +124,31 @@ end
 
 Return stereocenter information obtained from 2D SDFile.
 """
-function stereocenter_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E}
+function stereocenter_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, e_isordered, v_coords2d) where T
     centers = Stereocenter{T}()
-    crds = coords2d(mol)
-    for i in vertices(mol)
-        degree(mol.graph, i) in (3, 4) || continue
-        nbrs = ordered_neighbors(mol, i)
+    edgerank = Dict(e => i for (i, e) in enumerate(edges(g)))
+    for i in vertices(g)
+        degree(g, i) in (3, 4) || continue
+        nbrs = ordered_neighbors(g, i)
         drs = Symbol[]  # lookingFrom, atom1, atom2, (atom3)
         for nbr in nbrs
-            if get_prop(mol, i, nbr, :isordered) == i < nbr  # only outgoing wedges are considered
-                if get_prop(mol, i, nbr, :notation) == 1
+            e_order[edgerank[u_edge(g, i, nbr)]] == 1 || break
+            if e_isordered[edgerank[u_edge(g, i, nbr)]] == (i < nbr)  # only outgoing wedges are considered
+                if e_notation[edgerank[u_edge(g, i, nbr)]] == 1
                     push!(drs, :up)
                     continue
-                elseif get_prop(mol, i, nbr, :notation) == 6
+                elseif e_notation[edgerank[u_edge(g, i, nbr)]] == 6
                     push!(drs, :down)
                     continue
                 end
             end
             push!(drs, :unspecified)
         end
+        length(drs) == degree(g, i) || (@debug "multiple bond"; continue)
         upcnt = count(x -> x === :up, drs)
         dwcnt = count(x -> x === :down, drs)
-        (upcnt == 0 && dwcnt == 0) && continue  # unspecified
-        sortorder = [1, map(x -> x + 1, anglesort(crds, i, nbrs[1], nbrs[2:end]))...]
+        (upcnt == 0 && dwcnt == 0) && (@debug "unspecified"; continue)
+        sortorder = [1, map(x -> x + 1, anglesort(v_coords2d, i, nbrs[1], nbrs[2:end]))...]
         ons = nbrs[sortorder]
         ods = drs[sortorder]
         if length(nbrs) == 3
@@ -154,21 +156,18 @@ function stereocenter_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E}
                 # if there is implicit hydrogen, an up-wedge -> clockwise, a down-edge -> ccw
                 centers[i] = (ons[1], ons[2], ons[3], dwcnt == 0)
             else
-                # @debug "Ambiguous stereochemistry (maybe need explicit hydrogen)"
-                # need warning?
+                @debug "Ambiguous stereochemistry (maybe need explicit hydrogen)"
                 continue
             end
         elseif (ods[1] !== :unspecified && ods[3] !== :unspecified && ods[1] !== ods[3] ||
                 ods[2] !== :unspecified && ods[4] !== :unspecified && ods[2] !== ods[4])
-            # @debug "Ambiguous stereochemistry (opposite direction wedges at opposite side)"
-            # need warning?
+            @debug "Ambiguous stereochemistry (opposite direction wedges at opposite side)"
             continue
         elseif (ods[1] !== :unspecified && ods[1] === ods[2] ||
                 ods[2] !== :unspecified && ods[2] === ods[3] ||
                 ods[3] !== :unspecified && ods[3] === ods[4] ||
                 ods[4] !== :unspecified && ods[4] === ods[1])
-            # @debug "Ambiguous stereochemistry (same direction wedges at same side)"
-            # need warning?
+            @debug "Ambiguous stereochemistry (same direction wedges at same side)"
             continue
         elseif upcnt != 0
             centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
@@ -178,6 +177,14 @@ function stereocenter_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E}
     end
     return centers
 end
+
+stereocenter_from_sdf2d(mol::MolGraph) = stereocenter_from_sdf2d(
+    mol.graph,
+    [get_prop(mol, e, :order) for e in edges(mol)],
+    [get_prop(mol, e, :notation) for e in edges(mol)],
+    [get_prop(mol, e, :isordered) for e in edges(mol)],
+    sdf_coords2d(mol)
+)
 
 """
     stereocenter_from_sdf2d!(mol::MolGraph) -> Nothing
@@ -189,20 +196,22 @@ stereocenter_from_sdf2d!(mol::MolGraph
 
 
 """
-    stereocenter_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E} -> Stereocenter{T}
+    stereocenter_from_smiles(g::SimpleGraph{T}, v_stereo) where T -> Stereocenter{T}
 Return stereocenter information obtained from SMILES.
 """
-function stereocenter_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E}
+function stereocenter_from_smiles(g::SimpleGraph{T}, v_stereo) where T
     centers = Stereocenter{T}()
-    for i in vertices(mol)
-        degree(mol.graph, i) in (3, 4) || continue
-        direction = get_prop(mol, i, :stereo)
-        direction === :unspecified && continue
-        nbrs = ordered_neighbors(mol, i)
-        centers[i] = (nbrs[1], nbrs[2], nbrs[3], direction === :clockwise)
+    for i in vertices(g)
+        degree(g, i) in (3, 4) || continue
+        v_stereo[i] === :unspecified && continue
+        nbrs = ordered_neighbors(g, i)
+        centers[i] = (nbrs[1], nbrs[2], nbrs[3], v_stereo[i] === :clockwise)
     end
     return centers
 end
+
+stereocenter_from_smiles(mol::SimpleMolGraph) = stereocenter_from_smiles(
+    mol.graph, [get_prop(mol, i, :stereo) for i in vertices(mol)])
 
 """
     stereocenter_from_smiles!(mol::MolGraph) -> Nothing
@@ -214,22 +223,21 @@ stereocenter_from_smiles!(mol::MolGraph
 
 
 """
-    stereobond_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E} -> Stereobond{T}
+    stereobond_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, v_coords2d) where T -> Stereobond{T}
 
 Return cis-trans diastereomerism information obtained from 2D SDFile.
 """
-function stereobond_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E}
+function stereobond_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, v_coords2d) where T
     stereobonds = Stereobond{T}()
-    crds = coords2d(mol)
-    for e in edges(mol)
-        get_prop(mol, e, :order) == 2 || continue
-        get_prop(mol, e, :notation) == 3 && continue  # stereochem unspecified
-        degree(mol.graph, src(e)) in (2, 3) || continue
-        degree(mol.graph, dst(e)) in (2, 3) || continue
-        snbrs, dnbrs = ordered_edge_neighbors(mol, e)
+    for (i, e) in enumerate(edges(g))
+        e_order[i] == 2 || continue
+        e_notation[i] == 3 && continue  # stereochem unspecified
+        degree(g, src(e)) in (2, 3) || continue
+        degree(g, dst(e)) in (2, 3) || continue
+        snbrs, dnbrs = ordered_edge_neighbors(g, e)
         # Check coordinates
-        d1, d2 = (Point2D(crds, src(e)), Point2D(crds, dst(e)))
-        n1, n2 = (Point2D(crds, snbrs[1]), Point2D(crds, dnbrs[1]))
+        d1, d2 = (Point2D(v_coords2d, src(e)), Point2D(v_coords2d, dst(e)))
+        n1, n2 = (Point2D(v_coords2d, snbrs[1]), Point2D(v_coords2d, dnbrs[1]))
         cond(a, b) = (d1.x - d2.x) * (b - d1.y) + (d1.y - d2.y) * (d1.x - a)
         n1p = cond(n1.x, n1.y)
         n2p = cond(n2.x, n2.y)
@@ -239,6 +247,13 @@ function stereobond_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E}
     end
     return stereobonds
 end
+
+stereobond_from_sdf2d(mol::SimpleMolGraph) = stereobond_from_sdf2d(
+    mol.graph,
+    [get_prop(mol, e, :order) for e in edges(mol)],
+    [get_prop(mol, e, :notation) for e in edges(mol)],
+    sdf_coords2d(mol)
+)
 
 """
     stereobond_from_sdf2d!(mol::MolGraph) -> Nothing
@@ -250,26 +265,27 @@ stereobond_from_sdf2d!(mol::MolGraph
 
 
 """
-    stereobond_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E} -> Stereobond{T}
+    stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T -> Stereobond{T}
 
 Return cis-trans diastereomerism information obtained from SMILES.
 """
-function stereobond_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E}
+function stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T
     stereobonds = Stereobond{T}()
-    for e in edges(mol)
-        get_prop(mol, e, :order) == 2 || continue
-        degree(mol.graph, src(e)) in (2, 3) || continue
-        degree(mol.graph, dst(e)) in (2, 3) || continue
-        snbrs, dnbrs = ordered_edge_neighbors(mol, e)
+    edgerank = Dict(e => i for (i, e) in enumerate(edges(g)))
+    for (i, e) in enumerate(edges(g))
+        e_order[i] == 2 || continue
+        degree(g, src(e)) in (2, 3) || continue
+        degree(g, dst(e)) in (2, 3) || continue
+        snbrs, dnbrs = ordered_edge_neighbors(g, e)
         sds = []
         dds = []
         for sn in snbrs
-            sd = get_prop(mol, sn, src(e), :direction)
+            sd = e_direction[edgerank[u_edge(g, sn, src(e))]]
             sd === :unspecified && continue
             push!(sds, (sn, sd))
         end
         for dn in dnbrs
-            dd = get_prop(mol, dn, dst(e), :direction)
+            dd = e_direction[edgerank[u_edge(g, dn, dst(e))]]
             dd === :unspecified && continue
             push!(dds, (dn, dd))
         end
@@ -287,6 +303,12 @@ function stereobond_from_smiles(mol::MolGraph{T,V,E}) where {T,V,E}
     end
     return stereobonds
 end
+
+stereobond_from_smiles(mol::SimpleMolGraph) = stereobond_from_smiles(
+    mol.graph,
+    [get_prop(mol, e, :order) for e in edges(mol)],
+    [get_prop(mol, e, :direction) for e in edges(mol)]
+)
 
 """
     stereobond_from_smiles!(mol::MolGraph) -> Nothing

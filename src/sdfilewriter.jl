@@ -86,11 +86,12 @@ end
 
 
 function printv2mol(io::IO, mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+    mol_ = copy(mol)  # TODO: expensive deep copy
     # resume stereo hydrogens
-    for center in get_prop(mol, :stereocenter)
-        if degree(mol, center) == 3
-            add_vertex!(mol, V(:H))
-            add_edge!(mol, center, nv(mol), E())
+    for center in keys(get_prop(mol_, :stereocenter))
+        if degree(mol_, center) == 3
+            add_vertex!(mol_, V(:H))
+            add_edge!(mol_, center, nv(mol_), E())
         end
     end
     # write
@@ -99,22 +100,22 @@ function printv2mol(io::IO, mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     println(io)
     println(io, "  $(program)$(datetime)2D            ")
     println(io)
-    ncnt = nv(mol)
-    ecnt = ne(mol)
+    ncnt = nv(mol_)
+    ecnt = ne(mol_)
     header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
     println(io, header)
-    bondorder = bond_order(mol)
-    if has_coords(mol)  # SDFAtom or has coordgen! precache
-        styles = (has_cache(mol, :e_coordgen_bond_style) ?
-            get_cache(mol, :e_coordgen_bond_style) : sdf_bond_style(mol))
-        printv2atoms(io, mol.graph, atom_symbol(mol), coords2d(mol))
-        printv2bonds(io, mol.graph, bondorder, styles)
+    bondorder = bond_order(mol_)
+    if has_coords(mol_)  # SDFAtom or has coordgen! precache
+        styles = (has_cache(mol_, :e_coordgen_bond_style) ?
+            get_cache(mol_, :e_coordgen_bond_style) : sdf_bond_style(mol_))
+        printv2atoms(io, mol_.graph, atom_symbol(mol_), coords2d(mol_))
+        printv2bonds(io, mol_.graph, bondorder, styles)
     else  # default SMILESAtom
-        coords, styles = coordgen(mol)
-        printv2atoms(io, mol.graph, atom_symbol(mol), coords)
-        printv2bonds(io, mol.graph, bondorder, styles)  # TODO: unspecified stereochem in SMILES
+        coords, styles = coordgen(mol_)
+        printv2atoms(io, mol_.graph, atom_symbol(mol_), coords)
+        printv2bonds(io, mol_.graph, bondorder, styles)  # TODO: unspecified stereochem in SMILES
     end
-    printv2properties(io, mol)
+    printv2properties(io, mol_)
     println(io, "M  END")
 end
 
