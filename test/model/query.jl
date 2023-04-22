@@ -152,7 +152,7 @@ end
         "n1(-[#6])c(c(-[#1])c(c1-[#6]=[#7]-[#7])-[#1])-[#1]")  # hzone_pyrrol(64)
     fragment!(state)
     pains1 = MolGraph{Int,QueryTree,QueryTree}(
-        state.edges, state.vprops, state.eprops, Dict(:connectivity => state.connectivity))
+        state.edges, state.vprops, state.eprops, gprop_map=Dict(:connectivity => state.connectivity))
     specialize_nonaromatic!(pains1)
     @test get_prop(pains1, 2, :tree) == QueryLiteral(:symbol, :C)  # -[#6] still can be aromatic
     @test get_prop(pains1, 5, :tree) == QueryLiteral(:symbol, :H)  # non-aromatic symbols are not affected

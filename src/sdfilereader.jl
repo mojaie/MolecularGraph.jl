@@ -103,13 +103,17 @@ function ctab_props_v2(io::IO)
 end
 
 
+function sdf_on_init!(mol)
+    stereocenter_from_sdf2d!(mol)
+    stereobond_from_sdf2d!(mol)
+end
+
 function sdf_on_update!(mol)
     update_edge_rank!(mol)
     clear_caches!(mol)
     set_state!(mol, :has_updates, false)
     # preprocessing
-    stereocenter_from_sdf2d!(mol)
-    stereobond_from_sdf2d!(mol)
+    #  (add some preprocessing methods here)
     # recalculate bottleneck descriptors
     sssr!(mol)
     lone_pair!(mol)
@@ -119,7 +123,7 @@ function sdf_on_update!(mol)
 end
 
 
-function parse_ctab(::Type{T}, io::IO, updater) where T <: AbstractMolGraph
+function parse_ctab(::Type{T}, io::IO, config) where T <: AbstractMolGraph
     line1 = readline(io)  # name line, not implemented
     if startswith(line1, "M  V30")  # v3 no header (rxnfile)
         startswith(line1, "M  V30 BEGIN CTAB") || readuntil(io, "M  V30 BEGIN CTAB\n")  # skip END tags
@@ -194,11 +198,11 @@ function parse_ctab(::Type{T}, io::IO, updater) where T <: AbstractMolGraph
         readuntil(io, ctab_only ? "M  V30 END CTAB\n" : "M  END\n")
     end
 
-    return T(edges, vprops, eprops, Dict(), Dict(:updater => updater))
+    return T(edges, vprops, eprops, gprop_map=Dict(), config_map=config)
 end
 
 
-function parse_rxn(::Type{T}, io::IO, updater) where T <: AbstractReaction
+function parse_rxn(::Type{T}, io::IO, config) where T <: AbstractReaction
     line1 = readline(io)  # $RXN
     startswith(line1, "\$RXN") || error("\$RXN token not found")
     ver = line1 == "\$RXN V3000" ? :v3 : :v2
@@ -219,11 +223,11 @@ function parse_rxn(::Type{T}, io::IO, updater) where T <: AbstractReaction
     end
     for _ in 1:rcount
         ver === :v2 && readuntil(io, "\$MOL\n")
-        push!(rxn.reactants, parse_ctab(eltype(T), io, updater))
+        push!(rxn.reactants, parse_ctab(eltype(T), io, config))
     end
     for _ in 1:pcount
         ver === :v2 && readuntil(io, "\$MOL\n")
-        push!(rxn.products, parse_ctab(eltype(T), io, updater))
+        push!(rxn.products, parse_ctab(eltype(T), io, config))
     end
     ver === :v3 && readuntil(io, "M  END\n")
     return rxn
@@ -268,7 +272,7 @@ end
 struct SDFileReader{T}
     io::IO
     unsupported::Symbol  # :error, :log, :ignore
-    updater::Function
+    config::Dict{Symbol,Any}
 end
 
 Base.IteratorSize(::Type{SDFileReader{T}}) where T = Base.SizeUnknown()
@@ -277,7 +281,7 @@ Base.IteratorEltype(::Type{SDFileReader{T}}) where T = Base.EltypeUnknown()
 function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractMolGraph
     eof(reader.io) && return nothing
     mol = try
-        parse_ctab(T, reader.io, reader.updater)
+        parse_ctab(T, reader.io, reader.config)
     catch e
         reader.unsupported === :error && throw(e)
         if e isa ErrorException  # Compatibility error
@@ -304,13 +308,13 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractReact
     rxn = try
         if startswith(fmt_line, "\$MFMT")
             unmark(reader.io)
-            parse_ctab(T, reader.io, reader.updater)
+            parse_ctab(T, reader.io, reader.config)
         elseif startswith(fmt_line, "\$RFMT")
             unmark(reader.io)
-            parse_rxn(T, reader.io, reader.updater)
+            parse_rxn(T, reader.io, reader.config)
         elseif startswith(fmt_line, "\$RXN")  # .rxn
             reset(reader.io)
-            parse_rxn(T, reader.io, reader.updater)
+            parse_rxn(T, reader.io, reader.config)
         end
     catch e
         reader.unsupported === :error && throw(e)
@@ -340,15 +344,17 @@ If this behavior is not desirable, you can use the customized supplier function
 instead of default supplier `nohaltsupplier`
 
 """
-sdfilereader(::Type{T}, file::IO; unsupported=:log, updater=sdf_on_update!
-    ) where T <: AbstractMolGraph = SDFileReader{T}(file, unsupported, updater)
+sdfilereader(::Type{T}, file::IO;
+    unsupported=:log, config=Dict(:on_init => sdf_on_init!, :updater => sdf_on_update!), kwargs...
+) where T <: AbstractMolGraph = SDFileReader{T}(file, unsupported, config)
 sdfilereader(file::IO; kwargs...) = sdfilereader(SDFMolGraph, file; kwargs...)
 sdfilereader(::Type{T}, path::AbstractString; kwargs...
     ) where T <: AbstractMolGraph = sdfilereader(T, open(path); kwargs...)
 sdfilereader(path::AbstractString; kwargs...) = sdfilereader(SDFMolGraph, open(path); kwargs...)
 
-rdfilereader(::Type{T}, file::IO; unsupported=:log, updater=sdf_on_update!
-    ) where T <: AbstractReaction = SDFileReader{T}(file, unsupported, updater)
+rdfilereader(::Type{T}, file::IO;
+    unsupported=:log, config=Dict(:on_init => sdf_on_init!, :updater => sdf_on_update!), kwargs...
+) where T <: AbstractReaction = SDFileReader{T}(file, unsupported, config)
 rdfilereader(file::IO; kwargs...) = rdfilereader(Reaction{SDFMolGraph}, file; kwargs...)
 rdfilereader(::Type{T}, path::AbstractString; kwargs...
     ) where T <: AbstractReaction = rdfilereader(T, open(path); kwargs...)

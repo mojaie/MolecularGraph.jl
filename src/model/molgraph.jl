@@ -17,8 +17,10 @@ struct MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
     edge_rank::Dict{Edge{T},Int}
 end
 
-function MolGraph{T,V,E}(g::SimpleGraph,
-        vprop_map::Dict, eprop_map::Dict, gprop_map::Dict, config_map::Dict) where {T,V,E}
+function MolGraph{T,V,E}(
+        g::SimpleGraph, vprop_map::Dict, eprop_map::Dict;
+        gprop_map::Dict=Dict(), config_map::Dict=Dict(), kwargs...
+        ) where {T,V,E}
     (nv(g) > length(vprop_map)
         && error("Mismatch in the number of nodes and node properties"))
     (ne(g) == length(eprop_map)
@@ -30,39 +32,41 @@ function MolGraph{T,V,E}(g::SimpleGraph,
     default_config = Dict(
         :has_updates => false,
         :updater => mol -> (update_edge_rank!(mol); clear_caches!(mol); set_state!(mol, :has_updates, false)),
+        :on_init => mol -> nothing,
         :caches => Dict{Symbol,Any}()
     )
     merge!(default_config, config_map)
     mol = MolGraph{T,V,E}(g, vprop_map, eprop_map, gprop_map, default_config, Dict{Edge{T},T}())
+    dispatch!(mol, :on_init)
     dispatch!(mol, :updater)
     return mol
 end
 
-MolGraph(g::SimpleGraph{T}, 
-    vprop_map::Dict{T,V}, eprop_map::Dict{Edge{T},E}, gprop_map::Dict=Dict(), config_map::Dict=Dict()
-) where {T,V,E} = MolGraph{T,V,E}(g, vprop_map, eprop_map, gprop_map, config_map)
+MolGraph(
+    g::SimpleGraph{T}, vprop_map::Dict{T,V}, eprop_map::Dict{Edge{T},E}; kwargs...
+) where {T,V,E} = MolGraph{T,V,E}(g, vprop_map, eprop_map; kwargs...)
 
 
 # from empty set
 
-MolGraph{T,V,E}() where {T,V,E} = MolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}(), Dict())
+MolGraph{T,V,E}() where {T,V,E} = MolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
 MolGraph() = MolGraph{Int,Any,Any}()
 
 
 # from edge and property list (sdftomol, smilestomol interface)
 
-function MolGraph{T,V,E}(edge_list::Vector{Edge{T}},
-        vprop_list::Vector{V}, eprop_list::Vector{E}, gprop_map::Dict=Dict(), config_map::Dict=Dict()
+function MolGraph{T,V,E}(
+        edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}; kwargs...
         ) where {T,V,E}
     g = SimpleGraph(edge_list)
     vps = Dict(i => v for (i, v) in enumerate(vprop_list))
     eps = Dict(e => eprop_list[i] for (i, e) in enumerate(edge_list))  # eprop_list in edge_list order
-    return MolGraph{T,V,E}(g, vps, eps, gprop_map, config_map)
+    return MolGraph{T,V,E}(g, vps, eps; kwargs...)
 end
 
-MolGraph(edge_list::Vector{Edge{T}},
-    vprop_list::Vector{V}, eprop_list::Vector{E}, gprop_map::Dict=Dict(), config_map::Dict=Dict()
-) where {T,V,E} = MolGraph{T,V,E}(edge_list, vprop_list, eprop_list, gprop_map, config_map)
+MolGraph(
+    edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}; kwargs...
+) where {T,V,E} = MolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
 
 
 # from dict (deserialize)
@@ -76,7 +80,7 @@ function MolGraph(data::Dict)
     eps = Dict(e => eproptype(ep) for (e, ep) in zip(edges(g), data["eprops"]))
     gps = Dict{Symbol,Any}(
         Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["gprops"])
-    return MolGraph(g, vps, eps, gps)
+    return MolGraph(g, vps, eps, gprop_map=gps)
 end
 
 MolGraph(json::String) = MolGraph(JSON.parse(json))
@@ -185,5 +189,5 @@ function _induced_subgraph(mol::T, vlist_or_elist) where {T<:MolGraph}
     vps = Dict(v => mol.vprops[vmap[v]] for v in vertices(subg))
     eps = Dict(e => mol.eprops[u_edge(mol, vmap[src(e)], vmap[dst(e)])]
         for e in edges(subg))
-    return T(subg, vps, eps, mol.gprops, mol.state), vmap
+    return T(subg, vps, eps, gprop_map=mol.gprops, config_map=mol.state), vmap
 end

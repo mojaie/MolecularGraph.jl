@@ -46,13 +46,16 @@ SMARTSParser{T}(smarts
         smarts, 1, false, 0, 1, 1, Dict(), Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[], [])
 
 
+function smiles_on_init!(mol)
+    stereocenter_from_smiles!(mol)
+    stereobond_from_smiles!(mol)
+end
+
 function smiles_on_update!(mol)
     update_edge_rank!(mol)
     clear_caches!(mol)
     set_state!(mol, :has_updates, false)
     # preprocessing
-    stereocenter_from_smiles!(mol)
-    stereobond_from_smiles!(mol)
     kekulize!(mol)
     # recalculate bottleneck descriptors
     sssr!(mol)
@@ -75,10 +78,12 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. OpenSMILES Specification http://opensmiles.org/spec/open-smiles.html
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
-function smilestomol(::Type{T}, smiles::AbstractString; updater=smiles_on_update!) where T <: AbstractMolGraph
+function smilestomol(::Type{T}, smiles::AbstractString;
+            config=Dict(:updater => smiles_on_update!, :on_init => smiles_on_init!), kwargs...
+        ) where T <: AbstractMolGraph
     state = SMILESParser{T}(smiles)
     fragment!(state)
-    mol = T(state.edges, state.vprops, state.eprops, Dict(), Dict(:updater => updater))
+    mol = T(state.edges, state.vprops, state.eprops, config_map=config; kwargs...)
     dispatch!(mol, :updater)
     return mol
 end
@@ -92,12 +97,14 @@ smilestomol(smiles::AbstractString; kwargs...
 
 Parse SMARTS string into `QueryMol` object.
 """
-function smartstomol(::Type{T}, smarts::AbstractString; updater=x->()) where T <: AbstractMolGraph
+function smartstomol(::Type{T}, smarts::AbstractString;
+        gprop_map::Dict{Symbol,Any}=Dict{Symbol,Any}(), kwargs...) where T <: AbstractMolGraph
     state = SMARTSParser{T}(smarts)
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
+    gprop_map_ = copy(gprop_map)
+    gprop_map_[:connectivity] = state.connectivity  # connectivity query
     mol = T(
-        state.edges, state.vprops, state.eprops,
-        Dict(:connectivity => state.connectivity), Dict(:updater => updater))
+        state.edges, state.vprops, state.eprops, gprop_map=gprop_map_; kwargs...)
     if vproptype(mol) <: QueryTree  # vproptype(mol) can be QueryTruthTable for testing
         specialize_nonaromatic!(mol)
         remove_hydrogens!(mol)

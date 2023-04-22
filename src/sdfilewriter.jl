@@ -87,9 +87,10 @@ end
 
 function printv2mol(io::IO, mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     mol_ = copy(mol)  # TODO: expensive deep copy
-    # resume stereo hydrogens
+    # add stereo hydrogens for aesthetics
+    ringcount = ring_count(mol_)
     for center in keys(get_prop(mol_, :stereocenter))
-        if degree(mol_, center) == 3
+        if ringcount[center] > 1
             add_vertex!(mol_, V(:H))
             add_edge!(mol_, center, nv(mol_), E())
         end

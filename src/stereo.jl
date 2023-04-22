@@ -5,7 +5,7 @@
 
 export
     Stereocenter, Stereobond,
-    set_stereocenter!, set_stereobond!, remove_stereo_hydrogen!,
+    set_stereocenter!, set_stereobond!, stereo_hydrogen, remove_stereo_hydrogen!,
     stereocenter_from_smiles!, stereocenter_from_sdf2d!,
     stereobond_from_smiles!, stereobond_from_sdf2d!
 
@@ -68,13 +68,21 @@ function set_stereobond!(
 end
 
 
+function stereo_hydrogen(mol::SimpleMolGraph, v::Integer)
+    nbrs = neighbors(mol, v)
+    hpos = findfirst(x -> get_prop(mol, x, :symbol) === :H, nbrs)
+    isnothing(hpos) && return
+    return nbrs[hpos]
+end
+
+
 """
     remove_stereo_hydrogen!(mol::SimpleMolGraph, v::Integer) -> Bool
 
 Safely remove explicit hydrogens connected to stereocenter node `v` and return
 the vertex index of the removed hydrogen.
 """
-function remove_stereo_hydrogen!(mol::SimpleMolGraph, v::Integer)
+function remove_stereo_hydrogen!(mol::SimpleMolGraph{T,V,E}, center::T, h::T) where {T,V,E}
     """
     [C@@]([H])(C)(N)O -> C, N, O, (H), @
     ([H])[C@@](C)(N)O -> C, N, O, (H), @
@@ -82,22 +90,18 @@ function remove_stereo_hydrogen!(mol::SimpleMolGraph, v::Integer)
     C[C@@](N)([H])O -> C, N, O, (H), @
     C[C@@](N)(O)[H] -> C, N, O, (H), @@
     """
-    nbrs = neighbors(mol, v)
-    hpos = findfirst(x -> get_prop(mol, x, :symbol) === :H, nbrs)
-    hpos === nothing && error("no removable hydrogens")
-    h = nbrs[hpos]
-    rem_vertex!(mol, h) || error("failed to remove hydrogen node")
-    stereo = get_prop(mol, :stereocenter)[v]
+    rem_vertex!(mol, h) || return false
+    stereo = get_prop(mol, :stereocenter)[center]
     vs = collect(stereo[1:3])
     spos = findfirst(x -> x == h, vs)
-    spos === nothing && return h  # hydrogen at the lowest priority can be removed safely
+    isnothing(spos) && return true  # hydrogen at the lowest priority can be removed safely
     is_rev = spos in [1, 3]
-    rest = setdiff(nbrs, vs)  # the lowest node index
+    rest = setdiff(neighbors(mol, center), vs)  # the lowest node index
     resti = isempty(rest) ? h : rest[1]  # rest is empty if the lowest node is the end node.
     popat!(vs, spos)
     push!(vs, resti)
-    set_stereocenter!(mol, v, vs[1], vs[2], vs[3], xor(stereo[4], is_rev))
-    return h
+    set_stereocenter!(mol, center, vs[1], vs[2], vs[3], xor(stereo[4], is_rev))
+    return true
 end
 
 

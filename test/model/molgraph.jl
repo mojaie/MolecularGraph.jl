@@ -36,7 +36,7 @@ end
 
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, Dict(:hoge => 2))
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))
     @test u_edge(mol, 2, 1) == Edge(1 => 2)
     @test eltype(mol) === Int
     @test edgetype(mol) === Edge{Int}
@@ -53,7 +53,7 @@ end
 @testset "molgraph" begin
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, Dict(:hoge => 2))
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))
     @test get_prop(mol, 3, 2, :order) == 1
     @test edge_rank(mol, 2, 3) == 2
     @test set_state!(mol, :test, collect(1:3)) == collect(1:3)
@@ -64,7 +64,7 @@ end
 @testset "modification" begin
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, Dict(:hoge => 2))  # CCC
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))  # CCC
     set_prop!(mol, :fuga, 3)
     @test get_prop(mol, :fuga) == 3
     @test add_vertex!(mol, SDFAtom(:O))  # CCC.O
@@ -108,14 +108,14 @@ end
 @testset "serialization" begin
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, Dict(:hoge => 2))
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))
     j = to_json(mol)
     mol2 = MolGraph(j)
     @test mol == mol2
     @test mol !== mol2
     atoms = [SMILESAtom(),SMILESAtom(),SMILESAtom()]
     bonds = [SMILESBond(),SMILESBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, Dict(:hoge => 2))
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))
     j = to_json(mol)
     mol2 = MolGraph(j)
     @test mol == mol2

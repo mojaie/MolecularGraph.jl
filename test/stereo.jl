@@ -10,28 +10,28 @@
     @test get_prop(LAla1, 2, :stereo) === :clockwise
     stereocenter_from_smiles!(LAla1)
     @test get_prop(LAla1, :stereocenter)[2] == (1, 3, 4, true)
-    remove_stereo_hydrogen!(LAla1, 2)
+    remove_stereo_hydrogen!(LAla1, 2, stereo_hydrogen(LAla1, 2))
     @test get_prop(LAla1, :stereocenter)[2] == (1, 4, 5, true)
 
     LAla2 = smilestomol("N[C@](C)([H])C(=O)O")
     @test get_prop(LAla2, 2, :stereo) === :anticlockwise
     stereocenter_from_smiles!(LAla2)
     @test get_prop(LAla2, :stereocenter)[2] == (1, 3, 4, false)
-    remove_stereo_hydrogen!(LAla2, 2)
+    remove_stereo_hydrogen!(LAla2, 2, stereo_hydrogen(LAla2, 2))
     @test get_prop(LAla2, :stereocenter)[2] == (1, 3, 5, true)
     
     LAla3 = smilestomol("[H][C@@](C(=O)O)(C)N")
     @test get_prop(LAla3, 2, :stereo) === :clockwise
     stereocenter_from_smiles!(LAla3)
     @test get_prop(LAla3, :stereocenter)[2] == (1, 3, 6, true)
-    remove_stereo_hydrogen!(LAla3, 2)
+    remove_stereo_hydrogen!(LAla3, 2, stereo_hydrogen(LAla3, 2))
     @test get_prop(LAla3, :stereocenter)[2] == (3, 6, 1, false)
 
     LAla4 = smilestomol("OC(=O)[C@]([H])(C)N")
     @test get_prop(LAla4, 4, :stereo) === :anticlockwise
     stereocenter_from_smiles!(LAla4)
     @test get_prop(LAla4, :stereocenter)[4] == (2, 5, 6, false)
-    remove_stereo_hydrogen!(LAla4, 4)
+    remove_stereo_hydrogen!(LAla4, 4, stereo_hydrogen(LAla4, 4))
     @test get_prop(LAla4, :stereocenter)[4] == (2, 6, 5, false)
 end
 
