@@ -71,6 +71,9 @@ To run codes in your environment, see `Edit or run this notebook` instruction sh
     - Layout for web and Pluto notebook
   - Regenerate 2D coordinates
   - 3D molecule rendering using Makie.jl
+- [Stereochemistry](https://mojaie.github.io/MolecularGraph.jl_notebook/stereochemistry.jl.html)
+  - Stereochemistry as a molecular graph property
+  - Stereospecific implicit hydrogens
 
 
 Features

@@ -198,7 +198,9 @@ function parse_ctab(::Type{T}, io::IO, config) where T <: AbstractMolGraph
         readuntil(io, ctab_only ? "M  V30 END CTAB\n" : "M  END\n")
     end
 
-    return T(edges, vprops, eprops, gprop_map=Dict(), config_map=config)
+    default_config = Dict{Symbol,Any}(:on_init => sdf_on_init!, :updater => sdf_on_update!)
+    merge!(default_config, config)
+    return T(edges, vprops, eprops, gprop_map=Dict(), config_map=default_config)
 end
 
 
@@ -344,17 +346,15 @@ If this behavior is not desirable, you can use the customized supplier function
 instead of default supplier `nohaltsupplier`
 
 """
-sdfilereader(::Type{T}, file::IO;
-    unsupported=:log, config=Dict(:on_init => sdf_on_init!, :updater => sdf_on_update!), kwargs...
-) where T <: AbstractMolGraph = SDFileReader{T}(file, unsupported, config)
+sdfilereader(::Type{T}, file::IO; unsupported=:log, config=Dict{Symbol,Any}(), kwargs...
+    ) where T <: AbstractMolGraph = SDFileReader{T}(file, unsupported, config)
 sdfilereader(file::IO; kwargs...) = sdfilereader(SDFMolGraph, file; kwargs...)
 sdfilereader(::Type{T}, path::AbstractString; kwargs...
     ) where T <: AbstractMolGraph = sdfilereader(T, open(path); kwargs...)
 sdfilereader(path::AbstractString; kwargs...) = sdfilereader(SDFMolGraph, open(path); kwargs...)
 
-rdfilereader(::Type{T}, file::IO;
-    unsupported=:log, config=Dict(:on_init => sdf_on_init!, :updater => sdf_on_update!), kwargs...
-) where T <: AbstractReaction = SDFileReader{T}(file, unsupported, config)
+rdfilereader(::Type{T}, file::IO; unsupported=:log, config=Dict{Symbol,Any}(), kwargs...
+    ) where T <: AbstractReaction = SDFileReader{T}(file, unsupported, config)
 rdfilereader(file::IO; kwargs...) = rdfilereader(Reaction{SDFMolGraph}, file; kwargs...)
 rdfilereader(::Type{T}, path::AbstractString; kwargs...
     ) where T <: AbstractReaction = rdfilereader(T, open(path); kwargs...)

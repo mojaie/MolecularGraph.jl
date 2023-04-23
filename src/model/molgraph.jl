@@ -152,12 +152,13 @@ function rem_vertex!(mol::MolGraph, v::Integer)
     edges_ = collect(edges(mol))
     rem_vertex!(mol.graph, v) || return false
     # last index node is re-indexed to the removed node
-    mol.vprops[v] = mol.vprops[nv_]
+    nv_ == v || begin mol.vprops[v] = mol.vprops[nv_] end
     delete!(mol.vprops, nv_)
     for e in edges_
         (src(e) == v || dst(e) == v) && delete!(mol.eprops, e)
-        src(e) == nv_ && (mol.eprops[u_edge(mol, v, dst(e))] = mol.eprops[e]; delete!(mol.eprops, e))
-        dst(e) == nv_ && (mol.eprops[u_edge(mol, src(e), v)] = mol.eprops[e]; delete!(mol.eprops, e))
+        nv_ == v && continue
+        src(e) == nv_ && begin mol.eprops[u_edge(mol, v, dst(e))] = mol.eprops[e]; delete!(mol.eprops, e) end
+        dst(e) == nv_ && begin mol.eprops[u_edge(mol, src(e), v)] = mol.eprops[e]; delete!(mol.eprops, e) end
     end
     mol.state[:has_updates] = true
     return true

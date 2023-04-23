@@ -79,11 +79,12 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
 function smilestomol(::Type{T}, smiles::AbstractString;
-            config=Dict(:updater => smiles_on_update!, :on_init => smiles_on_init!), kwargs...
-        ) where T <: AbstractMolGraph
+        config=Dict{Symbol,Any}(), kwargs...) where T <: AbstractMolGraph
     state = SMILESParser{T}(smiles)
     fragment!(state)
-    mol = T(state.edges, state.vprops, state.eprops, config_map=config; kwargs...)
+    default_config = Dict{Symbol,Any}(:updater => smiles_on_update!, :on_init => smiles_on_init!)
+    merge!(default_config, config)
+    mol = T(state.edges, state.vprops, state.eprops, config_map=default_config; kwargs...)
     dispatch!(mol, :updater)
     return mol
 end
@@ -98,13 +99,13 @@ smilestomol(smiles::AbstractString; kwargs...
 Parse SMARTS string into `QueryMol` object.
 """
 function smartstomol(::Type{T}, smarts::AbstractString;
-        gprop_map::Dict{Symbol,Any}=Dict{Symbol,Any}(), kwargs...) where T <: AbstractMolGraph
+        gprop_map=Dict{Symbol,Any}(), kwargs...) where T <: AbstractMolGraph
     state = SMARTSParser{T}(smarts)
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
-    gprop_map_ = copy(gprop_map)
-    gprop_map_[:connectivity] = state.connectivity  # connectivity query
+    default_gprop = Dict{Symbol,Any}(:connectivity => state.connectivity)  # connectivity query
+    merge!(default_gprop, gprop_map)
     mol = T(
-        state.edges, state.vprops, state.eprops, gprop_map=gprop_map_; kwargs...)
+        state.edges, state.vprops, state.eprops, gprop_map=default_gprop; kwargs...)
     if vproptype(mol) <: QueryTree  # vproptype(mol) can be QueryTruthTable for testing
         specialize_nonaromatic!(mol)
         remove_hydrogens!(mol)

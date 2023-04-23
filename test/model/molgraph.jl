@@ -103,6 +103,10 @@ end
     subg, vmap = induced_subgraph(mol, Edge.([(1, 2), (1, 11), (1, 20), (4, 20), (19, 20)]))
     @test nv(subg) == 6
     @test sum(values(subg.eprops)) == 45  # edge_rank 1,2,3,9,30
+    rem_vertex!(mol, 20)
+    @test nv(mol) == 19
+    rem_vertices!(mol, [17, 18, 19])
+    @test nv(mol) == 16
 end
 
 @testset "serialization" begin
