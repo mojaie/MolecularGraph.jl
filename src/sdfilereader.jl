@@ -20,8 +20,6 @@ function sympair(s)::Pair{Symbol, Union{String, Int}}
     Symbol(p[1]) => isnothing(int) ? p[2] : int
 end
 
-blockregex(s::AbstractString) = Regex("M  V30 BEGIN $(s)\r?\n(.*?)\r?\nM  V30 END $(s)", "s")  # not used
-
 
 function ctab_atom_v2(T, line)
     d = Dict{String,Any}()
@@ -126,7 +124,7 @@ end
 function parse_ctab(::Type{T}, io::IO, config) where T <: AbstractMolGraph
     line1 = readline(io)  # name line, not implemented
     if startswith(line1, "M  V30")  # v3 no header (rxnfile)
-        startswith(line1, "M  V30 BEGIN CTAB") || readuntil(io, "M  V30 BEGIN CTAB\n")  # skip END tags
+        startswith(line1, "M  V30 BEGIN CTAB") || (readuntil(io, "M  V30 BEGIN CTAB"); readline(io))  # skip END tags
         ctab_only = true
         ver = :v3
         ctab_atom = ctab_atom_v3
@@ -166,14 +164,14 @@ function parse_ctab(::Type{T}, io::IO, config) where T <: AbstractMolGraph
     end
 
     # Parse atoms
-    ver === :v3 && readuntil(io, "M  V30 BEGIN ATOM\n")
+    ver === :v3 && (readuntil(io, "M  V30 BEGIN ATOM"); readline(io))
     vprops = vproptype(T)[]
     for _ in 1:atomcount
         push!(vprops, ctab_atom(vproptype(T), readline(io)))
     end
 
     # Parse bonds
-    ver === :v3 && readuntil(io, "M  V30 BEGIN BOND\n")
+    ver === :v3 && (readuntil(io, "M  V30 BEGIN BOND"); readline(io))
     edges = edgetype(T)[]
     eprops = eproptype(T)[]
     for _ in 1:bondcount
@@ -195,7 +193,8 @@ function parse_ctab(::Type{T}, io::IO, config) where T <: AbstractMolGraph
             vprops[i] = vproptype(T)(d)
         end
     elseif ver === :v3
-        readuntil(io, ctab_only ? "M  V30 END CTAB\n" : "M  END\n")
+        readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")
+        readline(io)
     end
 
     default_config = Dict{Symbol,Any}(:on_init => sdf_on_init!, :updater => sdf_on_update!)
@@ -224,14 +223,14 @@ function parse_rxn(::Type{T}, io::IO, config) where T <: AbstractReaction
         pcount = parse(Int, sp[5])
     end
     for _ in 1:rcount
-        ver === :v2 && readuntil(io, "\$MOL\n")
+        ver === :v2 && (readuntil(io, "\$MOL"); readline(io))
         push!(rxn.reactants, parse_ctab(eltype(T), io, config))
     end
     for _ in 1:pcount
-        ver === :v2 && readuntil(io, "\$MOL\n")
+        ver === :v2 && (readuntil(io, "\$MOL"); readline(io))
         push!(rxn.products, parse_ctab(eltype(T), io, config))
     end
-    ver === :v3 && readuntil(io, "M  END\n")
+    ver === :v3 && (readuntil(io, "M  END"); readline(io))
     return rxn
 end
 
@@ -245,7 +244,13 @@ function parse_options(io::IO)
         # Some inappropriate signs are accepted for practical use
         m = match(r">.*?<([\w -.%=/]+)>", line)
         if m !== nothing
-            options[m[1]] = readuntil(io, "\n\n")
+            lines = []
+            while true
+                line_ = readline(io)
+                line_ == "" && break
+                push!(lines, line_)
+            end
+            options[m[1]] = join(lines, "\n")
         end
     end
     return options
