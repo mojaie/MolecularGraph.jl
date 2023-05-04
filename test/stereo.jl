@@ -225,28 +225,32 @@ end
 @testset "stereobond_from_smiles" begin
     # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
     mol1 = smilestomol("C/C=C\\C")
-    stereobond_from_smiles!(mol1)
     @test get_prop(mol1, :stereobond)[Edge(2 => 3)] === (1, 4, true)
 
     mol2 = smilestomol("C/C=C/C")
-    stereobond_from_smiles!(mol2)
     @test get_prop(mol2, :stereobond)[Edge(2 => 3)] === (1, 4, false)
 
     # follows OpenSMILES specification http://opensmiles.org/opensmiles.html#chirality
     # -> "up-ness" or "down-ness" of each single bond is relative to the carbon atom
     cis = smilestomol("C(/C)=C/C")
-    stereobond_from_smiles!(cis)
     @test get_prop(cis, :stereobond)[Edge(1 => 3)] === (2, 4, true)  # cis
 
     mol3 = smilestomol("C\\C([H])=C([H])/C")
-    stereobond_from_smiles!(mol3)
     @test get_prop(mol3, :stereobond)[Edge(2 => 4)] === (1, 6, true)
 
     mol4 = smilestomol("C/C=C(\\C=C)/C=C(/C)C")
-    stereobond_from_smiles!(mol4)
     @test get_prop(mol4, :stereobond)[Edge(2 => 3)] === (1, 4, true)
     @test !haskey(get_prop(mol4, :stereobond), Edge(4 => 5))
     @test get_prop(mol4, :stereobond)[Edge(6 => 7)] === (3, 8, false)
+
+    # https://github.com/mojaie/MolecularGraph.jl/issues/91
+    mol5 = smilestomol("C=C/C(=C/Cl)/Cl")
+    @test !haskey(get_prop(mol5, :stereobond), Edge(1 => 2))
+    @test get_prop(mol5, :stereobond)[Edge(3 => 4)] === (2, 5, false)
+
+    thiostrepton = smilestomol(raw"C[C@@H](O)[C@@](C)(O)[C@@H](C2=NC6=CS2)NC(C1CSC(/C(NC([C@@H](NC(C3=CS[C@]([C@]4(NC([C@@H](NC(C(NC([C@H](C)NC%10=O)=O)=C)=O)C)=O)C(C5=CSC([C@H]([C@@H](C)OC(C8=CC([C@H](C)O)=C(C=CC(N[C@]([H])%10[C@H](CC)C)[C@@H]9O)C9=N8)=O)NC6=O)=N5)N=C(C7=NC(C(NC(C(NC(C(N)=O)=C)=O)=C)=O)=CS7)CC4)=N3)=O)[C@@H](C)O)=O)=C/C)=N1)=O")
+    @test get_prop(thiostrepton, :stereobond)[Edge(21 => 123)] === (20, 124, false)
+
     # global_logger(default_logger)
 end
 

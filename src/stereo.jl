@@ -281,29 +281,29 @@ function stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T
         degree(g, src(e)) in (2, 3) || continue
         degree(g, dst(e)) in (2, 3) || continue
         snbrs, dnbrs = ordered_edge_neighbors(g, e)
-        sds = []
-        dds = []
+        sds = []  # (nbr, :up/:down) of bonds connected to src(e)
+        dds = []  # (nbr, :up/:down) of bonds connected to dst(e)
+        """
+        Follows OpenSMILES specification http://opensmiles.org/opensmiles.html#chirality
+          -> "up-ness" or "down-ness" of each single bond is relative to the carbon atom
+        e.g.  C(\\F)=C/F -> trans
+        """
         for sn in snbrs
             sd = e_direction[edgerank[u_edge(g, sn, src(e))]]
             sd === :unspecified && continue
+            sd = sn < src(e) ? sd : (sd === :up ? :down : :up)
             push!(sds, (sn, sd))
         end
         for dn in dnbrs
             dd = e_direction[edgerank[u_edge(g, dn, dst(e))]]
             dd === :unspecified && continue
+            dd = dst(e) < dn ? dd : (dd === :up ? :down : :up)
             push!(dds, (dn, dd))
         end
-        isempty(sds) && continue
-        isempty(dds) && continue
+        (isempty(sds) || isempty(dds)) && continue  # no :up or :down bonds
         length(sds) == 2 && sds[1][2] == sds[2][2] && error("Invalid diastereomer representation")
         length(dds) == 2 && dds[1][2] == dds[2][2] && error("Invalid diastereomer representation")
-        """
-        follows OpenSMILES specification http://opensmiles.org/opensmiles.html#chirality
-          -> "up-ness" or "down-ness" of each single bond is relative to the carbon atom
-        e.g.  C(\\F)=C/F -> trans
-        """
-        is_cis = (sds[1][2] !== dds[1][2]) == (sds[1][1] < src(e))
-        stereobonds[e] = (sds[1][1], dds[1][1], is_cis)
+        stereobonds[e] = (sds[1][1], dds[1][1], sds[1][2] !== dds[1][2])
     end
     return stereobonds
 end
