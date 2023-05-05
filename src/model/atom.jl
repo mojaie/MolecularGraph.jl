@@ -85,8 +85,8 @@ struct SDFAtom
     symbol::Symbol
     charge::Int
     multiplicity::Int
-    mass::Union{Int, Nothing}
-    coords::Union{Vector{Float64}, Nothing}
+    mass::Union{Int,Nothing}
+    coords::Union{Vector{Float64},Nothing}
 
     function SDFAtom(sym=:C, chg=0, mul=1, ms=nothing, coords=nothing)
         haskey(ATOMSYMBOLMAP, string(sym)) || error("Unsupported atom symbol: $(sym)")
@@ -97,10 +97,15 @@ end
 SDFAtom(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFAtom(
     Symbol(d[T("symbol")]), d[T("charge")], d[T("multiplicity")],
     d[T("mass")], d[T("coords")])
+SDFAtom(arr::Vector) = SDFAtom(Symbol(arr[1]), arr[2], arr[3], arr[4], arr[5])
 
 Base.getindex(a::SDFAtom, prop::Symbol) = getproperty(a, prop)
-to_dict(a::SDFAtom) = Dict{String,Any}(
-    string(field) => getfield(a, field) for field in fieldnames(SDFAtom))
+Base.:(==)(a1::SDFAtom, a2::SDFAtom) = all(
+    [getfield(a1, f1) == getfield(a2, f2) for (f1, f2) in zip(fieldnames(typeof(a1)), fieldnames(typeof(a2)))])
+Base.hash(a::SDFAtom, h::UInt
+    ) = hash(a.symbol, hash(a.charge, hash(a.multiplicity, hash(a.mass, hash(a.coords, h)))))
+
+to_dict(a::SDFAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.coords]
 
 
 """
@@ -112,8 +117,8 @@ struct SMILESAtom
     symbol::Symbol
     charge::Int
     multiplicity::Int
-    mass::Union{Int, Nothing}
-    isaromatic::Union{Bool, Nothing}
+    mass::Union{Int,Nothing}
+    isaromatic::Union{Bool,Nothing}
     stereo::Symbol
 
     function SMILESAtom(sym=:C, chg=0, mul=1, ms=nothing, isarom=false, stereo=:unspecified)
@@ -127,7 +132,12 @@ SMILESAtom(d::Dict{T,U}) where {T<:Union{AbstractString,Symbol},U} = SMILESAtom(
     get(d, T("multiplicity"), 1), get(d, T("mass"), nothing),
     get(d, T("isaromatic"), false), Symbol(get(d, T("stereo"), :unspecified))
 )
+SMILESAtom(arr::Vector) = SMILESAtom(Symbol(arr[1]), arr[2], arr[3], arr[4], arr[5], Symbol(arr[6]))
 
 Base.getindex(a::SMILESAtom, prop::Symbol) = getproperty(a, prop)
-to_dict(a::SMILESAtom) = Dict{String,Any}(
-    string(field) => getfield(a, field) for field in fieldnames(SMILESAtom))
+Base.:(==)(a1::SMILESAtom, a2::SMILESAtom) = all(
+    [getfield(a1, f1) == getfield(a2, f2) for (f1, f2) in zip(fieldnames(typeof(a1)), fieldnames(typeof(a2)))])
+Base.hash(a::SMILESAtom, h::UInt
+    ) = hash(a.symbol, hash(a.charge, hash(a.multiplicity, hash(a.mass, hash(a.isaromatic, hash(a.stereo, h))))))
+
+to_dict(a::SMILESAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, a.stereo]

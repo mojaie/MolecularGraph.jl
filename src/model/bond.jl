@@ -34,10 +34,15 @@ end
 
 SDFBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFBond(
     d[T("order")], d[T("notation")], d[T("isordered")])
+SDFBond(arr::Vector) = SDFBond(arr...)
 
 Base.getindex(b::SDFBond, prop::Symbol) = getproperty(b, prop)
-to_dict(b::SDFBond) = Dict{String,Any}(
-    string(field) => getfield(b, field) for field in fieldnames(SDFBond))
+Base.:(==)(b1::SDFBond, b2::SDFBond) = all(
+    [getfield(b1, f1) == getfield(b2, f2) for (f1, f2) in zip(fieldnames(typeof(b1)), fieldnames(typeof(b2)))])
+Base.hash(b::SDFBond, h::UInt
+    ) = hash(b.order, hash(b.notation, hash(b.isordered, h)))
+
+to_dict(b::SDFBond) = Any[b.order, b.notation, b.isordered]
 
 
 """
@@ -57,8 +62,12 @@ end
 
 SMILESBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SMILESBond(
     d[T("order")], d[T("isaromatic")], Symbol(d[T("direction")]))
+SMILESBond(arr::Vector) = SMILESBond(arr[1], arr[2], Symbol(arr[3]))
 
 Base.getindex(b::SMILESBond, prop::Symbol) = getproperty(b, prop)
-to_dict(b::SMILESBond) = Dict{String,Any}(
-    string(field) => getfield(b, field) for field in fieldnames(SMILESBond))
+Base.:(==)(b1::SMILESBond, b2::SMILESBond) = all(
+    [getfield(b1, f1) == getfield(b2, f2) for (f1, f2) in zip(fieldnames(typeof(b1)), fieldnames(typeof(b2)))])
+Base.hash(b::SMILESBond, h::UInt
+    ) = hash(b.order, hash(b.isaromatic, hash(b.direction, h)))
 
+to_dict(b::SMILESBond) = Any[b.order, b.isaromatic, b.direction]
