@@ -9,6 +9,10 @@
     @test edgetype(mol) === Edge{Int}
     @test !is_directed(mol)
 
+    fe = MolGraph(Edge{Int}[], [SDFAtom(:Fe)], SDFBond[])
+    @test nv(fe) == 1
+    @test ne(fe) == 0
+
     atoms = [SDFAtom(),SDFAtom(),SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond(),SDFBond(),SDFBond()]
     molstar = MolGraph(collect(edges(star_graph(5))), atoms, bonds)
@@ -113,18 +117,28 @@ end
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))
-    j = to_json(mol)
-    mol2 = MolGraph(j)
-    @test mol == mol2
-    @test mol !== mol2
-    atoms = [SMILESAtom(),SMILESAtom(),SMILESAtom()]
-    bonds = [SMILESBond(),SMILESBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))
-    j = to_json(mol)
-    mol2 = MolGraph(j)
+    mol2 = MolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
 
+    atoms = [SMILESAtom(),SMILESAtom(),SMILESAtom()]
+    bonds = [SMILESBond(),SMILESBond()]
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+
+    mol = MolGraph()
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+
+    atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
+    bonds = SDFBond[]
+    mol = MolGraph(Edge{Int}[], atoms, bonds)
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
 end
 
 end  # model.molgraph
