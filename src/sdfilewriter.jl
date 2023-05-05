@@ -96,7 +96,7 @@ function printv2mol(io::IO, mol::SimpleMolGraph{T,V,E}) where {T,V,E}
         end
     end
     # write
-    program = "MGjlv$(string(MAJOR_VERSION)[end])$(string(MINOR_VERSION)[end-1:end])"
+    program = "MGjlv$(string(VERSION.major)[end])$(string(VERSION.minor)[end-1:end])"
     datetime = Dates.format(Dates.now(), "mmddyyHHMM")
     println(io)
     println(io, "  $(program)$(datetime)2D            ")
