@@ -99,7 +99,7 @@ to_dict(mol::MolGraph) = Dict(
     "graph" => [[src(e), dst(e)] for e in edges(mol)],
     "vprops" => [to_dict(props(mol, i)) for i in vertices(mol)],
     "eprops" => [to_dict(props(mol, e)) for e in edges(mol)],
-    "gprops" => [[string(k), string(typeof(v)), to_dict(v)] for (k, v) in mol.gprops]
+    "gprops" => [[string(k), string(typeof(v)), applicable(to_dict, v) ? to_dict(v) : v] for (k, v) in mol.gprops]
 )
 
 dispatch!(mol, event) = mol.state[event](mol)

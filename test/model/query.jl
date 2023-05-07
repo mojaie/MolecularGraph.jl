@@ -172,4 +172,19 @@ end
     @test get_prop(pains2, 6, :tree) == QueryOperator(:not, [QueryLiteral(:symbol, :C)])
 end
 
+@testset "serialization" begin
+    atoms = [
+        QueryTree(QueryAny(true)), QueryTree(QueryLiteral(:symbol, :N)),
+        QueryTree(QueryOperator(:and, [QueryLiteral(:symbol, :C), QueryLiteral(:mass, nothing)]))
+    ]
+    bonds = [
+        QueryTree(QueryLiteral(:isaromatic, false)),
+        QueryTree(QueryOperator(:not, [QueryLiteral(:order, 2)]))
+    ]
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:connectivity => Vector{Int64}[]))
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+end
+
 end # model.query

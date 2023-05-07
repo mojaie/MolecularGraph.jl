@@ -15,17 +15,20 @@ end
 Base.:(==)(q::QueryAny, r::QueryAny) = q.value == r.value
 Base.hash(q::QueryAny, h::UInt) = hash(q.value, h)
 
+to_dict(q::QueryAny) = [q.value]
+
 
 """
     QueryLiteral
 
 General query component type (arg -> key[arg] == value).
-"""
+""" 
 struct QueryLiteral
     operator::Symbol  # :eq, :gt?, :lt? ...
     key::Symbol
     value::Union{Symbol,Int,String,Bool,Nothing}
 end
+
 QueryLiteral(key) = QueryLiteral(:eq, key, true)
 QueryLiteral(key, value) = QueryLiteral(:eq, key, value)
 
@@ -36,9 +39,12 @@ function Base.isless(q::QueryLiteral, r::QueryLiteral)
     q.operator > r.operator && return false
     return string(q.value) < string(r.value)
 end
+
 Base.:(==)(q::QueryLiteral, r::QueryLiteral
     ) = q.key == r.key && q.operator == r.operator && string(q.value) == string(r.value)
 Base.hash(q::QueryLiteral, h::UInt) = hash(q.key, hash(q.operator, hash(q.value, h)))
+
+to_dict(q::QueryLiteral) = [string(q.operator), string(q.key), q.value isa Symbol ? ":$(q.value)" : q.value]
 
 
 """
@@ -54,6 +60,8 @@ end
 Base.:(==)(q::QueryOperator, r::QueryOperator) = q.key == r.key && issetequal(q.value, r.value)
 Base.hash(q::QueryOperator, h::UInt) = hash(q.key, hash(Set(q.value), h))
 
+to_dict(q::QueryOperator) = [string(q.key), [to_dict(c) for c in q.value]]
+
 
 """
     QueryTree
@@ -64,7 +72,26 @@ struct QueryTree
     tree::Union{QueryAny,QueryLiteral,QueryOperator}
 end
 
+QueryTree(data::Vector) = QueryTree(querytreefromdata(data))
+
+function querytreefromdata(data::Vector)
+    # TODO: Serialization of QueryLiteral with various types
+    if data[1] in ("and", "or", "not")
+        return QueryOperator(Symbol(data[1]), [querytreefromdata(d) for d in data[2]])
+    elseif data[1] in ("eq",)
+        return QueryLiteral(
+            Symbol(data[1]), Symbol(data[2]),
+            (data[3] isa String && startswith(data[3], ":")) ? Symbol(data[3][2:end]) : data[3])
+    elseif length(data) == 1
+        return QueryAny(data[1])
+    end
+    error("Invalid query tree format")
+end
+
 Base.getindex(a::QueryTree, prop::Symbol) = getproperty(a, prop)
+
+to_dict(q::QueryTree) = to_dict(q.tree)
+
 
 
 # MolGraph type aliases
