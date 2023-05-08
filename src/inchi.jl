@@ -19,8 +19,8 @@ end
 
 
 """
-    inchi(molblock::String) -> String
-    inchi(mol::MolGraph) -> String
+    inchi(molblock::String) -> Union{String,Nothing}
+    inchi(mol::MolGraph) -> Union{String,Nothing}
 
 Generate InChI string from molblock string or molecule
 """
@@ -32,14 +32,14 @@ function inchi(molblock::String)
         (Cstring, Cstring, Ref{inchi_Output}),
         molblock, "-W60", output)
     if output.szInChI == C_NULL
-        println("InChI error with $(molblock)")
+        @info "InChI error with $(molblock)"
         if output.szMessage != C_NULL
-            println("message: ", unsafe_string(output.szMessage))
+            @info "message: $(unsafe_string(output.szMessage))"
         end
         if output.szLog != C_NULL
-            println("log: ", unsafe_string(output.szLog))
+            @info "log: $(unsafe_string(output.szLog))"
         end
-        res = nothing
+        res = nothing  # TODO: can be type stable?
     else
         res = unsafe_string(output.szInChI)
     end
@@ -57,8 +57,8 @@ inchi(mol::MolGraph) = inchi(printv2mol(mol))
 
 
 """
-    inchikey(inchi::String) -> String
-    inchikey(mol::MolGraph) -> String
+    inchikey(inchi::String) -> Union{String,Nothing}
+    inchikey(mol::MolGraph) -> Union{String,Nothing}
 
 Generate InChI key from InChI string or molecule
 """

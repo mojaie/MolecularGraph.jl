@@ -5,7 +5,7 @@
 
 using JSON
 export
-    smilestomol, sdftomol,
+    smilestomol, smartstomol, sdftomol,
     inchikey, standard_weight,
     has_exact_match, has_substruct_match,
     tcmcis, tcmces
@@ -14,6 +14,17 @@ export
 Base.@ccallable function smilestomol(smiles::Ptr{UInt8})::Ptr{UInt8}
     return try
         mol = smilestomol(unsafe_string(smiles))
+        buf = IOBuffer(write=true)
+        JSON.print(buf, to_dict(mol))
+        return pointer(buf.data)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function smartstomol(smarts::Ptr{UInt8})::Ptr{UInt8}
+    return try
+        mol = smartstomol(unsafe_string(smarts))
         buf = IOBuffer(write=true)
         JSON.print(buf, to_dict(mol))
         return pointer(buf.data)

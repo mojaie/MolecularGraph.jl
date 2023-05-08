@@ -1,4 +1,5 @@
 char* smilestomol(char*);
+char* smartstomol(char*);
 char* sdftomol(char*);
 char* inchikey(char*);
 double standard_weight(char*);
