@@ -1,7 +1,7 @@
 name = "MolecularGraph"
 uuid = "6c89ec66-9cd8-5372-9f91-fabc50dd27fd"
 authors = ["Seiji Matsuoka <ms0ae8ti1sj2ui@gmail.com"]
-version = "0.14.0"
+version = "0.14.1"
 
 [deps]
 Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
@@ -14,7 +14,6 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MakieCore = "20f20a25-4f0e-4fdf-b5d1-57303727442b"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
-Unmarshal = "cbff2730-442d-58d7-89d1-8e530c41eb02"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 coordgenlibs_jll = "f6050b86-aaaf-512f-8549-0afff1b4d57f"
 libinchi_jll = "172afb32-8f1c-513b-968f-184fcd77af72"
@@ -22,10 +21,9 @@ libinchi_jll = "172afb32-8f1c-513b-968f-184fcd77af72"
 [compat]
 Colors = "0.12"
 GeometryBasics = "0.4"
-Graphs = "1.7"
+Graphs = "1"
 JSON = "0.21"
 MakieCore = "0.6"
-Unmarshal = "0.4"
 YAML = "0.4"
 coordgenlibs_jll = "3.0"
 julia = "1.6"
