@@ -7,6 +7,7 @@ export max_matching, is_perfect_matching
 
 
 function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
+    # TODO: refactoring
     head = Set(vertices(g))  # Initial exposed node set
     for m in matching
         setdiff!(head, src(m), dst(m))
@@ -43,19 +44,22 @@ function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
             end
             # Contract a blossom
             bsrc = intersect(p1, p2)[end]
-            bpath = union([bsrc], setdiff(p1, p2), reverse(setdiff(p2, p1)))
+            bp1 = setdiff(p1, p2)
+            bp2 = setdiff(p2, p1)
+            bpath = union([bsrc], bp1, reverse(bp2))
             g_cont = copy(g)  # G'
             gc_vrev = merge_vertices!(g_cont, bpath)
+            gc_vmap = Dict(v => i for (i, v) in enumerate(gc_vrev))
+            bn = minimum(bpath)  # contracted blossom vertex
             # induced_subgraph i in G' => vmap[i] in G
             # merge_vertices! i in G => vrev[i] in G'
-            bn = minimum(bpath)  # contracted blossom
             @debug "      Recursion: $(bpath) -> $(bn)"
             cmat = Set(u_edge(T, gc_vrev[src(e)], gc_vrev[dst(e)]) for e in matching)
             m_cont = intersect(cmat, edges(g_cont))  # M'
             p_cont = findaugpath(g_cont, m_cont)  # P'
-            # @assert length(p_cont) % 2 == 0
+            @debug "      back from recursion"
+            @assert length(p_cont) % 2 == 0
             # Lifting
-            gc_vmap = Dict(v => i for (i, v) in enumerate(gc_vrev))
             p = [gc_vmap[n] for n in p_cont]
             if !(bn in p_cont)
                 @debug "      P: $(p) (no blossom in augpath)"
@@ -73,37 +77,37 @@ function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
             else
                 inlet = bpath[findfirst(x -> has_edge(g, p[pos-1], x), bpath)]
                 outlet = bpath[findfirst(x -> has_edge(g, p[pos+1], x), bpath)]
-                @assert inlet == bsrc || outlet == bsrc
                 bdst = inlet == bsrc ? outlet : inlet
             end
-            r = noweight_shortestpath(g, bsrc, bdst)
-            if length(r) % 2 == 0
-                # find even length path
-                brk = (r[1], r[2])
-                rem_edge!(g, brk...)
-                r = noweight_shortestpath(g, bsrc, bdst)
-                add_edge!(g, u_edge(T, brk...))
+            bpex1 = [bsrc]
+            for i in vcat(bp1, reverse(bp2))
+                push!(bpex1, i)
+                i == bdst && break
             end
+            bpex2 = [bsrc]
+            for i in vcat(bp2, reverse(bp1))
+                push!(bpex2, i)
+                i == bdst && break
+            end
+            r = length(bpex1) % 2 == 0 ? bpex2 : bpex1
             baug = pos % 2 == 0 ? reverse(r) : r
             p = union(p[1:pos-1], baug, p[pos+1:end])
             @debug "      P: $(p) (lifted)"
             return p
         end
     end
-    return Int[]
+    return T[]
 end
 
 
 function findmaxmatch(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
     P = findaugpath(g, matching)
-    # @assert length(P) % 2 == 0
     isempty(P) && return matching
     p_edges = Set{Edge{T}}()
     for i in 1:length(P)-1
         push!(p_edges, u_edge(T, P[i], P[i + 1]))
     end
     augment = symdiff(p_edges, matching)
-    # @assert length(matching) + 1 == length(augment)
     return findmaxmatch(g, augment)
 end
 
