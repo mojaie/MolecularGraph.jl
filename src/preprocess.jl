@@ -23,36 +23,64 @@ lowercase atoms (called Kekulization). Kekulization is necessary for the valence
 implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
 """
 function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
-    nodes = T[]
     bondorder = [get_prop(mol, e, :order) for e in edges(mol)]
-    for i in vertices(mol)
-        get_prop(mol, i, :isaromatic) === nothing && continue
-        get_prop(mol, i, :isaromatic) || continue
-        sym = get_prop(mol, i, :symbol)
-        deg = degree(mol.graph, i)
-        if sym === :C
-            push!(nodes, i)
-        elseif sym in (:N, :P, :As)
-            deg in (2, 3) || error(
-                "Kekulization failed: invalid aromatic $(sym) with valence $(deg)")
-            if deg == 2 || ( # pyridyl
-                        get_prop(mol, i, :charge) == 1  # [n+][O-]
-                        || any(bondorder[edge_rank(mol, i, nbr)] == 2 for nbr in neighbors(mol, i))  # n=O
-                    )
-                push!(nodes, i)
+    # lone pair in p-orbital, pyrrole-like aromatic atom
+    pyrrole_like = has_prop(mol, :pyrrole_like) ? get_prop(mol, :pyrrole_like) : T[]
+    for ring in fused_rings(mol.graph)
+        arom_vs = T[]
+        canbepyl = T[]  # can be pyrrole-like aromatic atom
+        for i in ring
+            get_prop(mol, i, :isaromatic) === true || continue  # not nothing or false
+            i in pyrrole_like && continue
+            sym = get_prop(mol, i, :symbol)
+            deg = degree(mol.graph, i)
+            if deg == 2
+                sym in (:O, :S) && continue  # o, s, se
+                if sym in (:N, :P, :As)
+                    # expected pyridyl, but wrongly can be implicit pyrrole-like
+                    push!(canbepyl, i)
+                end
+                push!(arom_vs, i)  # including [cH0], b
+            elseif deg == 3
+                hasdouble = any(bondorder[edge_rank(mol, i, nbr)] == 2 for nbr in neighbors(mol, i))
+                if sym === :C
+                    hasdouble && continue  # c=O
+                    push!(arom_vs, i)
+                else  # sym in (:N, :P, :As)
+                    if get_prop(mol, i, :charge) == 0 && !hasdouble
+                        # explicit pyrrole-like [nH]
+                        push!(pyrrole_like, i)
+                        continue  
+                    end
+                    push!(arom_vs, i)  # n=O, [n+][O-]
+                end
+            else
+                error("Kekulization failed: invalid aromatic $(sym) with valence $(deg)")
             end
         end
+        if length(arom_vs) % 2 == 1
+            length(canbepyl) > 1 && error(
+                "Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])")
+            # if there is only one n without hydrogen, that might be a pyrrole-like n
+            setdiff!(arom_vs, canbepyl)
+            push!(pyrrole_like, only(canbepyl))
+        end
+        subg, vmap = induced_subgraph(mol.graph, arom_vs)
+        matching = max_matching(subg)
+        is_perfect_matching(subg, matching) || error(
+            "Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])")
+        for e in matching
+            bondorder[edge_rank(mol, vmap[src(e)], vmap[dst(e)])] = 2
+        end
     end
-    subg, vmap = induced_subgraph(mol.graph, nodes)
-    matching = max_matching(subg)
-    is_perfect_matching(subg, matching) || error(
-        "Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])")
-    for e in matching
-        bondorder[edge_rank(mol, vmap[src(e)], vmap[dst(e)])] = 2
-    end
-    return bondorder
+    return bondorder, pyrrole_like
 end
-kekulize!(mol::MolGraph) = set_cache!(mol, :e_order, kekulize(mol))
+
+function kekulize!(mol::MolGraph)
+    bondorder, pyrrole_like = kekulize(mol)
+    set_cache!(mol, :e_order, bondorder)
+    mol.gprops[:pyrrole_like] = pyrrole_like
+end
 
 
 """

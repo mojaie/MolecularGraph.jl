@@ -123,7 +123,7 @@ end
 
     atoms = [SMILESAtom(),SMILESAtom(),SMILESAtom()]
     bonds = [SMILESBond(),SMILESBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => [1,2,3,4]))
     mol2 = MolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2

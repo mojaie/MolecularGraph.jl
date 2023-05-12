@@ -8,19 +8,34 @@
 
     furan = smilestomol("o1cccc1")
     @test sum(bond_order(furan)) == 7
+    thiophene = smilestomol("s1cccc1")
+    @test sum(bond_order(thiophene)) == 7
+    selenophene = smilestomol("[as]1cccc1")
+    @test sum(bond_order(selenophene)) == 7
 
     pyrrole = smilestomol("[nH]1cccc1")
     @test sum(bond_order(pyrrole)) == 8
-    @test_throws ErrorException smilestomol("n1cccc1")  # Wrong pyrrole
+    wrong_pyrrole = smilestomol("n1cccc1")  # hydrogen on n can be inferred
+    @test sum(bond_order(wrong_pyrrole)) == 7
+    imidazol = smilestomol("[nH]1cncc1")
+    @test sum(bond_order(imidazol)) == 8
+    # Wrong imidazol. The position of hydrogen cannot be inferred.
+    @test_throws ErrorException smilestomol("n1cncc1")
+
+    pyridineoxide = smilestomol("[n+]1([O-])ccccc1")
+    @test sum(bond_order(pyridineoxide) .== 2) == 3
+    wrong_pyridone = smilestomol("n1c(=O)cccc1")  # hydrogen on n can be inferred
+    @test sum(bond_order(wrong_pyridone) .== 2) == 3
+
+    sildenafil = smilestomol("O=S(=O)(N1CCN(C)CC1)c4cc(c2[nH]c(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")
+    @test sum(bond_order(sildenafil).== 2) == 9
+    @test_throws ErrorException smilestomol(
+        "O=S(=O)(N1CCN(C)CC1)c4cc(c2nc(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")  # wrong sildenafil
 
     pyrene = smilestomol("c1cc2cccc3ccc4cccc1c4c32")
     p = bond_order(pyrene)
     @test sum(p .== 1) == 11
     @test sum(p .== 2) == 8
-    
-    pyridineoxide = smilestomol("[n+]1([O-])ccccc1")
-    @test sum(bond_order(pyridineoxide) .== 2) == 3
-
     c60 = smilestomol("c12c3c4c5c1c6c7c8c2c9c1c3c2c3c4c4c%10c5c5c6c6c7c7c%11c8c9c8c9c1c2c1c2c3c4c3c4c%10c5c5c6c6c7c7c%11c8c8c9c1c1c2c3c2c4c5c6c3c7c8c1c23")
     @test sum(bond_order(c60) .== 2) == 30
 end

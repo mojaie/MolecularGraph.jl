@@ -115,12 +115,16 @@ Return vectors of fused ring node sets.
 A fused ring is defined as a 2-edge connected components in terms of graph theory.
 Spirocyclic structures are considered to be part of a fused ring.
 """
+function fused_rings(g::SimpleGraph)
+    cobr = setdiff(Set(edges(g)), bridges(g))
+    subg, vmap = induced_subgraph(g, collect(cobr))
+    return  [vmap[c] for c in connected_components(subg)]
+end
+
 function fused_rings(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :fused_rings) && return get_cache(mol, :fused_rings)
-    cobr = setdiff(Set(edges(mol)), bridges(mol.graph))
-    subg, vmap = induced_subgraph(mol.graph, collect(cobr))
-    return  [vmap[c] for c in connected_components(subg)]
+    return fused_rings(mol.graph)
 end
 
 
