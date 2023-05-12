@@ -104,6 +104,7 @@ end
 function sdf_on_init!(mol)
     stereocenter_from_sdf2d!(mol)
     stereobond_from_sdf2d!(mol)
+    set_state!(mol, :initialized, true)
 end
 
 function sdf_on_update!(mol)

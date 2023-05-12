@@ -33,7 +33,7 @@ function MolGraph{T,V,E}(
         :initialized => false,
         :has_updates => true,
         :updater => mol -> (update_edge_rank!(mol); clear_caches!(mol); set_state!(mol, :has_updates, false)),
-        :on_init => mol -> nothing,
+        :on_init => mol -> set_state!(mol, :initialized, true),
         :caches => Dict{Symbol,Any}()
     )
     merge!(default_config, config_map)

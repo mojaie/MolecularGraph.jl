@@ -49,6 +49,7 @@ SMARTSParser{T}(smarts
 function smiles_on_init!(mol)
     stereocenter_from_smiles!(mol)
     stereobond_from_smiles!(mol)
+    set_state!(mol, :initialized, true)
 end
 
 function smiles_on_update!(mol)
@@ -84,9 +85,7 @@ function smilestomol(::Type{T}, smiles::AbstractString;
     fragment!(state)
     default_config = Dict{Symbol,Any}(:updater => smiles_on_update!, :on_init => smiles_on_init!)
     merge!(default_config, config)
-    mol = T(state.edges, state.vprops, state.eprops, config_map=default_config; kwargs...)
-    dispatch!(mol, :updater)
-    return mol
+    return T(state.edges, state.vprops, state.eprops, config_map=default_config; kwargs...)
 end
 
 smilestomol(smiles::AbstractString; kwargs...
