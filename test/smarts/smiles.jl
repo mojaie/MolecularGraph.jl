@@ -122,4 +122,16 @@ end
     @test degree(pyrrole, 1) == 3
 end
 
+@testset "serialization" begin
+    mol = smilestomol("OCCc1c(C)[n+](=cs1)Cc2cnc(C)nc(N)2")
+    mol2 = SMILESMolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+
+    mol = smilestomol("C1=CC=C2C(=C1)C(=O)OC23C4=C(C=C(C=C4)O)OC5=C3C=CC(=C5)O")
+    mol2 = SMILESMolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+end
+
 end # smarts.smiles

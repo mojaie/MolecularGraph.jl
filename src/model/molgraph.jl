@@ -30,15 +30,16 @@ function MolGraph{T,V,E}(
         push!(g.fadjlist, T[])
     end
     default_config = Dict(
-        :has_updates => false,
+        :initialized => false,
+        :has_updates => true,
         :updater => mol -> (update_edge_rank!(mol); clear_caches!(mol); set_state!(mol, :has_updates, false)),
         :on_init => mol -> nothing,
         :caches => Dict{Symbol,Any}()
     )
     merge!(default_config, config_map)
     mol = MolGraph{T,V,E}(g, vprop_map, eprop_map, gprop_map, default_config, Dict{Edge{T},T}())
-    dispatch!(mol, :on_init)
-    dispatch!(mol, :updater)
+    default_config[:initialized] || dispatch!(mol, :on_init)
+    default_config[:has_updates] && dispatch!(mol, :updater)
     return mol
 end
 
@@ -71,7 +72,7 @@ MolGraph(
 
 # from dict (deserialize)
 
-function MolGraph(data::Dict)
+function MolGraph(data::Dict, config=Dict{Symbol,Any}())
     eltype = eval(Meta.parse(data["eltype"]))
     vproptype = eval(Meta.parse(data["vproptype"]))
     eproptype = eval(Meta.parse(data["eproptype"]))
@@ -80,16 +81,38 @@ function MolGraph(data::Dict)
     eps = Dict{Edge{eltype},eproptype}(e => eproptype(ep) for (e, ep) in zip(edges(g), data["eprops"]))
     gps = Dict{Symbol,Any}(
         Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["gprops"])
-    return MolGraph(g, vps, eps, gprop_map=gps)
+    default_config = Dict{Symbol,Any}(
+        :caches => Dict{Symbol,Any}(
+            Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["caches"]),
+        :initialized => true,
+        :has_updates => false
+    )
+    merge!(default_config, config)
+    return MolGraph(g, vps, eps, gprop_map=gps, config_map=default_config)
 end
 
-MolGraph(json::String) = MolGraph(JSON.parse(json))
+MolGraph{T,V,E}(data::Dict, config=Dict{Symbol,Any}()) where {T,V,E} = MolGraph(data, config)
+
+MolGraph(json::String, config=Dict{Symbol,Any}()) = MolGraph(JSON.parse(json), config)
+MolGraph{T,V,E}(json::String, config=Dict{Symbol,Any}()) where {T,V,E} = MolGraph(JSON.parse(json), config)
 
 
 # MolGraph type aliases
 
 const SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
 const SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
+
+function MolGraph{Int,SDFAtom,SDFBond}(data::Dict, config=Dict{Symbol,Any}())
+    default_config = Dict{Symbol,Any}(:on_init => sdf_on_init!, :updater => sdf_on_update!)
+    merge!(default_config, config)
+    return MolGraph(data, default_config)
+end
+
+function MolGraph{Int,SMILESAtom,SMILESBond}(data::Dict, config=Dict{Symbol,Any}())
+    default_config = Dict{Symbol,Any}(:on_init => smiles_on_init!, :updater => smiles_on_update!)
+    merge!(default_config, config)
+    return MolGraph(data, default_config)
+end
 
 
 to_dict(mol::MolGraph) = Dict(
@@ -99,7 +122,8 @@ to_dict(mol::MolGraph) = Dict(
     "graph" => [[src(e), dst(e)] for e in edges(mol)],
     "vprops" => [to_dict(props(mol, i)) for i in vertices(mol)],
     "eprops" => [to_dict(props(mol, e)) for e in edges(mol)],
-    "gprops" => [[string(k), string(typeof(v)), applicable(to_dict, v) ? to_dict(v) : v] for (k, v) in mol.gprops]
+    "gprops" => [[string(k), string(typeof(v)), applicable(to_dict, v) ? to_dict(v) : v] for (k, v) in mol.gprops],
+    "caches" => [[string(k), string(typeof(v)), applicable(to_dict, v) ? to_dict(v) : v] for (k, v) in mol.state[:caches]]
 )
 
 dispatch!(mol, event) = mol.state[event](mol)

@@ -34,4 +34,17 @@
         v -> v[1] | v[2], [(:recursive, "[NX2H]"), (:recursive, "[NX2][#6]")])
 end
 
+@testset "serialization" begin
+    mol = smartstomol(raw"[$([CX3]([#6])[#6]),$([CX3H][#6])]=[$([NX2][#6]),$([NX2H])]")
+    mol2 = SMARTSMolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+
+    mol = smartstomol("[O,S]=P([O,S])([O,S])[O,S]")
+    mol2 = SMARTSMolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+end
+
+
 end
