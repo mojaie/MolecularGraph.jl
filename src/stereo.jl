@@ -23,6 +23,15 @@ Base.get(stereo::Stereocenter, k, v) = get(stereo.mapping, k, v)
 Base.setindex!(stereo::Stereocenter, v, k) = setindex!(stereo.mapping, v, k)
 to_dict(stereo::Stereocenter) = [[i, val] for (i, val) in stereo.mapping]
 
+function remap(stereo::Stereocenter{T}, vmap::Dict) where T  # vmap[old] -> new
+    newmap = Dict{T,Tuple{T,T,T,Bool}}()
+    for (k, v) in stereo.mapping
+        isempty(setdiff([k, v[1:3]...], keys(vmap))) || continue
+        newmap[vmap[k]] = (vmap[v[1]], vmap[v[2]], vmap[v[3]], v[4])
+    end
+    return Stereocenter{T}(newmap)
+end
+
 
 struct Stereobond{T} <: AbstractDict{Edge{T},Tuple{T,T,Bool}}
     mapping::Dict{Edge{T},Tuple{T,T,Bool}}
@@ -37,6 +46,15 @@ Base.length(stereo::Stereobond) = length(stereo.mapping)
 Base.get(stereo::Stereobond, k, v) = get(stereo.mapping, k, v)
 Base.setindex!(stereo::Stereobond, v, k) = setindex!(stereo.mapping, v, k)
 to_dict(stereo::Stereobond) = [[src(e), dst(e), val] for (e, val) in stereo.mapping]
+
+function remap(stereo::Stereobond{T}, vmap::Dict) where T  # vmap[old] -> new
+    newmap = Dict{Edge{T},Tuple{T,T,Bool}}()
+    for (k, v) in stereo.mapping
+        isempty(setdiff([src(k), dst(k), v[1:2]...], keys(vmap))) || continue
+        newmap[u_edge(T, vmap[src(k)], vmap[dst(k)])] = (vmap[v[1]], vmap[v[2]], v[3])
+    end
+    return Stereobond{T}(newmap)
+end
 
 
 """
@@ -90,17 +108,23 @@ function remove_stereo_hydrogen!(mol::SimpleMolGraph{T,V,E}, center::T, h::T) wh
     C[C@@](N)([H])O -> C, N, O, (H), @
     C[C@@](N)(O)[H] -> C, N, O, (H), @@
     """
-    rem_vertex!(mol, h) || return false
     stereo = get_prop(mol, :stereocenter)[center]
     vs = collect(stereo[1:3])
     spos = findfirst(x -> x == h, vs)
-    isnothing(spos) && return true  # hydrogen at the lowest priority can be removed safely
+    if isnothing(spos)
+        # hydrogen at the lowest priority can be removed safely
+        rem_vertex!(mol, h) || return false
+        set_stereocenter!(mol, center, vs[1], vs[2], vs[3], xor(stereo[4], is_rev))
+        return true
+    end
     is_rev = spos in [1, 3]
     rest = setdiff(neighbors(mol, center), vs)  # the lowest node index
     resti = isempty(rest) ? h : rest[1]  # rest is empty if the lowest node is the end node.
     popat!(vs, spos)
     push!(vs, resti)
-    set_stereocenter!(mol, center, vs[1], vs[2], vs[3], xor(stereo[4], is_rev))
+    rem_vertex!(mol, h) || return false
+    vs_ = [v == nv(mol) + 1 ? h : v for v in vs]  # reindex
+    set_stereocenter!(mol, center, vs_[1], vs_[2], vs_[3], xor(stereo[4], is_rev))
     return true
 end
 

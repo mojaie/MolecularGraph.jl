@@ -13,6 +13,18 @@ export
     to_triple_bond, to_triple_bond!, to_allene_like, to_allene_like!
 
 
+struct PyrroleLike{T} <: AbstractVector{T}
+    vertices::Vector{T}
+end
+
+Base.size(p::PyrroleLike) = size(p.vertices)
+Base.getindex(p::PyrroleLike, i...) = getindex(p.vertices, i...)
+to_dict(p::PyrroleLike) = p.vertices
+
+remap(p::PyrroleLike{T}, vmap::Dict
+    ) where T = PyrroleLike{T}([vmap[v] for v in p.vertices if v in keys(vmap)])
+
+
 """
     kekulize(mol::SimpleMolGraph) -> Vector{Int}
 
@@ -25,13 +37,16 @@ implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
 function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     bondorder = [get_prop(mol, e, :order) for e in edges(mol)]
     # lone pair in p-orbital, pyrrole-like aromatic atom
-    pyrrole_like = has_prop(mol, :pyrrole_like) ? get_prop(mol, :pyrrole_like) : T[]
+    pyrrole_like = T[]
     for ring in fused_rings(mol.graph)
         arom_vs = T[]
         canbepyl = T[]  # can be pyrrole-like aromatic atom
         for i in ring
             get_prop(mol, i, :isaromatic) === true || continue  # not nothing or false
-            i in pyrrole_like && continue
+            if has_prop(mol, :pyrrole_like) && i in get_prop(mol, :pyrrole_like)
+                push!(pyrrole_like, i)
+                continue
+            end
             sym = get_prop(mol, i, :symbol)
             deg = degree(mol.graph, i)
             if deg == 2
@@ -48,9 +63,10 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
                     push!(arom_vs, i)
                 else  # sym in (:N, :P, :As)
                     if get_prop(mol, i, :charge) == 0 && !hasdouble
-                        # explicit pyrrole-like [nH]
-                        push!(pyrrole_like, i)
-                        continue  
+                        if any(get_prop(mol, nbr, :symbol) === :H for nbr in neighbors(mol, i))
+                            push!(pyrrole_like, i) # explicit pyrrole-like [nH]
+                        end
+                        continue  # including [nH0X3]
                     end
                     push!(arom_vs, i)  # n=O, [n+][O-]
                 end
@@ -73,7 +89,7 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
             bondorder[edge_rank(mol, vmap[src(e)], vmap[dst(e)])] = 2
         end
     end
-    return bondorder, pyrrole_like
+    return bondorder, PyrroleLike(pyrrole_like)
 end
 
 function kekulize!(mol::MolGraph)

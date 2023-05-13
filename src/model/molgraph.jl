@@ -184,6 +184,13 @@ function rem_vertex!(mol::MolGraph, v::Integer)
         src(e) == nv_ && begin mol.eprops[u_edge(mol, v, dst(e))] = mol.eprops[e]; delete!(mol.eprops, e) end
         dst(e) == nv_ && begin mol.eprops[u_edge(mol, src(e), v)] = mol.eprops[e]; delete!(mol.eprops, e) end
     end
+    # remap TODO: refactoring
+    if nv_ != v
+        mapper = Dict(i => i for i in vertices(mol))
+        delete!(mapper, v)
+        mapper[nv_ ] = v
+        remap_gprops!(mol, mapper)
+    end
     mol.state[:has_updates] = true
     return true
 end
@@ -203,6 +210,7 @@ function rem_vertices!(mol::MolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
         mol.eprops[e] = mol.eprops[_e]
         delete!(mol.eprops, _e)
     end
+    remap_gprops!(mol, Dict(v => i for (i, v) in enumerate(vmap)))
     mol.state[:has_updates] = true
     return vmap
 end
@@ -214,5 +222,7 @@ function _induced_subgraph(mol::T, vlist_or_elist) where {T<:MolGraph}
     vps = Dict(v => mol.vprops[vmap[v]] for v in vertices(subg))
     eps = Dict(e => mol.eprops[u_edge(mol, vmap[src(e)], vmap[dst(e)])]
         for e in edges(subg))
-    return T(subg, vps, eps, gprop_map=mol.gprops, config_map=mol.state), vmap
+    newgp = remap_gprops(mol, Dict(v => i for (i, v) in enumerate(vmap)))
+    mol.state[:has_updates] = true
+    return T(subg, vps, eps, gprop_map=newgp, config_map=mol.state), vmap
 end

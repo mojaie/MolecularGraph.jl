@@ -117,7 +117,7 @@ end
     benzene = smilestomol("c1ccccc1")
     @test get_prop(benzene, 1, :isaromatic)
     @test get_prop(benzene, 1, 6, :order) == 1
-    pyrrole = smilestomol("[nH]1cccc1")  # pyrrole H cannot be omitted
+    pyrrole = smilestomol("[nH]1cccc1")
     @test get_prop(pyrrole, 1, :isaromatic)
     @test degree(pyrrole, 1) == 3
 end
@@ -132,6 +132,11 @@ end
     mol2 = SMILESMolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
+
+    sildenafil = smilestomol("O=S(=O)(N1CCN(C)CC1)c4cc(c2[nH]c(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")
+    sildenafil2 = SMILESMolGraph(to_json(sildenafil))
+    @test sildenafil == sildenafil2
+    @test sildenafil !== sildenafil2
 end
 
 end # smarts.smiles

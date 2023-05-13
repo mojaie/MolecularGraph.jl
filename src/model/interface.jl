@@ -172,6 +172,18 @@ Convert molecule object into JSON String.
 """
 to_json(mol::AbstractMolGraph) = JSON.json(to_dict(mol))
 
+function remap_gprops(mol::SimpleMolGraph, vmap)  # vmap[old] -> new
+    newgp = Dict{Symbol,Any}()
+    for (k, v) in mol.gprops
+        newgp[k] = applicable(remap, v, vmap) ? remap(v, vmap) : v
+    end
+    return newgp
+end
+function remap_gprops!(mol::SimpleMolGraph, vmap)  # vmap[old] -> new
+    for (k, v) in mol.gprops
+        mol.gprops[k] = applicable(remap, v, vmap) ? remap(v, vmap) : v
+    end
+end
 
 
 """

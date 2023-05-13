@@ -15,8 +15,11 @@
 
     pyrrole = smilestomol("[nH]1cccc1")
     @test sum(bond_order(pyrrole)) == 8
-    wrong_pyrrole = smilestomol("n1cccc1")  # hydrogen on n can be inferred
-    @test sum(bond_order(wrong_pyrrole)) == 7
+    @test get_prop(pyrrole, :pyrrole_like) == [1]
+    pyrrole2 = smilestomol("n1cccc1")
+    @test sum(bond_order(pyrrole2)) == 7
+    @test get_prop(pyrrole2, :pyrrole_like) == [1]  # hydrogen on n can be inferred
+
     imidazol = smilestomol("[nH]1cncc1")
     @test sum(bond_order(imidazol)) == 8
     # Wrong imidazol. The position of hydrogen cannot be inferred.
@@ -24,11 +27,19 @@
 
     pyridineoxide = smilestomol("[n+]1([O-])ccccc1")
     @test sum(bond_order(pyridineoxide) .== 2) == 3
-    wrong_pyridone = smilestomol("n1c(=O)cccc1")  # hydrogen on n can be inferred
-    @test sum(bond_order(wrong_pyridone) .== 2) == 3
+
+    pyridone = smilestomol("n1c(=O)cccc1")
+    @test sum(bond_order(pyridone) .== 2) == 3
+    @test get_prop(pyridone, :pyrrole_like) == [1]
+
+    caffeine = smilestomol("Cn1cnc2c1c(=O)n(c(=O)n2C)C")
+    @test sum(bond_order(caffeine).== 2) == 4
+    @test isempty(get_prop(caffeine, :pyrrole_like))
 
     sildenafil = smilestomol("O=S(=O)(N1CCN(C)CC1)c4cc(c2[nH]c(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")
     @test sum(bond_order(sildenafil).== 2) == 9
+    remove_hydrogens!(sildenafil)
+    @test get_prop(sildenafil, :pyrrole_like) == [15]
     @test_throws ErrorException smilestomol(
         "O=S(=O)(N1CCN(C)CC1)c4cc(c2nc(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")  # wrong sildenafil
 
@@ -36,8 +47,18 @@
     p = bond_order(pyrene)
     @test sum(p .== 1) == 11
     @test sum(p .== 2) == 8
+
     c60 = smilestomol("c12c3c4c5c1c6c7c8c2c9c1c3c2c3c4c4c%10c5c5c6c6c7c7c%11c8c9c8c9c1c2c1c2c3c4c3c4c%10c5c5c6c6c7c7c%11c8c8c9c1c1c2c3c2c4c5c6c3c7c8c1c23")
     @test sum(bond_order(c60) .== 2) == 30
+
+    sumatriptan = smilestomol("CNS(=O)(=O)Cc1ccc2[nH]cc(CCN(C)C)c2c1")
+    remove_hydrogens!(sumatriptan)
+    @test get_prop(sumatriptan, :pyrrole_like) == [11]
+    rem_vertices!(sumatriptan, [1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19])
+    @test get_prop(sumatriptan, :pyrrole_like) == [5]
+
+
+
 end
 
 @testset "remove_hydrogens" begin
