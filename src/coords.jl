@@ -57,81 +57,63 @@ where n is atom count, which stores 2D coordinates (x, y) of each atoms.
 `styles` is a size e vector of wedge notation of stereobond, where e is bond count.
 """
 function coordgen(g, atomsymbol_, bondorder_, stereocenters, stereobonds)
-    minmol = ccall((:getSketcherMinimizer, libcoordgen), Ptr{Cvoid}, ())
+    minmol = @ccall libcoordgen.getSketcherMinimizer()::Ptr{Cvoid}
     atoms = Ptr{Cvoid}[]
     bonds = Ptr{Cvoid}[]
     er = Dict(e => i for (i, e) in enumerate(edges(g)))
 
     # Atoms
     for a in atomsymbol_
-        atom = ccall(
-            (:setAtom, libcoordgen), Ptr{Cvoid},
-            (Ptr{Cvoid}, Int), minmol, atomnumber(a)
-        )
+        atom = @ccall libcoordgen.setAtom(
+            minmol::Ptr{Cvoid}, atomnumber(a)::Cint)::Ptr{Cvoid}
         push!(atoms, atom)
     end
 
     # Bonds
     for (i, e) in enumerate(edges(g))
-        bond = ccall(
-            (:setBond, libcoordgen), Ptr{Cvoid},
-            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-            minmol, atoms[src(e)], atoms[dst(e)], bondorder_[i]
-        )
+        bond = @ccall libcoordgen.setBond(
+            minmol::Ptr{Cvoid}, atoms[src(e)]::Ptr{Cvoid},
+            atoms[dst(e)]::Ptr{Cvoid}, bondorder_[i]::Cint)::Ptr{Cvoid}
         push!(bonds, bond)
     end
 
-    ccall(
-        (:assignBondsAndNeighbors, libcoordgen), Cvoid,
-        (Ptr{Cvoid},), minmol
-    )
+    @ccall libcoordgen.assignBondsAndNeighbors(minmol::Ptr{Cvoid})::Cvoid
 
     # Stereocenter
     for (n, stereo) in stereocenters
-        ccall(
-            (:setStereoCenter, libcoordgen), Cvoid,
-            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-            atoms[n], atoms[stereo[1]], atoms[stereo[2]], atoms[stereo[3]], stereo[4]
-        )
+        @ccall libcoordgen.setStereoCenter(
+            atoms[n]::Ptr{Cvoid}, atoms[stereo[1]]::Ptr{Cvoid},
+            atoms[stereo[2]]::Ptr{Cvoid}, atoms[stereo[3]]::Ptr{Cvoid}, stereo[4]::Cint)::Cvoid
     end
 
     # Stereobond
     for (e, stereo) in stereobonds
-        ccall(
-            (:setStereoBond, libcoordgen), Cvoid,
-            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int),
-            bonds[er[e]], atoms[stereo[1]], atoms[stereo[2]], stereo[3]
-        )
+        @ccall libcoordgen.setStereoBond(
+            bonds[er[e]]::Ptr{Cvoid}, atoms[stereo[1]]::Ptr{Cvoid},
+            atoms[stereo[2]]::Ptr{Cvoid}, stereo[3]::Cint
+        )::Cvoid
     end
 
     # Optimize
-    ccall(
-        (:runGenerateCoordinates, libcoordgen), Cvoid,
-        (Ptr{Cvoid},), minmol
-    )
+    @ccall libcoordgen.runGenerateCoordinates(minmol::Ptr{Cvoid})::Cvoid
 
     # Output
     coords = zeros(Float64, nv(g), 2)
     for i in vertices(g)
-        px = ccall(
-            (:getAtomX, libcoordgen), Float32, (Ptr{Cvoid},), atoms[i])
-        py = ccall(
-            (:getAtomY, libcoordgen), Float32, (Ptr{Cvoid},), atoms[i])
+        px = @ccall libcoordgen.getAtomX(atoms[i]::Ptr{Cvoid})::Cfloat
+        py = @ccall libcoordgen.getAtomY(atoms[i]::Ptr{Cvoid})::Cfloat
         coords[i, :] = [px, py]
     end
     styles = Vector{Symbol}(undef, ne(g))
     for (i, e) in enumerate(edges(g))
-        hasstereo = ccall(
-            (:hasStereochemistryDisplay, libcoordgen), Bool,
-            (Ptr{Cvoid},), bonds[i])
+        hasstereo = @ccall libcoordgen.hasStereochemistryDisplay(
+            bonds[i]::Ptr{Cvoid})::Bool
         if !hasstereo
             styles[i] = :none
             continue
         end
-        iswedge = ccall(
-            (:isWedge, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
-        isrev = ccall(
-            (:isReversed, libcoordgen), Bool, (Ptr{Cvoid},), bonds[i])
+        iswedge = @ccall libcoordgen.isWedge(bonds[i]::Ptr{Cvoid})::Bool
+        isrev = @ccall libcoordgen.isReversed(bonds[i]::Ptr{Cvoid})::Bool
         if iswedge
             styles[i] = isrev ? :revup : :up
         else

@@ -26,11 +26,8 @@ Generate InChI string from molblock string or molecule
 """
 function inchi(molblock::String)
     output = inchi_Output()
-    ccall(
-        (:MakeINCHIFromMolfileText, libinchi),
-        Int32,
-        (Cstring, Cstring, Ref{inchi_Output}),
-        molblock, "-W60", output)
+    @ccall libinchi.MakeINCHIFromMolfileText(
+        molblock::Cstring, "-W60"::Cstring, output::Ref{inchi_Output})::Int32
     if output.szInChI == C_NULL
         @info "InChI error with $(molblock)"
         if output.szMessage != C_NULL
@@ -44,12 +41,7 @@ function inchi(molblock::String)
         res = unsafe_string(output.szInChI)
     end
     # Free string buffers allocated by MakeINCHIFromMolfileText
-    ccall(
-        (:FreeINCHI, libinchi),
-        Cvoid,
-        (Ref{inchi_Output},),
-        output
-    )
+    @ccall libinchi.FreeINCHI(output::Ref{inchi_Output})::Cvoid
     return res
 end
 
@@ -68,11 +60,9 @@ function inchikey(inchi::Union{String,Nothing})
     # TODO: need extra buffer?
     xtra1buf = pointer(Vector{UInt8}(undef, 256))
     xtra2buf = pointer(Vector{UInt8}(undef, 256))
-    ccall(
-        (:GetINCHIKeyFromINCHI, libinchi),
-        Int32,
-        (Cstring, Int32, Int32, Cstring, Cstring, Cstring),
-        inchi, 1, 1, ikeybuf, xtra1buf, xtra2buf)
+    @ccall libinchi.GetINCHIKeyFromINCHI(
+        inchi::Cstring, 1::Int32, 1::Int32,
+        ikeybuf::Cstring, xtra1buf::Cstring, xtra2buf::Cstring)::Int32
     return unsafe_string(ikeybuf)
 end
 
