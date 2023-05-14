@@ -325,8 +325,9 @@ function stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T
             push!(dds, (dn, dd))
         end
         (isempty(sds) || isempty(dds)) && continue  # no :up or :down bonds
-        length(sds) == 2 && sds[1][2] == sds[2][2] && error("Invalid diastereomer representation")
-        length(dds) == 2 && dds[1][2] == dds[2][2] && error("Invalid diastereomer representation")
+        # Conflicting cis/trans will be ignored (adopts OpenSMILES specs)
+        length(sds) == 2 && sds[1][2] == sds[2][2] && continue
+        length(dds) == 2 && dds[1][2] == dds[2][2] && continue
         stereobonds[e] = (sds[1][1], dds[1][1], sds[1][2] !== dds[1][2])
     end
     return stereobonds

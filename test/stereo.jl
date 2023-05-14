@@ -226,10 +226,11 @@ end
     mol2 = smilestomol("C/C=C/C")
     @test get_prop(mol2, :stereobond)[Edge(2 => 3)] == (1, 4, false)
 
-    # follows OpenSMILES specification http://opensmiles.org/opensmiles.html#chirality
-    # -> "up-ness" or "down-ness" of each single bond is relative to the carbon atom
     cis = smilestomol("C(/C)=C/C")
     @test get_prop(cis, :stereobond)[Edge(1 => 3)] == (2, 4, true)  # cis
+
+    conflict = smilestomol("C/C=C(/C)/C")
+    @test isempty(get_prop(conflict, :stereobond))  # ignored
 
     mol3 = smilestomol("C\\C([H])=C([H])/C")
     @test get_prop(mol3, :stereobond)[Edge(2 => 4)] == (1, 6, true)
