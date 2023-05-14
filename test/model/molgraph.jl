@@ -76,17 +76,17 @@ end
     @test add_edge!(mol, Edge(3, 4), SDFBond())  # CCCO
     @test degree(mol.graph, 3) == 2
     @test get_prop(mol, Edge(3, 4), :order) == 1
-    # @test length(mol.edge_rank) == 3    move to properties
     add_edge!(mol, Edge(1, 4), SDFBond())  # C1CCO1
     @test rem_edge!(mol, Edge(3, 4))  # C1CC.O1
     @test degree(mol.graph, 3) == 1
-    # @test length(mol.edge_rank) == 3    move to properties
+    @test issetequal(keys(mol.eprops), Edge.([(1, 2), (1, 4), (2, 3)]))
     @test add_edge!(mol, 4, 3, SDFBond())  # C1CCO1
     @test rem_vertex!(mol, 2)  # COC
     @test degree(mol.graph, 1) == 1
     @test degree(mol.graph, 2) == 2
     @test degree(mol.graph, 3) == 1
-    @test length(mol.edge_rank) == 2
+    @test issetequal(keys(mol.vprops), collect(1:3))
+    @test issetequal(keys(mol.eprops), Edge.([(1, 2), (2, 3)]))
 
     mol = MolGraph(collect(edges(smallgraph(:dodecahedral))), collect(1:20), collect(1:30))  # MolGraph{Int,Int,Int}
     for e in Edge.([(1, 2), (1, 20), (11, 12), (19, 20)])
@@ -100,6 +100,10 @@ end
     vmap = rem_vertices!(mol, [1, 3, 5, 7, 9])
     @test ne(mol) == 16
     @test issetequal(vmap, values(mol.vprops))
+    vmap = rem_vertices!(mol, collect(1:14))
+    @test ne(mol) == 0
+    @test issetequal(vmap, values(mol.vprops))
+
     mol = MolGraph(collect(edges(smallgraph(:dodecahedral))), collect(1:20), collect(1:30))
     subg, vmap = induced_subgraph(mol, [6, 7, 8, 15, 16])
     @test ne(subg) == 5

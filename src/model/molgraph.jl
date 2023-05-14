@@ -202,13 +202,18 @@ function rem_vertices!(mol::MolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
     for (i, v) in enumerate(vmap)
         i == v && continue
         mol.vprops[i] = mol.vprops[v]
+    end
+    for v in (nv(mol)+1):(nv(mol)+length(vs))
         delete!(mol.vprops, v)
     end
     for e in edges(mol)
         _e = u_edge(T, vmap[src(e)], vmap[dst(e)])
         e == _e && continue
         mol.eprops[e] = mol.eprops[_e]
-        delete!(mol.eprops, _e)
+    end
+    new_edges = collect(edges(mol))
+    for e in keys(mol.eprops)
+        e in new_edges || delete!(mol.eprops, e)
     end
     remap_gprops!(mol, Dict(v => i for (i, v) in enumerate(vmap)))
     mol.state[:has_updates] = true
