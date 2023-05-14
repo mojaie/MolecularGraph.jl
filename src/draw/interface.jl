@@ -3,8 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using Printf
-
 export
     Canvas,
     singlebond!,

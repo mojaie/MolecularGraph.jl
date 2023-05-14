@@ -58,7 +58,7 @@ function run()
         "Cc1c(OC)c(C)cnc1CS(=O)c2[nH]c3ccc(OC)nc3n2"
     ))))
     query1 = JSON.parse(unsafe_string(smilestomol(pointer("c1ncccc1N"))))
-    query2 = JSON.parse(unsafe_string(smartstomol(pointer("[r8R2][r8R2]"))))
+    query2 = JSON.parse(unsafe_string(smartstomol(pointer("[r6R2][r6R2]"))))
     halide2 = JSON.parse(unsafe_string(smilestomol(pointer("[F]c1ccccc1"))))
 
     @debug has_exact_match(

@@ -11,6 +11,7 @@ module MolecularGraph
     using Dates
     using DelimitedFiles
     using Graphs
+    using JSON
     using LinearAlgebra
     using Printf
     using Statistics

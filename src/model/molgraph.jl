@@ -72,13 +72,11 @@ MolGraph(
 
 # from dict (deserialize)
 
-function MolGraph(data::Dict, config=Dict{Symbol,Any}())
-    eltype = eval(Meta.parse(data["eltype"]))
-    vproptype = eval(Meta.parse(data["vproptype"]))
-    eproptype = eval(Meta.parse(data["eproptype"]))
-    g = SimpleGraph(Edge{eltype}[Edge(e...) for e in data["graph"]])
-    vps = Dict{eltype,vproptype}(i => vproptype(vp) for (i, vp) in enumerate(data["vprops"]))
-    eps = Dict{Edge{eltype},eproptype}(e => eproptype(ep) for (e, ep) in zip(edges(g), data["eprops"]))
+function molgraph_from_dict(
+        T::Type{<:Integer}, V::Type, E::Type, data::Dict, config::Dict{Symbol,Any})
+    g = SimpleGraph(Edge{T}[Edge{T}(e...) for e in data["graph"]])
+    vps = Dict{T,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
+    eps = Dict{Edge{T},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
     gps = Dict{Symbol,Any}(
         Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["gprops"])
     default_config = Dict{Symbol,Any}(
@@ -88,13 +86,24 @@ function MolGraph(data::Dict, config=Dict{Symbol,Any}())
         :has_updates => false
     )
     merge!(default_config, config)
-    return MolGraph(g, vps, eps, gprop_map=gps, config_map=default_config)
+    mol = MolGraph{T,V,E}(g, vps, eps, gprop_map=gps, config_map=default_config)
+    update_edge_rank!(mol)
+    return mol
 end
 
-MolGraph{T,V,E}(data::Dict, config=Dict{Symbol,Any}()) where {T,V,E} = MolGraph(data, config)
+MolGraph{T,V,E}(data::Dict, config=Dict{Symbol,Any}()
+    ) where {T,V,E} = molgraph_from_dict(T, V, E, data, config)
 
+function MolGraph(data::Dict, config=Dict{Symbol,Any}())
+    eltype = eval(Meta.parse(data["eltype"]))
+    vproptype = eval(Meta.parse(data["vproptype"]))
+    eproptype = eval(Meta.parse(data["eproptype"]))
+    return molgraph_from_dict(eltype, vproptype, eproptype, data, config)
+end
+
+
+MolGraph{T,V,E}(json::String, config=Dict{Symbol,Any}()) where {T,V,E} = MolGraph{T,V,E}(JSON.parse(json), config)
 MolGraph(json::String, config=Dict{Symbol,Any}()) = MolGraph(JSON.parse(json), config)
-MolGraph{T,V,E}(json::String, config=Dict{Symbol,Any}()) where {T,V,E} = MolGraph(JSON.parse(json), config)
 
 
 # MolGraph type aliases
@@ -105,13 +114,13 @@ const SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
 function MolGraph{Int,SDFAtom,SDFBond}(data::Dict, config=Dict{Symbol,Any}())
     default_config = Dict{Symbol,Any}(:on_init => sdf_on_init!, :updater => sdf_on_update!)
     merge!(default_config, config)
-    return MolGraph(data, default_config)
+    return molgraph_from_dict(Int, SDFAtom, SDFBond, data, default_config)
 end
 
 function MolGraph{Int,SMILESAtom,SMILESBond}(data::Dict, config=Dict{Symbol,Any}())
     default_config = Dict{Symbol,Any}(:on_init => smiles_on_init!, :updater => smiles_on_update!)
     merge!(default_config, config)
-    return MolGraph(data, default_config)
+    return molgraph_from_dict(Int, SMILESAtom, SMILESBond, data, default_config)
 end
 
 

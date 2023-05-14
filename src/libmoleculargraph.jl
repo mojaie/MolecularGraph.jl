@@ -3,14 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using JSON
-export
-    smilestomol, smartstomol, sdftomol,
-    inchikey, standard_weight,
-    has_exact_match, has_substruct_match,
-    tcmcis, tcmces
-
-
 Base.@ccallable function smilestomol(smiles::Ptr{UInt8})::Ptr{UInt8}
     return try
         mol = smilestomol(unsafe_string(smiles))

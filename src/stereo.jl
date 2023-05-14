@@ -4,7 +4,6 @@
 #
 
 export
-    Stereocenter, Stereobond,
     set_stereocenter!, set_stereobond!, stereo_hydrogen, remove_stereo_hydrogen!,
     stereocenter_from_smiles!, stereocenter_from_sdf2d!,
     stereobond_from_smiles!, stereobond_from_sdf2d!

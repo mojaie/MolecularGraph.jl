@@ -75,16 +75,15 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
             end
         end
         if length(arom_vs) % 2 == 1
-            length(canbepyl) > 1 && error(
-                "Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])")
+            isempty(canbepyl) && error("Kekulization failed: invalid aromatic ring")
+            length(canbepyl) > 1 && error("Kekulization failed: ambiguity in pyrrole-like ring")
             # if there is only one n without hydrogen, that might be a pyrrole-like n
             setdiff!(arom_vs, canbepyl)
             push!(pyrrole_like, only(canbepyl))
         end
         subg, vmap = induced_subgraph(mol.graph, arom_vs)
         matching = max_matching(subg)
-        is_perfect_matching(subg, matching) || error(
-            "Kekulization failed: Please check if your SMILES is valid (e.g. Pyrrole n should be [nH])")
+        is_perfect_matching(subg, matching) || error("Kekulization failed: invalid aromatic ring")
         for e in matching
             bondorder[edge_rank(mol, vmap[src(e)], vmap[dst(e)])] = 2
         end

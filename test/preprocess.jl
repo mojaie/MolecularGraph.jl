@@ -5,6 +5,7 @@
 @testset "kekulize" begin
     null = smilestomol("")
     @test isempty(bond_order(null))
+    @test_throws ErrorException smilestomol("c1cccc1")  # wrong ring size
 
     furan = smilestomol("o1cccc1")
     @test sum(bond_order(furan)) == 7
