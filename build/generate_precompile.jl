@@ -48,6 +48,8 @@ function run()
     demomol = JSON.parse(unsafe_string(sdftomol(pointer(demomol_))))
     mw_demomol = standard_weight(pointer(JSON.json(demomol)))
     @debug mw_demomol
+    svg_demomol = drawsvg(pointer(JSON.json(demomol)))
+    @debug unsafe_string(svg_demomol)
 
     nullmol_ = read(open(joinpath(dirname(@__FILE__), "../assets/test/null.mol")), String)
     nullmol = JSON.parse(unsafe_string(sdftomol(pointer(nullmol_))))

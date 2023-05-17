@@ -57,6 +57,18 @@ Base.@ccallable function standard_weight(mol::Ptr{UInt8})::Cdouble
     end
 end
 
+Base.@ccallable function drawsvg(mol::Ptr{UInt8})::Ptr{UInt8}
+    return try
+        mol = MolGraph(JSON.parse(unsafe_string(mol)))
+        svg = drawsvg(mol)
+        buf = IOBuffer(write=true)
+        print(buf, svg)
+        return pointer(buf.data)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
 Base.@ccallable function has_exact_match(
         mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
     return try
