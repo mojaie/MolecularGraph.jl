@@ -6,5 +6,5 @@
 const VERSION = begin
     io = open(joinpath(dirname(@__FILE__), "..", "..", "Project.toml"))
     readuntil(io, "version = \"")
-    VersionNumber(readuntil(io, "\"\n"))
+    VersionNumber(readuntil(io, "\""))
 end
