@@ -63,8 +63,9 @@ function expand!(state::FindCliqueState, subg, cand)
         push!(state.cliques, copy(state.Q))
         return
     end
-    candnbrcnt(n) = length(intersect(cand, neighbors(state.graph, n)))
-    pivot = sortstablemax(subg, by=candnbrcnt)
+    # pivot = getpivot(state.graph, subg, cand)
+    # maybe better to avoid expensive pivot selection in typical MCS problem.
+    pivot = sortstablemax(subg, by=x->degree(state.graph, x))
     copv = setdiff(cand, neighbors(state.graph, pivot))
     for q in copv
         push!(state.Q, q)
@@ -76,6 +77,21 @@ function expand!(state::FindCliqueState, subg, cand)
         pop!(state.Q)
     end
 end
+
+function getpivot(g, subg, cand)
+    maxadj = -1
+    pv = 0
+    for s in sort(collect(subg), by=x->degree(g, x), rev=true)
+        degree(g, s) <= maxadj && break
+        adjcnt = length(intersect(cand, neighbors(g, s)))
+        if adjcnt > maxadj
+            maxadj = adjcnt
+            pv = s
+        end
+    end
+    return pv
+end
+
 
 function expandconn!(state::FindConnCliqueState, R, P, Q, X, Y)
     (state.status == :timedout || state.status == :targetreached) && return
@@ -176,8 +192,8 @@ function find_conn_cliques(g::SimpleGraph{T}, isconn::Dict{Edge{T},Bool};
         R = T[n]
         P = intersect(setdiff(nodes, done), state.connected[n])
         Q = intersect(setdiff(nodes, done), state.disconn[n])
-        X = intersect(state.connected[n], done)
-        Y = intersect(state.disconn[n], done)
+        X = intersect(Set(state.connected[n]), done)
+        Y = intersect(Set(state.disconn[n]), done)
         expandconn!(state, R, P, Q, X, Y)
         push!(done, n)
     end
