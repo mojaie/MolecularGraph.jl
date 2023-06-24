@@ -6,5 +6,5 @@ double standard_weight(char*);
 char* drawsvg(char*);
 int has_exact_match(char*, char*, char*);
 int has_substruct_match(char*, char*, char*);
-int tcmcis(char*, char*, char*);
-int tcmces(char*, char*, char*);
+int tdmcis(char*, char*, char*);
+int tdmces(char*, char*, char*);

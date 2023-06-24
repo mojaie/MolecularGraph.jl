@@ -42,18 +42,18 @@ julia.has_exact_match.argtypes = [c_char_p, c_char_p, c_char_p]
 julia.has_exact_match.restype = c_int
 julia.has_substruct_match.argtypes = [c_char_p, c_char_p, c_char_p]
 julia.has_substruct_match.restype = c_int
-julia.tcmcis.argtypes = [c_char_p, c_char_p, c_char_p]
-julia.tcmcis.restype = c_int
-julia.tcmces.argtypes = [c_char_p, c_char_p, c_char_p]
-julia.tcmces.restype = c_int
+julia.tdmcis.argtypes = [c_char_p, c_char_p, c_char_p]
+julia.tdmcis.restype = c_int
+julia.tdmces.argtypes = [c_char_p, c_char_p, c_char_p]
+julia.tdmces.restype = c_int
 
 match1 = julia.has_exact_match(mol1, mol2, json.dumps({}).encode())
 print(match1)
 match2 = julia.has_substruct_match(mol1, mol2, json.dumps({}).encode())
 print(match2)
-cnt1 = julia.tcmcis(mol1, mol2, json.dumps({"diameter": 2, "tolerance": 1}).encode())
+cnt1 = julia.tdmcis(mol1, mol2, json.dumps({"diameter": 2, "tolerance": 1}).encode())
 print(cnt1)
-cnt2 = julia.tcmces(mol1, mol2, json.dumps({"diameter": 2, "tolerance": 1}).encode())
+cnt2 = julia.tdmces(mol1, mol2, json.dumps({"diameter": 2, "tolerance": 1}).encode())
 print(cnt2)
 
 julia.jl_atexit_hook(0)

@@ -51,10 +51,10 @@ module MolecularGraphTest
     include("inchi.jl")
 
     include("structurematch.jl")
+    include("structurematch_mcs.jl")
     include("querycontainment.jl")
 
     include("./draw/base.jl")
     include("./draw/svg.jl")
     include("./draw/3d.jl")
-
 end

@@ -93,25 +93,25 @@ Base.@ccallable function has_substruct_match(
     end
 end
 
-Base.@ccallable function tcmcis(
+Base.@ccallable function tdmcis(
         mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
     return try
         mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
         mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
         kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
-        return size(tcmcis(mol1, mol2; kwargs...))
+        return size(tdmcis(mol1, mol2; kwargs...))
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
 end
 
-Base.@ccallable function tcmces(
+Base.@ccallable function tdmces(
         mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
     return try
         mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
         mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
         kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
-        return size(tcmces(mol1, mol2; kwargs...))
+        return size(tdmces(mol1, mol2; kwargs...))
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end

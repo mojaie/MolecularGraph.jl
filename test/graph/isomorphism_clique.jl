@@ -40,7 +40,7 @@ end
     g, vmap = disjoint_union(complete_graph(5), complete_graph(4))
     h, vmap = disjoint_union(complete_graph(4), complete_graph(3))
     @test size(maximum_common_subgraph(g, h)) == 7
-    @test size(maximum_common_subgraph(g, h, connected=true)) == 4
+    @test size(maximum_common_subgraph(g, h, method=:connected)) == 4
     # global_logger(default_logger)
 end
 

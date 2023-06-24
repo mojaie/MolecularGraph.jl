@@ -32,7 +32,8 @@ function modular_product(g::SimpleGraph{T}, h::SimpleGraph{T};
             vmatch=(g1,h1)->true,
             edgefilter=(g1,g2,h1,h2)->has_edge(g,g1,g2)==has_edge(g,h1,h2)) where T
     m = SimpleGraph(nv(g) * nv(h))
-    connected = Dict{Edge{T},Bool}()
+    connected = Dict{Edge{T},Bool}()  # for connected clique detection
+    nv(m) == 0 && return m, connected
     id(i, j) = (i - 1) * nv(h) + j
     for (g1, g2) in combinations(nv(g))
         for (h1, h2) in combinations(nv(h))

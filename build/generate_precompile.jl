@@ -93,27 +93,27 @@ function run()
     acetazolamide = JSON.parse(unsafe_string(smilestomol(pointer("O=S(=O)(c1nnc(s1)NC(=O)C)N"))))
     bortezomib = JSON.parse(unsafe_string(smilestomol(pointer("O=C(N[C@H](C(=O)N[C@H](B(O)O)CC(C)C)Cc1ccccc1)c2nccnc2"))))
     tofacitinib = JSON.parse(unsafe_string(smilestomol(pointer(raw"CC2CCN(C(=O)CC#N)CC2N(C)c3ncnc1[nH]ccc13"))))
-    @debug tcmcis(
+    @debug tdmcis(
         pointer(JSON.json(nullmol)),
         pointer(JSON.json(nullsmiles)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
-    @debug tcmcis(
+    @debug tdmcis(
         pointer(JSON.json(furosemide)),
         pointer(JSON.json(acetazolamide)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
-    @debug tcmcis(
+    @debug tdmcis(
         pointer(JSON.json(bortezomib)),
         pointer(JSON.json(tofacitinib)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
-    @debug tcmces(
+    @debug tdmces(
         pointer(JSON.json(nullsmiles)),
         pointer(JSON.json(nullmol)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
-    @debug tcmces(
+    @debug tdmces(
         pointer(JSON.json(furosemide)),
         pointer(JSON.json(acetazolamide)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
-    @debug tcmces(
+    @debug tdmces(
         pointer(JSON.json(bortezomib)),
         pointer(JSON.json(tofacitinib)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))

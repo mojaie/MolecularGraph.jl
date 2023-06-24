@@ -287,33 +287,6 @@ nodesubgraph_is_isomorphic(g, h; kwargs...
 
 
 
-# delta-Y filter for edge-induced subgraph isomorphisms
-function delta_y_exists(mapping, g, h)  # edge mapping g(e) => h(e)
-    revmap = Dict(v => k for (k, v) in mapping)
-    for t in triangle_nodes(g)
-        te = Edge{eltype(g)}.([(t[1], t[2]), (t[2], t[3]), (t[1], t[3])])
-        issubset(te, keys(mapping)) || continue
-        hs = Set{eltype(g)}()
-        for e in te
-            he = mapping[e]
-            push!(hs, src(he), dst(he))
-        end
-        length(hs) == 3 || return true
-    end
-    for t in triangle_nodes(h)
-        te = Edge{eltype(h)}.([(t[1], t[2]), (t[2], t[3]), (t[1], t[3])])
-        issubset(te, values(mapping)) || continue
-        gs = Set{eltype(h)}()
-        for e in te
-            ge = revmap[e]
-            push!(gs, src(ge), dst(ge))
-        end
-        length(gs) == 3 || return true
-    end
-    return false
-end
-
-
 # Edge-induced subgraph isomorphism
 
 """
@@ -331,11 +304,14 @@ in `G` and `H`, respectively.
 See `Graphs.induced_subgraph` to construct the subgraphs that result from the match.
 """
 function edgesubgraph_isomorphisms(
-        g, h; vmatch=(gv,hv)->true, ematch=(ge,he)->true, kwargs...)
+        g, h; vmatch=(gv,hv)->true, ematch=(ge,he)->true,
+        ggmatch=(n1,n2)->true, hhmatch=(n1,n2)->true, kwargs...)
     lg, grev, gsh = line_graph(g)
     lh, hrev, hsh = line_graph(h)
     lgnode = lgvmatch(lg, lh, grev, hrev, vmatch, ematch)
     lgedge = lgematch(lg, lh, gsh, hsh, vmatch)
+    gd, gy, hd, hy = (
+        delta_edges(g, ggmatch), y_edges(g, ggmatch), delta_edges(h, hhmatch), y_edges(h, hhmatch))
     matcher = VF2Matcher(
         lg, lh, :subgraph_isomorphic;
         vmatch=lgnode, ematch=lgedge, kwargs...)
@@ -343,7 +319,7 @@ function edgesubgraph_isomorphisms(
         return Dict(grev[m] => hrev[n] for (m, n) in mapping)
     end
     return Iterators.filter(revmaped) do mapping
-        return !delta_y_exists(mapping, g, h)
+        return delta_y_test(mapping, gd, gy, hd, hy)
     end
 end
 

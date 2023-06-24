@@ -275,8 +275,8 @@ end
     @test size(connected_mces(sulfide, disconn)) == 1
     @test size(disconnected_mcis(sulfide, disconn)) == 3
     @test size(disconnected_mces(sulfide, disconn)) == 2
-    @test size(tcmcis(sulfide, disconn)) == 2
-    @test size(tcmces(sulfide, disconn)) == 1
+    @test size(tdmcis(sulfide, disconn)) == 2
+    @test size(tdmces(sulfide, disconn)) == 1
 
     # Delta-Y
     cyclopropane = smilestomol("C1CC1")
@@ -294,10 +294,133 @@ end
 
     cid6437877 = smilestomol("CC1=C(SC=N1)C=CC2=C(N3C(C(C3=O)NC(=O)C(=NOC)C4=CSC(=N4)N)SC2)C(=O)OCOC(=O)C(C)(C)C")  # Cefditoren pivoxil
     cid5481173 = smilestomol("CC(C)(C(=O)O)ON=C(C1=CSC(=N1)N)C(=O)NC2C3N(C2=O)C(=C(CS3)C[N+]4=CC=CC=C4)C(=O)[O-]")  # Ceftazidime
-    @test size(tcmcis(cid6437877, cid5481173, tolerance=1)) == 27
-    @test size(tcmces(cid6437877, cid5481173, tolerance=1)) == 28
-    @test size(tcmcis(cid6437877, cid5481173, diameter=8)) == 18
-    @test size(tcmces(cid6437877, cid5481173, diameter=8)) == 20
+    @test size(tdmcis(cid6437877, cid5481173, tolerance=1)) == 27
+    @test size(tdmces(cid6437877, cid5481173, tolerance=1)) == 28
+    @test size(tdmcis(cid6437877, cid5481173, diameter=8)) == 18
+    @test size(tdmces(cid6437877, cid5481173, diameter=8)) == 20
+    # global_logger(default_logger)
+end
+
+@testset "MCS constraint array" begin
+    # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
+    null = smilestomol("")
+    nullc = mcis_constraints(null)
+    @test size(maximum_common_subgraph(nullc, nullc)) == 0
+    nullc = mces_constraints(null)
+    @test size(maximum_common_edge_subgraph(nullc, nullc)) == 0
+    nullc = tdmcis_constraints(null)
+    @test size(maximum_common_subgraph(nullc, nullc)) == 0
+    nullc = tdmces_constraints(null)
+    @test size(maximum_common_edge_subgraph(nullc, nullc)) == 0
+    nullc = tdmcis_constraints(null, :tolerant)
+    @test size(maximum_common_subgraph(nullc, nullc)) == 0
+    nullc = tdmces_constraints(null, :tolerant)
+    @test size(maximum_common_edge_subgraph(nullc, nullc)) == 0
+    nullc = tdmcis_constraints(null, :any)
+    @test size(maximum_common_subgraph(nullc, nullc)) == 0
+    nullc = tdmces_constraints(null, :any)
+    @test size(maximum_common_edge_subgraph(nullc, nullc)) == 0
+
+    BuOH = smilestomol("CCCO")
+    butane = smilestomol("CCCC")
+    BuOHc = mcis_constraints(BuOH)
+    butanec = mcis_constraints(butane)
+    @test size(maximum_common_subgraph(butanec, BuOHc)) == 3
+    BuOHc = mces_constraints(BuOH)
+    butanec = mces_constraints(butane)
+    @test size(maximum_common_edge_subgraph(butanec, BuOHc)) == 2
+
+    hexane = smilestomol("CCCCCC")
+    cyclohexane = smilestomol("C1CCCCC1")
+    hexanec = tdmcis_constraints(hexane)
+    cyclohexanec = tdmcis_constraints(cyclohexane)
+    @test size(maximum_common_subgraph(hexanec, cyclohexanec)) == 4
+    hexanec = tdmces_constraints(hexane)
+    cyclohexanec = tdmces_constraints(cyclohexane)
+    @test size(maximum_common_edge_subgraph(hexanec, cyclohexanec)) == 4
+    hexanec = tdmcis_constraints(hexane, :tolerant)
+    cyclohexanec = tdmcis_constraints(cyclohexane, :tolerant)
+    @test size(maximum_common_subgraph(hexanec, cyclohexanec)) == 5
+    hexanec = tdmces_constraints(hexane, :tolerant)
+    cyclohexanec = tdmces_constraints(cyclohexane, :tolerant)
+    @test size(maximum_common_edge_subgraph(hexanec, cyclohexanec)) == 5
+    hexanec = tdmcis_constraints(hexane, :any)
+    cyclohexanec = tdmcis_constraints(cyclohexane, :any)
+    @test size(maximum_common_subgraph(hexanec, cyclohexanec)) == 5
+    hexanec = tdmces_constraints(hexane, :any)
+    cyclohexanec = tdmces_constraints(cyclohexane, :any)
+    @test size(maximum_common_edge_subgraph(hexanec, cyclohexanec)) == 5
+
+    tms = smilestomol("C[Si](C)(C)C")
+    tsm = smilestomol("[Si]C([Si])([Si])[Si]")
+    tmsc = mcis_constraints(tms)
+    tsmc = mcis_constraints(tsm)
+    @test size(maximum_common_subgraph(tmsc, tsmc)) == 2
+    tmsc = mces_constraints(tms)
+    tsmc = mces_constraints(tsm)
+    @test size(maximum_common_edge_subgraph(tmsc, tsmc)) == 1
+    tmsc = tdmcis_constraints(tms)
+    tsmc = tdmcis_constraints(tsm)
+    @test size(maximum_common_subgraph(tmsc, tsmc)) == 2
+    tmsc = tdmces_constraints(tms)
+    tsmc = tdmces_constraints(tsm)
+    @test size(maximum_common_edge_subgraph(tmsc, tsmc)) == 1
+
+    sulfide = smilestomol("CSSC")
+    disconn = smilestomol("CS.SC")
+    sulfidec = mcis_constraints(sulfide)
+    disconnc = mcis_constraints(disconn)
+    # @test size(maximum_common_subgraph(sulfidec, disconnc, connected=true)) == 2
+    @test size(maximum_common_subgraph(sulfidec, disconnc)) == 3
+    sulfidec = mces_constraints(sulfide)
+    disconnc = mces_constraints(disconn)
+    # @test size(maximum_common_edge_subgraph(sulfidec, disconnc, connected=true)) == 1
+    @test size(maximum_common_edge_subgraph(sulfidec, disconnc)) == 2
+    sulfidec = tdmcis_constraints(sulfide, :tolerant)
+    disconnc = tdmcis_constraints(disconn, :tolerant)
+    @test size(maximum_common_subgraph(sulfidec, disconnc)) == 2
+    sulfidec = tdmces_constraints(sulfide, :tolerant)
+    disconnc = tdmces_constraints(disconn, :tolerant)
+    @test size(maximum_common_edge_subgraph(sulfidec, disconnc)) == 1
+
+    # Delta-Y
+    cyclopropane = smilestomol("C1CC1")
+    isopropane = smilestomol("CC(C)C")
+    cyclopropanec = mcis_constraints(cyclopropane)
+    isopropanec = mcis_constraints(isopropane)
+    @test size(maximum_common_subgraph(cyclopropanec, isopropanec)) == 2
+    cyclopropanec = mces_constraints(cyclopropane)
+    isopropanec = mces_constraints(isopropane)
+    @test size(maximum_common_edge_subgraph(cyclopropanec, isopropanec)) == 2
+
+    tetrahedrane = smilestomol("C12C3C1C23")
+    fused = smilestomol("C1C2C1C2")
+    spiro = smilestomol("C1CC12CC2")
+    tetrahedranec = mcis_constraints(tetrahedrane)
+    fusedc = mcis_constraints(fused)
+    spiroc = mcis_constraints(spiro)
+    @test size(maximum_common_subgraph(tetrahedranec, fusedc)) == 3
+    @test size(maximum_common_subgraph(tetrahedranec, spiroc)) == 3
+    tetrahedranec = mces_constraints(tetrahedrane)
+    fusedc = mces_constraints(fused)
+    spiroc = mces_constraints(spiro)
+    @test size(maximum_common_edge_subgraph(tetrahedranec, fusedc)) == 5
+    @test size(maximum_common_edge_subgraph(tetrahedranec, spiroc)) == 4
+
+    cid6437877 = smilestomol("CC1=C(SC=N1)C=CC2=C(N3C(C(C3=O)NC(=O)C(=NOC)C4=CSC(=N4)N)SC2)C(=O)OCOC(=O)C(C)(C)C")  # Cefditoren pivoxil
+    cid5481173 = smilestomol("CC(C)(C(=O)O)ON=C(C1=CSC(=N1)N)C(=O)NC2C3N(C2=O)C(=C(CS3)C[N+]4=CC=CC=C4)C(=O)[O-]")  # Ceftazidime
+    cid6437877t = tdmcis_constraints(cid6437877, :tolerant, tolerance=0)
+    cid5481173t = tdmcis_constraints(cid5481173, :tolerant)
+    @test size(maximum_common_subgraph(cid6437877t, cid5481173t)) == 27
+    cid6437877t = tdmces_constraints(cid6437877, :tolerant, tolerance=0)
+    cid5481173t = tdmces_constraints(cid5481173, :tolerant)
+    @test size(maximum_common_edge_subgraph(cid6437877t, cid5481173t)) == 28
+    cid6437877t = tdmcis_constraints(cid6437877, diameter=8)
+    cid5481173t = tdmcis_constraints(cid5481173, diameter=8)
+    @test size(maximum_common_subgraph(cid6437877t, cid5481173t)) == 18
+    cid6437877t = tdmces_constraints(cid6437877, diameter=8)
+    cid5481173t = tdmces_constraints(cid5481173, diameter=8)
+    @test size(maximum_common_edge_subgraph(cid6437877t, cid5481173t)) == 20
     # global_logger(default_logger)
 end
 

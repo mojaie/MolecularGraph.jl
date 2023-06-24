@@ -5,7 +5,8 @@
 
 export
     find_cliques, maximal_cliques, maximum_clique,
-    find_conn_cliques, maximal_conn_cliques, maximum_conn_clique
+    find_conn_cliques, maximal_conn_cliques, maximum_conn_clique,
+    approx_maximal_cliques, approx_maximum_clique
 
 
 mutable struct FindCliqueState{T,G<:SimpleGraph{T}}
@@ -223,3 +224,59 @@ Return a maximum connected clique.
 """
 maximum_conn_clique(g, isconn; kwargs...
     ) = sortstablemax(maximal_conn_cliques(g, isconn; kwargs...), by=length, init=[])
+
+
+
+
+function ramsey_R2(g::SimpleGraph{T}, subg, pivot) where T
+    # TODO: refactor
+    isempty(subg) && return T[], T[]
+    vset = setdiff(Set(subg), pivot)
+    nbrs = collect(intersect(vset, neighbors(g, pivot)))
+    nnbrs = collect(setdiff(vset, nbrs))
+    c_1, i_1 = isempty(nbrs) ? (T[], T[]) : ramsey_R2(g, nbrs, nbrs[1])
+    c_2, i_2 = isempty(nnbrs) ? (T[], T[]) : ramsey_R2(g, nnbrs, nnbrs[1])
+    push!(c_1, pivot)
+    push!(i_2, pivot)
+    return argmax(length, [c_1, c_2]), argmax(length, [i_1, i_2])
+end
+
+
+"""
+    approx_maximal_cliques(g) -> Vector{Int}
+
+Return approximate maximal cliques.
+
+Reference:
+- Boppana, R., & Halldórsson, M. M. (1992).
+- https://networkx.org/documentation/stable/_modules/networkx/algorithms/approximation/clique.html#max_clique
+
+"""
+function approx_maximal_cliques(g::SimpleGraph{T}, root=1) where T
+    # TODO: not so performant, exact algorithm with targetsize or timeout option looks better
+    nv(g) == 0 && return T[]
+    g_ = complement(g)
+    c_i, i_i = ramsey_R2(g_, collect(vertices(g_)), root)
+    isets = [i_i]
+    vmap_all = collect(vertices(g_))
+    while nv(g_) > 0
+        vmap = rem_vertices!(g_, c_i)
+        vmap_all = vmap_all[vmap]
+        c_i, i_i = ramsey_R2(g_, collect(vertices(g_)), 1)
+        isempty(i_i) || push!(isets, vmap_all[i_i])
+    end
+    return isets
+end
+
+"""
+    approx_maximum_clique(g) -> Vector{Int}
+
+Return an approximate maximum clique.
+
+Reference:
+- Boppana, R., & Halldórsson, M. M. (1992).
+- https://networkx.org/documentation/stable/_modules/networkx/algorithms/approximation/clique.html#max_clique
+
+"""
+approx_maximum_clique(g, root=1
+    ) = sortstablemax(approx_maximal_cliques(g, root), by=length, init=[])
