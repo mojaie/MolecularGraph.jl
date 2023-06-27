@@ -4,64 +4,72 @@
 #
 
 export
-    find_cliques, maximal_cliques, maximum_clique,
-    find_conn_cliques, maximal_conn_cliques, maximum_conn_clique,
-    approx_maximal_cliques, approx_maximum_clique
+    all_maximal_cliques, maximum_clique,
+    all_maximal_conn_cliques, maximum_conn_clique,
+    approx_maximum_clique
+
+const MIN_TIMEOUT = 10  # minimum value of clique detection timeout
+get_expire(timeout::Real) = UInt64(time_ns() + timeout * 1_000_000_000)
 
 
-mutable struct FindCliqueState{T,G<:SimpleGraph{T}}
-    graph::G
-    targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
-    expire::Union{UInt64,Nothing} # UInt64, nanoseconds
-    Q::Vector{T}
-    cliques::Vector{Vector{T}}
-    status::Symbol
-end
+# Cliques
 
-function FindCliqueState(g::G; timeout=nothing, targetsize=nothing, kwargs...) where G
-    expire = isnothing(timeout) ? nothing : (time_ns() + timeout * 1_000_000_000)::UInt64
-    return FindCliqueState{eltype(g),G}(g, targetsize, expire, [], [], :ongoing)
-end
-
-
-mutable struct FindConnCliqueState{T,G<:SimpleGraph{T}}
-    graph::G
-    targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
-    connected::Vector{Vector{T}}
-    disconn::Vector{Vector{T}}
-    expire::Union{UInt64,Nothing} # UInt64, nanoseconds
-    cliques::Vector{Vector{T}}
-    status::Symbol
-end
-
-function FindConnCliqueState(g::G, isconn::Dict{Edge{T},Bool};
-        timeout=nothing, targetsize=nothing, kwargs...) where {T,G}
-    expire = isnothing(timeout) ? nothing : (time_ns() + timeout * 1_000_000_000)::UInt64
-    # connectivity adjlist
-    conn = [T[] for _ in vertices(g)]
-    disconn = [T[] for _ in vertices(g)]
-    for i in vertices(g)
-        for nbr in neighbors(g, i)
-            container = isconn[u_edge(T, i, nbr)] ? conn : disconn
-            push!(container[i], nbr)
-        end
+function max_clique_postproc!(state)
+    if length(state.Q) > length(state.maxsofar)
+        state.maxsofar = copy(state.Q)
     end
-    return FindConnCliqueState{T,G}(g, targetsize, conn, disconn, expire, [], :ongoing)
 end
 
+function cliques_postproc!(state)
+    push!(state.cliques, copy(state.Q))
+end
 
-function expand!(state::FindCliqueState, subg, cand)
+abstract type AbstractCliquesState{T} end
+
+mutable struct CliquesState{T,U} <: AbstractCliquesState{T}
+    graph::SimpleGraph{T}
+    targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
+    expire::Union{UInt64,Nothing} # UInt64, nanoseconds
+    postprocess::Function
+    Q::Vector{T}
+    cliques::Vector{U}
+    status::Symbol
+end
+
+CliquesState{T,U}(g::SimpleGraph{T};
+    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=cliques_postproc!, kwargs...
+) where {T,U} = CliquesState{T,U}(
+    g, targetsize, get_expire(timeout), postprocess, [], U[], :ongoing)
+
+
+mutable struct MaxCliqueState{T,U} <: AbstractCliquesState{T}
+    graph::SimpleGraph{T}
+    targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
+    expire::Union{UInt64,Nothing} # UInt64, nanoseconds
+    postprocess::Function
+    Q::Vector{T}
+    maxsofar::U
+    status::Symbol
+end
+
+MaxCliqueState{T,U}(g::SimpleGraph{T};
+    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=max_clique_postproc!, kwargs...
+) where {T,U} = MaxCliqueState{T,U}(
+    g, targetsize, get_expire(timeout), postprocess, [], U(), :ongoing)
+
+
+function expand!(state:: AbstractCliquesState, subg, cand)
     (state.status == :timedout || state.status == :targetreached) && return
     if isempty(subg)
         # Report max clique
-        push!(state.cliques, copy(state.Q))
+        state.postprocess(state)
         return
     elseif state.expire !== nothing && time_ns() > state.expire
         state.status = :timedout
         return
     elseif state.targetsize !== nothing && length(state.Q) >= state.targetsize
         state.status = :targetreached
-        push!(state.cliques, copy(state.Q))
+        state.postprocess(state)
         return
     end
     # pivot = getpivot(state.graph, subg, cand)
@@ -71,9 +79,12 @@ function expand!(state::FindCliqueState, subg, cand)
     for q in copv
         push!(state.Q, q)
         qnbrs = neighbors(state.graph, q)
-        subgq = intersect(subg, qnbrs)
         candq = intersect(cand, qnbrs)
-        expand!(state, subgq, candq)
+        if (state isa CliquesState
+                || length(state.Q) + length(candq) > length(state.maxsofar))
+            subgq = intersect(subg, qnbrs)
+            expand!(state, subgq, candq)
+        end
         pop!(cand, q)
         pop!(state.Q)
     end
@@ -94,39 +105,9 @@ function getpivot(g, subg, cand)
 end
 
 
-function expandconn!(state::FindConnCliqueState, R, P, Q, X, Y)
-    (state.status == :timedout || state.status == :targetreached) && return
-    if isempty(P) && isempty(X)
-        # Report max clique
-        push!(state.cliques, copy(R))
-        return
-    elseif state.expire !== nothing && time_ns() > state.expire
-        state.status = :timedout
-        return
-    elseif state.targetsize !== nothing && length(R) >= state.targetsize
-        state.status = :targetreached
-        push!(state.cliques, copy(R))
-        return
-    end
-    while !isempty(P)
-        n = pop!(P)
-        Rnew = union(R, [n])
-        Qnew = intersect(Q, state.disconn[n])
-        Pnew = union(
-            intersect(P, neighbors(state.graph, n)),
-            intersect(Q, state.connected[n]))
-        Ynew = intersect(Y, state.disconn[n])
-        Xnew = union(
-            intersect(X, neighbors(state.graph, n)),
-            intersect(Y, state.connected[n]))
-        expandconn!(state, Rnew, Pnew, Qnew, Xnew, Ynew)
-        push!(X, n)
-    end
-end
-
-
 """
-    find_cliques(graph::UndirectedGraph; kwargs...) -> FindCliqueState
+    all_maximal_cliques(::Type{U}, g::SimpleGraph{T}; kwargs...
+        ) where {T,U} -> (Vector{U}, Symbol)
 
 Calculate maximal cliques.
 
@@ -140,40 +121,147 @@ Calculate maximal cliques.
    cliques. Theoretical Computer Science, 407(1–3), 564–568.
    https://doi.org/10.1016/j.tcs.2008.05.010
 """
-function find_cliques(g::SimpleGraph; kwargs...)
-    state = FindCliqueState(g; kwargs...)
+function all_maximal_cliques(::Type{U}, g::SimpleGraph{T}; kwargs...) where {T,U}
+    state = CliquesState{T,U}(g; kwargs...)
     expand!(state, Set(vertices(g)), Set(vertices(g)))
     if state.status == :ongoing
         state.status = :done
     end
-    return state
+    return state.cliques, state.status
+end
+all_maximal_cliques(g::SimpleGraph{T}; kwargs...
+    ) where T = all_maximal_cliques(Vector{T}, g; kwargs...)
+
+
+"""
+    maximum_clique(::Type{U}, g::SimpleGraph{T}; kwargs...) where {T,U} -> (U, Symbol)
+
+Calculate maximum clique.
+"""
+function maximum_clique(::Type{U}, g::SimpleGraph{T}; kwargs...) where {T,U}
+    state = MaxCliqueState{T,U}(g; kwargs...)
+    expand!(state, Set(vertices(g)), Set(vertices(g)))
+    if state.status == :ongoing
+        state.status = :done
+    end
+    return state.maxsofar, state.status
+end
+maximum_clique(g::SimpleGraph{T}; kwargs...
+    ) where T = maximum_clique(Vector{T}, g; kwargs...)
+
+
+
+# Connected cliques (c-cliques)
+
+function connfuncgen(g::SimpleGraph{T}, eattr::Dict{Edge{T},Bool}) where T
+    # connectivity adjlist
+    conn = [Set{T}() for _ in vertices(g)]
+    disconn = [Set{T}() for _ in vertices(g)]
+    for i in vertices(g)
+        for nbr in neighbors(g, i)
+            container = eattr[u_edge(T, i, nbr)] ? conn : disconn
+            push!(container[i], nbr)
+        end
+    end
+    return n -> (conn[n], disconn[n])
 end
 
-"""
-    maximal_cliques(g: kwargs...) -> Vector{Vector{Int}}
 
-Return all maximal cliques.
+abstract type AbstractConnCliquesState{T} end
 
-"""
-function maximal_cliques(g; kwargs...)
-    state = find_cliques(g; kwargs...)
-    return state.cliques
+mutable struct ConnCliquesState{T,U} <: AbstractConnCliquesState{T}
+    graph::SimpleGraph{T}
+    targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
+    expire::Union{UInt64,Nothing} # UInt64, nanoseconds
+    connfunc::Function
+    postprocess::Function
+    Q::Vector{T}
+    cliques::Vector{U}
+    status::Symbol
 end
 
+ConnCliquesState{T,U}(g::SimpleGraph{T}, eattr::Dict;
+    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=cliques_postproc!, kwargs...
+) where {T,U} = ConnCliquesState{T,U}(g, targetsize,
+    get_expire(timeout), connfuncgen(g, eattr), postprocess, [], U[], :ongoing)
+
+
+mutable struct MaxConnCliqueState{T,U} <: AbstractConnCliquesState{T}
+    graph::SimpleGraph{T}
+    targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
+    expire::Union{UInt64,Nothing} # UInt64, nanoseconds
+    connfunc::Function
+    postprocess::Function
+    Q::Vector{T}
+    maxsofar::U
+    status::Symbol
+end
+
+MaxConnCliqueState{T,U}(g::SimpleGraph{T}, eattr::Dict;
+    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=max_clique_postproc!, kwargs...
+) where {T,U} = MaxConnCliqueState{T,U}(g, targetsize,
+    get_expire(timeout), connfuncgen(g, eattr), postprocess, [], U(), :ongoing)
+
+
+
+function expand!(state::AbstractConnCliquesState, P, Q, X, Y)
+    (state.status == :timedout || state.status == :targetreached) && return
+    if isempty(P) && isempty(X)
+        # Report max clique
+        state.postprocess(state)
+        return
+    elseif state.expire !== nothing && time_ns() > state.expire
+        state.status = :timedout
+        return
+    elseif state.targetsize !== nothing && length(state.Q) >= state.targetsize
+        state.status = :targetreached
+        state.postprocess(state)
+        return
+    end
+    pivot = sortstablemax(union(P, X), by=x->degree(state.graph, x))
+    copv = setdiff(P, neighbors(state.graph, pivot))
+    while !isempty(copv)
+        n = pop!(copv)
+        push!(state.Q, n)  # TODO: state.Q is R in orignal literature
+        nbrs = neighbors(state.graph, n)
+        conn, disconn = state.connfunc(n)
+        Qnew = intersect(Q, disconn)
+        Pnew = union(intersect(P, nbrs), intersect(Q, conn))
+        Ynew = intersect(Y, disconn)
+        Xnew = union(intersect(X, nbrs), intersect(Y, conn))
+        if (state isa ConnCliquesState
+                || length(state.Q) + length(Pnew) + length(Qnew) > length(state.maxsofar))
+            expand!(state, Pnew, Qnew, Xnew, Ynew)
+        end
+        push!(X, n)
+        pop!(state.Q)
+    end
+end
+
+
+function init_conn_cliques!(state::AbstractConnCliquesState{T}) where T
+    nodes = Set(vertices(state.graph))
+    done = T[]
+    for n in vertices(state.graph)
+        push!(state.Q, n)  # TODO: Q_ should be renamed
+        conn, disconn = state.connfunc(n)
+        P = intersect(setdiff(nodes, done), conn)
+        Q_ = intersect(setdiff(nodes, done), disconn)
+        X = intersect(conn, done)
+        Y = intersect(disconn, done)
+        expand!(state, P, Q_, X, Y)
+        push!(done, n)
+        pop!(state.Q)
+    end
+    if state.status == :ongoing
+        state.status = :done
+    end
+end
+
+
 """
-    maximum_clique(g; kwargs...) -> Vector{Int}
-
-Return a maximum clique.
-
-"""
-maximum_clique(g; kwargs...
-    ) = sortstablemax(maximal_cliques(g; kwargs...), by=length, init=[])
-
-
-
-"""
-    find_conn_cliques(g::SimpleGraph{T}, isconn::Dict{Edge{T},Bool};
-        kwargs...) where T -> FindConnCliqueState
+    all_maximal_conn_cliques(::Type{U}, g::SimpleGraph{T}, eattrs::Dict;
+        kwargs...) where {T,U} -> (Vector{U}, Symbol)
 
 Calculate maximal connected cliques.
 
@@ -184,48 +272,35 @@ Calculate maximal connected cliques.
    https://doi.org/10.1016/j.tcs.2005.09.038
 
 """
-function find_conn_cliques(g::SimpleGraph{T}, isconn::Dict{Edge{T},Bool};
-        kwargs...) where T
-    state = FindConnCliqueState(g, isconn; kwargs...)
-    nodes = Set(vertices(g))
-    done = T[]
-    for n in nodes
-        R = T[n]
-        P = intersect(setdiff(nodes, done), state.connected[n])
-        Q = intersect(setdiff(nodes, done), state.disconn[n])
-        X = intersect(Set(state.connected[n]), done)
-        Y = intersect(Set(state.disconn[n]), done)
-        expandconn!(state, R, P, Q, X, Y)
-        push!(done, n)
-    end
-    if state.status == :ongoing
-        state.status = :done
-    end
-    return state
+function all_maximal_conn_cliques(::Type{U}, g::SimpleGraph{T}, eattrs::Dict;
+        kwargs...) where {T,U}
+    state = ConnCliquesState{T,U}(g, eattrs; kwargs...)
+    init_conn_cliques!(state)
+    return state.cliques, state.status
 end
+all_maximal_conn_cliques(g::SimpleGraph{T}, eattrs; kwargs...
+    ) where T = all_maximal_conn_cliques(Vector{T}, g, eattrs; kwargs...)
 
 
 """
-    maximal_conn_cliques(g: kwargs...) -> Vector{Vector{Int}}
+    maximum_conn_clique(::Type{U}, g::SimpleGraph{T}, eattrs::Dict;
+        kwargs...) where {T,U} -> (U, Symbol)
 
-Return all maximal connected cliques.
-
+Calculate maximal connected cliques.
 """
-function maximal_conn_cliques(g, isconn; kwargs...)
-    state = find_conn_cliques(g, isconn; kwargs...)
-    return state.cliques
+function maximum_conn_clique(::Type{U}, g::SimpleGraph{T}, eattrs::Dict;
+        kwargs...) where {T,U}
+    state = MaxConnCliqueState{T,U}(g, eattrs; kwargs...)
+    init_conn_cliques!(state)
+    return state.maxsofar, state.status
 end
-
-"""
-    maximum_conn_clique(g; kwargs...) -> Vector{Int}
-
-Return a maximum connected clique.
-
-"""
-maximum_conn_clique(g, isconn; kwargs...
-    ) = sortstablemax(maximal_conn_cliques(g, isconn; kwargs...), by=length, init=[])
+maximum_conn_clique(g::SimpleGraph{T}, eattrs; kwargs...
+    ) where T = maximum_conn_clique(Vector{T}, g, eattrs; kwargs...)
 
 
+
+
+# Approximate cliques (Experimental)
 
 
 function ramsey_R2(g::SimpleGraph{T}, subg, pivot) where T
@@ -243,7 +318,7 @@ end
 
 
 """
-    approx_maximal_cliques(g) -> Vector{Int}
+    approx_maximum_clique(g) -> Vector{Int}
 
 Return approximate maximal cliques.
 
@@ -252,7 +327,7 @@ Reference:
 - https://networkx.org/documentation/stable/_modules/networkx/algorithms/approximation/clique.html#max_clique
 
 """
-function approx_maximal_cliques(g::SimpleGraph{T}, root=1) where T
+function approx_maximum_clique(g::SimpleGraph{T}, root=1) where T
     # TODO: not so performant, exact algorithm with targetsize or timeout option looks better
     nv(g) == 0 && return T[]
     g_ = complement(g)
@@ -265,18 +340,5 @@ function approx_maximal_cliques(g::SimpleGraph{T}, root=1) where T
         c_i, i_i = ramsey_R2(g_, collect(vertices(g_)), 1)
         isempty(i_i) || push!(isets, vmap_all[i_i])
     end
-    return isets
+    return sortstablemax(isets, by=length, init=[])
 end
-
-"""
-    approx_maximum_clique(g) -> Vector{Int}
-
-Return an approximate maximum clique.
-
-Reference:
-- Boppana, R., & Halldórsson, M. M. (1992).
-- https://networkx.org/documentation/stable/_modules/networkx/algorithms/approximation/clique.html#max_clique
-
-"""
-approx_maximum_clique(g, root=1
-    ) = sortstablemax(approx_maximal_cliques(g, root), by=length, init=[])

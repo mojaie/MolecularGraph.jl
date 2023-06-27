@@ -34,13 +34,13 @@ function vmatchgen(mol1::MolGraph, mol2::MolGraph)
 end
 
 function vmatchvecgen(mol)
-    # atomnumber 0-255 + pi_electron 0-3 (10 bits)
+    # atomnumber 1-118 * pi_electron 0-2 -> 1-354
     sym = atom_symbol(mol)
     pie = pi_electron(mol)
     return function (i)
-        a = BitVector(digits(atomnumber(sym[i]), base=2, pad=8))
-        p = BitVector(digits(pie[i], base=2, pad=2))
-        return reverse(vcat(p, a))
+        a = atomnumber(sym[i])
+        p = pie[i]
+        return UInt16(p * 120 + a)
     end
 end
 
@@ -315,12 +315,12 @@ given mcs size achieved.
 """
 connected_mcis(mol1, mol2, vmatchgen=vmatchgen, ematchgen=ematchgen; kwargs...
     ) = maximum_common_subgraph(
-        mol1.graph, mol2.graph, method=:connected,
+        mol1.graph, mol2.graph, connected=true,
         vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); kwargs...)
 
 connected_mces(mol1, mol2, vmatchgen=vmatchgen, ematchgen=ematchgen; kwargs...
     ) = maximum_common_edge_subgraph(
-        mol1.graph, mol2.graph, method=:connected,
+        mol1.graph, mol2.graph, connected=true,
         vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2),
         ggmatch=vmatchgen(mol1, mol1), hhmatch=vmatchgen(mol2, mol2); kwargs...)
 

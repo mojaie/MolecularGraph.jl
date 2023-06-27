@@ -37,14 +37,16 @@ function lgvmatchvecgen(revmap, vmatchvec)
     return function (i)
         e = revmap[i]
         u, v = (src(e), dst(e))
-        return vcat(sort([vmatchvec(u), vmatchvec(v)])...)
+        uvec = vmatchvec(u)
+        vvec = vmatchvec(v)
+        return uvec <= vvec ? UInt32(uvec * 480 + vvec) : UInt32(vvec * 480 + uvec)
     end
 end
 
 
 function lgematchvecgen(lg, shared, vmatchvec)
     return function (u, v)
-        has_edge(lg, u, v) || return BitVector(digits(0, base=2, pad=10))
+        has_edge(lg, u, v) || return UInt16(0)
         return vmatchvec(shared[u_edge(lg, u, v)])
     end
 end
