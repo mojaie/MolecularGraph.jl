@@ -55,7 +55,7 @@ end
 
 
 """
-    triangle_edges(g::SimpleGraph{T}, vmatch=(n1,n2)->true) -> Vector{Tuple{Edge{T},Edge{T},Edge{T}}}
+    delta_edges(g::SimpleGraph{T}, vmatch=(n1,n2)->true) -> Vector{Tuple{Edge{T},Edge{T},Edge{T}}}
 
 Returns 3-tuples of edges that forms a triangle with uniform vertex attributes.
 

@@ -153,12 +153,12 @@ maximum_clique(g::SimpleGraph{T}; kwargs...
 
 # Connected cliques (c-cliques)
 
-function connfuncgen(g::SimpleGraph{T}, eattr::Dict{Edge{T},Bool}) where T
+function connfuncgen(modprod::SimpleGraph{T}, eattr::Dict{Edge{T},Bool}) where T
     # connectivity adjlist
-    conn = [Set{T}() for _ in vertices(g)]
-    disconn = [Set{T}() for _ in vertices(g)]
-    for i in vertices(g)
-        for nbr in neighbors(g, i)
+    conn = [Set{T}() for _ in vertices(modprod)]
+    disconn = [Set{T}() for _ in vertices(modprod)]
+    for i in vertices(modprod)
+        for nbr in neighbors(modprod, i)
             container = eattr[u_edge(T, i, nbr)] ? conn : disconn
             push!(container[i], nbr)
         end
@@ -180,10 +180,10 @@ mutable struct ConnCliquesState{T,U} <: AbstractConnCliquesState{T}
     status::Symbol
 end
 
-ConnCliquesState{T,U}(g::SimpleGraph{T}, eattr::Dict;
+ConnCliquesState{T,U}(g::SimpleGraph{T}, connfunc::Function;
     timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=cliques_postproc!, kwargs...
 ) where {T,U} = ConnCliquesState{T,U}(g, targetsize,
-    get_expire(timeout), connfuncgen(g, eattr), postprocess, [], U[], :ongoing)
+    get_expire(timeout), connfunc, postprocess, [], U[], :ongoing)
 
 
 mutable struct MaxConnCliqueState{T,U} <: AbstractConnCliquesState{T}
@@ -197,10 +197,10 @@ mutable struct MaxConnCliqueState{T,U} <: AbstractConnCliquesState{T}
     status::Symbol
 end
 
-MaxConnCliqueState{T,U}(g::SimpleGraph{T}, eattr::Dict;
+MaxConnCliqueState{T,U}(g::SimpleGraph{T}, connfunc::Function;
     timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=max_clique_postproc!, kwargs...
 ) where {T,U} = MaxConnCliqueState{T,U}(g, targetsize,
-    get_expire(timeout), connfuncgen(g, eattr), postprocess, [], U(), :ongoing)
+    get_expire(timeout), connfunc, postprocess, [], U(), :ongoing)
 
 
 
@@ -272,14 +272,14 @@ Calculate maximal connected cliques.
    https://doi.org/10.1016/j.tcs.2005.09.038
 
 """
-function all_maximal_conn_cliques(::Type{U}, g::SimpleGraph{T}, eattrs::Dict;
-        kwargs...) where {T,U}
-    state = ConnCliquesState{T,U}(g, eattrs; kwargs...)
+function all_maximal_conn_cliques(::Type{U}, g::SimpleGraph{T};
+        connfunc=n->([], neighbors(g, n)), kwargs...) where {T,U}
+    state = ConnCliquesState{T,U}(g, connfunc; kwargs...)
     init_conn_cliques!(state)
     return state.cliques, state.status
 end
-all_maximal_conn_cliques(g::SimpleGraph{T}, eattrs; kwargs...
-    ) where T = all_maximal_conn_cliques(Vector{T}, g, eattrs; kwargs...)
+all_maximal_conn_cliques(g::SimpleGraph{T}; kwargs...
+    ) where T = all_maximal_conn_cliques(Vector{T}, g; kwargs...)
 
 
 """
@@ -288,14 +288,14 @@ all_maximal_conn_cliques(g::SimpleGraph{T}, eattrs; kwargs...
 
 Calculate maximal connected cliques.
 """
-function maximum_conn_clique(::Type{U}, g::SimpleGraph{T}, eattrs::Dict;
-        kwargs...) where {T,U}
-    state = MaxConnCliqueState{T,U}(g, eattrs; kwargs...)
+function maximum_conn_clique(::Type{U}, g::SimpleGraph{T};
+    connfunc=n->([], neighbors(g, n)), kwargs...) where {T,U}
+    state = MaxConnCliqueState{T,U}(g, connfunc; kwargs...)
     init_conn_cliques!(state)
     return state.maxsofar, state.status
 end
-maximum_conn_clique(g::SimpleGraph{T}, eattrs; kwargs...
-    ) where T = maximum_conn_clique(Vector{T}, g, eattrs; kwargs...)
+maximum_conn_clique(g::SimpleGraph{T}; kwargs...
+    ) where T = maximum_conn_clique(Vector{T}, g; kwargs...)
 
 
 

@@ -275,59 +275,75 @@ has_edge_substruct_match(mol1, mol2; kwargs...) = !isempty(edge_substruct_matche
 
 # MCS
 
+
+mcis_constraints(mol::MolGraph, vmatchvecgen=vmatchvecgen
+    ) = mcis_constraints(mol.graph, :connection, vmatchvec=vmatchvecgen(mol))
+
+mces_constraints(mol::MolGraph, vmatchvecgen=vmatchvecgen
+    ) = mces_constraints(mol.graph, :connection, vmatchvec=vmatchvecgen(mol))
+
+tdmcis_constraints(mol::MolGraph; vmatchvecgen=vmatchvecgen, kwargs...
+    ) = mcis_constraints(mol.graph, :shortest, vmatchvec=vmatchvecgen(mol); kwargs...)
+
+tdmces_constraints(mol::MolGraph; vmatchvecgen=vmatchvecgen, kwargs...
+    ) = mces_constraints(mol.graph, :shortest, vmatchvec=vmatchvecgen(mol); kwargs...)
+
+
 """
-    disconnected_mcis(mol1, mol2; kwargs...) -> MCSResult
-    disconnected_mces(mol1, mol2; kwargs...) -> MCSResult
+    disconnected_mcis(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
+    disconnected_mces(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
 
 Compute disconnected maximum common substructure (MCS) of mol1 and mol2.
 
 ## Keyword arguments
 
-- timeout(Int): abort calculation and return suboptimal results if the execution
+- timeout(Real): abort calculation and return suboptimal results if the execution
 time has reached the given value (default=60, in seconds).
 - targetsize(Int): abort calculation and return suboptimal result so far if the
 given mcs size achieved.
 """
-disconnected_mcis(mol1, mol2, vmatchgen=vmatchgen, ematchgen=ematchgen; kwargs...
-    ) = maximum_common_subgraph(
-        mol1.graph, mol2.graph,
-        vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); kwargs...)
+function disconnected_mcis(mol1::MolGraph, mol2::MolGraph; kwargs...)
+    mol1_ = mcis_constraints(mol1)
+    mol2_ = mcis_constraints(mol2)
+    return maximum_common_subgraph(mol1_, mol2_; kwargs...)
+end
 
-disconnected_mces(mol1, mol2, vmatchgen=vmatchgen, ematchgen=ematchgen; kwargs...
-    ) = maximum_common_edge_subgraph(
-        mol1.graph, mol2.graph,
-        vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2),
-        ggmatch=vmatchgen(mol1, mol1), hhmatch=vmatchgen(mol2, mol2); kwargs...)
+function disconnected_mces(mol1::MolGraph, mol2::MolGraph; kwargs...)
+    mol1_ = mces_constraints(mol1)
+    mol2_ = mces_constraints(mol2)
+    return maximum_common_subgraph(mol1_, mol2_; kwargs...)
+end
 
 
 """
-    connected_mcis(mol1, mol2; kwargs...) -> MCSResult
-    connected_mces(mol1, mol2; kwargs...) -> MCSResult
+    connected_mcis(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
+    connected_mces(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
 
 Compute connected maximum common substructure (MCS) of mol1 and mol2.
 
 ## Keyword arguments
 
-- timeout(Int): abort calculation and return suboptimal results if the execution
+- timeout(Real): abort calculation and return suboptimal results if the execution
 time has reached the given value (default=60, in seconds).
 - targetsize(Int): abort calculation and return suboptimal result so far if the
 given mcs size achieved.
 """
-connected_mcis(mol1, mol2, vmatchgen=vmatchgen, ematchgen=ematchgen; kwargs...
-    ) = maximum_common_subgraph(
-        mol1.graph, mol2.graph, connected=true,
-        vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); kwargs...)
+function connected_mcis(mol1::MolGraph, mol2::MolGraph; kwargs...)
+    mol1_ = mcis_constraints(mol1)
+    mol2_ = mcis_constraints(mol2)
+    return maximum_common_subgraph(mol1_, mol2_, connected=true; kwargs...)
+end
 
-connected_mces(mol1, mol2, vmatchgen=vmatchgen, ematchgen=ematchgen; kwargs...
-    ) = maximum_common_edge_subgraph(
-        mol1.graph, mol2.graph, connected=true,
-        vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2),
-        ggmatch=vmatchgen(mol1, mol1), hhmatch=vmatchgen(mol2, mol2); kwargs...)
+function connected_mces(mol1::MolGraph, mol2::MolGraph; kwargs...)
+    mol1_ = mces_constraints(mol1)
+    mol2_ = mces_constraints(mol2)
+    return maximum_common_subgraph(mol1_, mol2_, connected=true; kwargs...)
+end
 
 
 """
-    tdmcis(mol1, mol2; kwargs...) -> MCSResult
-    tdmces(mol1, mol2; kwargs...) -> MCSResult
+    tdmcis(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
+    tdmces(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
 
 Compute disconnected MCS of mol1 and mol2 with topological constraint (td-MCS).
 
@@ -335,7 +351,7 @@ Compute disconnected MCS of mol1 and mol2 with topological constraint (td-MCS).
 
 - diameter(Int): distance cutoff for topological constraint.
 - tolerance(Int): distance mismatch tolerance for topological constraint.
-- timeout(Int): abort calculation and return suboptimal results if the execution
+- timeout(Real): abort calculation and return suboptimal results if the execution
 time has reached the given value (default=60, in seconds).
 - targetsize(Int): abort calculation and return suboptimal result so far if the
 given mcs size achieved.
@@ -347,16 +363,17 @@ Chemical Structures. Journal of Chemical Information and Modeling, 51(8),
 1775–1787. https://doi.org/10.1021/ci2001023
 1. https://www.jstage.jst.go.jp/article/ciqs/2017/0/2017_P4/_article/-char/en
 """
-tdmcis(mol1, mol2, vmatchgen=vmatchgen, ematchgen=ematchgen; kwargs...
-    ) = maximum_common_subgraph(
-        mol1.graph, mol2.graph, topological=true,
-        vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); kwargs...)
+function tdmcis(mol1::MolGraph, mol2::MolGraph; kwargs...)
+    mol1_ = tdmcis_constraints(mol1; kwargs...)
+    mol2_ = tdmcis_constraints(mol2; kwargs...)
+    return maximum_common_subgraph(mol1_, mol2_; kwargs...)
+end
 
-tdmces(mol1, mol2, vmatchgen=vmatchgen, ematchgen=ematchgen; kwargs...
-    ) = maximum_common_edge_subgraph(
-        mol1.graph, mol2.graph, topological=true,
-        vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2),
-        ggmatch=vmatchgen(mol1, mol1), hhmatch=vmatchgen(mol2, mol2); kwargs...)
+function tdmces(mol1::MolGraph, mol2::MolGraph; kwargs...)
+    mol1_ = tdmces_constraints(mol1; kwargs...)
+    mol2_ = tdmces_constraints(mol2; kwargs...)
+    return maximum_common_subgraph(mol1_, mol2_; kwargs...)
+end
 
 # aliases (deprecated)
 tcmcis = tdmcis
@@ -398,20 +415,3 @@ function emaptonmap(emap, mol::MolGraph, query::MolGraph)
     end
     return assignment
 end
-
-
-
-mcis_constraints(mol::MolGraph, vmatchvecgen=vmatchvecgen
-    ) = mcis_constraints(mol.graph, :connection, vmatchvec=vmatchvecgen(mol))
-
-mces_constraints(mol::MolGraph, vmatchvecgen=vmatchvecgen
-    ) = mces_constraints(mol.graph, :connection, vmatchvec=vmatchvecgen(mol))
-
-tdmcis_constraints(mol::MolGraph,
-        type=:shortest, vmatchvecgen=vmatchvecgen; kwargs...
-    ) = mcis_constraints(mol.graph, type, vmatchvec=vmatchvecgen(mol); kwargs...)
-
-tdmces_constraints(mol::MolGraph,
-        type=:shortest, vmatchvecgen=vmatchvecgen; kwargs...
-    ) = mces_constraints(mol.graph, type, vmatchvec=vmatchvecgen(mol); kwargs...)
-

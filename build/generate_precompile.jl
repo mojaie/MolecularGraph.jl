@@ -14,13 +14,17 @@ function run()
         "CC1=C2[C@@]([C@]([C@H]([C@@H]3[C@]4([C@H](OC4)C[C@@H]([C@]3(C(=O)[C@@H]2OC(=O)C)C)O)OC(=O)C)OC(=O)c5ccccc5)(C[C@@H]1OC(=O)[C@H](O)[C@@H](NC(=O)c6ccccc6)c7ccccc7)O)(C)C"
     ))))
     ikey_paclitaxel = inchikey(pointer(JSON.json(paclitaxel)))
+    nv_paclitaxel = vertex_count(pointer(JSON.json(paclitaxel)))
     @debug unsafe_string(ikey_paclitaxel)
+    @debug nv_paclitaxel
 
     tc99m = JSON.parse(unsafe_string(smilestomol(pointer(
         "[99Tc+4].[O-]P([O-])(=O)OP([O-])([O-])=O"
     ))))
     ikey_tc99m = inchikey(pointer(JSON.json(tc99m)))
+    ne_tc99m = edge_count(pointer(JSON.json(tc99m)))
     @debug unsafe_string(ikey_tc99m)
+    @debug ne_tc99m
 
     acalabrutinib = JSON.parse(unsafe_string(smilestomol(pointer(
         "CC#CC(=O)N1CCC[C@H]1C1=NC(=C2N1C=CN=C2N)C1=CC=C(C=C1)C(=O)NC1=CC=CC=N1"
@@ -93,27 +97,40 @@ function run()
     acetazolamide = JSON.parse(unsafe_string(smilestomol(pointer("O=S(=O)(c1nnc(s1)NC(=O)C)N"))))
     bortezomib = JSON.parse(unsafe_string(smilestomol(pointer("O=C(N[C@H](C(=O)N[C@H](B(O)O)CC(C)C)Cc1ccccc1)c2nccnc2"))))
     tofacitinib = JSON.parse(unsafe_string(smilestomol(pointer(raw"CC2CCN(C(=O)CC#N)CC2N(C)c3ncnc1[nH]ccc13"))))
-    @debug tdmcis(
+    @debug tdmcis_size(
         pointer(JSON.json(nullmol)),
         pointer(JSON.json(nullsmiles)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
-    @debug tdmcis(
+    @debug tdmcis_size(
         pointer(JSON.json(furosemide)),
         pointer(JSON.json(acetazolamide)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
-    @debug tdmcis(
+    @debug tdmcis_tanimoto(
+        pointer(JSON.json(furosemide)),
+        pointer(JSON.json(acetazolamide)),
+        pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
+    @debug tdmcis_dist(
         pointer(JSON.json(bortezomib)),
         pointer(JSON.json(tofacitinib)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
-    @debug tdmces(
+    @debug tdmcis_gls(
+        pointer(JSON.json(bortezomib)),
+        pointer(JSON.json(tofacitinib)),
+        pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
+
+    @debug tdmces_size(
         pointer(JSON.json(nullsmiles)),
         pointer(JSON.json(nullmol)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
-    @debug tdmces(
+    @debug tdmces_tanimoto(
         pointer(JSON.json(furosemide)),
         pointer(JSON.json(acetazolamide)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
-    @debug tdmces(
+    @debug tdmces_dist(
+        pointer(JSON.json(furosemide)),
+        pointer(JSON.json(acetazolamide)),
+        pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
+    @debug tdmces_gls(
         pointer(JSON.json(bortezomib)),
         pointer(JSON.json(tofacitinib)),
         pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))

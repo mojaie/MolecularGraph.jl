@@ -3,6 +3,12 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+export
+    vertex_count, edge_count,
+    tdmcis_size, tdmces_size, tdmcis_tanimoto, tdmces_tanimoto,
+    tdmcis_dist, tdmces_dist, tdmcis_gls, tdmces_gls
+
+
 Base.@ccallable function smilestomol(smiles::Ptr{UInt8})::Ptr{UInt8}
     return try
         mol = smilestomol(unsafe_string(smiles))
@@ -31,6 +37,24 @@ Base.@ccallable function sdftomol(sdf::Ptr{UInt8})::Ptr{UInt8}
         buf = IOBuffer(write=true)
         JSON.print(buf, to_dict(mol))
         return pointer(buf.data)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function vertex_count(mol::Ptr{UInt8})::Cint
+    return try
+        mol = MolGraph(JSON.parse(unsafe_string(mol)))
+        return nv(mol)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function edge_count(mol::Ptr{UInt8})::Cint
+    return try
+        mol = MolGraph(JSON.parse(unsafe_string(mol)))
+        return ne(mol)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
@@ -93,25 +117,117 @@ Base.@ccallable function has_substruct_match(
     end
 end
 
-Base.@ccallable function tdmcis(
+Base.@ccallable function tdmcis_size(
         mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
     return try
         mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
         mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
         kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
-        return size(tdmcis(mol1, mol2; kwargs...))
+        return length(tdmcis(mol1, mol2; kwargs...)[1])
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
 end
 
-Base.@ccallable function tdmces(
+Base.@ccallable function tdmces_size(
         mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
     return try
         mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
         mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
         kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
-        return size(tdmces(mol1, mol2; kwargs...))
+        return length(tdmces(mol1, mol2; kwargs...)[1])
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function tdmcis_tanimoto(
+        mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cdouble
+    return try
+        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
+        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
+        kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
+        comm = length(tdmcis(mol1, mol2; kwargs...)[1])
+        return comm / (nv(mol1) + nv(mol2) - comm)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function tdmces_tanimoto(
+        mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cdouble
+    return try
+        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
+        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
+        kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
+        comm = length(tdmces(mol1, mol2; kwargs...)[1])
+        return comm / (ne(mol1) + ne(mol2) - comm)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function tdmcis_dist(
+        mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
+    return try
+        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
+        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
+        kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
+        comm = length(tdmcis(mol1, mol2; kwargs...)[1])
+        return nv(mol1) + nv(mol2) - comm * 2
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function tdmces_dist(
+        mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cint
+    return try
+        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
+        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
+        kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
+        comm = length(tdmcis(mol1, mol2; kwargs...)[1])
+        return ne(mol1) + ne(mol2) - comm * 2
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function tdmcis_gls(
+        mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cdouble
+    return try
+        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
+        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
+        if nv(mol1) == 0 || nv(mol2) == 0
+            return 0.0
+        end
+        kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
+        mol1_ = tdmcis_constraints(mol1; kwargs...)
+        mol2_ = tdmcis_constraints(mol2; kwargs...)
+        m1max = length(maximum_common_subgraph(mol1_, mol1_; kwargs...)[1])
+        m2max = length(maximum_common_subgraph(mol2_, mol2_; kwargs...)[1])
+        comm = length(maximum_common_subgraph(mol1_, mol2_; kwargs...)[1])
+        return comm / (m1max + m2max - comm)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function tdmces_gls(
+        mol1::Ptr{UInt8}, mol2::Ptr{UInt8}, kwargs::Ptr{UInt8})::Cdouble
+    return try
+        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
+        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
+        if ne(mol1) == 0 || ne(mol2) == 0
+            return 0.0
+        end
+        kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
+        mol1_ = tdmces_constraints(mol1; kwargs...)
+        mol2_ = tdmces_constraints(mol2; kwargs...)
+        m1max = length(maximum_common_subgraph(mol1_, mol1_; kwargs...)[1])
+        m2max = length(maximum_common_subgraph(mol2_, mol2_; kwargs...)[1])
+        comm = length(maximum_common_subgraph(mol1_, mol2_; kwargs...)[1])
+        return comm / (m1max + m2max - comm)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end

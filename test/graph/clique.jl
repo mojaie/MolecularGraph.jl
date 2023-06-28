@@ -37,25 +37,23 @@ end
 
 @testset "max_conn_clique" begin
     nullg = SimpleGraph()
-    @test maximum_conn_clique(nullg, Dict{Edge{Int},Bool}())[1] == []
+    @test maximum_conn_clique(nullg)[1] == []
 
     noedges = SimpleGraph(5)
-    eattr = Dict{Edge{Int},Bool}()
-    @test length(all_maximal_conn_cliques(noedges, eattr)[1]) == 5
-    @test length(maximum_conn_clique(noedges, eattr)[1]) == 1
+    @test length(all_maximal_conn_cliques(noedges)[1]) == 5
+    @test length(maximum_conn_clique(noedges)[1]) == 1
 
     k5 = complete_graph(5)
-    eattr = Dict(e => false for e in edges(k5))
-    @test length(all_maximal_conn_cliques(k5, eattr)[1]) == 5
-    @test length(maximum_conn_clique(k5, eattr)[1]) == 1
-    eattr[Edge(1, 2)] = true
-    eattr[Edge(2, 3)] = true
-    eattr[Edge(4, 5)] = true
-    @test length(all_maximal_conn_cliques(k5, eattr)[1]) == 2
-    @test length(maximum_conn_clique(k5, eattr)[1]) == 3
-    eattr = Dict(e => true for e in edges(k5))
-    @test length(all_maximal_conn_cliques(k5, eattr)[1]) == 1
-    @test length(maximum_conn_clique(k5, eattr)[1]) == 5
+    @test length(all_maximal_conn_cliques(k5)[1]) == 5
+    @test length(maximum_conn_clique(k5)[1]) == 1
+    connfunc = n -> Dict(
+        1 => ([2], [3, 4, 5]), 2 => ([1, 3], [4, 5]), 3 => ([2], [1, 4, 5]),
+        4 => ([5], [1, 2, 3]), 5 => ([4], [1, 2, 3]))[n]
+    @test length(all_maximal_conn_cliques(k5, connfunc=connfunc)[1]) == 2
+    @test length(maximum_conn_clique(k5, connfunc=connfunc)[1]) == 3
+    connfunc = n -> (neighbors(k5, n), [])
+    @test length(all_maximal_conn_cliques(k5, connfunc=connfunc)[1]) == 1
+    @test length(maximum_conn_clique(k5, connfunc=connfunc)[1]) == 5
 end
 
 end # clique

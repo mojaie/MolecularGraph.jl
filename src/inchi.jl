@@ -104,7 +104,7 @@ end
 
 function report_output(output, verbose::Bool)
     if output.szInChI == C_NULL || verbose
-        output.szInChI == C_NULL && @info "InChI error with $inchi or $options"
+        output.szInChI == C_NULL && @info "InChI error with \$inchi or \$options"
         unsafe_info(output.szMessage, "message")
         unsafe_info(output.szMessage, "log")
     end
