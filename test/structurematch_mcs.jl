@@ -47,8 +47,8 @@
 
     cid6437877 = smilestomol("CC1=C(SC=N1)C=CC2=C(N3C(C(C3=O)NC(=O)C(=NOC)C4=CSC(=N4)N)SC2)C(=O)OCOC(=O)C(C)(C)C")  # Cefditoren pivoxil
     cid5481173 = smilestomol("CC(C)(C(=O)O)ON=C(C1=CSC(=N1)N)C(=O)NC2C3N(C2=O)C(=C(CS3)C[N+]4=CC=CC=C4)C(=O)[O-]")  # Ceftazidime
-    @test length(tdmcis(cid6437877, cid5481173, tolerance=1)[1]) == 27
-    @test length(tdmces(cid6437877, cid5481173, tolerance=1)[1]) == 28
+    @test length(tdmcis(cid6437877, cid5481173, tolerance=1)[1]) == 28
+    @test length(tdmces(cid6437877, cid5481173, tolerance=1)[1]) == 29
     @test length(tdmcis(cid6437877, cid5481173, diameter=8)[1]) == 18
     @test length(tdmces(cid6437877, cid5481173, diameter=8)[1]) == 20
     # global_logger(default_logger)
@@ -158,10 +158,10 @@ end
     cid5481173 = smilestomol("CC(C)(C(=O)O)ON=C(C1=CSC(=N1)N)C(=O)NC2C3N(C2=O)C(=C(CS3)C[N+]4=CC=CC=C4)C(=O)[O-]")  # Ceftazidime
     cid6437877t = tdmcis_constraints(cid6437877)
     cid5481173t = tdmcis_constraints(cid5481173)
-    @test length(maximum_common_subgraph(cid6437877t, cid5481173t, tolerance=1)[1]) == 27
+    @test length(maximum_common_subgraph(cid6437877t, cid5481173t, tolerance=1)[1]) == 28
     cid6437877t = tdmces_constraints(cid6437877)
     cid5481173t = tdmces_constraints(cid5481173)
-    @test length(maximum_common_subgraph(cid6437877t, cid5481173t, tolerance=1)[1]) == 28
+    @test length(maximum_common_subgraph(cid6437877t, cid5481173t, tolerance=1)[1]) == 29
     cid6437877t = tdmcis_constraints(cid6437877, diameter=8)
     cid5481173t = tdmcis_constraints(cid5481173, diameter=8)
     @test length(maximum_common_subgraph(cid6437877t, cid5481173t)[1]) == 18

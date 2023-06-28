@@ -15,7 +15,7 @@ export
     is_hydrogen_acceptor, hydrogen_acceptor_count,
     is_rotatable, rotatable_count,
     atom_counter, heavy_atom_count, molecular_formula, empirical_formula,
-    pi_electron, hybridization,
+    pi_electron, pi_delocalized, hybridization, hybridization_delocalized,
     is_ring_aromatic, is_ring_aromatic!, is_aromatic, is_edge_aromatic
 
 
@@ -663,23 +663,21 @@ of 1 to ``n``th atoms of the given molecule.
 
 The counting of ``\\pi`` electrons is based on the following rules.
 
-- Any atom incident to a double bond -> +1
-- Any atom incident to two double bond -> +2
-- Any atom incident to a triple bond -> +2
-- Any other uncharged N, O or S that are neighbor of multiple bonds -> +2
+- sp3 (lone pair + connectivity == 4) or not organic heavy atom -> 0
+- sp2 (lone pair + connectivity == 3) -> 1
+- sp (lone pair + connectivity == 2) -> 2
 
-These rules are applied for only typical organic atoms. The values for inorganic atoms will be 0.
+Electron delocalization is not considered (e.g. mesomeric effect in carbonyl group).
 """
-function pi_electron(g, degree_arr, symbol_arr, charge_arr, app_valence_arr)
-    pie_arr = app_valence_arr - degree_arr
-    arr = zeros(Int, nv(g))
-    for i in vertices(g)
-        arr[i] = pie_arr[i]
-        symbol_arr[i] in (:N, :O, :S) || continue
-        for nbr in neighbors(g, i)
-            if pie_arr[i] == 0 && pie_arr[nbr] > 0 && charge_arr[i] == 0
+function pi_electron(lone_pair_arr, connectivity_arr)
+    arr = fill(zero(Int), length(lone_pair_arr))
+    @inbounds for i in 1:length(lone_pair_arr)
+        if !isnothing(lone_pair_arr[i])
+            orbitals = connectivity_arr[i] + lone_pair_arr[i]
+            if orbitals == 3
+                arr[i] = 1
+            elseif orbitals == 2
                 arr[i] = 2
-                break
             end
         end
     end
@@ -689,15 +687,47 @@ end
 function pi_electron(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_pi_electron) && return get_cache(mol, :v_pi_electron)
-    return pi_electron(
-        mol.graph, degree(mol), atom_symbol(mol), charge(mol), apparent_valence(mol))
+    return pi_electron(lone_pair(mol), connectivity(mol))
 end
 
 pi_electron!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_pi_electron,
-    pi_electron(
-        mol.graph, degree(mol), atom_symbol(mol), charge(mol), apparent_valence(mol)))
+    mol, :v_pi_electron, pi_electron(lone_pair(mol), connectivity(mol)))
 
+
+"""
+    pi_delocalized(mol::SimpleMolGraph) -> Vector{Int}
+
+Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
+of 1 to ``n``th atoms of the given molecule.
+
+The following delocalization rules are added to `pi_electron`.
+
+- N (except for ammonium) or O adjacent to sp2 atom -> 2
+"""
+function pi_delocalized(g, symbol_arr, charge_arr, pi_arr)
+    arr = copy(pi_arr)
+    @inbounds for i in 1:length(pi_arr)
+        if symbol_arr[i] in (:O, :N) && pi_arr[i] == 0 && charge_arr[i] <= 0
+            for nbr in neighbors(g, i)
+                if pi_arr[nbr] > 0
+                    arr[i] = 2
+                    break
+                end
+            end
+        end
+    end
+    return arr
+end
+
+function pi_delocalized(mol::SimpleMolGraph)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_pi_delocalized) && return get_cache(mol, :v_pi_delocalized)
+    return pi_delocalized(mol.graph, atomsymbol(mol), charge(mol), pi_electron(mol))
+end
+
+pi_delocalized!(mol::SimpleMolGraph) = set_cache!(
+    mol, :v_pi_delocalized,
+    pi_delocalized(mol.graph, atomsymbol(mol), charge(mol), pi_electron(mol)))
 
 """
     hybridization(mol::SimpleMolGraph) -> Vector{Int}
@@ -706,28 +736,22 @@ Returns a vector of size ``n`` representing the orbital hybridization symbols
 (`:sp3`, `:sp2`, `:sp` or `:none`) of 1 to ``n``th atoms of the given molecule.
 
 The hybridization value in inorganic atoms and non-typical organic atoms will be `:none`
-(e.g. s, sp3d and sp3d2 orbitals).
+(e.g. s, sp3d and sp3d2 orbitals). The categorization rule is the same as `pi_electron`,
+but this method returns orbital hybridization symbols.
+Electron delocalization is not considered (e.g. mesomeric effect in carbonyl group).
 """
-function hybridization(symbol_arr, lone_pair_arr, connectivity_arr, pi_electron_arr)
-    arr = Vector{Symbol}(undef, length(symbol_arr))
-    for i in 1:length(symbol_arr)
-        if lone_pair_arr[i] === nothing || symbol_arr[i] === :H
-            arr[i] = :none
-            continue
-        end
-        orbitals = connectivity_arr[i] + lone_pair_arr[i]
-        if orbitals == 4
-            if (symbol_arr[i] in [:N, :O] && pi_electron_arr[i] == 2)
-                arr[i] = :sp2  # adjacent to conjugated bonds
-            else
+function hybridization(lone_pair_arr, connectivity_arr)
+    arr = fill(:none, length(lone_pair_arr))
+    @inbounds for i in 1:length(lone_pair_arr)
+        if !isnothing(lone_pair_arr[i])
+            orbitals = connectivity_arr[i] + lone_pair_arr[i]
+            if orbitals == 4
                 arr[i] = :sp3
+            elseif orbitals == 3
+                arr[i] = :sp2
+            elseif orbitals == 2
+                arr[i] = :sp
             end
-        elseif orbitals == 3
-            arr[i] = :sp2
-        elseif orbitals == 2
-            arr[i] = :sp
-        else
-            arr[i] = :none
         end
     end
     return arr
@@ -736,14 +760,46 @@ end
 function hybridization(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_hybridization) && return get_cache(mol, :v_hybridization)
-    return hybridization(atom_symbol(mol), lone_pair(mol), connectivity(mol), pi_electron(mol))
+    return hybridization(lone_pair(mol), connectivity(mol))
 end
 
 hybridization!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_hybridization,
-    hybridization(atom_symbol(mol), lone_pair(mol), connectivity(mol), pi_electron(mol)))
+    mol, :v_hybridization, hybridization(lone_pair(mol), connectivity(mol)))
 
+"""
+    hybridization_delocalized(mol::SimpleMolGraph) -> Vector{Int}
 
+Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
+of 1 to ``n``th atoms of the given molecule.
+
+The following delocalization rules are added to `hybridization`.
+
+- N (except for ammonium) or O adjacent to sp2 atom -> :sp2
+"""
+function hybridization_delocalized(g, symbol_arr, charge_arr, hyb_arr)
+    arr = copy(hyb_arr)
+    @inbounds for i in 1:length(hyb_arr)
+        if symbol_arr[i] in (:O, :N) && hyb_arr[i] === :sp3 && charge_arr[i] <= 0
+            for nbr in neighbors(g, i)
+                if hyb_arr[nbr] in (:sp, :sp2)
+                    arr[i] = :sp2
+                    break
+                end
+            end
+        end
+    end
+    return arr
+end
+
+function hybridization_delocalized(mol::SimpleMolGraph)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_hybridization_delocalized) && return get_cache(mol, :v_hybridization_delocalized)
+    return hybridization_delocalized(mol.graph, atomsymbol(mol), charge(mol), hybridization(mol))
+end
+
+hybridization_delocalized!(mol::SimpleMolGraph) = set_cache!(
+    mol, :v_hybridization_delocalized,
+    hybridization_delocalized(mol.graph, atomsymbol(mol), charge(mol), hybridization(mol)))
 
 # Aromaticity
 

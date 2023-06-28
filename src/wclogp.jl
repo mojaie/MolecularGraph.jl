@@ -36,8 +36,8 @@ function wclogptype(mol::MolGraph)
     bondorder_ = bond_order(mol)
     heavyatoms_ = heavy_atoms(mol)
     hydrogens_ = total_hydrogens(mol)
-    pielectron_ = pi_electron(mol)
-    hybridization_ = hybridization(mol)
+    pielectron_ = pi_delocalized(mol)
+    hybridization_ = hybridization_delocalized(mol)
     isaromatic_ = is_aromatic(mol)
     isaromaticbond_ = is_edge_aromatic(mol)
 
@@ -196,27 +196,27 @@ function wclogptype(mol::MolGraph)
             end
 
         # Oxygens
+        elseif atomsymbol_[i] === :O && charge_[i] < 0 && heavyatoms_[i] == 1
+            # Oxide (O5,6,7,12)
+            nbr = neighbors(mol, i)[1]
+            if atomsymbol_[nbr] in (:O, :N)
+                atomtypes[i] = :O5 # O2 or N-oxide
+            elseif atomsymbol_[nbr] == :S
+                atomtypes[i] = :O6 # S-oxide
+            elseif atomsymbol_[nbr] == :C
+                cnbrsyms = [atomsymbol_[n] for n in neighbors(mol, nbr)]
+                if sum(cnbrsyms .=== :O) == 2
+                    atomtypes[i] = :O12 # Acid (O12)
+                end
+            end
+            if atomtypes[i] === :undef
+                atomtypes[i] = :O7 # Other oxide
+            end
         elseif atomsymbol_[i] === :O && hybridization_[i] === :sp3
             if hydrogens_[i] > 0
                 atomtypes[i] = :O2  # Alcohol (O2)
             elseif charge_[i] == 0 && heavyatoms_[i] == 2
                 atomtypes[i] = :O3  # Aliphatic ether
-            elseif charge_[i] < 0 && heavyatoms_[i] == 1
-                # Oxide (O5,6,7,12)
-                nbr = neighbors(mol, i)[1]
-                if atomsymbol_[nbr] in (:O, :N)
-                    atomtypes[i] = :O5 # O2 or N-oxide
-                elseif atomsymbol_[nbr] == :S
-                    atomtypes[i] = :O6 # S-oxide
-                elseif atomsymbol_[nbr] == :C
-                    cnbrsyms = [atomsymbol_[n] for n in neighbors(mol, nbr)]
-                    if sum(cnbrsyms .=== :O) == 2
-                        atomtypes[i] = :O12 # Acid (O12)
-                    end
-                end
-                if atomtypes[i] === :undef
-                    atomtypes[i] = :O7 # Other oxide
-                end
             end
         elseif atomsymbol_[i] === :O && isaromatic_[i]
             atomtypes[i] = :O1  # Aromatic oxygen (O1)

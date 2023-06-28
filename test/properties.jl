@@ -72,17 +72,39 @@ end
     @test pi_electron(alkyne) == [0, 1, 1, 2, 2]
     @test hybridization(alkyne) == [:sp3, :sp2, :sp2, :sp, :sp]
     
+    carboxylate = smilestomol("CC(=O)[O-]")
+    @test pi_electron(carboxylate) == [0, 1, 1, 0]
+    @test hybridization(carboxylate) == [:sp3, :sp2, :sp2, :sp3]
+    @test pi_delocalized(carboxylate) == [0, 1, 1, 2]
+    @test hybridization_delocalized(carboxylate) == [:sp3, :sp2, :sp2, :sp2]
+
+    ester = smilestomol("CC(=O)OC")
+    @test pi_electron(ester) == [0, 1, 1, 0, 0]
+    @test hybridization(ester) == [:sp3, :sp2, :sp2, :sp3, :sp3]
+    @test pi_delocalized(ester) == [0, 1, 1, 2, 0]
+    @test hybridization_delocalized(ester) == [:sp3, :sp2, :sp2, :sp2, :sp3]
+
     anilinium = smilestomol("C1=CC=CC=C1[N+]")
     @test pi_electron(anilinium) == [1, 1, 1, 1, 1, 1, 0]
     @test hybridization(anilinium) == [:sp2, :sp2, :sp2, :sp2, :sp2, :sp2, :sp3]
+    @test pi_delocalized(anilinium) == [1, 1, 1, 1, 1, 1, 0]
+    @test hybridization_delocalized(anilinium) == [:sp2, :sp2, :sp2, :sp2, :sp2, :sp2, :sp3]
+
+    quat = smilestomol("C[N+](C)(C)C(=O)N")
+    @test pi_electron(quat) == [0, 0, 0, 0, 1, 1, 0]
+    @test hybridization(quat) == [:sp3, :sp3, :sp3, :sp3, :sp2, :sp2, :sp3]
+    @test pi_delocalized(quat) == [0, 0, 0, 0, 1, 1, 2]
+    @test hybridization_delocalized(quat) == [:sp3, :sp3, :sp3, :sp3, :sp2, :sp2, :sp2]
 
     azide = smilestomol("CC(=O)N=[N+]=[N-]")
     @test pi_electron(azide) == [0, 1, 1, 1, 2, 1]
     @test hybridization(azide) == [:sp3, :sp2, :sp2, :sp2, :sp, :sp2]
 
     pyrrole = smilestomol("C1=CC=CN1")
-    @test pi_electron(pyrrole) == [1, 1, 1, 1, 2]
-    @test hybridization(pyrrole) == [:sp2, :sp2, :sp2, :sp2, :sp2]
+    @test pi_electron(pyrrole) == [1, 1, 1, 1, 0]
+    @test hybridization(pyrrole) == [:sp2, :sp2, :sp2, :sp2, :sp3]
+    @test pi_delocalized(pyrrole) == [1, 1, 1, 1, 2]
+    @test hybridization_delocalized(pyrrole) == [:sp2, :sp2, :sp2, :sp2, :sp2]
 
     nacl = smilestomol("[Na+][Cl-]")
     @test pi_electron(nacl) == [0, 0]
