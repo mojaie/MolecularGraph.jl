@@ -9,4 +9,5 @@ PackageCompiler.create_library(
     lib_name="libmoleculargraph",
     precompile_execution_file=["$(@__DIR__)/generate_precompile.jl"],
     header_files=["$(@__DIR__)/libmoleculargraph.h"],
+    incremental=true
 )

@@ -6,7 +6,8 @@
 export
     vertex_count, edge_count,
     tdmcis_size, tdmces_size, tdmcis_tanimoto, tdmces_tanimoto,
-    tdmcis_dist, tdmces_dist, tdmcis_gls, tdmces_gls
+    tdmcis_dist, tdmces_dist, tdmcis_gls, tdmces_gls,
+    tdmces_gls_batch
 
 
 Base.@ccallable function smilestomol(smiles::Ptr{UInt8})::Ptr{UInt8}
@@ -146,6 +147,9 @@ Base.@ccallable function tdmcis_tanimoto(
     return try
         mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
         mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
+        if nv(mol1) == 0 || nv(mol2) == 0
+            return 0.0
+        end
         kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
         comm = length(tdmcis(mol1, mol2; kwargs...)[1])
         return comm / (nv(mol1) + nv(mol2) - comm)
@@ -159,6 +163,9 @@ Base.@ccallable function tdmces_tanimoto(
     return try
         mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
         mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
+        if ne(mol1) == 0 || ne(mol2) == 0
+            return 0.0
+        end
         kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
         comm = length(tdmces(mol1, mol2; kwargs...)[1])
         return comm / (ne(mol1) + ne(mol2) - comm)
@@ -204,8 +211,8 @@ Base.@ccallable function tdmcis_gls(
         kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
         mol1_ = tdmcis_constraints(mol1; kwargs...)
         mol2_ = tdmcis_constraints(mol2; kwargs...)
-        m1max = length(maximum_common_subgraph(mol1_, mol1_; kwargs...)[1])
-        m2max = length(maximum_common_subgraph(mol2_, mol2_; kwargs...)[1])
+        m1max = length(maximum_clique(SimpleGraph(Edge.(mol1_.pairs)))[1])
+        m2max = length(maximum_clique(SimpleGraph(Edge.(mol2_.pairs)))[1])
         comm = length(maximum_common_subgraph(mol1_, mol2_; kwargs...)[1])
         return comm / (m1max + m2max - comm)
     catch
@@ -224,10 +231,40 @@ Base.@ccallable function tdmces_gls(
         kwargs = Dict(Symbol(k) => v for (k, v) in JSON.parse(unsafe_string(kwargs)))
         mol1_ = tdmces_constraints(mol1; kwargs...)
         mol2_ = tdmces_constraints(mol2; kwargs...)
-        m1max = length(maximum_common_subgraph(mol1_, mol1_; kwargs...)[1])
-        m2max = length(maximum_common_subgraph(mol2_, mol2_; kwargs...)[1])
+        m1max = length(maximum_clique(SimpleGraph(Edge.(mol1_.pairs)))[1])
+        m2max = length(maximum_clique(SimpleGraph(Edge.(mol2_.pairs)))[1])
         comm = length(maximum_common_subgraph(mol1_, mol2_; kwargs...)[1])
         return comm / (m1max + m2max - comm)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function tdmces_gls_batch(query::Ptr{UInt8})::Ptr{UInt8}
+    # query = [[ids1], [ids2], [queries1], [queries2], {option}, int]
+    return try
+        ids1, ids2, queries1, queries2, option, thld = JSON.parse(unsafe_string(query))
+        kwargs = Dict(Symbol(k) => v for (k, v) in option)
+        res = Tuple{Int,Int,Float64}[]
+        for (u, v, q1, q2) in zip(ids1, ids2, queries1, queries2)
+            mol1 = MolGraph(q1)
+            mol2 = MolGraph(q2)
+            if ne(mol1) == 0 || ne(mol2) == 0
+                continue
+            end
+            mol1_ = tdmces_constraints(mol1; kwargs...)
+            mol2_ = tdmces_constraints(mol2; kwargs...)
+            m1max = length(maximum_clique(SimpleGraph(Edge.(mol1_.pairs)))[1])
+            m2max = length(maximum_clique(SimpleGraph(Edge.(mol2_.pairs)))[1])
+            comm = length(maximum_common_subgraph(mol1_, mol2_; kwargs...)[1])
+            score = comm / (m1max + m2max - comm)
+            if score >= thld
+                push!(res, (u, v, score))
+            end
+        end
+        buf = IOBuffer(write=true)
+        JSON.print(buf, res)
+        return pointer(buf.data)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end

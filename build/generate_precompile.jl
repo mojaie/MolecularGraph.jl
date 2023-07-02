@@ -133,7 +133,16 @@ function run()
     @debug tdmces_gls(
         pointer(JSON.json(bortezomib)),
         pointer(JSON.json(tofacitinib)),
-        pointer(JSON.json(Dict("diameter" => 8, "tolerance" => 1))))
+        pointer(JSON.json(Dict("diameter" => 8))))
+
+    @debug JSON.parse(unsafe_string(tdmces_gls_batch(
+        pointer(JSON.json([
+            [1,2,3],
+            [2,3,4],
+            [furosemide, bortezomib, tofacitinib],
+            [bortezomib, tofacitinib, acetazolamide],
+            Dict("diameter" => 8), 0.1
+        ])))))
 end
 
 end

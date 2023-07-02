@@ -16,3 +16,4 @@ int tdmcis_dist(char*, char*, char*);
 int tdmces_dist(char*, char*, char*);
 double tdmcis_gls(char*, char*, char*);
 double tdmces_gls(char*, char*, char*);
+char* tdmces_gls_batch(char*);
