@@ -28,7 +28,7 @@ How to use
 
 To run codes in your environment, see `Edit or run this notebook` instruction shown in the top-right of the tutorial pages below.
 
-- [Getting started](https://mojaie.github.io/MolecularGraph.jl_notebook/getting_started.jl.html)
+- [Getting started](https://mojaie.github.io/MolecularGraph.jl_notebook/getting_started.html)
 - [Molecular graph basics](https://mojaie.github.io/MolecularGraph.jl_notebook/molecular_graph_basics.jl.html)
   - Scope of MolecularGraph.jl
   - Considerations in molecular graph implementation
@@ -59,7 +59,7 @@ To run codes in your environment, see `Edit or run this notebook` instruction sh
   - Structural alerts (e.g. PAINS)
   - Functional group analysis
   - Query containment
-- [Maximum common substructure (MCS)](https://mojaie.github.io/MolecularGraph.jl_notebook/maximum_common_substructure.jl.html)
+- [Maximum common substructure (MCS)](https://mojaie.github.io/MolecularGraph.jl_notebook/maximum_common_substructure.html)
   - Maximum common induced substructure (MCIS)
   - Maximum common edge-induced substructure (MCES)
   - Connected or disconnected MCS
