@@ -4,6 +4,7 @@
 #
 
 export
+    ConstraintArrayMCIS, ConstraintArrayMCES,
     maximum_common_subgraph, maximum_common_edge_subgraph,
     mcis_constraints, mces_constraints
 
@@ -18,6 +19,19 @@ struct ConstraintArrayMCIS{T,D,V} <: ConstraintArrayMCS{T}
     vattrs2::Vector{V}  # UInt16
 end
 
+ConstraintArrayMCIS{T,D,V}(data::Dict) where {T,D,V} = ConstraintArrayMCIS{T,D,V}(
+    data["nv"], [(p...,) for p in data["pairs"]],
+    data["distances"], data["vattrs1"], data["vattrs2"])
+
+to_dict(arr::ConstraintArrayMCIS) = Dict(
+    "nv" => arr.nv,
+    "pairs" => arr.pairs,
+    "distances" => arr.distances,
+    "vattrs1" => arr.vattrs1,
+    "vattrs2" => arr.vattrs2
+)
+
+
 struct ConstraintArrayMCES{T,D,V,E} <: ConstraintArrayMCS{T}
     nv::Int
     pairs::Vector{Tuple{T,T}}
@@ -29,6 +43,26 @@ struct ConstraintArrayMCES{T,D,V,E} <: ConstraintArrayMCS{T}
     delta_edges::Vector{Tuple{Edge{T},Edge{T},Edge{T}}}
     y_edges::Vector{Tuple{Edge{T},Edge{T},Edge{T}}}
 end
+
+ConstraintArrayMCES{T,D,V,E}(data::Dict) where {T,D,V,E} = ConstraintArrayMCES{T,D,V,E}(
+    data["nv"], [(p...,) for p in data["pairs"]],
+    data["distances"], data["vattrs1"], data["vattrs2"], data["eattrs"],
+    Dict(parse(T, i) => Edge{T}(e...) for (i, e) in data["revmap"]),
+    [Tuple(Edge{T}(e...) for e in t) for t in data["delta_edges"]],
+    [Tuple([Edge{T}(e...) for e in t]) for t in data["y_edges"]]
+)
+
+to_dict(arr::ConstraintArrayMCES) = Dict(
+    "nv" => arr.nv,
+    "pairs" => arr.pairs,
+    "distances" => arr.distances,
+    "vattrs1" => arr.vattrs1,
+    "vattrs2" => arr.vattrs2,
+    "eattrs" => arr.eattrs,
+    "revmap" => Dict(i => [src(e), dst(e)] for (i, e) in arr.revmap),
+    "delta_edges" => [[[src(e), dst(e)] for e in t] for t in arr.delta_edges],
+    "y_edges" => [[[src(e), dst(e)] for e in t] for t in arr.y_edges]
+)
 
 
 function connection_constraints(::Type{U}, g::SimpleGraph{T}; kwargs...) where {T,U<:Integer}
