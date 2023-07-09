@@ -77,7 +77,7 @@ end
 
 
 function printv2data(io::IO, mol::SimpleMolGraph)
-    for (key, val) in props(mol)
+    for (key, val) in metadata(mol)
         println(io, "> <$(string(key))>")
         println(io, string(val))
         println(io, "")

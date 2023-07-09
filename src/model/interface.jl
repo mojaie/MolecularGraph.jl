@@ -113,7 +113,7 @@ get_prop(mol::SimpleMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
 get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
 get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
 has_prop(mol::SimpleMolGraph, prop::Symbol) = haskey(mol.gprops, prop)
-metadata(mol::SimpleMolGraph) = mol.gprops[:metadata]
+metadata(mol::SimpleMolGraph) = haskey(mol.gprops, :metadata) ? mol.gprops[:metadata] : MetaData()
 edge_rank(mol::SimpleMolGraph, e::Edge) = mol.edge_rank[e]
 edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, u_edge(mol, u, v))
 
