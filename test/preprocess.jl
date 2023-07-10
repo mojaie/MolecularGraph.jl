@@ -57,9 +57,6 @@
     @test get_prop(sumatriptan, :pyrrole_like) == [11]
     rem_vertices!(sumatriptan, [1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19])
     @test get_prop(sumatriptan, :pyrrole_like) == [5]
-
-
-
 end
 
 @testset "remove_hydrogens" begin
@@ -85,7 +82,12 @@ end
     @test vmap == [9, 2, 8, 4, 5, 6, 7]
     @test all_hydrogens(LAla) == [1, 3, 5]
     vmap = remove_all_hydrogens!(LAla)
-    @test vmap == [8, 2, 7, 4, 9, 6]
+    @test vmap == [9, 2, 8, 4, 7, 6]
+
+    mol = smilestomol("CC[C@@H](C)[C@@H]1[C@@H](CC[C@@]2(O1)C[C@@H]3C[C@H](O2)CC=C([C@H]([C@H](C=CC=C4CO[C@H]5[C@@]4([C@@H](C=C([C@H]5O)C)C(=O)O3)O)C)O[C@H]6C[C@@H]([C@H]([C@@H](O6)C)O[C@H]7C[C@@H]([C@H]([C@@H](O7)C)O)OC)OC)C)C")
+    remove_all_hydrogens!(mol)
+    @test nv(mol) == 62
+    @test length(mol.gprops[:stereocenter]) == 20
 end
 
 @testset "add_hydrogens" begin
