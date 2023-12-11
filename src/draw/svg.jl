@@ -64,7 +64,7 @@ svgtransform(tf::Array{Float64,2}
     ) = @sprintf "%.2f %.2f %.2f %.2f %.2f %.2f" tf[1] tf[2] tf[4] tf[5] tf[7] tf[8]
 
 
-function tosvg(canvas::SvgCanvas)
+function tosvg(canvas::SvgCanvas; width="100%", height="100%", kwargs...)
     vbWf = @sprintf "%.2f" canvas.viewboxW
     vbHf = @sprintf "%.2f" canvas.viewboxH
     bgc = svgcolor(canvas.bgcolor)
@@ -75,7 +75,7 @@ function tosvg(canvas::SvgCanvas)
      preserveAspectRatio="xMidYMid meet"
      font-weight="$(canvas.fontweight)"
      font-family="$(canvas.fontfamily)"
-     width="100%" height="100%"
+     width="$(width)" height="$(height)"
      viewBox="0 0 $(vbWf) $(vbHf)">
     """
     bg = """<rect x="0" y="0" width="$(vbWf)" height="$(vbHf)"
@@ -108,7 +108,7 @@ function drawsvg(mol::SimpleMolGraph;
     sethighlight!(canvas, nodes_to_show, highlightcolor)
     sethighlight!(canvas, bondhighlight, highlightcolor)
     atomindex && drawatomindex!(canvas, is_atom_visible(mol), indexcolor, indexbgcolor)
-    return tosvg(canvas)
+    return tosvg(canvas; kwargs...)
 end
 
 
@@ -116,9 +116,15 @@ end
     html_fixed_size(svg, width, height)
 
 Generate fixed-size HTML wrapper for the SVG element.
+
+The width and height args can be numeric values (converted to `px`) or CSS strings like `100%`.
 """
-html_fixed_size(svg, width, height
-    ) = HTML("""<div style="width:$(width)px;height:$(height)px">$(svg)</div>""")
+function html_fixed_size(mol, width, height; kwargs...)
+    wstr = width isa Real ? "$(convert(Int, round(width)))px" : width
+    hstr = height isa Real ? "$(convert(Int, round(height)))px" : height
+    svg = drawsvg(mol; kwargs...)
+    return HTML("""<div style="width:$(wstr);height:$(hstr)">$(svg)</div>""")
+end
 
 
 """
@@ -126,15 +132,16 @@ html_fixed_size(svg, width, height
 
 Generate grid layout HTML wrapper for the SVG elements.
 
-The number of columns and grid row height in pixel must be specified.
+`cols` - number of columns in the grid.
+`rowheight` - numeric value (converted to `px`) or CSS string like `100%`.
 """
-function html_grid(svgs, cols, rowheight)
-    width = floor(Int, 100 / cols)
+function html_grid(mols, cols, rowheight; kwargs...)
     htmls = []
-    for row in Iterators.partition(svgs, cols)
-        push!(htmls, """<div style="display:grid; grid-template-columns:repeat($(cols), 1fr); grid-template-rows:$(rowheight)px;">""")
-        for img in row
-            push!(htmls, img)
+    hstr = rowheight isa Real ? "$(convert(Int, round(rowheight)))px" : rowheight
+    for row in Iterators.partition(mols, cols)
+        push!(htmls, """<div style="display:grid; grid-template-columns:repeat($(cols), 1fr); grid-template-rows:1fr;">""")
+        for m in row
+            push!(htmls, drawsvg(m, height=hstr; kwargs...))
         end
         push!(htmls, "</div>")
     end
@@ -144,9 +151,9 @@ end
 
 # Custom pretty printing for Plute notebook environment
 Base.show(io::IO, m::MIME"text/html", mol::SimpleMolGraph
-    ) = show(io, m, html_fixed_size(drawsvg(mol), 250, 250))
+    ) = show(io, m, html_fixed_size(mol, "250px", "250px"))
 Base.show(io::IO, m::MIME"text/html", mols::Vector{<:SimpleMolGraph}
-    ) = show(io, m, html_grid(drawsvg.(mols), 3, 250))
+    ) = show(io, m, html_grid(mols, 4, "200px"))
 
 # Workaround until query visualizer implemented
 Base.show(io::IO, m::MIME"text/html", mol::SimpleMolGraph{<:Integer,<:QueryTree,<:QueryTree}
