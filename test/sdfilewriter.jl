@@ -7,12 +7,11 @@
     dump = printv2mol(mol)
     mol2 = sdftomol(IOBuffer(dump))
     @test nv(mol2) == 37
-    
-    """
+
     smol = smilestomol("CCC1CC(C=O)CCC1N")
-    smol2 = sdftomol(split(printv2mol(smol), "\n"))
+    smol2 = sdftomol(IOBuffer(printv2mol(smol)))
     @test nv(smol2) == 11
-    """
+    @test isempty(metadata(smol2))
 end
 
 end #sdfilewriter

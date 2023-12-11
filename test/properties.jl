@@ -176,11 +176,15 @@ end
     @test count(is_aromatic(caffeine)) == 9
 
     # Difficult aromaticities
-    quinodimethane = smilestomol("C1=CC=CC(=C)C1=C")
-    @test_broken count(is_aromatic(azulene)) == 10
+    
+    imidazo12a = smilestomol("C1=CN=C2N1C=CC=C2")  # imidazo[1,2-a]pyridine
+    @test_broken count(is_aromatic(imidazo12a)) == 9
 
-    dihydronaphthalene = smilestomol("C=1CCC=C2C1C=CC=C2")
-    @test_broken count(is_aromatic(dihydronaphthalene)) == 10
+    quinodimethane = smilestomol("C1=CC=CC(=C)C1=C")
+    @test_broken count(is_aromatic(quinodimethane)) == 0
+
+    dihydronaphthalene = smilestomol("C=1CCC=C2C1C=CC=C2")  # 2,3-dihydronaphthalene
+    @test_broken count(is_aromatic(dihydronaphthalene)) == 0
 
     azulene = smilestomol("C=1C=CC=2C1C=CC=CC2")
     @test_broken count(is_aromatic(azulene)) == 10

@@ -215,6 +215,75 @@ function is_edge_in_ring(mol::MolGraph)
 end
 
 
+
+"""
+    bmscaffold(mol::MolGraph) -> Vector{Int}
+
+Return Bemis-Murcko scaffold as a vector of scaffold vertices.
+"""
+function bmscaffold(g::SimpleGraph)
+    (length(connected_components(g)) == 1
+        || error("bmscaffold for a disconnected graph cannot be determined"))
+    degree_ = degree(g)
+    while true
+        terms = findall(degree_ .== 1)
+        isempty(terms) && break
+        for t in terms
+            degree_[t] = 0
+            for nbr in neighbors(g, t)
+                degree_[nbr] == 0 && continue
+                degree_[nbr] -= 1
+            end
+        end
+    end
+    return findall(degree_ .!= 0)
+end
+bmscaffold(mol::SimpleMolGraph) = bmscaffold(mol.graph)
+
+
+"""
+    scaffold_fragments(g::SimpleGraph) -> Vector{Int}
+
+Return scaffold fragments. Intended for a MMP derivative.
+"""
+function scaffold_fragments(g::SimpleGraph)
+    bms = bmscaffold(g)
+    isempty(bms) && return scaffolds  # no scaffold
+    queue = [bms]  # BFS
+    scaffolds = Vector{Int}[bms]
+    dag = SimpleDiGraph{Int}(1)  # fragmentation relationship (parent -> child)
+    while !isempty(queue)
+        # generate new fragments
+        scaffold = pop!(queue)
+        scf, scfvmap = induced_subgraph(g, scaffold)
+        parent =findfirst(x -> x == scaffold, scaffolds)
+        for fr in fused_rings(scf)
+            # enumerate connections to the fused ring
+            nbrs = setdiff(union([neighbors(scf, v) for v in fr]...), fr)
+            length(nbrs) == 1 || continue
+            # remove a fused ring
+            subg, vmap = induced_subgraph(g, setdiff(scaffold, scfvmap[fr]))
+            fragment = vmap[bmscaffold(subg)]
+            if fragment in scaffolds  # duplicate, skip the branch
+                dst = findfirst(x -> x == fragment, scaffolds)
+                add_edge!(dag, parent, dst)
+                continue
+            end
+            pushfirst!(queue, fragment)
+            push!(scaffolds, fragment)
+            add_vertex!(dag)
+            add_edge!(dag, parent, length(scaffolds))
+            if length(scaffolds) == 400
+                @info "max fragment count reached"
+                break
+            end
+        end
+    end
+    return scaffolds, dag
+end
+
+
+
 # Primary properties
 
 """

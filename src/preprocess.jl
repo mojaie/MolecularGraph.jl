@@ -161,17 +161,13 @@ Remove all hydrogen vertices from the molecule.
 
 This returns vmap array similar to [`rem_vertices!`](@ref).
 """
-function remove_all_hydrogens!(mol::SimpleMolGraph)
-    vmap = collect(vertices(mol))
+function remove_all_hydrogens!(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+    to_remove = T[]
     for center in keys(get_prop(mol, :stereocenter))
-        h = stereo_hydrogen(mol, center)
-        isnothing(h) && continue
-        remove_stereo_hydrogen!(mol, center, h)
-        vmap[h] = vmap[end]
-        pop!(vmap)
+        safe_stereo_hydrogen!(mol, center)
     end
-    vmap2 = rem_vertices!(mol, all_hydrogens(mol))
-    return vmap[vmap2]
+    vmap = rem_vertices!(mol, all_hydrogens(mol))
+    return vmap
 end
 
 

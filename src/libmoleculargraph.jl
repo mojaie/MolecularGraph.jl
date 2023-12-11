@@ -5,17 +5,22 @@
 
 export
     vertex_count, edge_count,
+    smilestosvg, sdftosvg,
     tdmcis_size, tdmces_size, tdmcis_tanimoto, tdmces_tanimoto,
     tdmcis_dist, tdmces_dist, tdmcis_gls, tdmces_gls,
     tdmces_gls_batch
 
 
-Base.@ccallable function smilestomol(smiles::Ptr{UInt8})::Ptr{UInt8}
-    return try
+Base.@ccallable function smilestomol(smiles::Ptr{UInt8}, options::Ptr{UInt8})::Ptr{UInt8}
+    try
         mol = smilestomol(unsafe_string(smiles))
+        op = JSON.parse(unsafe_string(options))
+        if !haskey(op, "remove_all_hydrogens") || op["remove_all_hydrogens"]
+            remove_all_hydrogens!(mol)  # default remove_all_hydrogens=true
+        end
         buf = IOBuffer(write=true)
         JSON.print(buf, to_dict(mol))
-        return pointer(buf.data)
+        pointer(buf.data)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
@@ -32,9 +37,13 @@ Base.@ccallable function smartstomol(smarts::Ptr{UInt8})::Ptr{UInt8}
     end
 end
 
-Base.@ccallable function sdftomol(sdf::Ptr{UInt8})::Ptr{UInt8}
+Base.@ccallable function sdftomol(sdf::Ptr{UInt8}, options::Ptr{UInt8})::Ptr{UInt8}
     return try
         mol = sdftomol(IOBuffer(unsafe_string(sdf)))
+        op = JSON.parse(unsafe_string(options))
+        if !haskey(op, "remove_all_hydrogens") || op["remove_all_hydrogens"]
+            remove_all_hydrogens!(mol)  # default remove_all_hydrogens=true
+        end
         buf = IOBuffer(write=true)
         JSON.print(buf, to_dict(mol))
         return pointer(buf.data)
@@ -85,6 +94,30 @@ end
 Base.@ccallable function drawsvg(mol::Ptr{UInt8})::Ptr{UInt8}
     return try
         mol = MolGraph(JSON.parse(unsafe_string(mol)))
+        svg = drawsvg(mol)
+        buf = IOBuffer(write=true)
+        print(buf, svg)
+        return pointer(buf.data)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function smilestosvg(smiles::Ptr{UInt8})::Ptr{UInt8}
+    return try
+        mol = smilestomol(unsafe_string(smiles))
+        svg = drawsvg(mol)
+        buf = IOBuffer(write=true)
+        print(buf, svg)
+        return pointer(buf.data)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+Base.@ccallable function sdftosvg(sdf::Ptr{UInt8})::Ptr{UInt8}
+    return try
+        mol = sdftomol(IOBuffer(unsafe_string(sdf)))
         svg = drawsvg(mol)
         buf = IOBuffer(write=true)
         print(buf, svg)

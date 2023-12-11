@@ -1,11 +1,13 @@
-char* smilestomol(char*);
+char* smilestomol(char*, char*);
 char* smartstomol(char*);
-char* sdftomol(char*);
+char* sdftomol(char*, char*);
 int vertex_count(char*);
 int edge_count(char*);
 char* inchikey(char*);
 double standard_weight(char*);
 char* drawsvg(char*);
+char* smilestosvg(char*);
+char* sdftosvg(char*);
 int has_exact_match(char*, char*, char*);
 int has_substruct_match(char*, char*, char*);
 int tdmcis_size(char*, char*, char*);
