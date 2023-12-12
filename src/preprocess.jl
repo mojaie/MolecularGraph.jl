@@ -149,7 +149,7 @@ Remove following hydrogen vertices from the molecule: that are not charged, have
 unpaired electron, have no specific mass, are non-stereospecific and are
 attached to organic heavy atoms.
 
-This returns vmap array similar to [`rem_vertices!`](@ref).
+This returns vmap array similar to `Graphs.rem_vertices!`.
 """
 remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(mol))
 
@@ -159,7 +159,7 @@ remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(
 
 Remove all hydrogen vertices from the molecule.
 
-This returns vmap array similar to [`rem_vertices!`](@ref).
+This returns vmap array similar to `Graphs.rem_vertices!`.
 """
 function remove_all_hydrogens!(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     to_remove = T[]
