@@ -141,12 +141,12 @@ function chargesign(charge::Int)
 end
 
 
-function atommarkup(symbol, charge, hydrogenconnected, direction,
+function atommarkup(symbol, charge, implicith, direction,
                     substart, subend, supstart, supend)
-    if hydrogenconnected == 1
+    if implicith == 1
         hs = "H"
-    elseif hydrogenconnected > 1
-        hs = string("H", substart, hydrogenconnected, subend)
+    elseif implicith > 1
+        hs = string("H", substart, implicith, subend)
     else
         hs = ""
     end
@@ -157,9 +157,157 @@ end
 
 
 atomhtml(
-    symbol, charge, hydrogenconnected, direction
+    symbol, charge, implicith, direction
 ) = atommarkup(
-    symbol, charge, hydrogenconnected, direction, "<sub>", "</sub>", "<sup>", "</sup>")
+    symbol, charge, implicith, direction, "<sub>", "</sub>", "<sup>", "</sup>")
+
+
+"""
+    boundary(mol::SimpleMolGraph, coords::AbstractArray{Float64}
+        ) -> (top, left, width, height, unit)
+
+Get boundaries and an appropriate bond length unit for the molecule drawing
+canvas.
+"""
+function boundary(mol::SimpleMolGraph, coords::AbstractArray{Float64})
+    (left, right) = extrema(x_components(coords))
+    (bottom, top) = extrema(y_components(coords))
+    width = right - left
+    height = top - bottom
+    dists = []
+    # Size unit
+    for e in edges(mol)
+        d = distance(Point2D(coords, src(e)), Point2D(coords, dst(e)))
+        if d > 0.0001  # Remove overlapped
+            push!(dists, d)
+        end
+    end
+    if isempty(dists)
+        long = max(width, height)
+        unit = long > 0.0001 ? long / sqrt(nv(mol)) : 1
+    else
+        unit = median(dists) # Median bond length
+    end
+    return (top, left, width, height, unit)
+end
+
+
+function trimbond(canvas::Canvas, seg, uvis, vvis)
+    if uvis && vvis
+        return trim_uv(seg, canvas.trimoverlapf * 2)
+    elseif uvis
+        return trim_u(seg, canvas.trimoverlapf)
+    elseif vvis
+        return trim_v(seg, canvas.trimoverlapf)
+    end
+    return seg
+end
+
+function singlebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    drawline!(canvas, seg, ucolor, vcolor)
+    return
+end
+
+function wedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    drawwedge!(canvas, seg, ucolor, vcolor)
+    return
+end
+
+function reversed_wedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, v, u), vvis, uvis)
+    drawwedge!(canvas, seg, vcolor, ucolor)
+    return
+end
+
+function dashedwedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    drawdashedwedge!(canvas, seg, ucolor, vcolor)
+    return
+end
+
+function reversed_dashedwedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, v, u), vvis, uvis)
+    drawdashedwedge!(canvas, seg, vcolor, ucolor)
+    return
+end
+
+function wavesingle!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    drawwave!(canvas, seg, ucolor, vcolor)
+    return
+end
+
+function doublebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
+    dist = canvas.scalef * canvas.mbwidthf / 2
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg1 = translate(seg, pi / 2, dist)
+    seg2 = translate(seg, -pi / 2, dist)
+    drawline!(canvas, seg1, ucolor, vcolor)
+    drawline!(canvas, seg2, ucolor, vcolor)
+    return
+end
+
+function crossdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
+    dist = canvas.scalef * canvas.mbwidthf / 2
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    cw = translate(seg, pi / 2, dist)
+    ccw = translate(seg, -pi / 2, dist)
+    drawline!(canvas, Segment(cw.u, ccw.v), ucolor, vcolor)
+    drawline!(canvas, Segment(ccw.u, cw.v), ucolor, vcolor)
+    return
+end
+
+function ringdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis, direction)
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    dist = canvas.scalef * canvas.mbwidthf
+    segin = trim_uv(translate(seg, direction, dist), canvas.triminnerf)
+    drawline!(canvas, seg, ucolor, vcolor)
+    drawline!(canvas, segin, ucolor, vcolor)
+    return
+end
+
+# NOTE: the direction is reversed due to x-axis reflection
+clockwisedouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis
+    ) = ringdouble!(canvas, u, v, ucolor, vcolor, uvis, vvis, pi / 2)
+counterdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis
+    ) = ringdouble!(canvas, u, v, ucolor, vcolor, uvis, vvis, -pi / 2)
+
+function triplebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
+    dist = canvas.scalef * canvas.mbwidthf
+    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg1 = translate(seg, pi / 2, dist)
+    seg2 = translate(seg, -pi / 2, dist)
+    drawline!(canvas, seg, ucolor, vcolor)
+    drawline!(canvas, seg1, ucolor, vcolor)
+    drawline!(canvas, seg2, ucolor, vcolor)
+    return
+end
+
+const BOND_DRAWER = Dict(
+    1 => Dict(
+        :none => singlebond!,
+        :up => wedged!,
+        :down => dashedwedged!,
+        :revup => reversed_wedged!,
+        :revdown => reversed_dashedwedged!,
+        :unspecified => wavesingle!
+    ),
+    2 => Dict(
+        :none => doublebond!,
+        :clockwise => clockwisedouble!,
+        :anticlockwise => counterdouble!,
+        :cis_trans => crossdouble!
+    ),
+    3 => Dict(
+        :none => triplebond!
+    )
+)
+
+setbond!(
+    canvas::Canvas, order, notation, u, v, ucolor, vcolor, uvis, vvis
+) = BOND_DRAWER[order][notation](canvas, u, v, ucolor, vcolor, uvis, vvis)
 
 
 """
@@ -217,25 +365,19 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
             end
             if isempty(cosnbrs) || minimum(cosnbrs) > 0
                 # [atom]< or isolated node(ex. H2O, HCl)
-                setatomright!(
-                    canvas, pos, atomsymbol_[i], atomcolor_[i],
-                    implicith_[i], charge_[i]
-                )
+                mk = atommarkupleft(canvas, atomsymbol_[i], charge_[i], implicith_[i])
+                drawtextleft!(canvas, pos, mk, atomcolor_[i])
                 continue
             elseif maximum(cosnbrs) < 0
                 # >[atom]
-                setatomleft!(
-                    canvas, pos, atomsymbol_[i], atomcolor_[i],
-                    implicith_[i], charge_[i]
-                )
+                mk = atommarkupright(canvas, atomsymbol_[i], charge_[i], implicith_[i])
+                drawtextright!(canvas, pos, mk, atomcolor_[i])
                 continue
             end
         end
         # -[atom]- or no hydrogens
-        setatomcenter!(
-            canvas, pos, atomsymbol_[i], atomcolor_[i],
-            implicith_[i], charge_[i]
-        )
+        mk = atommarkupright(canvas, atomsymbol_[i], charge_[i], implicith_[i])
+        drawtextcenter!(canvas, pos, mk, atomcolor_[i])
     end
     return
 end
@@ -245,20 +387,21 @@ function drawatomindex!(canvas::Canvas, isatomvisible, color, bgcolor)
     for (i, v) in enumerate(isatomvisible)
         offset = v ? (0.0, canvas.fontsize/2.0) : (0.0, 0.0)
         pos = Point2D(canvas.coords, i) + offset
-        setatomnote!(canvas, pos, string(i), color, bgcolor)
+        drawtextannot!(canvas, pos, string(i), color, bgcolor)
     end
 end
 
 
 function sethighlight!(canvas::Canvas, edge_list::Vector{<:Edge}, color)
     for e in edge_list
-        setbondhighlight!(canvas, src(e), dst(e), color)
+        seg = Segment{Point2D}(canvas.coords, src(e), dst(e))
+        drawlinehighlight!(canvas, seg, color)
     end
 end
 
 function sethighlight!(canvas::Canvas, node_list::Vector{<:Integer}, color)
     for i in node_list
         pos = Point2D(canvas.coords, i)
-        setatomhighlight!(canvas, pos, color)
+        drawtexthighlight!(canvas, pos, color)
     end
 end

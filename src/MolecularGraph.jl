@@ -49,6 +49,7 @@ module MolecularGraph
     include("./draw/interface.jl")
     include("./draw/draw2d.jl")
     include("./draw/svg.jl")
+    include("./draw/cairo.jl")
     include("./draw/draw3d.jl")
 
     include("sdfilereader.jl")

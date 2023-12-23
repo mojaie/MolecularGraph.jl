@@ -4,71 +4,141 @@
 #
 
 export
-    Canvas,
-    singlebond!,
-    wedged!,
-    dashedwedged!,
-    wavesingle!,
-    doublebond!,
-    clockwisedouble!,
-    counterdouble!,
-    crossdouble!,
-    triplebond!,
-    atomsymbolright!,
-    atomsymbolcenter!,
-    atomsymbolleft!,
-    atom_annotation!,
-
-    Color,
-    DEFAULT_ATOM_COLOR,
-    RASMOL_ATOM_COLOR,
-
-    SvgCanvas,
-    tosvg,
     drawsvg,
-    initcanvas!,
-
+    drawpng,
     html_fixed_size,
-    html_grid,
+    html_grid
 
-    atom_color, is_atom_visible,
-    sdf_bond_style, double_bond_style, bond_style,
-    chargesign, atommarkup, atomhtml,
-    draw2d!, drawatomindex!, sethighlight!
 
 abstract type Canvas end
 
 
-"""
-    setbond!(
-        canvas::Canvas, bondorder::Int, bondnotation::Int, coords::Segment2D,
-        ucolor::Color, vcolor::Color, u_visible::Bool, v_visible::Bool
-    )
-
-Interface for bond drawing.
-"""
-function setbond! end
-
+# Custom 2D drawing systems using `draw2d!` should implement following methods (see ./svg.jl and ./cairo.jl)
 
 """
-    setatomright!(
-        canvas::Canvas, coords::Array{Float64,2}, atomsymbol::Symbol,
-        color::Color, implicithconnected::Int, charge::Int
-    )
+    initcanvas!(canvas::Canvas, coords::AbstractArray{Float64}, boundary::Tuple)
 
-Interface for atom drawing.
+Convert the coordinate system of SDFile to that of the graphics library and set the drawing area.
 """
-function setatomright! end
-function setatomcenter! end
-function setatomleft! end
+function initcanvas! end
 
 
 """
-    setatomnote!(
+    atommarkupleft(
+        canvas::Canvas, atomsymbol::Symbol, charge::Int, implicith::Int)
+
+Return a HTML or SVG text of the atom and implicit hydrogens in a right-to-left direction.
+
+The number of hydrogens is expressed as a subscript and the number of charges as a superscript.
+"""
+function atommarkupleft end
+
+
+"""
+    atommarkupright(
+        canvas::Canvas, atomsymbol::Symbol, charge::Int, implicith::Int)
+
+Return a HTML or SVG text of the atom and implicit hydrogens in a left-to-right direction.
+
+The number of hydrogens is expressed as a subscript and the number of charges as a superscript.
+"""
+function atommarkupright end
+
+
+"""
+    drawtextleft!(
+        canvas::Canvas, coords::Array{Float64,2}, text::String, color::Color)
+
+Draw characters of an atom and implicit hydrogens in a right-to-left direction.
+"""
+function drawtextleft! end
+
+
+"""
+    drawtextcenter!(
+        canvas::Canvas, coords::Array{Float64,2}, text::String, color::Color)
+
+Draw characters of an atom and implicit hydrogens between bonds.
+"""
+function drawtextcenter! end
+
+
+"""
+    drawtextright!(
+        canvas::Canvas, coords::Array{Float64,2}, text::String, color::Color)
+
+Draw characters of an atom and implicit hydrogens in a left-to-right direction.
+"""
+function drawtextright! end
+
+
+"""
+    drawtextannot!(
         canvas::Canvas, coords::Array{Float64,2}, text::String, color::Color,
         bgcolor::Color
     )
 
-Interface for atom note drawing.
+Draw a small text next to the atom that shows an atom index or annotation.
 """
-function setatomnote! end
+function drawtextannot! end
+
+
+"""
+    drawtexthighlight!(canvas::Canvas, coords::Array{Float64,2}, color::Color)
+
+Add a highlight to the atom of interest.
+"""
+function drawtexthighlight! end
+
+
+"""
+    drawline!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
+    drawline!(canvas::Canvas, seg::Segment{T<:Point2D}, ucolor::Color, vcolor::Color)
+
+Draw a solid line.
+"""
+function drawline! end
+
+
+"""
+    drawdashedline!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
+    drawdashedline!(canvas::Canvas, seg::Segment{T<:Point2D}, ucolor::Color, vcolor::Color)
+
+Draw a dashed line.
+"""
+function drawdashedline! end
+
+
+"""
+    drawwedge!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
+    drawwedge!(canvas::Canvas, seg::Segment{T<:Point2D}, ucolor::Color, vcolor::Color)
+
+Draw a wedge.
+"""
+function drawwedge! end
+
+
+"""
+    drawdashedwedge!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
+    drawdashedwedge!(canvas::Canvas, seg::Segment{T<:Point2D}, ucolor::Color, vcolor::Color)
+
+Draw a dashed wedge.
+"""
+function drawdashedwedge! end
+
+
+"""
+    drawwave!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
+    drawwave!(canvas::Canvas, seg::Segment{T<:Point2D}, ucolor::Color, vcolor::Color)
+
+Draw a waved line.
+"""
+function drawwave! end
+
+
+"""
+    drawlinehighlight!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
+
+Add a highlight to the line.
+"""
+function drawlinehighlight! end
