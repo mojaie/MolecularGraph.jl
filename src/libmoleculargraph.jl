@@ -20,7 +20,7 @@ Base.@ccallable function smilestomol(smiles::Ptr{UInt8}, options::Ptr{UInt8})::P
         end
         buf = IOBuffer(write=true)
         JSON.print(buf, to_dict(mol))
-        pointer(buf.data)
+        return pointer(buf.data)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
@@ -102,6 +102,21 @@ Base.@ccallable function drawsvg(mol::Ptr{UInt8})::Ptr{UInt8}
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
 end
+
+Base.@ccallable function drawpng(res::Ptr{UInt8}, mol::Ptr{UInt8}, width::UInt32, height::UInt32)::Cint
+    return try
+        mol = MolGraph(JSON.parse(unsafe_string(mol)))
+        buf = IOBuffer(write=true)
+        drawpng(buf, mol, Int(width), Int(height))
+        for i = 1:buf.size
+            unsafe_store!(res, buf.data[i], i)
+        end
+        return buf.size
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
 
 Base.@ccallable function smilestosvg(smiles::Ptr{UInt8})::Ptr{UInt8}
     return try

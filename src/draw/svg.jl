@@ -87,7 +87,7 @@ end
 
 
 """
-    drawsvg(mol::SimpleMolGraph)
+    drawsvg(mol::SimpleMolGraph) -> String
 
 Generate molecular structure image as a SVG format string.
 
@@ -113,7 +113,7 @@ end
 
 
 """
-    html_fixed_size(svg, width, height)
+    html_fixed_size(mol::SimpleMolGraph, width, height) -> HTML{String}
 
 Generate fixed-size HTML wrapper for the SVG element.
 
@@ -128,7 +128,7 @@ end
 
 
 """
-    html_grid(svgs, cols, rowheight)
+    html_grid(mols, cols, rowheight) -> HTML{String}
 
 Generate grid layout HTML wrapper for the SVG elements.
 
@@ -136,7 +136,7 @@ Generate grid layout HTML wrapper for the SVG elements.
 `rowheight` - numeric value (converted to `px`) or CSS string like `100%`.
 """
 function html_grid(mols, cols, rowheight; kwargs...)
-    htmls = []
+    htmls = String[]
     hstr = rowheight isa Real ? "$(convert(Int, round(rowheight)))px" : rowheight
     for row in Iterators.partition(mols, cols)
         push!(htmls, """<div style="display:grid; grid-template-columns:repeat($(cols), 1fr); grid-template-rows:1fr;">""")

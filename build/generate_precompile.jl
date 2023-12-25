@@ -50,6 +50,12 @@ function run()
     svg_demomol = drawsvg(pointer(JSON.json(demomol)))
     @debug unsafe_string(svg_demomol)
     @debug unsafe_string(sdftosvg(pointer(demomol_)))
+    dst = Array{UInt8}(undef, (200_000,))  # may be sufficient for 1000x1000 structure images
+    p = pointer(dst)
+    imgsize = drawpng(p, pointer(JSON.json(demomol)), UInt32(1000), UInt32(1000))
+    o = IOBuffer(write=true)
+    unsafe_write(o, p, imgsize)
+    @debug length(o.data)
 
     nullmol_ = read(open(joinpath(dirname(@__FILE__), "../assets/test/null.mol")), String)
     nullmol = JSON.parse(unsafe_string(sdftomol(pointer(nullmol_), pointer(op))))

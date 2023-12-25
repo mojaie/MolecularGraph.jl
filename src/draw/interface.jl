@@ -25,7 +25,7 @@ function initcanvas! end
 
 """
     atommarkupleft(
-        canvas::Canvas, atomsymbol::Symbol, charge::Int, implicith::Int)
+        canvas::Canvas, atomsymbol::Symbol, charge::Int, implicith::Int) -> String
 
 Return a HTML or SVG text of the atom and implicit hydrogens in a right-to-left direction.
 
@@ -36,7 +36,7 @@ function atommarkupleft end
 
 """
     atommarkupright(
-        canvas::Canvas, atomsymbol::Symbol, charge::Int, implicith::Int)
+        canvas::Canvas, atomsymbol::Symbol, charge::Int, implicith::Int) -> String
 
 Return a HTML or SVG text of the atom and implicit hydrogens in a left-to-right direction.
 
