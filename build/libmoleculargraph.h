@@ -14,6 +14,7 @@ int tdmces_size(char*, char*, char*);
 double tdmcis_gls(char*, char*, char*);
 double tdmces_gls(char*, char*, char*);
 
+/* deprecated */
 char* tdmces_gls_batch(char*);
 char* smilestosvg(char*);
 char* sdftosvg(char*);
