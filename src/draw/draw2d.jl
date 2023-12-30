@@ -325,9 +325,9 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     else  # default SMILESAtom
         crds, default_bond_style = coordgen(mol)
     end
+    isempty(crds) && return
     # Canvas settings
     initcanvas!(canvas, crds, boundary(mol, crds))
-    canvas.valid || return
     # Properties
     atomsymbol_ = atom_symbol(mol)
     charge_ = charge(mol)

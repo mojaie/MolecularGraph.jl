@@ -12,7 +12,7 @@ mutable struct CairoCanvas <: Canvas
     fontsize::Float64
     fontscalef::Float64
     bgcolor::Color
-    opacity::Float64
+    bgopacity::Float64
 
     mbwidthf::Float64
     wedgewidthf::Float64
@@ -29,14 +29,14 @@ mutable struct CairoCanvas <: Canvas
     coords::Matrix{Float64}
     valid::Bool
 
-    function CairoCanvas(width::Int, height::Int)
+    function CairoCanvas(width::Int, height::Int, bgcolor::Color, bgopacity::Float64)
         canvas = new()
         canvas.fontweight = "Normal"
         canvas.fontfamily = "Sans"
         canvas.fontsize = 11.0
         canvas.fontscalef = 1
-        canvas.bgcolor = Color(255.0, 255.0, 255.0)
-        canvas.opacity = 0.0
+        canvas.bgcolor = bgcolor
+        canvas.bgopacity = bgopacity
 
         canvas.mbwidthf = 0.15
         canvas.wedgewidthf = 0.3
@@ -51,7 +51,6 @@ mutable struct CairoCanvas <: Canvas
         canvas.surface = Cairo.CairoARGBSurface(width, height)
         canvas.context = Cairo.CairoContext(canvas.surface)
 
-        canvas.valid = false
         return canvas
     end
 end
@@ -66,10 +65,17 @@ Generate molecular structure image as a PNG format.
 `width` and `height` specifies the size of the image in px.
 """
 function drawpng(io::IO, mol::SimpleMolGraph, width::Int, height::Int;
+        bgcolor=Color(255.0, 255.0, 255.0), bgopacity=0.0,
         atomhighlight=eltype(mol)[], bondhighlight=Edge{eltype(mol)}[], highlightcolor=Color(253, 216, 53),
         atomindex=false, indexcolor=Color(0, 0, 0), indexbgcolor=Color(240, 240, 255),
         kwargs...)
-    canvas = CairoCanvas(width, height)
+    canvas = CairoCanvas(width, height, bgcolor, bgopacity)
+    # draw background
+    Cairo.set_source_rgba(
+        canvas.context, canvas.bgcolor.r / 255, canvas.bgcolor.g / 255, canvas.bgcolor.b / 255, canvas.bgopacity)
+    Cairo.rectangle(canvas.context, 0.0, 0.0, canvas.surface.width, canvas.surface.height)  
+    Cairo.fill(canvas.context)
+    # draw molecule
     draw2d!(canvas, mol; kwargs...)
     # highlight atoms if is_atom_visible=true or no incident edges
     # setdiff(Int[], []) -> Any[], setdiff(Int[], Int[]) -> Int[]  ???
@@ -98,13 +104,6 @@ Move and adjust the size of the molecule for drawing.
 """
 function initcanvas!(
         canvas::CairoCanvas, coords::AbstractArray{Float64}, boundary::Tuple)
-    # Draw background
-    Cairo.set_source_rgba(
-        canvas.context, canvas.bgcolor.r / 255, canvas.bgcolor.g / 255, canvas.bgcolor.b / 255, 1)
-    Cairo.rectangle(canvas.context, 0.0, 0.0, canvas.surface.width, canvas.surface.height)  
-    Cairo.fill(canvas.context)
-
-    isempty(coords) && return
     (top, left, width, height, unit) = boundary
     sf = canvas.scalef / unit
     pd = [canvas.paddingX canvas.paddingY]
@@ -177,7 +176,7 @@ end
 
 function drawline!(canvas::CairoCanvas, seg, color; isdashed=false)
     Cairo.set_source_rgba(canvas.context, color.r / 255, color.g / 255, color.b / 255, 1)
-    Cairo.set_line_width(canvas.context, 1)
+    Cairo.set_line_width(canvas.context, canvas.fontscalef)
     isdashed && Cairo.set_dash(canvas.context, [10, 10], 0)
     Cairo.move_to(canvas.context, seg.u.x, seg.u.y)
     Cairo.line_to(canvas.context, seg.v.x, seg.v.y)
@@ -188,7 +187,7 @@ end
 function drawline!(canvas::CairoCanvas, seg, ucolor, vcolor; isdashed=false)
     ucolor == vcolor && return drawline!(canvas, seg, ucolor, isdashed=isdashed)
     mid = midpoint(seg)
-    Cairo.set_line_width(canvas.context, 1)
+    Cairo.set_line_width(canvas.context, canvas.fontscalef)
     isdashed && Cairo.set_dash(canvas.context, [10, 10], 0)
     Cairo.set_source_rgba(canvas.context, ucolor.r / 255, ucolor.g / 255, ucolor.b / 255, 1)
     Cairo.move_to(canvas.context, seg.u.x, seg.u.y)
@@ -267,7 +266,7 @@ function drawdashedwedge!(canvas::CairoCanvas, seg, color)
     translf = seg.u
     Cairo.save(canvas.context)
     cairo_transform!(canvas.context, scalef, rotatef, translf)
-    Cairo.set_line_width(canvas.context, 0.3)
+    Cairo.set_line_width(canvas.context, d / 20 * canvas.fontscalef)  # 16 seems a bit thick
     Cairo.set_source_rgba(canvas.context, color.r / 255, color.g / 255, color.b / 255, 1)
     for i in 1:8
         Cairo.move_to(canvas.context, i - 1, i)
@@ -287,7 +286,7 @@ function drawdashedwedge!(canvas::CairoCanvas, seg, ucolor, vcolor)
     translf = seg.u
     Cairo.save(canvas.context)
     cairo_transform!(canvas.context, scalef, rotatef, translf)
-    Cairo.set_line_width(canvas.context, 0.3)
+    Cairo.set_line_width(canvas.context, d / 20 * canvas.fontscalef)  # 16 seems a bit thick
     Cairo.set_source_rgba(canvas.context, ucolor.r / 255, ucolor.g / 255, ucolor.b / 255, 1)
     for i in 1:4
         Cairo.move_to(canvas.context, i - 1, i)
@@ -312,7 +311,7 @@ function drawwave!(canvas::CairoCanvas, seg, color)
     translf = seg.u
     Cairo.save(canvas.context)
     cairo_transform!(canvas.context, scalef, rotatef, translf)
-    Cairo.set_line_width(canvas.context, 0.2)
+    Cairo.set_line_width(canvas.context, canvas.fontscalef)
     Cairo.set_source_rgba(canvas.context, color.r / 255, color.g / 255, color.b / 255, 1)
     Cairo.move_to(canvas.context, 0, 0)
     Cairo.line_to(canvas.context, 0.5, 0)
@@ -337,7 +336,7 @@ function drawwave!(canvas::CairoCanvas, seg, ucolor, vcolor)
     translf = seg.u
     Cairo.save(canvas.context)
     cairo_transform!(canvas.context, scalef, rotatef, translf)
-    Cairo.set_line_width(canvas.context, 0.2)
+    Cairo.set_line_width(canvas.context, canvas.fontscalef)
     Cairo.set_source_rgba(canvas.context, ucolor.r / 255, ucolor.g / 255, ucolor.b / 255, 1)
     Cairo.move_to(canvas.context, 0, 0)
     Cairo.line_to(canvas.context, 0.5, 0)

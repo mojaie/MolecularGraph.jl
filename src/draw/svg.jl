@@ -9,7 +9,7 @@ mutable struct SvgCanvas <: Canvas
     fontfamily::String
     fontsize::Float64
     bgcolor::Color
-    opacity::Float64
+    bgopacity::Float64
 
     mbwidthf::Float64
     wedgewidthf::Float64
@@ -29,13 +29,13 @@ mutable struct SvgCanvas <: Canvas
     coords::Matrix{Float64}
     valid::Bool
 
-    function SvgCanvas()
+    function SvgCanvas(bgcolor::Color, bgopacity::Float64)
         canvas = new()
         canvas.fontweight = "normal"
         canvas.fontfamily = "Helvetica"
         canvas.fontsize = 14.0
-        canvas.bgcolor = Color(255.0, 255.0, 255.0)
-        canvas.opacity = 0.0
+        canvas.bgcolor = bgcolor
+        canvas.bgopacity = bgopacity
 
         canvas.mbwidthf = 0.15
         canvas.wedgewidthf = 0.3
@@ -47,9 +47,10 @@ mutable struct SvgCanvas <: Canvas
         canvas.paddingX = 30.0
         canvas.paddingY = 30.0
 
+        canvas.viewboxW = 1.0
+        canvas.viewboxH = 1.0
         canvas.bgelements = []
         canvas.elements = []
-        canvas.valid = false
         return canvas
     end
 end
@@ -79,7 +80,7 @@ function tosvg(canvas::SvgCanvas; width="100%", height="100%", kwargs...)
      viewBox="0 0 $(vbWf) $(vbHf)">
     """
     bg = """<rect x="0" y="0" width="$(vbWf)" height="$(vbHf)"
-     fill="$(bgc)" opacity="$(canvas.opacity)"/>
+     fill="$(bgc)" opacity="$(canvas.bgopacity)"/>
     """
     endsvg = "</svg>\n"
     return join([header, bg, canvas.bgelements..., canvas.elements..., endsvg], "")
@@ -95,10 +96,11 @@ Generate molecular structure image as a SVG format string.
 attribute of svg tag).
 """
 function drawsvg(mol::SimpleMolGraph;
+        bgcolor=Color(255.0, 255.0, 255.0), bgopacity=0.0,
         atomhighlight=eltype(mol)[], bondhighlight=Edge{eltype(mol)}[], highlightcolor=Color(253, 216, 53),
         atomindex=false, indexcolor=Color(0, 0, 0), indexbgcolor=Color(240, 240, 255),
         kwargs...)
-    canvas = SvgCanvas()
+    canvas = SvgCanvas(bgcolor, bgopacity)
     draw2d!(canvas, mol; kwargs...)
     # highlight atoms if is_atom_visible=true or no incident edges
     # setdiff(Int[], []) -> Any[], setdiff(Int[], Int[]) -> Int[]  ???
@@ -164,7 +166,6 @@ Base.show(io::IO, m::MIME"text/html", mols::Vector{<:SimpleMolGraph{<:Integer,<:
 
 function initcanvas!(
         canvas::SvgCanvas, coords::AbstractArray{Float64}, boundary::Tuple)
-    isempty(coords) && return
     (top, left, width, height, unit) = boundary
     sf = canvas.scalef / unit
     pd = [canvas.paddingX canvas.paddingY]
