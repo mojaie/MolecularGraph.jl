@@ -4,6 +4,7 @@ JULIA ?= julia
 DLEXT := $(shell $(JULIA) --startup-file=no -e 'using Libdl; print(Libdl.dlext)')
 
 TARGET="../compiled"
+DEST="/usr/local"
 
 MYLIB_INCLUDES = $(TARGET)/include/julia_init.h $(TARGET)/include/libmoleculargraph.h
 MYLIB_PATH := $(TARGET)/lib/libmoleculargraph.$(DLEXT)
@@ -13,15 +14,18 @@ $(MYLIB_PATH) $(MYLIB_INCLUDES): ./build.jl ../src/MolecularGraph.jl
 	$(JULIA) --startup-file=no --project=. -e 'using Pkg; Pkg.instantiate(); include("./build.jl")'
 
 
-# For MacOS
+# For MacOS testing
 
 link:
-	install_name_tool -add_rpath $(TARGET)/lib $(MYLIB_PATH)
-	install_name_tool -add_rpath $(TARGET)/lib/julia $(MYLIB_PATH)
+	cp -a $(TARGET)/lib/* $(DEST)/lib
+	cp -a $(TARGET)/share/* $(DEST)/share
+	cp -a $(TARGET)/include/* $(DEST)/include
+	install_name_tool -add_rpath $(DEST)/lib $(DEST)/lib/libmoleculargraph.$(DLEXT)
+	install_name_tool -add_rpath $(DEST)/lib/julia $(DEST)/lib/libmoleculargraph.$(DLEXT)
 
 unlink:
-	install_name_tool -delete_rpath $(TARGET)/lib $(MYLIB_PATH)
-	install_name_tool -delete_rpath $(TARGET)/lib/julia $(MYLIB_PATH)
+	install_name_tool -delete_rpath $(DEST)/lib $(DEST)/lib/libmoleculargraph.$(DLEXT)
+	install_name_tool -delete_rpath $(DEST)/lib/julia $(DEST)/lib/libmoleculargraph.$(DLEXT)
 
 
 .PHONY: clean

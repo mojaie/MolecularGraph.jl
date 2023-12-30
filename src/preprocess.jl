@@ -163,8 +163,10 @@ This returns vmap array similar to `Graphs.rem_vertices!`.
 """
 function remove_all_hydrogens!(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     to_remove = T[]
-    for center in keys(get_prop(mol, :stereocenter))
-        safe_stereo_hydrogen!(mol, center)
+    if has_prop(mol, :stereocenter)
+        for center in keys(get_prop(mol, :stereocenter))
+            safe_stereo_hydrogen!(mol, center)
+        end
     end
     vmap = rem_vertices!(mol, all_hydrogens(mol))
     return vmap

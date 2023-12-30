@@ -15,8 +15,11 @@ Base.@ccallable function smilestomol(smiles::Ptr{UInt8}, options::Ptr{UInt8})::P
     try
         mol = smilestomol(unsafe_string(smiles))
         op = JSON.parse(unsafe_string(options))
-        if !haskey(op, "remove_all_hydrogens") || op["remove_all_hydrogens"]
-            remove_all_hydrogens!(mol)  # default remove_all_hydrogens=true
+        if haskey(op, "extract_largest_component") && op["extract_largest_component"]
+            extract_largest_component!(mol)  # default extract_largest_component=false
+        end
+        if haskey(op, "remove_all_hydrogens") && op["remove_all_hydrogens"]
+            remove_all_hydrogens!(mol)  # default remove_all_hydrogens=false
         end
         buf = IOBuffer(write=true)
         JSON.print(buf, to_dict(mol))
@@ -41,10 +44,14 @@ end
 
 Base.@ccallable function sdftomol(sdf::Ptr{UInt8}, options::Ptr{UInt8})::Ptr{UInt8}
     return try
-        mol = sdftomol(IOBuffer(unsafe_string(sdf)))
+        # return empty mol on error
+        mol = iterate(sdfilereader(IOBuffer(unsafe_string(sdf)); unsupported=:log))[1]
         op = JSON.parse(unsafe_string(options))
-        if !haskey(op, "remove_all_hydrogens") || op["remove_all_hydrogens"]
-            remove_all_hydrogens!(mol)  # default remove_all_hydrogens=true
+        if haskey(op, "extract_largest_component") && op["extract_largest_component"]
+            extract_largest_component!(mol)  # default extract_largest_component=false
+        end
+        if haskey(op, "remove_all_hydrogens") && op["remove_all_hydrogens"]
+            remove_all_hydrogens!(mol)  # default remove_all_hydrogens=false
         end
         buf = IOBuffer(write=true)
         JSON.print(buf, to_dict(mol))
