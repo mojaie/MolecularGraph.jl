@@ -240,7 +240,7 @@ function wavesingle!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
 end
 
 function doublebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    dist = canvas.scalef * canvas.mbwidthf / 2
+    dist = canvas.scaleunit * canvas.mbwidthf / 2
     seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
     seg1 = translate(seg, pi / 2, dist)
     seg2 = translate(seg, -pi / 2, dist)
@@ -250,7 +250,7 @@ function doublebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
 end
 
 function crossdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    dist = canvas.scalef * canvas.mbwidthf / 2
+    dist = canvas.scaleunit * canvas.mbwidthf / 2
     seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
     cw = translate(seg, pi / 2, dist)
     ccw = translate(seg, -pi / 2, dist)
@@ -261,7 +261,7 @@ end
 
 function ringdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis, direction)
     seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
-    dist = canvas.scalef * canvas.mbwidthf
+    dist = canvas.scaleunit * canvas.mbwidthf
     segin = trim_uv(translate(seg, direction, dist), canvas.triminnerf)
     drawline!(canvas, seg, ucolor, vcolor)
     drawline!(canvas, segin, ucolor, vcolor)
@@ -275,7 +275,7 @@ counterdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis
     ) = ringdouble!(canvas, u, v, ucolor, vcolor, uvis, vvis, -pi / 2)
 
 function triplebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    dist = canvas.scalef * canvas.mbwidthf
+    dist = canvas.scaleunit * canvas.mbwidthf
     seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
     seg1 = translate(seg, pi / 2, dist)
     seg2 = translate(seg, -pi / 2, dist)
