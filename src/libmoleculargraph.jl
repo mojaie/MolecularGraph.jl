@@ -45,7 +45,7 @@ end
 Base.@ccallable function sdftomol(sdf::Ptr{UInt8}, options::Ptr{UInt8})::Ptr{UInt8}
     return try
         # return empty mol on error
-        mol = iterate(sdfilereader(IOBuffer(unsafe_string(sdf)); unsupported=:log))[1]
+        mol = iterate(sdfilereader(IOBuffer(unsafe_string(sdf)); unsupported=:ignore))[1]
         op = JSON.parse(unsafe_string(options))
         if haskey(op, "extract_largest_component") && op["extract_largest_component"]
             extract_largest_component!(mol)  # default extract_largest_component=false

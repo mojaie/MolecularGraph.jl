@@ -294,7 +294,9 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractMolGr
         reader.unsupported === :error && throw(e)
         if e isa ErrorException  # Compatibility error
             reader.unsupported === :log && @info "$(e.msg) (#$(state) in sdfilereader)"
-            T()
+            nul = T()
+            nul.gprops[:error_sdfilereader] = e.msg
+            nul
         else
             throw(e)
         end
