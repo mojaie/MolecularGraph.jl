@@ -190,6 +190,35 @@ end
     ]
     wrong5 = MolGraph(edges, atoms, bonds, config_map=default_config)
     @test isempty(get_prop(wrong5, :stereocenter))
+
+    # transformed
+    atoms = [
+        SDFAtom(:C, 0, 1, nothing, [8.9, -6.1]),
+        SDFAtom(:C, 0, 1, nothing, [8.0, -6.1]),
+        SDFAtom(:C, 0, 1, nothing, [9.6, -5.7]),
+        SDFAtom(:C, 0, 1, nothing, [8.5, -6.9]),
+        SDFAtom(:C, 0, 1, nothing, [9.4, -6.6])
+    ]
+    bonds = [
+        SDFBond(1, 1),
+        SDFBond(1, 0),
+        SDFBond(1, 6),
+        SDFBond(1, 0)
+    ]
+    edges = Edge.([(1,2), (1,3), (1,4), (1,5)])
+    default_config = Dict{Symbol,Any}(
+        :on_init =>  MolecularGraph.sdf_on_init!, :updater => MolecularGraph.sdf_on_update!)
+    tr1 = MolGraph(edges, atoms, bonds, config_map=default_config)
+    @test get_prop(tr1, :stereocenter)[1] == (2, 3, 5, true)
+
+    bonds = [
+        SDFBond(1, 6),
+        SDFBond(1, 0),
+        SDFBond(1, 0),
+        SDFBond(1, 6)
+    ]
+    tr2 = MolGraph(edges, atoms, bonds, config_map=default_config)
+    @test get_prop(tr2, :stereocenter)[1] == (2, 3, 5, false)
     # global_logger(default_logger)
 end
 

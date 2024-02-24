@@ -139,7 +139,7 @@ function anglesort(coords, center, ref, vertices)
     r = Point2D(coords, ref)
     ps = [Point2D(coords, v) for v in vertices]
     vs = [p - c for p in ps]
-    return sortperm([angeval(r, v) for v in vs])
+    return sortperm([angeval(r - c, v) for v in vs])
 end
 
 
@@ -151,6 +151,7 @@ Return stereocenter information obtained from 2D SDFile.
 function stereocenter_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, e_isordered, v_coords2d) where T
     centers = Stereocenter{T}()
     edgerank = Dict(e => i for (i, e) in enumerate(edges(g)))
+    comments = Dict{Int,String}()
     for i in vertices(g)
         degree(g, i) in (3, 4) || continue
         nbrs = ordered_neighbors(g, i)
@@ -181,17 +182,20 @@ function stereocenter_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, e_isord
                 centers[i] = (ons[1], ons[2], ons[3], dwcnt == 0)
             else
                 @debug "Ambiguous stereochemistry (maybe need explicit hydrogen)"
+                comments[i] = "$(ons) $(ods) Ambiguous stereochemistry (maybe need explicit hydrogen)"
                 continue
             end
         elseif (ods[1] !== :unspecified && ods[3] !== :unspecified && ods[1] !== ods[3] ||
                 ods[2] !== :unspecified && ods[4] !== :unspecified && ods[2] !== ods[4])
             @debug "Ambiguous stereochemistry (opposite direction wedges at opposite side)"
+            comments[i] = "$(ons) $(ods) Ambiguous stereochemistry (opposite direction wedges at opposite side)"
             continue
         elseif (ods[1] !== :unspecified && ods[1] === ods[2] ||
                 ods[2] !== :unspecified && ods[2] === ods[3] ||
                 ods[3] !== :unspecified && ods[3] === ods[4] ||
                 ods[4] !== :unspecified && ods[4] === ods[1])
             @debug "Ambiguous stereochemistry (same direction wedges at same side)"
+            comments[i] = "$(ons) $(ods) Ambiguous stereochemistry (same direction wedges at same side)"
             continue
         elseif upcnt != 0
             centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
@@ -199,7 +203,7 @@ function stereocenter_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, e_isord
             centers[i] = (ons[1], ons[2], ons[3], ods[2] === :down || ods[4] === :down)
         end
     end
-    return centers
+    return centers, comments
 end
 
 stereocenter_from_sdf2d(mol::MolGraph) = stereocenter_from_sdf2d(
@@ -215,8 +219,13 @@ stereocenter_from_sdf2d(mol::MolGraph) = stereocenter_from_sdf2d(
 
 Set stereocenter information obtained from 2D SDFile.
 """
-stereocenter_from_sdf2d!(mol::MolGraph
-    ) = begin mol.gprops[:stereocenter] = stereocenter_from_sdf2d(mol) end
+function stereocenter_from_sdf2d!(mol::MolGraph)
+    centers, comments = stereocenter_from_sdf2d(mol)
+    mol.gprops[:stereocenter] = centers
+    if length(comments) > 0 
+        mol.gprops[:stereocenter_ignored] = comments
+    end
+end
 
 
 """
