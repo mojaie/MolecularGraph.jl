@@ -8,6 +8,21 @@ export
     smilestomol, smartstomol
 
 
+struct SMARTSBondIndex{T} <: AbstractDict{Edge{T},T}
+    mapping::Dict{Edge{T},T}
+end
+
+SMARTSBondIndex{T}(data::Vector=[]) where T = SMARTSBondIndex{T}(
+    Dict{Edge{T},T}(u_edge(T, e[1], e[2]) => i for (e, i) in data))
+
+Base.iterate(bi::SMARTSBondIndex) = iterate(bi.mapping)
+Base.iterate(bi::SMARTSBondIndex, i) = iterate(bi.mapping, i)
+Base.length(bi::SMARTSBondIndex) = length(bi.mapping)
+Base.get(bi::SMARTSBondIndex, k, v) = get(bi.mapping, k, v)
+Base.setindex!(bi::SMARTSBondIndex, v, k) = setindex!(bi.mapping, v, k)
+to_dict(bi::SMARTSBondIndex) = [[[src(e), dst(e)], i] for (e, i) in bi.mapping]
+
+
 mutable struct SMILESParser{T,V,E}
     input::String
     pos::Int
@@ -15,7 +30,7 @@ mutable struct SMILESParser{T,V,E}
     node::Int # No. of current node
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
-    ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
+    ringlabel::Dict{Int,Int}  # label => original bond index
     edges::Vector{Edge{T}}
     vprops::Vector{V}
     eprops::Vector{E}
@@ -34,7 +49,7 @@ mutable struct SMARTSParser{T,V,E}
     node::Int # No. of current node
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
-    ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
+    ringlabel::Dict{Int,Int}  # label => original bond index
     edges::Vector{Edge{T}}
     vprops::Vector{V}
     eprops::Vector{E}
@@ -47,6 +62,7 @@ SMARTSParser{T}(smarts
 
 
 function smiles_on_init!(mol)
+    update_edge_rank!(mol)
     stereocenter_from_smiles!(mol)
     stereobond_from_smiles!(mol)
     set_state!(mol, :initialized, true)
@@ -83,9 +99,15 @@ function smilestomol(::Type{T}, smiles::AbstractString;
         config=Dict{Symbol,Any}(), kwargs...) where T <: AbstractMolGraph
     state = SMILESParser{T}(smiles)
     fragment!(state)
+    # original edge index
+    gprops = Dict(
+        :original_bond_index => SMARTSBondIndex{eltype(T)}(
+            Dict(e => i for (i, e) in enumerate(state.edges)))
+    )
     default_config = Dict{Symbol,Any}(:updater => smiles_on_update!, :on_init => smiles_on_init!)
     merge!(default_config, config)
-    return T(state.edges, state.vprops, state.eprops, config_map=default_config; kwargs...)
+    return T(state.edges, state.vprops, state.eprops,
+        gprop_map=gprops, config_map=default_config; kwargs...)
 end
 
 smilestomol(smiles::AbstractString; kwargs...
@@ -101,7 +123,11 @@ function smartstomol(::Type{T}, smarts::AbstractString;
         gprop_map=Dict{Symbol,Any}(), kwargs...) where T <: AbstractMolGraph
     state = SMARTSParser{T}(smarts)
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
-    default_gprop = Dict{Symbol,Any}(:connectivity => state.connectivity)  # connectivity query
+    default_gprop = Dict{Symbol,Any}(
+        :connectivity => state.connectivity,
+        :original_bond_index => SMARTSBondIndex{eltype(T)}(
+            Dict(e => i for (i, e) in enumerate(state.edges)))
+    )
     merge!(default_gprop, gprop_map)
     mol = T(
         state.edges, state.vprops, state.eprops, gprop_map=default_gprop; kwargs...)

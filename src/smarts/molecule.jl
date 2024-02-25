@@ -97,16 +97,12 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
     u = state.branch
     while !state.done
         # Bond?
-        if read(state) == '.'
-            if lookahead(state, 1) != '('
-                # Disconnected
-                forward!(state)
-                b = :disconn
-            else
-                b = bond!(state)
-            end
+        if read(state) == '.' && lookahead(state, 1) != '('  # .( starts a new component
+            # Disconnected
+            forward!(state)
+            b = nothing
         else
-            b = bond!(state)
+            b = something(bond!(state), defaultbond(state))
         end
 
         # RingLabel
@@ -124,13 +120,20 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
                 forward!(state)
             end
             if num in keys(state.ringlabel)
-                (v, rb) = state.ringlabel[num]
-                b = something(b, rb, defaultbond(state))
+                eidx = state.ringlabel[num]
+                v = src(state.edges[eidx])
+                rb = state.eprops[eidx]
+                db = defaultbond(state)
+                if b != db && rb != db && b != rb
+                    error("Inconsistent bond props $(v): $(rb), $(u): $(b)")
+                end
                 delete!(state.ringlabel, num) # Ring label is reusable
-                push!(state.edges, u_edge(T, u, v))
-                push!(state.eprops, b)
+                state.edges[eidx] = u_edge(T, u, v)
+                state.eprops[eidx] = b == db ? rb : b
             else
-                state.ringlabel[num] = (u, b)
+                push!(state.edges, Edge{T}(u, u))  # placeholder
+                push!(state.eprops, b)
+                state.ringlabel[num] = length(state.edges)
             end
             continue
         end
@@ -140,20 +143,19 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
         if isempty(a)
             c = read(state)
             c in "().\0" || error("unexpected token: $(c) at $(state.pos)")
-            b === :disconn && error("unexpected token: $(read(state)) at $(state.pos)")
+            isnothing(b) && error("unexpected token: $(read(state)) at $(state.pos)")
             break
         else
             state.node += 1
             push!(state.vprops, popfirst!(a))
         end
-        if b === :disconn
+        if isnothing(b)
             if isa(state, SMARTSParser)
                 for conn in state.connectivity
                     conn[1] == state.root && push!(conn, state.node)
                 end
             end
         else
-            b = something(b, defaultbond(state))
             push!(state.edges, u_edge(T, u, state.node))
             push!(state.eprops, b)
         end

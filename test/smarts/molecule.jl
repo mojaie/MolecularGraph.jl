@@ -20,14 +20,18 @@ using MolecularGraph:
     push!(state.vprops, QueryTree(QueryLiteral(:symbol, :C)))
     forward!(state)
     chain!(state)
-    @test state.edges[6] == Edge(1, 6)
+    @test state.edges[1] == Edge(1, 6)
+    @test state.edges[2] == Edge(1, 2)
+    @test state.edges[6] == Edge(5, 6)
 
     state = SMARTSParser{SMARTSMolGraph}("C%10CCCCC%10")
     state.node = 1
     push!(state.vprops, QueryTree(QueryLiteral(:symbol, :C)))
     forward!(state)
     chain!(state)
-    @test state.edges[6] == Edge(1, 6)
+    @test state.edges[1] == Edge(1, 6)
+    @test state.edges[2] == Edge(1, 2)
+    @test state.edges[6] == Edge(5, 6)
 end
 
 @testset "fragment" begin
@@ -46,7 +50,8 @@ end
 
     ring1 = SMARTSParser{SMARTSMolGraph}("CC(C(C)1)CC1")
     fragment!(ring1)
-    @test ring1.edges[6] == Edge(3, 6)
+    @test ring1.edges[4] == Edge(3, 6)
+    @test ring1.edges[6] == Edge(5, 6)
 
     invalid1 = SMARTSParser{SMARTSMolGraph}("CC(")
     @test_throws ErrorException fragment!(invalid1)
