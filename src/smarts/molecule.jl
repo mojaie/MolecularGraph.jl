@@ -97,16 +97,12 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
     u = state.branch
     while !state.done
         # Bond?
-        if read(state) == '.'
-            if lookahead(state, 1) != '('
-                # Disconnected
-                forward!(state)
-                b = :disconn
-            else
-                b = bond!(state)
-            end
+        if read(state) == '.' && lookahead(state, 1) != '('
+            # Disconnected
+            forward!(state)
+            b = :disconn
         else
-            b = bond!(state)
+            b = something(bond!(state), defaultbond(state))
         end
 
         # RingLabel
@@ -124,13 +120,23 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
                 forward!(state)
             end
             if num in keys(state.ringlabel)
-                (v, rb) = state.ringlabel[num]
-                b = something(b, rb, defaultbond(state))
-                delete!(state.ringlabel, num) # Ring label is reusable
-                push!(state.edges, u_edge(T, u, v))
-                push!(state.eprops, b)
+                (s, e) = state.ringlabel[num]  # source vertex, edge
+                delete!(state.ringlabel, num)  # Ring label is reusable
+                db = defaultbond(state)
+                if b != db
+                    if state.eprops[e] == db
+                        state.eprops[e] = b
+                    elseif b != state.eprops[e]
+                        error("Inconsistent bond props $(s): $(state.eprops[e]), $(u): $(b)")
+                    end
+                end
+                state.edges[e] = u_edge(T, s, u)
             else
-                state.ringlabel[num] = (u, b)
+                # To keep lexical order of ring closure digits,
+                # put placeholders here and add destination vertex later
+                push!(state.edges, u_edge(T, u, 0))
+                push!(state.eprops, b)
+                state.ringlabel[num] = (u, length(state.edges))
             end
             continue
         end
@@ -152,8 +158,8 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
                     conn[1] == state.root && push!(conn, state.node)
                 end
             end
+            # disconnected SMILES (e.g. [Na+].[Cl-])
         else
-            b = something(b, defaultbond(state))
             push!(state.edges, u_edge(T, u, state.node))
             push!(state.eprops, b)
         end

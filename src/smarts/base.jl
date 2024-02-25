@@ -15,7 +15,7 @@ mutable struct SMILESParser{T,V,E}
     node::Int # No. of current node
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
-    ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
+    ringlabel::Dict{Int,Tuple{Int,Int}}
     edges::Vector{Edge{T}}
     vprops::Vector{V}
     eprops::Vector{E}
@@ -34,7 +34,7 @@ mutable struct SMARTSParser{T,V,E}
     node::Int # No. of current node
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
-    ringlabel::Dict{Int,Tuple{Int,Union{E,Symbol,Nothing}}} # TODO: strange union
+    ringlabel::Dict{Int,Tuple{Int,Int}}
     edges::Vector{Edge{T}}
     vprops::Vector{V}
     eprops::Vector{E}
