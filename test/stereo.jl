@@ -45,6 +45,18 @@
     @test get_prop(ldopa, :stereocenter)[6] == (7, 5, 4, true)
 end
 
+
+@testset "stereocenter_from_smiles" begin
+    # ring bond
+    asc = smilestomol("C([C@@H]([C@@H]1C(=C(C(=O)O1)O)O)O)O")
+    @test get_prop(asc, :stereocenter)[2] == (1, 3, 4, true)
+    @test get_prop(asc, :stereocenter)[4] == (2, 5, 10, true)
+    subg, vmap = induced_subgraph(asc, [2, 4, 5, 6, 10])
+    @test get_prop(subg, :stereocenter)[2] == (1, 3, 5, true)
+    @test get_prop(subg, :original_bond_index)[Edge(2, 5)] == 5
+end
+
+
 @testset "stereocenter_from_sdf2d" begin
     # degree=4
     # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))

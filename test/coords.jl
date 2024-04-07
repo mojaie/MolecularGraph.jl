@@ -14,4 +14,7 @@
     @test length(styles) == ne(mol)
     # println(coords)
     # println(styles)
+
+    # maybe bug in coordgenlib, wedge isReversed may not work
+    # jsm = smilestomol(raw"CC/C=C\C[C@@H]1[C@H](CCC1=O)CC(=O)O")
 end

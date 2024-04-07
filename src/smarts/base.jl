@@ -22,6 +22,15 @@ Base.get(bi::SMARTSBondIndex, k, v) = get(bi.mapping, k, v)
 Base.setindex!(bi::SMARTSBondIndex, v, k) = setindex!(bi.mapping, v, k)
 to_dict(bi::SMARTSBondIndex) = [[[src(e), dst(e)], i] for (e, i) in bi.mapping]
 
+function remap(bi::SMARTSBondIndex{T}, vmap::Dict) where T  # vmap[old] -> new
+    newmap = Dict{Edge{T},T}()
+    for (e, i) in bi.mapping
+        (haskey(vmap, src(e)) && haskey(vmap, dst(e))) || continue
+        newmap[u_edge(T, vmap[src(e)], vmap[dst(e)])] = i
+    end
+    return SMARTSBondIndex{T}(newmap)
+end
+
 
 mutable struct SMILESParser{T,V,E}
     input::String
