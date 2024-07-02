@@ -111,7 +111,8 @@ function smilestomol(::Type{T}, smiles::AbstractString;
     # original edge index
     gprops = Dict(
         :original_bond_index => SMARTSBondIndex{eltype(T)}(
-            Dict(e => i for (i, e) in enumerate(state.edges)))
+            Dict(e => i for (i, e) in enumerate(state.edges))),
+        :metadata => Metadata()
     )
     default_config = Dict{Symbol,Any}(:updater => smiles_on_update!, :on_init => smiles_on_init!)
     merge!(default_config, config)
@@ -135,7 +136,8 @@ function smartstomol(::Type{T}, smarts::AbstractString;
     default_gprop = Dict{Symbol,Any}(
         :connectivity => state.connectivity,
         :original_bond_index => SMARTSBondIndex{eltype(T)}(
-            Dict(e => i for (i, e) in enumerate(state.edges)))
+            Dict(e => i for (i, e) in enumerate(state.edges))),
+        :metadata => Metadata()
     )
     merge!(default_gprop, gprop_map)
     mol = T(

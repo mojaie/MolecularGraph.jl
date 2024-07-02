@@ -5,6 +5,12 @@
     nullmol = smilestomol("")
     @test nv(nullmol) == 0
     @test ne(nullmol) == 0
+    # Default gprops that SMILESMol should have
+    @test has_prop(nullmol, :metadata)  # SMILES does not have, but users may want to define
+    @test has_prop(nullmol, :stereocenter)
+    @test has_prop(nullmol, :stereobond)
+    @test has_prop(nullmol, :original_bond_index)  # to keep stereochem
+    @test has_prop(nullmol, :pyrrole_like)  # to keep pyrrole H position
 
     methane = smilestomol("C")
     @test get_prop(methane, 1, :symbol) === :C

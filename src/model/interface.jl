@@ -101,18 +101,16 @@ vproptype(::Type{<:SimpleMolGraph{T,V,E}}) where {T,V,E} = V
 vproptype(mol::T) where T<:SimpleMolGraph = vproptype(T)
 eproptype(::Type{<:SimpleMolGraph{T,V,E}}) where {T,V,E} = E
 eproptype(mol::T) where T<:SimpleMolGraph = eproptype(T)
-vprops(mol::SimpleMolGraph) = mol.vprops  # TODO: necessary?
-eprops(mol::SimpleMolGraph) = mol.eprops  # TODO: necessary?
-props(mol::SimpleMolGraph) = mol.gprops  # TODO: necessary?
 props(mol::SimpleMolGraph, v::Integer) = mol.vprops[v]
 props(mol::SimpleMolGraph, e::Edge) = mol.eprops[e]
 props(mol::SimpleMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
 get_prop(mol::SimpleMolGraph, prop::Symbol) = mol.gprops[prop]
-# get_prop(mol::SimpleMolGraph, prop::Symbol, default) = get(props(mol), prop, default)
+get_prop(mol::SimpleMolGraph, prop::String) = get_prop(mol, :metadata)[prop]
 get_prop(mol::SimpleMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
 get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
 get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
 has_prop(mol::SimpleMolGraph, prop::Symbol) = haskey(mol.gprops, prop)
+has_prop(mol::SimpleMolGraph, prop::String) = haskey(get_prop(mol, :metadata), prop)
 metadata(mol::SimpleMolGraph) = haskey(mol.gprops, :metadata) ? mol.gprops[:metadata] : MetaData()
 edge_rank(mol::SimpleMolGraph, e::Edge) = mol.edge_rank[e]
 edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, u_edge(mol, u, v))
@@ -127,10 +125,20 @@ function set_prop!(mol::SimpleMolGraph{T,V,E}, e::Edge{T}, value::E) where {T,V,
     set_state!(mol, :has_updates, true)
 end
 
+function set_prop!(mol::SimpleMolGraph, prop::String, value)
+    # Metadata update would not affect graph state
+    mol.gprops[:metadata][prop] = value
+end
+
 function set_prop!(mol::SimpleMolGraph, prop::Symbol, value)
+    # Note: this should not be called manually
     mol.gprops[prop] = value
     set_state!(mol, :has_updates, true)
 end
+
+Base.getindex(mol::SimpleMolGraph, k::String) = get_prop(mol, k)
+Base.setindex!(mol::SimpleMolGraph, v, k::String) = set_prop!(mol, k, v)
+
 
 function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph{T,V,E}) where {T,V,E}
     print(io, "{$(nv(g)), $(ne(g))} simple molecular graph $(typeof(g))")
