@@ -89,6 +89,14 @@ end
     br = atom!(state)[1]
     @test br[:symbol] === :Br
 
+    state = SMILESParser{SMILESMolGraph}("Na")  # Invalid SMILES (SMARTS take it as N-a)
+    invalid_na = atom!(state)[1]
+    @test invalid_na[:symbol] === :N
+
+    state = SMILESParser{SMILESMolGraph}("[Na]")
+    valid_na = atom!(state)[1]
+    @test valid_na[:symbol] === :Na
+
     state = SMILESParser{SMILESMolGraph}("[2H]")
     deu = atom!(state)
     @test length(deu) == 1

@@ -54,15 +54,17 @@ function atomsymbol!(state::Union{SMILESParser,SMARTSParser})
             QueryLiteral(:symbol, Symbol(uppercase(sym1))),
             QueryLiteral(:isaromatic)
         ])
-    elseif sym1 == 'A'
-        forward!(state)
-        return QueryOperator(:not, [QueryLiteral(:isaromatic)])
-    elseif sym1 == 'a'
-        forward!(state)
-        return QueryLiteral(:isaromatic)
-    elseif sym1 == '*'
-        forward!(state)
-        return QueryAny(true)
+    elseif state isa SMARTSParser
+        if sym1 == 'A'
+            forward!(state)
+            return QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        elseif sym1 == 'a'
+            forward!(state)
+            return QueryLiteral(:isaromatic)
+        elseif sym1 == '*'
+            forward!(state)
+            return QueryAny(true)
+        end
     end
     # return nothing
 end
