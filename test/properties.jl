@@ -174,26 +174,35 @@ end
 
     caffeine = smilestomol("CN1C=NC2=C1C(=O)N(C)C(=O)N2C")
     @test count(is_aromatic(caffeine)) == 9
-
-    # Difficult aromaticities
     
     imidazo12a = smilestomol("C1=CN=C2N1C=CC=C2")  # imidazo[1,2-a]pyridine
-    @test_broken count(is_aromatic(imidazo12a)) == 9
+    @test count(is_aromatic(imidazo12a)) == 9
 
     quinodimethane = smilestomol("C1=CC=CC(=C)C1=C")
-    @test_broken count(is_aromatic(quinodimethane)) == 0
-
-    dihydronaphthalene = smilestomol("C=1CCC=C2C1C=CC=C2")  # 2,3-dihydronaphthalene
-    @test_broken count(is_aromatic(dihydronaphthalene)) == 0
+    @test count(is_aromatic(quinodimethane)) == 0
 
     azulene = smilestomol("C=1C=CC=2C1C=CC=CC2")
-    @test_broken count(is_aromatic(azulene)) == 10
+    @test count(is_aromatic(azulene)) == 10
 
     pyromellitimide = smilestomol("C1(=O)NC(=O)C=2C1=CC=3C(=O)NC(=O)C=3C=2")
     @test count(is_aromatic(pyromellitimide)) == 6
-    
-    # TODO: how to deal with tautomerism
+
+    dihydroanth = smilestomol("C2=CC=CC3=CC1=CCCC=C1C=C23")  # 2,3-dihydroanthracene 
+    @test count(is_aromatic(dihydroanth)) == 0
+
+    cyclononen = smilestomol("C14=CC=CC1=CC2=CC=CC2=CC3=CC=CC3=C4")
+    @test count(is_aromatic(cyclononen)) == 18
+
+    indacene = smilestomol("C1=CC2=CC3=CC=CC3=CC2=C1")  # s-indacene
+    @test count(is_aromatic(indacene)) == 0
+
     isocyanurate = smilestomol("ClN1C(=O)N(Cl)C(=O)N(Cl)C1=O")
+    @test count(is_aromatic(isocyanurate)) == 6
+
+    c20 = smilestomol(
+        "C=12C3=C4C5=C6C7=C(C=15)C1=C2C2=C5C1=C7C1=C5C(=C32)C4=C61")  # C20 fullerene
+    @test count(is_aromatic(c20)) == 0
+
     # global_logger(default_logger)
 end
 

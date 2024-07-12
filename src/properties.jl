@@ -85,7 +85,7 @@ end
 
 
 """
-    edge_which_sssr(mol::SimpleMolGraph) -> Vector{Vector{Int}}
+    edge_which_ring(mol::SimpleMolGraph) -> Vector{Vector{Int}}
 
 Return a vector of size ``n`` representing [`sssr`](@ref) membership of
 1 to ``n``th bonds of the given molecule.
@@ -870,64 +870,146 @@ hybridization_delocalized!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_hybridization_delocalized,
     hybridization_delocalized(mol.graph, atomsymbol(mol), charge(mol), hybridization(mol)))
 
+
 # Aromaticity
 
-function is_ring_aromatic(g, degree_arr, sssr_, symbol_arr, smiles_isaromatic_arr, lone_pair_arr, app_valence_arr)
-    pie_ = app_valence_arr - degree_arr
-    carbonyl_o = findall(
-        (symbol_arr .=== :O) .* (degree_arr .== 1) .* (pie_ .== 1))
-    carbonyl_c = falses(nv(g))
-    for o in carbonyl_o
-        c = neighbors(g, o)[1]
-        if symbol_arr[c] === :C
-            carbonyl_c[c] = true
-        end
-    end
-    arr = falses(length(sssr_))
+function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, pi_arr, hyb_arr)
+    # 1. evaluate each rings
+    not_aromatic = Int[]
+    confirmed_ring = Int[]
+    vs_confirmed = falses(nv(g))
+    vs_declined = falses(nv(g))
+    rings_suspended = Vector{Int}[]
+    huckel_arr = copy(pi_arr)
+    er = Dict(e => i for (i, e) in enumerate(edges(g)))  # edge rank
     for (i, ring) in enumerate(sssr_)
-        if all(smiles_isaromatic_arr[ring])  # SMILES aromatic atom
-            arr[i] = true
+        ring_sus = Int[]
+        # If all members are sp2, the ring can be aromatic
+        if !all(hyb_arr[ring] .=== :sp2)
+            push!(not_aromatic, i)
+            for v in sssr_[i]
+                vs_declined[v] = true
+            end
+            push!(rings_suspended, ring_sus)
             continue
         end
-        cnt = 0
-        for r in ring
-            carbonyl_c[r] && continue
-            if pie_[r] == 1  # pi electron x1
-                cnt += 1
-                continue
-            elseif lone_pair_arr[r] !== nothing
-                if lone_pair_arr[r] > 0  # lone pair (pi electron x2)
-                    cnt += 2  
-                    continue
-                elseif lone_pair_arr[r] < 0  # :B (pi electron x0)
-                    continue  
-                end
-                # lonepair == 0
+        # Check if double bonds are along with the ring or not
+        suspended = false
+        broken = false
+        for (i, r) in enumerate(ring)
+            outnbrs = setdiff(neighbors(g, r), ring)
+            length(outnbrs) == 1 || continue
+            outnbr = only(outnbrs)
+            e = er[u_edge(g, r, outnbr)]
+            order_arr[e] == 2 || continue
+            # Process outgoing double bonds
+            if length(which_ring_arr[e]) != 0
+                suspended = true  # depends on adjacent rings
+                push!(ring_sus, r)
+            elseif symbol_arr[outnbr] === :O  # carbonyl
+                huckel_arr[r] -= 1
+            else
+                broken = true  # can not be aromatic
+                break
             end
-            cnt = 0  # others are non-conjugated, cannot be aromatic
-            break
         end
-        if cnt % 4 == 2  # Huckel rule check
-            arr[i] = true
+        push!(rings_suspended, ring_sus)
+        if broken
+            push!(not_aromatic, i)
+            for v in sssr_[i]
+                vs_declined[v] = true
+            end
+        elseif !suspended && sum(huckel_arr[ring]) % 4 == 2
+            push!(confirmed_ring, i)
+            for v in sssr_[i]
+                vs_confirmed[v] = true
+            end
         end
     end
-    return arr
+    # 2. Expand adjacent possible rings from confirmed ring
+    found = true
+    while found
+        found = false
+        for r in setdiff(1:length(sssr_), confirmed_ring, not_aromatic)
+            sus = setdiff(rings_suspended[r], findall(vs_confirmed))
+            isempty(sus) || continue
+            rest = setdiff(sssr_[r], findall(vs_confirmed))
+            cfcnt = length(sssr_[r]) - length(rest)
+            if (sum(huckel_arr[rest]) + cfcnt) % 4 == 2
+                push!(confirmed_ring, r)
+                for v in sssr_[r]
+                    vs_confirmed[v] = true
+                end
+                found = true
+            end
+        end
+    end
+    # 3. Find indivisible fused aromatic rings
+    ring_conn = SimpleGraph{Int}(length(sssr_))
+    visited = vcat(confirmed_ring, not_aromatic)
+    while length(visited) != length(sssr_)
+        root = setdiff(1:length(sssr_), visited)[1]
+        stack = [root]
+        push!(visited, root)
+        while !isempty(stack)
+            n = popfirst!(stack)  # BFS
+            for e in induced_subgraph_edges(g, sssr_[n])
+                order_arr[er[e]] == 1 || continue
+                rings = which_ring_arr[er[e]]
+                length(rings) == 2 || continue
+                nr = only(setdiff(rings, n))
+                nr in visited && continue
+                uv, vv = edge_neighbors(g, e)
+                ud = []
+                for u in uv
+                    ur = er[u_edge(g, e.src, u)]
+                    if order_arr[ur] == 2
+                        push!(ud, ur)
+                    end
+                end
+                vd = []
+                for v in vv
+                    vr = er[u_edge(g, e.dst, v)]
+                    if order_arr[vr] == 2
+                        push!(vd, vr)
+                    end
+                end
+                (length(ud) != 1 || length(vd) != 1) && continue
+                if which_ring_arr[ud[1]] != which_ring_arr[vd[1]]
+                    add_edge!(ring_conn, n, nr)
+                    push!(stack, nr)
+                    push!(visited, nr)
+                end
+            end
+        end
+    end
+    for conn in connected_components(ring_conn)
+        length(conn) == 1 && continue
+        ns = union([sssr_[n] for n in conn]...)
+        any(vs_declined[ns]) && continue
+        if sum(huckel_arr[ns]) % 4 == 2
+            push!(confirmed_ring, conn...)
+        end
+    end
+    res = falses(length(sssr_))
+    for c in confirmed_ring
+        res[c] = true
+    end
+    return res
 end
 
 function is_ring_aromatic(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :is_ring_aromatic) && return get_cache(mol, :is_ring_aromatic)
-    arom_arr = (hasfield(vproptype(mol), :isaromatic)
-        ? [get_prop(mol, i, :isaromatic) for i in vertices(mol)] : falses(nv(mol)))
     return is_ring_aromatic(
-        mol.graph, degree(mol), sssr(mol), atom_symbol(mol), arom_arr, lone_pair(mol), apparent_valence(mol))
+        mol.graph, sssr(mol), edge_which_ring(mol), atom_symbol(mol), bond_order(mol),
+        pi_delocalized(mol), hybridization_delocalized(mol))
 end
 
 function is_ring_aromatic!(mol::SimpleMolGraph)
-    arom_arr = (hasfield(vproptype(mol), :isaromatic)
-        ? [get_prop(mol, i, :isaromatic) for i in vertices(mol)] : falses(nv(mol)))
     set_cache!(mol, :is_ring_aromatic, is_ring_aromatic(
-        mol.graph, degree(mol), sssr(mol), atom_symbol(mol), arom_arr, lone_pair(mol), apparent_valence(mol)))
+        mol.graph, sssr(mol), edge_which_ring(mol), atom_symbol(mol), bond_order(mol),
+        pi_delocalized(mol), hybridization_delocalized(mol)))
 end
 
 
