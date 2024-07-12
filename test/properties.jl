@@ -100,11 +100,23 @@ end
     @test pi_electron(azide) == [0, 1, 1, 1, 2, 1]
     @test hybridization(azide) == [:sp3, :sp2, :sp2, :sp2, :sp, :sp2]
 
+    borane = smilestomol("B")
+    @test pi_electron(borane) == [0]
+    @test hybridization(borane) == [:sp2]
+
+    carbocation = smilestomol("[Si][C+]([Si])[Si]")
+    @test pi_electron(carbocation) == [0, 0, 0, 0]
+    @test hybridization(carbocation) == [:sp3, :sp2, :sp3, :sp3]
+
     pyrrole = smilestomol("C1=CC=CN1")
     @test pi_electron(pyrrole) == [1, 1, 1, 1, 0]
     @test hybridization(pyrrole) == [:sp2, :sp2, :sp2, :sp2, :sp3]
     @test pi_delocalized(pyrrole) == [1, 1, 1, 1, 2]
     @test hybridization_delocalized(pyrrole) == [:sp2, :sp2, :sp2, :sp2, :sp2]
+
+    thiophene = smilestomol("S1C=CC=C1")
+    @test pi_electron(thiophene) == [0, 1, 1, 1, 1]
+    @test hybridization(thiophene) == [:sp3, :sp2, :sp2, :sp2, :sp2]
 
     nacl = smilestomol("[Na+][Cl-]")
     @test pi_electron(nacl) == [0, 0]
@@ -132,6 +144,9 @@ end
 
     furan = smilestomol("o1cccc1")
     @test count(is_aromatic(furan)) == 5
+
+    thiophene = smilestomol("S1C=CC=C1")
+    @test count(is_aromatic(thiophene)) == 5
 
     quinone = smilestomol("C1(=O)C=CC(=O)C=C1")
     @test count(is_aromatic(quinone)) == 0

@@ -725,80 +725,6 @@ end
 # Hybridization
 
 """
-    pi_electron(mol::SimpleMolGraph) -> Vector{Int}
-
-Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
-of 1 to ``n``th atoms of the given molecule.
-
-The counting of ``\\pi`` electrons is based on the following rules.
-
-- sp3 (lone pair + connectivity == 4) or not organic heavy atom -> 0
-- sp2 (lone pair + connectivity == 3) -> 1
-- sp (lone pair + connectivity == 2) -> 2
-
-Electron delocalization is not considered (e.g. mesomeric effect in carbonyl group).
-"""
-function pi_electron(lone_pair_arr, connectivity_arr)
-    arr = fill(zero(Int), length(lone_pair_arr))
-    @inbounds for i in 1:length(lone_pair_arr)
-        if !isnothing(lone_pair_arr[i])
-            orbitals = connectivity_arr[i] + lone_pair_arr[i]
-            if orbitals == 3
-                arr[i] = 1
-            elseif orbitals == 2
-                arr[i] = 2
-            end
-        end
-    end
-    return arr
-end
-
-function pi_electron(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    has_cache(mol, :v_pi_electron) && return get_cache(mol, :v_pi_electron)
-    return pi_electron(lone_pair(mol), connectivity(mol))
-end
-
-pi_electron!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_pi_electron, pi_electron(lone_pair(mol), connectivity(mol)))
-
-
-"""
-    pi_delocalized(mol::SimpleMolGraph) -> Vector{Int}
-
-Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
-of 1 to ``n``th atoms of the given molecule.
-
-The following delocalization rules are added to `pi_electron`.
-
-- N (except for ammonium) or O adjacent to sp2 atom -> 2
-"""
-function pi_delocalized(g, symbol_arr, charge_arr, pi_arr)
-    arr = copy(pi_arr)
-    @inbounds for i in 1:length(pi_arr)
-        if symbol_arr[i] in (:O, :N) && pi_arr[i] == 0 && charge_arr[i] <= 0
-            for nbr in neighbors(g, i)
-                if pi_arr[nbr] > 0
-                    arr[i] = 2
-                    break
-                end
-            end
-        end
-    end
-    return arr
-end
-
-function pi_delocalized(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    has_cache(mol, :v_pi_delocalized) && return get_cache(mol, :v_pi_delocalized)
-    return pi_delocalized(mol.graph, atomsymbol(mol), charge(mol), pi_electron(mol))
-end
-
-pi_delocalized!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_pi_delocalized,
-    pi_delocalized(mol.graph, atomsymbol(mol), charge(mol), pi_electron(mol)))
-
-"""
     hybridization(mol::SimpleMolGraph) -> Vector{Int}
 
 Returns a vector of size ``n`` representing the orbital hybridization symbols
@@ -811,17 +737,12 @@ Electron delocalization is not considered (e.g. mesomeric effect in carbonyl gro
 """
 function hybridization(lone_pair_arr, connectivity_arr)
     arr = fill(:none, length(lone_pair_arr))
-    @inbounds for i in 1:length(lone_pair_arr)
-        if !isnothing(lone_pair_arr[i])
-            orbitals = connectivity_arr[i] + lone_pair_arr[i]
-            if orbitals == 4
-                arr[i] = :sp3
-            elseif orbitals == 3
-                arr[i] = :sp2
-            elseif orbitals == 2
-                arr[i] = :sp
-            end
-        end
+    hybmap = Dict(4 => :sp3, 3 => :sp2, 2 => :sp)
+    for i in 1:length(lone_pair_arr)
+        lone_pair_arr[i] === nothing && continue
+        cnt = connectivity_arr[i] + max(lone_pair_arr[i], 0)
+        cnt in keys(hybmap) || continue
+        arr[i] = hybmap[cnt]
     end
     return arr
 end
@@ -871,6 +792,73 @@ hybridization_delocalized!(mol::SimpleMolGraph) = set_cache!(
     hybridization_delocalized(mol.graph, atomsymbol(mol), charge(mol), hybridization(mol)))
 
 
+"""
+    pi_electron(mol::SimpleMolGraph) -> Vector{Int}
+
+Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
+of 1 to ``n``th atoms of the given molecule.
+
+The number of ``\\pi`` electrons is calculated as max(`valence` - `connectivity`, 0).
+This would also means each double bonds add 1, a triple bond add 2 to the ``\\pi`` count of connected atoms.
+
+Electron delocalization is not considered (e.g. mesomeric effect in carbonyl group). see `pi_delocalized`.
+"""
+function pi_electron(valence_arr, connectivity_arr)
+    arr = fill(zero(Int), length(valence_arr))
+    for i in 1:length(valence_arr)
+        valence_arr[i] === nothing && continue
+        arr[i] = max(0, valence_arr[i] - connectivity_arr[i])
+    end
+    return arr
+end
+
+function pi_electron(mol::SimpleMolGraph)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_pi_electron) && return get_cache(mol, :v_pi_electron)
+    return pi_electron(valence(mol), connectivity(mol))
+end
+
+pi_electron!(mol::SimpleMolGraph) = set_cache!(
+    mol, :v_pi_electron, pi_electron(valence(mol), connectivity(mol)))
+
+
+"""
+    pi_delocalized(mol::SimpleMolGraph) -> Vector{Int}
+
+Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
+of 1 to ``n``th atoms of the given molecule.
+
+The following delocalization rules are added to `pi_electron`.
+
+- N (except for ammonium) or O adjacent to sp2 atom -> 2
+"""
+function pi_delocalized(g, symbol_arr, charge_arr, hyb_arr, pi_arr)
+    arr = copy(pi_arr)
+    @inbounds for i in 1:length(pi_arr)
+        if symbol_arr[i] in (:O, :N) && hyb_arr[i] === :sp3 && charge_arr[i] <= 0
+            for nbr in neighbors(g, i)
+                if hyb_arr[nbr] in (:sp, :sp2)
+                    arr[i] = 2
+                    break
+                end
+            end
+        end
+    end
+    return arr
+end
+
+function pi_delocalized(mol::SimpleMolGraph)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_pi_delocalized) && return get_cache(mol, :v_pi_delocalized)
+    return pi_delocalized(mol.graph, atomsymbol(mol), charge(mol), hybridization(mol), pi_electron(mol))
+end
+
+pi_delocalized!(mol::SimpleMolGraph) = set_cache!(
+    mol, :v_pi_delocalized,
+    pi_delocalized(mol.graph, atomsymbol(mol), charge(mol), hybridization(mol), pi_electron(mol)))
+
+
+
 # Aromaticity
 
 function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, pi_arr, hyb_arr)
@@ -884,19 +872,18 @@ function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, pi_ar
     er = Dict(e => i for (i, e) in enumerate(edges(g)))  # edge rank
     for (i, ring) in enumerate(sssr_)
         ring_sus = Int[]
-        # If all members are sp2, the ring can be aromatic
-        if !all(hyb_arr[ring] .=== :sp2)
-            push!(not_aromatic, i)
-            for v in sssr_[i]
-                vs_declined[v] = true
-            end
-            push!(rings_suspended, ring_sus)
-            continue
-        end
         # Check if double bonds are along with the ring or not
         suspended = false
         broken = false
         for (i, r) in enumerate(ring)
+            if hyb_arr[r] !== :sp2
+                if symbol_arr[r] in (:O, :N, :S)  # :P, :Se, :Te?
+                    huckel_arr[r] = 2
+                else
+                    broken = true  # can not be aromatic
+                    break
+                end
+            end
             outnbrs = setdiff(neighbors(g, r), ring)
             length(outnbrs) == 1 || continue
             outnbr = only(outnbrs)
@@ -907,7 +894,7 @@ function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, pi_ar
                 suspended = true  # depends on adjacent rings
                 push!(ring_sus, r)
             elseif symbol_arr[outnbr] === :O  # carbonyl
-                huckel_arr[r] -= 1
+                huckel_arr[r] = 0
             else
                 broken = true  # can not be aromatic
                 break
@@ -1003,13 +990,13 @@ function is_ring_aromatic(mol::SimpleMolGraph)
     has_cache(mol, :is_ring_aromatic) && return get_cache(mol, :is_ring_aromatic)
     return is_ring_aromatic(
         mol.graph, sssr(mol), edge_which_ring(mol), atom_symbol(mol), bond_order(mol),
-        pi_delocalized(mol), hybridization_delocalized(mol))
+        pi_electron(mol), hybridization(mol))
 end
 
 function is_ring_aromatic!(mol::SimpleMolGraph)
     set_cache!(mol, :is_ring_aromatic, is_ring_aromatic(
         mol.graph, sssr(mol), edge_which_ring(mol), atom_symbol(mol), bond_order(mol),
-        pi_delocalized(mol), hybridization_delocalized(mol)))
+        pi_electron(mol), hybridization(mol)))
 end
 
 
