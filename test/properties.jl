@@ -71,30 +71,26 @@ end
     alkyne = smilestomol("CC=CC#C")
     @test pi_electron(alkyne) == [0, 1, 1, 2, 2]
     @test hybridization(alkyne) == [:sp3, :sp2, :sp2, :sp, :sp]
+
+    nitrile = smilestomol("C#N")
+    @test pi_electron(nitrile) == [2, 2]
+    @test hybridization(nitrile) == [:sp, :sp]
     
     carboxylate = smilestomol("CC(=O)[O-]")
-    @test pi_electron(carboxylate) == [0, 1, 1, 0]
-    @test hybridization(carboxylate) == [:sp3, :sp2, :sp2, :sp3]
-    @test pi_delocalized(carboxylate) == [0, 1, 1, 2]
-    @test hybridization_delocalized(carboxylate) == [:sp3, :sp2, :sp2, :sp2]
+    @test pi_electron(carboxylate) == [0, 1, 1, 2]
+    @test hybridization(carboxylate) == [:sp3, :sp2, :sp2, :sp2]
 
     ester = smilestomol("CC(=O)OC")
-    @test pi_electron(ester) == [0, 1, 1, 0, 0]
-    @test hybridization(ester) == [:sp3, :sp2, :sp2, :sp3, :sp3]
-    @test pi_delocalized(ester) == [0, 1, 1, 2, 0]
-    @test hybridization_delocalized(ester) == [:sp3, :sp2, :sp2, :sp2, :sp3]
+    @test pi_electron(ester) == [0, 1, 1, 2, 0]
+    @test hybridization(ester) == [:sp3, :sp2, :sp2, :sp2, :sp3]
 
     anilinium = smilestomol("C1=CC=CC=C1[N+]")
     @test pi_electron(anilinium) == [1, 1, 1, 1, 1, 1, 0]
     @test hybridization(anilinium) == [:sp2, :sp2, :sp2, :sp2, :sp2, :sp2, :sp3]
-    @test pi_delocalized(anilinium) == [1, 1, 1, 1, 1, 1, 0]
-    @test hybridization_delocalized(anilinium) == [:sp2, :sp2, :sp2, :sp2, :sp2, :sp2, :sp3]
 
     quat = smilestomol("C[N+](C)(C)C(=O)N")
-    @test pi_electron(quat) == [0, 0, 0, 0, 1, 1, 0]
-    @test hybridization(quat) == [:sp3, :sp3, :sp3, :sp3, :sp2, :sp2, :sp3]
-    @test pi_delocalized(quat) == [0, 0, 0, 0, 1, 1, 2]
-    @test hybridization_delocalized(quat) == [:sp3, :sp3, :sp3, :sp3, :sp2, :sp2, :sp2]
+    @test pi_electron(quat) == [0, 0, 0, 0, 1, 1, 2]
+    @test hybridization(quat) == [:sp3, :sp3, :sp3, :sp3, :sp2, :sp2, :sp2]
 
     azide = smilestomol("CC(=O)N=[N+]=[N-]")
     @test pi_electron(azide) == [0, 1, 1, 1, 2, 1]
@@ -109,14 +105,12 @@ end
     @test hybridization(carbocation) == [:sp3, :sp2, :sp3, :sp3]
 
     pyrrole = smilestomol("C1=CC=CN1")
-    @test pi_electron(pyrrole) == [1, 1, 1, 1, 0]
-    @test hybridization(pyrrole) == [:sp2, :sp2, :sp2, :sp2, :sp3]
-    @test pi_delocalized(pyrrole) == [1, 1, 1, 1, 2]
-    @test hybridization_delocalized(pyrrole) == [:sp2, :sp2, :sp2, :sp2, :sp2]
+    @test pi_electron(pyrrole) == [1, 1, 1, 1, 2]
+    @test hybridization(pyrrole) == [:sp2, :sp2, :sp2, :sp2, :sp2]
 
     thiophene = smilestomol("S1C=CC=C1")
-    @test pi_electron(thiophene) == [0, 1, 1, 1, 1]
-    @test hybridization(thiophene) == [:sp3, :sp2, :sp2, :sp2, :sp2]
+    @test pi_electron(thiophene) == [2, 1, 1, 1, 1]
+    @test hybridization(thiophene) == [:sp2, :sp2, :sp2, :sp2, :sp2]
 
     nacl = smilestomol("[Na+][Cl-]")
     @test pi_electron(nacl) == [0, 0]
@@ -157,6 +151,9 @@ end
     azepine = smilestomol("N1C=CC=CC=C1")
     @test count(is_aromatic(azepine)) == 0
 
+    borepin = smilestomol("B1C=CC=CC=C1")
+    @test count(is_aromatic(borepin)) == 7
+
     thiopheneoxide = smilestomol("C1=CC=CS1=O")
     @test count(is_aromatic(thiopheneoxide)) == 0
 
@@ -192,6 +189,10 @@ end
     
     imidazo12a = smilestomol("C1=CN=C2N1C=CC=C2")  # imidazo[1,2-a]pyridine
     @test count(is_aromatic(imidazo12a)) == 9
+
+    coe = smilestomol(
+        "C1=CC=C(C=C1)CC2=C3N=C(C(=O)N3C=C(N2)C4=CC=C(C=C4)O)CC5=CC=C(C=C5)O")  # coelenterazine
+    @test count(is_aromatic(coe)) == 27
 
     quinodimethane = smilestomol("C1=CC=CC(=C)C1=C")
     @test count(is_aromatic(quinodimethane)) == 0

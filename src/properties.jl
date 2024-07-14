@@ -25,6 +25,9 @@ const LONEPAIR_COUNT = Dict(
     :As => 1, :Se => 2, :Br => 3, :I => 3
 )
 
+# for pi electron count, hybridization and aromaticity calculation
+# TODO: :P, :Se, :Te? 
+const SP2_CONJUGATING_HETEROATOMS = (:O, :N, :S)
 
 
 # Molecular graph topology descriptors
@@ -722,7 +725,7 @@ end
 
 
 
-# Hybridization
+# Hybridization and aromaticity
 
 """
     hybridization(mol::SimpleMolGraph) -> Vector{Int}
@@ -731,18 +734,27 @@ Returns a vector of size ``n`` representing the orbital hybridization symbols
 (`:sp3`, `:sp2`, `:sp` or `:none`) of 1 to ``n``th atoms of the given molecule.
 
 The hybridization value in inorganic atoms and non-typical organic atoms will be `:none`
-(e.g. s, sp3d and sp3d2 orbitals). The categorization rule is the same as `pi_electron`,
-but this method returns orbital hybridization symbols.
-Electron delocalization is not considered (e.g. mesomeric effect in carbonyl group).
+(e.g. s, sp3d and sp3d2 orbitals). Note that this is a simplified topology descriptor
+for substructure matching and does not reflect actual molecular orbital hybridization.
 """
-function hybridization(lone_pair_arr, connectivity_arr)
+function hybridization(g, symbol_arr, lone_pair_arr, connectivity_arr)
     arr = fill(:none, length(lone_pair_arr))
     hybmap = Dict(4 => :sp3, 3 => :sp2, 2 => :sp)
-    for i in 1:length(lone_pair_arr)
+    for i in 1:length(arr)
         lone_pair_arr[i] === nothing && continue
         cnt = connectivity_arr[i] + max(lone_pair_arr[i], 0)
         cnt in keys(hybmap) || continue
         arr[i] = hybmap[cnt]
+    end
+    # Hybridization of heteroatoms next to conjugated system
+    for i in 1:length(arr)
+        symbol_arr[i] in SP2_CONJUGATING_HETEROATOMS || continue
+        (arr[i] == :sp3 && lone_pair_arr[i] > 0) || continue
+        for nbr in neighbors(g, i)
+            arr[nbr] in (:sp, :sp2) || continue
+            arr[i] = :sp2
+            break
+        end
     end
     return arr
 end
@@ -750,46 +762,14 @@ end
 function hybridization(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_hybridization) && return get_cache(mol, :v_hybridization)
-    return hybridization(lone_pair(mol), connectivity(mol))
+    return hybridization(mol.graph, atom_symbol(mol), lone_pair(mol), connectivity(mol))
 end
 
 hybridization!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_hybridization, hybridization(lone_pair(mol), connectivity(mol)))
+    mol, :v_hybridization,
+    hybridization(mol.graph, atom_symbol(mol), lone_pair(mol), connectivity(mol)))
 
-"""
-    hybridization_delocalized(mol::SimpleMolGraph) -> Vector{Int}
-
-Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
-of 1 to ``n``th atoms of the given molecule.
-
-The following delocalization rules are added to `hybridization`.
-
-- N (except for ammonium) or O adjacent to sp2 atom -> :sp2
-"""
-function hybridization_delocalized(g, symbol_arr, charge_arr, hyb_arr)
-    arr = copy(hyb_arr)
-    @inbounds for i in 1:length(hyb_arr)
-        if symbol_arr[i] in (:O, :N) && hyb_arr[i] === :sp3 && charge_arr[i] <= 0
-            for nbr in neighbors(g, i)
-                if hyb_arr[nbr] in (:sp, :sp2)
-                    arr[i] = :sp2
-                    break
-                end
-            end
-        end
-    end
-    return arr
-end
-
-function hybridization_delocalized(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    has_cache(mol, :v_hybridization_delocalized) && return get_cache(mol, :v_hybridization_delocalized)
-    return hybridization_delocalized(mol.graph, atomsymbol(mol), charge(mol), hybridization(mol))
-end
-
-hybridization_delocalized!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_hybridization_delocalized,
-    hybridization_delocalized(mol.graph, atomsymbol(mol), charge(mol), hybridization(mol)))
+hybridization_delocalized = hybridization  # TODO: for backward compatibility. to be removed.
 
 
 """
@@ -799,15 +779,19 @@ Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
 of 1 to ``n``th atoms of the given molecule.
 
 The number of ``\\pi`` electrons is calculated as max(`valence` - `connectivity`, 0).
-This would also means each double bonds add 1, a triple bond add 2 to the ``\\pi`` count of connected atoms.
-
-Electron delocalization is not considered (e.g. mesomeric effect in carbonyl group). see `pi_delocalized`.
+Typically, each atom connected to double bonds adds one pi electron for each, and each
+atom connected to a triple bond adds two pi electrons.
 """
-function pi_electron(valence_arr, connectivity_arr)
+function pi_electron(lone_pair_arr, valence_arr, connectivity_arr, hyb_arr)
     arr = fill(zero(Int), length(valence_arr))
-    for i in 1:length(valence_arr)
+    for i in 1:length(arr)
         valence_arr[i] === nothing && continue
-        arr[i] = max(0, valence_arr[i] - connectivity_arr[i])
+        pie = max(valence_arr[i] - connectivity_arr[i], 0)
+        if pie == 0 && lone_pair_arr[i] > 0 && hyb_arr[i] === :sp2
+            arr[i] = 2
+        else
+            arr[i] = pie
+        end
     end
     return arr
 end
@@ -815,75 +799,34 @@ end
 function pi_electron(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_pi_electron) && return get_cache(mol, :v_pi_electron)
-    return pi_electron(valence(mol), connectivity(mol))
+    return pi_electron(lone_pair(mol), valence(mol), connectivity(mol), hybridization(mol))
 end
 
 pi_electron!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_pi_electron, pi_electron(valence(mol), connectivity(mol)))
+    mol, :v_pi_electron, pi_electron(lone_pair(mol), valence(mol), connectivity(mol)), hybridization(mol))
 
+pi_delocalized = pi_electron  # TODO: for backward compatibility. to be removed.
 
-"""
-    pi_delocalized(mol::SimpleMolGraph) -> Vector{Int}
-
-Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
-of 1 to ``n``th atoms of the given molecule.
-
-The following delocalization rules are added to `pi_electron`.
-
-- N (except for ammonium) or O adjacent to sp2 atom -> 2
-"""
-function pi_delocalized(g, symbol_arr, charge_arr, hyb_arr, pi_arr)
-    arr = copy(pi_arr)
-    @inbounds for i in 1:length(pi_arr)
-        if symbol_arr[i] in (:O, :N) && hyb_arr[i] === :sp3 && charge_arr[i] <= 0
-            for nbr in neighbors(g, i)
-                if hyb_arr[nbr] in (:sp, :sp2)
-                    arr[i] = 2
-                    break
-                end
-            end
-        end
-    end
-    return arr
-end
-
-function pi_delocalized(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    has_cache(mol, :v_pi_delocalized) && return get_cache(mol, :v_pi_delocalized)
-    return pi_delocalized(mol.graph, atomsymbol(mol), charge(mol), hybridization(mol), pi_electron(mol))
-end
-
-pi_delocalized!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_pi_delocalized,
-    pi_delocalized(mol.graph, atomsymbol(mol), charge(mol), hybridization(mol), pi_electron(mol)))
-
-
-
-# Aromaticity
 
 function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, pi_arr, hyb_arr)
     # 1. evaluate each rings
-    not_aromatic = Int[]
-    confirmed_ring = Int[]
-    vs_confirmed = falses(nv(g))
-    vs_declined = falses(nv(g))
-    rings_suspended = Vector{Int}[]
-    huckel_arr = copy(pi_arr)
+    confirmed_ring = Int[]  # marked as aromatic
+    not_aromatic = Int[]  # Unlikely to be aromatic (sp2 conjugation break)
+    vs_confirmed = falses(nv(g))  # vertices belong to `confirmed_ring`
+    vs_declined = falses(nv(g))  # vertices belong to `not_aromatic`
+    rings_suspended = Vector{Int}[]  # depends on adjacent rings
+    huckel_arr = copy(pi_arr)  # Huckel rule electron count
     er = Dict(e => i for (i, e) in enumerate(edges(g)))  # edge rank
     for (i, ring) in enumerate(sssr_)
         ring_sus = Int[]
-        # Check if double bonds are along with the ring or not
         suspended = false
         broken = false
         for (i, r) in enumerate(ring)
             if hyb_arr[r] !== :sp2
-                if symbol_arr[r] in (:O, :N, :S)  # :P, :Se, :Te?
-                    huckel_arr[r] = 2
-                else
-                    broken = true  # can not be aromatic
-                    break
-                end
+                broken = true  # sp2 conjugation break
+                break
             end
+            # Check if double bonds are along with the ring or not
             outnbrs = setdiff(neighbors(g, r), ring)
             length(outnbrs) == 1 || continue
             outnbr = only(outnbrs)
@@ -903,14 +846,10 @@ function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, pi_ar
         push!(rings_suspended, ring_sus)
         if broken
             push!(not_aromatic, i)
-            for v in sssr_[i]
-                vs_declined[v] = true
-            end
+            vs_declined[sssr_[i]] .= true
         elseif !suspended && sum(huckel_arr[ring]) % 4 == 2
             push!(confirmed_ring, i)
-            for v in sssr_[i]
-                vs_confirmed[v] = true
-            end
+            vs_confirmed[sssr_[i]] .= true
         end
     end
     # 2. Expand adjacent possible rings from confirmed ring
@@ -924,9 +863,7 @@ function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, pi_ar
             cfcnt = length(sssr_[r]) - length(rest)
             if (sum(huckel_arr[rest]) + cfcnt) % 4 == 2
                 push!(confirmed_ring, r)
-                for v in sssr_[r]
-                    vs_confirmed[v] = true
-                end
+                vs_confirmed[sssr_[r]] .= true
                 found = true
             end
         end
@@ -946,6 +883,13 @@ function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, pi_ar
                 length(rings) == 2 || continue
                 nr = only(setdiff(rings, n))
                 nr in visited && continue
+                if pi_arr[e.src] == 2 || pi_arr[e.dst] == 2
+                    # e.g. coelenterazine
+                    add_edge!(ring_conn, n, nr)
+                    push!(stack, nr)
+                    push!(visited, nr)
+                    continue
+                end
                 uv, vv = edge_neighbors(g, e)
                 ud = []
                 for u in uv
