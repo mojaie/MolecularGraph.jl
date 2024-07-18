@@ -20,7 +20,7 @@ export
 
 
 const LONEPAIR_COUNT = Dict(
-    :H => 0, :B => -1, :C => 0, :N => 1, :O => 2, :F => 3,
+    :B => -1, :C => 0, :N => 1, :O => 2, :F => 3,
     :Si => 0, :P => 1, :S => 2, :Cl => 3,
     :As => 1, :Se => 2, :Br => 3, :I => 3
 )
@@ -355,34 +355,6 @@ end
 # Valence
 
 """
-    lone_pair(mol::MolGraph) -> Vector{Union{Int,Nothing}}
-
-Return a vector of size ``n`` representing the number of lone pairs of
-1 to ``n``th atoms of the given molecule.
-
-The number of lone pair in inorganic atoms would be `nothing`.
-The result can take negative value if the atom has empty shells (e.g. B).
-"""
-function lone_pair(symbol_arr, charge_arr)
-    arr = Vector{Union{Int,Nothing}}(nothing, length(symbol_arr))
-    for i in 1:length(symbol_arr)
-        haskey(LONEPAIR_COUNT, symbol_arr[i]) || continue
-        arr[i] = LONEPAIR_COUNT[symbol_arr[i]] - charge_arr[i]
-    end
-    return arr
-end
-
-function lone_pair(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    has_cache(mol, :v_lone_pair) && return get_cache(mol, :v_lone_pair)
-    return lone_pair(atom_symbol(mol), charge(mol))
-end
-
-lone_pair!(mol::SimpleMolGraph
-    ) = set_cache!(mol, :v_lone_pair, lone_pair(atom_symbol(mol), charge(mol)))
-
-
-"""
     apparent_valence(mol::SimpleMolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of total bond order
@@ -415,14 +387,18 @@ Return a vector of size ``n`` representing the intrinsic valence of
 1 to ``n``th atoms of the given molecule.
 
 The number of implicit hydrogens would be calculated based on the valence.
-The valence value in inorganic atoms would be `nothing`.
-This property corresponds to SMARTS `v` query.
+The valence of a hypervalent atom or a non-organic atom is the same as
+its `apparent_valence`. This property corresponds to SMARTS `v` query.
 """
-function valence(symbol_arr, lone_pair_arr)
-    arr = Vector{Union{Int,Nothing}}(nothing, length(symbol_arr))
+function valence(symbol_arr, charge_arr, apparent_valence_arr)
+    arr = fill(zero(Int), length(symbol_arr))
     for i in 1:length(symbol_arr)
-        lone_pair_arr[i] === nothing && continue
-        arr[i] = symbol_arr[i] === :H ? 1 : 4 - abs(lone_pair_arr[i])
+        if haskey(LONEPAIR_COUNT, symbol_arr[i])
+            val = 4 - abs(LONEPAIR_COUNT[symbol_arr[i]] - charge_arr[i])
+            arr[i] = max(val, apparent_valence_arr[i])
+        else
+            arr[i] = apparent_valence_arr[i]
+        end
     end
     return arr
 end
@@ -430,11 +406,13 @@ end
 function valence(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_valence) && return get_cache(mol, :v_valence)
-    return valence(atom_symbol(mol), lone_pair(mol))
+    return valence(atom_symbol(mol), charge(mol), apparent_valence(mol))
 end
 
-valence!(mol::SimpleMolGraph
-    ) = set_cache!(mol, :v_valence, valence(atom_symbol(mol), lone_pair(mol)))
+valence!(mol::SimpleMolGraph) = set_cache!(
+    mol, :v_valence,
+    valence(atom_symbol(mol), charge(mol), apparent_valence(mol))
+)
 
 
 """
@@ -475,23 +453,14 @@ connected to 1 to ``n``th atoms of the given molecule.
 "Implicit" means hydrogens are not represented as graph nodes,
 but it can be infered from the intrinsic valence of typical organic atoms.
 """
-function implicit_hydrogens(valence_arr, app_valence_arr)
-    arr = fill(zero(Int), length(valence_arr))
-    for i in 1:length(valence_arr)
-        valence_arr[i] === nothing && continue
-        arr[i] = max(0, valence_arr[i] - app_valence_arr[i])
-    end
-    return arr
-end
-
 function implicit_hydrogens(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_implicit_hydrogens) && return get_cache(mol, :v_implicit_hydrogens)
-    return implicit_hydrogens(valence(mol), apparent_valence(mol))
+    return valence(mol) - apparent_valence(mol)
 end
 
 implicit_hydrogens!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_implicit_hydrogens, implicit_hydrogens(valence(mol), apparent_valence(mol)))
+    mol, :v_implicit_hydrogens, valence(mol) - apparent_valence(mol))
 
 
 """
@@ -545,6 +514,37 @@ end
 
 connectivity!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_connectivity, degree(mol) + implicit_hydrogens(mol))
+
+
+"""
+    lone_pair(mol::MolGraph) -> Vector{Union{Int,Nothing}}
+
+Return a vector of size ``n`` representing the number of lone pairs of
+1 to ``n``th atoms of the given molecule.
+"""
+function lone_pair(symbol_arr, charge_arr, connectivity_arr)
+    arr = fill(zero(Int), length(symbol_arr))    
+    for i in 1:length(symbol_arr)
+        if haskey(LONEPAIR_COUNT, symbol_arr[i])
+            excess = 4 - connectivity_arr[i]
+            intrinsic = LONEPAIR_COUNT[symbol_arr[i]] - charge_arr[i]
+            arr[i] = max(min(excess, intrinsic), 0)
+        else
+            arr[i] = 0
+        end
+    end
+    return arr
+end
+
+function lone_pair(mol::SimpleMolGraph)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_lone_pair) && return get_cache(mol, :v_lone_pair)
+    return lone_pair(atom_symbol(mol), charge(mol), connectivity(mol))
+end
+
+lone_pair!(mol::SimpleMolGraph) = set_cache!(
+    mol, :v_lone_pair, lone_pair(atom_symbol(mol), charge(mol), connectivity(mol)))
+
 
 
 
@@ -737,19 +737,17 @@ The hybridization value in inorganic atoms and non-typical organic atoms will be
 (e.g. s, sp3d and sp3d2 orbitals). Note that this is a simplified topology descriptor
 for substructure matching and does not reflect actual molecular orbital hybridization.
 """
-function hybridization(g, symbol_arr, lone_pair_arr, connectivity_arr)
+function hybridization(g, symbol_arr, valence_arr, connectivity_arr, lone_pair_arr)
     arr = fill(:none, length(lone_pair_arr))
     hybmap = Dict(4 => :sp3, 3 => :sp2, 2 => :sp)
     for i in 1:length(arr)
-        lone_pair_arr[i] === nothing && continue
-        cnt = connectivity_arr[i] + max(lone_pair_arr[i], 0)
-        cnt in keys(hybmap) || continue
-        arr[i] = hybmap[cnt]
+        cnt = connectivity_arr[i] + lone_pair_arr[i]
+        arr[i] = get(hybmap, cnt, :none)
     end
     # Hybridization of heteroatoms next to conjugated system
     for i in 1:length(arr)
         symbol_arr[i] in SP2_CONJUGATING_HETEROATOMS || continue
-        (arr[i] == :sp3 && lone_pair_arr[i] > 0) || continue
+        (arr[i] == :sp3 && valence_arr[i] < 4 && lone_pair_arr[i] > 0) || continue
         for nbr in neighbors(g, i)
             arr[nbr] in (:sp, :sp2) || continue
             arr[i] = :sp2
@@ -762,12 +760,13 @@ end
 function hybridization(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_hybridization) && return get_cache(mol, :v_hybridization)
-    return hybridization(mol.graph, atom_symbol(mol), lone_pair(mol), connectivity(mol))
+    return hybridization(
+        mol.graph, atom_symbol(mol), valence(mol), connectivity(mol), lone_pair(mol))
 end
 
 hybridization!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_hybridization,
-    hybridization(mol.graph, atom_symbol(mol), lone_pair(mol), connectivity(mol)))
+    hybridization(mol.graph, atom_symbol(mol), valence(mol), connectivity(mol), lone_pair(mol)))
 
 hybridization_delocalized = hybridization  # TODO: for backward compatibility. to be removed.
 
@@ -778,15 +777,14 @@ hybridization_delocalized = hybridization  # TODO: for backward compatibility. t
 Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
 of 1 to ``n``th atoms of the given molecule.
 
-The number of ``\\pi`` electrons is calculated as max(`valence` - `connectivity`, 0).
+The number of ``\\pi`` electrons is calculated as `valence` - `connectivity`.
 Typically, each atom connected to double bonds adds one pi electron for each, and each
 atom connected to a triple bond adds two pi electrons.
 """
-function pi_electron(lone_pair_arr, valence_arr, connectivity_arr, hyb_arr)
+function pi_electron(valence_arr, connectivity_arr, lone_pair_arr, hyb_arr)
     arr = fill(zero(Int), length(valence_arr))
     for i in 1:length(arr)
-        valence_arr[i] === nothing && continue
-        pie = max(valence_arr[i] - connectivity_arr[i], 0)
+        pie = valence_arr[i] - connectivity_arr[i]
         if pie == 0 && lone_pair_arr[i] > 0 && hyb_arr[i] === :sp2
             arr[i] = 2
         else
@@ -799,11 +797,12 @@ end
 function pi_electron(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_pi_electron) && return get_cache(mol, :v_pi_electron)
-    return pi_electron(lone_pair(mol), valence(mol), connectivity(mol), hybridization(mol))
+    return pi_electron(valence(mol), connectivity(mol), lone_pair(mol), hybridization(mol))
 end
 
 pi_electron!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_pi_electron, pi_electron(lone_pair(mol), valence(mol), connectivity(mol)), hybridization(mol))
+    mol, :v_pi_electron,
+    pi_electron(valence(mol), connectivity(mol)), lone_pair(mol), hybridization(mol))
 
 pi_delocalized = pi_electron  # TODO: for backward compatibility. to be removed.
 

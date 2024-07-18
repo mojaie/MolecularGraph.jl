@@ -44,7 +44,7 @@ end
 @testset "valence" begin
     atoms = smilestomol("B.C.N.O.F.[Si].P.S.Cl.[As].[Se].Br.I")
     @test valence(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
-    @test lone_pair(atoms) == [-1, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 3]
+    @test lone_pair(atoms) == [0, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 3]
     @test implicit_hydrogens(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
     
     pyridineoxide = smilestomol("[N+]1([O-])=CC=CC=C1")
@@ -58,8 +58,8 @@ end
     @test implicit_hydrogens(trifluoroborate) == [3, 0, 0, 0, 0]
 
     etmacl = smilestomol("[H]C([H])([H])C[Mg][Cl]")
-    @test valence(etmacl) == [1, 4, 1, 1, 4, nothing, 1]
-    @test lone_pair(etmacl) == [0, 0, 0, 0, 0, nothing, 3]
+    @test valence(etmacl) == [1, 4, 1, 1, 4, 2, 1]
+    @test lone_pair(etmacl) == [0, 0, 0, 0, 0, 0, 3]
     @test implicit_hydrogens(etmacl) == [0, 0, 0, 0, 2, 0, 0]
     @test explicit_hydrogens(etmacl) == [0, 3, 0, 0, 0, 0, 0]
     @test total_hydrogens(etmacl) == [0, 3, 0, 0, 2, 0, 0]
@@ -114,7 +114,7 @@ end
 
     nacl = smilestomol("[Na+][Cl-]")
     @test pi_electron(nacl) == [0, 0]
-    @test hybridization(nacl) == [:none, :none]
+    @test hybridization(nacl) == [:none, :sp3]
 end
 
 @testset "rotatable" begin

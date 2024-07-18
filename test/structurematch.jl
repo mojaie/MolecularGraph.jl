@@ -46,6 +46,28 @@ end
     spiro = smilestomol("C1CC12CC2")
     @test has_substruct_match(tetrahedrane, fused)
     @test !has_substruct_match(tetrahedrane, spiro)
+
+    # geometry
+
+    cumene = smilestomol("c1ccccc1C(C)C")
+    isobutane = smilestomol("CC(C)C")
+    propane = smilestomol("CCC")
+    @test !has_substruct_match(cumene, isobutane)
+    @test has_substruct_match(cumene, propane)
+
+    thiazole = smilestomol("s1cncc1N")
+    ethylene = smilestomol("C=CN")
+    @test has_substruct_match(thiazole, ethylene)
+
+    diazo1 = smilestomol("C=[N+]=[N-]")  # sp2, sp, sp2
+    diazo2 = smilestomol("[C-][N+]#N")  # sp3, sp, sp
+	nitrogen = smilestomol("N#N")  # sp, sp
+    @test !has_substruct_match(diazo1, nitrogen)
+    @test has_substruct_match(diazo2, nitrogen)
+
+    sulfone = smilestomol("CS(=O)(=O)N")
+	sulfoxide = smilestomol("CS(=O)N")
+    @test has_substruct_match(sulfone, sulfoxide)
 end
 
 @testset "connectedquery" begin
