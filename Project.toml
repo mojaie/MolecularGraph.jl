@@ -28,7 +28,15 @@ Graphs = "1"
 JSON = "0.21"
 MakieCore = "0.6, 0.7, 0.8"
 Statistics = "1"
+Test = "1.11.0"
 YAML = "0.4"
 coordgenlibs_jll = "3.0.2"
 julia = "1.6"
 libinchi_jll = "1.5"
+
+[extras]
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "Logging"]
