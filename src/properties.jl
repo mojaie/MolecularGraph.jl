@@ -25,6 +25,10 @@ const LONEPAIR_COUNT = Dict(
     :As => 1, :Se => 2, :Br => 3, :I => 3
 )
 
+# Atoms that can be hydrogen acceptors/donors
+const HYDROGEN_ACCEPTOR_ATOMS = (:N, :O, :F)
+const HYDROGEN_DONOR_ATOMS = (:N, :O)
+
 # for pi electron count, hybridization and aromaticity calculation
 # TODO: :P, :Se, :Te? 
 const SP2_CONJUGATING_HETEROATOMS = (:O, :N, :S)
@@ -381,7 +385,7 @@ apparent_valence!(mol::SimpleMolGraph) = set_cache!(
 
 
 """
-    valence(mol::SimpleMolGraph) -> Vector{Union{Int,Nothing}}
+    valence(mol::SimpleMolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the intrinsic valence of
 1 to ``n``th atoms of the given molecule.
@@ -464,7 +468,7 @@ implicit_hydrogens!(mol::SimpleMolGraph) = set_cache!(
 
 
 """
-    heavyatoms(mol::SimpleMolGraph) -> Vector{Int}
+    heavy_atoms(mol::SimpleMolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of non-hydrogen atoms
 connected to 1 to ``n``th atoms of the given molecule.
@@ -517,13 +521,13 @@ connectivity!(mol::SimpleMolGraph) = set_cache!(
 
 
 """
-    lone_pair(mol::MolGraph) -> Vector{Union{Int,Nothing}}
+    lone_pair(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of lone pairs of
 1 to ``n``th atoms of the given molecule.
 """
 function lone_pair(symbol_arr, charge_arr, connectivity_arr)
-    arr = fill(zero(Int), length(symbol_arr))    
+    arr = fill(zero(Int), length(symbol_arr))
     for i in 1:length(symbol_arr)
         if haskey(LONEPAIR_COUNT, symbol_arr[i])
             excess = 4 - connectivity_arr[i]
@@ -551,8 +555,13 @@ lone_pair!(mol::SimpleMolGraph) = set_cache!(
 # Hydrogen bond donor/acceptor
 
 function is_hydrogen_acceptor(symbol_arr, lone_pair_arr)
-    ac = (sym, lp) -> lp === nothing ? false : sym in (:N, :O, :F) && lp > 0
-    return ac.(symbol_arr, lone_pair_arr)
+    arr = falses(length(symbol_arr))
+    for i in 1:length(symbol_arr)
+        if symbol_arr[i] in HYDROGEN_ACCEPTOR_ATOMS && lone_pair_arr[i] > 0
+            arr[i] = true
+        end
+    end
+    return arr
 end
 
 function is_hydrogen_acceptor(mol::SimpleMolGraph)
@@ -566,7 +575,7 @@ is_hydrogen_acceptor!(mol::SimpleMolGraph) = set_cache!(
 
 
 """
-    hacceptorcount(mol::SimpleMolGraph) -> Int
+    hydrogen_acceptor_count(mol::SimpleMolGraph) -> Int
 
 Return the total number of hydrogen bond acceptors (N, O and F).
 """
@@ -574,8 +583,13 @@ hydrogen_acceptor_count(mol::SimpleMolGraph) = reduce(+, is_hydrogen_acceptor(mo
 
 
 function is_hydrogen_donor(symbol_arr, total_hydrogens_arr)
-    dc = (sym, h) -> sym in (:N, :O) && h > 0
-    return dc.(symbol_arr, total_hydrogens_arr)
+    arr = falses(length(symbol_arr))
+    for i in 1:length(symbol_arr)
+        if symbol_arr[i] in HYDROGEN_DONOR_ATOMS && total_hydrogens_arr[i] > 0
+            arr[i] = true
+        end
+    end
+    return arr
 end
 
 function is_hydrogen_donor(mol::SimpleMolGraph)
@@ -589,7 +603,7 @@ is_hydrogen_donor!(mol::SimpleMolGraph) = set_cache!(
 
 
 """
-    hdonorcount(mol::SimpleMolGraph) -> Int
+    hydrogen_donor_count(mol::SimpleMolGraph) -> Int
 
 Return the total number of hydrogen bond donors (O and N attached to hydrogens).
 """
@@ -601,16 +615,18 @@ hydrogen_donor_count(mol::SimpleMolGraph) = reduce(+, is_hydrogen_donor(mol); in
 # Rotatable bonds
 
 """
-    isrotatable(mol::SimpleMolGraph)
+    is_rotatable(mol::SimpleMolGraph) -> Vector{Bool}
 
 Return a vector of size ``n`` representing whether 1 to ``n``th bonds
 of the given molecule are rotatable or not.
 """
 function is_rotatable(edge_list, degree_arr, edge_in_ring_arr, order_arr)
-    arr = Vector{Bool}(undef, length(edge_list))
+    arr = falses(length(edge_list))
     for (i, e) in enumerate(edge_list)
-        arr[i] = (!edge_in_ring_arr[i] && order_arr[i] == 1
-            && degree_arr[src(e)] != 1 && degree_arr[dst(e)] != 1)
+        if (!edge_in_ring_arr[i] && order_arr[i] == 1
+                && degree_arr[src(e)] != 1 && degree_arr[dst(e)] != 1)
+            arr[i] = true
+        end
     end
     return arr
 end
@@ -627,7 +643,7 @@ is_rotatable!(mol::SimpleMolGraph) = set_cache!(
 
 
 """
-    rotatablecount(mol::SimpleMolGraph) -> Int
+    rotatable_count(mol::SimpleMolGraph) -> Int
 
 Return the total number of rotatable bonds.
 """
@@ -639,7 +655,7 @@ rotatable_count(mol::SimpleMolGraph) = reduce(+, is_rotatable(mol); init=0)
 # Composition
 
 """
-    atomcounter(mol::SimpleMolGraph) -> Dict{Symbol,Int}
+    atom_counter(mol::SimpleMolGraph) -> Dict{Symbol,Int}
 
 Count the number of atoms and return symbol => count dict.
 """
@@ -734,7 +750,7 @@ Returns a vector of size ``n`` representing the orbital hybridization symbols
 (`:sp3`, `:sp2`, `:sp` or `:none`) of 1 to ``n``th atoms of the given molecule.
 
 The hybridization value in inorganic atoms and non-typical organic atoms will be `:none`
-(e.g. s, sp3d and sp3d2 orbitals). Note that this is a simplified topology descriptor
+(e.g. s, sp3d and sp3d2 orbitals). Note that this is a simplified geometry descriptor
 for substructure matching and does not reflect actual molecular orbital hybridization.
 """
 function hybridization(g, symbol_arr, valence_arr, connectivity_arr, lone_pair_arr)
@@ -807,7 +823,16 @@ pi_electron!(mol::SimpleMolGraph) = set_cache!(
 pi_delocalized = pi_electron  # TODO: for backward compatibility. to be removed.
 
 
-function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, pi_arr, hyb_arr)
+"""
+    is_ring_aromatic(mol::SimpleMolGraph) -> Vector{Bool}
+
+Returns a vector of size ``n`` representing whether first to ``n``-th rings
+of a given molecule are aromatic or not.
+
+This is a binary descriptor based on a chemoinformatic algorithm and may not reflect
+actual molecular orbitals. Atypical aromaticities such as Moebius aromaticity are not considered.
+"""
+function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, hyb_arr, pi_arr)
     # 1. evaluate each rings
     confirmed_ring = Int[]  # marked as aromatic
     not_aromatic = Int[]  # Unlikely to be aromatic (sp2 conjugation break)
@@ -933,13 +958,13 @@ function is_ring_aromatic(mol::SimpleMolGraph)
     has_cache(mol, :is_ring_aromatic) && return get_cache(mol, :is_ring_aromatic)
     return is_ring_aromatic(
         mol.graph, sssr(mol), edge_which_ring(mol), atom_symbol(mol), bond_order(mol),
-        pi_electron(mol), hybridization(mol))
+        hybridization(mol), pi_electron(mol))
 end
 
 function is_ring_aromatic!(mol::SimpleMolGraph)
     set_cache!(mol, :is_ring_aromatic, is_ring_aromatic(
         mol.graph, sssr(mol), edge_which_ring(mol), atom_symbol(mol), bond_order(mol),
-        pi_electron(mol), hybridization(mol)))
+        hybridization(mol), pi_electron(mol)))
 end
 
 
@@ -949,9 +974,7 @@ end
 Returns a vector of size ``n`` representing whether 1 to ``n``th atoms
 of the given molecule belong to an aromatic ring or not.
 
-Some kind of aromaticity resulting from long conjugated chains and charge
-delocalization may be unrecognizable. Also, non-classical aromaticity
-such as Moebius aromaticity is not considered.
+See [`is_ring_aromatic`](@ref).
 """
 function is_aromatic(g, sssr_, is_ring_arom)
     arr = falses(nv(g))
@@ -978,7 +1001,7 @@ is_aromatic!(mol::SimpleMolGraph) = set_cache!(
 Returns a vector of size ``n`` representing whether 1 to ``n``th bonds
 of the given molecule belong to an aromatic ring or not.
 
-See [`is_aromatic`](@ref).
+See [`is_ring_aromatic`](@ref).
 """
 function is_edge_aromatic(g, sssr_, is_ring_arom)
     arr = falses(ne(g))
