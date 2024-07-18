@@ -1,5 +1,20 @@
 # NEWS
 
+## v0.17
+
+- valence and aromaticity
+  - `pi_delocalized` and `hybridization_delocalized` are deprecated. `pi_electron` and `hybridization` always consider contribution of N, O, S lone pairs to the adjacent conjugation system.
+  - `valence` works with non-organic atoms and hypervalent atoms, and `hybridization` may better explain molecular geometry (e.g. -SO2-).
+  - Aromaticity determination algorithm has been improved, allowing more reasonable detection in many cases even for fused rings (e.g. azulene).
+  - (sub)structure match functions matches `atom_symbol` and `hybridization` of each atoms by default. `hybridization` may better explain molecular geometry.
+- metadata behavior (e.g. option block in SDFile)
+  - `metadata` function would be deprecated (too general and easy to conflict with other packages).
+  - `get_prop(mol::MolGraph, key::String)` returns the value of the metadata field.
+  - `set_prop!` should work similarly.
+  - Still `get_prop(mol::MolGraph, key::Symbol)` returns other graph properties (e.g. stereochem) but in many cases these should be automatically generated and should not be modified.
+  - Molecules built from SMILES should be able to have manually curated metadata fields.
+  - convenient metadata setter/getters (e.g. mol["compound_id"] = "ABC00001")
+
 ## v0.16
 
 Toward version 0.16.0, I have been working on 2D structure images export to PNG (with Cairo) and building binary packages for C and Python.
