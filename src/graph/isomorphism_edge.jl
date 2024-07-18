@@ -33,20 +33,23 @@ end
 
 
 
-function lgvmatchvecgen(revmap, vmatchvec)
+function lgvmatchvecgen(revmap, vmatchvec, ematchvec)
     return function (i)
         e = revmap[i]
         u, v = (src(e), dst(e))
         uvec = vmatchvec(u)
         vvec = vmatchvec(v)
-        return uvec <= vvec ? UInt32(uvec * 480 + vvec) : UInt32(vvec * 480 + uvec)
+        evec = ematchvec(u, v)
+        # uvec 7 bit + vvec 7 bit + evec 2 bit
+        return (uvec <= vvec ? evec * 14400 + (uvec * 120 + vvec)
+            : evec * 14400 + (vvec * 120 + uvec))
     end
 end
 
 
 function lgematchvecgen(lg, shared, vmatchvec)
     return function (u, v)
-        has_edge(lg, u, v) || return UInt16(0)
+        has_edge(lg, u, v) || return 0
         return vmatchvec(shared[u_edge(lg, u, v)])
     end
 end

@@ -11,34 +11,36 @@ export
 
 abstract type ConstraintArrayMCS{T} end
 
-struct ConstraintArrayMCIS{T,D,V} <: ConstraintArrayMCS{T}
+struct ConstraintArrayMCIS{T,D,V,E} <: ConstraintArrayMCS{T}
     nv::Int
     pairs::Vector{Tuple{T,T}}
-    distances::Vector{D}  # UInt8
-    vattrs1::Vector{V}  # UInt16
-    vattrs2::Vector{V}  # UInt16
+    distances::Vector{D}
+    vattrs1::Vector{V}
+    vattrs2::Vector{V}
+    eattrs::Vector{E}
 end
 
-ConstraintArrayMCIS{T,D,V}(data::Dict) where {T,D,V} = ConstraintArrayMCIS{T,D,V}(
+ConstraintArrayMCIS{T,D,V,E}(data::Dict) where {T,D,V,E} = ConstraintArrayMCIS{T,D,V,E}(
     data["nv"], [(p...,) for p in data["pairs"]],
-    data["distances"], data["vattrs1"], data["vattrs2"])
+    data["distances"], data["vattrs1"], data["vattrs2"], data["eattrs"])
 
 to_dict(arr::ConstraintArrayMCIS) = Dict(
     "nv" => arr.nv,
     "pairs" => arr.pairs,
     "distances" => arr.distances,
     "vattrs1" => arr.vattrs1,
-    "vattrs2" => arr.vattrs2
+    "vattrs2" => arr.vattrs2,
+    "eattrs" => arr.eattrs
 )
 
 
 struct ConstraintArrayMCES{T,D,V,E} <: ConstraintArrayMCS{T}
     nv::Int
     pairs::Vector{Tuple{T,T}}
-    distances::Vector{D}  # UInt8
-    vattrs1::Vector{V}  # UInt32
-    vattrs2::Vector{V}  # UInt32
-    eattrs::Vector{E}  # UInt16
+    distances::Vector{D}
+    vattrs1::Vector{V}
+    vattrs2::Vector{V}
+    eattrs::Vector{E}
     revmap::Dict{T,Edge{T}}
     delta_edges::Vector{Tuple{Edge{T},Edge{T},Edge{T}}}
     y_edges::Vector{Tuple{Edge{T},Edge{T},Edge{T}}}
@@ -134,40 +136,37 @@ dist_constraint_func = Dict(
 
 
 function mcis_constraints(g::SimpleGraph{T}, con;
-        vmatchvec=v->zero(UInt16), kwargs...) where T
-    # TODO: ematchvec?
+        vmatchvec=x->0, ematchvec=(x, y)->0, kwargs...) where T
     pairs, distarr = dist_constraint_func[con](g; kwargs...)
-    vatt1 = UInt16[]
-    vatt2 = UInt16[]
+    vatt1 = Int[]
+    vatt2 = Int[]
+    eatt = Int[]
     for (u, v) in pairs
         push!(vatt1, vmatchvec(u))
         push!(vatt2, vmatchvec(v))
+        push!(eatt, ematchvec(u, v))
     end
-    return ConstraintArrayMCIS{T,eltype(distarr),UInt16}(
-        nv(g), pairs, distarr, vatt1, vatt2)
+    return ConstraintArrayMCIS{T,eltype(distarr),Int,Int}(
+        nv(g), pairs, distarr, vatt1, vatt2, eatt)
 end
 
 
 function mces_constraints(g::SimpleGraph{T}, con;
-        vmatchvec=v->zero(UInt32), kwargs...) where T
-    # TODO: ematchvec?
+        vmatchvec=x->0, ematchvec=(x, y)->0, kwargs...) where T
     lg, revmap, shared = line_graph(g)
     pairs, distarr = dist_constraint_func[con](lg; kwargs...)
-    vatt1 = UInt32[]
-    vatt2 = UInt32[]
-    eatt = UInt16[]
-    lgvmatchvec = lgvmatchvecgen(revmap, vmatchvec)
+    vatt1 = Int[]
+    vatt2 = Int[]
+    eatt = Int[]
+    lgvmatchvec = lgvmatchvecgen(revmap, vmatchvec, ematchvec)
     lgematchvec = lgematchvecgen(lg, shared, vmatchvec)
-    for (i, j) in pairs
-        vec1 = lgvmatchvec(i)
-        vec2 = lgvmatchvec(j)
-        svec = lgematchvec(i, j)
-        push!(vatt1, vec1)
-        push!(vatt2, vec2)
-        push!(eatt, svec)
+    for (u, v) in pairs
+        push!(vatt1, lgvmatchvec(u))
+        push!(vatt2, lgvmatchvec(v))
+        push!(eatt, lgematchvec(u, v))
     end
     vmatch = (u, v) -> vmatchvec(u) == vmatchvec(v)
-    return ConstraintArrayMCES{T,eltype(distarr),UInt32,UInt16}(
+    return ConstraintArrayMCES{T,eltype(distarr),Int,Int}(
         nv(lg), pairs, distarr, vatt1, vatt2, eatt, revmap,
         delta_edges(g, vmatch), y_edges(g, vmatch))
 end
@@ -218,20 +217,17 @@ function modular_product(g::ConstraintArrayMCS, h::ConstraintArrayMCS;
         pred = (x, y) -> begin
             xd = g.distances[x]
             yd = h.distances[y]
-            (((xd == 1) && (yd == 1)
-                && (!hasfield(typeof(g), :eattrs) || g.eattrs[x] == h.eattrs[y]))
+            (((xd == 1) && (yd == 1) && g.eattrs[x] == h.eattrs[y])
             || ((xd > 1) && (yd > 1)
                 && (xd > yd ? xd - yd : yd - xd) <= tolerance)) # abs UInt may overflow
         end
     elseif eltype(g.distances) === UInt32
         pred = (x, y) -> (
-            ((g.distances[x] == 1) && (h.distances[y] == 1)
-                && (!hasfield(typeof(g), :eattrs) || g.eattrs[x] == h.eattrs[y]))
+            (g.distances[x] == 1 && h.distances[y] == 1 && g.eattrs[x] == h.eattrs[y])
             || g.distances[x] & h.distances[y] > 0)  # at least one distance match
     elseif eltype(g.distances) === Bool
         pred = (x, y) -> (
-            ((g.distances[x] && h.distances[y])
-                && (!hasfield(typeof(g), :eattrs) || g.eattrs[x] == h.eattrs[y]))
+            (g.distances[x] && h.distances[y] && g.eattrs[x] == h.eattrs[y])
             || !g.distances[x] && !h.distances[y])
     end
     id(i, j) = (i - 1) * h.nv + j
@@ -239,8 +235,8 @@ function modular_product(g::ConstraintArrayMCS, h::ConstraintArrayMCS;
     @inbounds for i in 1:length(g.pairs)
         @simd for j in 1:length(h.pairs)
             if pred(i, j)
-                g1, g2 = (g.pairs[i])
-                h1, h2 = (h.pairs[j])
+                g1, g2 = g.pairs[i]
+                h1, h2 = h.pairs[j]
                 if g.vattrs1[i] == h.vattrs1[j] && g.vattrs2[i] == h.vattrs2[j]
                     add_edge!(prod, id(g1, h1), id(g2, h2))
                 end

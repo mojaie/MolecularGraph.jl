@@ -4,7 +4,7 @@
 #
 
 export
-    vmatchgen, vmatchvecgen, ematchgen,
+    vmatchgen, vmatchvecgen, ematchgen, ematchvecgen,
     exact_matches, has_exact_match,
     substruct_matches, has_substruct_match,
     node_substruct_matches, has_node_substruct_match,
@@ -28,19 +28,17 @@ Return a default vertex attribute matching function for graph isomorphism algori
 function vmatchgen(mol1::MolGraph, mol2::MolGraph)
     sym1 = atom_symbol(mol1)
     sym2 = atom_symbol(mol2)
-    pi1 = pi_electron(mol1)
-    pi2 = pi_electron(mol2)
-    return (v1, v2) -> sym1[v1] == sym2[v2] && pi1[v1] == pi2[v2]
+    geo1 = hybridization(mol1)
+    geo2 = hybridization(mol2)
+    return (v1, v2) -> sym1[v1] == sym2[v2] && geo1[v1] === geo2[v2]
 end
 
 function vmatchvecgen(mol)
-    # atomnumber 1-118 * pi_electron 0-2 -> 1-354
-    sym = atom_symbol(mol)
-    pie = pi_electron(mol)
+    sym = atom_symbol(mol)  # atomnumber 1-118
+    geo = hybridization(mol)
+    conv = Dict(:none => 0, :sp => 1, :sp2 => 2, :sp3 => 3)
     return function (i)
-        a = atomnumber(sym[i])
-        p = pie[i]
-        return UInt16(p * 120 + a)
+        return conv[geo[i]] * 120 + atomnumber(sym[i])
     end
 end
 
@@ -105,6 +103,10 @@ Return a default edge attribute matching function for graph isomorphism algorith
 """
 function ematchgen(mol1::MolGraph, mol2::MolGraph)
     return (e1, e2) -> true
+end
+
+function ematchvecgen(mol)
+    return (u, v) -> 0
 end
 
 function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
@@ -276,17 +278,29 @@ has_edge_substruct_match(mol1, mol2; kwargs...) = !isempty(edge_substruct_matche
 # MCS
 
 
-mcis_constraints(mol::MolGraph, vmatchvecgen=vmatchvecgen
-    ) = mcis_constraints(mol.graph, :connection, vmatchvec=vmatchvecgen(mol))
+mcis_constraints(
+    mol::MolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen
+) = mcis_constraints(
+    mol.graph, :connection, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol)
+)
 
-mces_constraints(mol::MolGraph, vmatchvecgen=vmatchvecgen
-    ) = mces_constraints(mol.graph, :connection, vmatchvec=vmatchvecgen(mol))
+mces_constraints(
+    mol::MolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen
+) = mces_constraints(
+    mol.graph, :connection, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol)
+)
 
-tdmcis_constraints(mol::MolGraph; vmatchvecgen=vmatchvecgen, kwargs...
-    ) = mcis_constraints(mol.graph, :shortest, vmatchvec=vmatchvecgen(mol); kwargs...)
+tdmcis_constraints(
+    mol::MolGraph; vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen, kwargs...
+) = mcis_constraints(
+    mol.graph, :shortest, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...
+)
 
-tdmces_constraints(mol::MolGraph; vmatchvecgen=vmatchvecgen, kwargs...
-    ) = mces_constraints(mol.graph, :shortest, vmatchvec=vmatchvecgen(mol); kwargs...)
+tdmces_constraints(
+    mol::MolGraph; vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen, kwargs...
+) = mces_constraints(
+    mol.graph, :shortest, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...
+)
 
 
 """
