@@ -104,6 +104,8 @@
   query: "C=N"
 - key: nitrile
   query: "C#N"
+- key: cyanamide
+  query: "N-C#N"
 - key: hydrazine
   query: "NN"
 - key: hydrazone
@@ -148,7 +150,10 @@
   query: "N=C=O"
 - key: carbamide
   query: "NC(=O)N"
-
+- key: hydroxylamine
+  query: "[#6][NX2][OX1]"
+- key: hydroxamic acid
+  query: "[#6](C=O)[NX2][OX1]"
 
 # Sulfur
 
