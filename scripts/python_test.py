@@ -1,3 +1,4 @@
+import base64
 from ctypes import CDLL, RTLD_GLOBAL, POINTER, cast, c_char_p, c_ubyte, c_double, c_int, c_uint
 import json
 from pathlib import Path
@@ -82,11 +83,10 @@ def smiles_to_svg(jl, smiles: str) -> str:
 
 def mol_to_png(jl, mol: bytes, width: int, height: int) -> bytes:
     # mol: json.dumps(mol_dict).encode()
-    buf = (c_ubyte * 200_000).from_buffer(bytearray(200_000))  # 200 kB buffer, tentative
-    jl.drawpng.argtypes = [c_ubyte * 200_000, c_char_p, c_uint, c_uint]
-    jl.drawpng.restype = c_int
-    size = jl.drawpng(buf, mol, c_uint(width), c_uint(height))
-    return bytes(buf[:size])
+    jl.drawpng.argtypes = [c_char_p, c_uint, c_uint]
+    jl.drawpng.restype = c_char_p
+    data = jl.drawpng(mol, c_uint(width), c_uint(height))
+    return base64.b64decode(data)
 
 
 def sdf_to_png(jl, sdf: str, width: int, height: int) -> bytes:
@@ -135,5 +135,6 @@ if __name__ == "__main__":
     print(inchikey(jl, mol1))
     print(has_substruct_match(jl, mol1, mol2, json.dumps({}).encode()))
     print(tdmces_size(jl, mol1, mol2, json.dumps({}).encode()))
-    print(mol_to_svg(jl, mol1))
+    print(len(mol_to_svg(jl, mol1)))
+    print(len(mol_to_png(jl, mol1, 100, 100)))
     jl_exit(jl)
