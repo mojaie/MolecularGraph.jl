@@ -42,7 +42,7 @@ mutable struct CairoCanvas <: Canvas
         canvas.trimoverlapf = 0.3
         canvas.linehlwidthf = 0.3
         canvas.annotsizef = 0.7
-        canvas.hlsizef = 1.2
+        canvas.hlsizef = 0.8
         canvas.paddingXf = 1.0
         canvas.paddingYf = 1.0
 
@@ -160,18 +160,19 @@ drawtextright!(canvas::CairoCanvas, pos, text, color) = drawtextcairo!(
 
 
 function drawtextannot!(canvas::CairoCanvas, pos, text, color, bgcolor)
-    size = round(canvas.fontsize * canvas.annotsizef * canvas.cairoscalef, digits=1)
-    Cairo.set_font_face(canvas.context, join([canvas.fontfamily, canvas.fontweight, size], " "))
+    font_size = round(canvas.fontsize * canvas.annotsizef * canvas.cairoscalef, digits=1)
+    bg_size = round(canvas.fontsize * canvas.annotsizef, digits=1)
+    Cairo.set_font_face(canvas.context, join([canvas.fontfamily, canvas.fontweight, font_size], " "))
     Cairo.set_source_rgba(canvas.context, bgcolor.r / 255, bgcolor.g / 255, bgcolor.b / 255, 1)
-    Cairo.arc(canvas.context, pos.x + size, pos.y + size, size, 0, 2pi)
+    Cairo.arc(canvas.context, pos.x + bg_size, pos.y + bg_size, bg_size, 0, 2pi)
     Cairo.fill(canvas.context)
     Cairo.set_source_rgba(canvas.context, color.r / 255, color.g / 255, color.b / 255, 1)
-    Cairo.text(canvas.context, pos.x, pos.y, text, halign="left", valign="top")
+    Cairo.text(canvas.context, pos.x + bg_size/2, pos.y + bg_size/2, text, halign="left", valign="top")
     return
 end
 
 function drawtexthighlight!(canvas::CairoCanvas, pos, color)
-    size = round(Int, canvas.fontsize * canvas.hlsizef * canvas.cairoscalef)
+    size = round(Int, canvas.fontsize * canvas.hlsizef)
     Cairo.set_source_rgba(canvas.context, color.r / 255, color.g / 255, color.b / 255, 1)
     Cairo.arc(canvas.context, pos.x, pos.y, size, 0, 2pi)
     Cairo.fill(canvas.context)
@@ -221,7 +222,7 @@ end
 function drawwedge!(canvas::CairoCanvas, seg, color)
     """ u ◀︎ v """
     d = distance(seg)
-    scalef = Point2D(d, canvas.wedgewidthf / 2 * canvas.scaleunit * canvas.cairoscalef)
+    scalef = Point2D(d, canvas.wedgewidthf / 2 * canvas.scaleunit)
     rotatef = unitvector(seg)
     translf = seg.u
     Cairo.save(canvas.context)
@@ -241,7 +242,7 @@ function drawwedge!(canvas::CairoCanvas, seg, ucolor, vcolor)
     """ u ◀︎ v """
     ucolor == vcolor && return drawwedge!(canvas, seg, ucolor)
     d = distance(seg)
-    scalef = Point2D(d, canvas.wedgewidthf / 2 * canvas.scaleunit * canvas.cairoscalef)
+    scalef = Point2D(d, canvas.wedgewidthf / 2 * canvas.scaleunit)
     rotatef = unitvector(seg)
     translf = seg.u
     Cairo.save(canvas.context)
@@ -268,7 +269,7 @@ end
 function drawdashedwedge!(canvas::CairoCanvas, seg, color)
     """ u ◁ v """
     d = distance(seg)
-    scalef = Point2D(d / 7, canvas.wedgewidthf / 16 * canvas.scaleunit * canvas.cairoscalef)
+    scalef = Point2D(d / 7, canvas.wedgewidthf / 16 * canvas.scaleunit)
     rotatef = unitvector(seg)
     translf = seg.u
     Cairo.save(canvas.context)
@@ -289,7 +290,7 @@ function drawdashedwedge!(canvas::CairoCanvas, seg, ucolor, vcolor)
     """ u ◁ v """
     ucolor == vcolor && return drawdashedwedge!(canvas, seg, ucolor)
     d = distance(seg)
-    scalef = Point2D(d / 7, canvas.wedgewidthf / 16 * canvas.scaleunit * canvas.cairoscalef)
+    scalef = Point2D(d / 7, canvas.wedgewidthf / 16 * canvas.scaleunit)
     rotatef = unitvector(seg)
     translf = seg.u
     Cairo.save(canvas.context)
@@ -315,7 +316,7 @@ end
 
 function drawwave!(canvas::CairoCanvas, seg, color)
     d = distance(seg)
-    scalef = Point2D(d / 7, canvas.wedgewidthf / 2 * canvas.scaleunit * canvas.cairoscalef)
+    scalef = Point2D(d / 7, canvas.wedgewidthf / 2 * canvas.scaleunit)
     rotatef = unitvector(seg)
     translf = seg.u
     Cairo.save(canvas.context)
@@ -341,7 +342,7 @@ end
 function drawwave!(canvas::CairoCanvas, seg, ucolor, vcolor)
     ucolor == vcolor && return drawwave!(canvas, seg, ucolor)
     d = distance(seg)
-    scalef = Point2D(d / 7, canvas.wedgewidthf / 2 * canvas.scaleunit * canvas.cairoscalef)
+    scalef = Point2D(d / 7, canvas.wedgewidthf / 2 * canvas.scaleunit)
     rotatef = unitvector(seg)
     translf = seg.u
     Cairo.save(canvas.context)
