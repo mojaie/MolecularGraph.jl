@@ -1,5 +1,10 @@
 # NEWS
 
+## v0.17.1
+
+- The library builder (built with PackageCompiler) is now Julia v1.11 compatible
+- Fixed inappropriate size of atom indices and highlights when exporting very large PNG structure images.
+
 ## v0.17
 
 - valence and aromaticity
