@@ -36,14 +36,20 @@
 - key: pyrrolidine
   query: "N1CCCC1"
 
+- key: rhodanine_like
+  query: "N1C(=[!#6])[!#6]CC1=[!#6]"
+- key: oxazolidinedione
+  query: "N1C(=O)OCC1=O"
 - key: hydantoin
   query: "N1C(=O)NCC1=O"
 - key: thiazolidinedione
   query: "N1C(=O)SCC1=O"
 - key: rhodanine
   query: "N1C(=S)SCC1=O"
-
-
+- key: cyclopentenedione_like
+  query: "*1C(=*)C(=*)[#6]:,=[#6]1"
+- key: cyclopentenedione
+  query: "C1C(=O)C(=O)C=C1"
 
 # 5-membered aromatic
 
@@ -109,11 +115,36 @@
   query: "Cc1ccccc1"
 - key: biphenyl
   query: "c1ccccc1c1ccccc1"
+- key: o_phenyl
+  query: "[#6]-c1c(-[#6])cccc1"
+- key: m_phenyl
+  query: "[#6]-c1cc(-[#6])ccc1"
+- key: p_phenyl
+  query: "[#6]-c1ccc(-[#6])cc1"
+- key: o_het_phenyl
+  query: "[#6]-c1c(-[!#6])cccc1"
+- key: m_het_phenyl
+  query: "[#6]-c1cc(-[!#6])ccc1"
+- key: p_het_phenyl
+  query: "[#6]-c1ccc(-[!#6])cc1"
+- key: o_het_het_phenyl
+  query: "[!#6]-c1c(-[!#6])cccc1"
+- key: m_het_het_phenyl
+  query: "[!#6]-c1cc(-[!#6])ccc1"
+- key: p_het_het_phenyl
+  query: "[!#6]-c1ccc(-[!#6])cc1"
+- key: benzylidene
+  query: "c1ccccc1C=C"
+- key: benzylidene_hetero
+  query: "c1ccccc1C=[!#6]"
+
 
 # O
 
 - key: phenoxy
   query: "Oc1ccccc1"
+- key: anisole
+  query: "COc1ccccc1"
 - key: benzoyl
   query: "O=Cc1ccccc1"
 - key: benzoate
@@ -131,6 +162,20 @@
 
 - key: phenylamino
   query: "Nc1ccccc1"
+- key: o_sub_phenylamino
+  query: "Nc1c(-*)cccc1"
+- key: m_sub_phenylamino
+  query: "Nc1cc(-*)ccc1"
+- key: p_sub_phenylamino
+  query: "Nc1ccc(-*)cc1"
+- key: o_het_phenylamino
+  query: "Nc1c(-[!#6])cccc1"
+- key: m_het_phenylamino
+  query: "Nc1cc(-[!#6])ccc1"
+- key: p_het_phenylamino
+  query: "Nc1ccc(-[!#6])cc1"
+- key: benzylamino
+  query: "NCc1ccccc1"
 - key: benzamide
   query: "NC(=O)c1ccccc1"
 - key: anilide

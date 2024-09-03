@@ -25,6 +25,8 @@
 - key: aromatic_oxygen
   query: "o"
 - key: phenolic_hydroxyl
+  query: "c[OH]"
+- key: phenolic_hydroxyl2
   query: "[$([OH]c)]"
 - key: peroxide
   query: "OO"
@@ -32,12 +34,20 @@
 - key: alcohol
   query: "C[OH]"
 - key: primary_alcohol
+  query: "[#6][CH2][OH]"
+- key: primary_alcohol2
   query: "[$([CH2][#6])][OH]"
 - key: secondary_alcohol
+  query: "[#6][CH]([#6])[OH]"
+- key: secondary_alcohol2
   query: "[$([CH]([#6])[#6])][OH]"
 - key: tertiary_alcohol
+  query: "[#6][CH0]([#6])([#6])[OH]"
+- key: tertiary_alcohol2
   query: "[$([CH0]([#6])([#6])[#6])][OH]"
 - key: aryl_alcohol
+  query: "cC[OH]"
+- key: aryl_alcohol2
   query: "[$(Cc)][OH]"
 - key: geminal_diol
   query: "[OH]C[OH]"
@@ -76,8 +86,22 @@
   query: "O=CO"
 - key: carboxyl
   query: "O=C[OH]"
-- key: ester
+- key: ester1
+  query: "C(=O)O"
+- key: ester2
+  query: "[#6]C(=O)O[#6]"
+- key: ester3
   query: "[$(C[#6])](=O)[$(O(C)[#6])]"
+- key: ester_alip
+  query: "CC(=O)OC"
+- key: ester_arom
+  query: "cC(=O)Oc"
+- key: ester_alip_arom
+  query: "CC(=O)Oc"
+- key: ester_arom_alip
+  query: "cC(=O)OC"
+- key: lactam
+  query: "[#6]C(=O)@O[#6])]"
 - key: pivaloyl
   query: "OC(=O)C([CH3])([CH3])[CH3]"
 - key: pivoxil
@@ -89,19 +113,31 @@
   query: "[$(N[#6])]"
 - key: primary_amine
   query: "[$([NH2][#6])]"
+- key: primary_amine2
+  query: "[NH2][#6]"
 - key: secondary_amine
   query: "[$([NH]([#6])[#6])]"
+- key: secondary_amine2
+  query: "[#6][NH][#6]"
 - key: tertiary_amine
   query: "[$([NH0]([#6])([#6])[#6])]"
+- key: tertiary_amine2
+  query: "[#6][NH0]([#6])[#6]"
 - key: quarternary_ammonium
   query: "[$([N+]([#6])([#6])([#6])[#6])]"
+- key: quarternary_ammonium2
+  query: "[#6][N+]([#6])([#6])[#6]"
 - key: aromatic_nitrogen
   query: "n"
 - key: aryl_amine
   query: "[$(Nc)]"
+- key: aryl_amine2
+  query: "Nc"
 
 - key: imine
   query: "C=N"
+- key: schiff_base
+  query: "C=N-C"
 - key: nitrile
   query: "C#N"
 - key: cyanamide
@@ -128,8 +164,18 @@
 
 # O, N
 
-- key: amide
+- key: amide1
   query: "O=CN"
+- key: amide2
+  query: "[#6]C(=O)N[#6]"
+- key: amide_alip
+  query: "CC(=O)NC"
+- key: amide_arom
+  query: "cC(=O)Nc"
+- key: amide_alip_arom
+  query: "CC(=O)Nc"
+- key: amide_arom_alip
+  query: "cC(=O)NC"
 - key: carbamoyl
   query: "O=C[NH2]"
 - key: secondary_amide
@@ -195,6 +241,8 @@
   query: "O=S(=O)O"
 - key: mesylate
   query: "OS(=O)(=O)[CH3]"
+- key: thioamide
+  query: "S=CN"
 - key: sulfoneamide
   query: "O=S(=O)N"
 - key: sulfamide
