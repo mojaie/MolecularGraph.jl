@@ -192,6 +192,7 @@ function rem_vertex!(mol::MolGraph, v::Integer)
     delete!(mol.vprops, nv_)
     for e in edges_
         (src(e) == v || dst(e) == v) && delete!(mol.eprops, e)
+	    ((src(e) == v && dst(e) == nv_) || (src(e) == nv_ && dst(e) == v)) && continue
         nv_ == v && continue
         src(e) == nv_ && begin mol.eprops[u_edge(mol, v, dst(e))] = mol.eprops[e]; delete!(mol.eprops, e) end
         dst(e) == nv_ && begin mol.eprops[u_edge(mol, src(e), v)] = mol.eprops[e]; delete!(mol.eprops, e) end
