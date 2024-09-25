@@ -86,6 +86,7 @@ end
     @test degree(mol.graph, 3) == 1
     @test issetequal(keys(mol.vprops), collect(1:3))
     @test issetequal(keys(mol.eprops), Edge.([(1, 2), (2, 3)]))
+    @test rem_vertex!(mol, 2)  # C.C
 
     # Vertex re-ordering when vertices/edges are removed
     mol = MolGraph(
