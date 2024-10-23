@@ -23,7 +23,7 @@ libinchi_jll = "172afb32-8f1c-513b-968f-184fcd77af72"
 [compat]
 Base64 = "1"
 Cairo = "1"
-Colors = "0.12"
+Colors = "0.12, 0.13"
 DelimitedFiles = "1"
 GeometryBasics = "0.4"
 Graphs = "1"
