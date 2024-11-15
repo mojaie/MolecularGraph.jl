@@ -141,6 +141,9 @@ end
     ]
     wrong1 = MolGraph(edges, atoms, bonds, config_map=default_config)
     @test isempty(get_prop(wrong1, :stereocenter))
+    @test haskey(wrong1.gprops, :stereocenter_ignored)
+    # serialization check
+    @test nv(MolGraph(to_json(wrong1))) == 5
 
     bonds = [
         SDFBond(1, 1),
@@ -150,6 +153,7 @@ end
     ]
     wrong2 = MolGraph(edges, atoms, bonds, config_map=default_config)
     @test isempty(get_prop(wrong2, :stereocenter))
+    @test haskey(wrong2.gprops, :stereocenter_ignored)
 
     bonds = [
         SDFBond(1, 1),
@@ -159,6 +163,7 @@ end
     ]
     wrong3 = MolGraph(edges, atoms, bonds, config_map=default_config)
     @test isempty(get_prop(wrong3, :stereocenter))
+    @test haskey(wrong3.gprops, :stereocenter_ignored)
 
     bonds = [
         SDFBond(1, 1),
@@ -168,6 +173,7 @@ end
     ]
     wrong4 = MolGraph(edges, atoms, bonds, config_map=default_config)
     @test isempty(get_prop(wrong4, :stereocenter))
+    @test haskey(wrong4.gprops, :stereocenter_ignored)
 
     # degree=3
     atoms = [
@@ -202,6 +208,7 @@ end
     ]
     wrong5 = MolGraph(edges, atoms, bonds, config_map=default_config)
     @test isempty(get_prop(wrong5, :stereocenter))
+    @test haskey(wrong5.gprops, :stereocenter_ignored)
 
     # transformed
     atoms = [
@@ -271,7 +278,10 @@ end
     @test get_prop(cis, :stereobond)[Edge(1 => 3)] == (2, 4, true)  # cis
 
     conflict = smilestomol("C/C=C(/C)/C")
-    @test isempty(get_prop(conflict, :stereobond))  # ignored
+    @test isempty(get_prop(conflict, :stereobond))
+    @test haskey(conflict.gprops, :stereobond_ignored)
+    # serialization check
+    @test nv(MolGraph(to_json(conflict))) == 5
 
     mol3 = smilestomol("C\\C([H])=C([H])/C")
     @test get_prop(mol3, :stereobond)[Edge(2 => 4)] == (1, 6, true)

@@ -151,7 +151,7 @@ Return stereocenter information obtained from 2D SDFile.
 function stereocenter_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, e_isordered, v_coords2d) where T
     centers = Stereocenter{T}()
     edgerank = Dict(e => i for (i, e) in enumerate(edges(g)))
-    comments = Dict{Int,String}()
+    comments = String[]
     for i in vertices(g)
         degree(g, i) in (3, 4) || continue
         nbrs = ordered_neighbors(g, i)
@@ -169,33 +169,34 @@ function stereocenter_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, e_isord
             end
             push!(drs, :unspecified)
         end
-        length(drs) == degree(g, i) || (@debug "multiple bond"; continue)
+        length(drs) == degree(g, i) || (@debug "$(i): multiple bond"; continue)
         upcnt = count(x -> x === :up, drs)
         dwcnt = count(x -> x === :down, drs)
-        (upcnt == 0 && dwcnt == 0) && (@debug "unspecified"; continue)
+        (upcnt == 0 && dwcnt == 0) && (@debug "$(i): unspecified"; continue)
         sortorder = [1, map(x -> x + 1, anglesort(v_coords2d, i, nbrs[1], nbrs[2:end]))...]
-        ons = nbrs[sortorder]
-        ods = drs[sortorder]
+        ons = nbrs[sortorder]  # node indices of neighbors in order
+        ods = drs[sortorder]  # direction symbols of neighbors in order
         if length(nbrs) == 3
             if upcnt + dwcnt == 1
                 # if there is implicit hydrogen, an up-wedge -> clockwise, a down-edge -> ccw
                 centers[i] = (ons[1], ons[2], ons[3], dwcnt == 0)
             else
-                @debug "Ambiguous stereochemistry (maybe need explicit hydrogen)"
-                comments[i] = "$(ons) $(ods) Ambiguous stereochemistry (maybe need explicit hydrogen)"
+                @debug "$(i): up and down wedges pointing in deg=3 stereocenter $(ons) $(ods)"
+                # Ambiguous stereochemistry
+                push!(comments, "$(i): up and down wedges pointing in deg=3 stereocenter")
                 continue
             end
         elseif (ods[1] !== :unspecified && ods[3] !== :unspecified && ods[1] !== ods[3] ||
                 ods[2] !== :unspecified && ods[4] !== :unspecified && ods[2] !== ods[4])
-            @debug "Ambiguous stereochemistry (opposite direction wedges at opposite side)"
-            comments[i] = "$(ons) $(ods) Ambiguous stereochemistry (opposite direction wedges at opposite side)"
+            @debug "$(i): two non-adjacent wedges are on opposite sides of the plane $(ons) $(ods)"
+            push!(comments, "$(i): two non-adjacent wedges are on opposite sides of the plane")
             continue
         elseif (ods[1] !== :unspecified && ods[1] === ods[2] ||
                 ods[2] !== :unspecified && ods[2] === ods[3] ||
                 ods[3] !== :unspecified && ods[3] === ods[4] ||
                 ods[4] !== :unspecified && ods[4] === ods[1])
-            @debug "Ambiguous stereochemistry (same direction wedges at same side)"
-            comments[i] = "$(ons) $(ods) Ambiguous stereochemistry (same direction wedges at same side)"
+            @debug "$(i): two adjacent wedges are on the same side of the plane $(ons) $(ods)"
+            push!(comments, "$(i): two adjacent wedges are on the same side of the plane")
             continue
         elseif upcnt != 0
             centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
@@ -222,8 +223,8 @@ Set stereocenter information obtained from 2D SDFile.
 function stereocenter_from_sdf2d!(mol::MolGraph)
     centers, comments = stereocenter_from_sdf2d(mol)
     mol.gprops[:stereocenter] = centers
-    if length(comments) > 0 
-        mol.gprops[:stereocenter_ignored] = comments
+    if length(comments) > 0
+        mol.gprops[:stereocenter_ignored] = join(comments, "; ")
     end
 end
 
@@ -308,6 +309,7 @@ Return cis-trans diastereomerism information obtained from SMILES.
 """
 function stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T
     stereobonds = Stereobond{T}()
+    comments = String[]
     edgerank = Dict(e => i for (i, e) in enumerate(edges(g)))
     for (i, e) in enumerate(edges(g))
         e_order[i] == 2 || continue
@@ -335,11 +337,15 @@ function stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T
         end
         (isempty(sds) || isempty(dds)) && continue  # no :up or :down bonds
         # Conflicting cis/trans will be ignored (adopts OpenSMILES specs)
-        length(sds) == 2 && sds[1][2] == sds[2][2] && continue
-        length(dds) == 2 && dds[1][2] == dds[2][2] && continue
+        if (length(sds) == 2 && sds[1][2] == sds[2][2]) || (
+                length(dds) == 2 && dds[1][2] == dds[2][2])
+            @debug "$(e): conflicting up and down bonds $(sds) $(dds)"
+            push!(comments, "$(e): conflicting up and down bonds")
+            continue
+        end
         stereobonds[e] = (sds[1][1], dds[1][1], sds[1][2] !== dds[1][2])
     end
-    return stereobonds
+    return stereobonds, comments
 end
 
 stereobond_from_smiles(mol::SimpleMolGraph) = stereobond_from_smiles(
@@ -353,8 +359,13 @@ stereobond_from_smiles(mol::SimpleMolGraph) = stereobond_from_smiles(
 
 Set cis-trans diastereomerism information obtained from SMILES.
 """
-stereobond_from_smiles!(mol::MolGraph
-    ) = begin mol.gprops[:stereobond] = stereobond_from_smiles(mol) end
+function stereobond_from_smiles!(mol::MolGraph)
+    bonds, comments = stereobond_from_smiles(mol)
+    mol.gprops[:stereobond] = bonds
+    if length(comments) > 0
+        mol.gprops[:stereobond_ignored] = join(comments, "; ")
+    end
+end
 
 # TODO: axial chirality
 # TODO: hypervalent chirality
