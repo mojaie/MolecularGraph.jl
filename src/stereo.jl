@@ -174,33 +174,53 @@ function stereocenter_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, e_isord
         dwcnt = count(x -> x === :down, drs)
         (upcnt == 0 && dwcnt == 0) && (@debug "$(i): unspecified"; continue)
         sortorder = [1, map(x -> x + 1, anglesort(v_coords2d, i, nbrs[1], nbrs[2:end]))...]
-        ons = nbrs[sortorder]  # node indices of neighbors in order
-        ods = drs[sortorder]  # direction symbols of neighbors in order
+        ons = nbrs[sortorder]  # node indices of neighbors in angular order
+        ods = drs[sortorder]  # direction symbols of neighbors in angular order
         if length(nbrs) == 3
-            if upcnt + dwcnt == 1
-                # if there is implicit hydrogen, an up-wedge -> clockwise, a down-edge -> ccw
+            if upcnt == 1 && dwcnt == 1 || upcnt + dwcnt == 3
+                @debug "$(i): a reference plane cannot be defined $(ons) $(ods)"
+                push!(comments, "$(i): a reference plane cannot be defined")
+            elseif upcnt == 2 || dwcnt == 2
+                # up-wedge -> ccw, a down-edge -> clockwise
+                centers[i] = (ons[1], ons[2], ons[3], upcnt == 0)
+            else  # upcnt == 1 || dwcnt == 1
+                # up-wedge -> clockwise, a down-edge -> ccw
                 centers[i] = (ons[1], ons[2], ons[3], dwcnt == 0)
-            else
-                @debug "$(i): up and down wedges pointing in deg=3 stereocenter $(ons) $(ods)"
-                # Ambiguous stereochemistry
-                push!(comments, "$(i): up and down wedges pointing in deg=3 stereocenter")
-                continue
             end
-        elseif (ods[1] !== :unspecified && ods[3] !== :unspecified && ods[1] !== ods[3] ||
-                ods[2] !== :unspecified && ods[4] !== :unspecified && ods[2] !== ods[4])
-            @debug "$(i): two non-adjacent wedges are on opposite sides of the plane $(ons) $(ods)"
-            push!(comments, "$(i): two non-adjacent wedges are on opposite sides of the plane")
             continue
-        elseif (ods[1] !== :unspecified && ods[1] === ods[2] ||
-                ods[2] !== :unspecified && ods[2] === ods[3] ||
-                ods[3] !== :unspecified && ods[3] === ods[4] ||
-                ods[4] !== :unspecified && ods[4] === ods[1])
-            @debug "$(i): two adjacent wedges are on the same side of the plane $(ons) $(ods)"
-            push!(comments, "$(i): two adjacent wedges are on the same side of the plane")
-            continue
-        elseif upcnt != 0
+        end
+        if upcnt == 4 || dwcnt == 4
+            @debug "$(i): a reference plane cannot be defined $(ons) $(ods)"
+            push!(comments, "$(i): a reference plane cannot be defined")
+        elseif upcnt == 3
+            centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up && ods[3] === :up)
+        elseif dwcnt == 3
+            centers[i] = (ons[1], ons[2], ons[3], ods[2] === :down && ods[4] === :down)
+        elseif upcnt == 2
+            if (ods[1] === :up && ods[3] === :up) || (ods[2] === :up && ods[4] === :up)
+                centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up)
+            else
+                @debug "$(i): adjacent wedges lie on the same side of the reference plane $(ons) $(ods)"
+                push!(comments, "$(i): adjacent wedges lie on the same side of the reference plane")
+            end
+        elseif dwcnt == 2
+            if (ods[1] === :down && ods[3] === :down) || (ods[2] === :down && ods[4] === :down)
+                centers[i] = (ons[1], ons[2], ons[3], ods[1] !== :down)
+            else
+                @debug "$(i): adjacent wedges lie on the same side of the reference plane $(ons) $(ods)"
+                push!(comments, "$(i): adjacent wedges lie on the same side of the reference plane")
+            end
+        elseif upcnt == 1 && dwcnt == 1
+            if ((ods[1] === :unspecified && ods[3] === :unspecified)
+                    || (ods[2] === :unspecified && ods[4] === :unspecified))
+                @debug "$(i): non-adjacent wedges lie on the opposite side of the reference plane $(ons) $(ods)"
+                push!(comments, "$(i): non-adjacent wedges lie on the opposite side of the reference plane")
+            else
+                centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
+            end
+        elseif upcnt == 1
             centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
-        else  # down wedges only
+        else  # dwcnt == 1
             centers[i] = (ons[1], ons[2], ons[3], ods[2] === :down || ods[4] === :down)
         end
     end

@@ -139,6 +139,24 @@ end
         SDFBond(1, 6),
         SDFBond(1, 0)
     ]
+    mol7 = MolGraph(edges, atoms, bonds, config_map=default_config)
+    @test get_prop(mol7, :stereocenter)[1] == (2, 3, 5, true)
+
+    bonds = [
+        SDFBond(1, 1),
+        SDFBond(1, 0),
+        SDFBond(1, 1),
+        SDFBond(1, 1)
+    ]
+    mol8 = MolGraph(edges, atoms, bonds, config_map=default_config)
+    @test get_prop(mol8, :stereocenter)[1] == (2, 3, 5, true)
+
+    bonds = [
+        SDFBond(1, 1),
+        SDFBond(1, 0),
+        SDFBond(1, 0),
+        SDFBond(1, 6)
+    ]
     wrong1 = MolGraph(edges, atoms, bonds, config_map=default_config)
     @test isempty(get_prop(wrong1, :stereocenter))
     @test haskey(wrong1.gprops, :stereocenter_ignored)
@@ -147,33 +165,23 @@ end
 
     bonds = [
         SDFBond(1, 1),
-        SDFBond(1, 0),
-        SDFBond(1, 1),
-        SDFBond(1, 1)
-    ]
-    wrong2 = MolGraph(edges, atoms, bonds, config_map=default_config)
-    @test isempty(get_prop(wrong2, :stereocenter))
-    @test haskey(wrong2.gprops, :stereocenter_ignored)
-
-    bonds = [
-        SDFBond(1, 1),
-        SDFBond(1, 0),
-        SDFBond(1, 0),
-        SDFBond(1, 6)
-    ]
-    wrong3 = MolGraph(edges, atoms, bonds, config_map=default_config)
-    @test isempty(get_prop(wrong3, :stereocenter))
-    @test haskey(wrong3.gprops, :stereocenter_ignored)
-
-    bonds = [
-        SDFBond(1, 1),
         SDFBond(1, 1),
         SDFBond(1, 0),
         SDFBond(1, 0)
     ]
-    wrong4 = MolGraph(edges, atoms, bonds, config_map=default_config)
-    @test isempty(get_prop(wrong4, :stereocenter))
+    wrong2 = MolGraph(edges, atoms, bonds, config_map=default_config)
+    @test isempty(get_prop(wrong2, :stereocenter))
     @test haskey(wrong4.gprops, :stereocenter_ignored)
+
+    bonds = [
+        SDFBond(1, 1),
+        SDFBond(1, 1),
+        SDFBond(1, 1),
+        SDFBond(1, 1)
+    ]
+    wrong3 = MolGraph(edges, atoms, bonds, config_map=default_config)
+    @test isempty(get_prop(wrong3, :stereocenter))
+    @test haskey(wrong_all.gprops, :stereocenter_ignored)
 
     # degree=3
     atoms = [
