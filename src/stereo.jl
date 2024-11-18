@@ -8,6 +8,17 @@ export
     stereocenter_from_smiles!, stereocenter_from_sdf2d!,
     stereobond_from_smiles!, stereobond_from_sdf2d!
 
+
+"""
+    Stereocenter{T} <: AbstractDict{T,Tuple{T,T,T,Bool}}
+
+A graph-level property that describes chirality of the molecule.
+
+The dict key represents the stereocenter vertex, and the value is a 4-tuple
+in the format (l, v1, v2, is_clockwise). `is_clockwise` is a boolean value indicating
+whether nodes `v1` and `v2` are arranged clockwise when viewed from node `l`
+toward the stereocenter.
+"""
 struct Stereocenter{T} <: AbstractDict{T,Tuple{T,T,T,Bool}}
     mapping::Dict{T,Tuple{T,T,T,Bool}}
 end
@@ -32,6 +43,15 @@ function remap(stereo::Stereocenter{T}, vmap::Dict) where T  # vmap[old] -> new
 end
 
 
+"""
+    Stereobond{T} <: AbstractDict{Edge{T},Tuple{T,T,Bool}}
+
+A graph-level property that describes cis-trans isomerism of the molecule.
+
+The dict key represents the stereogenic double bond edge, and the value is a 3-tuple
+in the format (e1, e2, is_cis). `is_cis` is a boolean value indicating
+whether edges `e1` and `e2` are placed in the same side of the stereogenic bond.
+"""
 struct Stereobond{T} <: AbstractDict{Edge{T},Tuple{T,T,Bool}}
     mapping::Dict{Edge{T},Tuple{T,T,Bool}}
 end
@@ -181,10 +201,8 @@ function stereocenter_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, e_isord
                 @debug "$(i): a reference plane cannot be defined $(ons) $(ods)"
                 push!(comments, "$(i): a reference plane cannot be defined")
             elseif upcnt == 2 || dwcnt == 2
-                # up-wedge -> ccw, a down-edge -> clockwise
                 centers[i] = (ons[1], ons[2], ons[3], upcnt == 0)
-            else  # upcnt == 1 || dwcnt == 1
-                # up-wedge -> clockwise, a down-edge -> ccw
+            else
                 centers[i] = (ons[1], ons[2], ons[3], dwcnt == 0)
             end
             continue
