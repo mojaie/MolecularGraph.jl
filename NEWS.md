@@ -1,5 +1,12 @@
 # NEWS
 
+## v0.17.2
+
+- Fixed `rem_vertex` (#114)
+- The default destination path of the compiled package is now `/usr/local/moleculargraphjl`
+- The behavior of stereocenters with an unnecessarily high number of wedges has been clarified.
+- Fixed serialization of molecules with invalid stereochemistry.
+
 ## v0.17.1
 
 - The library builder (built with PackageCompiler) is now Julia v1.11 compatible
