@@ -7,7 +7,7 @@ import platform
 
 def jl_init():
     dlext = "dylib" if platform.system() == "Darwin" else "so"
-    libdir = Path("/usr/local/lib")
+    libdir = Path("/usr/local/moleculargraphjl/lib")
     jl = CDLL(libdir / f"libmoleculargraph.{dlext}", RTLD_GLOBAL)
     jl.jl_init_with_image(bytes(libdir), f"libmoleculargraph.{dlext}".encode())
     return jl

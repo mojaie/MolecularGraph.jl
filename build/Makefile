@@ -4,7 +4,7 @@ JULIA ?= julia
 DLEXT := $(shell $(JULIA) --startup-file=no -e 'using Libdl; print(Libdl.dlext)')
 
 TARGET="../compiled"
-DEST="/usr/local"
+DEST="/usr/local/moleculargraphjl"
 
 MYLIB_INCLUDES = $(TARGET)/include/julia_init.h $(TARGET)/include/libmoleculargraph.h
 MYLIB_PATH := $(TARGET)/lib/libmoleculargraph.$(DLEXT)
@@ -17,9 +17,8 @@ $(MYLIB_PATH) $(MYLIB_INCLUDES): ./build.jl ../src/MolecularGraph.jl
 # For MacOS testing
 
 link:
-	cp -a $(TARGET)/lib/* $(DEST)/lib
-	cp -a $(TARGET)/share/* $(DEST)/share
-	cp -a $(TARGET)/include/* $(DEST)/include
+	mkdir -p $(DEST)
+	cp -a $(TARGET)/* $(DEST)
 	install_name_tool -add_rpath $(DEST)/lib $(DEST)/lib/libmoleculargraph.$(DLEXT)
 	install_name_tool -add_rpath $(DEST)/lib/julia $(DEST)/lib/libmoleculargraph.$(DLEXT)
 

@@ -37,6 +37,7 @@ function run()
         "str_alert_221", "str_alert_222", "str_alert_247", "str_alert_1003",
         "str_alert_246", "str_alert_381"
     ]
+    @info "vprops" length(vprops) - length(skip)
     for (u, v) in combinations(length(vprops))
         ukey = vprops[u]["key"]
         vkey = vprops[v]["key"]
@@ -95,5 +96,4 @@ function run()
     YAML.write_file(OUTPUT_FILE, vprops)
 end
 
-
-run()
+@time run()
