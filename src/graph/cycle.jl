@@ -90,13 +90,18 @@ function mincyclebasis(g::SimpleGraph{T}) where T
     for conn in connected_components(g)
         subg, vmap = induced_subgraph(g, conn)
         S = [Set([e]) for e in cotree_edges(subg)]
+        @debug "init" S
         N = length(S)  # N: circuit rank
         for k in 1:N
+            @debug "S" S[k]
             p = findmincycle(subg, S[k])
+            @debug "mincycle" vmap[p]
             push!(cycles, vmap[p])
             minedges = [u_edge(T, p[i], p[i + 1]) for i in 1:(length(p) - 1)]
+            push!(minedges, u_edge(T, p[1], p[length(p)]))
             for i in (k + 1):N
                 if length(intersect(S[i], minedges)) % 2 == 1
+                    @debug "symdiff" i symdiff(S[i], S[k])
                     S[i] = symdiff(S[i], S[k])
                 end
             end
