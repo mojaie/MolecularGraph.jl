@@ -72,10 +72,12 @@ svgtransform(tf::Array{Float64,2}
     ) = @sprintf "%.2f %.2f %.2f %.2f %.2f %.2f" tf[1] tf[2] tf[4] tf[5] tf[7] tf[8]
 
 
-function tosvg(canvas::SvgCanvas; width="100%", height="100%", viewbox=false, kwargs...)
+function tosvg(canvas::SvgCanvas; width="100%", height="100%", viewbox=true, kwargs...)
     vbWf = @sprintf "%.2f" canvas.viewboxW
     vbHf = @sprintf "%.2f" canvas.viewboxH
     vb = viewbox ? " viewBox=\"0 0 $(vbWf) $(vbHf)\"" : ""
+    w = viewbox ? width : vbWf
+    h = viewbox ? height : vbHf
     bgc = svgcolor(canvas.bgcolor)
     header = """<svg xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -84,7 +86,7 @@ function tosvg(canvas::SvgCanvas; width="100%", height="100%", viewbox=false, kw
      preserveAspectRatio="xMidYMid meet"
      font-weight="$(canvas.fontweight)"
      font-family="$(canvas.fontfamily)"
-     width="$(width)" height="$(height)"$(vb)>
+     width="$(w)" height="$(h)"$(vb)>
     """
     bg = """<rect x="0" y="0" width="$(vbWf)" height="$(vbHf)"
      fill="$(bgc)" opacity="$(canvas.bgopacity)"/>
