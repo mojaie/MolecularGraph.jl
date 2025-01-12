@@ -4,7 +4,7 @@ JULIA ?= julia
 DLEXT := $(shell $(JULIA) --startup-file=no -e 'using Libdl; print(Libdl.dlext)')
 
 TARGET="../compiled"
-DEST="/usr/local/moleculargraphjl"
+DEST="/opt/moleculargraphjl"
 
 MYLIB_INCLUDES = $(TARGET)/include/julia_init.h $(TARGET)/include/libmoleculargraph.h
 MYLIB_PATH := $(TARGET)/lib/libmoleculargraph.$(DLEXT)
