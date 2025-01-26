@@ -1,3 +1,5 @@
+# Python >= 3.10
+
 import base64
 from ctypes import CDLL, RTLD_GLOBAL, POINTER, cast, c_char_p, c_ubyte, c_double, c_int, c_uint
 import json
@@ -7,7 +9,7 @@ import platform
 
 def jl_init():
     dlext = "dylib" if platform.system() == "Darwin" else "so"
-    libdir = Path("/usr/local/moleculargraphjl/lib")
+    libdir = Path("/opt/moleculargraphjl/lib")
     jl = CDLL(libdir / f"libmoleculargraph.{dlext}", RTLD_GLOBAL)
     jl.jl_init_with_image(bytes(libdir), f"libmoleculargraph.{dlext}".encode())
     return jl
@@ -18,7 +20,7 @@ def jl_exit(jl):
 
 
 def smiles_to_mol(jl, smiles: str) -> bytes:
-    jl.smilestomol.argtypes = [c_char_p]
+    jl.smilestomol.argtypes = [c_char_p, c_char_p]
     jl.smilestomol.restype = c_char_p
     return jl.smilestomol(smiles.encode(), r"{}".encode())
 
@@ -31,7 +33,7 @@ def smarts_to_mol(jl, smarts: str) -> bytes:
 
 def sdf_to_mol(jl, sdf: str) -> bytes:
     # sdf: SDFile string (open as f -> f.read())
-    jl.sdftomol.argtypes = [c_char_p]
+    jl.sdftomol.argtypes = [c_char_p, c_char_p]
     jl.sdftomol.restype = c_char_p
     return jl.sdftomol(sdf.encode(), r"{}".encode())
 
@@ -99,6 +101,20 @@ def smiles_to_png(jl, smiles: str, width: int, height: int) -> bytes:
     return mol_to_png(jl, mol, width, height)
 
 
+def mol_to_molblock(jl, mol: bytes) -> str:
+    # mol: json.dumps(mol_dict).encode()
+    jl.molblock.argtypes = [c_char_p]
+    jl.molblock.restype = c_char_p
+    return jl.molblock(mol).decode("utf-8")
+
+
+def mol_to_sdfblock(jl, mol: bytes) -> str:
+    # mol: json.dumps(mol_dict).encode()
+    jl.sdfmolblock.argtypes = [c_char_p]
+    jl.sdfmolblock.restype = c_char_p
+    return jl.sdfmolblock(mol).decode("utf-8")
+
+
 def has_exact_match(jl, mol1: bytes, mol2: bytes, options: bytes) -> bool:
     # mol1, mol2, options: json.dumps(dict).encode()
     jl.has_exact_match.argtypes = [c_char_p, c_char_p, c_char_p]
@@ -137,4 +153,6 @@ if __name__ == "__main__":
     print(tdmces_size(jl, mol1, mol2, json.dumps({}).encode()))
     print(len(mol_to_svg(jl, mol1)))
     print(len(mol_to_png(jl, mol1, 100, 100)))
+    print(len(mol_to_molblock(jl, mol1)))
+    print(len(mol_to_sdfblock(jl, mol1)))
     jl_exit(jl)

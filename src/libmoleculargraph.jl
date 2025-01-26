@@ -8,6 +8,7 @@ using Base64
 
 export
     vertex_count, edge_count,
+    molblock, sdfmolblock,
     tdmcis_size, tdmces_size, tdmcis_gls, tdmces_gls
 
 
@@ -91,6 +92,30 @@ Base.@ccallable function standard_weight(mol::Cstring)::Cdouble
     return try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
         return standard_weight(molobj, 2)
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+
+Base.@ccallable function molblock(mol::Cstring)::Cstring
+    return try
+        molobj = MolGraph(JSON.parse(unsafe_string(mol)))
+        return unsafe_convert(Cstring, printv2mol(molobj))
+    catch
+        Base.invokelatest(Base.display_error, Base.catch_stack())
+    end
+end
+
+
+Base.@ccallable function sdfmolblock(mol::Cstring)::Cstring
+    return try
+        molobj = MolGraph(JSON.parse(unsafe_string(mol)))
+        buf = IOBuffer(write=true)
+        printv2sdf(buf, molobj)
+        res = String(take!(buf))
+        close(buf)
+        return unsafe_convert(Cstring, res)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
