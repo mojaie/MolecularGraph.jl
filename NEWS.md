@@ -1,5 +1,10 @@
 # NEWS
 
+## v0.17.3
+
+- Fixed `mincycles` (#119)
+- Fixed package compiler scripts
+
 ## v0.17.2
 
 - Fixed `rem_vertex` (#114)
