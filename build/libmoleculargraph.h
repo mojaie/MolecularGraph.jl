@@ -5,6 +5,8 @@ int vertex_count(char*);
 int edge_count(char*);
 char* inchikey(char*);
 double standard_weight(char*);
+char* molblock(char*);
+char* sdfmolblock(char*);
 char* drawsvg(char*);
 char* drawpng(char*, unsigned int, unsigned int);
 int has_exact_match(char*, char*, char*);

@@ -47,6 +47,8 @@ function run()
     # write(f, img)
     # close(f)
     @debug "length(drawpng(io, demomol, 1000, 1000))" length(img)
+    @debug "length(molblock(demomol))" length(unsafe_string(molblock(unsafe_convert(Cstring, demomol))))
+    @debug "length(sdfmolblock(demomol))" length(unsafe_string(sdfmolblock(unsafe_convert(Cstring, demomol))))
 
     nullmol_sdf = read(open(joinpath(dirname(@__FILE__), "../assets/test/null.mol")), String)
     nullmol = unsafe_string(sdftomol(
@@ -60,8 +62,16 @@ function run()
 
     notamide = unsafe_string(smartstomol(
         unsafe_convert(Cstring, raw"[NX3;H2,H1;!$(NC=O)]")))
+    notamide2 = unsafe_string(smartstomol(
+        unsafe_convert(Cstring, raw"[NX3;H2,H1]")))
     rotatable = unsafe_string(smartstomol(
         unsafe_convert(Cstring, raw"[!$(*#*)&!D1]-!@[!$(*#*)&!D1]")))
+    @debug "notamide rotatable" has_exact_match(
+        unsafe_convert(Cstring, notamide), unsafe_convert(Cstring, rotatable),
+        unsafe_convert(Cstring, op))
+    @debug "notamide notamide2" has_substruct_match(
+        unsafe_convert(Cstring, notamide), unsafe_convert(Cstring, notamide2),
+        unsafe_convert(Cstring, op))
 
     @debug "nullsmiles nullmol" has_exact_match(
         unsafe_convert(Cstring, nullsmiles), unsafe_convert(Cstring, nullmol),
