@@ -66,39 +66,41 @@ def standard_weight(jl, mol: bytes) -> float:
     return jl.standard_weight(mol)
 
 
-def mol_to_svg(jl, mol: bytes) -> str:
+def mol_to_svg(jl, mol: bytes, options: bytes = r"{}".encode()) -> str:
     # mol: json.dumps(mol_dict).encode()
-    jl.drawsvg.argtypes = [c_char_p]
+    jl.drawsvg.argtypes = [c_char_p, c_char_p]
     jl.drawsvg.restype = c_char_p
-    return jl.drawsvg(mol).decode("utf-8")
+    return jl.drawsvg(mol, options).decode("utf-8")
 
 
-def sdf_to_svg(jl, sdf: str) -> str:
+def sdf_to_svg(jl, sdf: str, **kwargs) -> str:
     mol = sdf_to_mol(jl, sdf)
-    return mol_to_svg(jl, mol)
+    return mol_to_svg(jl, mol, **kwargs)
 
 
-def smiles_to_svg(jl, smiles: str) -> str:
+def smiles_to_svg(jl, smiles: str, **kwargs) -> str:
     mol = smiles_to_mol(jl, smiles)
-    return mol_to_svg(jl, mol)
+    return mol_to_svg(jl, mol, **kwargs)
 
 
-def mol_to_png(jl, mol: bytes, width: int, height: int) -> bytes:
+def mol_to_png(
+        jl, mol: bytes, width: int, height: int,
+        options: bytes = r"{}".encode()) -> bytes:
     # mol: json.dumps(mol_dict).encode()
-    jl.drawpng.argtypes = [c_char_p, c_uint, c_uint]
+    jl.drawpng.argtypes = [c_char_p, c_uint, c_uint, c_char_p]
     jl.drawpng.restype = c_char_p
-    data = jl.drawpng(mol, c_uint(width), c_uint(height))
+    data = jl.drawpng(mol, c_uint(width), c_uint(height), options)
     return base64.b64decode(data)
 
 
-def sdf_to_png(jl, sdf: str, width: int, height: int) -> bytes:
+def sdf_to_png(jl, sdf: str, width: int, height: int, **kwargs) -> bytes:
     mol = sdf_to_mol(jl, sdf)
-    return mol_to_png(jl, mol, width, height)
+    return mol_to_png(jl, mol, width, height, **kwargs)
 
 
-def smiles_to_png(jl, smiles: str, width: int, height: int) -> bytes:
+def smiles_to_png(jl, smiles: str, width: int, height: int, **kwargs) -> bytes:
     mol = smiles_to_mol(jl, smiles)
-    return mol_to_png(jl, mol, width, height)
+    return mol_to_png(jl, mol, width, height, **kwargs)
 
 
 def mol_to_molblock(jl, mol: bytes) -> str:
@@ -151,8 +153,8 @@ if __name__ == "__main__":
     print(inchikey(jl, mol1))
     print(has_substruct_match(jl, mol1, mol2, json.dumps({}).encode()))
     print(tdmces_size(jl, mol1, mol2, json.dumps({}).encode()))
-    print(len(mol_to_svg(jl, mol1)))
-    print(len(mol_to_png(jl, mol1, 100, 100)))
+    print(len(mol_to_svg(jl, mol1, json.dumps({}).encode())))
+    print(len(mol_to_png(jl, mol1, 100, 100, json.dumps({}).encode())))
     print(len(mol_to_molblock(jl, mol1)))
     print(len(mol_to_sdfblock(jl, mol1)))
     jl_exit(jl)

@@ -8,7 +8,7 @@ double standard_weight(char*);
 char* molblock(char*);
 char* sdfmolblock(char*);
 char* drawsvg(char*, char*);
-char* drawpng(char*, unsigned int, unsigned int);
+char* drawpng(char*, unsigned int, unsigned int, char*);
 int has_exact_match(char*, char*, char*);
 int has_substruct_match(char*, char*, char*);
 int tdmcis_size(char*, char*, char*);

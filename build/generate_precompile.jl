@@ -48,7 +48,14 @@ function run()
     ))
     @debug "length(drawsvg(demomol))" length(unsafe_string(
         drawsvg(unsafe_convert(Cstring, demomol), unsafe_convert(Cstring, svgop))))
-    str = drawpng(unsafe_convert(Cstring, demomol), UInt32(1000), UInt32(1000))
+    pngop = JSON.json(Dict(
+        :show_carbon => "all",
+        :bgcolor => [233, 255, 255], :bgopacity => 0.5
+    ))
+    str = drawpng(
+        unsafe_convert(Cstring, demomol), UInt32(1000), UInt32(1000),
+        unsafe_convert(Cstring, pngop)
+    )
     img = base64decode(unsafe_string(str))
     # f = open("test.png", "w")
     # write(f, img)
