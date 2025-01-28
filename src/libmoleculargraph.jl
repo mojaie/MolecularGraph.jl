@@ -122,10 +122,16 @@ Base.@ccallable function sdfmolblock(mol::Cstring)::Cstring
 end
 
 
-Base.@ccallable function drawsvg(mol::Cstring)::Cstring
+Base.@ccallable function drawsvg(mol::Cstring, options::Cstring)::Cstring
     return try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
-        svg = drawsvg(molobj)
+        op = JSON.parse(unsafe_string(options))
+        kwgs = Pair{Symbol,Any}[]
+        haskey(op, "viewbox") && push!(kwgs, :viewbox => op["viewbox"])
+        haskey(op, "show_carbon") && push!(kwgs, :show_carbon => Symbol(op["show_carbon"]))
+        haskey(op, "bgcolor") && push!(kwgs, :bgcolor => Color(Int.(op["bgcolor"][1:3])...))
+        haskey(op, "bgopacity") && push!(kwgs, :bgopacity => op["bgopacity"])
+        svg = drawsvg(molobj; kwgs...)
         return unsafe_convert(Cstring, svg)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())

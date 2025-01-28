@@ -7,7 +7,7 @@ char* inchikey(char*);
 double standard_weight(char*);
 char* molblock(char*);
 char* sdfmolblock(char*);
-char* drawsvg(char*);
+char* drawsvg(char*, char*);
 char* drawpng(char*, unsigned int, unsigned int);
 int has_exact_match(char*, char*, char*);
 int has_substruct_match(char*, char*, char*);
