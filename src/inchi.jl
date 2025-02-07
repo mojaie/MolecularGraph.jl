@@ -207,6 +207,8 @@ end
 
 Generate molecule from inchi string, `options` are specified in https://github.com/mojaie/libinchi/blob/master/INCHI_BASE/src/inchi_api.h
 """
-function inchitomol(inchi::String; options = "", verbose = false)
-    inchitosdf(inchi; options, verbose) |> IOBuffer |> sdftomol
+function inchitomol(inchi::String; options = "", verbose = false, coordgen = true)
+    mol = inchitosdf(inchi; options, verbose) |> IOBuffer |> sdftomol
+    coordgen && coordgen!(mol)
+    return mol
 end
