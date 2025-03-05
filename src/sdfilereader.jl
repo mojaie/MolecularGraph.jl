@@ -5,7 +5,7 @@
 
 export
     SDFileReader,
-    sdfilereader, rdfilereader,
+    sdfilereader, rdfilereader, sdfilescanner,
     sdftomol, rxntoreaction
 
 const SDF_CHARGE_TABLE = Dict(
@@ -367,6 +367,42 @@ rdfilereader(file::IO; kwargs...) = rdfilereader(Reaction{SDFMolGraph}, file; kw
 rdfilereader(::Type{T}, path::AbstractString; kwargs...
     ) where T <: AbstractReaction = rdfilereader(T, open(path); kwargs...)
 rdfilereader(path::AbstractString; kwargs...) = rdfilereader(Reaction{SDFMolGraph}, open(path); kwargs...)
+
+
+struct SDFileScanner{T}
+    io::IO
+end
+
+Base.IteratorSize(::Type{SDFileScanner{T}}) where T = Base.SizeUnknown()
+Base.IteratorEltype(::Type{SDFileScanner{T}}) where T = Base.EltypeUnknown()
+
+function Base.iterate(reader::SDFileScanner{T}, state=1) where T <: AbstractMolGraph
+    eof(reader.io) && return nothing
+    lines = []
+    while true
+        line = readline(reader.io)
+        push!(lines, line)
+        line == "M  END" && break
+    end
+    data = parse_options(reader.io)
+    data["molblock"] = join(lines, "\n")
+    return (data, state + 1)
+end
+
+
+"""
+    sdfilescanner(file::IO)
+    sdfilescanner(path::AbstractString)
+
+Read SDFile data from input stream (or a file path as a string) and return a
+lazy iterator that yields metadata.
+"""
+sdfilescanner(::Type{T}, file::IO; kwargs...
+    ) where T <: AbstractMolGraph = SDFileScanner{T}(file)
+sdfilescanner(file::IO; kwargs...) = sdfilescanner(SDFMolGraph, file; kwargs...)
+sdfilescanner(::Type{T}, path::AbstractString; kwargs...
+    ) where T <: AbstractMolGraph = sdfilescanner(T, open(path); kwargs...)
+sdfilescanner(path::AbstractString; kwargs...) = sdfilescanner(SDFMolGraph, open(path); kwargs...)
 
 
 """
