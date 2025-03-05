@@ -15,7 +15,7 @@ export
     MolGraphGen, SMARTSMolGraph,
     QueryAny, QueryLiteral, QueryOperator, QueryTree, QueryTruthTable,
     AbstractReaction, Reaction,
-    Metadata, to_dict, to_json,
+    to_dict, to_json,
     ordered_neighbors, u_edge, edge_rank,
     vproptype, eproptype,
     props, vprops, eprops,
@@ -31,17 +31,18 @@ abstract type SimpleMolGraph{T,V,E} <: AbstractMolGraph{T} end  # mol graph that
 abstract type AbstractReaction{T<:AbstractMolGraph} end
 
 
-struct Metadata <: AbstractDict{String,Any}
-    mapping::Dict{String,Any}
+struct Metadata{T<:AbstractDict{String,Any}} <: AbstractDict{String,Any}
+    mapping::T
 end
-Metadata() = Metadata(Dict())
+Metadata() = Metadata(Dict{String,Any}())
+Metadata{T}() where T<:AbstractDict{String,Any} = Metadata(T())
 
 Base.iterate(meta::Metadata) = iterate(meta.mapping)
 Base.iterate(meta::Metadata, i) = iterate(meta.mapping, i)
 Base.length(meta::Metadata) = length(meta.mapping)
 Base.get(meta::Metadata, k, v) = get(meta.mapping, k, v)
 Base.setindex!(meta::Metadata, v, k) = setindex!(meta.mapping, v, k)
-to_dict(meta::Metadata) = meta.mapping
+to_dict(meta::Metadata) = Dict(meta.mapping)
 
 
 # Graphs.jl common interface
