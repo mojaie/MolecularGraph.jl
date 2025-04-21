@@ -1,5 +1,12 @@
 # NEWS
 
+## v0.18.0
+
+- The minimum required Julia version will be updated from 1.6 to 1.8 (due to OrderedCollections requiring Julia ≥ 1.7.1).
+- OrderedCollections has been added as a direct dependency.
+- The container for SDFile options (metadata) will be changed from `Dict` to `OrderedDict`, improving the consistency of metadata field order.
+- A new function `sdfilescanner` has been added. It works similarly to `sdfilereader` but does not parse the CTAB block. Instead, it returns a dictionary of metadata and the raw CTAB block as a string.
+
 ## v0.17.3
 
 - Fixed `mincycles` (#119)
