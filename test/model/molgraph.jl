@@ -134,7 +134,7 @@ end
     @test get(md, "unknownid", "unknown") == "unknown"  # Base.get
     @test length(md) == 6  # Base.length
     @test length(collect(m for m in md)) == 6  # Base.iterate
-    @test to_dict(md) isa Dict  # MolecularGraph.to_dict (serialization)
+    @test to_dict(md) isa Vector  # MolecularGraph.to_dict (serialization)
 
     # Note that mols built with `sdftomol` should have :metadata.
     # In this case, Metadata should be added to the manually built MolGraph.

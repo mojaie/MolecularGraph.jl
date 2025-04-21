@@ -13,6 +13,7 @@ module MolecularGraph
     using Graphs
     using JSON
     using LinearAlgebra
+    using OrderedCollections
     using Printf
     using Statistics
     using YAML

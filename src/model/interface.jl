@@ -34,15 +34,17 @@ abstract type AbstractReaction{T<:AbstractMolGraph} end
 struct Metadata{T<:AbstractDict{String,Any}} <: AbstractDict{String,Any}
     mapping::T
 end
-Metadata() = Metadata(Dict{String,Any}())
-Metadata{T}() where T<:AbstractDict{String,Any} = Metadata(T())
 
-Base.iterate(meta::Metadata) = iterate(meta.mapping)
-Base.iterate(meta::Metadata, i) = iterate(meta.mapping, i)
+Metadata() = Metadata{OrderedDict{String,Any}}(OrderedDict{String,Any}())
+Metadata{T}(data::Vector=[]
+    ) where {T<:AbstractDict{String,Any}} = Metadata{T}(T(String(row[1]) => row[2] for row in data))
+
+Base.iterate(meta::Metadata, i...) = iterate(meta.mapping, i...)
 Base.length(meta::Metadata) = length(meta.mapping)
 Base.get(meta::Metadata, k, v) = get(meta.mapping, k, v)
 Base.setindex!(meta::Metadata, v, k) = setindex!(meta.mapping, v, k)
-to_dict(meta::Metadata) = Dict(meta.mapping)
+Base.delete!(meta::Metadata, k) = delete!(meta.mapping, k)
+to_dict(meta::Metadata) = [[i, val] for (i, val) in meta]
 
 
 # Graphs.jl common interface
