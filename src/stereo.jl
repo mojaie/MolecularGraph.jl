@@ -168,7 +168,8 @@ end
 
 Return stereocenter information obtained from 2D SDFile.
 """
-function stereocenter_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, e_isordered, v_coords2d) where T
+function stereocenter_from_sdf2d(
+        g::SimpleGraph{T}, v_symbol, e_order, e_notation, e_isordered, v_coords2d) where T
     centers = Stereocenter{T}()
     edgerank = Dict(e => i for (i, e) in enumerate(edges(g)))
     comments = String[]
@@ -190,6 +191,7 @@ function stereocenter_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, e_isord
             push!(drs, :unspecified)
         end
         length(drs) == degree(g, i) || (@debug "$(i): multiple bond"; continue)
+        degree(g, i) - count(x -> v_symbol[x] === :H, nbrs) > 2 || (@debug "$(i): a stereocenter cannot be connected to multiple hydrogens"; continue)
         upcnt = count(x -> x === :up, drs)
         dwcnt = count(x -> x === :down, drs)
         (upcnt == 0 && dwcnt == 0) && (@debug "$(i): unspecified"; continue)
@@ -247,6 +249,7 @@ end
 
 stereocenter_from_sdf2d(mol::MolGraph) = stereocenter_from_sdf2d(
     mol.graph,
+    [get_prop(mol, i, :symbol) for i in vertices(mol)],
     [get_prop(mol, e, :order) for e in edges(mol)],
     [get_prop(mol, e, :notation) for e in edges(mol)],
     [get_prop(mol, e, :isordered) for e in edges(mol)],
@@ -305,9 +308,14 @@ Return cis-trans diastereomerism information obtained from 2D SDFile.
 """
 function stereobond_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, v_coords2d) where T
     stereobonds = Stereobond{T}()
+    smallcycles = Edge{T}[]
+    for cyc in edgemincyclebasis(g)
+        length(cyc) < 8 && push!(smallcycles, cyc...)
+    end
     for (i, e) in enumerate(edges(g))
         e_order[i] == 2 || continue
         e_notation[i] == 3 && continue  # stereochem unspecified
+        e in smallcycles && continue
         degree(g, src(e)) in (2, 3) || continue
         degree(g, dst(e)) in (2, 3) || continue
         snbrs, dnbrs = ordered_edge_neighbors(g, e)
