@@ -31,7 +31,7 @@ Base.iterate(stereo::Stereocenter, i) = iterate(stereo.mapping, i)
 Base.length(stereo::Stereocenter) = length(stereo.mapping)
 Base.get(stereo::Stereocenter, k, v) = get(stereo.mapping, k, v)
 Base.setindex!(stereo::Stereocenter, v, k) = setindex!(stereo.mapping, v, k)
-to_dict(stereo::Stereocenter) = [[i, val] for (i, val) in stereo.mapping]
+to_dict(::Val{:standard}, stereo::Stereocenter) = [[i, val] for (i, val) in stereo.mapping]
 
 function remap(stereo::Stereocenter{T}, vmap::Dict) where T  # vmap[old] -> new
     newmap = Dict{T,Tuple{T,T,T,Bool}}()
@@ -64,7 +64,7 @@ Base.iterate(stereo::Stereobond, i) = iterate(stereo.mapping, i)
 Base.length(stereo::Stereobond) = length(stereo.mapping)
 Base.get(stereo::Stereobond, k, v) = get(stereo.mapping, k, v)
 Base.setindex!(stereo::Stereobond, v, k) = setindex!(stereo.mapping, v, k)
-to_dict(stereo::Stereobond) = [[src(e), dst(e), val] for (e, val) in stereo.mapping]
+to_dict(::Val{:standard}, stereo::Stereobond) = [[src(e), dst(e), val] for (e, val) in stereo.mapping]
 
 function remap(stereo::Stereobond{T}, vmap::Dict) where T  # vmap[old] -> new
     newmap = Dict{Edge{T},Tuple{T,T,Bool}}()

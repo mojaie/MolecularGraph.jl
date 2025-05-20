@@ -124,17 +124,17 @@ function MolGraph{Int,SMILESAtom,SMILESBond}(data::Dict, config=Dict{Symbol,Any}
 end
 
 
-function to_dict(mol::MolGraph)
+function to_dict(fmt::Val{:standard}, mol::MolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     return Dict(
         "eltype" => string(eltype(mol)),
         "vproptype" => string(vproptype(mol)),
         "eproptype" => string(eproptype(mol)),
         "graph" => [[src(e), dst(e)] for e in edges(mol)],
-        "vprops" => [to_dict(props(mol, i)) for i in vertices(mol)],
-        "eprops" => [to_dict(props(mol, e)) for e in edges(mol)],
-        "gprops" => [[string(k), string(typeof(v)), applicable(to_dict, v) ? to_dict(v) : v] for (k, v) in mol.gprops],
-        "caches" => [[string(k), string(typeof(v)), applicable(to_dict, v) ? to_dict(v) : v] for (k, v) in mol.state[:caches]]
+        "vprops" => [to_dict(fmt, props(mol, i)) for i in vertices(mol)],
+        "eprops" => [to_dict(fmt, props(mol, e)) for e in edges(mol)],
+        "gprops" => [[string(k), string(typeof(v)), applicable(to_dict, fmt, v) ? to_dict(fmt, v) : v] for (k, v) in mol.gprops],
+        "caches" => [[string(k), string(typeof(v)), applicable(to_dict, fmt, v) ? to_dict(fmt, v) : v] for (k, v) in mol.state[:caches]]
     )
 end
 

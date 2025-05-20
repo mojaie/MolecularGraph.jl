@@ -45,6 +45,7 @@ module MolecularGraph
 
     include("coords.jl")
     include("stereo.jl")
+    include("json.jl")
 
     include("./draw/color.jl")
     include("./draw/interface.jl")

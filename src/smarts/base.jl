@@ -20,7 +20,7 @@ Base.iterate(bi::SMARTSBondIndex, i) = iterate(bi.mapping, i)
 Base.length(bi::SMARTSBondIndex) = length(bi.mapping)
 Base.get(bi::SMARTSBondIndex, k, v) = get(bi.mapping, k, v)
 Base.setindex!(bi::SMARTSBondIndex, v, k) = setindex!(bi.mapping, v, k)
-to_dict(bi::SMARTSBondIndex) = [[[src(e), dst(e)], i] for (e, i) in bi.mapping]
+to_dict(::Val{:standard}, bi::SMARTSBondIndex) = [[[src(e), dst(e)], i] for (e, i) in bi.mapping]
 
 function remap(bi::SMARTSBondIndex{T}, vmap::Dict) where T  # vmap[old] -> new
     newmap = Dict{Edge{T},T}()

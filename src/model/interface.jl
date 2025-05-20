@@ -44,7 +44,7 @@ Base.length(meta::Metadata) = length(meta.mapping)
 Base.get(meta::Metadata, k, v) = get(meta.mapping, k, v)
 Base.setindex!(meta::Metadata, v, k) = setindex!(meta.mapping, v, k)
 Base.delete!(meta::Metadata, k) = delete!(meta.mapping, k)
-to_dict(meta::Metadata) = [[i, val] for (i, val) in meta]
+to_dict(::Val{:standard}, meta::Metadata) = [[i, val] for (i, val) in meta]
 
 
 # Graphs.jl common interface
@@ -164,24 +164,6 @@ edge_neighbors(mol::AbstractMolGraph, e) = edge_neighbors(mol.graph, e)
 
 ordered_edge_neighbors = edge_neighbors
 
-
-"""
-    to_dict(mol::MolGraph) -> Dict{String,Any}
-
-Convert molecule object into JSON compatible dictionary.
-"""
-to_dict(mol::AbstractMolGraph) = error("method to_dict not implemented")
-to_dict(atom_or_bond::Dict) = atom_or_bond
-to_dict(metadata::AbstractString) = metadata
-to_dict(value::Number) = value
-
-
-"""
-    to_json(mol::MolGraph) -> String
-
-Convert molecule object into JSON String.
-"""
-to_json(mol::AbstractMolGraph) = JSON.json(to_dict(mol))
 
 function remap_gprops(mol::SimpleMolGraph, vmap)  # vmap[old] -> new
     newgp = Dict{Symbol,Any}()

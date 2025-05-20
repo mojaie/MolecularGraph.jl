@@ -105,7 +105,7 @@ Base.:(==)(a1::SDFAtom, a2::SDFAtom) = all(
 Base.hash(a::SDFAtom, h::UInt
     ) = hash(a.symbol, hash(a.charge, hash(a.multiplicity, hash(a.mass, hash(a.coords, h)))))
 
-to_dict(a::SDFAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.coords]
+to_dict(::Val{:standard}, a::SDFAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.coords]
 
 
 """
@@ -140,4 +140,4 @@ Base.:(==)(a1::SMILESAtom, a2::SMILESAtom) = all(
 Base.hash(a::SMILESAtom, h::UInt
     ) = hash(a.symbol, hash(a.charge, hash(a.multiplicity, hash(a.mass, hash(a.isaromatic, hash(a.stereo, h))))))
 
-to_dict(a::SMILESAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, a.stereo]
+to_dict(::Val{:standard}, a::SMILESAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, a.stereo]

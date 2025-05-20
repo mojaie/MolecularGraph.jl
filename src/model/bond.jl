@@ -42,7 +42,7 @@ Base.:(==)(b1::SDFBond, b2::SDFBond) = all(
 Base.hash(b::SDFBond, h::UInt
     ) = hash(b.order, hash(b.notation, hash(b.isordered, h)))
 
-to_dict(b::SDFBond) = Any[b.order, b.notation, b.isordered]
+to_dict(::Val{:standard}, b::SDFBond) = Any[b.order, b.notation, b.isordered]
 
 
 """
@@ -70,4 +70,4 @@ Base.:(==)(b1::SMILESBond, b2::SMILESBond) = all(
 Base.hash(b::SMILESBond, h::UInt
     ) = hash(b.order, hash(b.isaromatic, hash(b.direction, h)))
 
-to_dict(b::SMILESBond) = Any[b.order, b.isaromatic, b.direction]
+to_dict(::Val{:standard}, b::SMILESBond) = Any[b.order, b.isaromatic, b.direction]

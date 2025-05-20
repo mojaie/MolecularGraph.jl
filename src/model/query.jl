@@ -15,7 +15,7 @@ end
 Base.:(==)(q::QueryAny, r::QueryAny) = q.value == r.value
 Base.hash(q::QueryAny, h::UInt) = hash(q.value, h)
 
-to_dict(q::QueryAny) = [q.value]
+to_dict(::Val{:standard}, q::QueryAny) = [q.value]
 
 
 """
@@ -44,7 +44,7 @@ Base.:(==)(q::QueryLiteral, r::QueryLiteral
     ) = q.key == r.key && q.operator == r.operator && string(q.value) == string(r.value)
 Base.hash(q::QueryLiteral, h::UInt) = hash(q.key, hash(q.operator, hash(q.value, h)))
 
-to_dict(q::QueryLiteral) = [string(q.operator), string(q.key), q.value isa Symbol ? ":$(q.value)" : q.value]
+to_dict(::Val{:standard}, q::QueryLiteral) = [string(q.operator), string(q.key), q.value isa Symbol ? ":$(q.value)" : q.value]
 
 
 """
@@ -60,7 +60,7 @@ end
 Base.:(==)(q::QueryOperator, r::QueryOperator) = q.key == r.key && issetequal(q.value, r.value)
 Base.hash(q::QueryOperator, h::UInt) = hash(q.key, hash(Set(q.value), h))
 
-to_dict(q::QueryOperator) = [string(q.key), [to_dict(c) for c in q.value]]
+to_dict(fmt::Val{:standard}, q::QueryOperator) = [string(q.key), [to_dict(fmt, c) for c in q.value]]
 
 
 """
@@ -90,7 +90,7 @@ end
 
 Base.getindex(a::QueryTree, prop::Symbol) = getproperty(a, prop)
 
-to_dict(q::QueryTree) = to_dict(q.tree)
+to_dict(fmt::Val{:standard}, q::QueryTree) = to_dict(fmt, q.tree)
 
 
 
