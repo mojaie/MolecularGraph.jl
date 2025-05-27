@@ -11,8 +11,8 @@ import Graphs:
 
 export
     AbstractMolGraph, SimpleMolGraph,
-    MolGraph, SDFMolGraph, SMILESMolGraph,
-    MolGraphGen, SMARTSMolGraph,
+    MolGraph, SDFMolGraph, SMILESMolGraph, CommonChemMolGraph,
+    SMARTSMolGraph,
     QueryAny, QueryLiteral, QueryOperator, QueryTree, QueryTruthTable,
     AbstractReaction, Reaction,
     to_dict, to_json,
@@ -44,7 +44,7 @@ Base.length(meta::Metadata) = length(meta.mapping)
 Base.get(meta::Metadata, k, v) = get(meta.mapping, k, v)
 Base.setindex!(meta::Metadata, v, k) = setindex!(meta.mapping, v, k)
 Base.delete!(meta::Metadata, k) = delete!(meta.mapping, k)
-to_dict(::Val{:standard}, meta::Metadata) = [[i, val] for (i, val) in meta]
+to_dict(::Val{:default}, meta::Metadata) = [[i, val] for (i, val) in meta]
 
 
 # Graphs.jl common interface

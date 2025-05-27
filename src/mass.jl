@@ -39,7 +39,7 @@ Return a tuple of monoisotopic mass of the atom/molecule and its uncertainty.
 Monoisotopic mass is the relative atomic mass of the most abundant isotope. Even if there is specific `Atom.mass` value, it will be ignored.
 """
 function monoiso_mass_unc(atomsymbol::Symbol)
-    num = atomnumber(atomsymbol)
+    num = atom_number(atomsymbol)
     mass = ATOMTABLE[num]["Monoisotopic"]
     unc = ATOMTABLE[num]["MonoisotopicUncertainty"]
     return (mass, unc)
@@ -89,7 +89,7 @@ If `number` is not given or `Atom.mass` is not specified, monoisotopic mass will
 function exact_mass_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
     number === nothing && return monoiso_mass_unc(atomsymbol)
     pred = rcd -> rcd["Number"] == number
-    iso = ATOMTABLE[atomnumber(atomsymbol)]["Isotopes"]
+    iso = ATOMTABLE[atom_number(atomsymbol)]["Isotopes"]
     k = findfirst(pred.(iso))
     k === nothing && error("No isotope data for $(number)$(atomsymbol)")
     mass = iso[k]["Mass"]
@@ -128,7 +128,7 @@ If `Atom.mass` is specified, calculated exact mass of the atom will be used inst
 """
 function standard_weight_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
     number === nothing || return exact_mass_unc(atomsymbol, number)
-    num = atomnumber(atomsymbol)
+    num = atom_number(atomsymbol)
     wt = ATOMTABLE[num]["Weight"]
     unctype = ATOMTABLE[num]["WeightType"]
     if unctype == "Interval"
@@ -172,7 +172,7 @@ Return isotopic composition of the atoms/molecule as a vector of tuples of mass 
 Records that have lower abundance than the given threshold will be filtered out (default 0.001 = 0.1%)
 """
 function isotopic_composition(atomsymbol::Symbol, number::Int; threshold=0.001)
-    z = atomnumber(atomsymbol)
+    z = atom_number(atomsymbol)
     isotopes = []
     for iso in ATOMTABLE[z]["Isotopes"]
         cmp = iso["Composition"]

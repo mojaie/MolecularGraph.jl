@@ -2,8 +2,8 @@
 @testset "model.atom" begin
 
 @testset "atom" begin
-    @test atomnumber(:Fe) == 26
-    @test atomsymbol(118) === :Og
+    @test atom_number(:Fe) == 26
+    @test atom_symbol(118) === :Og
 
     sdfa = SDFAtom(:Fe, 2, 1, nothing, [1.0, 2.0, 0.0])
     @test sdfa[:symbol] === :Fe

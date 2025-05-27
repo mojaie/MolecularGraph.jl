@@ -128,7 +128,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         end
         num = parse(Int, SubString(state.input, start, state.pos))
         forward!(state)
-        return QueryLiteral(:symbol, atomsymbol(num))
+        return QueryLiteral(:symbol, atom_symbol(num))
     elseif sym1 in keys(SMARTS_CHARGE_SIGN)
         # Charge
         forward!(state)

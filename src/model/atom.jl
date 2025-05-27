@@ -5,7 +5,7 @@
 
 export
     ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
-    SDFAtom, SMILESAtom, atomnumber, atomsymbol
+    SDFAtom, SMILESAtom, atom_number, atomsymbol
 
 
 const ATOMTABLE = let
@@ -61,19 +61,19 @@ end
 
 
 """
-    atomnumber(atomsymbol::Symbol) -> Int
+    atom_number(atomsymbol::Symbol) -> Int
 
 Return atom number.
 """
-atomnumber(atomsymbol::Symbol) = ATOMSYMBOLMAP[string(atomsymbol)]
+atom_number(atomsymbol::Symbol) = ATOMSYMBOLMAP[string(atomsymbol)]
 
 
 """
-    atomsymbol(n::Int) -> Symbol
+    atom_symbol(n::Int) -> Symbol
 
 Return atom symbol of given atomic number.
 """
-atomsymbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
+atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
 
 
 """
@@ -105,7 +105,22 @@ Base.:(==)(a1::SDFAtom, a2::SDFAtom) = all(
 Base.hash(a::SDFAtom, h::UInt
     ) = hash(a.symbol, hash(a.charge, hash(a.multiplicity, hash(a.mass, hash(a.coords, h)))))
 
-to_dict(::Val{:standard}, a::SDFAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.coords]
+atom_symbol(a::SDFAtom) = a.symbol
+atom_number(a::SDFAtom) = atom_number(a.symbol)
+charge(a::SDFAtom) = a.charge
+multiplicity(a::SDFAtom) = a.multiplicity
+mass(a::SDFAtom) = a.mass
+
+to_dict(::Val{:default}, a::SDFAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.coords]
+
+function to_dict(::Val{:rdkit}, a::SDFAtom)
+    rcd = Dict{String,Any}()
+    a.symbol === :C || (rcd["z"] = atom_number(a.symbol))
+    a.charge == 0 || (rcd["chg"] = a.charge)
+    a.multiplicity == 1 || (rcd["nRad"] = a.multiplicity - 1)
+    isnothing(a.mass) || (rcd["isotope"] = a.mass)
+    return rcd
+end
 
 
 """
@@ -140,4 +155,71 @@ Base.:(==)(a1::SMILESAtom, a2::SMILESAtom) = all(
 Base.hash(a::SMILESAtom, h::UInt
     ) = hash(a.symbol, hash(a.charge, hash(a.multiplicity, hash(a.mass, hash(a.isaromatic, hash(a.stereo, h))))))
 
-to_dict(::Val{:standard}, a::SMILESAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, a.stereo]
+atom_symbol(a::SMILESAtom) = a.symbol
+atom_number(a::SMILESAtom) = atom_number(a.symbol)
+charge(a::SMILESAtom) = a.charge
+multiplicity(a::SMILESAtom) = a.multiplicity
+mass(a::SMILESAtom) = a.mass
+
+to_dict(::Val{:default}, a::SMILESAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, a.stereo]
+
+function to_dict(::Val{:rdkit}, a::SMILESAtom)
+    rcd = Dict{String,Any}()
+    a.symbol === :C || (rcd["z"] = atom_number(a.symbol))
+    a.charge == 0 || (rcd["chg"] = a.charge)
+    a.multiplicity == 1 || (rcd["nRad"] = a.multiplicity - 1)
+    isnothing(a.mass) || (rcd["isotope"] = a.mass)
+    return rcd
+end
+
+
+"""
+    CommonChemAtom
+
+CommonChem atom property type.
+"""
+struct CommonChemAtom
+    z::Int
+    chg::Int
+    impHs::Int
+    mass::Int
+    nRad::Int
+    stereo::Symbol
+
+    function CommonChemAtom(z=6, chg=0, impHs=0, mass=0, nRad=0, stereo=:unspecified)
+        z <= length(ATOMTABLE) || error("Unsupported atom number: $(z)")
+        new(z, chg, impHs, mass, nRad, stereo)
+    end
+end
+
+CommonChemAtom(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = CommonChemAtom(
+    get(d, T("z"), 6), get(d, T("chg"), 0), get(d, T("impHs"), 0),
+    get(d, T("mass"), 0), get(d, T("nRad"), 0), Symbol(get(d, T("stereo"), :unspecified))
+)
+CommonChemAtom(arr::Vector) = CommonChemAtom(
+    arr[1], arr[2], arr[3], arr[4], arr[5], Symbol(arr[6]))
+
+Base.getindex(a::CommonChemAtom, prop::Symbol) = getproperty(a, prop)
+Base.:(==)(a1::CommonChemAtom, a2::CommonChemAtom) = all(
+    [getfield(a1, f1) == getfield(a2, f2) for (f1, f2) in zip(fieldnames(typeof(a1)), fieldnames(typeof(a2)))])
+Base.hash(a::CommonChemAtom, h::UInt
+    ) = hash(a.z, hash(a.chg, hash(a.impHs, hash(a.mass, hash(a.nRad, hash(a.stereo, h))))))
+
+atom_symbol(a::CommonChemAtom) = atom_symbol(a.z)
+atom_number(a::CommonChemAtom) = a.z
+charge(a::CommonChemAtom) = a.chg
+multiplicity(a::CommonChemAtom) = a.nRad + 1
+mass(a::CommonChemAtom) = a.mass == 0 ? nothing : a.mass
+
+to_dict(::Val{:default}, a::CommonChemAtom) = Any[a.z, a.chg, a.impHs, a.mass, a.nRad, a.stereo]
+
+function to_dict(::Val{:rdkit}, a::CommonChemAtom)
+    rcd = Dict{String,Any}()
+    a.z == 6 || (rcd["z"] = a.z)
+    a.chg == 0 || (rcd["chg"] = a.chg)
+    a.impHs == 0 || (rcd["impHs"] = a.impHs)
+    a.mass == 0 || (rcd["mass"] = a.mass)
+    a.nRad == 0 || (rcd["nRad"] = a.nRad)
+    a.stereo === :unspecific || (rcd["stereo"] = a.stereo)
+    return rcd
+end

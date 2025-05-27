@@ -65,7 +65,7 @@ function coordgen(g, atomsymbol_, bondorder_, stereocenters, stereobonds)
     # Atoms
     for a in atomsymbol_
         atom = @ccall libcoordgen.setAtom(
-            minmol::Ptr{Cvoid}, atomnumber(a)::Cint)::Ptr{Cvoid}
+            minmol::Ptr{Cvoid}, atom_number(a)::Cint)::Ptr{Cvoid}
         push!(atoms, atom)
     end
 

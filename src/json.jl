@@ -4,7 +4,10 @@
 #
 
 export
-    to_dict, to_json, to_rdkdict, to_rdkjson, to_rdkmol, to_rdkqmol
+    to_dict, to_json, to_rdkdict, to_rdkjson, rdktomol
+
+
+const CommonChemMolGraph = MolGraph{Int,CommonChemAtom,CommonChemBond}
 
 
 """
@@ -16,7 +19,7 @@ to_dict(::Val, mol::AbstractMolGraph) = error("method to_dict not implemented")
 to_dict(::Val, atom_or_bond::Dict) = atom_or_bond
 to_dict(::Val, metadata::AbstractString) = metadata
 to_dict(::Val, value::Number) = value
-to_dict(x) = to_dict(Val{:standard}(), x)
+to_dict(x) = to_dict(Val{:default}(), x)
 to_rdkdict(x) = to_dict(Val{:rdkit}(), x)
 
 
@@ -26,12 +29,12 @@ to_rdkdict(x) = to_dict(Val{:rdkit}(), x)
 Convert molecule object into JSON String.
 """
 to_json(fmt::Val, mol::AbstractMolGraph) = JSON.json(to_dict(fmt, mol))
-to_json(x) = to_json(Val{:standard}(), x)
+to_json(x) = to_json(Val{:default}(), x)
 to_rdkjson(x) = to_json(Val{:rdkit}(), x)
 
 
-function to_dict(::Val{:rdkit}, mol::MolGraph)
-    jdict = Dict{String,Any}(
+function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
+    data = Dict{String,Any}(
         "commonchem" => Dict("version" => 10),
         "defaults" => Dict(
             "atom" => Dict(
@@ -43,7 +46,7 @@ function to_dict(::Val{:rdkit}, mol::MolGraph)
                 "stereo" => "unspecified"
             ),
             "bond" => Dict(
-                "bo" => 1,
+                "bo" => 1,  # `type`` in CommonChem specification
                 "stereo" => "unspecified"
             )
         ),
@@ -63,35 +66,46 @@ function to_dict(::Val{:rdkit}, mol::MolGraph)
     )
     implh_ = implicit_hydrogens(mol)
     for i in vertices(mol)
-        rcd = Dict{String,Any}()
-        get_prop(mol, i, :symbol) === :C || (rcd["z"] = atomnumber(get_prop(mol, i, :symbol)))
+        rcd = to_dict(fmt, props(mol, i))
         implh_[i] == 0 || (rcd["impHs"] = implh_[i])
-        get_prop(mol, i, :charge) == 0 || (rcd["chg"] = get_prop(mol, i, :charge))
-        get_prop(mol, i, :multiplicity) == 1 || (rcd["nRad"] = get_prop(mol, i, :multiplicity) - 1)
-        isnothing(get_prop(mol, i, :mass)) || (rcd["isotope"] = get_prop(mol, i, :mass))
-        get_prop(mol, i, :stereo) === :unspecified || (rcd["stereo"] = get_prop(mol, i, :stereo))
-        push!(jdict["molecules"][1]["atoms"], rcd)
+        # get_prop(mol, i, :stereo) === :unspecified || (rcd["stereo"] = get_prop(mol, i, :stereo))
+        push!(data["molecules"][1]["atoms"], rcd)
     end
     for (i, e) in enumerate(edges(mol))
-        rcd = Dict{String,Any}("atoms" => [])
-        get_prop(mol, e, :order) == 1 || (rcd["bo"] = get_prop(mol, e, :order))
-        get_prop(mol, i, :stereo) === :unspecified || (rcd["stereo"] = get_prop(mol, i, :stereo))
-        push!(jdict["molecules"][1]["bonds"], rcd)
+        rcd = to_dict(fmt, props(mol, e))
+        rcd["atoms"] = [src(e) - 1, dst(e) - 1]
+        # get_prop(mol, i, :stereo) === :unspecified || (rcd["stereo"] = get_prop(mol, i, :stereo))
+        push!(data["molecules"][1]["bonds"], rcd)
     end
-    return jdict
+    return data
 end
 
 
-function molgraph_from_rdkdict(
-        T::Type{<:Integer}, V::Type, E::Type, data::Dict, config::Dict{Symbol,Any})
-
+function rdktomol(::Type{T}, data::Dict) where T <: AbstractMolGraph
+    data["commonchem"]["version"] == 10 || error("CommonChem version other than 10 is not supported")
+    mol = data["molecules"][1]  # only single mol data is supported
+    mol["extensions"][1]["name"] == "rdkitRepresentation" || error("Invalid RDKit CommonChem file format")
+    mol["extensions"][1]["formatVersion"] == 2 || error("Unsupported RDKit CommonChem version")
+    I = eltype(T)
+    V = vproptype(T)
+    E = eproptype(T)
+    es = Edge{I}[]
+    vps = Dict{I,V}()
+    eps = Dict{Edge{I},E}()
+    # coords
+    # stereo
+    gps = Dict()
+    for (i, a) in enumerate(mol["atoms"])
+        vps[i] = CommonChemAtom(a)
+    end
+    for b in mol["bonds"]
+        edge = u_edge(I, b["atoms"][1] + 1, b["atoms"][2] + 1)
+        print(edge)
+        push!(es, edge)
+        eps[edge] = CommonChemBond(b)
+    end
+    return MolGraph{I,V,E}(SimpleGraph(es), vps, eps, gprop_map=gps)
 end
 
-function to_rdkmol(mol::MolGraph)
-    return get_mol(to_json(Val{:rdkit}(), mol))
-end
 
-
-function to_rdkqmol(mol::MolGraph{Int,QueryTree,QueryTree})
-    return get_qmol(to_json(Val{:rdkit}(), mol))
-end
+rdktomol(data::Dict) = rdktomol(CommonChemMolGraph, data)

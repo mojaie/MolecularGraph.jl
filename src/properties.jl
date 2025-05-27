@@ -302,11 +302,11 @@ the given molecule.
 function atom_symbol(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_symbol) && return get_cache(mol, :v_symbol)
-    return [get_prop(mol, i, :symbol) for i in vertices(mol)]
+    return [atom_symbol(props(mol, i)) for i in vertices(mol)]
 end
 
 atom_symbol!(mol::SimpleMolGraph
-    ) = set_cache!(mol, :v_symbol, [get_prop(mol, i, :symbol) for i in vertices(mol)])
+    ) = set_cache!(mol, :v_symbol, [atom_symbol(props(mol, i)) for i in vertices(mol)])
 
 """
     charge(mol::MolGraph) -> Vector{Int}
@@ -317,12 +317,12 @@ the given molecule.
 function charge(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_charge) && return get_cache(mol, :v_charge)
-    return [get_prop(mol, i, :charge) for i in vertices(mol)]
+    return [charge(props(mol, i)) for i in vertices(mol)]
 end
 
 # kekulize! or charge standardization (e.g. polarize!) would be reset
 charge!(mol::SimpleMolGraph
-    ) = set_cache!(mol, :v_charge, [get_prop(mol, i, :charge) for i in vertices(mol)])
+    ) = set_cache!(mol, :v_charge, [charge(props(mol, i)) for i in vertices(mol)])
 
 
 """
@@ -334,7 +334,7 @@ the given molecule (1: non-radical, 2: radical, 3: biradical).
 function multiplicity(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_multiplicity) && return get_cache(mol, :v_multiplicity)
-    return [get_prop(mol, i, :multiplicity) for i in vertices(mol)]
+    return [multiplicity(props(mol, i)) for i in vertices(mol)]
 end
 
 
@@ -347,7 +347,7 @@ the given molecule.
 function bond_order(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :e_order) && return get_cache(mol, :e_order)
-    return [get_prop(mol, e, :order) for e in edges(mol)]
+    return [bond_order(props(mol, e)) for e in edges(mol)]
 end
 
 # mass -> src/mass.jl
@@ -1023,38 +1023,3 @@ end
 
 is_edge_aromatic!(mol::SimpleMolGraph) = set_cache!(
     mol, :e_is_aromatic, is_edge_aromatic(mol.graph, sssr(mol), is_ring_aromatic(mol)))
-
-
-
-# deprecated function names
-
-nodedegree = degree
-sssrmembership = which_ring
-sssrbondmembership = edge_which_ring
-fusedrings = fused_rings
-fusedringmembership = which_fused_ring
-smallestsssr = smallest_ring
-sssrcount = ring_count
-isringatom = is_in_ring
-isringbond = is_edge_in_ring
-atomsymbol(mol::MolGraph) = atom_symbol(mol)
-bondorder = bond_order
-lonepair = lone_pair
-heavyatomconnected = heavy_atoms
-explicithconnected = explicit_hydrogens
-implicithconnected = implicit_hydrogens
-hydrogenconnected = total_hydrogens
-ishdonor = is_hydrogen_donor
-hdonorcount = hydrogen_donor_count
-ishacceptor = is_hydrogen_acceptor
-hacceptorcount = hydrogen_acceptor_count
-isrotatable = is_rotatable
-rotatablecount = rotatable_count
-atomcounter = atom_counter
-heavyatomcount = heavy_atom_count
-molecularformula = molecular_formula
-empiricalformula = empirical_formula
-pielectron = pi_electron
-isaromaticring = is_ring_aromatic
-isaromatic = is_aromatic
-isaromaticbond = is_edge_aromatic

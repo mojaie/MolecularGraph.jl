@@ -34,11 +34,11 @@ function vmatchgen(mol1::MolGraph, mol2::MolGraph)
 end
 
 function vmatchvecgen(mol)
-    sym = atom_symbol(mol)  # atomnumber 1-118
+    sym = atom_symbol(mol)  # atom number 1-118
     geo = hybridization(mol)
     conv = Dict(:none => 0, :sp => 1, :sp2 => 2, :sp3 => 3)
     return function (i)
-        return conv[geo[i]] * 120 + atomnumber(sym[i])
+        return conv[geo[i]] * 120 + atom_number(sym[i])
     end
 end
 
@@ -48,7 +48,7 @@ function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
         :symbol => atom_symbol(mol1),
         :isaromatic => is_aromatic(mol1),
         :charge => charge(mol1),
-        :mass => [get_prop(mol1, i, :mass) for i in vertices(mol1)],
+        :mass => [mass(props(mol1, i)) for i in vertices(mol1)],
         :connectivity => connectivity(mol1),
         :degree => degree(mol1),
         :valence => valence(mol1),

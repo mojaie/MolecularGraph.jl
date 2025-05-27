@@ -124,7 +124,7 @@ function MolGraph{Int,SMILESAtom,SMILESBond}(data::Dict, config=Dict{Symbol,Any}
 end
 
 
-function to_dict(fmt::Val{:standard}, mol::MolGraph)
+function to_dict(fmt::Val{:default}, mol::MolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     return Dict(
         "eltype" => string(eltype(mol)),

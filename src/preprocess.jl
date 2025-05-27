@@ -19,7 +19,7 @@ end
 
 Base.size(p::PyrroleLike) = size(p.vertices)
 Base.getindex(p::PyrroleLike, i...) = getindex(p.vertices, i...)
-to_dict(::Val{:standard}, p::PyrroleLike) = p.vertices
+to_dict(::Val{:default}, p::PyrroleLike) = p.vertices
 
 remap(p::PyrroleLike{T}, vmap::Dict
     ) where T = PyrroleLike{T}([vmap[v] for v in p.vertices if v in keys(vmap)])
@@ -35,7 +35,7 @@ lowercase atoms (called Kekulization). Kekulization is necessary for the valence
 implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
 """
 function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
-    bondorder = [get_prop(mol, e, :order) for e in edges(mol)]
+    bondorder = [bond_order(props(mol, e)) for e in edges(mol)]
     # lone pair in p-orbital, pyrrole-like aromatic atom
     pyrrole_like = T[]
     for ring in fused_rings(mol.graph)
@@ -47,7 +47,7 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
                 push!(pyrrole_like, i)
                 continue
             end
-            sym = get_prop(mol, i, :symbol)
+            sym = atom_symbol(props(mol, i))
             deg = degree(mol.graph, i)
             if deg == 2
                 sym in (:O, :S) && continue  # o, s, se
@@ -62,8 +62,8 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
                     hasdouble && continue  # c=O
                     push!(arom_vs, i)
                 else  # sym in (:N, :P, :As)
-                    if get_prop(mol, i, :charge) == 0 && !hasdouble
-                        if any(get_prop(mol, nbr, :symbol) === :H for nbr in neighbors(mol, i))
+                    if charge(props(mol, i)) == 0 && !hasdouble
+                        if any(atom_symbol(props(mol, nbr)) === :H for nbr in neighbors(mol, i))
                             push!(pyrrole_like, i) # explicit pyrrole-like [nH]
                         end
                         continue  # including [nH0X3]
@@ -112,14 +112,14 @@ function removable_hydrogens(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
         :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I
     ])
     for i in vertices(mol)
-        get_prop(mol, i, :symbol) === :H || continue
-        get_prop(mol, i, :charge) == 0 || continue
-        get_prop(mol, i, :multiplicity) == 1 || continue
-        get_prop(mol, i, :mass) === nothing || continue
+        atom_symbol(props(mol, i)) === :H || continue
+        charge(props(mol, i)) == 0 || continue
+        multiplicity(props(mol, i)) == 1 || continue
+        isnothing(mass(props(mol, i))) || continue
         degree(mol.graph, i) == 1 || continue
         nbr = neighbors(mol, i)[1]
-        get_prop(mol, nbr, :symbol) in organic_heavy || continue
-        get_prop(mol, i, nbr, :order) == 1 || continue
+        atom_symbol(props(mol, nbr)) in organic_heavy || continue
+        bond_order(props(mol, i, nbr)) == 1 || continue
         haskey(get_prop(mol, :stereocenter), nbr) && continue
         push!(hs, i)
     end
@@ -135,7 +135,7 @@ Return a vector of all hydrogen nodes.
 function all_hydrogens(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     hs = T[]
     for i in vertices(mol)
-        get_prop(mol, i, :symbol) === :H || continue
+        atom_symbol(props(mol, i)) === :H || continue
         push!(hs, i)
     end
     return hs
@@ -217,7 +217,7 @@ extract_largest_component!(mol::SimpleMolGraph
 Protonate oxo(thio) anion groups of the molecule.
 """
 function protonate_acids(mol::SimpleMolGraph)
-    atomsymbol_ = atomsymbol(mol)
+    atomsymbol_ = atom_symbol(mol)
     charge_ = charge(mol)
     connectivity_ = connectivity(mol)
     arr = copy(charge_)
@@ -259,10 +259,10 @@ deprotonate_oniums!(mol::MolGraph) = set_cache!(mol, :v_charge, deprotonate_oniu
 Depolarize dipole double bonds of the molecule.
 """
 function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
-    atomsymbol_ = atomsymbol(mol)
+    atomsymbol_ = atom_symbol(mol)
     charge_ = charge(mol)
     connectivity_ = connectivity(mol)
-    isaromatic_ = isaromatic(mol)
+    isaromatic_ = is_aromatic(mol)
     carr = copy(charge_)
     oarr = copy(bond_order(mol))
     for o in findall(charge_ .== -1)
@@ -293,9 +293,9 @@ end
 Polarize dipole double bonds of the molecule.
 """
 function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
-    atomsymbol_ = atomsymbol(mol)
+    atomsymbol_ = atom_symbol(mol)
     charge_ = charge(mol)
-    bondorder_ = bondorder(mol)
+    bondorder_ = bond_order(mol)
     connectivity_ = connectivity(mol)
     carr = copy(charge_)
     oarr = copy(bondorder_)
@@ -348,7 +348,7 @@ function to_triple_bond(mol::SimpleMolGraph)
     carr = copy(charge(mol))
     oarr = copy(bond_order(mol))
     for (first, center, third) in find_dipoles(mol)
-        get_prop(mol, first, center, :order) == 2 || continue
+        bond_order(props(mol, first, center)) == 2 || continue
         carr[first] = 0
         carr[third] = -1
         oarr[edge_rank(mol, first, center)] = 3
@@ -374,7 +374,7 @@ function to_allene_like(mol::SimpleMolGraph)
     carr = copy(charge(mol))
     oarr = copy(bond_order(mol))
     for (first, center, third) in find_dipoles(mol)
-        get_prop(mol, first, center, :order) == 1 || continue
+        bond_order(props(mol, first, center)) == 1 || continue
         carr[first] = 0
         carr[third] = -1
         oarr[edge_rank(mol, first, center)] = 2

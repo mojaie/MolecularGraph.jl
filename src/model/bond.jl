@@ -42,7 +42,15 @@ Base.:(==)(b1::SDFBond, b2::SDFBond) = all(
 Base.hash(b::SDFBond, h::UInt
     ) = hash(b.order, hash(b.notation, hash(b.isordered, h)))
 
-to_dict(::Val{:standard}, b::SDFBond) = Any[b.order, b.notation, b.isordered]
+bond_order(b::SDFBond) = b.order
+
+to_dict(::Val{:default}, b::SDFBond) = Any[b.order, b.notation, b.isordered]
+
+function to_dict(::Val{:rdkit}, b::SDFBond)
+    rcd = Dict{String,Any}()
+    b.order == 1 || (rcd["bo"] = b.order)
+    return rcd
+end
 
 
 """
@@ -70,4 +78,46 @@ Base.:(==)(b1::SMILESBond, b2::SMILESBond) = all(
 Base.hash(b::SMILESBond, h::UInt
     ) = hash(b.order, hash(b.isaromatic, hash(b.direction, h)))
 
-to_dict(::Val{:standard}, b::SMILESBond) = Any[b.order, b.isaromatic, b.direction]
+bond_order(b::SMILESBond) = b.order
+
+to_dict(::Val{:default}, b::SMILESBond) = Any[b.order, b.isaromatic, b.direction]
+
+function to_dict(::Val{:rdkit}, b::SMILESBond)
+    rcd = Dict{String,Any}()
+    b.order == 1 || (rcd["bo"] = b.order)
+    return rcd
+end
+
+
+"""
+    CommonChemBond
+
+CommonChem bond property type.
+"""
+struct CommonChemBond
+    type::Int  # bond order
+
+    function CommonChemBond(type=1)
+        new(type)
+    end
+end
+
+
+CommonChemBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = CommonChemBond(
+    get(d, T("bo"), 1))
+CommonChemBond(arr::Vector) = CommonChemBond(arr[1])
+
+Base.getindex(b::CommonChemBond, prop::Symbol) = getproperty(b, prop)
+Base.:(==)(b1::CommonChemBond, b2::CommonChemBond) = all(
+    [getfield(b1, f1) == getfield(b2, f2) for (f1, f2) in zip(fieldnames(typeof(b1)), fieldnames(typeof(b2)))])
+Base.hash(b::CommonChemBond, h::UInt) = hash(b.type, h)
+
+bond_order(b::CommonChemBond) = b.type
+
+to_dict(::Val{:default}, b::CommonChemBond) = Any[b.type]
+
+function to_dict(::Val{:rdkit}, b::CommonChemBond)
+    rcd = Dict{String,Any}()
+    b.type == 1 || (rcd["bo"] = b.type)
+    return rcd
+end

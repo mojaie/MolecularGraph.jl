@@ -25,7 +25,7 @@ function atom_radius(mol::SimpleMolGraph; mapping=ATOM_VANDERWAALS_RADII)
     isa(mapping, Real) && return fill(mapping, nv(mol))
     desc = zeros(Float64, nv(mol))
     for i in vertices(mol)
-        an = atomnumber(get_prop(mol, i, :symbol))
+        an = atom_number(props(mol, i))
         desc[i] = mapping[an]
         mapping === ATOM_COVALENT_RADII || continue
         isa(r, Real) && continue
@@ -143,8 +143,8 @@ function plot!(md::MolDisplay{<:NTuple{<:Any,<:SimpleMolGraph}})
             drawatoms!(md, crds, col, rd)
         end
         if md[:showbonds][]
-            syms = [get_prop(mol, i, :symbol) for i in vertices(mol)]
-            nbrs = [degree(mol, i) for i in vertices(mol)]
+            syms = atom_symbols(mol)
+            nbrs = degree(mol)
             for e in edges(mol)
                 drawbond!(md, mol, e, crds, col, syms, nbrs; bonddiameter=md[:bonddiameter][], multiplebonds=md[:multiplebonds][])
             end
@@ -156,7 +156,7 @@ end
 drawatoms!(f, crds, col, rd; kwargs...) = meshscatter!(f, crds[:, 1], crds[:, 2], crds[:, 3]; color=col, markersize=rd);
 
 function drawbond!(f, mol::SimpleMolGraph, e, crds, col, syms, nbrs; bonddiameter=DEFAULT_BOND_DIAMETER, multiplebonds=false, kwargs...)
-    order = multiplebonds ? get_prop(mol, e, :order) : 1
+    order = multiplebonds ? bond_order(props(mol, e)) : 1
     atomidx1, atomidx2 = e.src, e.dst
     pos1, pos2 = crds[atomidx1,:], crds[atomidx2,:]   
     normaldir = Z_DIR
