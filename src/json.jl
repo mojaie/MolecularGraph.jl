@@ -50,32 +50,63 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
                 "stereo" => "unspecified"
             )
         ),
-        "molecules" => [
-            Dict(
-                "atoms" => [],
-                "bonds" => [],
-                "extensions" => [
-                    Dict(
-                        "name" => "rdkitRepresentation",
-                        "formatVersion" => 2,
-                        "toolkitVersion" => "2022.09.5"
-                    )
-                ]
-            )
-        ]
+        "molecules" => [Dict(
+            "atoms" => [],
+            "bonds" => [],
+            "extensions" => [Dict(
+                "name" => "rdkitRepresentation",
+                "formatVersion" => 2,
+                "toolkitVersion" => "2022.09.5"
+            )]
+        )]
     )
-    implh_ = implicit_hydrogens(mol)
+    atomnum = atom_number(mol)
+    implh = implicit_hydrogens(mol)
+    chg = charge(mol)
+    mul = multiplicity(mol)
+    ms = [mass(props(mol, i)) for i in vertices(mol)]
+    stereocenters = get_prop(mol, :stereocenter)
     for i in vertices(mol)
-        rcd = to_dict(fmt, props(mol, i))
-        implh_[i] == 0 || (rcd["impHs"] = implh_[i])
-        # get_prop(mol, i, :stereo) === :unspecified || (rcd["stereo"] = get_prop(mol, i, :stereo))
+        rcd = Dict{String,Any}()
+        atomnum[i] == 6 || (rcd["z"] = atomnum[i])
+        implh[i] == 0 || (rcd["impHs"] = implh[i])
+        chg[i] == 0 || (rcd["chg"] = chg[i])
+        mul[i] == 0 || (rcd["nRad"] = mul[i] - 1)
+        isnothing(ms[i]) || (rcd["isotope"] = ms[i])
+        """
+        if haskey(stereocenters, i)
+            lookfrom, v1, v2, is_clockwise = stereocenters[i]
+            # get index order
+            iorder = sortperm([lookfrom, v1, v2])
+
+            if degree(mol, i) == 4
+                rcd["stereo"] =
+        end
+        """
         push!(data["molecules"][1]["atoms"], rcd)
     end
+    stereobonds = get_prop(mol, :stereobond)
+    bondorder = bond_order(mol)
     for (i, e) in enumerate(edges(mol))
-        rcd = to_dict(fmt, props(mol, e))
-        rcd["atoms"] = [src(e) - 1, dst(e) - 1]
-        # get_prop(mol, i, :stereo) === :unspecified || (rcd["stereo"] = get_prop(mol, i, :stereo))
+        rcd = Dict{String,Any}(
+            "atoms" => [src(e) - 1, dst(e) - 1]
+        )
+        bondorder[i] == 1 || (rcd["bo"] = bondorder[i])
+        if haskey(stereobonds, e)
+            v1, v2, is_cis = stereobonds[e]
+            rcd["stereoAtoms"] = [v1 - 1, v2 - 1]
+            rcd["stereo"] = is_cis ? "cis" : "trans"
+        end
         push!(data["molecules"][1]["bonds"], rcd)
+    end
+    # TODO: coords 2d and 3d
+    if has_coords(mol)
+        data["molecules"][1]["conformers"] = []
+        coords_ = coords2d(mol_)
+        push!(
+            data["molecules"][1]["conformers"],
+            Dict("dim" => 2, "coords" => [coords_[i, 1:2] for i in vertices(mol)])
+        )
     end
     return data
 end
@@ -92,8 +123,8 @@ function rdktomol(::Type{T}, data::Dict) where T <: AbstractMolGraph
     es = Edge{I}[]
     vps = Dict{I,V}()
     eps = Dict{Edge{I},E}()
-    # coords
-    # stereo
+    # TODO: coords
+    # TODO: stereo
     gps = Dict()
     for (i, a) in enumerate(mol["atoms"])
         vps[i] = CommonChemAtom(a)
@@ -109,3 +140,4 @@ end
 
 
 rdktomol(data::Dict) = rdktomol(CommonChemMolGraph, data)
+rdktomol(json::String) = rdktomol(CommonChemMolGraph, JSON.parse(json))

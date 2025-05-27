@@ -308,6 +308,23 @@ end
 atom_symbol!(mol::SimpleMolGraph
     ) = set_cache!(mol, :v_symbol, [atom_symbol(props(mol, i)) for i in vertices(mol)])
 
+
+"""
+    atom_number(mol::MolGraph) -> Vector{Int}
+
+Return a vector of size ``n`` representing atom numbers of 1 to ``n``th atoms of
+the given molecule.
+"""
+function atom_number(mol::SimpleMolGraph)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    has_cache(mol, :v_number) && return get_cache(mol, :v_number)
+    return [atom_number(props(mol, i)) for i in vertices(mol)]
+end
+
+atom_number!(mol::SimpleMolGraph
+    ) = set_cache!(mol, :v_number, [atom_number(props(mol, i)) for i in vertices(mol)])
+
+
 """
     charge(mol::MolGraph) -> Vector{Int}
 
