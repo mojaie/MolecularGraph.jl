@@ -73,16 +73,22 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
         chg[i] == 0 || (rcd["chg"] = chg[i])
         mul[i] == 0 || (rcd["nRad"] = mul[i] - 1)
         isnothing(ms[i]) || (rcd["isotope"] = ms[i])
-        """
         if haskey(stereocenters, i)
             lookfrom, v1, v2, is_clockwise = stereocenters[i]
-            # get index order
-            iorder = sortperm([lookfrom, v1, v2])
-
-            if degree(mol, i) == 4
-                rcd["stereo"] =
+            nbrs = sort(neighbors(mol, i))
+            nf = findfirst(==(lookfrom), nbrs)
+            n1 = findfirst(==(v1), nbrs)
+            n2 = findfirst(==(v2), nbrs)
+            rest = setdiff(1:4, nf)
+            match = ((n1 == rest[1] && n2 == rest[2])
+                || (n1 == rest[2] && n2 == rest[3])
+                || (n1 == rest[3] && n2 == rest[1]))
+            if (nf in [1, 3]) == match
+                rcd["stereo"] = is_clockwise ? "cw" : "ccw"
+            else
+                rcd["stereo"] = is_clockwise ? "ccw" : "cw"
+            end
         end
-        """
         push!(data["molecules"][1]["atoms"], rcd)
     end
     stereobonds = get_prop(mol, :stereobond)
@@ -102,7 +108,7 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
     # TODO: coords 2d and 3d
     if has_coords(mol)
         data["molecules"][1]["conformers"] = []
-        coords_ = coords2d(mol_)
+        coords_ = coords2d(mol)
         push!(
             data["molecules"][1]["conformers"],
             Dict("dim" => 2, "coords" => [coords_[i, 1:2] for i in vertices(mol)])
@@ -113,6 +119,7 @@ end
 
 
 function rdktomol(::Type{T}, data::Dict) where T <: AbstractMolGraph
+    error("not implemented yet")
     data["commonchem"]["version"] == 10 || error("CommonChem version other than 10 is not supported")
     mol = data["molecules"][1]  # only single mol data is supported
     mol["extensions"][1]["name"] == "rdkitRepresentation" || error("Invalid RDKit CommonChem file format")
