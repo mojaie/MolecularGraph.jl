@@ -74,20 +74,9 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
         mul[i] == 0 || (rcd["nRad"] = mul[i] - 1)
         isnothing(ms[i]) || (rcd["isotope"] = ms[i])
         if haskey(stereocenters, i)
-            lookfrom, v1, v2, is_clockwise = stereocenters[i]
-            nbrs = sort(neighbors(mol, i))
-            nf = findfirst(==(lookfrom), nbrs)
-            n1 = findfirst(==(v1), nbrs)
-            n2 = findfirst(==(v2), nbrs)
-            rest = setdiff(1:4, nf)
-            match = ((n1 == rest[1] && n2 == rest[2])
-                || (n1 == rest[2] && n2 == rest[3])
-                || (n1 == rest[3] && n2 == rest[1]))
-            if (nf in [1, 3]) == match
-                rcd["stereo"] = is_clockwise ? "cw" : "ccw"
-            else
-                rcd["stereo"] = is_clockwise ? "ccw" : "cw"
-            end
+            center = stereocenters[i]
+            nbrs = ordered_neighbors(mol, i)
+            rcd["stereo"] = isclockwise(center, nbrs[1:3]...) ? "cw" : "ccw"
         end
         push!(data["molecules"][1]["atoms"], rcd)
     end

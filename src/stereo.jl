@@ -9,6 +9,30 @@ export
     stereobond_from_smiles!, stereobond_from_sdf2d!
 
 
+const STEREOCENTER_STATE = Dict(
+    (1, 2, 3) => true, (1, 2, 4) => false,
+    (1, 3, 2) => false, (1, 3, 4) => true,
+    (1, 4, 2) => true, (1, 4, 3) => false,
+    (2, 1, 3) => false, (2, 1, 4) => true,
+    (2, 3, 1) => true, (2, 3, 4) => false,
+    (2, 4, 1) => false, (2, 4, 3) => true,
+    (3, 1, 2) => true, (3, 1, 4) => false,
+    (3, 2, 1) => false, (3, 2, 4) => true,
+    (3, 4, 1) => true, (3, 4, 2) => false,
+    (4, 1, 2) => false, (4, 1, 3) => true,
+    (4, 2, 1) => true, (4, 2, 3) => false,
+    (4, 3, 1) => false, (4, 3, 2) => true
+)
+
+
+function isclockwise(stereo::Tuple{T,T,T,Bool}, f::T, s::T, t::T) where T
+    fp = something(findfirst(==(f), stereo[1:3]), 4)
+    sp = something(findfirst(==(s), stereo[1:3]), 4)
+    tp = something(findfirst(==(t), stereo[1:3]), 4)
+    return stereo[4] === STEREOCENTER_STATE[(fp, sp, tp)] 
+end
+
+
 """
     Stereocenter{T} <: AbstractDict{T,Tuple{T,T,T,Bool}}
 
@@ -123,24 +147,13 @@ This function is called inside `rem_vertex!` and `rem_vertices!` functions
 to safely remove hydrogen nodes while preserving stereocenter information.
 """
 function safe_stereo_hydrogen!(mol::SimpleMolGraph{T,V,E}, center::T) where {T,V,E}
-    """
-    [C@@]([H])(C)(N)O -> C, N, O, (H), @
-    ([H])[C@@](C)(N)O -> C, N, O, (H), @
-    C[C@@]([H])(N)O -> C, N, O, (H), @@
-    C[C@@](N)([H])O -> C, N, O, (H), @
-    C[C@@](N)(O)[H] -> C, N, O, (H), @@
-    """
     h = stereo_hydrogen(mol, center)
     isnothing(h) && return # 4° center or already removed
     stereo = get_prop(mol, :stereocenter)[center]
-    vs = collect(stereo[1:3])
-    spos = findfirst(x -> x == h, vs)
+    spos = findfirst(==(h), stereo[1:3])
     isnothing(spos) && return h  # hydrogen at the lowest priority can be removed safely
-    is_rev = spos in [1, 3]
-    rest = only(setdiff(neighbors(mol, center), vs))  # the lowest node index
-    popat!(vs, spos)
-    push!(vs, rest)
-    set_stereocenter!(mol, center, vs..., xor(stereo[4], is_rev))
+    nonh = setdiff(ordered_neighbors(mol, center), h)
+    set_stereocenter!(mol, center, nonh..., isclockwise(stereo, nonh...))
     return h
 end
 
