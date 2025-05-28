@@ -18,6 +18,7 @@ using MolecularGraph:
     state = SMARTSParser{SMARTSMolGraph}("C1CCCCC1")
     state.node = 1
     push!(state.vprops, QueryTree(QueryLiteral(:symbol, :C)))
+    push!(state.succ, [])
     forward!(state)
     chain!(state)
     @test state.edges[1] == Edge(1, 6)
@@ -27,6 +28,7 @@ using MolecularGraph:
     state = SMARTSParser{SMARTSMolGraph}("C%10CCCCC%10")
     state.node = 1
     push!(state.vprops, QueryTree(QueryLiteral(:symbol, :C)))
+    push!(state.succ, [])
     forward!(state)
     chain!(state)
     @test state.edges[1] == Edge(1, 6)

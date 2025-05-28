@@ -22,7 +22,7 @@ Base.getindex(p::PyrroleLike, i...) = getindex(p.vertices, i...)
 to_dict(::Val{:default}, p::PyrroleLike) = p.vertices
 
 remap(p::PyrroleLike{T}, vmap::Dict
-    ) where T = PyrroleLike{T}([vmap[v] for v in p.vertices if v in keys(vmap)])
+    ) where T = PyrroleLike{T}([vmap[v] for v in p.vertices if haskey(vmap, v)])
 
 
 """

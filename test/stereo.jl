@@ -49,11 +49,18 @@ end
 @testset "stereocenter_from_smiles" begin
     # ring bond
     asc = smilestomol("C([C@@H]([C@@H]1C(=C(C(=O)O1)O)O)O)O")
+    @test get_prop(asc, :lexical_successors)[2] == [3, 4, 13]
+    @test get_prop(asc, :lexical_successors)[4] == [5, 10, 6]
     @test get_prop(asc, :stereocenter)[2] == (1, 3, 4, true)
     @test get_prop(asc, :stereocenter)[4] == (2, 5, 10, true)
     subg, vmap = induced_subgraph(asc, [2, 4, 5, 6, 10])
+    @test get_prop(subg, :lexical_successors)[2] == [3, 5, 4]
     @test get_prop(subg, :stereocenter)[2] == (1, 3, 5, true)
-    @test get_prop(subg, :original_bond_index)[Edge(2, 5)] == 5
+    codeine = smilestomol("CN1CC[C@]23c4c5ccc(c4O[C@H]2[C@H](C=C[C@H]3[C@H]1C5)O)OC")
+    @test get_prop(codeine, :lexical_successors)[5] == [13, 19, 6]
+    @test get_prop(codeine, :lexical_successors)[19] == [20, 5, 21]
+    @test get_prop(codeine, :stereocenter)[5] == (4, 13, 19, false)
+    @test get_prop(codeine, :stereocenter)[19] == (18, 20, 5, false)
 end
 
 

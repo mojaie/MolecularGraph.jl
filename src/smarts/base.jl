@@ -8,27 +8,20 @@ export
     smilestomol, smartstomol
 
 
-struct SMARTSBondIndex{T} <: AbstractDict{Edge{T},T}
-    mapping::Dict{Edge{T},T}
+struct SMARTSLexicalSuccessors{T} <: AbstractVector{AbstractVector{T}}
+    vector::Vector{Vector{T}}
 end
 
-SMARTSBondIndex{T}(data::Vector=[]) where T = SMARTSBondIndex{T}(
-    Dict{Edge{T},T}(u_edge(T, e[1], e[2]) => i for (e, i) in data))
+Base.size(arr::SMARTSLexicalSuccessors) = size(arr.vector)
+Base.getindex(arr::SMARTSLexicalSuccessors, i...) = getindex(arr.vector, i...)
+to_dict(::Val{:default}, arr::SMARTSLexicalSuccessors) = arr.vector
 
-Base.iterate(bi::SMARTSBondIndex) = iterate(bi.mapping)
-Base.iterate(bi::SMARTSBondIndex, i) = iterate(bi.mapping, i)
-Base.length(bi::SMARTSBondIndex) = length(bi.mapping)
-Base.get(bi::SMARTSBondIndex, k, v) = get(bi.mapping, k, v)
-Base.setindex!(bi::SMARTSBondIndex, v, k) = setindex!(bi.mapping, v, k)
-to_dict(::Val{:default}, bi::SMARTSBondIndex) = [[[src(e), dst(e)], i] for (e, i) in bi.mapping]
-
-function remap(bi::SMARTSBondIndex{T}, vmap::Dict) where T  # vmap[old] -> new
-    newmap = Dict{Edge{T},T}()
-    for (e, i) in bi.mapping
-        (haskey(vmap, src(e)) && haskey(vmap, dst(e))) || continue
-        newmap[u_edge(T, vmap[src(e)], vmap[dst(e)])] = i
+function remap(arr::SMARTSLexicalSuccessors{T}, vmap::Dict) where T
+    vec = [T[] for i in 1:length(vmap)]
+    for (k, v) in vmap
+        vec[v] = [vmap[s] for s in arr.vector[k] if haskey(vmap, s)]
     end
-    return SMARTSBondIndex{T}(newmap)
+    return SMARTSLexicalSuccessors{T}(vec)
 end
 
 
@@ -39,7 +32,8 @@ mutable struct SMILESParser{T,V,E}
     node::Int # No. of current node
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
-    ringlabel::Dict{Int,Int}  # label => original bond index
+    ringlabel::Dict{Int,Int}  # ring label => No. of edge to connect
+    succ::Vector{Vector{T}}  # node => successors in lexical order (for stereochem)
     edges::Vector{Edge{T}}
     vprops::Vector{V}
     eprops::Vector{E}
@@ -47,7 +41,7 @@ end
 
 SMILESParser{T}(smiles
     ) where T <: SimpleMolGraph = SMILESParser{eltype(T),vproptype(T),eproptype(T)}(
-        smiles, 1, false, 0, 1, 1, Dict(), Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[])
+        smiles, 1, false, 0, 1, 1, Dict(), [], Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[])
 
 
 
@@ -59,6 +53,7 @@ mutable struct SMARTSParser{T,V,E}
     branch::Int # No. of node at the current branch root
     root::Int # No. of node at the current tree root
     ringlabel::Dict{Int,Int}  # label => original bond index
+    succ::Vector{Vector{T}}  # node => successors in lexical order (for stereochem)
     edges::Vector{Edge{T}}
     vprops::Vector{V}
     eprops::Vector{E}
@@ -67,7 +62,7 @@ end
 
 SMARTSParser{T}(smarts
     ) where T <: SimpleMolGraph = SMARTSParser{eltype(T),vproptype(T),eproptype(T)}(
-        smarts, 1, false, 0, 1, 1, Dict(), Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[], [])
+        smarts, 1, false, 0, 1, 1, Dict(), [], Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[], [])
 
 
 function smiles_on_init!(mol)
@@ -110,8 +105,7 @@ function smilestomol(::Type{T}, smiles::AbstractString;
     fragment!(state)
     # original edge index
     gprops = Dict(
-        :original_bond_index => SMARTSBondIndex{eltype(T)}(
-            Dict(e => i for (i, e) in enumerate(state.edges))),
+        :lexical_successors => SMARTSLexicalSuccessors{eltype(T)}(state.succ),
         :metadata => Metadata()
     )
     default_config = Dict{Symbol,Any}(:updater => smiles_on_update!, :on_init => smiles_on_init!)
@@ -135,8 +129,7 @@ function smartstomol(::Type{T}, smarts::AbstractString;
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
     default_gprop = Dict{Symbol,Any}(
         :connectivity => state.connectivity,
-        :original_bond_index => SMARTSBondIndex{eltype(T)}(
-            Dict(e => i for (i, e) in enumerate(state.edges))),
+        :lexical_successors => SMARTSLexicalSuccessors{eltype(T)}(state.succ),
         :metadata => Metadata()
     )
     merge!(default_gprop, gprop_map)

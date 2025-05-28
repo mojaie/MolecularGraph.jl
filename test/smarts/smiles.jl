@@ -9,7 +9,7 @@
     @test has_prop(nullmol, :metadata)  # SMILES does not have, but users may want to define
     @test has_prop(nullmol, :stereocenter)
     @test has_prop(nullmol, :stereobond)
-    @test has_prop(nullmol, :original_bond_index)  # to keep stereochem
+    @test has_prop(nullmol, :lexical_successors)  # to keep stereochem
     @test has_prop(nullmol, :pyrrole_like)  # to keep pyrrole H position
 
     methane = smilestomol("C")

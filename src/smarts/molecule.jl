@@ -49,18 +49,22 @@ function group!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}, bond) whe
         "unexpected token: branch starts with '(' at $(state.pos)")  # ex. CC((CC)C)C  TODO: is still valid?
     state.node += 1
     push!(state.vprops, popfirst!(a))
+    push!(state.succ, [])
     if bond !== nothing
         # Connect branch
         push!(state.edges, u_edge(T, state.branch, state.node))
         push!(state.eprops, bond)
+        push!(state.succ[state.branch], state.node)
     end
     center = state.node
     for h in a
         # hydrogens
         state.node += 1
         push!(state.vprops, h)
+        push!(state.succ, [])
         push!(state.edges, u_edge(T, center, state.node))
         push!(state.eprops, defaultbond(state))
+        push!(state.succ[center], state.node)
     end
     state.branch = center
     while true
@@ -130,9 +134,13 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
                 delete!(state.ringlabel, num) # Ring label is reusable
                 state.edges[eidx] = u_edge(T, u, v)
                 state.eprops[eidx] = b == db ? rb : b
+                # record lexical order of bonds for stereochemsitry
+                push!(state.succ[u], v)
+                state.succ[v][findfirst(x -> x==-num, state.succ[v])] = u
             else
                 push!(state.edges, Edge{T}(u, u))  # placeholder
                 push!(state.eprops, b)
+                push!(state.succ[u], -num) # placeholder
                 state.ringlabel[num] = length(state.edges)
             end
             continue
@@ -148,6 +156,7 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
         else
             state.node += 1
             push!(state.vprops, popfirst!(a))
+            push!(state.succ, [])
         end
         if isnothing(b)
             if isa(state, SMARTSParser)
@@ -158,6 +167,7 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
         else
             push!(state.edges, u_edge(T, u, state.node))
             push!(state.eprops, b)
+            push!(state.succ[u], state.node)
         end
         center = state.node
         for h in a
@@ -165,7 +175,9 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
             state.node += 1
             push!(state.edges, u_edge(T, center, state.node))
             push!(state.eprops, defaultbond(state))
+            push!(state.succ[center], state.node)
             push!(state.vprops, h)
+            push!(state.succ, [])
         end
         u = center
     end

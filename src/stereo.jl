@@ -274,21 +274,21 @@ end
     stereocenter_from_smiles(g::SimpleGraph{T}, v_stereo) where T -> Stereocenter{T}
 Return stereocenter information obtained from SMILES.
 """
-function stereocenter_from_smiles(g::SimpleGraph{T}, bond_index, v_stereo) where T
+function stereocenter_from_smiles(g::SimpleGraph{T}, succ, v_stereo) where T
     centers = Stereocenter{T}()
     for i in vertices(g)
         degree(g, i) in (3, 4) || continue
         v_stereo[i] === :unspecified && continue
-        # sort vertices by edge rank order
+        # sort vertices by SMARTS lexicographic order
         nbrs = neighbors(g, i)
-        o = sortperm([bond_index[u_edge(T, i, nbr)] for nbr in nbrs])
-        centers[i] = (nbrs[o[1]], nbrs[o[2]], nbrs[o[3]], v_stereo[i] === :clockwise)
+        first = only(setdiff(nbrs, succ[i]))
+        centers[i] = (first, succ[i][1], succ[i][2], v_stereo[i] === :clockwise)
     end
     return centers
 end
 
 stereocenter_from_smiles(mol::SimpleMolGraph) = stereocenter_from_smiles(
-    mol.graph, get_prop(mol, :original_bond_index),
+    mol.graph, get_prop(mol, :lexical_successors),
     [get_prop(mol, i, :stereo) for i in vertices(mol)]
 )
 
