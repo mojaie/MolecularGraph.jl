@@ -8,10 +8,13 @@ export
 
 using coordgenlibs_jll
 
+# TODO: multiple coordinates (conformers)
+
 
 function has_coords(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_coords2d) && return true
+    has_prop(mol, :coords2d) && return true
     hasfield(vproptype(mol), :coords) || return false
     for i in vertices(mol)
         isnothing(get_prop(mol, i, :coords)) && return false
@@ -30,6 +33,7 @@ end
 function coords2d(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_coords2d) && return get_cache(mol, :v_coords2d)
+    has_prop(mol, :coords2d) && return get_prop(mol, :coords2d)
     has_coords(mol) || error("no coordinates. use coordgen")
     return sdf_coords2d(mol)
 end

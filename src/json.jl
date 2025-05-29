@@ -94,7 +94,7 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
         end
         push!(data["molecules"][1]["bonds"], rcd)
     end
-    # TODO: coords 2d and 3d
+    # TODO: multiple coords
     if has_coords(mol)
         data["molecules"][1]["conformers"] = []
         coords_ = coords2d(mol)
@@ -108,7 +108,6 @@ end
 
 
 function rdktomol(::Type{T}, data::Dict) where T <: AbstractMolGraph
-    error("not implemented yet")
     data["commonchem"]["version"] == 10 || error("CommonChem version other than 10 is not supported")
     mol = data["molecules"][1]  # only single mol data is supported
     mol["extensions"][1]["name"] == "rdkitRepresentation" || error("Invalid RDKit CommonChem file format")
@@ -116,22 +115,46 @@ function rdktomol(::Type{T}, data::Dict) where T <: AbstractMolGraph
     I = eltype(T)
     V = vproptype(T)
     E = eproptype(T)
+    gps = Dict{Symbol,Any}()
+    # edges
     es = Edge{I}[]
-    vps = Dict{I,V}()
     eps = Dict{Edge{I},E}()
-    # TODO: coords
-    # TODO: stereo
-    gps = Dict()
-    for (i, a) in enumerate(mol["atoms"])
-        vps[i] = CommonChemAtom(a)
-    end
+    stereobonds = Dict{Edge{I},Tuple{I,I,Bool}}()
+    iscis = Dict("cis" => true, "trans" => false)
     for b in mol["bonds"]
         edge = u_edge(I, b["atoms"][1] + 1, b["atoms"][2] + 1)
-        print(edge)
         push!(es, edge)
+        if haskey(b, "stereo") && b["stereo"] in keys(iscis)
+            u, v = b["stereoAtoms"]
+            stereobonds[edge] = (u, v, iscis[b["stereo"]])
+        end
         eps[edge] = CommonChemBond(b)
     end
-    return MolGraph{I,V,E}(SimpleGraph(es), vps, eps, gprop_map=gps)
+    g = SimpleGraph(es)
+    gps[:stereobond] = Stereobond{I}(stereobonds)
+    # vertices
+    vps = Dict{I,V}()
+    stereocenters = Dict{I,Tuple{I,I,I,Bool}}()
+    isclockwise = Dict("cw" => true, "ccw" => false)
+    for (i, a) in enumerate(mol["atoms"])
+        vps[i] = CommonChemAtom(a)
+        if haskey(a, "stereo") && a["stereo"] in keys(isclockwise)
+            nbrs = ordered_neighbors(g, i)
+            # TODO: ambiguity in implicit H
+            stereocenters[i] = (nbrs[1:3]..., isclockwise[a["stereo"]])
+        end
+    end
+    gps[:stereocenters] = Stereocenter{I}(stereocenters)
+    # TODO: multiple coords
+    # TODO: wedge bond notation for drawing not supported yet, use coordgen
+    if haskey(mol, "conformers")
+        coords = zeros(Float64, nv(g), 2)
+        for (i, c) in enumerate(mol["conformers"][1]["coords"])
+            coords[i, :] = c[1:2]
+        end
+        gps[:coords2d] = coords
+    end
+    return MolGraph{I,V,E}(g, vps, eps, gprop_map=gps)
 end
 
 
