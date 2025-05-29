@@ -65,13 +65,13 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
     chg = charge(mol)
     mul = multiplicity(mol)
     ms = [mass(props(mol, i)) for i in vertices(mol)]
-    stereocenters = get_prop(mol, :stereocenter)
+    stereocenters = has_prop(mol, :stereocenter) ? get_prop(mol, :stereocenter) : Dict()
     for i in vertices(mol)
         rcd = Dict{String,Any}()
         atomnum[i] == 6 || (rcd["z"] = atomnum[i])
         implh[i] == 0 || (rcd["impHs"] = implh[i])
         chg[i] == 0 || (rcd["chg"] = chg[i])
-        mul[i] == 0 || (rcd["nRad"] = mul[i] - 1)
+        mul[i] == 1 || (rcd["nRad"] = mul[i] - 1)
         isnothing(ms[i]) || (rcd["isotope"] = ms[i])
         if haskey(stereocenters, i)
             center = stereocenters[i]
@@ -80,7 +80,7 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
         end
         push!(data["molecules"][1]["atoms"], rcd)
     end
-    stereobonds = get_prop(mol, :stereobond)
+    stereobonds = has_prop(mol, :stereobond) ? get_prop(mol, :stereobond) : Dict()
     bondorder = bond_order(mol)
     for (i, e) in enumerate(edges(mol))
         rcd = Dict{String,Any}(
@@ -107,7 +107,28 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
 end
 
 
-function rdktomol(::Type{T}, data::Dict) where T <: AbstractMolGraph
+function rdk_on_init!(mol)
+    update_edge_rank!(mol)
+    set_state!(mol, :initialized, true)
+end
+
+
+function rdk_on_update!(mol)
+    update_edge_rank!(mol)
+    clear_caches!(mol)
+    set_state!(mol, :has_updates, false)
+    # preprocessing
+    #  (add some preprocessing methods here)
+    # recalculate bottleneck descriptors
+    sssr!(mol)
+    lone_pair!(mol)
+    apparent_valence!(mol)
+    valence!(mol)
+    is_ring_aromatic!(mol)
+end
+
+
+function rdktomol(::Type{T}, data::Dict, config=Dict{Symbol,Any}()) where T <: AbstractMolGraph
     data["commonchem"]["version"] == 10 || error("CommonChem version other than 10 is not supported")
     mol = data["molecules"][1]  # only single mol data is supported
     mol["extensions"][1]["name"] == "rdkitRepresentation" || error("Invalid RDKit CommonChem file format")
@@ -115,7 +136,9 @@ function rdktomol(::Type{T}, data::Dict) where T <: AbstractMolGraph
     I = eltype(T)
     V = vproptype(T)
     E = eproptype(T)
-    gps = Dict{Symbol,Any}()
+    gps = Dict{Symbol,Any}(
+        :metadata => Metadata()
+    )
     # edges
     es = Edge{I}[]
     eps = Dict{Edge{I},E}()
@@ -126,7 +149,7 @@ function rdktomol(::Type{T}, data::Dict) where T <: AbstractMolGraph
         push!(es, edge)
         if haskey(b, "stereo") && b["stereo"] in keys(iscis)
             u, v = b["stereoAtoms"]
-            stereobonds[edge] = (u, v, iscis[b["stereo"]])
+            stereobonds[edge] = (u + 1, v + 1, iscis[b["stereo"]])
         end
         eps[edge] = CommonChemBond(b)
     end
@@ -144,7 +167,7 @@ function rdktomol(::Type{T}, data::Dict) where T <: AbstractMolGraph
             stereocenters[i] = (nbrs[1:3]..., isclockwise[a["stereo"]])
         end
     end
-    gps[:stereocenters] = Stereocenter{I}(stereocenters)
+    gps[:stereocenter] = Stereocenter{I}(stereocenters)
     # TODO: multiple coords
     # TODO: wedge bond notation for drawing not supported yet, use coordgen
     if haskey(mol, "conformers")
@@ -154,7 +177,12 @@ function rdktomol(::Type{T}, data::Dict) where T <: AbstractMolGraph
         end
         gps[:coords2d] = coords
     end
-    return MolGraph{I,V,E}(g, vps, eps, gprop_map=gps)
+    default_config = Dict{Symbol,Any}(
+        :updater => rdk_on_update!,
+        :on_init => rdk_on_init!
+    )
+    merge!(default_config, config)
+    return T(g, vps, eps, gprop_map=gps, config_map=default_config)
 end
 
 

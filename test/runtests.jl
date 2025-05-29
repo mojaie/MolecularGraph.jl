@@ -32,6 +32,7 @@ module MolecularGraphTest
 
     include("sdfilereader.jl")
     include("sdfilewriter.jl")
+    include("json.jl")
 
     include("./smarts/base.jl")
     include("./smarts/logicaloperator.jl")
