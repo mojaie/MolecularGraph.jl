@@ -84,7 +84,8 @@ Features
   - 2D structure image drawing and export to SVG
   - 3D structure drawing ([Makie.jl](https://github.com/MakieOrg/Makie.jl))
   - SDFile reader/writer (.sdf, .mol)
-  - SMILES/SMARTS parser (only reader)
+  - SMILES/SMARTS reader
+  - SMILES writer ([RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl))
   - Coordinates generation ([coordgenlibs](https://github.com/schrodinger/coordgenlibs))
 
 - Properties and descriptors
@@ -92,16 +93,18 @@ Features
   - rotatable bonds
   - Aromaticity
   - Wildman-Crippen logP
+  - Fingerprints ([RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl))
 
 - Substructure and query
   - InChI ([InChI](https://www.inchi-trust.org/))
-  - Serialization (molecule object <-> JSON)
+  - Serialization (molecule object <-> loss-less format or CommonChem JSON)
   - Subgraph isomorphism detection with VF2 algorithm
     - SMARTS query match
     - Monomorphism, node-induced and edge-induced match
     - Constraints (mandatory/forbidden vertex mapping)
   - Functional group query set
   - Structural alerts detection with ChEMBL dataset
+  - SMARTS query containment
 
 - Atomic mass
   - standard atomic/molecular weight
@@ -135,4 +138,4 @@ See [Assets/README.md](https://github.com/mojaie/MolecularGraph.jl/tree/master/a
 Copyright
 -----------------
 
-(C) 2018-2024 Seiji Matsuoka and contributors
+(C) 2018-2025 Seiji Matsuoka and contributors

@@ -1,5 +1,16 @@
 # NEWS
 
+## dev
+
+- Interface to [RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl)
+  - `smiles(mol)` to generate SMILES from MolGraph
+  - RDKit fingerprints (Morgan, RDKit, etc.)
+- Improved serialization and deserialization
+  - RDKit CommonChem format reader/writer
+  - `MolGraph(json)` now automatically detect element types and JSON formats.
+- Fix wrong stereocenter recognition in SMILES
+- Fix wrong stereobond recognition in <8-membered rings
+
 ## v0.18.0
 
 - The minimum required Julia version will be updated from 1.6 to 1.8 (due to OrderedCollections requiring Julia ≥ 1.7.1).
