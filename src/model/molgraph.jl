@@ -70,73 +70,14 @@ MolGraph(
 ) where {T,V,E} = MolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
 
 
-# from dict (deserialize)
-
-function molgraph_from_dict(
-        T::Type{<:Integer}, V::Type, E::Type, data::Dict, config::Dict{Symbol,Any})
-    g = SimpleGraph(Edge{T}[Edge{T}(e...) for e in data["graph"]])
-    vps = Dict{T,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
-    eps = Dict{Edge{T},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
-    gps = Dict{Symbol,Any}(
-        Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["gprops"])
-    default_config = Dict{Symbol,Any}(
-        :caches => Dict{Symbol,Any}(
-            Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["caches"]),
-        :initialized => true,
-        :has_updates => false
-    )
-    merge!(default_config, config)
-    mol = MolGraph{T,V,E}(g, vps, eps, gprop_map=gps, config_map=default_config)
-    update_edge_rank!(mol)
-    return mol
-end
-
-MolGraph{T,V,E}(data::Dict, config=Dict{Symbol,Any}()
-    ) where {T,V,E} = molgraph_from_dict(T, V, E, data, config)
-
-function MolGraph(data::Dict, config=Dict{Symbol,Any}())
-    eltype = eval(Meta.parse(data["eltype"]))
-    vproptype = eval(Meta.parse(data["vproptype"]))
-    eproptype = eval(Meta.parse(data["eproptype"]))
-    return molgraph_from_dict(eltype, vproptype, eproptype, data, config)
-end
-
-
-MolGraph{T,V,E}(json::String, config=Dict{Symbol,Any}()) where {T,V,E} = MolGraph{T,V,E}(JSON.parse(json), config)
-MolGraph(json::String, config=Dict{Symbol,Any}()) = MolGraph(JSON.parse(json), config)
-
-
 # MolGraph type aliases
 
 const SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
 const SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
-
-function MolGraph{Int,SDFAtom,SDFBond}(data::Dict, config=Dict{Symbol,Any}())
-    default_config = Dict{Symbol,Any}(:on_init => sdf_on_init!, :updater => sdf_on_update!)
-    merge!(default_config, config)
-    return molgraph_from_dict(Int, SDFAtom, SDFBond, data, default_config)
-end
-
-function MolGraph{Int,SMILESAtom,SMILESBond}(data::Dict, config=Dict{Symbol,Any}())
-    default_config = Dict{Symbol,Any}(:on_init => smiles_on_init!, :updater => smiles_on_update!)
-    merge!(default_config, config)
-    return molgraph_from_dict(Int, SMILESAtom, SMILESBond, data, default_config)
-end
+const CommonChemMolGraph = MolGraph{Int,CommonChemAtom,CommonChemBond}
 
 
-function to_dict(fmt::Val{:default}, mol::MolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    return Dict(
-        "eltype" => string(eltype(mol)),
-        "vproptype" => string(vproptype(mol)),
-        "eproptype" => string(eproptype(mol)),
-        "graph" => [[src(e), dst(e)] for e in edges(mol)],
-        "vprops" => [to_dict(fmt, props(mol, i)) for i in vertices(mol)],
-        "eprops" => [to_dict(fmt, props(mol, e)) for e in edges(mol)],
-        "gprops" => [[string(k), string(typeof(v)), applicable(to_dict, fmt, v) ? to_dict(fmt, v) : v] for (k, v) in mol.gprops],
-        "caches" => [[string(k), string(typeof(v)), applicable(to_dict, fmt, v) ? to_dict(fmt, v) : v] for (k, v) in mol.state[:caches]]
-    )
-end
+# Update mechanisms
 
 dispatch!(mol, event) = mol.state[event](mol)
 
@@ -156,6 +97,8 @@ function update_edge_rank!(mol::MolGraph)
     end
 end
 
+
+# Edit graph
 
 function add_u_edge!(mol::MolGraph{T,V,E}, e::Edge, prop::E) where {T,V,E}
     # Can be directly called if src < dst is guaranteed.

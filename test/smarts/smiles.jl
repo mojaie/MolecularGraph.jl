@@ -130,17 +130,17 @@ end
 
 @testset "serialization" begin
     mol = smilestomol("OCCc1c(C)[n+](=cs1)Cc2cnc(C)nc(N)2")
-    mol2 = SMILESMolGraph(to_json(mol))
+    mol2 = MolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
 
     mol = smilestomol("C1=CC=C2C(=C1)C(=O)OC23C4=C(C=C(C=C4)O)OC5=C3C=CC(=C5)O")
-    mol2 = SMILESMolGraph(to_json(mol))
+    mol2 = MolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
 
     sildenafil = smilestomol("O=S(=O)(N1CCN(C)CC1)c4cc(c2[nH]c(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")
-    sildenafil2 = SMILESMolGraph(to_json(sildenafil))
+    sildenafil2 = MolGraph(to_json(sildenafil))
     @test sildenafil == sildenafil2
     @test sildenafil !== sildenafil2
 end

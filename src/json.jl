@@ -4,10 +4,7 @@
 #
 
 export
-    to_dict, to_json, to_rdkdict, to_rdkjson, rdktomol
-
-
-const CommonChemMolGraph = MolGraph{Int,CommonChemAtom,CommonChemBond}
+    to_dict, to_json
 
 
 """
@@ -19,8 +16,23 @@ to_dict(::Val, mol::AbstractMolGraph) = error("method to_dict not implemented")
 to_dict(::Val, atom_or_bond::Dict) = atom_or_bond
 to_dict(::Val, metadata::AbstractString) = metadata
 to_dict(::Val, value::Number) = value
+to_dict(::Val{:default}, meta::Metadata) = [[i, val] for (i, val) in meta]
 to_dict(x) = to_dict(Val{:default}(), x)
-to_rdkdict(x) = to_dict(Val{:rdkit}(), x)
+
+
+function to_dict(fmt::Val{:default}, mol::MolGraph)
+    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    return Dict(
+        "eltype" => string(eltype(mol)),
+        "vproptype" => string(vproptype(mol)),
+        "eproptype" => string(eproptype(mol)),
+        "graph" => [[src(e), dst(e)] for e in edges(mol)],
+        "vprops" => [to_dict(fmt, props(mol, i)) for i in vertices(mol)],
+        "eprops" => [to_dict(fmt, props(mol, e)) for e in edges(mol)],
+        "gprops" => [[string(k), string(typeof(v)), applicable(to_dict, fmt, v) ? to_dict(fmt, v) : v] for (k, v) in mol.gprops],
+        "caches" => [[string(k), string(typeof(v)), applicable(to_dict, fmt, v) ? to_dict(fmt, v) : v] for (k, v) in mol.state[:caches]]
+    )
+end
 
 
 """
@@ -30,161 +42,61 @@ Convert molecule object into JSON String.
 """
 to_json(fmt::Val, mol::AbstractMolGraph) = JSON.json(to_dict(fmt, mol))
 to_json(x) = to_json(Val{:default}(), x)
-to_rdkjson(x) = to_json(Val{:rdkit}(), x)
 
 
-function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
-    data = Dict{String,Any}(
-        "commonchem" => Dict("version" => 10),
-        "defaults" => Dict(
-            "atom" => Dict(
-                "z" => 6,
-                "impHs" => 0,
-                "chg" => 0,
-                "nRad" => 0,
-                "isotope" => 0,
-                "stereo" => "unspecified"
-            ),
-            "bond" => Dict(
-                "bo" => 1,  # `type`` in CommonChem specification
-                "stereo" => "unspecified"
-            )
-        ),
-        "molecules" => [Dict(
-            "atoms" => [],
-            "bonds" => [],
-            "extensions" => [Dict(
-                "name" => "rdkitRepresentation",
-                "formatVersion" => 2,
-                "toolkitVersion" => "2022.09.5"
-            )]
-        )]
-    )
-    atomnum = atom_number(mol)
-    implh = implicit_hydrogens(mol)
-    chg = charge(mol)
-    mul = multiplicity(mol)
-    ms = [mass(props(mol, i)) for i in vertices(mol)]
-    stereocenters = has_prop(mol, :stereocenter) ? get_prop(mol, :stereocenter) : Dict()
-    for i in vertices(mol)
-        rcd = Dict{String,Any}()
-        atomnum[i] == 6 || (rcd["z"] = atomnum[i])
-        implh[i] == 0 || (rcd["impHs"] = implh[i])
-        chg[i] == 0 || (rcd["chg"] = chg[i])
-        mul[i] == 1 || (rcd["nRad"] = mul[i] - 1)
-        isnothing(ms[i]) || (rcd["isotope"] = ms[i])
-        if haskey(stereocenters, i)
-            center = stereocenters[i]
-            nbrs = ordered_neighbors(mol, i)
-            rcd["stereo"] = isclockwise(center, nbrs[1:3]...) ? "cw" : "ccw"
-        end
-        push!(data["molecules"][1]["atoms"], rcd)
-    end
-    stereobonds = has_prop(mol, :stereobond) ? get_prop(mol, :stereobond) : Dict()
-    bondorder = bond_order(mol)
-    for (i, e) in enumerate(edges(mol))
-        rcd = Dict{String,Any}(
-            "atoms" => [src(e) - 1, dst(e) - 1]
-        )
-        bondorder[i] == 1 || (rcd["bo"] = bondorder[i])
-        if haskey(stereobonds, e)
-            v1, v2, is_cis = stereobonds[e]
-            rcd["stereoAtoms"] = [v1 - 1, v2 - 1]
-            rcd["stereo"] = is_cis ? "cis" : "trans"
-        end
-        push!(data["molecules"][1]["bonds"], rcd)
-    end
-    # TODO: multiple coords
-    if has_coords(mol)
-        data["molecules"][1]["conformers"] = []
-        coords_ = coords2d(mol)
-        push!(
-            data["molecules"][1]["conformers"],
-            Dict("dim" => 2, "coords" => [coords_[i, 1:2] for i in vertices(mol)])
-        )
-    end
-    return data
-end
-
-
-function rdk_on_init!(mol)
-    update_edge_rank!(mol)
-    set_state!(mol, :initialized, true)
-end
-
-
-function rdk_on_update!(mol)
-    update_edge_rank!(mol)
-    clear_caches!(mol)
-    set_state!(mol, :has_updates, false)
-    # preprocessing
-    #  (add some preprocessing methods here)
-    # recalculate bottleneck descriptors
-    sssr!(mol)
-    lone_pair!(mol)
-    apparent_valence!(mol)
-    valence!(mol)
-    is_ring_aromatic!(mol)
-end
-
-
-function rdktomol(::Type{T}, data::Dict, config=Dict{Symbol,Any}()) where T <: AbstractMolGraph
-    data["commonchem"]["version"] == 10 || error("CommonChem version other than 10 is not supported")
-    mol = data["molecules"][1]  # only single mol data is supported
-    mol["extensions"][1]["name"] == "rdkitRepresentation" || error("Invalid RDKit CommonChem file format")
-    mol["extensions"][1]["formatVersion"] == 2 || error("Unsupported RDKit CommonChem version")
+function molgraph_from_dict(
+            ::Val{:default}, ::Type{T}, data::Dict, config::Dict{Symbol,Any}; kwargs...
+        ) where T <: AbstractMolGraph
     I = eltype(T)
     V = vproptype(T)
     E = eproptype(T)
+    g = SimpleGraph(Edge{I}[Edge{I}(e...) for e in data["graph"]])
+    vps = Dict{I,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
+    eps = Dict{Edge{I},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
     gps = Dict{Symbol,Any}(
-        :metadata => Metadata()
-    )
-    # edges
-    es = Edge{I}[]
-    eps = Dict{Edge{I},E}()
-    stereobonds = Dict{Edge{I},Tuple{I,I,Bool}}()
-    iscis = Dict("cis" => true, "trans" => false)
-    for b in mol["bonds"]
-        edge = u_edge(I, b["atoms"][1] + 1, b["atoms"][2] + 1)
-        push!(es, edge)
-        if haskey(b, "stereo") && b["stereo"] in keys(iscis)
-            u, v = b["stereoAtoms"]
-            stereobonds[edge] = (u + 1, v + 1, iscis[b["stereo"]])
-        end
-        eps[edge] = CommonChemBond(b)
-    end
-    g = SimpleGraph(es)
-    gps[:stereobond] = Stereobond{I}(stereobonds)
-    # vertices
-    vps = Dict{I,V}()
-    stereocenters = Dict{I,Tuple{I,I,I,Bool}}()
-    isclockwise = Dict("cw" => true, "ccw" => false)
-    for (i, a) in enumerate(mol["atoms"])
-        vps[i] = CommonChemAtom(a)
-        if haskey(a, "stereo") && a["stereo"] in keys(isclockwise)
-            nbrs = ordered_neighbors(g, i)
-            # TODO: ambiguity in implicit H
-            stereocenters[i] = (nbrs[1:3]..., isclockwise[a["stereo"]])
-        end
-    end
-    gps[:stereocenter] = Stereocenter{I}(stereocenters)
-    # TODO: multiple coords
-    # TODO: wedge bond notation for drawing not supported yet, use coordgen
-    if haskey(mol, "conformers")
-        coords = zeros(Float64, nv(g), 2)
-        for (i, c) in enumerate(mol["conformers"][1]["coords"])
-            coords[i, :] = c[1:2]
-        end
-        gps[:coords2d] = coords
-    end
+        Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["gprops"])
     default_config = Dict{Symbol,Any}(
-        :updater => rdk_on_update!,
-        :on_init => rdk_on_init!
+        :caches => Dict{Symbol,Any}(
+            Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["caches"]),
+        :initialized => true,
+        :has_updates => false
     )
     merge!(default_config, config)
-    return T(g, vps, eps, gprop_map=gps, config_map=default_config)
+    mol = T(g, vps, eps, gprop_map=gps, config_map=default_config; kwargs...)
+    update_edge_rank!(mol)  # initialization skiped, but edge_rank should be resumed
+    return mol
 end
 
 
-rdktomol(data::Dict) = rdktomol(CommonChemMolGraph, data)
-rdktomol(json::String) = rdktomol(CommonChemMolGraph, JSON.parse(json))
+# JSON auto detect
+
+function MolGraph(data::Dict; config=Dict{Symbol,Any}(), kwargs...)
+    default_config = Dict{Symbol,Any}()
+    if haskey(data, "commonchem")
+        T = Int
+        V = CommonChemAtom
+        E = CommonChemBond
+        fmt = Val{:rdkit}()
+        default_config = Dict{Symbol,Any}(:on_init => rdk_on_init!, :updater => rdk_on_update!)
+    elseif haskey(data, "eltype")
+        T = eval(Meta.parse(data["eltype"]))
+        V = eval(Meta.parse(data["vproptype"]))
+        E = eval(Meta.parse(data["eproptype"]))
+        fmt = Val{:default}()
+        if V == SDFAtom && E == SDFBond
+            default_config = Dict{Symbol,Any}(:on_init => sdf_on_init!, :updater => sdf_on_update!)
+        elseif V == SMILESAtom && E == SMILESBond
+            default_config = Dict{Symbol,Any}(:on_init => smiles_on_init!, :updater => smiles_on_update!)
+        end
+    else
+        error("Invalid JSON format")
+    end
+    merge!(default_config, config)
+    return molgraph_from_dict(fmt, MolGraph{T,V,E}, data, default_config; kwargs...)
+end
+
+MolGraph(json::String; kwargs...) = MolGraph(JSON.parse(json); kwargs...)
+
+
+
+

@@ -15,7 +15,6 @@ export
     SMARTSMolGraph,
     QueryAny, QueryLiteral, QueryOperator, QueryTree, QueryTruthTable,
     AbstractReaction, Reaction,
-    to_dict, to_json,
     ordered_neighbors, u_edge, edge_rank,
     vproptype, eproptype,
     props, vprops, eprops,
@@ -44,7 +43,6 @@ Base.length(meta::Metadata) = length(meta.mapping)
 Base.get(meta::Metadata, k, v) = get(meta.mapping, k, v)
 Base.setindex!(meta::Metadata, v, k) = setindex!(meta.mapping, v, k)
 Base.delete!(meta::Metadata, k) = delete!(meta.mapping, k)
-to_dict(::Val{:default}, meta::Metadata) = [[i, val] for (i, val) in meta]
 
 
 # Graphs.jl common interface

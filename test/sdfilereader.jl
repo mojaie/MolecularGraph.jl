@@ -100,11 +100,11 @@ end
 @testset "serialization" begin
     assetdir = joinpath(dirname(@__FILE__), "..", "assets", "test")
     mol = sdftomol(joinpath(assetdir, "demo.mol"))
-    mol2 = SDFMolGraph(to_json(mol))
+    mol2 = MolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
     mol = sdftomol(joinpath(assetdir, "aspirin_v3.mol"))
-    mol2 = SDFMolGraph(to_json(mol))
+    mol2 = MolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
 end
