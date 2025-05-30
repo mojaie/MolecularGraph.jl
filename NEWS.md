@@ -2,14 +2,17 @@
 
 ## dev
 
-- Interface to [RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl)
-  - `smiles(mol)` to generate SMILES from MolGraph
-  - RDKit fingerprints (Morgan, RDKit, etc.)
+- All imports and exports are aggregated to the package entrypoint file (src/MolecularGraph.jl).
+  - Removed unnecessarily exposed APIs, that are internally used or have too general name (e.g. `metadata`) to avoid confliction. See 'src/MolecularGraph.jl' file for details.
+- [RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl) has been added as a direct dependency.
+  - `smiles(mol)` generates SMILES from MolGraph (#67)
+  - RDKit fingerprints (Morgan, RDKit, etc.) (#72)
 - Improved serialization and deserialization
+  - Safer and more extensible JSON deserialization
   - RDKit CommonChem format reader/writer
-  - `MolGraph(json)` now automatically detect element types and JSON formats.
-- Fix wrong stereocenter recognition in SMILES
-- Fix wrong stereobond recognition in <8-membered rings
+  - `MolGraph(json::String)` now automatically detect element types and JSON formats.
+- Fixed wrong stereocenter recognition in SMILES
+- Fixed wrong stereobond recognition in <8-membered rings
 
 ## v0.18.0
 
