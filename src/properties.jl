@@ -14,7 +14,7 @@ const HYDROGEN_ACCEPTOR_ATOMS = (:N, :O, :F)
 const HYDROGEN_DONOR_ATOMS = (:N, :O)
 
 # for pi electron count, hybridization and aromaticity calculation
-# TODO: :P, :Se, :Te? 
+# TODO: :P, :Se, :Te?
 const SP2_CONJUGATING_HETEROATOMS = (:O, :N, :S)
 
 

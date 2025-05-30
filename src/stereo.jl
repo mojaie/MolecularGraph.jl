@@ -23,7 +23,7 @@ function isclockwise(stereo::Tuple{T,T,T,Bool}, f::T, s::T, t::T) where T
     fp = something(findfirst(==(f), stereo[1:3]), 4)
     sp = something(findfirst(==(s), stereo[1:3]), 4)
     tp = something(findfirst(==(t), stereo[1:3]), 4)
-    return stereo[4] === STEREOCENTER_STATE[(fp, sp, tp)] 
+    return stereo[4] === STEREOCENTER_STATE[(fp, sp, tp)]
 end
 
 
@@ -49,7 +49,12 @@ Base.iterate(stereo::Stereocenter, i) = iterate(stereo.mapping, i)
 Base.length(stereo::Stereocenter) = length(stereo.mapping)
 Base.get(stereo::Stereocenter, k, v) = get(stereo.mapping, k, v)
 Base.setindex!(stereo::Stereocenter, v, k) = setindex!(stereo.mapping, v, k)
-to_dict(::Val{:default}, stereo::Stereocenter) = [[i, val] for (i, val) in stereo.mapping]
+to_dict(::Val{:default}, key::Symbol, stereo::Stereocenter) = Dict{String,Any}(
+    "key" => string(key),
+    "type" => "Stereocenter",
+    "data" => [[i, val] for (i, val) in stereo.mapping]
+)
+PROPERTY_TYPE_REGISTRY["Stereocenter"] = (T, data) -> Stereocenter{eltype(T)}(data)
 
 function remap(stereo::Stereocenter{T}, vmap::Dict) where T  # vmap[old] -> new
     newmap = Dict{T,Tuple{T,T,T,Bool}}()
@@ -82,7 +87,12 @@ Base.iterate(stereo::Stereobond, i) = iterate(stereo.mapping, i)
 Base.length(stereo::Stereobond) = length(stereo.mapping)
 Base.get(stereo::Stereobond, k, v) = get(stereo.mapping, k, v)
 Base.setindex!(stereo::Stereobond, v, k) = setindex!(stereo.mapping, v, k)
-to_dict(::Val{:default}, stereo::Stereobond) = [[src(e), dst(e), val] for (e, val) in stereo.mapping]
+to_dict(::Val{:default}, key::Symbol, stereo::Stereobond) = Dict{String,Any}(
+    "key" => string(key),
+    "type" => "Stereobond",
+    "data" => [[src(e), dst(e), val] for (e, val) in stereo.mapping]
+)
+PROPERTY_TYPE_REGISTRY["Stereobond"] = (T, data) -> Stereobond{eltype(T)}(data)
 
 function remap(stereo::Stereobond{T}, vmap::Dict) where T  # vmap[old] -> new
     newmap = Dict{Edge{T},Tuple{T,T,Bool}}()

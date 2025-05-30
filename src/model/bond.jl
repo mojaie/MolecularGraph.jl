@@ -40,6 +40,7 @@ Base.hash(b::SDFBond, h::UInt
 
 bond_order(b::SDFBond) = b.order
 
+ELEMENT_TYPE_REGISTRY["SDFBond"] = SDFBond
 to_dict(::Val{:default}, b::SDFBond) = Any[b.order, b.notation, b.isordered]
 
 function to_dict(::Val{:rdkit}, b::SDFBond)
@@ -76,6 +77,7 @@ Base.hash(b::SMILESBond, h::UInt
 
 bond_order(b::SMILESBond) = b.order
 
+ELEMENT_TYPE_REGISTRY["SMILESBond"] = SMILESBond
 to_dict(::Val{:default}, b::SMILESBond) = Any[b.order, b.isaromatic, b.direction]
 
 function to_dict(::Val{:rdkit}, b::SMILESBond)
@@ -110,6 +112,7 @@ Base.hash(b::CommonChemBond, h::UInt) = hash(b.type, h)
 
 bond_order(b::CommonChemBond) = b.type
 
+ELEMENT_TYPE_REGISTRY["CommonChemBond"] = CommonChemBond
 to_dict(::Val{:default}, b::CommonChemBond) = Any[b.type]
 
 function to_dict(::Val{:rdkit}, b::CommonChemBond)

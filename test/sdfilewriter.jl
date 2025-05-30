@@ -11,7 +11,7 @@
     smol = smilestomol("CCC1CC(C=O)CCC1N")
     smol2 = sdftomol(IOBuffer(printv2mol(smol)))
     @test nv(smol2) == 11
-    @test isempty(metadata(smol2))
+    @test isempty(get_prop(smol2, :metadata))
 end
 
 end #sdfilewriter

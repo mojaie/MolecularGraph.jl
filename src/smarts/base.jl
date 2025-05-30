@@ -9,7 +9,12 @@ end
 
 Base.size(arr::SMARTSLexicalSuccessors) = size(arr.vector)
 Base.getindex(arr::SMARTSLexicalSuccessors, i...) = getindex(arr.vector, i...)
-to_dict(::Val{:default}, arr::SMARTSLexicalSuccessors) = arr.vector
+to_dict(::Val{:default}, key::Symbol, arr::SMARTSLexicalSuccessors) = Dict{String,Any}(
+    "key" => string(key),
+    "type" => "SMARTSLexicalSuccessors",
+    "data" => arr.vector
+)
+PROPERTY_TYPE_REGISTRY["SMARTSLexicalSuccessors"] = (T, data) -> SMARTSLexicalSuccessors{eltype(T)}(data)
 
 function remap(arr::SMARTSLexicalSuccessors{T}, vmap::Dict) where T
     vec = [T[] for i in 1:length(vmap)]

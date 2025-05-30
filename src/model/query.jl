@@ -22,7 +22,7 @@ to_dict(::Val{:default}, q::QueryAny) = [q.value]
     QueryLiteral
 
 General query component type (arg -> key[arg] == value).
-""" 
+"""
 struct QueryLiteral
     operator::Symbol  # :eq, :gt?, :lt? ...
     key::Symbol
@@ -90,6 +90,7 @@ end
 
 Base.getindex(a::QueryTree, prop::Symbol) = getproperty(a, prop)
 
+ELEMENT_TYPE_REGISTRY["QueryTree"] = QueryTree
 to_dict(fmt::Val{:default}, q::QueryTree) = to_dict(fmt, q.tree)
 
 

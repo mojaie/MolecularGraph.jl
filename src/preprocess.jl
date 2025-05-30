@@ -9,7 +9,12 @@ end
 
 Base.size(p::PyrroleLike) = size(p.vertices)
 Base.getindex(p::PyrroleLike, i...) = getindex(p.vertices, i...)
-to_dict(::Val{:default}, p::PyrroleLike) = p.vertices
+to_dict(::Val{:default}, key::Symbol, p::PyrroleLike) = Dict{String,Any}(
+    "key" => string(key),
+    "type" => "PyrroleLike",
+    "data" => p.vertices
+)
+PROPERTY_TYPE_REGISTRY["PyrroleLike"] = (T, data) -> PyrroleLike{eltype(T)}(data)
 
 remap(p::PyrroleLike{T}, vmap::Dict
     ) where T = PyrroleLike{T}([vmap[v] for v in p.vertices if haskey(vmap, v)])

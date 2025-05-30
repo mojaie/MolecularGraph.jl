@@ -112,6 +112,7 @@ atom_charge(a::SDFAtom) = a.charge
 multiplicity(a::SDFAtom) = a.multiplicity
 atom_mass(a::SDFAtom) = a.mass
 
+ELEMENT_TYPE_REGISTRY["SDFAtom"] = SDFAtom
 to_dict(::Val{:default}, a::SDFAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.coords]
 
 function to_dict(::Val{:rdkit}, a::SDFAtom)
@@ -162,6 +163,7 @@ atom_charge(a::SMILESAtom) = a.charge
 multiplicity(a::SMILESAtom) = a.multiplicity
 atom_mass(a::SMILESAtom) = a.mass
 
+ELEMENT_TYPE_REGISTRY["SMILESAtom"] = SMILESAtom
 to_dict(::Val{:default}, a::SMILESAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, a.stereo]
 
 function to_dict(::Val{:rdkit}, a::SMILESAtom)
@@ -212,6 +214,7 @@ atom_charge(a::CommonChemAtom) = a.chg
 multiplicity(a::CommonChemAtom) = a.nRad + 1
 atom_mass(a::CommonChemAtom) = a.mass == 0 ? nothing : a.mass
 
+ELEMENT_TYPE_REGISTRY["CommonChemAtom"] = CommonChemAtom
 to_dict(::Val{:default}, a::CommonChemAtom) = Any[a.z, a.chg, a.impHs, a.mass, a.nRad, a.stereo]
 
 function to_dict(::Val{:rdkit}, a::CommonChemAtom)

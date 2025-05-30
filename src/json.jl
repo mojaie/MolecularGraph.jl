@@ -12,21 +12,49 @@ to_dict(::Val, mol::AbstractMolGraph) = error("method to_dict not implemented")
 to_dict(::Val, atom_or_bond::Dict) = atom_or_bond
 to_dict(::Val, metadata::AbstractString) = metadata
 to_dict(::Val, value::Number) = value
-to_dict(::Val{:default}, meta::Metadata) = [[i, val] for (i, val) in meta]
 to_dict(x) = to_dict(Val{:default}(), x)
+to_dict(sym, data) = to_dict(Val{:default}(), sym, data)
 
+to_dict(::Val{:default}, key::Symbol, num::Int) = Dict{String,Any}(
+    "key" => string(key),
+    "type" => "Int",
+    "data" => num
+)
+PROPERTY_TYPE_REGISTRY["Int"] = (T, data) -> data
+
+to_dict(::Val{:default}, key::Symbol, msg::String) = Dict{String,Any}(
+    "key" => string(key),
+    "type" => "String",
+    "data" => msg
+)
+PROPERTY_TYPE_REGISTRY["String"] = (T, data) -> data
+
+to_dict(::Val{:default}, key::Symbol, arr::Vector) = Dict{String,Any}(
+    "key" => string(key),
+    "type" => "Vector",
+    "data" => arr
+)
+PROPERTY_TYPE_REGISTRY["Vector"] = (T, data) -> data
+
+to_dict(::Val{:default}, key::Symbol, arr::BitVector) = Dict{String,Any}(
+    "key" => string(key),
+    "type" => "BitVector",
+    "data" => arr
+)
+PROPERTY_TYPE_REGISTRY["BitVector"] = (T, data) -> data
 
 function to_dict(fmt::Val{:default}, mol::MolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    rev_type = Dict(v => k for (k, v) in ELEMENT_TYPE_REGISTRY)
     return Dict(
-        "eltype" => string(eltype(mol)),
-        "vproptype" => string(vproptype(mol)),
-        "eproptype" => string(eproptype(mol)),
+        "eltype" => get(rev_type, eltype(mol), Int),
+        "vproptype" => rev_type[vproptype(mol)],
+        "eproptype" => rev_type[eproptype(mol)],
         "graph" => [[src(e), dst(e)] for e in edges(mol)],
         "vprops" => [to_dict(fmt, props(mol, i)) for i in vertices(mol)],
         "eprops" => [to_dict(fmt, props(mol, e)) for e in edges(mol)],
-        "gprops" => [[string(k), string(typeof(v)), applicable(to_dict, fmt, v) ? to_dict(fmt, v) : v] for (k, v) in mol.gprops],
-        "caches" => [[string(k), string(typeof(v)), applicable(to_dict, fmt, v) ? to_dict(fmt, v) : v] for (k, v) in mol.state[:caches]]
+        "gprops" => [to_dict(fmt, k, v) for (k, v) in mol.gprops],
+        "caches" => [to_dict(fmt, k, v) for (k, v) in mol.state[:caches]]
     )
 end
 
@@ -50,10 +78,10 @@ function molgraph_from_dict(
     vps = Dict{I,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
     eps = Dict{Edge{I},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
     gps = Dict{Symbol,Any}(
-        Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["gprops"])
+        Symbol(gp["key"]) => PROPERTY_TYPE_REGISTRY[gp["type"]](T, gp["data"]) for gp in data["gprops"])
     default_config = Dict{Symbol,Any}(
         :caches => Dict{Symbol,Any}(
-            Symbol(key) => eval(Meta.parse(dtype))(prop) for (key, dtype, prop) in data["caches"]),
+            Symbol(ca["key"]) => PROPERTY_TYPE_REGISTRY[ca["type"]](T, ca["data"]) for ca in data["caches"]),
         :initialized => true,
         :has_updates => false
     )
@@ -75,13 +103,13 @@ function MolGraph(data::Dict; config=Dict{Symbol,Any}(), kwargs...)
         fmt = Val{:rdkit}()
         default_config = Dict{Symbol,Any}(:on_init => rdk_on_init!, :updater => rdk_on_update!)
     elseif haskey(data, "eltype")
-        T = eval(Meta.parse(data["eltype"]))
-        V = eval(Meta.parse(data["vproptype"]))
-        E = eval(Meta.parse(data["eproptype"]))
+        T = get(ELEMENT_TYPE_REGISTRY, data["eltype"], Int)
+        V = ELEMENT_TYPE_REGISTRY[data["vproptype"]]
+        E = ELEMENT_TYPE_REGISTRY[data["eproptype"]]
         fmt = Val{:default}()
-        if V == SDFAtom && E == SDFBond
+        if V === SDFAtom && E === SDFBond
             default_config = Dict{Symbol,Any}(:on_init => sdf_on_init!, :updater => sdf_on_update!)
-        elseif V == SMILESAtom && E == SMILESBond
+        elseif V === SMILESAtom && E === SMILESBond
             default_config = Dict{Symbol,Any}(:on_init => smiles_on_init!, :updater => smiles_on_update!)
         end
     else
