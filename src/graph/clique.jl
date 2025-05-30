@@ -3,11 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    all_maximal_cliques, maximum_clique,
-    all_maximal_conn_cliques, maximum_conn_clique,
-    approx_maximum_clique
-
 const MIN_TIMEOUT = 10  # minimum value of clique detection timeout
 get_expire(timeout::Real) = UInt64(time_ns() + timeout * 1_000_000_000)
 

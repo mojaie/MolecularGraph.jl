@@ -3,10 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    bfs_path, noweight_shortestpath, noweight_all_distances
-
-
 function bfs_path(parents, t)
     path = [t]
     x = t

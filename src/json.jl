@@ -3,10 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    to_dict, to_json
-
-
 """
     to_dict(mol::MolGraph) -> Dict{String,Any}
 

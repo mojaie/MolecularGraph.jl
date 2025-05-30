@@ -3,10 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    mincyclebasis, edgemincyclebasis, disjoint_union
-
-
 function cotree_edges(g::SimpleGraph{T}) where T
     root = vertices(g)[1]
     stack = [root]

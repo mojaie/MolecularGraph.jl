@@ -16,7 +16,7 @@ end
     sodiumsulfate = smilestomol("O=S(=O)([O-])[O-].[Na+].[Na+]")
     @test atom_symbol(sodiumsulfate) == [:O, :S, :O, :O, :O, :Na, :Na]
     @test bond_order(sodiumsulfate) == [2, 2, 1, 1]
-    @test charge(sodiumsulfate) == [0, 0, 0, -1, -1, 1, 1]
+    @test atom_charge(sodiumsulfate) == [0, 0, 0, -1, -1, 1, 1]
     @test degree(sodiumsulfate) == [1, 4, 1, 1, 1, 0, 0]
 
     isocyanurate = smilestomol("ClN1C(=O)N(Cl)C(=O)N(Cl)C1=O")
@@ -24,7 +24,7 @@ end
         :Cl, :N, :C, :O, :N, :Cl, :C, :O, :N, :Cl, :C, :O]
     @test bond_order(isocyanurate) == [
         1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 2]
-    @test all(charge(isocyanurate) .== 0)
+    @test all(atom_charge(isocyanurate) .== 0)
     @test degree(isocyanurate) == [1, 3, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1]
 end
 
@@ -46,12 +46,12 @@ end
     @test valence(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
     @test lone_pair(atoms) == [0, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 3]
     @test implicit_hydrogens(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
-    
+
     pyridineoxide = smilestomol("[N+]1([O-])=CC=CC=C1")
     @test valence(pyridineoxide) == [4, 1, 4, 4, 4, 4, 4]
     @test lone_pair(pyridineoxide) == [0, 3, 0, 0, 0, 0, 0]
     @test implicit_hydrogens(pyridineoxide) == [0, 0, 1, 1, 1, 1, 1]
-    
+
     trifluoroborate = smilestomol("C[B-](F)(F)F")
     @test valence(trifluoroborate) == [4, 4, 1, 1, 1]
     @test lone_pair(trifluoroborate) == [0, 0, 3, 3, 3]
@@ -75,7 +75,7 @@ end
     nitrile = smilestomol("C#N")
     @test pi_electron(nitrile) == [2, 2]
     @test hybridization(nitrile) == [:sp, :sp]
-    
+
     carboxylate = smilestomol("CC(=O)[O-]")
     @test pi_electron(carboxylate) == [0, 1, 1, 2]
     @test hybridization(carboxylate) == [:sp3, :sp2, :sp2, :sp2]
@@ -186,7 +186,7 @@ end
 
     caffeine = smilestomol("CN1C=NC2=C1C(=O)N(C)C(=O)N2C")
     @test count(is_aromatic(caffeine)) == 9
-    
+
     imidazo12a = smilestomol("C1=CN=C2N1C=CC=C2")  # imidazo[1,2-a]pyridine
     @test count(is_aromatic(imidazo12a)) == 9
 

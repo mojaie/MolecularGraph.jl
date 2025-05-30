@@ -3,15 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using Base: unsafe_convert
-using Base64
-
-export
-    vertex_count, edge_count,
-    molblock, sdfmolblock,
-    tdmcis_size, tdmces_size, tdmcis_gls, tdmces_gls
-
-
 Base.@ccallable function smilestomol(smiles::Cstring, options::Cstring)::Cstring
     try
         mol = smilestomol(unsafe_string(smiles))

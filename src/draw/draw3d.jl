@@ -3,17 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-import MakieCore: plot!
-
-using MakieCore: @recipe, Theme, meshscatter!, lines!, mesh!
-using Colors: RGBA
-using GeometryBasics: mesh, Cylinder, Sphere, Point
-using LinearAlgebra: cross
-
-export atom_radius
-export spacefilling, spacefilling!, ballstick, ballstick!, stick, stick!, wire, wire!
-
-colortype(c::Color, alpha=1.0) = RGBA{Float32}(c.r/255, c.g/255, c.b/255, alpha)
+colortype(c::Color, alpha=1.0) = Colors.RGBA{Float32}(c.r/255, c.g/255, c.b/255, alpha)
 
 const DEFAULT_BALL_DIAMETER = float(0.4)
 const DEFAULT_STICK_DIAMETER = float(0.33)
@@ -132,7 +122,7 @@ wire!(args...; size=DEFAULT_WIRE_DIAMETER, kwargs...) = moldisplay!(args...; bon
     )
 end
 
-function plot!(md::MolDisplay{<:NTuple{<:Any,<:SimpleMolGraph}})
+function MakieCore.plot!(md::MolDisplay{<:NTuple{<:Any,<:SimpleMolGraph}})
     mols = [md[i][] for i=1:length(md)]
     radii = md[:radii][]
     for mol in mols
@@ -158,7 +148,7 @@ drawatoms!(f, crds, col, rd; kwargs...) = meshscatter!(f, crds[:, 1], crds[:, 2]
 function drawbond!(f, mol::SimpleMolGraph, e, crds, col, syms, nbrs; bonddiameter=DEFAULT_BOND_DIAMETER, multiplebonds=false, kwargs...)
     order = multiplebonds ? bond_order(props(mol, e)) : 1
     atomidx1, atomidx2 = e.src, e.dst
-    pos1, pos2 = crds[atomidx1,:], crds[atomidx2,:]   
+    pos1, pos2 = crds[atomidx1,:], crds[atomidx2,:]
     normaldir = Z_DIR
     if order > 1
         ng1, ng2 = nbrs[atomidx1], nbrs[atomidx2]

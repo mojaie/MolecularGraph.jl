@@ -1,7 +1,4 @@
 
-using MolecularGraph: Metadata
-
-
 @testset "model.molgraph" begin
 
 @testset "graph_interface" begin

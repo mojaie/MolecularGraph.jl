@@ -1,7 +1,6 @@
 
 @testset "preprocess" begin
 
-
 @testset "kekulize" begin
     null = smilestomol("")
     @test isempty(bond_order(null))

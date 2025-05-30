@@ -3,13 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    monoiso_mass_unc, monoiso_mass, nominal_mass,
-    exact_mass_unc, exact_mass,
-    standard_weight_unc, standard_weight,
-    isotopic_composition, massspec_peaks, simulate_massspec
-
-
 const DEFAULT_WEIGHT_DIGITS = 2
 const DEFAULT_MASS_DIGITS = 6
 

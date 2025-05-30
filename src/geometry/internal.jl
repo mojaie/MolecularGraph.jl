@@ -3,12 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    InternalCoords,
-    internalcoords,
-    label1, label2, label3, distance, angle, dihedral
-
-
 # TODO: Gaussian compatible z-matrix format
 
 struct InternalCoords <: Coordinates

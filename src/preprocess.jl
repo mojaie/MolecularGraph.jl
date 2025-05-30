@@ -3,16 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    kekulize, kekulize!,
-    removable_hydrogens, all_hydrogens,
-    remove_hydrogens!, remove_all_hydrogens!, add_hydrogens!,
-    largest_component_nodes, extract_largest_component!,
-    protonate_acids, protonate_acids!, deprotonate_oniums, deprotonate_oniums!,
-    depolarize, depolarize!, polarize, polarize!,
-    to_triple_bond, to_triple_bond!, to_allene_like, to_allene_like!
-
-
 struct PyrroleLike{T} <: AbstractVector{T}
     vertices::Vector{T}
 end
@@ -62,7 +52,7 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
                     hasdouble && continue  # c=O
                     push!(arom_vs, i)
                 else  # sym in (:N, :P, :As)
-                    if charge(props(mol, i)) == 0 && !hasdouble
+                    if atom_charge(props(mol, i)) == 0 && !hasdouble
                         if any(atom_symbol(props(mol, nbr)) === :H for nbr in neighbors(mol, i))
                             push!(pyrrole_like, i) # explicit pyrrole-like [nH]
                         end
@@ -113,9 +103,9 @@ function removable_hydrogens(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     ])
     for i in vertices(mol)
         atom_symbol(props(mol, i)) === :H || continue
-        charge(props(mol, i)) == 0 || continue
+        atom_charge(props(mol, i)) == 0 || continue
         multiplicity(props(mol, i)) == 1 || continue
-        isnothing(mass(props(mol, i))) || continue
+        isnothing(atom_mass(props(mol, i))) || continue
         degree(mol.graph, i) == 1 || continue
         nbr = neighbors(mol, i)[1]
         atom_symbol(props(mol, nbr)) in organic_heavy || continue
@@ -218,7 +208,7 @@ Protonate oxo(thio) anion groups of the molecule.
 """
 function protonate_acids(mol::SimpleMolGraph)
     atomsymbol_ = atom_symbol(mol)
-    charge_ = charge(mol)
+    charge_ = atom_charge(mol)
     connectivity_ = connectivity(mol)
     arr = copy(charge_)
     for o in findall(charge_ .== -1)
@@ -241,7 +231,7 @@ Deprotonate onium groups of the molecule.
 """
 function deprotonate_oniums(mol::SimpleMolGraph)
     hydrogens_ = total_hydrogens(mol)
-    charge_ = charge(mol)
+    charge_ = atom_charge(mol)
     arr = copy(charge_)
     for o in findall(charge_ .== 1)
         hydrogens_[o] > 0 || continue
@@ -260,7 +250,7 @@ Depolarize dipole double bonds of the molecule.
 """
 function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
     atomsymbol_ = atom_symbol(mol)
-    charge_ = charge(mol)
+    charge_ = atom_charge(mol)
     connectivity_ = connectivity(mol)
     isaromatic_ = is_aromatic(mol)
     carr = copy(charge_)
@@ -294,7 +284,7 @@ Polarize dipole double bonds of the molecule.
 """
 function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
     atomsymbol_ = atom_symbol(mol)
-    charge_ = charge(mol)
+    charge_ = atom_charge(mol)
     bondorder_ = bond_order(mol)
     connectivity_ = connectivity(mol)
     carr = copy(charge_)
@@ -323,7 +313,7 @@ end
 
 
 function find_dipoles(mol::SimpleMolGraph)
-    charge_ = charge(mol)
+    charge_ = atom_charge(mol)
     pie_ = apparent_valence(mol) - degree(mol)
     triads = Tuple{Int,Int,Int}[]
     for c in findall((pie_ .== 2) .* (charge_ .== 1))
@@ -345,7 +335,7 @@ end
 Standardize the molecule so that all 1,3-dipole groups are represented as triple bond and single bond (e.g. Diazo group C=[N+]=[N-] -> [C-][N+]#N).
 """
 function to_triple_bond(mol::SimpleMolGraph)
-    carr = copy(charge(mol))
+    carr = copy(atom_charge(mol))
     oarr = copy(bond_order(mol))
     for (first, center, third) in find_dipoles(mol)
         bond_order(props(mol, first, center)) == 2 || continue
@@ -371,7 +361,7 @@ end
 Standardize the molecule so that all 1,3-dipole groups are represented as allene-like structure (e.g. Diazo group [C-][N+]#N -> C=[N+]=[N-]).
 """
 function to_allene_like(mol::SimpleMolGraph)
-    carr = copy(charge(mol))
+    carr = copy(atom_charge(mol))
     oarr = copy(bond_order(mol))
     for (first, center, third) in find_dipoles(mol)
         bond_order(props(mol, first, center)) == 1 || continue

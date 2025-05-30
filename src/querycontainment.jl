@@ -3,9 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export query_containment_diagram, find_queries
-
-
 const DEFAULT_QUERIES = let
     qrfile = joinpath(dirname(@__FILE__), "../assets/const/default_queries.yaml")
     include_dependency(qrfile)

@@ -109,7 +109,7 @@ function add_u_edge!(mol::MolGraph{T,V,E}, e::Edge, prop::E) where {T,V,E}
 end
 
 
-function add_vertex!(mol::MolGraph{T,V,E}, prop::V) where {T,V,E}
+function Graphs.add_vertex!(mol::MolGraph{T,V,E}, prop::V) where {T,V,E}
     add_vertex!(mol.graph) || return false
     mol.vprops[nv(mol.graph)] = prop
     mol.state[:has_updates] = true
@@ -126,7 +126,7 @@ function rem_u_edge!(mol::MolGraph, e::Edge)
 end
 
 
-function rem_vertex!(mol::MolGraph, v::Integer)
+function Graphs.rem_vertex!(mol::MolGraph, v::Integer)
     nv_ = nv(mol)
     edges_ = collect(edges(mol))
     rem_vertex!(mol.graph, v) || return false
@@ -152,7 +152,7 @@ function rem_vertex!(mol::MolGraph, v::Integer)
 end
 
 
-function rem_vertices!(mol::MolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
+function Graphs.rem_vertices!(mol::MolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
     # TODO: if many vertices should be removed, induced_subgraph may be more efficient.
     vmap = rem_vertices!(mol.graph, vs)
     for (i, v) in enumerate(vmap)

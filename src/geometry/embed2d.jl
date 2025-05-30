@@ -3,10 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    compute2dcoords
-
-
 """
     compute2dcoords(mol::MolGraph) -> InternalCoordinates
 

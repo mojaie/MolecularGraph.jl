@@ -3,11 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    planaritytest, outerplanaritytest,
-    isplanar, isouterplanar
-
-
 PlanarityTestDS{T} = Vector{Vector{Vector{T}}}
 
 

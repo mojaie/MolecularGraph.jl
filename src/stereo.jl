@@ -3,12 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    set_stereocenter!, set_stereobond!, stereo_hydrogen, safe_stereo_hydrogen!,
-    stereocenter_from_smiles!, stereocenter_from_sdf2d!,
-    stereobond_from_smiles!, stereobond_from_sdf2d!
-
-
 const STEREOCENTER_STATE = Dict(
     (1, 2, 3) => true, (1, 2, 4) => false,
     (1, 3, 2) => false, (1, 3, 4) => true,

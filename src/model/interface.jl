@@ -3,28 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-import Graphs:
-    AbstractGraph, edgetype, nv, ne, vertices, edges, is_directed,
-    has_vertex, has_edge, inneighbors, outneighbors,
-    add_vertex!, add_edge!, rem_vertex!, rem_vertices!, rem_edge!,
-    induced_subgraph
-
-export
-    AbstractMolGraph, SimpleMolGraph,
-    MolGraph, SDFMolGraph, SMILESMolGraph, CommonChemMolGraph,
-    SMARTSMolGraph,
-    QueryAny, QueryLiteral, QueryOperator, QueryTree, QueryTruthTable,
-    AbstractReaction, Reaction,
-    ordered_neighbors, u_edge, edge_rank,
-    vproptype, eproptype,
-    props, vprops, eprops,
-    get_prop, has_prop, metadata,
-    set_state!, has_state, get_state,
-    set_cache!, has_cache, get_cache, clear_caches!,
-    set_prop!, update_edge_rank!,
-    edge_neighbors, ordered_edge_neighbors
-
-
 abstract type AbstractMolGraph{T} <: AbstractGraph{T} end
 abstract type SimpleMolGraph{T,V,E} <: AbstractMolGraph{T} end  # mol graph that have SimpleGraph
 abstract type AbstractReaction{T<:AbstractMolGraph} end
@@ -47,34 +25,34 @@ Base.delete!(meta::Metadata, k) = delete!(meta.mapping, k)
 
 # Graphs.jl common interface
 
-edgetype(g::AbstractMolGraph) = edgetype(g.graph)
-edgetype(::Type{<:AbstractMolGraph{T}}) where T = Edge{T}
+Graphs.edgetype(g::AbstractMolGraph) = edgetype(g.graph)
+Graphs.edgetype(::Type{<:AbstractMolGraph{T}}) where T = Edge{T}
 Base.eltype(g::AbstractMolGraph) = eltype(g.graph)
 # https://github.com/JuliaGraphs/Graphs.jl/pull/144
 Base.eltype(::Type{<:AbstractMolGraph{T}}) where T = T
-nv(g::AbstractMolGraph) = nv(g.graph)
-ne(g::AbstractMolGraph) = ne(g.graph)
-vertices(g::AbstractMolGraph) = vertices(g.graph)
-edges(g::AbstractMolGraph) = edges(g.graph)
-is_directed(::Type{<:AbstractMolGraph{T}}) where T = false
-has_vertex(g::AbstractMolGraph, x::Integer) = has_vertex(g.graph, x)
-has_edge(g::AbstractMolGraph, s::Integer, d::Integer) = has_edge(g.graph, s, d)
-inneighbors(g::AbstractMolGraph, v::Integer) = inneighbors(g.graph, v)
-outneighbors(g::AbstractMolGraph, v::Integer) = outneighbors(g.graph, v)
+Graphs.nv(g::AbstractMolGraph) = nv(g.graph)
+Graphs.ne(g::AbstractMolGraph) = ne(g.graph)
+Graphs.vertices(g::AbstractMolGraph) = vertices(g.graph)
+Graphs.edges(g::AbstractMolGraph) = edges(g.graph)
+Graphs.is_directed(::Type{<:AbstractMolGraph{T}}) where T = false
+Graphs.has_vertex(g::AbstractMolGraph, x::Integer) = has_vertex(g.graph, x)
+Graphs.has_edge(g::AbstractMolGraph, s::Integer, d::Integer) = has_edge(g.graph, s, d)
+Graphs.inneighbors(g::AbstractMolGraph, v::Integer) = inneighbors(g.graph, v)
+Graphs.outneighbors(g::AbstractMolGraph, v::Integer) = outneighbors(g.graph, v)
 Base.zero(::Type{G}) where G <: AbstractMolGraph = G()
 
 
 # SimpleGraph interface
 Base.copy(mol::SimpleMolGraph) = deepcopy(mol)
-add_edge!(mol::SimpleMolGraph, u::Integer, v::Integer, prop
+Graphs.add_edge!(mol::SimpleMolGraph, u::Integer, v::Integer, prop
     ) = add_u_edge!(mol, u_edge(mol, u, v), prop)
-add_edge!(mol::SimpleMolGraph, e::Edge, prop
+Graphs.add_edge!(mol::SimpleMolGraph, e::Edge, prop
     ) = add_edge!(mol, src(e), dst(e), prop)
-rem_edge!(mol::SimpleMolGraph, u::Integer, v::Integer) = rem_u_edge!(mol, u_edge(mol, u, v))
-rem_edge!(mol::SimpleMolGraph, e::Edge) = rem_edge!(mol, src(e), dst(e))
-induced_subgraph(mol::T, vlist::AbstractVector{U}
+Graphs.rem_edge!(mol::SimpleMolGraph, u::Integer, v::Integer) = rem_u_edge!(mol, u_edge(mol, u, v))
+Graphs.rem_edge!(mol::SimpleMolGraph, e::Edge) = rem_edge!(mol, src(e), dst(e))
+Graphs.induced_subgraph(mol::T, vlist::AbstractVector{U}
     ) where {T<:SimpleMolGraph, U<:Integer} = _induced_subgraph(mol, vlist)
-induced_subgraph(mol::T, elist::AbstractVector{U}
+Graphs.induced_subgraph(mol::T, elist::AbstractVector{U}
     ) where {T<:SimpleMolGraph, U<:Edge} = _induced_subgraph(mol, elist)
 
 

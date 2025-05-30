@@ -3,11 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    SDFileReader,
-    sdfilereader, rdfilereader, sdfilescanner,
-    sdftomol, rxntoreaction
-
 const SDF_CHARGE_TABLE = Dict(
     0 => 0, 1 => 3, 2 => 2, 3 => 1, 4 => 0, 5 => -1, 6 => -2, 7 => -3
 )

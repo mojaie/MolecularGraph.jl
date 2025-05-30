@@ -3,11 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    wclogptype, wclogphydrogentype,
-    wclogpcontrib, wclogp
-
-
 const WCLOGP_TABLE = YAML.load(open(
     joinpath(dirname(@__FILE__), "..", "assets", "const", "wclogp.yaml")
 ))["logP"]
@@ -32,7 +27,7 @@ function wclogptype(mol::MolGraph)
     atomtypes = Vector{Symbol}(undef, nv(mol))
     fill!(atomtypes, :undef)
     atomsymbol_ = atom_symbol(mol)
-    charge_ = charge(mol)
+    charge_ = atom_charge(mol)
     bondorder_ = bond_order(mol)
     heavyatoms_ = heavy_atoms(mol)
     hydrogens_ = total_hydrogens(mol)

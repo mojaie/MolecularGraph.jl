@@ -3,10 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    induced_subgraph_edges, modular_product, line_graph
-
-
 """
     induced_subgraph_edges(g, node_list)
 

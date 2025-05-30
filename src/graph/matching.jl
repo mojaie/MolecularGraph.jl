@@ -3,9 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export max_matching, is_perfect_matching
-
-
 function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
     # TODO: refactoring
     head = Set(vertices(g))  # Initial exposed node set

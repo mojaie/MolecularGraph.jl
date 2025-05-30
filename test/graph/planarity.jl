@@ -3,8 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using MolecularGraph: merge_ds!
-
 @testset "graph.planarity" begin
 
 @testset "merge" begin

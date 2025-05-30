@@ -3,18 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
-# TODO: migrate to GeometryBasics
-
-export
-    Point2D, Point3D, Segment,
-    toarray, x_components, y_components, z_components,
-    distance, unitvector, midpoint,
-    translate, trim_u, trim_v, trim_uv,
-    cross2d, interiorangle, isclockwise,
-    transformmatrix, rotation
-
-
 struct Point2D <: MGPoint
     x::Float64
     y::Float64

@@ -3,11 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    SMILESParser, SMARTSParser,
-    smilestomol, smartstomol
-
-
 struct SMARTSLexicalSuccessors{T} <: AbstractVector{AbstractVector{T}}
     vector::Vector{Vector{T}}
 end

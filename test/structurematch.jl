@@ -1,8 +1,4 @@
 
-using MolecularGraph:
-    exact_match_prefilter, substruct_match_prefilter
-
-
 @testset "structurematch" begin
 
 @testset "prefilter" begin

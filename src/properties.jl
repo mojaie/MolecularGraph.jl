@@ -3,22 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    sssr, sssr!,
-    which_ring, edge_which_ring, fused_rings, which_fused_ring,
-    smallest_ring, ring_count, is_in_ring, is_edge_in_ring,
-    atom_symbol, charge, multiplicity, bond_order,
-    lone_pair, lone_pair!, apparent_valence, apparent_valence!, valence, valence!,
-    explicit_hydrogens, implicit_hydrogens, heavy_atoms,
-    total_hydrogens, connectivity,
-    is_hydrogen_donor, hydrogen_donor_count,
-    is_hydrogen_acceptor, hydrogen_acceptor_count,
-    is_rotatable, rotatable_count,
-    atom_counter, heavy_atom_count, molecular_formula, empirical_formula,
-    pi_electron, pi_delocalized, hybridization, hybridization_delocalized,
-    is_ring_aromatic, is_ring_aromatic!, is_aromatic, is_edge_aromatic
-
-
 const LONEPAIR_COUNT = Dict(
     :B => -1, :C => 0, :N => 1, :O => 2, :F => 3,
     :Si => 0, :P => 1, :S => 2, :Cl => 3,
@@ -305,9 +289,6 @@ function atom_symbol(mol::SimpleMolGraph)
     return [atom_symbol(props(mol, i)) for i in vertices(mol)]
 end
 
-atom_symbol!(mol::SimpleMolGraph
-    ) = set_cache!(mol, :v_symbol, [atom_symbol(props(mol, i)) for i in vertices(mol)])
-
 
 """
     atom_number(mol::MolGraph) -> Vector{Int}
@@ -321,25 +302,18 @@ function atom_number(mol::SimpleMolGraph)
     return [atom_number(props(mol, i)) for i in vertices(mol)]
 end
 
-atom_number!(mol::SimpleMolGraph
-    ) = set_cache!(mol, :v_number, [atom_number(props(mol, i)) for i in vertices(mol)])
-
 
 """
-    charge(mol::MolGraph) -> Vector{Int}
+    atom_charge(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing atom charges of 1 to ``n``th atoms of
 the given molecule.
 """
-function charge(mol::SimpleMolGraph)
+function atom_charge(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_charge) && return get_cache(mol, :v_charge)
-    return [charge(props(mol, i)) for i in vertices(mol)]
+    return [atom_charge(props(mol, i)) for i in vertices(mol)]
 end
-
-# kekulize! or charge standardization (e.g. polarize!) would be reset
-charge!(mol::SimpleMolGraph
-    ) = set_cache!(mol, :v_charge, [charge(props(mol, i)) for i in vertices(mol)])
 
 
 """
@@ -427,12 +401,12 @@ end
 function valence(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_valence) && return get_cache(mol, :v_valence)
-    return valence(atom_symbol(mol), charge(mol), apparent_valence(mol))
+    return valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
 end
 
 valence!(mol::SimpleMolGraph) = set_cache!(
     mol, :v_valence,
-    valence(atom_symbol(mol), charge(mol), apparent_valence(mol))
+    valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
 )
 
 
@@ -560,11 +534,11 @@ end
 function lone_pair(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_lone_pair) && return get_cache(mol, :v_lone_pair)
-    return lone_pair(atom_symbol(mol), charge(mol), connectivity(mol))
+    return lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
 end
 
 lone_pair!(mol::SimpleMolGraph) = set_cache!(
-    mol, :v_lone_pair, lone_pair(atom_symbol(mol), charge(mol), connectivity(mol)))
+    mol, :v_lone_pair, lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol)))
 
 
 

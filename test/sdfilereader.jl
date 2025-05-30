@@ -1,6 +1,4 @@
 
-using MolecularGraph: ctab_atom_v2, ctab_bond_v2
-
 @testset "sdfilereader" begin
 
 @testset "ctab_atom_v2" begin

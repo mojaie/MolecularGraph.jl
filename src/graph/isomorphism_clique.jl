@@ -3,12 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    ConstraintArrayMCIS, ConstraintArrayMCES,
-    maximum_common_subgraph, maximum_common_edge_subgraph,
-    mcis_constraints, mces_constraints
-
-
 abstract type ConstraintArrayMCS{T} end
 
 struct ConstraintArrayMCIS{T,D,V,E} <: ConstraintArrayMCS{T}

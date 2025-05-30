@@ -1,7 +1,4 @@
 
-using MolecularGraph:
-    resolve_disjoint_not, resolve_recursive, generate_truthtable, querymatch, querypropmap
-
 @testset "querycontainment" begin
 
 @testset "resolve_disjoint_not" begin

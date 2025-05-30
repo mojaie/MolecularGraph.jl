@@ -17,7 +17,7 @@
     @test get_prop(LAla2, :stereocenter)[2] == (1, 3, 4, false)
     safe_stereo_hydrogen!(LAla2, 2)
     @test get_prop(LAla2, :stereocenter)[2] == (1, 3, 5, true)
-    
+
     LAla3 = smilestomol("[H][C@@](C(=O)O)(C)N")
     @test get_prop(LAla3, 2, :stereo) === :clockwise
     @test get_prop(LAla3, :stereocenter)[2] == (1, 3, 6, true)

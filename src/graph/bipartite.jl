@@ -3,13 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    MaxCardMatchState,
-    maxcardmap,
-    maxcard,
-    maxcardmatch!
-
-
 mutable struct MaxCardMatchState
     u::Set{Int}
     v::Set{Int}

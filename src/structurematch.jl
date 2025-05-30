@@ -3,19 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    vmatchgen, vmatchvecgen, ematchgen, ematchvecgen,
-    exact_matches, has_exact_match,
-    substruct_matches, has_substruct_match,
-    node_substruct_matches, has_node_substruct_match,
-    edge_substruct_matches, has_edge_substruct_match,
-    disconnected_mcis, disconnected_mces,
-    connected_mcis, connected_mces,
-    tcmcis, tcmces, tdmcis, tdmces,
-    emaptonmap,
-    tdmcis_constraints, tdmces_constraints
-
-
 """
     vmatchgen(mol1::MolGraph, mol2::MolGraph) -> Function
     vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
@@ -47,8 +34,8 @@ function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
     descriptors = Dict(  # precalculated descriptors
         :symbol => atom_symbol(mol1),
         :isaromatic => is_aromatic(mol1),
-        :charge => charge(mol1),
-        :mass => [mass(props(mol1, i)) for i in vertices(mol1)],
+        :charge => atom_charge(mol1),
+        :mass => [atom_mass(props(mol1, i)) for i in vertices(mol1)],
         :connectivity => connectivity(mol1),
         :degree => degree(mol1),
         :valence => valence(mol1),

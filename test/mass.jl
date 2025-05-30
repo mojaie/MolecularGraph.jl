@@ -9,7 +9,7 @@
     @test monoiso_mass(iron, 6) == 55.934936
     @test exact_mass_unc(iron) == (55.93493633, 4.9e-7)
     @test exact_mass(iron, 6) == 55.934936
-    
+
     og = SDFAtom(:Og)
     @test standard_weight_unc(og) === (NaN, NaN)
     @test exact_mass_unc(og) === (NaN, NaN)

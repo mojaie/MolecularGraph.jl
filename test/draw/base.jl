@@ -3,10 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-using MolecularGraph:
-    Color, atom_color, is_atom_visible,
-    sdf_bond_style, double_bond_style, atomhtml
-
 @testset "draw.base" begin
     @testset "atomnotation" begin
         ASSET_DIR = joinpath(dirname(@__FILE__), "..", "..", "assets", "test")

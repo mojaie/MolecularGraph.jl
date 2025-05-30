@@ -3,10 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    logfactorial
-
-
 """
     logfactorial(n::Int) -> Float64
 

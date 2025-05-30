@@ -3,10 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    has_coords, sdf_coords2d, coords2d, coords3d, coordgen, coordgen!
-
-using coordgenlibs_jll
 
 # TODO: multiple coordinates (conformers)
 

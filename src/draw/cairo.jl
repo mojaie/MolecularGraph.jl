@@ -3,9 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-import Cairo
-
-
 mutable struct CairoCanvas <: Canvas
     scaleunit::Float64
     mbwidthf::Float64

@@ -3,12 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    drawsvg,
-    drawpng,
-    html_fixed_size,
-    html_grid
-
 
 abstract type Canvas end
 

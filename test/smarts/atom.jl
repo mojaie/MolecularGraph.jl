@@ -1,6 +1,4 @@
 
-using MolecularGraph: atomsymbol!, atomprop!, atom!
-
 @testset "smarts.atom" begin
 
 @testset "atomsymbol" begin

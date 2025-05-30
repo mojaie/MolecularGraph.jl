@@ -1,8 +1,4 @@
 
-using MolecularGraph:
-    forward!, chain!, fragment!, componentquery!
-
-
 @testset "smarts.molecule" begin
 
 @testset "chain" begin

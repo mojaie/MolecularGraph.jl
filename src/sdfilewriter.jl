@@ -3,10 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    printv2mol, printv2sdf, sdfilewriter
-
-
 const BOND_STYLE_TO_SDF = Dict(
     :none => 0,
     :up => 1,
@@ -42,9 +38,9 @@ function printv2properties(io::IO, mol::SimpleMolGraph)
     radicals = Tuple{Int,Int}[]
     masses = Tuple{Int,Float64}[]
     for i in vertices(mol)
-        charge(props(mol, i)) == 0 || push!(charges, (i, charge(props(mol, i))))
+        atom_charge(props(mol, i)) == 0 || push!(charges, (i, atom_charge(props(mol, i))))
         multiplicity(props(mol, i)) == 1 || push!(radicals, (i, multiplicity(props(mol, i))))
-        isnothing(mass(props(mol, i))) || push!(masses, (i, mass(props(mol, i))))
+        isnothing(atom_mass(props(mol, i))) || push!(masses, (i, atom_mass(props(mol, i))))
     end
     if !isempty(charges)
         head = @sprintf "M  CHG%3d" length(charges)

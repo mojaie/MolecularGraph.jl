@@ -3,14 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    VF2Matcher,
-    isomorphisms, is_isomorphic,
-    nodesubgraph_isomorphisms, nodesubgraph_is_isomorphic,
-    edgesubgraph_isomorphisms, edgesubgraph_is_isomorphic,
-    subgraph_monomorphisms, subgraph_is_monomorphic
-
-
 """
     VF2Matcher{T,U,G<:SimpleGraph{T},H<:SimpleGraph{U}}
 

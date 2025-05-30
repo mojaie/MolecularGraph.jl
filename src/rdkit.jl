@@ -3,19 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    to_rdkdict, to_rdkjson,
-    rdkitmol, smiles,
-    morgan_fp_vector, rdkit_fp_vector,
-    pattern_fp_vector, atom_pair_fp_vector,
-    topological_torsion_fp_vector
-
-using RDKitMinimalLib: Mol, get_mol, get_smiles,
-    get_morgan_fp_as_bytes, get_rdkit_fp_as_bytes,
-    get_pattern_fp_as_bytes, get_atom_pair_fp_as_bytes,
-    get_topological_torsion_fp_as_bytes
-
-
 function rdk_on_init!(mol)
     update_edge_rank!(mol)
     set_state!(mol, :initialized, true)
@@ -121,9 +108,9 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
     )
     atomnum = atom_number(mol)
     implh = implicit_hydrogens(mol)
-    chg = charge(mol)
+    chg = atom_charge(mol)
     mul = multiplicity(mol)
-    ms = [mass(props(mol, i)) for i in vertices(mol)]
+    ms = [atom_mass(props(mol, i)) for i in vertices(mol)]
     stereocenters = has_prop(mol, :stereocenter) ? get_prop(mol, :stereocenter) : Dict()
     for i in vertices(mol)
         rcd = Dict{String,Any}()
@@ -166,15 +153,37 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
 end
 
 
+"""
+    to_rdkdict(mol::MolGraph) -> Dict{String,Any}
+
+Convert the molecule object into `Dict` in RDKit compatible CommonChem JSON format.
+"""
 to_rdkdict(x) = to_dict(Val{:rdkit}(), x)
+
+
+"""
+    to_rdkjson(mol::MolGraph) -> String
+
+Convert the molecule object into RDKit compatible CommonChem JSON text.
+"""
 to_rdkjson(x) = to_json(Val{:rdkit}(), x)
 
 
+"""
+    rdkitmol(mol::MolGraph) -> RDKitMinimalLib.Mol
+
+Convert the molecule object into a RDKit molecule object that can be used in RDKitMinimalLib.jl
+"""
 function rdkitmol(mol::MolGraph)
     return get_mol(to_json(Val{:rdkit}(), mol))
 end
 
 
+"""
+    smiles(mol::MolGraph) -> String
+
+Return a SMILES string of the molecule object.
+"""
 function smiles(mol::MolGraph, details=nothing)
     return get_smiles(rdkitmol(mol), details)
 end
@@ -183,34 +192,65 @@ end
 function uint8vec_to_bitarray(uvec::Vector{UInt8})
     bits = BitVector(undef, 8 * length(uvec))
     for (i, byte) in enumerate(uvec)
-        for j in 0:7
-            bits[8*(i-1) + j + 1] = (byte >> (7 - j)) & 0x01 == 1
+        for j in 1:8
+            bits[8*(i-1) + j] = (byte >> (8 - j)) & 0x01
         end
     end
     return bits
 end
 
 
+"""
+    morgan_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
+    morgan_fp_vector(mol::MolGraph; kwargs...) -> BitArray
+
+Return a Morgan fingerprint bit array
+"""
 morgan_fp_vector(mol::Mol; kwargs...
     ) = uint8vec_to_bitarray(get_morgan_fp_as_bytes(mol::Mol, kwargs...))
 morgan_fp_vector(mol::MolGraph; kwargs...
     ) = morgan_fp_vector(rdkitmol(mol); kwargs...)
 
+"""
+    rdkit_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
+    rdkit_fp_vector(mol::MolGraph; kwargs...) -> BitArray
+
+Return a RDKit fingerprint bit array
+"""
 rdkit_fp_vector(mol::Mol; kwargs...
     ) = uint8vec_to_bitarray(get_rdkit_fp_as_bytes(mol::Mol, kwargs...))
 rdkit_fp_vector(mol::MolGraph; kwargs...
     ) = rdkit_fp_vector(rdkitmol(mol); kwargs...)
 
+"""
+    pattern_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
+    pattern_fp_vector(mol::MolGraph; kwargs...) -> BitArray
+
+Return a pattern fingerprint bit array, a topological fingerprint
+optimized for substructure screening
+"""
 pattern_fp_vector(mol::Mol; kwargs...
     ) = uint8vec_to_bitarray(get_pattern_fp_as_bytes(mol::Mol, kwargs...))
 pattern_fp_vector(mol::MolGraph; kwargs...
     ) = pattern_fp_vector(rdkitmol(mol); kwargs...)
 
+"""
+    atom_pair_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
+    atom_pair_fp_vector(mol::MolGraph; kwargs...) -> BitArray
+
+Return a atom pairs fingerprint bit array
+"""
 atom_pair_fp_vector(mol::Mol; kwargs...
     ) = uint8vec_to_bitarray(get_atom_pair_fp_as_bytes(mol::Mol, kwargs...))
 atom_pair_fp_vector(mol::MolGraph; kwargs...
     ) = atom_pair_fp_vector(rdkitmol(mol); kwargs...)
 
+"""
+    topological_torsion_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
+    topological_torsion_fp_vector(mol::MolGraph; kwargs...) -> BitArray
+
+Return a topological torsions fingerprint bit array
+"""
 topological_torsion_fp_vector(mol::Mol; kwargs...
     ) = uint8vec_to_bitarray(get_topological_torsion_fp_as_bytes(mol::Mol, kwargs...))
 topological_torsion_fp_vector(mol::MolGraph; kwargs...
@@ -218,4 +258,4 @@ topological_torsion_fp_vector(mol::MolGraph; kwargs...
 
 
 jaccard_index(a::BitVector, b::BitVector
-    ) = sum(a .& b) / sum(a.| b)  # Not exported
+    ) = sum(a .& b) / sum(a .| b)  # Not exported

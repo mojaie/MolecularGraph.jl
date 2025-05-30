@@ -1,8 +1,4 @@
 
-using MolecularGraph:
-    forward!, lgnot!, lghighand!, lgor!, lglowand!
-
-
 @testset "smarts.logicaloperator" begin
 
 @testset "logicaloperator" begin

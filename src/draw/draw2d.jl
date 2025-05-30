@@ -3,7 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
 """
     is_atom_visible(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Bool}
 
@@ -37,8 +36,8 @@ end
 
 function is_atom_visible(mol::SimpleMolGraph; show_carbon=:simple, kwargs...)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    return is_atom_visible(mol.graph, atom_symbol(mol), charge(mol), multiplicity(mol),
-        [mass(props(mol, i)) for i in vertices(mol)], bond_order(mol); kwargs...)
+    return is_atom_visible(mol.graph, atom_symbol(mol), atom_charge(mol), multiplicity(mol),
+        [atom_mass(props(mol, i)) for i in vertices(mol)], bond_order(mol); kwargs...)
 end
 
 
@@ -186,7 +185,7 @@ function boundary(mol::SimpleMolGraph, coords::AbstractArray{Float64})
         long = max(width, height)
         unit = long > 0.0001 ? long / sqrt(nv(mol)) : 1
     else
-        unit = median(dists) # Median bond length
+        unit = Statistics.median(dists) # Median bond length
     end
     return (top, left, width, height, unit)
 end
@@ -330,7 +329,7 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     initcanvas!(canvas, crds, boundary(mol, crds))
     # Properties
     atomsymbol_ = atom_symbol(mol)
-    charge_ = charge(mol)
+    charge_ = atom_charge(mol)
     implicith_ = implicit_hydrogens(mol)
     bondorder_ = bond_order(mol)
     atomcolor_ = atom_color(mol; kwargs...)

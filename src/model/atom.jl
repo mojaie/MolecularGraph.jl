@@ -3,11 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
-    SDFAtom, SMILESAtom, atom_number, atomsymbol
-
-
 const ATOMTABLE = let
     weightsfile = joinpath(dirname(@__FILE__), "../../assets/const/atomicweights.yaml")
     include_dependency(weightsfile)
@@ -62,6 +57,9 @@ end
 
 """
     atom_number(atomsymbol::Symbol) -> Int
+    atom_number(atomprop::SDFAtom) -> Int
+    atom_number(atomprop::SMILESAtom) -> Int
+    atom_number(atomprop::CommonChemAtom) -> Int
 
 Return atom number.
 """
@@ -70,6 +68,9 @@ atom_number(atomsymbol::Symbol) = ATOMSYMBOLMAP[string(atomsymbol)]
 
 """
     atom_symbol(n::Int) -> Symbol
+    atom_symbol(atomprop::SDFAtom) -> Symbol
+    atom_symbol(atomprop::SMILESAtom) -> Symbol
+    atom_symbol(atomprop::CommonChemAtom) -> Symbol
 
 Return atom symbol of given atomic number.
 """
@@ -107,9 +108,9 @@ Base.hash(a::SDFAtom, h::UInt
 
 atom_symbol(a::SDFAtom) = a.symbol
 atom_number(a::SDFAtom) = atom_number(a.symbol)
-charge(a::SDFAtom) = a.charge
+atom_charge(a::SDFAtom) = a.charge
 multiplicity(a::SDFAtom) = a.multiplicity
-mass(a::SDFAtom) = a.mass
+atom_mass(a::SDFAtom) = a.mass
 
 to_dict(::Val{:default}, a::SDFAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.coords]
 
@@ -157,9 +158,9 @@ Base.hash(a::SMILESAtom, h::UInt
 
 atom_symbol(a::SMILESAtom) = a.symbol
 atom_number(a::SMILESAtom) = atom_number(a.symbol)
-charge(a::SMILESAtom) = a.charge
+atom_charge(a::SMILESAtom) = a.charge
 multiplicity(a::SMILESAtom) = a.multiplicity
-mass(a::SMILESAtom) = a.mass
+atom_mass(a::SMILESAtom) = a.mass
 
 to_dict(::Val{:default}, a::SMILESAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, a.stereo]
 
@@ -207,9 +208,9 @@ Base.hash(a::CommonChemAtom, h::UInt
 
 atom_symbol(a::CommonChemAtom) = atom_symbol(a.z)
 atom_number(a::CommonChemAtom) = a.z
-charge(a::CommonChemAtom) = a.chg
+atom_charge(a::CommonChemAtom) = a.chg
 multiplicity(a::CommonChemAtom) = a.nRad + 1
-mass(a::CommonChemAtom) = a.mass == 0 ? nothing : a.mass
+atom_mass(a::CommonChemAtom) = a.mass == 0 ? nothing : a.mass
 
 to_dict(::Val{:default}, a::CommonChemAtom) = Any[a.z, a.chg, a.impHs, a.mass, a.nRad, a.stereo]
 

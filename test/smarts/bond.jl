@@ -1,7 +1,4 @@
 
-using MolecularGraph: bondsymbol!, bond!
-
-
 @testset "smarts.bond" begin
 
 @testset "bondsymbol" begin

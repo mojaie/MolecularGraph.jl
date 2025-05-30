@@ -1,7 +1,4 @@
 
-using MolecularGraph: lookahead, forward!, backtrack!
-
-
 @testset "smarts.base" begin
 
 @testset "base" begin

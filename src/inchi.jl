@@ -3,12 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-export
-    inchi, inchikey, inchitomol, inchitosdf
-
-using libinchi_jll
-
-
 mutable struct inchi_Output
     szInChI::Cstring
     szAuxInfo::Cstring
@@ -23,7 +17,7 @@ mutable struct inchi_InputINCHI
     szOptions::Cstring     # InChI options: space-delimited; each is preceded by
                            # '/' or '-' depending on OS and compiler
 end
- 
+
 mutable struct inchi_Input
     # the caller is responsible for the data allocation and deallocation
     atom::Ptr{Cvoid}            # array of num_atoms elements
@@ -45,7 +39,7 @@ mutable struct inchi_InputEx
     polymer::Ptr{Cvoid}
     v3000::Ptr{Cvoid}
 end
- 
+
 mutable struct inchi_OutputStruct
     # the caller is responsible for the data allocation and deallocation
     atom::Ptr{Cvoid}        # array of num_atoms elements
@@ -62,7 +56,7 @@ mutable struct inchi_OutputStruct
                             # x=1 => Disconnected layer if Reconnected layer is present
                             # y=1 => Main layer or Mobile-H
                             # y=0 => Fixed-H layer
- 
+
     inchi_OutputStruct() = new(C_NULL, C_NULL, 0, 0, C_NULL, C_NULL, ((0, 0), (0, 0)))
 end
 
@@ -84,7 +78,7 @@ mutable struct inchi_OutputStructEx
                             # y=0 => Fixed-H layer
     polymer::Ptr{Cvoid}
     v3000::Ptr{Cvoid}
-    
+
     inchi_OutputStructEx() = new(C_NULL, C_NULL, 0, 0, C_NULL, C_NULL, ((0, 0), (0, 0)), C_NULL, C_NULL)
 end
 
@@ -122,7 +116,7 @@ function inchi(molblock::String; options::String = "", verbose::Bool = false)
     # support the correct options format depending on OS
     # add a timeout of 60s per molecule
     opts = opt_array(options)
-    any(occursin.(r"^Wm?\d+$", opts)) || push!(opts, "W60")    
+    any(occursin.(r"^Wm?\d+$", opts)) || push!(opts, "W60")
     options = opt_string(opts)
 
     output = inchi_Output()
@@ -169,7 +163,7 @@ function inchitosdf(inchi::String; options::String = "", verbose::Bool = false)
     # support the correct options format depending on OS
     opts = opt_array(options)
     # add a timeout of 60s per molecule
-    any(occursin.(r"^Wm?\d+$", opts)) || push!(opts, "W60")    
+    any(occursin.(r"^Wm?\d+$", opts)) || push!(opts, "W60")
     # switch output to sdf format
     "OutputSDF" ∈ opts || push!(opts, "OutputSDF")
     options = opt_string(opts)
@@ -178,7 +172,7 @@ function inchitosdf(inchi::String; options::String = "", verbose::Bool = false)
     inchi_input = inchi_InputINCHI(Base.unsafe_convert(Cstring, inchi), Base.unsafe_convert(Cstring, options))
     @ccall libinchi.GetStructFromINCHIEx(
         inchi_input::Ref{inchi_InputINCHI}, structure::Ref{inchi_OutputStructEx})::Int32
-    
+
     input = inchi_InputEx(
         structure.atom,
         structure.stereo0D,
@@ -188,17 +182,17 @@ function inchitosdf(inchi::String; options::String = "", verbose::Bool = false)
         structure.polymer,
         structure.v3000
     )
-    output = inchi_Output()   
+    output = inchi_Output()
     @ccall libinchi.GetINCHIEx(
         input::Ref{inchi_InputEx}, output::Ref{inchi_Output})::Cint
     report_output(output, verbose)
 
     res = output.szInChI == C_NULL ? nothing : unsafe_string(output.szInChI)
-        
+
     # Free buffers allocated by GetStructFromINCHIEx and GetINCHI
     @ccall libinchi.FreeStructFromINCHIEx(structure::Ref{inchi_OutputStructEx})::Cvoid
     @ccall libinchi.FreeINCHI(output::Ref{inchi_Output})::Cvoid
-    
+
     return res
 end
 

@@ -1,8 +1,4 @@
 
-using MolecularGraph:
-    querypropmap, generate_queryfunc, querymatch, optimize_query,
-    fragment!,specialize_nonaromatic!, remove_hydrogens!
-
 @testset "model.query" begin
 
 @testset "truthtable" begin
