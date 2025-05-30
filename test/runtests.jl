@@ -5,6 +5,7 @@
 
 module MolecularGraphTest
 
+using Colors: RGB
 using Graphs
 using Logging
 using MolecularGraph
@@ -18,7 +19,7 @@ using MolecularGraph:
     translate, trim_u, trim_v, trim_uv,
     cross2d, interiorangle, isclockwise,
     transformmatrix, rotation,
-    Color, atom_color, is_atom_visible,
+    atom_color, is_atom_visible,
     sdf_bond_style, double_bond_style, atomhtml,
     merge_ds!,
     Metadata,

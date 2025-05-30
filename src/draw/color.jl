@@ -3,75 +3,75 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-# TODO: common draw color theme based on Colors.jl
-
-struct Color
-    r::Int
-    g::Int
-    b::Int
-end
-
 # Default extended CPK theme for 2D atom symbol drawing
 
-const DEFAULT_ATOM_COLOR = Dict(
-    :default => Color(0, 192, 192),
-    :H => Color(0, 0, 0),
-    :B => Color(128, 0, 0),
-    :C => Color(0, 0, 0),
-    :N => Color(0, 0, 255),
-    :O => Color(255, 0, 0),
-    :F => Color(0, 255, 0),
-    :Si => Color(128, 64, 192),
-    :P => Color(192, 0, 192),
-    :S => Color(192, 192, 0),
-    :Cl => Color(64, 192, 64),
-    :As => Color(128, 0, 128),
-    :Se => Color(128, 128, 0),
-    :Br => Color(0, 192, 0),
-    :I => Color(0, 128, 0)
-)
+const DEFAULT_ATOM_COLOR = Dict(k => RGB{N0f8}((v ./ 255)...) for (k, v) in Dict(
+    :default => (0, 192, 192),
+    :H => (0, 0, 0),
+    :B => (128, 0, 0),
+    :C => (0, 0, 0),
+    :N => (0, 0, 255),
+    :O => (255, 0, 0),
+    :F => (0, 255, 0),
+    :Si => (128, 64, 192),
+    :P => (192, 0, 192),
+    :S => (192, 192, 0),
+    :Cl => (64, 192, 64),
+    :As => (128, 0, 128),
+    :Se => (128, 128, 0),
+    :Br => (0, 192, 0),
+    :I => (0, 128, 0)
+))
 
 
 # https://www.umass.edu/microbio/rasmol/distrib/rasman.htm#cpkcolours
 # default for 3D model
 
-const RASMOL_ATOM_COLOR = Dict(
-    :default => Color(255,20,147),
-    :H => Color(255,255,255),
-    :B => Color(0,255,0),
-    :C => Color(200,200,200),
-    :N => Color(143,143,255),
-    :O => Color(240,0,0),
-    :F => Color(218,165,32),
-    :Si => Color(218,165,32),
-    :P => Color(255,165,0),
-    :S => Color(255,200,50),
-    :Cl => Color(0,255,0),
-    :Br => Color(165,42,42),
-    :I => Color(160,32,240),
-    :Ba => Color(255,165,0),
-    :Fe => Color(255,165,0),
-    :Na => Color(0,0,255),
-    :Mg => Color(34,139,34),
-    :Zn => Color(165,42,42),
-    :Cu => Color(165,42,42),
-    :Ni => Color(165,42,42),
-    :Ca => Color(128,128,144),
-    :Mn => Color(128,128,144),
-    :Al => Color(128,128,144),
-    :Ti => Color(128,128,144),
-    :Cr => Color(128,128,144),
-    :Ag => Color(128,128,144),
-    :Au => Color(218,165,32),
-    :Li => Color(178,34,34),
-    :He => Color(255,192,203)
-)
+const RASMOL_ATOM_COLOR = Dict(k => RGB{N0f8}((v ./ 255)...) for (k, v) in Dict(
+    :default => (255,20,147),
+    :H => (255,255,255),
+    :B => (0,255,0),
+    :C => (200,200,200),
+    :N => (143,143,255),
+    :O => (240,0,0),
+    :F => (218,165,32),
+    :Si => (218,165,32),
+    :P => (255,165,0),
+    :S => (255,200,50),
+    :Cl => (0,255,0),
+    :Br => (165,42,42),
+    :I => (160,32,240),
+    :Ba => (255,165,0),
+    :Fe => (255,165,0),
+    :Na => (0,0,255),
+    :Mg => (34,139,34),
+    :Zn => (165,42,42),
+    :Cu => (165,42,42),
+    :Ni => (165,42,42),
+    :Ca => (128,128,144),
+    :Mn => (128,128,144),
+    :Al => (128,128,144),
+    :Ti => (128,128,144),
+    :Cr => (128,128,144),
+    :Ag => (128,128,144),
+    :Au => (218,165,32),
+    :Li => (178,34,34),
+    :He => (255,192,203)
+))
 
 
 """
-    atomcolor(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Color}
+    atom_color(mol::SimpleMolGraph) -> Vector{RGB}
 
 Return atom colors for molecule 2D drawing
 """
 atom_color(mol::SimpleMolGraph; color_theme=DEFAULT_ATOM_COLOR, kwargs...
     ) = [get(color_theme, sym, color_theme[:default]) for sym in atom_symbol(mol)]
+
+"""
+    atom_coloralpha(mol::SimpleMolGraph; alpha=1.0) -> Vector{RGBA}
+
+Return atom colors for molecule 2D drawing
+"""
+atom_coloralpha(mol::SimpleMolGraph; alpha=1.0, color_theme=DEFAULT_ATOM_COLOR, kwargs...
+    ) = [coloralpha(get(color_theme, sym, color_theme[:default]), alpha) for sym in atom_symbol(mol)]

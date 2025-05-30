@@ -8,8 +8,8 @@
         ASSET_DIR = joinpath(dirname(@__FILE__), "..", "..", "assets", "test")
         mol = sdftomol(open(joinpath(ASSET_DIR, "demo.mol")))
 
-        @test atom_color(mol)[6] == Color(0, 192, 0)
-        @test atom_color(mol)[23] == Color(0, 192, 192)  # Default color
+        @test atom_color(mol)[6] == RGB(0, 192/255, 0)
+        @test atom_color(mol)[23] == RGB(0, 192/255, 192/255)  # Default color
         @test is_atom_visible(mol)[1] === false
         @test is_atom_visible(mol)[8] === true
     end

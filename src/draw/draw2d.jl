@@ -4,7 +4,7 @@
 #
 
 """
-    is_atom_visible(mol::SimpleMolGraph; setting=DRAW_SETTING) -> Vector{Bool}
+    is_atom_visible(mol::SimpleMolGraph; show_carbon=:simple, kwargs...) -> Vector{Bool}
 
 Return whether the atom is visible in the 2D drawing.
 `show_carbon`: `simple` - does not show carbon labels, `terminal` - show only terminal carbonlabels,

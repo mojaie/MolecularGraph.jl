@@ -120,7 +120,7 @@ Base.@ccallable function drawsvg(mol::Cstring, options::Cstring)::Cstring
         kwgs = Pair{Symbol,Any}[]
         haskey(op, "viewbox") && push!(kwgs, :viewbox => op["viewbox"])
         haskey(op, "show_carbon") && push!(kwgs, :show_carbon => Symbol(op["show_carbon"]))
-        haskey(op, "bgcolor") && push!(kwgs, :bgcolor => Color(Int.(op["bgcolor"][1:3])...))
+        haskey(op, "bgcolor") && push!(kwgs, :bgcolor => op["bgcolor"])
         haskey(op, "bgopacity") && push!(kwgs, :bgopacity => op["bgopacity"])
         svg = drawsvg(molobj; kwgs...)
         return unsafe_convert(Cstring, svg)
@@ -137,7 +137,7 @@ Base.@ccallable function drawpng(
         op = JSON.parse(unsafe_string(options))
         kwgs = Pair{Symbol,Any}[]
         haskey(op, "show_carbon") && push!(kwgs, :show_carbon => Symbol(op["show_carbon"]))
-        haskey(op, "bgcolor") && push!(kwgs, :bgcolor => Color(Int.(op["bgcolor"][1:3])...))
+        haskey(op, "bgcolor") && push!(kwgs, :bgcolor => op["bgcolor"])
         haskey(op, "bgopacity") && push!(kwgs, :bgopacity => op["bgopacity"])
         buf = IOBuffer()
         iob64_encode = Base64EncodePipe(buf)

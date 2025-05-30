@@ -114,10 +114,9 @@ export
 # Molecule drawing
 
 import Cairo
-import Colors
+using Colors: RGB, RGBA, N0f8, hex
 using GeometryBasics: mesh, Cylinder, Sphere, Point
-using MakieCore:
-    @recipe, Theme, meshscatter!, lines!, mesh!
+using MakieCore: @recipe, Theme, meshscatter!, lines!, mesh!
 import MakieCore
 import Statistics
 

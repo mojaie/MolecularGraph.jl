@@ -3,8 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-colortype(c::Color, alpha=1.0) = Colors.RGBA{Float32}(c.r/255, c.g/255, c.b/255, alpha)
-
 const DEFAULT_BALL_DIAMETER = float(0.4)
 const DEFAULT_STICK_DIAMETER = float(0.33)
 const DEFAULT_WIRE_DIAMETER = float(0.1)
@@ -127,7 +125,7 @@ function MakieCore.plot!(md::MolDisplay{<:NTuple{<:Any,<:SimpleMolGraph}})
     radii = md[:radii][]
     for mol in mols
         crds = coords3d(mol)
-        col = colortype.(atom_color(mol, color_theme=md.colortheme[]), md[:alpha][])
+        col = atom_coloralpha(mol, alpha=md[:alpha][], color_theme=md.colortheme[])
         if md[:showatoms][]
             rd = atom_radius(mol; mapping=radii)
             drawatoms!(md, crds, col, rd)

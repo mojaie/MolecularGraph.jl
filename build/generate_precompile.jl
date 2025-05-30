@@ -44,13 +44,13 @@ function run()
         drawsvg(unsafe_convert(Cstring, demomol), unsafe_convert(Cstring, op))))
     svgop = JSON.json(Dict(
         :viewbox => false, :show_carbon => "all",
-        :bgcolor => [233, 255, 255], :bgopacity => 0.5
+        :bgcolor => "#E9FFFF", :bgopacity => 0.5
     ))
     @debug "length(drawsvg(demomol))" length(unsafe_string(
         drawsvg(unsafe_convert(Cstring, demomol), unsafe_convert(Cstring, svgop))))
     pngop = JSON.json(Dict(
         :show_carbon => "all",
-        :bgcolor => [233, 255, 255], :bgopacity => 0.5
+        :bgcolor => "#E9FFFF", :bgopacity => 0.5
     ))
     str = drawpng(
         unsafe_convert(Cstring, demomol), UInt32(1000), UInt32(1000),
