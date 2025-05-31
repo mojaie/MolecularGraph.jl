@@ -6,9 +6,9 @@ function translate(seg::Line, ang, dist)
 end
 
 
-trim_u(s::Line, k) = Line(Point2d(s[1] + (s[2] - s[1]) * k), Point2d(s[2]))
-trim_v(s::Line, k) = Line(Point2d(s[1]), Point2d(s[2] + (s[2] - s[1]) * -k))
-trim_uv(s::Line, k) = Line(Point2d(s[1] + (s[2] - s[1]) * 0.5k), Point2d(s[2] + (s[2] - s[1]) * -0.5k))
+trim_u(s::Line, k) = Line(Point2d(s[1] + normalize(s[2] - s[1]) * k), Point2d(s[2]))
+trim_v(s::Line, k) = Line(Point2d(s[1]), Point2d(s[2] + normalize(s[2] - s[1]) * -k))
+trim_uv(s::Line, k) = Line(Point2d(s[1] + normalize(s[2] - s[1]) * k), Point2d(s[2] + normalize(s[2] - s[1]) * -k))
 
 interiorangle(u, v) = acos(dot(u, v) / (norm(u) * norm(v)))
 
@@ -51,4 +51,13 @@ function transformmatrix(scale::Point2d, rotate::Point2d, transl::Point2d)
     r = [rotate[1] -rotate[2] 0; rotate[2] rotate[1] 0; 0 0 1]
     t = [1 0 transl[1]; 0 1 transl[2]; 0 0 1]
     return t * r * s
+end
+
+
+function transformmatrix(seg::Line, xscale::Float64, yscale::Float64)
+    dist = norm(seg[2] - seg[1])
+    scalef = Point2d(dist * xscale, yscale)
+    rotatef = normalize(seg[2] - seg[1])
+    translf = seg[1]
+    return transformmatrix(scalef, rotatef, translf)
 end

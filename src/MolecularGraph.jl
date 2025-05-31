@@ -24,16 +24,6 @@ include("./util/iterator.jl")
 include("./util/math.jl")
 
 
-# Geometry
-# TODO: migrate to GeometryBasics
-
-
-
-# include("./geometry/interface.jl")
-# include("./geometry/cartesian.jl")
-# include("./geometry/internal.jl")
-
-
 # Graph models and algorithms
 
 using DelimitedFiles: readdlm

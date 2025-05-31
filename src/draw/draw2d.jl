@@ -193,11 +193,11 @@ end
 
 function trimbond(canvas::Canvas, seg, uvis, vvis)
     if uvis && vvis
-        return trim_uv(seg, canvas.trimoverlapf * 2)
+        return trim_uv(seg, canvas.trimoverlap)
     elseif uvis
-        return trim_u(seg, canvas.trimoverlapf)
+        return trim_u(seg, canvas.trimoverlap)
     elseif vvis
-        return trim_v(seg, canvas.trimoverlapf)
+        return trim_v(seg, canvas.trimoverlap)
     end
     return seg
 end
@@ -239,20 +239,18 @@ function wavesingle!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
 end
 
 function doublebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    dist = canvas.scaleunit * canvas.mbwidthf / 2
     seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
-    seg1 = translate(seg, pi / 2, dist)
-    seg2 = translate(seg, -pi / 2, dist)
+    seg1 = translate(seg, pi / 2, canvas.mbwidth / 2)
+    seg2 = translate(seg, -pi / 2, canvas.mbwidth / 2)
     drawline!(canvas, seg1, ucolor, vcolor)
     drawline!(canvas, seg2, ucolor, vcolor)
     return
 end
 
 function crossdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    dist = canvas.scaleunit * canvas.mbwidthf / 2
     seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
-    cw = translate(seg, pi / 2, dist)
-    ccw = translate(seg, -pi / 2, dist)
+    cw = translate(seg, pi / 2, canvas.mbwidth / 2)
+    ccw = translate(seg, -pi / 2, canvas.mbwidth / 2)
     drawline!(canvas, Line(cw[1], ccw[2]), ucolor, vcolor)
     drawline!(canvas, Line(ccw[1], cw[2]), ucolor, vcolor)
     return
@@ -260,8 +258,7 @@ end
 
 function ringdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis, direction)
     seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
-    dist = canvas.scaleunit * canvas.mbwidthf
-    segin = trim_uv(translate(seg, direction, dist), canvas.triminnerf)
+    segin = trim_uv(translate(seg, direction, canvas.mbwidth), canvas.triminner)
     drawline!(canvas, seg, ucolor, vcolor)
     drawline!(canvas, segin, ucolor, vcolor)
     return
@@ -274,10 +271,9 @@ counterdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis
     ) = ringdouble!(canvas, u, v, ucolor, vcolor, uvis, vvis, -pi / 2)
 
 function triplebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    dist = canvas.scaleunit * canvas.mbwidthf
     seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
-    seg1 = translate(seg, pi / 2, dist)
-    seg2 = translate(seg, -pi / 2, dist)
+    seg1 = translate(seg, pi / 2, canvas.mbwidth)
+    seg2 = translate(seg, -pi / 2, canvas.mbwidth)
     drawline!(canvas, seg, ucolor, vcolor)
     drawline!(canvas, seg1, ucolor, vcolor)
     drawline!(canvas, seg2, ucolor, vcolor)

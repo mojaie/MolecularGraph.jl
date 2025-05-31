@@ -6,12 +6,12 @@
 
 mutable struct SvgCanvas <: Canvas
     scaleunit::Float64
-    mbwidthf::Float64
-    wedgewidthf::Float64
-    wavewidthf::Float64
-    triminnerf::Float64
-    trimoverlapf::Float64
-    linehlwidthf::Float64
+    mbwidth::Float64
+    wedgewidth::Float64
+    wavewidth::Float64
+    triminner::Float64
+    trimoverlap::Float64
+    linehlwidth::Float64
     annotsizef::Float64
     hlsizef::Float64
     paddingXf::Float64
@@ -34,12 +34,12 @@ mutable struct SvgCanvas <: Canvas
 
         # Geometry
         canvas.scaleunit = 30.0
-        canvas.mbwidthf = 0.15
-        canvas.wedgewidthf = 0.3
-        canvas.wavewidthf = 0.2
-        canvas.triminnerf = 0.2
-        canvas.trimoverlapf = 0.3
-        canvas.linehlwidthf = 0.3
+        canvas.mbwidth = 4.5
+        canvas.wedgewidth = 4.5
+        canvas.wavewidth = 4.5
+        canvas.triminner = 6.0
+        canvas.trimoverlap = 9.0
+        canvas.linehlwidth = 9.0
         canvas.annotsizef = 0.7
         canvas.hlsizef = 1.2
         canvas.paddingXf = 1.0
@@ -269,11 +269,7 @@ drawdashedline!(canvas::SvgCanvas, seg, ucolor, vcolor) = drawline!(
 
 function drawwedge!(canvas::SvgCanvas, seg, color)
     """ u ◀︎ v """
-    dist = norm(seg[2] - seg[1])
-    scalef = Point2d(dist, canvas.wedgewidthf / 2 * canvas.scaleunit)
-    rotatef = normalize(seg[2] - seg[1])
-    translf = seg[1]
-    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
+    svgtf = svgtransform(transformmatrix(seg, 1.0, canvas.wedgewidth))
     elem = """<polygon points="0,0 1,1 1,-1" fill="#$(hex(color))" transform="matrix($(svgtf))"/>
     """  # length: 1, width: 2
     push!(canvas.elements, elem)
@@ -283,11 +279,7 @@ end
 function drawwedge!(canvas::SvgCanvas, seg, ucolor, vcolor)
     """ u ◀︎ v """
     ucolor == vcolor && return drawwedge!(canvas, seg, ucolor)
-    dist = norm(seg[2] - seg[1])
-    scalef = Point2d(dist, canvas.wedgewidthf / 2 * canvas.scaleunit)
-    rotatef = normalize(seg[2] - seg[1])
-    translf = seg[1]
-    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
+    svgtf = svgtransform(transformmatrix(seg, 1.0, canvas.wedgewidth))
     elem = """<g stroke-width="0.3" transform="matrix($(svgtf))">
      <polygon points="0,0 0.5,-0.5 0.5,0.5" fill="#$(hex(ucolor))"/>
      <polygon points="0.5,-0.5 0.5,0.5 1,1 1,-1" fill="#$(hex(vcolor))"/>
@@ -300,11 +292,7 @@ end
 
 function drawdashedwedge!(canvas::SvgCanvas, seg, color)
     """ u ◁ v """
-    dist = norm(seg[2] - seg[1])
-    scalef = Point2d(dist / 7, canvas.wedgewidthf / 16 * canvas.scaleunit)
-    rotatef = normalize(seg[2] - seg[1])
-    translf = seg[1]
-    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
+    svgtf = svgtransform(transformmatrix(seg, 1 / 7, canvas.wedgewidth / 8))
     elem = """<g stroke="#$(hex(color))" stroke-width="0.3" transform="matrix($(svgtf))">
      <line x1="0" y1="1" x2="0" y2="-1" />
      <line x1="1" y1="2" x2="1" y2="-2" />
@@ -323,11 +311,7 @@ end
 function drawdashedwedge!(canvas::SvgCanvas, seg, ucolor, vcolor)
     """ u ◁ v """
     ucolor == vcolor && return drawdashedwedge!(canvas, seg, ucolor)
-    dist = norm(seg[2] - seg[1])
-    scalef = Point2d(dist / 7, canvas.wedgewidthf / 16 * canvas.scaleunit)
-    rotatef = normalize(seg[2] - seg[1])
-    translf = seg[1]
-    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
+    svgtf = svgtransform(transformmatrix(seg, 1 / 7, canvas.wedgewidth / 8))
     elem = """<g stroke-width="0.3" transform="matrix($(svgtf))">
      <line x1="0" y1="1" x2="0" y2="-1" stroke="#$(hex(ucolor))" />
      <line x1="1" y1="2" x2="1" y2="-2" stroke="#$(hex(ucolor))" />
@@ -345,11 +329,7 @@ end
 
 
 function drawwave!(canvas::SvgCanvas, seg, color)
-    dist = norm(seg[2] - seg[1])
-    scalef = Point2d(dist / 7, canvas.wedgewidthf / 2 * canvas.scaleunit)
-    rotatef = normalize(seg[2] - seg[1])
-    translf = seg[1]
-    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
+    svgtf = svgtransform(transformmatrix(seg, 1 / 7, canvas.wedgewidth))
     elem = """<polyline points="0,0 0.5,0 1,1 2,-1 3,1 4,-1 5,1 6,-1 6.5,0 7,0"
      stroke="#$(hex(color))" stroke-width="0.2" fill="none" transform="matrix($(svgtf))"/>
     """  # length: 7, width: 2
@@ -359,11 +339,7 @@ end
 
 function drawwave!(canvas::SvgCanvas, seg, ucolor, vcolor)
     ucolor == vcolor && return drawwave!(canvas, seg, ucolor)
-    dist = norm(seg[2] - seg[1])
-    scalef = Point2d(dist / 7, canvas.wedgewidthf / 2 * canvas.scaleunit)
-    rotatef = normalize(seg[2] - seg[1])
-    translf = seg[1]
-    svgtf = svgtransform(transformmatrix(scalef, rotatef, translf))
+    svgtf = svgtransform(transformmatrix(seg, 1 / 7, canvas.wedgewidth))
     elem = """<g stroke-width="0.2" fill="none" transform="matrix($(svgtf))">
      <polyline points="0,0 0.5,0 1,1 2,-1 3,1 3.5,0" stroke="#$(hex(ucolor))" />
      <polyline points="3.5,0 4,-1 5,1 6,-1 6.5,0 7,0" stroke="#$(hex(vcolor))" />
@@ -376,7 +352,7 @@ end
 
 function drawlinehighlight!(canvas::SvgCanvas, seg, color)
     cds = svgcoords(seg)
-    w = canvas.linehlwidthf * canvas.scaleunit
+    w = canvas.linehlwidth
     elem = """<line $(cds) stroke="#$(hex(color))" stroke-width="$(w)" stroke-linecap="round"/>
     """
     push!(canvas.bgelements, elem)

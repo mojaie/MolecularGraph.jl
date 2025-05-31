@@ -35,13 +35,13 @@ end
     @test isapprox(tl[2], Point(7.5, 7.5))
 
     seg3 = Line(Point(1, 1), Point(5, 5))
-    tu = trim_u(seg3, 1 / 4)
+    tu = trim_u(seg3, sqrt(2))
     @test isapprox(tu[1], Point(2, 2))
     @test isapprox(tu[2], Point(5, 5))
-    tv = trim_v(seg3, 1 / 4)
+    tv = trim_v(seg3, sqrt(2))
     @test isapprox(tv[1], Point(1, 1))
     @test isapprox(tv[2], Point(4, 4))
-    tuv = trim_uv(seg3, 1 / 4)
+    tuv = trim_uv(seg3, sqrt(2) / 2)
     @test isapprox(tuv[1], Point(1.5, 1.5))
     @test isapprox(tuv[2], Point(4.5, 4.5))
 

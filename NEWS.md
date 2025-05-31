@@ -9,7 +9,8 @@ There may be many breaking changes. See updated tutorials for details.
 - [RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl) has been added as a direct dependency.
   - `smiles(mol)` generates SMILES from MolGraph (#67)
   - RDKit fingerprints (Morgan, RDKit, etc.) (#72)
-- All color features in molecular drawings now are based on [Colors.jl](https://github.com/JuliaGraphics/Colors.jl)
+- Geometry features in molecular drawing and stereochemistry are now based on [GeometryBasics.jl](https://github.com/JuliaGeometry/GeometryBasics.jl)
+- Color features in molecular drawings are now based on [Colors.jl](https://github.com/JuliaGraphics/Colors.jl)
   - Color options in `drawsvg` and `drawpng` accepts rgb(), hex color codes and any other parsable representations in Colors.jl
 - Improved serialization and deserialization
   - Safer JSON deserialization
