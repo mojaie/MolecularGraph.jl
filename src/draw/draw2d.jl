@@ -70,7 +70,7 @@ function double_bond_style(g, bondorder_, coords, sssr_)
     end
     # Align double bonds alongside the ring
     for ring in sort(sssr_, by=length, rev=true)
-        cw = isclockwise(toarray(coords, ring))
+        cw = isclockwise(coords[ring])
         cw === nothing && continue
         ordered = cw ? ring : reverse(ring)
         rr = vcat(ordered, ordered)
@@ -168,15 +168,15 @@ atomhtml(
 Get boundaries and an appropriate bond length unit for the molecule drawing
 canvas.
 """
-function boundary(mol::SimpleMolGraph, coords::AbstractArray{Float64})
-    (left, right) = extrema(x_components(coords))
-    (bottom, top) = extrema(y_components(coords))
+function boundary(mol::SimpleMolGraph, coords::Vector{Point2d})
+    (left, right) = extrema([p[1] for p in coords])
+    (bottom, top) = extrema([p[2] for p in coords])
     width = right - left
     height = top - bottom
     dists = []
     # Size unit
     for e in edges(mol)
-        d = distance(Point2D(coords, src(e)), Point2D(coords, dst(e)))
+        d = norm(coords[dst(e)] - coords[src(e)])
         if d > 0.0001  # Remove overlapped
             push!(dists, d)
         end
@@ -203,44 +203,44 @@ function trimbond(canvas::Canvas, seg, uvis, vvis)
 end
 
 function singlebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
     drawline!(canvas, seg, ucolor, vcolor)
     return
 end
 
 function wedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
     drawwedge!(canvas, seg, ucolor, vcolor)
     return
 end
 
 function reversed_wedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, v, u), vvis, uvis)
+    seg = trimbond(canvas, Line(canvas.coords[[v, u]]...), vvis, uvis)
     drawwedge!(canvas, seg, vcolor, ucolor)
     return
 end
 
 function dashedwedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
     drawdashedwedge!(canvas, seg, ucolor, vcolor)
     return
 end
 
 function reversed_dashedwedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, v, u), vvis, uvis)
+    seg = trimbond(canvas, Line(canvas.coords[[v, u]]...), vvis, uvis)
     drawdashedwedge!(canvas, seg, vcolor, ucolor)
     return
 end
 
 function wavesingle!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
     drawwave!(canvas, seg, ucolor, vcolor)
     return
 end
 
 function doublebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
     dist = canvas.scaleunit * canvas.mbwidthf / 2
-    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
     seg1 = translate(seg, pi / 2, dist)
     seg2 = translate(seg, -pi / 2, dist)
     drawline!(canvas, seg1, ucolor, vcolor)
@@ -250,16 +250,16 @@ end
 
 function crossdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
     dist = canvas.scaleunit * canvas.mbwidthf / 2
-    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
     cw = translate(seg, pi / 2, dist)
     ccw = translate(seg, -pi / 2, dist)
-    drawline!(canvas, Segment(cw.u, ccw.v), ucolor, vcolor)
-    drawline!(canvas, Segment(ccw.u, cw.v), ucolor, vcolor)
+    drawline!(canvas, Line(cw[1], ccw[2]), ucolor, vcolor)
+    drawline!(canvas, Line(ccw[1], cw[2]), ucolor, vcolor)
     return
 end
 
 function ringdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis, direction)
-    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
     dist = canvas.scaleunit * canvas.mbwidthf
     segin = trim_uv(translate(seg, direction, dist), canvas.triminnerf)
     drawline!(canvas, seg, ucolor, vcolor)
@@ -275,7 +275,7 @@ counterdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis
 
 function triplebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
     dist = canvas.scaleunit * canvas.mbwidthf
-    seg = trimbond(canvas, Segment{Point2D}(canvas.coords, u, v), uvis, vvis)
+    seg = trimbond(canvas, Line(canvas.coords[[u, v]]...), uvis, vvis)
     seg1 = translate(seg, pi / 2, dist)
     seg2 = translate(seg, -pi / 2, dist)
     drawline!(canvas, seg, ucolor, vcolor)
@@ -349,14 +349,14 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     # Draw atoms
     for i in vertices(mol)
         isatomvisible_[i] || continue
-        pos = Point2D(canvas.coords, i)
+        pos = canvas.coords[i]
         # Determine text direction
         if implicith_[i] > 0
             cosnbrs = []
-            hrzn = pos + (1.0, 0.0)
+            hrzn = pos + Point2d(1, 0)
             for nbr in neighbors(mol, i)
-                posnbr = Point2D(canvas.coords, nbr)
-                dist = distance(pos, posnbr)
+                posnbr = canvas.coords[nbr]
+                dist = norm(posnbr - pos)
                 if dist > 0
                     dp = dot(hrzn - pos, posnbr - pos)
                     push!(cosnbrs, dp / dist)
@@ -384,8 +384,8 @@ end
 
 function drawatomindex!(canvas::Canvas, isatomvisible, color, bgcolor)
     for (i, v) in enumerate(isatomvisible)
-        offset = v ? (0.0, canvas.fontsize/2.0) : (0.0, 0.0)
-        pos = Point2D(canvas.coords, i) + offset
+        offset = v ? Point2d(0, canvas.fontsize/2.0) : Point2d(0, 0)
+        pos = canvas.coords[i] + offset
         drawtextannot!(canvas, pos, string(i), color, bgcolor)
     end
 end
@@ -393,14 +393,14 @@ end
 
 function sethighlight!(canvas::Canvas, edge_list::Vector{<:Edge}, color)
     for e in edge_list
-        seg = Segment{Point2D}(canvas.coords, src(e), dst(e))
+        seg = Line(canvas.coords[[src(e), dst(e)]]...)
         drawlinehighlight!(canvas, seg, color)
     end
 end
 
 function sethighlight!(canvas::Canvas, node_list::Vector{<:Integer}, color)
     for i in node_list
-        pos = Point2D(canvas.coords, i)
+        pos = canvas.coords[i]
         drawtexthighlight!(canvas, pos, color)
     end
 end

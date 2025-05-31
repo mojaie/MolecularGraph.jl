@@ -25,7 +25,7 @@ mutable struct CairoCanvas <: Canvas
     cairoscalef::Float64
     surface::Cairo.CairoSurface
     context::Cairo.CairoContext
-    coords::Matrix{Float64}
+    coords::Vector{Point2d}
 
     function CairoCanvas(width::Int, height::Int, bgcolor::RGB, bgopacity::Float64)
         canvas = new()
@@ -107,11 +107,12 @@ end
 Move and adjust the size of the molecule for drawing.
 """
 function initcanvas!(
-        canvas::CairoCanvas, coords::AbstractArray{Float64}, boundary::Tuple)
+        canvas::CairoCanvas, coords::Vector{Point2d}, boundary::Tuple)
     (top, left, width, height, unit) = boundary
     sf = canvas.scaleunit / unit
     pd = [canvas.paddingXf canvas.paddingYf] * canvas.scaleunit
-    canvas.coords = (coords .- [left top]) .* [1 -1] .* sf .+ pd
+    conv = p -> (p - Point2d(left, top)) * Point2d(1, -1) * sf + Point2d(pd...)
+    canvas.coords = conv.(coords)
     canvasW = canvas.surface.width
     canvasH = canvas.surface.height
     x_scale, y_scale = [canvasW canvasH] ./ (([width height] * sf) .+ (pd * 2))
@@ -140,7 +141,7 @@ function drawtextcairo!(canvas::CairoCanvas, pos, text, color, fxoff, halign)
     xoffset = fxoff(cext[3])  # extent of character "C": xb, yb, w, h, xa, ya
     yoffset = cext[4] / 2
     Cairo.text(
-        canvas.context, pos.x + xoffset, pos.y + yoffset,
+        canvas.context, pos[1] + xoffset, pos[2] + yoffset,
         text, halign=halign, valign="center", markup=true
     )
     return
@@ -161,17 +162,17 @@ function drawtextannot!(canvas::CairoCanvas, pos, text, color, bgcolor)
     bg_size = round(canvas.fontsize * canvas.annotsizef, digits=1)
     Cairo.set_font_face(canvas.context, join([canvas.fontfamily, canvas.fontweight, font_size], " "))
     Cairo.set_source(canvas.context, bgcolor)
-    Cairo.arc(canvas.context, pos.x + bg_size, pos.y + bg_size, bg_size, 0, 2pi)
+    Cairo.arc(canvas.context, pos[1] + bg_size, pos[2] + bg_size, bg_size, 0, 2pi)
     Cairo.fill(canvas.context)
     Cairo.set_source(canvas.context, color)
-    Cairo.text(canvas.context, pos.x + bg_size/2, pos.y + bg_size/2, text, halign="left", valign="top")
+    Cairo.text(canvas.context, pos[1] + bg_size/2, pos[2] + bg_size/2, text, halign="left", valign="top")
     return
 end
 
 function drawtexthighlight!(canvas::CairoCanvas, pos, color)
     size = round(Int, canvas.fontsize * canvas.hlsizef)
     Cairo.set_source(canvas.context, color)
-    Cairo.arc(canvas.context, pos.x, pos.y, size, 0, 2pi)
+    Cairo.arc(canvas.context, pos[1], pos[2], size, 0, 2pi)
     Cairo.fill(canvas.context)
     return
 end
@@ -181,24 +182,24 @@ function drawline!(canvas::CairoCanvas, seg, color; isdashed=false)
     Cairo.set_source(canvas.context, color)
     Cairo.set_line_width(canvas.context, canvas.cairoscalef)
     isdashed && Cairo.set_dash(canvas.context, [10, 10], 0)
-    Cairo.move_to(canvas.context, seg.u.x, seg.u.y)
-    Cairo.line_to(canvas.context, seg.v.x, seg.v.y)
+    Cairo.move_to(canvas.context, seg[1][1], seg[1][2])
+    Cairo.line_to(canvas.context, seg[2][1], seg[2][2])
     Cairo.stroke(canvas.context)
     return
 end
 
 function drawline!(canvas::CairoCanvas, seg, ucolor, vcolor; isdashed=false)
     ucolor == vcolor && return drawline!(canvas, seg, ucolor, isdashed=isdashed)
-    mid = midpoint(seg)
+    mid = (seg[1] + seg[2]) / 2
     Cairo.set_line_width(canvas.context, canvas.cairoscalef)
     isdashed && Cairo.set_dash(canvas.context, [10, 10], 0)
     Cairo.set_source(canvas.context, ucolor)
-    Cairo.move_to(canvas.context, seg.u.x, seg.u.y)
-    Cairo.line_to(canvas.context, mid.x, mid.y)
+    Cairo.move_to(canvas.context, seg[1][1], seg[1][2])
+    Cairo.line_to(canvas.context, mid[1], mid[1])
     Cairo.stroke(canvas.context)
     Cairo.set_source(canvas.context, vcolor)
-    Cairo.move_to(canvas.context, mid.x, mid.y)
-    Cairo.line_to(canvas.context, seg.v.x, seg.v.y)
+    Cairo.move_to(canvas.context, mid[1], mid[1])
+    Cairo.line_to(canvas.context, seg[2][1], seg[2][2])
     Cairo.stroke(canvas.context)
     return
 end
@@ -207,7 +208,7 @@ drawdashedline!(canvas::CairoCanvas, seg, ucolor, vcolor) = drawline!(
     canvas, seg, ucolor, vcolor, isdashed=true)
 
 
-function cairo_transform!(ctx, scalef, rotatef, translf)
+function cairo_transform!(ctx, scalef::Point2d, rotatef::Point2d, translf::Point2d)
     # Emulate cairo_transform. Be sure to do save-transform.
     m = Cairo.get_matrix(ctx)
     tm = [m.xx m.xy m.x0; m.yx m.yy m.y0; 1 1 1] * transformmatrix(scalef, rotatef, translf)
@@ -218,10 +219,10 @@ end
 
 function drawwedge!(canvas::CairoCanvas, seg, color)
     """ u ◀︎ v """
-    d = distance(seg)
-    scalef = Point2D(d, canvas.wedgewidthf / 2 * canvas.scaleunit)
-    rotatef = unitvector(seg)
-    translf = seg.u
+    dist = norm(seg[2] - seg[1])
+    scalef = Point2d(dist, canvas.wedgewidthf / 2 * canvas.scaleunit)
+    rotatef = normalize(seg[2] - seg[1])
+    translf = seg[1]
     Cairo.save(canvas.context)
     cairo_transform!(canvas.context, scalef, rotatef, translf)
     Cairo.set_source(canvas.context, color)
@@ -238,10 +239,9 @@ end
 function drawwedge!(canvas::CairoCanvas, seg, ucolor, vcolor)
     """ u ◀︎ v """
     ucolor == vcolor && return drawwedge!(canvas, seg, ucolor)
-    d = distance(seg)
-    scalef = Point2D(d, canvas.wedgewidthf / 2 * canvas.scaleunit)
-    rotatef = unitvector(seg)
-    translf = seg.u
+    scalef = Point2d(norm(seg[2] - seg[1]), canvas.wedgewidthf / 2 * canvas.scaleunit)
+    rotatef = normalize(seg[2] - seg[1])
+    translf = seg[1]
     Cairo.save(canvas.context)
     cairo_transform!(canvas.context, scalef, rotatef, translf)
     Cairo.set_source(canvas.context, ucolor)
@@ -265,13 +265,13 @@ end
 
 function drawdashedwedge!(canvas::CairoCanvas, seg, color)
     """ u ◁ v """
-    d = distance(seg)
-    scalef = Point2D(d / 7, canvas.wedgewidthf / 16 * canvas.scaleunit)
-    rotatef = unitvector(seg)
-    translf = seg.u
+    dist = norm(seg[2] - seg[1])
+    scalef = Point2d(dist / 7, canvas.wedgewidthf / 16 * canvas.scaleunit)
+    rotatef = normalize(seg[2] - seg[1])
+    translf = seg[1]
     Cairo.save(canvas.context)
     cairo_transform!(canvas.context, scalef, rotatef, translf)
-    Cairo.set_line_width(canvas.context, d / 20 * canvas.cairoscalef)  # 16 seems a bit thick
+    Cairo.set_line_width(canvas.context, dist / 20 * canvas.cairoscalef)  # 16 seems a bit thick
     Cairo.set_source(canvas.context, color)
     # draw '◀︎', length 7, width 16
     for i in 1:8
@@ -286,13 +286,13 @@ end
 function drawdashedwedge!(canvas::CairoCanvas, seg, ucolor, vcolor)
     """ u ◁ v """
     ucolor == vcolor && return drawdashedwedge!(canvas, seg, ucolor)
-    d = distance(seg)
-    scalef = Point2D(d / 7, canvas.wedgewidthf / 16 * canvas.scaleunit)
-    rotatef = unitvector(seg)
-    translf = seg.u
+    dist = norm(seg[2] - seg[1])
+    scalef = Point2d(dist / 7, canvas.wedgewidthf / 16 * canvas.scaleunit)
+    rotatef = normalize(seg[2] - seg[1])
+    translf = seg[1]
     Cairo.save(canvas.context)
     cairo_transform!(canvas.context, scalef, rotatef, translf)
-    Cairo.set_line_width(canvas.context, d / 20 * canvas.cairoscalef)  # 16 seems a bit thick
+    Cairo.set_line_width(canvas.context, dist / 20 * canvas.cairoscalef)  # 16 seems a bit thick
     Cairo.set_source(canvas.context, ucolor)
     # draw '◀︎', length 7, width 16
     for i in 1:4
@@ -312,10 +312,10 @@ end
 
 
 function drawwave!(canvas::CairoCanvas, seg, color)
-    d = distance(seg)
-    scalef = Point2D(d / 7, canvas.wedgewidthf / 2 * canvas.scaleunit)
-    rotatef = unitvector(seg)
-    translf = seg.u
+    dist = norm(seg[2] - seg[1])
+    scalef = Point2d(dist / 7, canvas.wedgewidthf / 2 * canvas.scaleunit)
+    rotatef = normalize(seg[2] - seg[1])
+    translf = seg[1]
     Cairo.save(canvas.context)
     cairo_transform!(canvas.context, scalef, rotatef, translf)
     Cairo.set_line_width(canvas.context, canvas.cairoscalef)
@@ -338,10 +338,10 @@ end
 
 function drawwave!(canvas::CairoCanvas, seg, ucolor, vcolor)
     ucolor == vcolor && return drawwave!(canvas, seg, ucolor)
-    d = distance(seg)
-    scalef = Point2D(d / 7, canvas.wedgewidthf / 2 * canvas.scaleunit)
-    rotatef = unitvector(seg)
-    translf = seg.u
+    dist = norm(seg[2] - seg[1])
+    scalef = Point2d(dist / 7, canvas.wedgewidthf / 2 * canvas.scaleunit)
+    rotatef = normalize(seg[2] - seg[1])
+    translf = seg[1]
     Cairo.save(canvas.context)
     cairo_transform!(canvas.context, scalef, rotatef, translf)
     Cairo.set_line_width(canvas.context, canvas.cairoscalef)
@@ -372,8 +372,8 @@ function drawlinehighlight!(canvas::CairoCanvas, seg, color)
     Cairo.set_source(canvas.context, color)
     Cairo.set_line_cap(canvas.context, Cairo.CAIRO_LINE_CAP_ROUND)
     Cairo.set_line_width(canvas.context, w)
-    Cairo.move_to(canvas.context, seg.u.x, seg.u.y)
-    Cairo.line_to(canvas.context, seg.v.x, seg.v.y)
+    Cairo.move_to(canvas.context, seg[1][1], seg[1][2])
+    Cairo.line_to(canvas.context, seg[2][1], seg[2][2])
     Cairo.stroke(canvas.context)
     return
 end

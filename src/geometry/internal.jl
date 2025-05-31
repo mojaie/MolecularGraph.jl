@@ -19,6 +19,21 @@ end
 internalcoords(labels, geometry) = InternalCoords(labels, geometry)
 
 
+function rotation(axis::Point3d, angle)
+    x1, y1, z1 = collect(axis)
+    c = cos(angle)
+    s = sin(angle)
+    a12 = x1 * y1 * (1 - c)
+    a13 = x1 * z1 * (1 - c)
+    a23 = y1 * z1 * (1 - c)
+    return Mat3d([
+        (c + x1^2 * (1 - c)) (a12 - z1 * s) (a13 + y1 * s);
+        (a12 + z1 * s) (c + y1^2 * (1 - c)) (a23 - x1 * s);
+        (a13 - y1 * s) (a23 + x1 * s) (c + z1^2 * (1 - c))
+    ])
+end
+
+
 """
     cartesian3d(coords::InternalCoords) -> Cartesian3D
 

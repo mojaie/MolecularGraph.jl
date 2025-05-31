@@ -16,7 +16,7 @@ const BOND_STYLE_TO_SDF = Dict(
 
 function printv2atoms(io::IO, g, atomsymbol, coords)
     for i in vertices(g)
-        x, y = coords[i, 1:2]
+        x, y = coords[i]
         z = 0.0  # TODO: keep 3D
         xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atomsymbol[i])
         println(io, "$(xyzsym) 0  0  0  0  0  0  0  0  0  0  0  0")

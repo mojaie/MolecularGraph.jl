@@ -18,19 +18,15 @@ function has_coords(mol::SimpleMolGraph)
     return true
 end
 
-function sdf_coords2d(mol::SimpleMolGraph)
-    coords = zeros(Float64, nv(mol), 2)
-    for i in vertices(mol)
-        coords[i, :] = get_prop(mol, i, :coords)[1:2]
-    end
-    return coords
-end
+sdf_coords2d(mol::SimpleMolGraph
+    ) = [Point2d(get_prop(mol, i, :coords)[1:2]...) for i in vertices(mol)]
+
 
 function coords2d(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_coords2d) && return get_cache(mol, :v_coords2d)
     has_prop(mol, :coords2d) && return get_prop(mol, :coords2d)
-    has_coords(mol) || error("no coordinates. use coordgen")
+    has_coords(mol) || error("No coordinates found. use coordgen")
     return sdf_coords2d(mol)
 end
 
@@ -38,12 +34,8 @@ end
 function coords3d(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)
     has_cache(mol, :v_coords3d) && return get_cache(mol, :v_coords3d)
-    has_coords(mol) || error("no coordinates. use coordgen")
-    coords = zeros(Float64, nv(mol), 3)
-    for i in vertices(mol)
-        coords[i, :] = get_prop(mol, i, :coords)[1:3]
-    end
-    return coords
+    has_coords(mol) || error("no coordinates found.")
+    return [Point3d(get_prop(mol, i, :coords)[1:3]...) for i in vertices(mol)]
 end
 
 
@@ -98,11 +90,11 @@ function coordgen(g, atomsymbol_, bondorder_, stereocenters, stereobonds)
     @ccall libcoordgen.runGenerateCoordinates(minmol::Ptr{Cvoid})::Cvoid
 
     # Output
-    coords = zeros(Float64, nv(g), 2)
+    coords = Vector{Point2d}(undef, nv(g))
     for i in vertices(g)
         px = @ccall libcoordgen.getAtomX(atoms[i]::Ptr{Cvoid})::Cfloat
         py = @ccall libcoordgen.getAtomY(atoms[i]::Ptr{Cvoid})::Cfloat
-        coords[i, :] = [px, py]
+        coords[i] = Point2d(px, py)
     end
     styles = Vector{Symbol}(undef, ne(g))
     for (i, e) in enumerate(edges(g))

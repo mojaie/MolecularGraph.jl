@@ -69,9 +69,9 @@ function molgraph_from_dict(
     # TODO: multiple coords
     # TODO: wedge bond notation for drawing not supported yet, use coordgen
     if haskey(mol, "conformers")
-        coords = zeros(Float64, nv(g), 2)
+        coords = Vector{Point2d}(undef, nv(g))
         for (i, c) in enumerate(mol["conformers"][1]["coords"])
-            coords[i, :] = c[1:2]
+            coords[i] = Point2d(c[1], c[2])
         end
         gps[:coords2d] = coords
     end
@@ -143,10 +143,10 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
     # TODO: multiple coords
     if has_coords(mol)
         data["molecules"][1]["conformers"] = []
-        coords_ = coords2d(mol)
+        coords = coords2d(mol)
         push!(
             data["molecules"][1]["conformers"],
-            Dict("dim" => 2, "coords" => [coords_[i, 1:2] for i in vertices(mol)])
+            Dict("dim" => 2, "coords" => [collect(coords[i]) for i in vertices(mol)])
         )
     end
     return data

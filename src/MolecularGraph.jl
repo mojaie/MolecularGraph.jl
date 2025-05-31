@@ -12,6 +12,13 @@ import YAML
 
 # Utility
 
+using GeometryBasics:
+    mesh, Cylinder, Sphere, Point, Point2d, Point3d, Line
+using LinearAlgebra:
+    cross, dot, norm, normalize
+import LinearAlgebra
+
+include("./util/geometry.jl")
 include("./util/meta.jl")
 include("./util/iterator.jl")
 include("./util/math.jl")
@@ -20,11 +27,10 @@ include("./util/math.jl")
 # Geometry
 # TODO: migrate to GeometryBasics
 
-using LinearAlgebra: cross, dot, norm, normalize
-import LinearAlgebra
 
-include("./geometry/interface.jl")
-include("./geometry/cartesian.jl")
+
+# include("./geometry/interface.jl")
+# include("./geometry/cartesian.jl")
 # include("./geometry/internal.jl")
 
 
@@ -115,7 +121,6 @@ export
 
 import Cairo
 using Colors: RGB, RGBA, N0f8, hex
-using GeometryBasics: mesh, Cylinder, Sphere, Point
 using MakieCore: @recipe, Theme, meshscatter!, lines!, mesh!
 import MakieCore
 import Statistics
