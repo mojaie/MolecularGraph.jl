@@ -3,6 +3,10 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+bond_order(b::AbstractDict) = b[:order]
+
+
 """
     SDFBond
 

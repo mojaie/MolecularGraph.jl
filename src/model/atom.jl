@@ -54,6 +54,11 @@ const ATOM_VANDERWAALS_RADII = let
     radii
 end
 
+atom_symbol(a::AbstractDict) = a[:symbol]
+atom_number(a::AbstractDict) = atom_number(a[:symbol])
+atom_charge(a::AbstractDict) = a[:charge]
+multiplicity(a::AbstractDict) = a[:multiplicity]
+atom_mass(a::AbstractDict) = a[:mass]
 
 """
     atom_number(atomsymbol::Symbol) -> Int
