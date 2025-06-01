@@ -2,17 +2,25 @@
 
 ## dev
 
+There may be many breaking changes. See updated tutorials for details.
+
 - All imports and exports are aggregated to the package entrypoint file (src/MolecularGraph.jl).
-  - Removed unnecessarily exposed APIs, that are internally used or have too general name (e.g. `metadata`) to avoid confliction. See 'src/MolecularGraph.jl' file for details.
+  - Removed unnecessarily exposed APIs, that are internally used or have too general name (e.g. `metadata`) to avoid confliction.
 - [RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl) has been added as a direct dependency.
   - `smiles(mol)` generates SMILES from MolGraph (#67)
   - RDKit fingerprints (Morgan, RDKit, etc.) (#72)
+- Geometry features in molecular drawing and stereochemistry are now based on [GeometryBasics.jl](https://github.com/JuliaGeometry/GeometryBasics.jl)
+- Color features in molecular drawings are now based on [Colors.jl](https://github.com/JuliaGraphics/Colors.jl)
+  - Color options in `drawsvg` and `drawpng` accepts rgb(), hex color codes and any other parsable representations in Colors.jl
 - Improved serialization and deserialization
-  - Safer and more extensible JSON deserialization
+  - Safer JSON deserialization
   - RDKit CommonChem format reader/writer
   - `MolGraph(json::String)` now automatically detect element types and JSON formats.
-- Fixed wrong stereocenter recognition in SMILES
-- Fixed wrong stereobond recognition in <8-membered rings
+- Stereochemistry
+  - Fixed wrong stereocenter recognition in SMILES
+  - Fixed wrong stereobond recognition in <8-membered rings
+- Fixed Makie errors in 3D drawing (#112)
+  - Axis visibility setting seems to be removed from MakieCore, but now we can set up `LScene` with `show_axis=false` options or apply `hidedecorations!` to `Axis` when we use (See tutorials for example usage).
 
 ## v0.18.0
 

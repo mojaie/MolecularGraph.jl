@@ -32,8 +32,13 @@ function atom_radius(mol::SimpleMolGraph; mapping=ATOM_VANDERWAALS_RADII)
 end
 
 
+const RADII_TYPE = Dict(
+    "van der Waals" => ATOM_VANDERWAALS_RADII,
+    "covalent" => ATOM_COVALENT_RADII
+)
+
 """
-    spacefilling(mol::UndirectedGraph; radii="van der Waals")
+    spacefilling(mol::MolGraph; radii="van der Waals")
 
 Represent `mol` as a space-filling (Calotte) model in three dimensions. `mol` should have 3d atom positions represented
 in Angstroms. (3D SDF files can be downloaded from sites such as PubChem.) The two supported options for `radii` are
@@ -42,13 +47,27 @@ all.
 
 This function requires that you load one of the backends of the Makie/GLMakie/CairoMakie family.
 """
-function spacefilling(args...; radii="van der Waals", kwargs...)
-    figaxplot = moldisplay(args...; radii=(radii == "covalent" ? ATOM_COVALENT_RADII : ATOM_VANDERWAALS_RADII), showbonds=false, kwargs...)
-    figaxplot.axis.show_axis[] = false
-    return figaxplot
-end
-spacefilling!(args...; radii="van der Waals", kwargs...) = 
-    moldisplay!(args...; radii=(radii == "covalent" ? ATOM_COVALENT_RADII : ATOM_VANDERWAALS_RADII), showbonds=false, kwargs...)
+spacefilling(
+    args...;
+    radii="van der Waals",
+    kwargs...
+) = moldisplay(
+    args...;
+    radii=get(RADII_TYPE, radii, radii),
+    showbonds=false,
+    kwargs...
+)
+
+spacefilling!(
+    args...;
+    radii="van der Waals",
+    kwargs...
+) = moldisplay!(
+    args...;
+    radii=get(RADII_TYPE, radii, radii),
+    showbonds=false,
+    kwargs...
+)
 
 
 
@@ -63,12 +82,31 @@ in Angstroms. 3D SDF files can be downloaded from sites such as PubChem.
 
 This function requires that you load one of the backends of the Makie/GLMakie/CairoMakie family.
 """
-function ballstick(args...; radii=DEFAULT_BALL_DIAMETER, bonddiameter=DEFAULT_WIRE_DIAMETER, kwargs...)
-    figaxplot = moldisplay(args...; radii=float(radii), bonddiameter=float(bonddiameter), multiplebonds=true, kwargs...)
-    figaxplot.axis.show_axis[] = false
-    return figaxplot
-end
-ballstick!(args...; radii=DEFAULT_BALL_DIAMETER, bonddiameter=DEFAULT_WIRE_DIAMETER, kwargs...) = moldisplay!(args...; radii=float(radii), bonddiameter=float(bonddiameter), multiplebonds=true, kwargs...)
+ballstick(
+    args...;
+    radii=DEFAULT_BALL_DIAMETER,
+    bonddiameter=DEFAULT_WIRE_DIAMETER,
+    kwargs...
+) = moldisplay(
+    args...;
+    radii=radii,
+    bonddiameter=bonddiameter,
+    multiplebonds=true,
+    kwargs...
+)
+
+ballstick!(
+    args...;
+    radii=DEFAULT_BALL_DIAMETER, 
+    bonddiameter=DEFAULT_WIRE_DIAMETER,
+    kwargs...
+) = moldisplay!(
+    args...;
+    radii=radii,
+    bonddiameter=bonddiameter,
+    multiplebonds=true, 
+    kwargs...
+)
 
 
 """
@@ -81,12 +119,29 @@ in Angstroms. 3D SDF files can be downloaded from sites such as PubChem.
 
 This function requires that you load one of the backends of the Makie/GLMakie/CairoMakie family.
 """
-function stick(args...; size=DEFAULT_STICK_DIAMETER, kwargs...)
-    figaxplot = moldisplay(args...; radii=float(size), bonddiameter=float(size), multiplebonds=false, kwargs...)
-    figaxplot.axis.show_axis[] = false
-    return figaxplot
-end
-stick!(args...; size=DEFAULT_STICK_DIAMETER, kwargs...) = moldisplay!(args...; radii=float(size), bonddiameter=float(size), multiplebonds=false, kwargs...)
+stick(
+    args...;
+    size=DEFAULT_STICK_DIAMETER,
+    kwargs...
+) = moldisplay(
+    args...;
+    radii=size,
+    bonddiameter=size,
+    multiplebonds=false,
+    kwargs...
+)
+
+stick!(
+    args...;
+    size=DEFAULT_STICK_DIAMETER,
+    kwargs...
+) = moldisplay!(
+    args...;
+    radii=size,
+    bonddiameter=size,
+    multiplebonds=false,
+    kwargs...
+)
 
 
 """
@@ -99,13 +154,29 @@ in Angstroms. 3D SDF files can be downloaded from sites such as PubChem.
 
 This function requires that you load one of the backends of the Makie/GLMakie/CairoMakie family.
 """
-function wire(args...; size=DEFAULT_WIRE_DIAMETER, kwargs...) 
-    figaxplot = moldisplay(args...; bondwidth=float(size), showatoms=false, multiplebonds=true, kwargs...)
-    figaxplot.axis.show_axis[] = false
-    return figaxplot
-end
-wire!(args...; size=DEFAULT_WIRE_DIAMETER, kwargs...) = moldisplay!(args...; bondwidth=float(size), showatoms=false, multiplebonds=true, kwargs...)
+wire(
+    args...;
+    size=DEFAULT_WIRE_DIAMETER,
+    kwargs...
+) = moldisplay(
+    args...;
+    bondwidth=size,
+    showatoms=false,
+    multiplebonds=true,
+    kwargs...
+)
 
+wire!(
+    args...;
+    size=DEFAULT_WIRE_DIAMETER,
+    kwargs...
+) = moldisplay!(
+    args...;
+    bondwidth=size,
+    showatoms=false,
+    multiplebonds=true,
+    kwargs...
+)
 
 
 @recipe(MolDisplay, mol) do scene
@@ -120,33 +191,41 @@ wire!(args...; size=DEFAULT_WIRE_DIAMETER, kwargs...) = moldisplay!(args...; bon
     )
 end
 
-function MakieCore.plot!(md::MolDisplay{<:NTuple{<:Any,<:SimpleMolGraph}})
+
+function MakieCore.plot!(md::MolDisplay{<:Tuple{<:SimpleMolGraph}})
     mols = [md[i][] for i=1:length(md)]
-    radii = md[:radii][]
+    radii = md.radii[]
     for mol in mols
         crds = coords3d(mol)
-        col = atom_coloralpha(mol, alpha=md[:alpha][], color_theme=md.colortheme[])
-        if md[:showatoms][]
+        col = atom_coloralpha(mol, alpha=md.alpha[], color_theme=md.colortheme[])
+        if md.showatoms[]
             rd = atom_radius(mol; mapping=radii)
             drawatoms!(md, crds, col, rd)
         end
-        if md[:showbonds][]
-            syms = atom_symbols(mol)
+        if md.showbonds[]
+            syms = atom_symbol(mol)
             nbrs = degree(mol)
             for e in edges(mol)
-                drawbond!(md, mol, e, crds, col, syms, nbrs; bonddiameter=md[:bonddiameter][], multiplebonds=md[:multiplebonds][])
+                drawbond!(
+                    md, mol, e, crds, col, syms, nbrs;
+                    bonddiameter=md.bonddiameter[], multiplebonds=md.multiplebonds[])
             end
         end
     end
     return md
 end
 
-drawatoms!(f, crds, col, rd; kwargs...) = meshscatter!(f, crds[:, 1], crds[:, 2], crds[:, 3]; color=col, markersize=rd);
 
-function drawbond!(f, mol::SimpleMolGraph, e, crds, col, syms, nbrs; bonddiameter=DEFAULT_BOND_DIAMETER, multiplebonds=false, kwargs...)
+drawatoms!(f, crds, col, rd; kwargs...) = meshscatter!(
+    f, [c[1] for c in crds], [c[2] for c in crds], [c[3] for c in crds];
+    color=col, markersize=rd)
+
+function drawbond!(
+        f, mol::SimpleMolGraph, e, crds, col, syms, nbrs;
+        bonddiameter=DEFAULT_BOND_DIAMETER, multiplebonds=false, kwargs...)
     order = multiplebonds ? bond_order(props(mol, e)) : 1
     atomidx1, atomidx2 = e.src, e.dst
-    pos1, pos2 = crds[atomidx1,:], crds[atomidx2,:]
+    pos1, pos2 = crds[atomidx1], crds[atomidx2]
     normaldir = Z_DIR
     if order > 1
         ng1, ng2 = nbrs[atomidx1], nbrs[atomidx2]
@@ -154,12 +233,12 @@ function drawbond!(f, mol::SimpleMolGraph, e, crds, col, syms, nbrs; bonddiamete
         if ng1 == 3
             neighs = filter(x -> x != atomidx2, (neighbors(mol, atomidx1)))
             @assert length(neighs) == 2
-            npos1, npos2 = crds[neighs[1],:], crds[neighs[2],:]
+            npos1, npos2 = crds[neighs[1]], crds[neighs[2]]
             normaldir = cross(npos1, npos2)
         elseif ng2 == 3
             neighs = filter(x -> x != atomidx1, (neighbors(mol, atomidx2)))
             @assert length(neighs) == 2
-            npos1, npos2 = crds[neighs[1],:], crds[neighs[2],:]
+            npos1, npos2 = crds[neighs[1]], crds[neighs[2]]
             normaldir = cross(npos1, npos2)
         end
     end
@@ -167,12 +246,12 @@ function drawbond!(f, mol::SimpleMolGraph, e, crds, col, syms, nbrs; bonddiamete
     dists = (bonddiameter * 2.5) .* collect(-0.5 * (order-1): 0.5 * (order-1))
     for dist in dists
         dvec = dist * sepdir
-        p1, p2 = Point((pos1 .+ dvec)...), Point((pos2 .+ dvec)...)
+        p1, p2 = pos1 + dvec, pos2 + dvec
         if syms[atomidx1] == syms[atomidx2]
             cyl = Cylinder(p1, p2, bonddiameter)
             mesh!(f, cyl; color=col[atomidx1], kwargs...)
         else
-            midpoint = 0.5 .* (p1 .+ p2)
+            midpoint = 0.5 * (p1 + p2)
             pm = Point(midpoint...)
             cyl1 = Cylinder(p1, pm, bonddiameter)
             cyl2 = Cylinder(p2, pm, bonddiameter)
