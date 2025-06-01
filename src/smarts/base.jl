@@ -19,6 +19,7 @@ PROPERTY_TYPE_REGISTRY["SMARTSLexicalSuccessors"] = (T, data) -> SMARTSLexicalSu
 function remap(arr::SMARTSLexicalSuccessors{T}, vmap::Dict) where T
     vec = [T[] for i in 1:length(vmap)]
     for (k, v) in vmap
+        k in arr.vector || continue
         vec[v] = [vmap[s] for s in arr.vector[k] if haskey(vmap, s)]
     end
     return SMARTSLexicalSuccessors{T}(vec)
