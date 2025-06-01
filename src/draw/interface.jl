@@ -86,8 +86,8 @@ function drawtexthighlight! end
 
 
 """
-    drawline!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
-    drawline!(canvas::Canvas, seg::Segment{T<:Point2D}, ucolor::Color, vcolor::Color)
+    drawline!(canvas::Canvas, seg::Line{2,Float64}, color::Color)
+    drawline!(canvas::Canvas, seg::Line{2,Float64}, ucolor::Color, vcolor::Color)
 
 Draw a solid line.
 """
@@ -95,8 +95,8 @@ function drawline! end
 
 
 """
-    drawdashedline!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
-    drawdashedline!(canvas::Canvas, seg::Segment{T<:Point2D}, ucolor::Color, vcolor::Color)
+    drawdashedline!(canvas::Canvas, seg::Line{2,Float64}, color::Color)
+    drawdashedline!(canvas::Canvas, seg::Line{2,Float64}, ucolor::Color, vcolor::Color)
 
 Draw a dashed line.
 """
@@ -104,8 +104,8 @@ function drawdashedline! end
 
 
 """
-    drawwedge!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
-    drawwedge!(canvas::Canvas, seg::Segment{T<:Point2D}, ucolor::Color, vcolor::Color)
+    drawwedge!(canvas::Canvas, seg::Line{2,Float64}, color::Color)
+    drawwedge!(canvas::Canvas, seg::Line{2,Float64}, ucolor::Color, vcolor::Color)
 
 Draw a wedge.
 """
@@ -113,8 +113,8 @@ function drawwedge! end
 
 
 """
-    drawdashedwedge!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
-    drawdashedwedge!(canvas::Canvas, seg::Segment{T<:Point2D}, ucolor::Color, vcolor::Color)
+    drawdashedwedge!(canvas::Canvas, seg::Line{2,Float64}, color::Color)
+    drawdashedwedge!(canvas::Canvas, seg::Line{2,Float64}, ucolor::Color, vcolor::Color)
 
 Draw a dashed wedge.
 """
@@ -122,8 +122,8 @@ function drawdashedwedge! end
 
 
 """
-    drawwave!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
-    drawwave!(canvas::Canvas, seg::Segment{T<:Point2D}, ucolor::Color, vcolor::Color)
+    drawwave!(canvas::Canvas, seg::Line{2,Float64}, color::Color)
+    drawwave!(canvas::Canvas, seg::Line{2,Float64}, ucolor::Color, vcolor::Color)
 
 Draw a waved line.
 """
@@ -131,7 +131,7 @@ function drawwave! end
 
 
 """
-    drawlinehighlight!(canvas::Canvas, seg::Segment{T<:Point2D}, color::Color)
+    drawlinehighlight!(canvas::Canvas, seg::Line{2,Float64}, color::Color)
 
 Add a highlight to the line.
 """

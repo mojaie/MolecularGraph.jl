@@ -12,20 +12,16 @@ import YAML
 
 # Utility
 
+using GeometryBasics:
+    mesh, Cylinder, Sphere, Point, Point2d, Point3d, Line
+using LinearAlgebra:
+    cross, dot, norm, normalize
+import LinearAlgebra
+
+include("./util/geometry.jl")
 include("./util/meta.jl")
 include("./util/iterator.jl")
 include("./util/math.jl")
-
-
-# Geometry
-# TODO: migrate to GeometryBasics
-
-using LinearAlgebra: cross, dot, norm, normalize
-import LinearAlgebra
-
-include("./geometry/interface.jl")
-include("./geometry/cartesian.jl")
-# include("./geometry/internal.jl")
 
 
 # Graph models and algorithms
@@ -84,7 +80,7 @@ export
     edgesubgraph_isomorphisms, edgesubgraph_is_isomorphic,
     subgraph_monomorphisms, subgraph_is_monomorphic,
     max_matching, is_perfect_matching,
-    modular_product, line_graph,
+    induced_subgraph_edges, modular_product, line_graph,
     planaritytest, outerplanaritytest,
     isplanar, isouterplanar
 
@@ -114,9 +110,9 @@ export
 # Molecule drawing
 
 import Cairo
-using Colors: RGB, RGBA, N0f8, hex
-using GeometryBasics: mesh, Cylinder, Sphere, Point
-using MakieCore: @recipe, Theme, meshscatter!, lines!, mesh!
+using Colors: RGB, RGBA, N0f8, hex, coloralpha
+using MakieCore:
+    @recipe, Theme, meshscatter!, mesh!
 import MakieCore
 import Statistics
 

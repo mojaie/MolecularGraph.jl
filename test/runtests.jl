@@ -6,19 +6,16 @@
 module MolecularGraphTest
 
 using Colors: RGB
+using GeometryBasics: Point, Point2d, Line
 using Graphs
+using LinearAlgebra: cross
 using Logging
 using MolecularGraph
 using MolecularGraph:
     combinations, sortstablemax, sortstablemin,
     logfactorial,
-    MGPoint, Coordinates, radiantophase,
-    Point2D, Point3D, Segment,
-    toarray, x_components, y_components, z_components,
-    distance, unitvector, midpoint,
     translate, trim_u, trim_v, trim_uv,
-    cross2d, interiorangle, isclockwise,
-    transformmatrix, rotation,
+    interiorangle, isclockwise, transformmatrix,
     atom_color, is_atom_visible,
     sdf_bond_style, double_bond_style, atomhtml,
     merge_ds!,
@@ -38,11 +35,9 @@ using OrderedCollections: OrderedDict
 using Test
 
 
+include("./util/geometry.jl")
 include("./util/iterator.jl")
 include("./util/math.jl")
-
-include("./geometry/cartesian.jl")
-# include("./geometry/internal.jl")
 
 include("./graph/operators.jl")
 include("./graph/cycle.jl")

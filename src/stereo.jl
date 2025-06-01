@@ -163,18 +163,18 @@ end
 
 
 
-function angeval(u::Point2D, v::Point2D)
+function angeval(u::Point2d, v::Point2d)
     # 0deg -> 1, 90deg -> 0, 180deg -> -1, 270deg-> -2, 360deg -> -3
     uv = dot(u, v) / (norm(u) * norm(v))
-    return cross2d(u, v) >= 0 ? uv : -2 - uv
+    return cross(u, v) >= 0 ? uv : -2 - uv
 end
 
 
 function anglesort(coords, center, ref, vertices)
     # return vertices order by clockwise direction
-    c = Point2D(coords, center)
-    r = Point2D(coords, ref)
-    ps = [Point2D(coords, v) for v in vertices]
+    c = coords[center]
+    r = coords[ref]
+    ps = [coords[v] for v in vertices]
     vs = [p - c for p in ps]
     return sortperm([angeval(r - c, v) for v in vs])
 end
@@ -337,11 +337,11 @@ function stereobond_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, v_coords2
         degree(g, dst(e)) in (2, 3) || continue
         snbrs, dnbrs = ordered_edge_neighbors(g, e)
         # Check coordinates
-        d1, d2 = (Point2D(v_coords2d, src(e)), Point2D(v_coords2d, dst(e)))
-        n1, n2 = (Point2D(v_coords2d, snbrs[1]), Point2D(v_coords2d, dnbrs[1]))
-        cond(a, b) = (d1.x - d2.x) * (b - d1.y) + (d1.y - d2.y) * (d1.x - a)
-        n1p = cond(n1.x, n1.y)
-        n2p = cond(n2.x, n2.y)
+        d1, d2 = (v_coords2d[src(e)], v_coords2d[dst(e)])
+        n1, n2 = (v_coords2d[snbrs[1]], v_coords2d[dnbrs[1]])
+        cond(a, b) = (d1[1] - d2[1]) * (b - d1[2]) + (d1[2] - d2[2]) * (d1[1] - a)
+        n1p = cond(n1[1], n1[2])
+        n2p = cond(n2[1], n2[2])
         n1p * n2p == 0 && continue  # 180° bond angle
         is_cis = n1p * n2p > 0
         stereobonds[e] = (snbrs[1], dnbrs[1], is_cis)

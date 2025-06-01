@@ -10,7 +10,7 @@
     stereobond_from_smiles!(mol)
     coords, styles = coordgen(mol)
     # just check size
-    @test size(coords) == (nv(mol), 2)
+    @test length(coords) == nv(mol)
     @test length(styles) == ne(mol)
     # println(coords)
     # println(styles)
