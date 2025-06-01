@@ -20,7 +20,7 @@ There may be many breaking changes. See updated tutorials for details.
   - Fixed wrong stereocenter recognition in SMILES
   - Fixed wrong stereobond recognition in <8-membered rings
 - Fixed Makie errors in 3D drawing (#112)
-  - Axis visibility setting seems to be removed from MakieCore, but now we can set up `LScene` with `show_axis=false` options or apply `hidedecorations!` to `Axis` when we use (See tutorials for example usage).
+  - Axis visibility setting seems to be removed from MakieCore, but now we can set up `LScene` with `show_axis=false` options or apply `hidedecorations!` to `Axis` when we use (See tutorials for example usage)
 
 ## v0.18.0
 
