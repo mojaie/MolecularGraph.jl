@@ -14,6 +14,8 @@ MolecularGraph.jl
 
 <img src="./assets/image/mcsdemo.png" width="400"/><img src="./assets/image/funcgroupdemo.png" width="400"/><img src="./assets/image/massspecdemo.png" width="400"/>
 
+https://github.com/user-attachments/assets/9844a6f7-d172-4278-82b8-d4f307dff13f
+
 
 Documentation and API Reference
 ------------------------------------

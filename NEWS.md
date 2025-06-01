@@ -1,6 +1,6 @@
 # NEWS
 
-## dev
+## v0.19.0
 
 There may be many breaking changes. See updated tutorials for details.
 
