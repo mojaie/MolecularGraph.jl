@@ -1,4 +1,4 @@
-FROM julia:1.10.0-bookworm AS jl
+FROM julia:1.11.5-bookworm AS jl
 RUN apt-get update && apt-get install -y build-essential
 WORKDIR /julia
 COPY . .
