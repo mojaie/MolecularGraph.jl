@@ -40,10 +40,13 @@ mutable struct SMILESParser{T,V,E}
     eprops::Vector{E}
 end
 
-SMILESParser{T}(smiles
-    ) where T <: SimpleMolGraph = SMILESParser{eltype(T),vproptype(T),eproptype(T)}(
-        smiles, 1, false, 0, 1, 1, Dict(), [], Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[])
-
+function SMILESParser{T}(smiles) where T <: SimpleMolGraph
+    SMILESParser{eltype(T),vproptype(T),eproptype(T)}(
+        smiles, 1, false, 0, 1, 1,
+        Dict{Int,Int}(), Vector{eltype(T)}[], Edge{eltype(T)}[],
+        vproptype(T)[], eproptype(T)[]
+    )
+end
 
 
 mutable struct SMARTSParser{T,V,E}
@@ -61,9 +64,13 @@ mutable struct SMARTSParser{T,V,E}
     connectivity::Vector{Vector{T}}
 end
 
-SMARTSParser{T}(smarts
-    ) where T <: SimpleMolGraph = SMARTSParser{eltype(T),vproptype(T),eproptype(T)}(
-        smarts, 1, false, 0, 1, 1, Dict(), [], Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[], [])
+function SMARTSParser{T}(smarts) where T <: SimpleMolGraph
+    SMARTSParser{eltype(T),vproptype(T),eproptype(T)}(
+        smarts, 1, false, 0, 1, 1,
+        Dict{Int,Int}(), Vector{eltype(T)}[], Edge{eltype(T)}[],
+        vproptype(T)[], eproptype(T)[], Vector{eltype(T)}[]
+    )
+end
 
 
 function smiles_on_init!(mol)

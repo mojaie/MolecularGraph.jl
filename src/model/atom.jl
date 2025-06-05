@@ -6,13 +6,24 @@
 const ATOMTABLE = let
     weightsfile = joinpath(dirname(@__FILE__), "../../assets/const/atomicweights.yaml")
     include_dependency(weightsfile)
-    YAML.load(open(weightsfile))
+    R = Dict{String,Union{Int,Float64,String}}
+    S = Union{String,Nothing,R}
+    T = Dict{String,Union{Nothing,String,Int,Float64,Vector{S}}}
+    tbl = T[]
+    for rcd in YAML.load(open(weightsfile))
+        d = T()
+        for (k, v) in rcd
+            d[k] = v isa Vector ? S[d2 isa Dict ? R(d2) : d2 for d2 in v] : v
+        end
+        push!(tbl, d)
+    end
+    tbl
 end
 
 const ATOMSYMBOLMAP = let
     symbolfile = joinpath(dirname(@__FILE__), "../../assets/const/symboltonumber.yaml")
     include_dependency(symbolfile)
-    YAML.load(open(symbolfile))
+    YAML.load(open(symbolfile); dicttype=Dict{String,Int})
 end
 
 const ATOM_COVALENT_RADII = let
@@ -79,7 +90,7 @@ atom_number(atomsymbol::Symbol) = ATOMSYMBOLMAP[string(atomsymbol)]
 
 Return atom symbol of given atomic number.
 """
-atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
+atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"]::String)
 
 
 """
