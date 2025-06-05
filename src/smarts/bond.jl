@@ -81,14 +81,9 @@ Bond <- BondSymbol?
 function bond!(state::SMILESParser{T,V,E}) where {T,V,E}
     q = bondsymbol!(state)
     q === nothing && return
-    qd = smiles_dict(q)
-    default_qd = Dict(
-        :order => 1,
-        :isaromatic => false,
-        :direction => :unspecified
-    )
-    merge!(default_qd, qd)
-    return E(default_qd)
+    qd = SMILESBondContainer()
+    qd = smiles_props!(qd, q)
+    return E(qd)
 end
 
 
@@ -104,5 +99,5 @@ function bond!(state::SMARTSParser{T,V,E}) where {T,V,E}
     end
     q = lglowand!(state, bondsymbol!)
     q === nothing && return
-    return E(q)
+    return E(q::QueryComponent)
 end

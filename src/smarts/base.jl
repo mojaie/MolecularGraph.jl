@@ -73,6 +73,24 @@ function SMARTSParser{T}(smarts) where T <: SimpleMolGraph
 end
 
 
+abstract type SMILESContainer end
+
+@kwdef mutable struct SMILESAtomContainer <: SMILESContainer
+    symbol::Symbol = :H
+    charge::Int = 0
+    multiplicity::Int = 0
+    mass::Union{Int,Nothing} = nothing
+    isaromatic::Union{Bool,Nothing} = false
+    stereo::Symbol = :unspecified
+end
+
+@kwdef mutable struct SMILESBondContainer <: SMILESContainer
+    order::Int = 1
+    isaromatic::Bool = false
+    direction::Symbol = :unspecified
+end
+
+
 function smiles_on_init!(mol)
     update_edge_rank!(mol)
     stereocenter_from_smiles!(mol)
@@ -193,3 +211,23 @@ end
 forward!(state) = forward!(state, 1)
 backtrack!(state, num) = forward!(state, -num)
 backtrack!(state) = backtrack!(state, 1)
+
+
+function smiles_props!(data::T, tree::U) where {T<:SMILESContainer,U<:QueryComponent}
+    if tree isa QueryLiteral
+        data[tree.key] = tree.value
+    elseif tree.key === :not  # -> :not is only for aromatic in SMILES
+        smiles_props!(data::T, tree.value[1]::U)
+        data[tree.value[1]] = ~data[tree.value[1]]
+    else  # :and
+        for q in tree.value
+            smiles_props!(data::T, q::U)
+        end
+    end
+end
+
+SMILESAtom(a::SMILESAtomContainer) = SMILESAtom(
+    a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, a.stereo)
+
+SMILESBond(a::SMILESBondContainer) = SMILESBond(
+    a.order, a.isaromatic, a.direction)

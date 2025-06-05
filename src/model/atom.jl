@@ -111,10 +111,12 @@ struct SDFAtom
     end
 end
 
-SDFAtom(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFAtom(
-    Symbol(d[T("symbol")]), d[T("charge")], d[T("multiplicity")],
-    d[T("mass")], d[T("coords")])
-SDFAtom(arr::Vector) = SDFAtom(Symbol(arr[1]), arr[2], arr[3], arr[4], arr[5])
+SDFAtom(d::Dict{String,Union{String,Int,Nothing,Vector{Float64}}}) = SDFAtom(
+    Symbol(d["symbol"]), d["charge"], d["multiplicity"], d["mass"], d["coords"]
+)
+SDFAtom(arr::Vector{Union{String,Int,Nothing,Vector{Float64}}}) = SDFAtom(
+    Symbol(arr[1]), arr[2], arr[3], arr[4], arr[5]
+)
 
 Base.getindex(a::SDFAtom, prop::Symbol) = getproperty(a, prop)
 Base.:(==)(a1::SDFAtom, a2::SDFAtom) = all(
@@ -159,13 +161,25 @@ struct SMILESAtom
     end
 end
 
-# U may be necessary to determine whether T is String (for seriarization) or Symbol (for SMILES parser)
-SMILESAtom(d::Dict{T,U}) where {T<:Union{AbstractString,Symbol},U} = SMILESAtom(
-    Symbol(get(d, T("symbol"), :C)), get(d, T("charge"), 0),
-    get(d, T("multiplicity"), 1), get(d, T("mass"), nothing),
-    get(d, T("isaromatic"), false), Symbol(get(d, T("stereo"), :unspecified))
+# For SMILES parser
+SMILESAtom(d::Dict{Symbol,Any}) = SMILESAtom(
+    get(d, :symbol, :C)::Symbol, get(d, :charge, 0)::Int,
+    get(d, :multiplicity, 1)::Int, get(d, :mass, nothing)::Union{Int,Nothing},
+    get(d, :isaromatic, false)::Union{Bool,Nothing}, get(d, :stereo, :unspecified)::Symbol
 )
-SMILESAtom(arr::Vector) = SMILESAtom(Symbol(arr[1]), arr[2], arr[3], arr[4], arr[5], Symbol(arr[6]))
+
+# For seriarization
+SMILESAtom(d::Dict{String,Any}) = SMILESAtom(
+    Symbol(get(d, "symbol", "C")::String), get(d, "charge", 0)::Int,
+    get(d, "multiplicity", 1)::Int, get(d, "mass", nothing)::Union{Int,Nothing},
+    get(d, "isaromatic", false)::Union{Bool,Nothing},
+    Symbol(get(d, "stereo", "unspecified")::String)
+)
+
+SMILESAtom(arr::Vector) = SMILESAtom(
+    Symbol(arr[1]::String), arr[2]::Int, arr[3]::Int,
+    arr[4]::Union{Int,Nothing}, arr[5]::Union{Bool,Nothing}, Symbol(arr[6]::String)
+)
 
 Base.getindex(a::SMILESAtom, prop::Symbol) = getproperty(a, prop)
 Base.:(==)(a1::SMILESAtom, a2::SMILESAtom) = all(

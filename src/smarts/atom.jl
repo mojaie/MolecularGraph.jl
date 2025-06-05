@@ -209,27 +209,13 @@ function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
         q = atomsymbol!(state)
         q === nothing && return V[] # termination token ().\0
     end
-    qd = smiles_dict(q)
-    default_qd = Dict{Symbol,Any}(
-        :symbol => :C,
-        :charge => 0,
-        :multiplicity => 1,
-        :mass => nothing,
-        :isaromatic => false,
-        :stereo => :unspecified
-    )  # default atom
-    if haskey(qd, :total_hydrogens)  # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
-        hcnt = qd[:total_hydrogens]
-        if !haskey(qd, :symbol)  # special case: [H2]
-            qd[:symbol] = :H
-            hcnt -= 1
-        end
-        merge!(default_qd, qd)
-        return [V(default_qd), (V(Dict(:symbol => :H)) for _ in 1:hcnt)...]
-    else
-        merge!(default_qd, qd)
-        return [V(default_qd)]
+    qd = SMILESAtomContainer()
+    smiles_props!(qd, q::QueryComponent)
+    hcnt = qd.total_hydrogens  # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
+    if qd[:symbol] === :H  # special case: [H2]
+        hcnt -= 1
     end
+    return [V(qd), (V(Dict(:symbol => :H)) for _ in 1:hcnt)...]
 end
 
 

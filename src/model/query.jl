@@ -3,12 +3,15 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+abstract type QueryComponent end
+
 """
     QueryAny
 
 Query component type that generate tautology function (arg -> true/false).
 """
-struct QueryAny
+struct QueryAny <: QueryComponent
     value::Bool
 end
 
@@ -23,14 +26,14 @@ to_dict(::Val{:default}, q::QueryAny) = [q.value]
 
 General query component type (arg -> key[arg] == value).
 """
-struct QueryLiteral
+struct QueryLiteral{T} <: QueryComponent
     operator::Symbol  # :eq, :gt?, :lt? ...
     key::Symbol
-    value::Union{Symbol,Int,String,Bool,Nothing}
+    value::T
 end
 
-QueryLiteral(key) = QueryLiteral(:eq, key, true)
-QueryLiteral(key, value) = QueryLiteral(:eq, key, value)
+QueryLiteral(key::Symbol) = QueryLiteral{Bool}(:eq, key, true)
+QueryLiteral(key::Symbol, value::T) where T = QueryLiteral{T}(:eq, key, value)
 
 function Base.isless(q::QueryLiteral, r::QueryLiteral)
     q.key < r.key && return true
@@ -52,9 +55,9 @@ to_dict(::Val{:default}, q::QueryLiteral) = [string(q.operator), string(q.key), 
 
 Query component type for logical operators (arg -> q1[arg] && q2[arg]).
 """
-struct QueryOperator
+struct QueryOperator <: QueryComponent
     key::Symbol  # :and, :or, :not
-    value::Vector{Union{QueryAny,QueryLiteral,QueryOperator}}
+    value::Vector{QueryComponent}
 end
 
 Base.:(==)(q::QueryOperator, r::QueryOperator) = q.key == r.key && issetequal(q.value, r.value)
@@ -69,7 +72,7 @@ to_dict(fmt::Val{:default}, q::QueryOperator) = [string(q.key), [to_dict(fmt, c)
 Query component containar type for molecular graph properties.
 """
 struct QueryTree
-    tree::Union{QueryAny,QueryLiteral,QueryOperator}
+    tree::QueryComponent
 end
 
 QueryTree(data::Vector) = QueryTree(querytreefromdata(data))
@@ -176,28 +179,6 @@ function generate_queryfunc(tree, props)
         return arr -> cond[tree.key](f(arr) for f in fs)
     end
 end
-
-
-"""
-    smiles_dict(tree) -> Dict{Symbol,Any}
-
-Convert QueryLiteral to Dict{Symbol,Any} to be provided to SMILES Atom/Bond constructor.
-"""
-function smiles_dict(tree)
-    if tree isa QueryLiteral
-        return Dict{Symbol,Any}(tree.key => tree.value)
-    elseif tree.key === :not  # -> :not is only for aromatic in SMILES
-        d = only(smiles_dict(tree.value[1]))
-        return Dict{Symbol,Any}(d.first => ~d.second)
-    else  # :and
-        d = Dict{Symbol,Any}()
-        for q in tree.value
-            merge!(d, smiles_dict(q))
-        end
-        return d
-    end
-end
-
 
 
 """

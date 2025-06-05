@@ -111,6 +111,7 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
 
         # RingLabel
         if isdigit(read(state)) || read(state) == '%'
+            num::Int
             if read(state) == '%'
                 forward!(state)
                 start = state.pos

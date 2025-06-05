@@ -19,7 +19,7 @@ end
 
 function MolGraph{T,V,E}(
         g::SimpleGraph, vprop_map::Dict, eprop_map::Dict;
-        gprop_map::Dict=Dict(), config_map::Dict=Dict(), kwargs...
+        gprop_map=Dict{Symbol,Any}(), config_map=Dict{Symbol,Any}(), kwargs...
         ) where {T,V,E}
     (nv(g) > length(vprop_map)
         && error("Mismatch in the number of nodes and node properties"))
@@ -29,7 +29,7 @@ function MolGraph{T,V,E}(
     for _ in nv(g):(length(vprop_map) - 1)
         push!(g.fadjlist, T[])
     end
-    default_config = Dict(
+    default_config = Dict{Symbol,Any}(
         :initialized => false,
         :has_updates => true,
         :updater => mol -> (update_edge_rank!(mol); clear_caches!(mol); set_state!(mol, :has_updates, false)),

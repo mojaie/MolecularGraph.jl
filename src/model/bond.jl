@@ -32,9 +32,9 @@ struct SDFBond
     end
 end
 
-SDFBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFBond(
-    d[T("order")], d[T("notation")], d[T("isordered")])
-SDFBond(arr::Vector) = SDFBond(arr...)
+SDFBond(d::Dict{String,Any}) = SDFBond(
+    d["order"]::Int, d["notation"]::Int, d["isordered"]::Bool)
+SDFBond(arr::Vector) = SDFBond(arr[1]::Int, arr[2]::Int, arr[3]::Bool)
 
 Base.getindex(b::SDFBond, prop::Symbol) = getproperty(b, prop)
 Base.:(==)(b1::SDFBond, b2::SDFBond) = all(
@@ -69,9 +69,11 @@ struct SMILESBond
     end
 end
 
-SMILESBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SMILESBond(
-    d[T("order")], d[T("isaromatic")], Symbol(d[T("direction")]))
-SMILESBond(arr::Vector) = SMILESBond(arr[1], arr[2], Symbol(arr[3]))
+SMILESBond(d::Dict{Symbol,Any}) = SMILESBond(
+    d[:order]::Int, d[:isaromatic]::Bool, d[:direction]::Symbol)
+SMILESBond(d::Dict{String,Any}) = SMILESBond(
+    d["order"]::Int, d["isaromatic"]::Bool, Symbol(d["direction"]::String))
+SMILESBond(arr::Vector) = SMILESBond(arr[1]::Int, arr[2]::Bool, Symbol(arr[3]::String))
 
 Base.getindex(b::SMILESBond, prop::Symbol) = getproperty(b, prop)
 Base.:(==)(b1::SMILESBond, b2::SMILESBond) = all(
