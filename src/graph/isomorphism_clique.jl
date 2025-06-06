@@ -122,16 +122,8 @@ end
 any_path_constraints(g; kwargs...) = any_path_constraints(UInt32, g; kwargs...)
 
 
-dist_constraint_func = Dict(
-    :connection => connection_constraints,
-    :shortest => shortest_path_constraints,
-    :any => any_path_constraints
-)
-
-
-function mcis_constraints(g::SimpleGraph{T}, con;
-        vmatchvec=x->0, ematchvec=(x, y)->0, kwargs...) where T
-    pairs, distarr = dist_constraint_func[con](g; kwargs...)
+function mcis_constraints(pairs, distarr::Vector{T}, g::SimpleGraph{U};
+        vmatchvec=x->0, ematchvec=(x, y)->0, kwargs...) where {T,U}
     vatt1 = Int[]
     vatt2 = Int[]
     eatt = Int[]
@@ -140,15 +132,28 @@ function mcis_constraints(g::SimpleGraph{T}, con;
         push!(vatt2, vmatchvec(v))
         push!(eatt, ematchvec(u, v))
     end
-    return ConstraintArrayMCIS{T,eltype(distarr),Int,Int}(
+    return ConstraintArrayMCIS{U,T,Int,Int}(
         nv(g), pairs, distarr, vatt1, vatt2, eatt)
 end
 
+function mcis_constraints(::Val{:connection}, g::SimpleGraph; kwargs...)
+    pairs, distarr = connection_constraints(g; kwargs...)
+    return mcis_constraints(pairs, distarr, g; kwargs...)
+end
 
-function mces_constraints(g::SimpleGraph{T}, con;
-        vmatchvec=x->0, ematchvec=(x, y)->0, kwargs...) where T
-    lg, revmap, shared = line_graph(g)
-    pairs, distarr = dist_constraint_func[con](lg; kwargs...)
+function mcis_constraints(::Val{:shortest}, g::SimpleGraph; kwargs...)
+    pairs, distarr = shortest_path_constraints(g; kwargs...)
+    return mcis_constraints(pairs, distarr, g; kwargs...)
+end
+
+function mcis_constraints(::Val{:any}, g::SimpleGraph; kwargs...)
+    pairs, distarr = any_path_constraints(g; kwargs...)
+    return mcis_constraints(pairs, distarr, g; kwargs...)
+end
+
+
+function mces_constraints(pairs, distarr::Vector{T}, lg, revmap, shared, g::SimpleGraph{U};
+        vmatchvec=x->0, ematchvec=(x, y)->0, kwargs...) where {T,U}
     vatt1 = Int[]
     vatt2 = Int[]
     eatt = Int[]
@@ -160,9 +165,27 @@ function mces_constraints(g::SimpleGraph{T}, con;
         push!(eatt, lgematchvec(u, v))
     end
     vmatch = (u, v) -> vmatchvec(u) == vmatchvec(v)
-    return ConstraintArrayMCES{T,eltype(distarr),Int,Int}(
+    return ConstraintArrayMCES{U,T,Int,Int}(
         nv(lg), pairs, distarr, vatt1, vatt2, eatt, revmap,
         delta_edges(g, vmatch), y_edges(g, vmatch))
+end
+
+function mces_constraints(::Val{:connection}, g::SimpleGraph; kwargs...)
+    lg, revmap, shared = line_graph(g)
+    pairs, distarr = connection_constraints(lg; kwargs...)
+    return mces_constraints(pairs, distarr, lg, revmap, shared, g; kwargs...)
+end
+
+function mces_constraints(::Val{:shortest}, g::SimpleGraph; kwargs...)
+    lg, revmap, shared = line_graph(g)
+    pairs, distarr = shortest_path_constraints(lg; kwargs...)
+    return mces_constraints(pairs, distarr, lg, revmap, shared, g; kwargs...)
+end
+
+function mces_constraints(::Val{:any}, g::SimpleGraph; kwargs...)
+    lg, revmap, shared = line_graph(g)
+    pairs, distarr = any_path_constraints(lg; kwargs...)
+    return mces_constraints(pairs, distarr, lg, revmap, shared, g; kwargs...)
 end
 
 

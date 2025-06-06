@@ -268,25 +268,25 @@ has_edge_substruct_match(mol1, mol2; kwargs...) = !isempty(edge_substruct_matche
 mcis_constraints(
     mol::MolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen
 ) = mcis_constraints(
-    mol.graph, :connection, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol)
+    Val{:connection}(), mol.graph, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol)
 )
 
 mces_constraints(
     mol::MolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen
 ) = mces_constraints(
-    mol.graph, :connection, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol)
+    Val{:connection}(), mol.graph, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol)
 )
 
 tdmcis_constraints(
     mol::MolGraph; vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen, kwargs...
 ) = mcis_constraints(
-    mol.graph, :shortest, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...
+    Val{:shortest}(), mol.graph, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...
 )
 
 tdmces_constraints(
     mol::MolGraph; vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen, kwargs...
 ) = mces_constraints(
-    mol.graph, :shortest, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...
+    Val{:shortest}(), mol.graph, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...
 )
 
 
@@ -375,11 +375,6 @@ function tdmces(mol1::MolGraph, mol2::MolGraph; kwargs...)
     mol2_ = tdmces_constraints(mol2; kwargs...)
     return maximum_common_subgraph(mol1_, mol2_; kwargs...)
 end
-
-# aliases (deprecated)
-tcmcis = tdmcis
-tcmces = tdmces
-
 
 
 """

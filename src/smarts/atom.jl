@@ -164,9 +164,9 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         while isdigit(lookahead(state, 1))
             forward!(state)
         end
-        num = SubString(state.input, start, state.pos)
+        ms = parse(Int, SubString(state.input, start, state.pos))
         forward!(state)
-        return QueryLiteral(:mass, parse(Int, num))
+        return QueryLiteral(:mass, ms)
     elseif sym1 == '$' && sym2 == '('
         # Recursive
         forward!(state, 2)

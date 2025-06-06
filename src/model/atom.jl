@@ -12,7 +12,7 @@ end
 const ATOMSYMBOLMAP = let
     symbolfile = joinpath(dirname(@__FILE__), "../../assets/const/symboltonumber.yaml")
     include_dependency(symbolfile)
-    YAML.load(open(symbolfile))
+    YAML.load(open(symbolfile); dicttype=Dict{String,Int})
 end
 
 const ATOM_COVALENT_RADII = let
