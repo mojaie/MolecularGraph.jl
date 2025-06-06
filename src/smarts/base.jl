@@ -78,10 +78,11 @@ abstract type SMILESContainer end
 @kwdef mutable struct SMILESAtomContainer <: SMILESContainer
     symbol::Symbol = :H
     charge::Int = 0
-    multiplicity::Int = 0
+    multiplicity::Int = 1
     mass::Union{Int,Nothing} = nothing
     isaromatic::Union{Bool,Nothing} = false
     stereo::Symbol = :unspecified
+    total_hydrogens::Int = 0  # for explicit hydrogens (e.g. [CH3])
 end
 
 @kwdef mutable struct SMILESBondContainer <: SMILESContainer
@@ -215,13 +216,16 @@ backtrack!(state) = backtrack!(state, 1)
 
 function smiles_props!(data::T, tree::U) where {T<:SMILESContainer,U<:QueryComponent}
     if tree isa QueryLiteral
-        data[tree.key] = tree.value
+        setproperty!(data, tree.key, tree.value)
     elseif tree.key === :not  # -> :not is only for aromatic in SMILES
-        smiles_props!(data::T, tree.value[1]::U)
-        data[tree.value[1]] = ~data[tree.value[1]]
+        q = tree.value[1]
+        @assert q isa QueryComponent
+        smiles_props!(data, q)
+        setproperty!(data, q.key, ~getproperty(data, q.key))
     else  # :and
+        @assert tree.value isa Vector{QueryComponent}
         for q in tree.value
-            smiles_props!(data::T, q::U)
+            smiles_props!(data, q)
         end
     end
 end

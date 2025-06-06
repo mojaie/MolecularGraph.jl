@@ -212,10 +212,10 @@ function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
     qd = SMILESAtomContainer()
     smiles_props!(qd, q::QueryComponent)
     hcnt = qd.total_hydrogens  # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
-    if qd[:symbol] === :H  # special case: [H2]
+    if qd.symbol === :H  # special case: [H2]
         hcnt -= 1
     end
-    return [V(qd), (V(Dict(:symbol => :H)) for _ in 1:hcnt)...]
+    return [V(qd), (V(Dict{Symbol,Any}(:symbol => :H)) for _ in 1:hcnt)...]
 end
 
 

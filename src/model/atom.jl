@@ -111,11 +111,14 @@ struct SDFAtom
     end
 end
 
-SDFAtom(d::Dict{String,Union{String,Int,Nothing,Vector{Float64}}}) = SDFAtom(
-    Symbol(d["symbol"]), d["charge"], d["multiplicity"], d["mass"], d["coords"]
+SDFAtom(d::Dict{String,Any}) = SDFAtom(
+    Symbol(d["symbol"]::String), d["charge"]::Int, d["multiplicity"]::Int,
+    d["mass"]::Union{Int,Nothing}, d["coords"]
 )
-SDFAtom(arr::Vector{Union{String,Int,Nothing,Vector{Float64}}}) = SDFAtom(
-    Symbol(arr[1]), arr[2], arr[3], arr[4], arr[5]
+
+SDFAtom(arr::Vector) = SDFAtom(
+    Symbol(arr[1]::String), arr[2]::Int, arr[3]::Int,
+    arr[4]::Union{Int,Nothing}, arr[5]
 )
 
 Base.getindex(a::SDFAtom, prop::Symbol) = getproperty(a, prop)

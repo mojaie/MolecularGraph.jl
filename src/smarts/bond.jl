@@ -82,7 +82,7 @@ function bond!(state::SMILESParser{T,V,E}) where {T,V,E}
     q = bondsymbol!(state)
     q === nothing && return
     qd = SMILESBondContainer()
-    qd = smiles_props!(qd, q)
+    smiles_props!(qd, q)
     return E(qd)
 end
 

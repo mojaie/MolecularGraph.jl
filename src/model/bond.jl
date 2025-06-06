@@ -34,7 +34,7 @@ end
 
 SDFBond(d::Dict{String,Any}) = SDFBond(
     d["order"]::Int, d["notation"]::Int, d["isordered"]::Bool)
-SDFBond(arr::Vector) = SDFBond(arr[1]::Int, arr[2]::Int, arr[3]::Bool)
+SDFBond(arr::Vector) = SDFBond(arr[1]::Int, arr[2]::Int, Bool(arr[3]))
 
 Base.getindex(b::SDFBond, prop::Symbol) = getproperty(b, prop)
 Base.:(==)(b1::SDFBond, b2::SDFBond) = all(

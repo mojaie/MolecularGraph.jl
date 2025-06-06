@@ -22,7 +22,7 @@ function ctab_atom_v2(T, line)
     ypos = parse(Float64, line[11:20])
     zpos = parse(Float64, line[21:30])
     d["coords"] = Float64[xpos, ypos, zpos]
-    d["symbol"] = rstrip(line[32:34])
+    d["symbol"] = String(rstrip(line[32:34]))
     # atom.mass_diff = parse(Int, line[35:36])
     d["mass"] = nothing  # will be ignored, use ISO property instead
     old_sdf_charge = parse(Int, line[37:39])
@@ -37,7 +37,7 @@ function ctab_atom_v3(T, line)
     d = Dict{String,Any}()
     ss = split(line)
     d["coords"] = parse.(Float64, ss[5:7])
-    d["symbol"] = ss[4]
+    d["symbol"] = String(ss[4])
     props = Dict(sympair.(ss[9:end])...)
     d["charge"] = get(props, :CHG, 0)
     d["mass"] = get(props, :MASS, nothing)
@@ -179,14 +179,11 @@ function parse_ctab(::Type{T}, io::IO, config) where T <: AbstractMolGraph
     # Properties
     if ver === :v2
         for (i, ps) in ctab_props_v2(io)
-            d = Dict{String,Any}()
-            d["symbol"] = vprops[i][:symbol]
-            d["coords"] = vprops[i][:coords]
             # If prop block exists, any annotations in atom blocks will be overwritten
-            d["charge"] = get(ps, :CHG, 0)
-            d["multiplicity"] = get(ps, :RAD, 1)
-            d["mass"] = get(ps, :ISO, nothing)
-            vprops[i] = vproptype(T)(d)
+            vprops[i] = vproptype(T)(
+                vprops[i][:symbol], get(ps, :CHG, 0), get(ps, :RAD, 1),
+                get(ps, :ISO, nothing), vprops[i][:coords]
+            )
         end
     elseif ver === :v3
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")
