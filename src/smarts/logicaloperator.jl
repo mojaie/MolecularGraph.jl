@@ -69,15 +69,15 @@ process tokens found in the given text, and returns nothing if no valid tokens w
 function lghighand!(state::T, func) where T <: AbstractSMARTSParser
     qs = QueryComponent[]
     q = gethighand(state, func)
-    q isa EndToken && return EndToken()
+    q isa EndToken && return QueryTree(EndToken())
     while !isa(q, EndToken)
         push!(qs, q)
         readtoken(state) == '&' && forward!(state)
         q = gethighand(state, func)
     end
     isempty(qs) && error("(lghighand!) invalid AND(&) operation")
-    length(qs) == 1 && return qs[1]
-    return QueryOperator(:and, qs)
+    length(qs) == 1 && return QueryTree(qs[1])
+    return QueryTree(QueryOperator(:and, qs))
 end
 
 gethighand(state::SMILESParser, func) = func(state)
@@ -96,8 +96,8 @@ function lgnot!(state::SMARTSParser, func)
     if readtoken(state) == '!'
         forward!(state)
         q = func(state)
-        q isa EndToken && error("(lgnot!) invalid NOT(!) operation")
-        return QueryOperator(:not, [q])
+        q.tree isa EndToken && error("(lgnot!) invalid NOT(!) operation")
+        return QueryTree(QueryOperator(:not, [q]))
     end
     return func(state)  # can return EndToken if the parser get stop token
 end

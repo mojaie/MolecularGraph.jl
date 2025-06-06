@@ -16,16 +16,16 @@ const SMILES_BOND_SYMBOL = Dict(
 
 const SMARTS_BOND_SYMBOL = Dict(
     '-' => QueryOperator(:and, [
-        QueryLiteral(:order, 1),
-        QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        QueryTree(QueryLiteral(:order, 1)),
+        QueryTree(QueryOperator(:not, [QueryTree(QueryLiteral(:isaromatic))]))
     ]),
     '=' => QueryOperator(:and, [
-        QueryLiteral(:order, 2),
-        QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        QueryTree(QueryLiteral(:order, 2)),
+        QueryTree(QueryOperator(:not, [QueryTree(QueryLiteral(:isaromatic))]))
     ]),
     '#' => QueryOperator(:and, [
-        QueryLiteral(:order, 3),
-        QueryOperator(:not, [QueryLiteral(:isaromatic)])
+        QueryTree(QueryLiteral(:order, 3)),
+        QueryTree(QueryOperator(:not, [QueryTree(QueryLiteral(:isaromatic))]))
     ]),
     '@' => QueryLiteral(:is_in_ring),
     ':' => QueryLiteral(:isaromatic),
@@ -43,8 +43,8 @@ defaultbond(state::SMILESParser{T,V,E}) where {T,V,E} = E(
 defaultbond(state::SMARTSParser{T,V,E}
     ) where {T,V,E} = E(QueryOperator(:or, [
         QueryOperator(:and, [
-            QueryLiteral(:order, 1),
-            QueryOperator(:not, [QueryLiteral(:isaromatic)])
+            QueryTree(QueryLiteral(:order, 1)),
+            QueryTree(QueryOperator(:not, [QueryLiteral(:isaromatic)]))
         ]),
         QueryLiteral(:isaromatic)
     ]))
@@ -61,10 +61,10 @@ function bondsymbol!(state::T) where T <: AbstractSMARTSParser
     sym2 = lookahead(state, 1)
     if sym1 == '/' && sym2 == '?'
         forward!(state, 2)
-        return QueryOperator(:not, [QueryLiteral(:stereo, :down)])
+        return QueryOperator(:not, [QueryTree(QueryLiteral(:stereo, :down))])
     elseif sym1 == '\\' && sym2 == '?'
         forward!(state, 2)
-        return QueryOperator(:not, [QueryLiteral(:stereo, :up)])
+        return QueryOperator(:not, [QueryTree(QueryLiteral(:stereo, :up))])
     elseif sym1 in keys(mapping)
         forward!(state)
         return mapping[sym1]

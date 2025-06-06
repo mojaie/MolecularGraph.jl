@@ -7,6 +7,18 @@
 abstract type QueryComponent end
 
 """
+    QueryTree
+
+Query component containar type for molecular graph properties.
+"""
+struct QueryTree{T<:QueryComponent}
+    tree::T
+end
+
+QueryTree(data::Vector) = QueryTree(querytreefromdata(data))
+
+
+"""
     QueryAny
 
 Query component type that generate tautology function (arg -> true/false).
@@ -57,7 +69,7 @@ Query component type for logical operators (arg -> q1[arg] && q2[arg]).
 """
 struct QueryOperator <: QueryComponent
     key::Symbol  # :and, :or, :not
-    value::Vector{QueryComponent}
+    value::Vector
 end
 
 Base.:(==)(q::QueryOperator, r::QueryOperator) = q.key == r.key && issetequal(q.value, r.value)
@@ -66,27 +78,17 @@ Base.hash(q::QueryOperator, h::UInt) = hash(q.key, hash(Set(q.value), h))
 to_dict(fmt::Val{:default}, q::QueryOperator) = [string(q.key), [to_dict(fmt, c) for c in q.value]]
 
 
-"""
-    QueryTree
-
-Query component containar type for molecular graph properties.
-"""
-struct QueryTree
-    tree::QueryComponent
-end
-
-QueryTree(data::Vector) = QueryTree(querytreefromdata(data))
 
 function querytreefromdata(data::Vector)
     # TODO: Serialization of QueryLiteral with various types
     if data[1] in ("and", "or", "not")
-        return QueryOperator(Symbol(data[1]), [querytreefromdata(d) for d in data[2]])
+        return QueryTree(QueryOperator(Symbol(data[1]), [querytreefromdata(d) for d in data[2]]))
     elseif data[1] in ("eq",)
-        return QueryLiteral(
+        return QueryTree(QueryLiteral(
             Symbol(data[1]), Symbol(data[2]),
-            (data[3] isa String && startswith(data[3], ":")) ? Symbol(data[3][2:end]) : data[3])
+            (data[3] isa String && startswith(data[3], ":")) ? Symbol(data[3][2:end]) : data[3]))
     elseif length(data) == 1
-        return QueryAny(data[1])
+        return QueryTree(QueryAny(data[1]))
     end
     error("Invalid query tree format")
 end
@@ -124,7 +126,7 @@ end
 QueryTruthTable(fml::Function, props::Vector{T}
     ) where T <: Tuple = QueryTruthTable(fml, [QueryLiteral(p...) for p in props])
 
-function QueryTruthTable(tree::Union{QueryAny,QueryLiteral,QueryOperator})
+function QueryTruthTable(tree::QueryComponent)
     tree isa QueryAny && return QueryTruthTable(x -> tree.value, [])
     props = sort(union(QueryLiteral[], values(querypropmap(tree))...))
     qfunc = generate_queryfunc(tree, props)

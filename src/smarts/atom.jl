@@ -32,10 +32,10 @@ function atomsymbol!(state::T) where T <: AbstractSMARTSParser
     sym2 = lookahead(state, 1)
     if sym1 == 'C' && sym2 == 'l'
         forward!(state, 2)
-        return QueryOperator(:and, [
+        return QueryOperator(:and, ([
             QueryLiteral(:symbol, :Cl),
             QueryOperator(:not, [QueryLiteral(:isaromatic)])
-        ])
+        ]))
     elseif sym1 == 'B' && sym2 == 'r'
         forward!(state, 2)
         return QueryOperator(:and, [
@@ -83,14 +83,17 @@ function atomprop!(state::T) where T <: AbstractSMARTSParser
         # Two letter atoms
         forward!(state, 2)
         if string(uppercase(sym1), sym2) in ("As", "Se")
-            isarom = (islowercase(sym1) ? QueryLiteral(:isaromatic)
-                : QueryOperator(:not, [QueryLiteral(:isaromatic)]))
-            return QueryOperator(:and, QueryComponent[
-                QueryLiteral(:symbol, Symbol(uppercase(sym1), sym2)), isarom
-            ])
+            isarom = (islowercase(sym1)
+                ? QueryTree(QueryLiteral(:isaromatic))
+                : QueryTree(QueryOperator(:not, [QueryTree(QueryLiteral(:isaromatic))]))
+            )
+            return QueryTree(QueryOperator(:and, [
+                QueryTree(QueryLiteral(:symbol, Symbol(uppercase(sym1), sym2))),
+                isarom
+            ]))
         end
         isuppercase(sym1) || error("aromatic $(sym1) is not supported")
-        return QueryLiteral(:symbol, Symbol(sym1, sym2))
+        return QueryTree(QueryLiteral(:symbol, Symbol(sym1, sym2)))
     elseif haskey(SMARTS_ATOM_COND_SYMBOL, sym1)
         # Neighbor and ring conditions
         forward!(state)
@@ -98,27 +101,34 @@ function atomprop!(state::T) where T <: AbstractSMARTSParser
             num = parse(Int, sym2)
             forward!(state)
         else
-            sym1 in ('r', 'R') && return QueryOperator(:not, [QueryLiteral(:ring_count, 0)])
+            sym1 in ('r', 'R') && return QuertTree(QueryOperator(:not, [QueryTree(QueryLiteral(:ring_count, 0))]))
             num = 1
         end
-        return QueryLiteral(SMARTS_ATOM_COND_SYMBOL[sym1], num)
+        return QueryTree(QueryLiteral(SMARTS_ATOM_COND_SYMBOL[sym1], num))
     elseif sym1 in ('A', 'a', '*')
         forward!(state)
-        sym1 == 'A' && return QueryOperator(:not, [QueryLiteral(:isaromatic)])
-        sym1 == 'a' && return QueryLiteral(:isaromatic)
-        sym1 == '*' && return QueryAny(true)
+        if sym1 == 'A'
+            aquery = QuertTree(QueryOperator(:not, [QueryTree(QueryLiteral(:isaromatic))]))
+        elseif sym1 == 'a'
+            aquery = QuertTree(QueryLiteral(:isaromatic))
+        else
+            aquery = QuertTree(QueryAny(true))
+        end
+        return aquery
     elseif haskey(ATOMSYMBOLMAP, string(uppercase(sym1)))
         # Single letter atoms
         forward!(state)
         if uppercase(sym1) in "BCNOPS"
-            isarom = (islowercase(sym1) ? QueryLiteral(:isaromatic)
-                : QueryOperator(:not, [QueryLiteral(:isaromatic)]))
-            return QueryOperator(:and, [
-                QueryLiteral(:symbol, Symbol(uppercase(sym1))), isarom
-            ])
+            isarom = (islowercase(sym1)
+                ? QueryTree(QueryLiteral(:isaromatic))
+                : QueryTree(QueryOperator(:not, [QueryTree(QueryLiteral(:isaromatic))]))
+            )
+            return QueryTree(QueryOperator(:and, [
+                QueryTree(QueryLiteral(:symbol, Symbol(uppercase(sym1)))), isarom
+            ]))
         end
         isuppercase(sym1) || error("aromatic $(sym1) is not supported")
-        return QueryLiteral(:symbol, Symbol(sym1))
+        return QueryTree(QueryLiteral(:symbol, Symbol(sym1)))
     elseif sym1 == '#'
         # Atomic number
         forward!(state)
@@ -128,7 +138,7 @@ function atomprop!(state::T) where T <: AbstractSMARTSParser
         end
         num = parse(Int, SubString(state.input, start, state.pos))
         forward!(state)
-        return QueryLiteral(:symbol, atom_symbol(num))
+        return QueryTree(QueryLiteral(:symbol, atom_symbol(num)))
     elseif sym1 in keys(SMARTS_CHARGE_SIGN)
         # Charge
         forward!(state)
@@ -142,7 +152,7 @@ function atomprop!(state::T) where T <: AbstractSMARTSParser
                 chg += 1
             end
         end
-        return QueryLiteral(:charge, chg * SMARTS_CHARGE_SIGN[sym1])
+        return QueryTree(QueryLiteral(:charge, chg * SMARTS_CHARGE_SIGN[sym1]))
     elseif sym1 == '@'
         # Stereo
         # @ -> anticlockwise, @@ -> clockwise, ? -> or not specified
@@ -154,9 +164,11 @@ function atomprop!(state::T) where T <: AbstractSMARTSParser
         end
         if readtoken(state) == '?'
             forward!(state)
-            return QueryOperator(:not, [QueryLiteral(:stereo, cw ? :anticlockwise : :clockwise)])
+            return QueryTree(QueryOperator(:not, [
+                QueryTree(QueryLiteral(:stereo, cw ? :anticlockwise : :clockwise))
+            ]))
         else
-            return QueryLiteral(:stereo, cw ? :clockwise : :anticlockwise)
+            return QueryTree(QueryLiteral(:stereo, cw ? :clockwise : :anticlockwise))
         end
     elseif isdigit(sym1)
         # Isotope
@@ -166,7 +178,7 @@ function atomprop!(state::T) where T <: AbstractSMARTSParser
         end
         ms = SubString(state.input, start, state.pos)
         forward!(state)
-        return QueryLiteral(:mass, parse(Int, ms))
+        return QueryTree(QueryLiteral(:mass, parse(Int, ms)))
     elseif sym1 == '$' && sym2 == '('
         # Recursive
         forward!(state, 2)
@@ -186,9 +198,9 @@ function atomprop!(state::T) where T <: AbstractSMARTSParser
         end
         q = SubString(state.input, start, state.pos - 1)
         forward!(state)
-        return QueryLiteral(:recursive, String(q))
+        return QueryTree(QueryLiteral(:recursive, String(q)))
     end
-    return EndToken()
+    return QueryTree(EndToken())
 end
 
 
