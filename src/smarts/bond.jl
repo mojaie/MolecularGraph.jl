@@ -55,9 +55,9 @@ defaultbond(state::SMARTSParser{T,V,E}
 
 BondSymbol <- [-=#@:/\\] / '/?' / '\\?'
 """
-function bondsymbol!(state::Union{SMILESParser,SMARTSParser})
+function bondsymbol!(state::T) where T <: AbstractSMARTSParser
     mapping = isa(state, SMILESParser) ? SMILES_BOND_SYMBOL : SMARTS_BOND_SYMBOL
-    sym1 = read(state)
+    sym1 = readtoken(state)
     sym2 = lookahead(state, 1)
     if sym1 == '/' && sym2 == '?'
         forward!(state, 2)
@@ -69,7 +69,7 @@ function bondsymbol!(state::Union{SMILESParser,SMARTSParser})
         forward!(state)
         return mapping[sym1]
     end
-    # Implicit single bond returns nothing
+    return EndToken()  # Implicit bond
 end
 
 
@@ -80,7 +80,7 @@ Bond <- BondSymbol?
 """
 function bond!(state::SMILESParser{T,V,E}) where {T,V,E}
     q = bondsymbol!(state)
-    q === nothing && return
+    q isa EndToken && return
     qd = SMILESBondContainer()
     smiles_props!(qd, q)
     return E(qd)
@@ -93,11 +93,10 @@ end
 Bond <- '~' / (BondSymbol / LogicalCond)?
 """
 function bond!(state::SMARTSParser{T,V,E}) where {T,V,E}
-    if read(state) == '~'
+    if readtoken(state) == '~'
         forward!(state)
         return E(QueryAny(true))
     end
     q = lglowand!(state, bondsymbol!)
-    q === nothing && return
-    return E(q::QueryComponent)
+    return q isa EndToken ? nothing : E(q)
 end

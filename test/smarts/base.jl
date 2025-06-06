@@ -4,13 +4,13 @@
 @testset "base" begin
     state1 = SMILESParser{SMILESMolGraph}("C1SC(C=O)CCC1")
     state2 = SMARTSParser{SMARTSMolGraph}(raw"*OC$([Cv4H2+0])")
-    @test read(state1) == 'C'
+    @test readtoken(state1) == 'C'
     @test lookahead(state1, 2) == 'S'
-    @test read(state2) == '*'
+    @test readtoken(state2) == '*'
     forward!(state2)
-    @test read(state2) == 'O'
+    @test readtoken(state2) == 'O'
     forward!(state2, 2)
-    @test read(state2) == '$'
+    @test readtoken(state2) == '$'
     backtrack!(state2)
     @test lookahead(state2, 1) == '$'
     @test !state2.done

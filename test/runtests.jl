@@ -25,7 +25,7 @@ using MolecularGraph:
     bondsymbol!, bond!,
     querypropmap, generate_queryfunc, querymatch, optimize_query,
     fragment!,specialize_nonaromatic!, remove_hydrogens!,
-    lookahead, forward!, backtrack!,
+    EndToken, lookahead, readtoken, forward!, backtrack!,
     lgnot!, lghighand!, lgor!, lglowand!,
     chain!, fragment!, componentquery!,
     resolve_disjoint_not, resolve_recursive, generate_truthtable, querymatch, querypropmap,

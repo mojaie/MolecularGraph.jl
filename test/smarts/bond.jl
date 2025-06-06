@@ -4,7 +4,7 @@
 @testset "bondsymbol" begin
     state = SMARTSParser{SMARTSMolGraph}("")
     implicit1 = bondsymbol!(state)
-    @test implicit1 === nothing
+    @test implicit1 isa EndToken
 
     state = SMARTSParser{SMARTSMolGraph}("-")
     explicit1 = QueryTruthTable(bondsymbol!(state))

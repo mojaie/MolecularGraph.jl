@@ -25,8 +25,9 @@ function remap(arr::SMARTSLexicalSuccessors{T}, vmap::Dict) where T
     return SMARTSLexicalSuccessors{T}(vec)
 end
 
+abstract type AbstractSMARTSParser end
 
-mutable struct SMILESParser{T,V,E}
+mutable struct SMILESParser{T,V,E} <: AbstractSMARTSParser
     input::String
     pos::Int
     done::Bool
@@ -48,8 +49,10 @@ function SMILESParser{T}(smiles) where T <: SimpleMolGraph
     )
 end
 
+Base.eltype(::Type{SMILESParser{T,V,E}}) where {T,V,E} = T
 
-mutable struct SMARTSParser{T,V,E}
+
+mutable struct SMARTSParser{T,V,E} <: AbstractSMARTSParser
     input::String
     pos::Int
     done::Bool
@@ -72,6 +75,8 @@ function SMARTSParser{T}(smarts) where T <: SimpleMolGraph
     )
 end
 
+Base.eltype(::Type{SMARTSParser{T,V,E}}) where {T,V,E} = T
+
 
 abstract type SMILESContainer end
 
@@ -90,6 +95,9 @@ end
     isaromatic::Bool = false
     direction::Symbol = :unspecified
 end
+
+
+struct EndToken <: QueryComponent end
 
 
 function smiles_on_init!(mol)
@@ -179,25 +187,23 @@ smartstomol(smarts::AbstractString
 
 # internal parser methods
 
-function lookahead(state::Union{SMILESParser,SMARTSParser}, pos::Int)
+function lookahead(state::T, pos::Int) where T <: AbstractSMARTSParser
     # Negative pos can be used
     newpos = state.pos + pos
     if newpos > length(state.input) || newpos < 1
-        return Char(0)
+        token = Char(0)
     else
         c = state.input[newpos]
-        if isascii(c)
-            return state.input[newpos]
-        else
-            error("invalid charactor $(c)")
-        end
+        isascii(c) || error("invalid charactor $(c)")
+        token = state.input[newpos]
     end
+    return token
 end
 
-Base.read(state) = lookahead(state, 0)  # TODO: rename
+readtoken(state) = lookahead(state, 0)
 
 
-function forward!(state::Union{SMILESParser,SMARTSParser}, num::Int)
+function forward!(state::T, num::Int) where T <: AbstractSMARTSParser
     # Negative num can be used
     state.pos += num
     if state.pos > length(state.input)
@@ -214,21 +220,24 @@ backtrack!(state, num) = forward!(state, -num)
 backtrack!(state) = backtrack!(state, 1)
 
 
-function smiles_props!(data::T, tree::U) where {T<:SMILESContainer,U<:QueryComponent}
-    if tree isa QueryLiteral
-        setproperty!(data, tree.key, tree.value)
-    elseif tree.key === :not  # -> :not is only for aromatic in SMILES
+function smiles_props!(data::SMILESContainer, tree::QueryOperator)
+    if tree.key === :not  # -> :not is only for aromatic in SMILES
         q = tree.value[1]
-        @assert q isa QueryComponent
         smiles_props!(data, q)
         setproperty!(data, q.key, ~getproperty(data, q.key))
     else  # :and
-        @assert tree.value isa Vector{QueryComponent}
         for q in tree.value
             smiles_props!(data, q)
         end
     end
 end
+
+function smiles_props!(data::SMILESContainer, tree::QueryLiteral)
+    setproperty!(data, tree.key, tree.value)
+end
+
+function smiles_props!(data::SMILESContainer, tree::EndToken) end
+
 
 SMILESAtom(a::SMILESAtomContainer) = SMILESAtom(
     a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, a.stereo)

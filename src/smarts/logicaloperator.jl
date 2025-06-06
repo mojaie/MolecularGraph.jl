@@ -15,10 +15,10 @@ process tokens found in the given text, and returns nothing if no valid tokens w
 function lglowand!(state::SMARTSParser, func)
     qs = []
     q = lgor!(state, func)
-    q === nothing && return
-    while q !== nothing
+    q isa EndToken && return EndToken()
+    while !isa(q, EndToken)
         push!(qs, q)
-        if read(state) == ';'
+        if readtoken(state) == ';'
             forward!(state)
             q = lgor!(state, func)
             continue
@@ -42,10 +42,10 @@ process tokens found in the given text, and returns nothing if no valid tokens w
 function lgor!(state::SMARTSParser, func)
     qs = []
     q = lghighand!(state, func)
-    q === nothing && return
-    while q !== nothing
+    q isa EndToken && return EndToken()
+    while !isa(q, EndToken)
         push!(qs, q)
-        if read(state) == ','
+        if readtoken(state) == ','
             forward!(state)
             q = lghighand!(state, func)
             continue
@@ -66,19 +66,22 @@ And <- Not ('&'? Not)*
 The argument `func` is a parser function which has a parser state as an argument,
 process tokens found in the given text, and returns nothing if no valid tokens were found.
 """
-function lghighand!(state::Union{SMILESParser,SMARTSParser}, func)
-    qs = []
-    q = isa(state, SMILESParser) ? func(state) : lgnot!(state, func)
-    q === nothing && return
-    while q !== nothing
+function lghighand!(state::T, func) where T <: AbstractSMARTSParser
+    qs = QueryComponent[]
+    q = gethighand(state, func)
+    q isa EndToken && return EndToken()
+    while !isa(q, EndToken)
         push!(qs, q)
-        read(state) == '&' && forward!(state)
-        q = isa(state, SMILESParser) ? func(state) : lgnot!(state, func)
+        readtoken(state) == '&' && forward!(state)
+        q = gethighand(state, func)
     end
     isempty(qs) && error("(lghighand!) invalid AND(&) operation")
     length(qs) == 1 && return qs[1]
     return QueryOperator(:and, qs)
 end
+
+gethighand(state::SMILESParser, func) = func(state)
+gethighand(state::SMARTSParser, func) = lgnot!(state, func)
 
 
 """
@@ -90,11 +93,11 @@ The argument `func` is a parser function which has a parser state as an argument
 process tokens found in the given text, and returns nothing if no valid tokens were found.
 """
 function lgnot!(state::SMARTSParser, func)
-    if read(state) == '!'
+    if readtoken(state) == '!'
         forward!(state)
         q = func(state)
-        q === nothing && error("(lgnot!) invalid NOT(!) operation")
+        q isa EndToken && error("(lgnot!) invalid NOT(!) operation")
         return QueryOperator(:not, [q])
     end
-    return func(state)  # can be Nothing if the parser get stop token
+    return func(state)  # can return EndToken if the parser get stop token
 end

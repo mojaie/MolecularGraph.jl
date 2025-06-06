@@ -4,16 +4,17 @@
 @testset "logicaloperator" begin
     # Test function
     function parseabc(state)
-        if read(state) == 'a'
+        if readtoken(state) == 'a'
             forward!(state)
             return QueryLiteral(:v, :a)
-        elseif read(state) == 'b'
+        elseif readtoken(state) == 'b'
             forward!(state)
             return QueryLiteral(:v, :b)
-        elseif read(state) == 'c'
+        elseif readtoken(state) == 'c'
             forward!(state)
             return QueryLiteral(:v, :c)
         end
+        return EndToken()
     end
 
     state = SMARTSParser{SMARTSMolGraph}("!a")
@@ -43,7 +44,7 @@
 
     state = SMARTSParser{SMARTSMolGraph}("")
     null = lglowand!(state, parseabc)
-    @test null === nothing
+    @test null isa EndToken
 
     state = SMARTSParser{SMARTSMolGraph}("!a!b")
     not3 = lglowand!(state, parseabc)

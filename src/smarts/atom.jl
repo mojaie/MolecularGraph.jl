@@ -27,8 +27,8 @@ const SMARTS_CHARGE_SIGN = Dict(
 
 Atomsymbol <- Br / Cl / [AaBCcNnOoPpSsFI*]
 """
-function atomsymbol!(state::Union{SMILESParser,SMARTSParser})
-    sym1 = read(state)
+function atomsymbol!(state::T) where T <: AbstractSMARTSParser
+    sym1 = readtoken(state)
     sym2 = lookahead(state, 1)
     if sym1 == 'C' && sym2 == 'l'
         forward!(state, 2)
@@ -66,7 +66,7 @@ function atomsymbol!(state::Union{SMILESParser,SMARTSParser})
             return QueryAny(true)
         end
     end
-    # return nothing
+    return EndToken()
 end
 
 
@@ -76,8 +76,8 @@ end
 
 AtomProp <- '\$(' RecursiveQuery ')' / Mass / Symbol / AtomNum / Stereo / CHG / [DHRrvX]
 """
-function atomprop!(state::Union{SMILESParser,SMARTSParser})
-    sym1 = read(state)
+function atomprop!(state::T) where T <: AbstractSMARTSParser
+    sym1 = readtoken(state)
     sym2 = lookahead(state, 1)
     if haskey(ATOMSYMBOLMAP, string(uppercase(sym1), sym2))
         # Two letter atoms
@@ -85,7 +85,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         if string(uppercase(sym1), sym2) in ("As", "Se")
             isarom = (islowercase(sym1) ? QueryLiteral(:isaromatic)
                 : QueryOperator(:not, [QueryLiteral(:isaromatic)]))
-            return QueryOperator(:and, [
+            return QueryOperator(:and, QueryComponent[
                 QueryLiteral(:symbol, Symbol(uppercase(sym1), sym2)), isarom
             ])
         end
@@ -137,7 +137,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
             forward!(state)
         else
             chg = 1
-            while read(state) == sym1
+            while readtoken(state) == sym1
                 forward!(state)
                 chg += 1
             end
@@ -148,11 +148,11 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         # @ -> anticlockwise, @@ -> clockwise, ? -> or not specified
         forward!(state)
         cw = false
-        if read(state) == '@'
+        if readtoken(state) == '@'
             forward!(state)
             cw = true
         end
-        if read(state) == '?'
+        if readtoken(state) == '?'
             forward!(state)
             return QueryOperator(:not, [QueryLiteral(:stereo, cw ? :anticlockwise : :clockwise)])
         else
@@ -164,22 +164,22 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         while isdigit(lookahead(state, 1))
             forward!(state)
         end
-        num = SubString(state.input, start, state.pos)
+        ms = SubString(state.input, start, state.pos)
         forward!(state)
-        return QueryLiteral(:mass, parse(Int, num))
+        return QueryLiteral(:mass, parse(Int, ms))
     elseif sym1 == '$' && sym2 == '('
         # Recursive
         forward!(state, 2)
         start = state.pos
         toclose = 1
         while true
-            if read(state) == ')'
+            if readtoken(state) == ')'
                 if toclose == 1
                     break
                 else
                     toclose -= 1
                 end
-            elseif read(state) == '('
+            elseif readtoken(state) == '('
                 toclose += 1
             end
             forward!(state)
@@ -188,7 +188,7 @@ function atomprop!(state::Union{SMILESParser,SMARTSParser})
         forward!(state)
         return QueryLiteral(:recursive, String(q))
     end
-    # return nothing
+    return EndToken()
 end
 
 
@@ -198,19 +198,19 @@ end
 Atom <- '[' AtomProp+ ']' / AtomSymbol
 """
 function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
-    sym1 = read(state)
+    sym1 = readtoken(state)
     if sym1 == '['
         forward!(state)
         q = lghighand!(state, atomprop!)
-        symcls = read(state)
+        symcls = readtoken(state)
         symcls == ']' || error("(atom)! unexpected token: $(symcls)")
         forward!(state)
     else
         q = atomsymbol!(state)
-        q === nothing && return V[] # termination token ().\0
     end
+    q isa EndToken && return V[] # termination token ().\0
     qd = SMILESAtomContainer()
-    smiles_props!(qd, q::QueryComponent)
+    smiles_props!(qd, q)
     hcnt = qd.total_hydrogens  # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
     if qd.symbol === :H  # special case: [H2]
         hcnt -= 1
@@ -225,17 +225,17 @@ end
 Atom <- '[' (AtomProp / LogicalOperator)+ ']' / AtomSymbol
 """
 function atom!(state::SMARTSParser{T,V,E}) where {T,V,E}
-    sym1 = read(state)
+    sym1 = readtoken(state)
     if sym1 == '['
         forward!(state)
         q = lglowand!(state, atomprop!)
-        q === nothing && error("(atom!) empty atomprop")
-        symcls = read(state)
+        q isa EndToken && error("(atom!) empty atomprop")
+        symcls = readtoken(state)
         symcls == ']' || error("(atom!) unexpected token: $(symcls)")
         forward!(state)
     else
         q = atomsymbol!(state)
-        q === nothing && return V[]  # termination token ().\0
+        q isa EndToken && return V[]  # termination token ().\0
     end
     return [V(q)]
 end
