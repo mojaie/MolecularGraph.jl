@@ -3,10 +3,57 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+@kwdef mutable struct Isotope
+    Composition::Float64 = NaN
+    Mass::Float64 = NaN
+    MassUncertainty::Float64 = NaN
+    CompositionUncertainty::Float64 = NaN
+    Number::Int = 0
+    Symbol::String = ""
+end
+Base.getindex(iso::Isotope, k::String) = getproperty(iso, Symbol(k))
+
+@kwdef mutable struct AtomTable
+    WeightType::String = ""
+    Isotopes::Vector{Isotope} = []
+    WeightHigher::Float64 = NaN
+    WeightLower::Float64 = NaN
+    WeightUncertainty::Float64 = NaN
+    Notes::Vector{String} = []
+    Monoisotopic::Float64 = NaN
+    Number::Int = 0
+    Weight::Float64 = NaN
+    Symbol::String = ""
+    MonoisotopicUncertainty::Float64 = NaN
+end
+Base.getindex(a::AtomTable, k::String) = getproperty(a, Symbol(k))
+
 const ATOMTABLE = let
     weightsfile = joinpath(dirname(@__FILE__), "../../assets/const/atomicweights.yaml")
     include_dependency(weightsfile)
-    YAML.load(open(weightsfile))
+    tbl = AtomTable[]
+    for rcd in YAML.load(open(weightsfile))
+        a = AtomTable()
+        for (k, v) in rcd
+            if k == "Isotopes"
+                ic = Isotope[]
+                for iso in v
+                    i = Isotope()
+                    for (j, u) in iso
+                        setproperty!(i, Symbol(j), u)
+                    end
+                    push!(ic, i)
+                end
+                setproperty!(a, Symbol(k), ic)
+            elseif k == "Notes" && isnothing(v)
+                continue
+            else
+                setproperty!(a, Symbol(k), v)
+            end
+        end
+        push!(tbl, a)
+    end
+    tbl
 end
 
 const ATOMSYMBOLMAP = let
