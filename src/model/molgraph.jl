@@ -3,6 +3,25 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+@kwdef mutable struct MolGraphProperty{T}
+    stereocenter::Stereocenter{T} = Stereocenter{T}()
+    stereobond::Stereobond{T} = Stereobond{T}()
+    pyrrole_like::PyrroleLike{T} = PyrroleLike{T}()
+    metadata::OrderedDict{String,String} = OrderedDict{String,String}()
+    error_sdfilereader::String = ""
+end
+
+
+@kwdef mutable struct MolGraphState{T,V,E}
+    initialized::Bool = false
+    has_updates::Bool = false
+    updater::Function = identity
+    on_init::Function = identity
+    caches::MolGraphCache = MolGraphCache{T,V,E}()
+    edge_rank::Dict{Edge{T},Int} = Dict{Edge{T},Int}()
+end
+
+
 """
     MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
 
@@ -12,9 +31,8 @@ struct MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
     graph::SimpleGraph{T}
     vprops::Dict{T,V}
     eprops::Dict{Edge{T},E}
-    gprops::Dict{Symbol,Any}
-    state::Dict{Symbol,Any}
-    edge_rank::Dict{Edge{T},Int}
+    gprops::MolGraphProperty{T}
+    state::MolGraphState{T,V,E}
 end
 
 function MolGraph{T,V,E}(
