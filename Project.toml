@@ -1,7 +1,7 @@
 name = "MolecularGraph"
 uuid = "6c89ec66-9cd8-5372-9f91-fabc50dd27fd"
 authors = ["Seiji Matsuoka <ms0ae8ti1sj2ui@gmail.com"]
-version = "0.19.0"
+version = "0.19.1"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"

@@ -1,5 +1,10 @@
 # NEWS
 
+## v0.19.1
+
+- Fixed SDFilereader (#126)
+- Added `make build` command to build ilbrary package instead of the PackageCompiler.jl script. This was enabled by `juliac.jl` script, but still not compatible with `--trim` option.
+
 ## v0.19.0
 
 There may be many breaking changes. See updated tutorials for details.
