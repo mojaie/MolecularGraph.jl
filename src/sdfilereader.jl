@@ -104,11 +104,11 @@ end
 
 function sdf_on_update!(mol)
     update_edge_rank!(mol)
-    clear_caches!(mol)
-    set_state!(mol, :has_updates, false)
-    # preprocessing
-    #  (add some preprocessing methods here)
-    # recalculate bottleneck descriptors
+    reset_update!(mol)
+    # Preprocess
+    default_atom_charge!(mol)
+    default_bond_order!(mol)
+    # Cache relatively expensive descriptors
     sssr!(mol)
     lone_pair!(mol)
     apparent_valence!(mol)
@@ -192,10 +192,11 @@ function parse_ctab(::Type{T}, io::IO, config) where T <: AbstractMolGraph
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")
         readline(io)
     end
-
-    default_config = Dict{Symbol,Any}(:on_init => sdf_on_init!, :updater => sdf_on_update!)
-    merge!(default_config, config)
-    return T(edges, vprops, eprops, gprop_map=Dict(), config_map=default_config)
+    state = MolGraphState{eltype(T)}()
+    state.on_init = sdf_on_init!
+    state.updater = sdf_on_update!
+    gprops = MolGraphProperty{eltype(T)}()
+    return T(edges, vprops, eprops, gprops=gprops, state=state)
 end
 
 

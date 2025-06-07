@@ -65,7 +65,6 @@ end
 
     # state
     @test set_state!(mol, :test, collect(1:3)) == collect(1:3)
-    @test has_state(mol, :test)
     @test get_state(mol, :test) == collect(1:3)
 
     # edit graph properties

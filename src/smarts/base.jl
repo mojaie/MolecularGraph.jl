@@ -75,10 +75,11 @@ end
 
 function smiles_on_update!(mol)
     update_edge_rank!(mol)
-    clear_caches!(mol)
-    set_state!(mol, :has_updates, false)
+    reset_update!(mol)
     # preprocessing
     kekulize!(mol)
+    default_atom_charge!(mol)
+    default_bond_order!(mol)
     # recalculate bottleneck descriptors
     sssr!(mol)
     lone_pair!(mol)
