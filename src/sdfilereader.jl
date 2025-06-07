@@ -104,7 +104,7 @@ end
 
 function sdf_on_update!(mol)
     update_edge_rank!(mol)
-    reset_update!(mol)
+    reset_updates!(mol)
     # Preprocess
     default_atom_charge!(mol)
     default_bond_order!(mol)

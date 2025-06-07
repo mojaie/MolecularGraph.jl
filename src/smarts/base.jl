@@ -3,27 +3,30 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-struct SMARTSLexicalSuccessors{T} <: AbstractVector{AbstractVector{T}}
-    vector::Vector{Vector{T}}
-end
+to_dict(
+    ::Val{:default}, ::Val{:smarts_lexical_succ}, gprop::MolGraphProperty
+) = gprop.smarts_lexical_succ
+reconstruct(::Val{:smarts_lexical_succ}, gprop::MolGraphProperty, data) = data
 
-Base.size(arr::SMARTSLexicalSuccessors) = size(arr.vector)
-Base.getindex(arr::SMARTSLexicalSuccessors, i...) = getindex(arr.vector, i...)
-to_dict(::Val{:default}, key::Symbol, arr::SMARTSLexicalSuccessors) = Dict{String,Any}(
-    "key" => string(key),
-    "type" => "SMARTSLexicalSuccessors",
-    "data" => arr.vector
-)
-PROPERTY_TYPE_REGISTRY["SMARTSLexicalSuccessors"] = (T, data) -> SMARTSLexicalSuccessors{eltype(T)}(data)
-
-function remap(arr::SMARTSLexicalSuccessors{T}, vmap::Dict) where T
+function remap(::Val{:smarts_lexical_succ}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+        ) where T
     vec = [T[] for i in 1:length(vmap)]
     for (k, v) in vmap
-        k <= length(arr.vector) || continue
-        vec[v] = [vmap[s] for s in arr.vector[k] if haskey(vmap, s)]
+        k <= length(gprop.smarts_lexical_succ) || continue
+        vec[v] = [vmap[s] for s in gprop.smarts_lexical_succ[k] if haskey(vmap, s)]
     end
-    return SMARTSLexicalSuccessors{T}(vec)
+    return vec
 end
+
+to_dict(
+    ::Val{:default}, ::Val{:smarts_connectivity}, gprop::MolGraphProperty
+) = gprop.smarts_connectivity
+reconstruct(::Val{:smarts_connectivity}, gprop::MolGraphProperty, data) = data
+# TODO: modification of SMARTS not supported
+remap(
+    ::Val{:smarts_connectivity}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+) where T = gprop.smarts_connectivity
+
 
 
 mutable struct SMILESParser{T,V,E}
@@ -75,7 +78,7 @@ end
 
 function smiles_on_update!(mol)
     update_edge_rank!(mol)
-    reset_update!(mol)
+    reset_updates!(mol)
     # preprocessing
     kekulize!(mol)
     default_atom_charge!(mol)
@@ -102,18 +105,16 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
 function smilestomol(::Type{T}, smiles::AbstractString;
-        config=Dict{Symbol,Any}(), kwargs...) where T <: AbstractMolGraph
+        state=MolGraphState{eltype(T)}(), kwargs...) where T <: AbstractMolGraph
     state = SMILESParser{T}(smiles)
     fragment!(state)
+    state.on_init = smiles_on_init!
+    state.updater = smiles_on_update!
     # original edge index
-    gprops = Dict(
-        :lexical_successors => SMARTSLexicalSuccessors{eltype(T)}(state.succ),
-        :metadata => Metadata()
-    )
-    default_config = Dict{Symbol,Any}(:updater => smiles_on_update!, :on_init => smiles_on_init!)
-    merge!(default_config, config)
+    gprops = MolGraphProperty{eltype(T)}()
+    gprops.smarts_lexical_succ = state.succ
     return T(state.edges, state.vprops, state.eprops,
-        gprop_map=gprops, config_map=default_config; kwargs...)
+        gprops=gprops, state=state; kwargs...)
 end
 
 smilestomol(smiles::AbstractString; kwargs...
@@ -126,17 +127,16 @@ smilestomol(smiles::AbstractString; kwargs...
 Parse SMARTS string into `QueryMol` object.
 """
 function smartstomol(::Type{T}, smarts::AbstractString;
-        gprop_map=Dict{Symbol,Any}(), kwargs...) where T <: AbstractMolGraph
+        config=MolGraphState{eltype(T)}(), kwargs...) where T <: AbstractMolGraph
     state = SMARTSParser{T}(smarts)
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
-    default_gprop = Dict{Symbol,Any}(
-        :connectivity => state.connectivity,
-        :lexical_successors => SMARTSLexicalSuccessors{eltype(T)}(state.succ),
-        :metadata => Metadata()
-    )
-    merge!(default_gprop, gprop_map)
+    config.on_init = smiles_on_init!
+    config.updater = smiles_on_update!
+    gprops = MolGraphProperty{eltype(T)}()
+    gprops.smarts_lexical_succ = state.succ
+    gprops.smarts_connectivity = state.connectivity
     mol = T(
-        state.edges, state.vprops, state.eprops, gprop_map=default_gprop; kwargs...)
+        state.edges, state.vprops, state.eprops, gprops=gprops, state=config; kwargs...)
     if vproptype(mol) <: QueryTree  # vproptype(mol) can be QueryTruthTable for testing
         specialize_nonaromatic!(mol)
         remove_hydrogens!(mol)

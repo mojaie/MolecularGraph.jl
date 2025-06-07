@@ -6,6 +6,24 @@
 
 # TODO: multiple coordinates (conformers)
 
+# TODO
+to_dict(
+    ::Val{:default}, ::Val{:coords2d}, gprop::MolGraphProperty
+) = gprop.coords2d
+reconstruct(::Val{:coords2d}, gprop::MolGraphProperty, data) = data
+remap(
+    ::Val{:coords2d}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+) where T = gprop.coords2d
+
+to_dict(
+    ::Val{:default}, ::Val{:coords3d}, gprop::MolGraphProperty
+) = gprop.coords3d
+reconstruct(::Val{:coords3d}, gprop::MolGraphProperty, data) = data
+remap(
+    ::Val{:coords3d}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+) where T = gprop.coords3d
+
+
 
 function has_coords(mol::SimpleMolGraph)
     get_state(mol, :has_updates) && dispatch!(mol, :updater)

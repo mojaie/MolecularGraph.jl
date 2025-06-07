@@ -3,21 +3,14 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-struct PyrroleLike{T} <: AbstractVector{T}
-    vertices::Vector{T}
-end
 
-Base.size(p::PyrroleLike) = size(p.vertices)
-Base.getindex(p::PyrroleLike, i...) = getindex(p.vertices, i...)
-to_dict(::Val{:default}, key::Symbol, p::PyrroleLike) = Dict{String,Any}(
-    "key" => string(key),
-    "type" => "PyrroleLike",
-    "data" => p.vertices
-)
-PROPERTY_TYPE_REGISTRY["PyrroleLike"] = (T, data) -> PyrroleLike{eltype(T)}(data)
-
-remap(p::PyrroleLike{T}, vmap::Dict
-    ) where T = PyrroleLike{T}([vmap[v] for v in p.vertices if haskey(vmap, v)])
+to_dict(
+    ::Val{:default}, ::Val{:pyrrole_like}, gprop::MolGraphProperty
+) = gprop.pyrrole_like
+reconstruct(::Val{:pyrrole_like}, gprop::MolGraphProperty, data) = data
+remap(
+    ::Val{:pyrrole_like}, gprop::MolGraphProperty, vmap
+) = [vmap[v] for v in gprop.pyrrole_like if haskey(vmap, v)]
 
 
 """

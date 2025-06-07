@@ -3,6 +3,13 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# Registered gprop types and converters for (de)serialization
+const ELEMENT_TYPE_REGISTRY = Dict{String,Type}(
+    "Int" => Int,
+    "Any" => Any
+)
+const PROPERTY_TYPE_REGISTRY = Dict{String,Function}()
+
 
 """
     AbstractMolGraph{T} <: Graphs.AbstractGraph{T}

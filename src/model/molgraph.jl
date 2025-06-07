@@ -3,6 +3,15 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+function reconstruct!(::Val{T}, gprop, data) where T
+    setproperty!(gprop, T, reconstruct(Val(T), gprop, data))
+end
+
+# vmap[old] -> new
+function remap!(::Val{T}, gprop, vmap) where T
+    setproperty!(gprop, T, remap(Val(T), gprop, vmap))
+end
+
 
 @kwdef mutable struct Descriptors{T}
     # cached relatively expensive descriptors
@@ -18,54 +27,55 @@ end
 
 function Descriptors{T}(data::Dict{String,Any}) where T
     desc = Descriptors{T}()
-    for k, v in data
+    for (k, v) in data
         setproperty!(desc, k, v)
     end
     return desc
 end
 
-to_dict(::Val{:default}, desc::Descriptors) = Dict{String,Any}(
-    fld => getproperty(desc, fld) for fld in fieldnames(desc))
 
 
 @kwdef mutable struct MolGraphProperty{T}
-    stereocenter::Stereocenter{T} = Stereocenter{T}()
-    stereobond::Stereobond{T} = Stereobond{T}()
-    pyrrole_like::PyrroleLike{T} = PyrroleLike{T}()
-    smarts_succ::SMARTSLexicalSuccessors{T} = SMARTSLexicalSuccessors{T}()
+    stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict()
+    stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict()
+    pyrrole_like::Vector{T} = []
+    smarts_lexical_succ::Vector{Vector{T}} = []
+    smarts_connectivity::Vector{Vector{T}} = []
     descriptors::Descriptors{T} = Descriptors{T}()
-    coords2d::Coordinates{T} = Coordinates{T}()
-    coords3d::Coordinates{T} = Coordinates{T}()
+    coords2d::Vector{Vector{Point2d}} = []
+    coords3d::Vector{Vector{Point3d}} = []
     # Graph-level metadata properties (e.g. SDFile option fields)
     metadata::OrderedDict{String,String} = OrderedDict()
     # Parse errors
-    error_sdfilereader::String = ""
-    stereocenter_ignored::String = ""
-    stereobond_ignored::String = ""
+    logs::Dict{String,String} = Dict()
 end
 
 function MolGraphProperty{T}(data::Dict{String,Any}) where T
     gprop = MolGraphProperty{T}()
+    for sym in fieldnames(typeof(gprop))
+        reconstruct!(Val(sym), gprop, data[string(sym)])
+    end
+    return gprop
 end
 
 function to_dict(::Val{:default}, gprop::MolGraphProperty)
     data = Dict{String,Any}()
-    data["stereocenter"] = to_dict(gprop.stereocenter)
-    data["stereobond"] = to_dict(gprop.stereobond)
-    data["pyrrole_like"] = to_dict(gprop.pyrrole_like)
-    data["smarts_succ"] = to_dict(gprop.smarts_succ)
-    data["descriptors"] = to_dict(gprop.descriptors)
-    data["coords2d"] = [collect(cd) for cd in cds] for cds in gprop.coords2d
-    data["coords3d"] = [collect(cd) for cd in cds] for cds in gprop.coords3d
+    for sym in fieldnames(typeof(gprop))
+        data[string(sym)] = to_dict(Val(sym), getproperty(gprop, sym))
+    end
+    """
+    data["coords2d"] = [[collect(cd) for cd in cds] for cds in gprop.coords2d]
+    data["coords3d"] = [[collect(cd) for cd in cds] for cds in gprop.coords3d]
     data["metadata"] = [[String(k), v] for (k, v) in gprop.metadata]
     data["error_sdfilereader"] = gprop.error_sdfilereader
+    """
     return data
 end
 
 
 @kwdef mutable struct MolGraphState{T}
     initialized::Bool = false
-    has_updates::Bool = false
+    has_updates::Bool = true
     updater::Function = default_updater!
     on_init::Function = default_on_init!
     edge_rank::Dict{Edge{T},Int} = Dict{Edge{T},Int}()
@@ -73,7 +83,7 @@ end
 
 function default_updater!(mol)
     update_edge_rank!(mol)
-    reset_update!(mol)
+    reset_updates!(mol)
 end
 
 function default_on_init!(mol)
@@ -81,20 +91,49 @@ function default_on_init!(mol)
     set_state!(mol, :initialized, true)
 end
 
-function remap_gprops(mol::SimpleMolGraph, vmap)  # vmap[old] -> new
-    newgp = Dict{Symbol,Any}()
-    for (k, v) in mol.gprops
-        newgp[k] = applicable(remap, v, vmap) ? remap(v, vmap) : v
+function remap_gprops(mol::SimpleMolGraph{T,V,E}, vmap) where {T,V,E}
+    gprop = MolGraphProperty{T}()
+    for k in fieldnames(typeof(mol.gprops))
+        setproperty!(gprop, k, remap(Val(k), mol.gprops, vmap))
     end
-    return newgp
+    return gprop
 end
 
-function remap_gprops!(mol::SimpleMolGraph, vmap)  # vmap[old] -> new
-    for (k, v) in mol.gprops
-        mol.gprops[k] = applicable(remap, v, vmap) ? remap(v, vmap) : v
+function remap_gprops!(mol::SimpleMolGraph, vmap)
+    for k in fieldnames(typeof(mol.gprops))
+        remap!(Val(k), mol.gprops, vmap)
     end
 end
 
+
+function to_dict(::Val{T}, ::Val{:descriptors}, gprop::MolGraphProperty) where T
+    data = Dict{String,Any}()
+    for sym in fieldnames(typeof(gprop.descriptors))
+        data[string(sym)] = getproperty(gprop.descriptors, sym)
+    end
+    return data
+end
+
+function reconstruct(::Val{:descriptors}, gprop::MolGraphProperty{T}, data) where T
+    desc = Descriptor{T}()
+    for sym in fieldnames(typeof(gprop.descriptors))
+        setproperty!(desc, sym, data[string(sym)])
+    end
+    return desc
+end
+# recalculate
+remap(::Val{:descriptors}, gprop::MolGraphProperty, vmap) = gprop.descriptors
+
+
+to_dict(
+    ::Val{:default}, ::Val{:metadata}, gprop::MolGraphProperty) = gprop.metadata
+reconstruct(::Val{:metadata}, gprop::MolGraphProperty, data) = data
+remap(::Val{:metadata}, gprop::MolGraphProperty, vmap) = gprop.metadata
+
+to_dict(
+    ::Val{:default}, ::Val{:logs}, gprop::MolGraphProperty) = gprop.logs
+reconstruct(::Val{:logs}, gprop::MolGraphProperty, data) = data
+remap(::Val{:logs}, gprop::MolGraphProperty, vmap) = gprop.logs
 
 
 """
@@ -112,7 +151,7 @@ end
 
 function MolGraph{T,V,E}(
         g::SimpleGraph, vprop::Dict, eprop::Dict;
-        gprop=MolGraphProperty{T}(), state=MolGraphState{T,V,E}(), kwargs...
+        gprop=MolGraphProperty{T}(), config=MolGraphState{T}(), kwargs...
         ) where {T,V,E}
     (nv(g) > length(vprop)
         && error("Mismatch in the number of nodes and node properties"))
@@ -122,11 +161,9 @@ function MolGraph{T,V,E}(
     for _ in nv(g):(length(vprop) - 1)
         push!(g.fadjlist, T[])
     end
-    gprop = MolGraphProperty{T}(gprop)
-    state = MolGraphState{T,V,E}(config)
-    mol = MolGraph{T,V,E}(g, vprop, eprop, gprop, state)
-    mol.state.initialized || dispatch!(mol, :on_init)
-    mol.state.has_updates && dispatch!(mol, :updater)
+    mol = MolGraph{T,V,E}(g, vprop, eprop, gprop, config)
+    mol.state.initialized || mol.state.on_init(mol)
+    mol.state.has_updates && mol.state.updater(mol)
     return mol
 end
 
@@ -179,10 +216,11 @@ set_state!(mol::MolGraph, sym::Symbol, value) = setproperty!(mol.state, sym, val
 get_cache(mol::MolGraph, sym::Symbol) = getproperty(mol.state.caches, sym)
 set_cache!(mol::MolGraph, sym::Symbol, value) = setproperty!(mol.state.caches, sym, value)
 
-reset_update!(mol) = set_state!(mol, :has_updates, false)
-function notify_update!(mol)
+reset_updates!(mol) = setproperty!(mol.state, :has_updates, false)
+has_updates(mol) = mol.state.has_updates
+function notify_updates!(mol)
     # TODO: flag to inactivate update
-    set_state!(mol, :has_updates, true)
+    setproperty!(mol.state, :has_updates, true)
 end
 
 function update_edge_rank!(mol::MolGraph)
@@ -199,7 +237,7 @@ function add_u_edge!(mol::MolGraph{T,V,E}, e::Edge, prop::E) where {T,V,E}
     # Can be directly called if src < dst is guaranteed.
     add_edge!(mol.graph, e) || return false
     mol.eprops[e] = prop
-    notify_update!(mol)
+    notify_updates!(mol)
     return true
 end
 
@@ -207,7 +245,7 @@ end
 function Graphs.add_vertex!(mol::MolGraph{T,V,E}, prop::V) where {T,V,E}
     add_vertex!(mol.graph) || return false
     mol.vprops[nv(mol.graph)] = prop
-    notify_update!(mol)
+    notify_updates!(mol)
     return true
 end
 
@@ -216,7 +254,7 @@ function rem_u_edge!(mol::MolGraph, e::Edge)
     # Can be directly called if src < dst is guaranteed.
     rem_edge!(mol.graph, e) || return false
     delete!(mol.eprops, e)
-    notify_update!(mol)
+    notify_updates!(mol)
     return true
 end
 
@@ -242,7 +280,7 @@ function Graphs.rem_vertex!(mol::MolGraph, v::Integer)
         mapper[nv_ ] = v
         remap_gprops!(mol, mapper)
     end
-    notify_update!(mol)
+    notify_updates!(mol)
     return true
 end
 
@@ -267,7 +305,7 @@ function Graphs.rem_vertices!(mol::MolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
         e in new_edges || delete!(mol.eprops, e)
     end
     remap_gprops!(mol, Dict(v => i for (i, v) in enumerate(vmap)))
-    notify_update!(mol)
+    notify_updates!(mol)
     return vmap
 end
 
@@ -279,6 +317,6 @@ function _induced_subgraph(mol::T, vlist_or_elist) where {T<:MolGraph}
     eps = Dict(e => mol.eprops[u_edge(mol, vmap[src(e)], vmap[dst(e)])]
         for e in edges(subg))
     newgp = remap_gprops(mol, Dict(v => i for (i, v) in enumerate(vmap)))
-    notify_update!(mol)
+    notify_updates!(mol)
     return T(subg, vps, eps, gprop=newgp, state=mol.state), vmap
 end
