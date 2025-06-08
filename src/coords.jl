@@ -3,40 +3,90 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+to_dict(
+    ::Val{:default}, ::Val{:coords2d}, gprop::MolGraphProperty
+) = [[collect(cd) for cd in cds] for cds in gprop.coords2d]
+reconstruct(
+    ::Val{:coords2d}, gprop::MolGraphProperty, data
+) = [[Point2d(cd...) for cd in cds] for cds in data]
+remap(  # TODO
+    ::Val{:coords2d}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+) where T = gprop.coords2d
 
-# TODO: multiple coordinates (conformers)
+to_dict(
+    ::Val{:default}, ::Val{:coords3d}, gprop::MolGraphProperty
+) = [[collect(cd) for cd in cds] for cds in gprop.coords3d]
+reconstruct(
+    ::Val{:coords3d}, gprop::MolGraphProperty, data
+) = [[Point3d(cd...) for cd in cds] for cds in data]
+remap(  # TODO
+    ::Val{:coords3d}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+) where T = gprop.coords3d
+
+to_dict(
+    ::Val{:default}, ::Val{:draw2d_bond_style}, gprop::MolGraphProperty
+) = [[string(s) for s in sty] for sty in gprop.draw2d_bond_style]
+reconstruct(
+    ::Val{:draw2d_bond_style}, gprop::MolGraphProperty, data
+) = [[Symbol(s) for s in sty] for sty in data]
+remap(  # TODO
+    ::Val{:draw2d_bond_style}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+) where T = gprop.draw2d_bond_style
 
 
-function has_coords(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    has_cache(mol, :v_coords2d) && return true
-    has_prop(mol, :coords2d) && return true
-    hasfield(vproptype(mol), :coords) || return false
-    for i in vertices(mol)
-        isnothing(get_prop(mol, i, :coords)) && return false
+function coords_from_sdf!(mol)
+    # Initializer. should be called before stereochem initializers.
+    zrange = nv(mol) == 0 ? (0, 0) : extrema(get_prop(mol, i, :coords)[3] for i in vertices(mol))
+    # Embed 3D coords to 2D
+    push!(mol.gprops.coords2d, [Point2d(get_prop(mol, i, :coords)[1:2]...) for i in vertices(mol)])
+    if zrange[2] - zrange[1] > 0.001  # 3D coords available
+        push!(mol.gprops.coords3d, [Point3d(get_prop(mol, i, :coords)[1:3]...) for i in vertices(mol)])
     end
-    return true
+    # Bond style in 2D notation (wedges)
+    bondorder = [get_prop(mol, e, :order) for e in edges(mol)]
+    bondnotation = [get_prop(mol, e, :notation) for e in edges(mol)]
+    isordered = [get_prop(mol, e, :isordered) for e in edges(mol)]
+    arr = Vector{Symbol}(undef, length(bondorder))
+    for i in 1:length(bondorder)
+        if bondnotation[i] == 3
+            arr[i] = :cis_trans
+        elseif bondorder[i] != 1
+            arr[i] = :none
+        elseif bondnotation[i] == 1
+            arr[i] = isordered[i] ? :up : :revup
+        elseif bondnotation[i] == 6
+            arr[i] = isordered[i] ? :down : :revdown
+        elseif bondnotation[i] == 4
+            arr[i] = :unspecified
+        else
+            arr[i] = :none
+        end
+    end
+    push!(mol.gprops.draw2d_bond_style, arr)
 end
 
-sdf_coords2d(mol::SimpleMolGraph
-    ) = [Point2d(get_prop(mol, i, :coords)[1:2]...) for i in vertices(mol)]
 
-
-function coords2d(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    has_cache(mol, :v_coords2d) && return get_cache(mol, :v_coords2d)
-    has_prop(mol, :coords2d) && return get_prop(mol, :coords2d)
-    has_coords(mol) || error("No coordinates found. use coordgen")
-    return sdf_coords2d(mol)
+function coords2d(mol::SimpleMolGraph, i::Int)
+    dispatch_update!(mol)
+    return mol.gprops.coords2d[i]
 end
+coords2d(mol) = coords2d(mol, 1)
+has_coords2d(mol) = length(mol.gprops.coords2d) > 0
 
 
-function coords3d(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    has_cache(mol, :v_coords3d) && return get_cache(mol, :v_coords3d)
-    has_coords(mol) || error("no coordinates found.")
-    return [Point3d(get_prop(mol, i, :coords)[1:3]...) for i in vertices(mol)]
+function coords3d(mol::SimpleMolGraph, i::Int)
+    dispatch_update!(mol)
+    return mol.gprops.coords3d[i]
 end
+coords3d(mol) = coords3d(mol, 1)
+has_coords3d(mol) = length(mol.gprops.coords3d) > 0
+
+
+function draw2d_bond_style(mol::SimpleMolGraph, i::Int)
+    dispatch_update!(mol)
+    return mol.gprops.draw2d_bond_style[i]
+end
+draw2d_bond_style(mol) = draw2d_bond_style(mol, 1)
 
 
 """
@@ -118,19 +168,23 @@ end
 
 
 function coordgen(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    dispatch_update!(mol)
     return coordgen(
         mol.graph, atom_symbol(mol), bond_order(mol),
-        get_prop(mol, :stereocenter), get_prop(mol, :stereobond)
+        mol.gprops.stereocenter, mol.gprops.stereobond
     )
 end
 
 
 function coordgen!(mol::SimpleMolGraph)
+    # Initialize
+    empty!(mol.gprops.coords2d)
+    empty!(mol.gprops.draw2d_bond_style)
+    # TODO: unspecified stereochem in SMILES
     coords, styles = coordgen(
         mol.graph, atom_symbol(mol), bond_order(mol),
         get_prop(mol, :stereocenter), get_prop(mol, :stereobond)
     )
-    set_cache!(mol, :v_coords2d, coords)
-    set_cache!(mol, :e_coordgen_bond_style, styles)
+    push!(mol.gprops.coords2d, coords)
+    push!(mol.gprops.draw2d_bond_style, styles)
 end

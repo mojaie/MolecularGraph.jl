@@ -35,7 +35,7 @@ function is_atom_visible(g, sym, chg, mul, ms, bo; show_carbon=:simple, kwargs..
 end
 
 function is_atom_visible(mol::SimpleMolGraph; show_carbon=:simple, kwargs...)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    dispatch_update!(mol)
     return is_atom_visible(mol.graph, atom_symbol(mol), atom_charge(mol), multiplicity(mol),
         [atom_mass(props(mol, i)) for i in vertices(mol)], bond_order(mol); kwargs...)
 end
@@ -81,36 +81,6 @@ function double_bond_style(g, bondorder_, coords, sssr_)
         end
     end
     return arr
-end
-
-
-function sdf_bond_style(bondorder, bondnotation, isordered)
-    arr = Vector{Symbol}(undef, length(bondorder))
-    for i in 1:length(bondorder)
-        if bondnotation[i] == 3
-            arr[i] = :cis_trans
-        elseif bondorder[i] != 1
-            arr[i] = :none
-        elseif bondnotation[i] == 1
-            arr[i] = isordered[i] ? :up : :revup
-        elseif bondnotation[i] == 6
-            arr[i] = isordered[i] ? :down : :revdown
-        elseif bondnotation[i] == 4
-            arr[i] = :unspecified
-        else
-            arr[i] = :none
-        end
-    end
-    return arr
-end
-
-function sdf_bond_style(mol::SimpleMolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    return sdf_bond_style(
-        bond_order(mol),
-        [get_prop(mol, e, :notation) for e in edges(mol)],
-        [get_prop(mol, e, :isordered) for e in edges(mol)]
-    )
 end
 
 
@@ -308,16 +278,12 @@ setbond!(
 Draw molecular image to the canvas.
 """
 function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
-    # get coords
-    if has_coords(mol)  # SDFAtom or has coordgen! precache
-        crds = coords2d(mol)
-        default_bond_style = (has_cache(mol, :e_coordgen_bond_style) ? 
-            get_cache(mol, :e_coordgen_bond_style) : sdf_bond_style(mol))
-    else  # default SMILESAtom
-        crds, default_bond_style = coordgen(mol)
+    dispatch_update!(mol)
+    # 2D coordinates required
+    if !has_coords2d(mol)
+        coordgen!(mol)
     end
-    isempty(crds) && return
+    crds = coords2d(mol)
     # Canvas settings
     initcanvas!(canvas, crds, boundary(mol, crds))
     # Properties
@@ -327,7 +293,7 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     bondorder_ = bond_order(mol)
     atomcolor_ = atom_color(mol; kwargs...)
     isatomvisible_ = is_atom_visible(mol; kwargs...)
-    bondstyle_ = bond_style(mol.graph, bondorder_, default_bond_style, crds, sssr(mol))
+    bondstyle_ = bond_style(mol.graph, bondorder_, draw2d_bond_style(mol), crds, sssr(mol))
 
     # Draw bonds
     for (i, e) in enumerate(edges(mol))

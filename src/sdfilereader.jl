@@ -97,6 +97,7 @@ end
 
 
 function sdf_on_init!(mol)
+    coords_from_sdf!(mol)
     stereocenter_from_sdf2d!(mol)
     stereobond_from_sdf2d!(mol)
     set_state!(mol, :initialized, true)
@@ -104,15 +105,15 @@ end
 
 function sdf_on_update!(mol)
     update_edge_rank!(mol)
-    clear_caches!(mol)
-    set_state!(mol, :has_updates, false)
-    # preprocessing
-    #  (add some preprocessing methods here)
-    # recalculate bottleneck descriptors
+    reset_updates!(mol)
+    # Preprocess
+    default_atom_charge!(mol)
+    default_bond_order!(mol)
+    # Cache relatively expensive descriptors
     sssr!(mol)
-    lone_pair!(mol)
     apparent_valence!(mol)
     valence!(mol)
+    lone_pair!(mol)
     is_ring_aromatic!(mol)
 end
 
@@ -192,10 +193,8 @@ function parse_ctab(::Type{T}, io::IO, config) where T <: AbstractMolGraph
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")
         readline(io)
     end
-
-    default_config = Dict{Symbol,Any}(:on_init => sdf_on_init!, :updater => sdf_on_update!)
-    merge!(default_config, config)
-    return T(edges, vprops, eprops, gprop_map=Dict(), config_map=default_config)
+    return T(edges, vprops, eprops,
+        on_init=sdf_on_init!, on_update=sdf_on_update!)
 end
 
 
@@ -232,7 +231,7 @@ end
 
 
 function parse_options(io::IO)
-    options = Metadata()
+    options = OrderedDict{String,String}()
     while true
         eof(io) && break
         line = readline(io)
@@ -253,7 +252,7 @@ function parse_options(io::IO)
 end
 
 function parse_rdf_options(io::IO)
-    options = Metadata()
+    options = OrderedDict{String,String}()
     while true
         eof(io) && break
         mark(io)
@@ -290,13 +289,13 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractMolGr
         if e isa ErrorException  # Compatibility error
             reader.unsupported === :log && @info "$(e.msg) (#$(state) in sdfilereader)"
             nul = T()
-            nul.gprops[:error_sdfilereader] = e.msg
+            nul.gprops.logs["error_sdfilereader"] = e.msg
             nul
         else
             throw(e)
         end
     end
-    mol.gprops[:metadata] = parse_options(reader.io)
+    mol.gprops.metadata = parse_options(reader.io)
     return (mol, state + 1)
 end
 
@@ -331,7 +330,7 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractReact
         end
     end
     rxn === nothing && error("Invalid token: $(fmt_line)")
-    rxn.rprops[:metadata] = parse_rdf_options(reader.io)
+    rxn.rprops.metadata = parse_rdf_options(reader.io)
     return (rxn, state + 1)
 end
 

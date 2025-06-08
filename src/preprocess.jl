@@ -3,21 +3,14 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-struct PyrroleLike{T} <: AbstractVector{T}
-    vertices::Vector{T}
-end
 
-Base.size(p::PyrroleLike) = size(p.vertices)
-Base.getindex(p::PyrroleLike, i...) = getindex(p.vertices, i...)
-to_dict(::Val{:default}, key::Symbol, p::PyrroleLike) = Dict{String,Any}(
-    "key" => string(key),
-    "type" => "PyrroleLike",
-    "data" => p.vertices
-)
-PROPERTY_TYPE_REGISTRY["PyrroleLike"] = (T, data) -> PyrroleLike{eltype(T)}(data)
-
-remap(p::PyrroleLike{T}, vmap::Dict
-    ) where T = PyrroleLike{T}([vmap[v] for v in p.vertices if haskey(vmap, v)])
+to_dict(
+    ::Val{:default}, ::Val{:pyrrole_like}, gprop::MolGraphProperty
+) = gprop.pyrrole_like
+reconstruct(::Val{:pyrrole_like}, gprop::MolGraphProperty, data) = data
+remap(
+    ::Val{:pyrrole_like}, gprop::MolGraphProperty, vmap
+) = [vmap[v] for v in gprop.pyrrole_like if haskey(vmap, v)]
 
 
 """
@@ -30,6 +23,7 @@ lowercase atoms (called Kekulization). Kekulization is necessary for the valence
 implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
 """
 function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+    # "raw" bond orders
     bondorder = [bond_order(props(mol, e)) for e in edges(mol)]
     # lone pair in p-orbital, pyrrole-like aromatic atom
     pyrrole_like = T[]
@@ -38,7 +32,7 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
         canbepyl = T[]  # can be pyrrole-like aromatic atom
         for i in ring
             get_prop(mol, i, :isaromatic) === true || continue  # not nothing or false
-            if has_prop(mol, :pyrrole_like) && i in get_prop(mol, :pyrrole_like)
+            if i in mol.gprops.pyrrole_like
                 push!(pyrrole_like, i)
                 continue
             end
@@ -83,13 +77,13 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
             bondorder[edge_rank(mol, vmap[src(e)], vmap[dst(e)])] = 2
         end
     end
-    return bondorder, PyrroleLike(pyrrole_like)
+    return bondorder, pyrrole_like
 end
 
 function kekulize!(mol::MolGraph)
     bondorder, pyrrole_like = kekulize(mol)
-    set_cache!(mol, :e_order, bondorder)
-    mol.gprops[:pyrrole_like] = pyrrole_like
+    mol.gprops.descriptors.bond_order = bondorder
+    mol.gprops.pyrrole_like = pyrrole_like
 end
 
 
@@ -158,10 +152,8 @@ This returns vmap array similar to `Graphs.rem_vertices!`.
 """
 function remove_all_hydrogens!(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     to_remove = T[]
-    if has_prop(mol, :stereocenter)
-        for center in keys(get_prop(mol, :stereocenter))
-            safe_stereo_hydrogen!(mol, center)
-        end
+    for center in keys(mol.gprops.stereocenter)
+        safe_stereo_hydrogen!(mol, center)
     end
     vmap = rem_vertices!(mol, all_hydrogens(mol))
     return vmap
@@ -226,7 +218,8 @@ function protonate_acids(mol::SimpleMolGraph)
     return arr
 end
 
-protonate_acids!(mol::MolGraph) = set_cache!(mol, :v_charge, protonate_acids(mol))
+protonate_acids!(mol::MolGraph) = setproperty!(
+    mol.gprops.descriptors, :atom_charge, protonate_acids(mol))
 
 
 """
@@ -245,7 +238,8 @@ function deprotonate_oniums(mol::SimpleMolGraph)
     return arr
 end
 
-deprotonate_oniums!(mol::MolGraph) = set_cache!(mol, :v_charge, deprotonate_oniums(mol))
+deprotonate_oniums!(mol::MolGraph) = setproperty!(
+    mol.gprops.descriptors, :atom_charge, deprotonate_oniums(mol))
 
 
 """
@@ -276,8 +270,8 @@ end
 
 function depolarize!(mol::MolGraph)
     carr, oarr = depolarize(mol)
-    set_cache!(mol, :v_charge, carr)
-    set_cache!(mol, :e_order, oarr)
+    mol.gprops.descriptors.atom_charge = carr
+    mol.gprops.descriptors.bond_order = oarr
     return carr, oarr
 end
 
@@ -310,8 +304,8 @@ end
 
 function polarize!(mol::MolGraph)
     carr, oarr = polarize(mol)
-    set_cache!(mol, :v_charge, carr)
-    set_cache!(mol, :e_order, oarr)
+    mol.gprops.descriptors.atom_charge = carr
+    mol.gprops.descriptors.bond_order = oarr
     return carr, oarr
 end
 
@@ -354,8 +348,8 @@ end
 
 function to_triple_bond!(mol::MolGraph)
     carr, oarr = to_triple_bond(mol)
-    set_cache!(mol, :v_charge, carr)
-    set_cache!(mol, :e_order, oarr)
+    mol.gprops.descriptors.atom_charge = carr
+    mol.gprops.descriptors.bond_order = oarr
     return carr, oarr
 end
 
@@ -380,7 +374,7 @@ end
 
 function to_allene_like!(mol::MolGraph)
     carr, oarr = to_allene_like(mol)
-    set_cache!(mol, :v_charge, carr)
-    set_cache!(mol, :e_order, oarr)
+    mol.gprops.descriptors.atom_charge = carr
+    mol.gprops.descriptors.bond_order = oarr
     return carr, oarr
 end

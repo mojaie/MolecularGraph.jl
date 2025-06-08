@@ -4,47 +4,12 @@
 #
 
 """
-    to_dict(mol::MolGraph) -> Dict{String,Any}
+    to_dict(fmt::Val{:default}, mol::MolGraph) -> Dict{String,Any}
 
 Convert molecule object into JSON compatible dictionary.
 """
-to_dict(::Val, mol::AbstractMolGraph) = error("method to_dict not implemented")
-to_dict(::Val, atom_or_bond::Dict) = atom_or_bond
-to_dict(::Val, metadata::AbstractString) = metadata
-to_dict(::Val, value::Number) = value
-to_dict(x) = to_dict(Val{:default}(), x)
-to_dict(sym, data) = to_dict(Val{:default}(), sym, data)
-
-to_dict(::Val{:default}, key::Symbol, num::Int) = Dict{String,Any}(
-    "key" => string(key),
-    "type" => "Int",
-    "data" => num
-)
-PROPERTY_TYPE_REGISTRY["Int"] = (T, data) -> data
-
-to_dict(::Val{:default}, key::Symbol, msg::String) = Dict{String,Any}(
-    "key" => string(key),
-    "type" => "String",
-    "data" => msg
-)
-PROPERTY_TYPE_REGISTRY["String"] = (T, data) -> data
-
-to_dict(::Val{:default}, key::Symbol, arr::Vector) = Dict{String,Any}(
-    "key" => string(key),
-    "type" => "Vector",
-    "data" => arr
-)
-PROPERTY_TYPE_REGISTRY["Vector"] = (T, data) -> data
-
-to_dict(::Val{:default}, key::Symbol, arr::BitVector) = Dict{String,Any}(
-    "key" => string(key),
-    "type" => "BitVector",
-    "data" => arr
-)
-PROPERTY_TYPE_REGISTRY["BitVector"] = (T, data) -> data
-
 function to_dict(fmt::Val{:default}, mol::MolGraph)
-    get_state(mol, :has_updates) && dispatch!(mol, :updater)
+    dispatch_update!(mol)
     rev_type = Dict(v => k for (k, v) in ELEMENT_TYPE_REGISTRY)
     return Dict(
         "eltype" => get(rev_type, eltype(mol), Int),
@@ -53,73 +18,91 @@ function to_dict(fmt::Val{:default}, mol::MolGraph)
         "graph" => [[src(e), dst(e)] for e in edges(mol)],
         "vprops" => [to_dict(fmt, props(mol, i)) for i in vertices(mol)],
         "eprops" => [to_dict(fmt, props(mol, e)) for e in edges(mol)],
-        "gprops" => [to_dict(fmt, k, v) for (k, v) in mol.gprops],
-        "caches" => [to_dict(fmt, k, v) for (k, v) in mol.state[:caches]]
+        "gprops" => to_dict(fmt, mol.gprops)
     )
 end
 
 
 """
-    to_json(mol::MolGraph) -> String
+    to_json(fmt::Val, mol::AbstractMolGraph) -> String
+    to_json(mol::AbstractMolGraph) -> String
 
 Convert molecule object into JSON String.
 """
 to_json(fmt::Val, mol::AbstractMolGraph) = JSON.json(to_dict(fmt, mol))
-to_json(x) = to_json(Val{:default}(), x)
+to_json(mol::AbstractMolGraph) = to_json(Val{:default}(), mol)
 
 
 function molgraph_from_dict(
-            ::Val{:default}, ::Type{T}, data::Dict, config::Dict{Symbol,Any}; kwargs...
-        ) where T <: AbstractMolGraph
-    I = eltype(T)
-    V = vproptype(T)
-    E = eproptype(T)
-    g = SimpleGraph(Edge{I}[Edge{I}(e...) for e in data["graph"]])
-    vps = Dict{I,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
-    eps = Dict{Edge{I},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
-    gps = Dict{Symbol,Any}(
-        Symbol(gp["key"]) => PROPERTY_TYPE_REGISTRY[gp["type"]](T, gp["data"]) for gp in data["gprops"])
-    default_config = Dict{Symbol,Any}(
-        :caches => Dict{Symbol,Any}(
-            Symbol(ca["key"]) => PROPERTY_TYPE_REGISTRY[ca["type"]](T, ca["data"]) for ca in data["caches"]),
-        :initialized => true,
-        :has_updates => false
-    )
-    merge!(default_config, config)
-    mol = T(g, vps, eps, gprop_map=gps, config_map=default_config; kwargs...)
-    update_edge_rank!(mol)  # initialization skiped, but edge_rank should be resumed
+        ::Val{:default}, ::Type{T}, ::Type{V}, ::Type{E},
+        data::Dict, config::MolGraphState) where {T,V,E}
+    g = SimpleGraph(Edge{T}[Edge{T}(e...) for e in data["graph"]])
+    vps = Dict{T,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
+    eps = Dict{Edge{T},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
+    gps = MolGraphProperty{T}(data["gprops"])
+    # Skip initialization to use stored descriptors without recalculation
+    config.initialized = true
+    config.has_updates = false
+    mol = MolGraph{T,V,E}(g, vps, eps, gps, config)
+    update_edge_rank!(mol)  # but edge_rank should be resumed
     return mol
+end
+
+
+function MolGraph{T,SDFAtom,SDFBond}(data::Dict;
+        on_init=sdf_on_init!, on_update=sdf_on_update!) where T<:Integer
+    if data["vproptype"] != "SDFAtom" || data["eproptype"] != "SDFBond"
+        error("Incompatible element property types")
+    end
+    config=MolGraphState{T}(on_init, on_update)
+    return molgraph_from_dict(
+        Val(:default), T, SDFAtom, SDFBond, data, config)
+end
+
+function MolGraph{T,SMILESAtom,SMILESBond}(data::Dict;
+        on_init=smiles_on_init!, on_update=smiles_on_update!) where T<:Integer
+    if data["vproptype"] != "SMILESAtom" || data["eproptype"] != "SMILESBond"
+        error("Incompatible element property types")
+    end
+    config=MolGraphState{T}(on_init, on_update)
+    return molgraph_from_dict(
+        Val(:default), T, SMILESAtom, SMILESBond, data, config)
+end
+
+function MolGraph{T,QueryTree,QueryTree}(data::Dict;
+        on_init=default_on_init!, on_update=default_on_update!) where T<:Integer
+    if data["vproptype"] != "QueryTree" || data["eproptype"] != "QueryTree"
+        error("Incompatible element property types")
+    end
+    config=MolGraphState{T}(on_init, on_update)
+    return molgraph_from_dict(
+        Val(:default), T, QueryTree, QueryTree, data, config)
 end
 
 
 # JSON auto detect
 
-function MolGraph(data::Dict; config=Dict{Symbol,Any}(), kwargs...)
-    default_config = Dict{Symbol,Any}()
+function MolGraph(data::Dict; kwargs...)
     if haskey(data, "commonchem")
-        T = Int
-        V = CommonChemAtom
-        E = CommonChemBond
-        fmt = Val{:rdkit}()
-        default_config = Dict{Symbol,Any}(:on_init => rdk_on_init!, :updater => rdk_on_update!)
-    elseif haskey(data, "eltype")
-        T = get(ELEMENT_TYPE_REGISTRY, data["eltype"], Int)
-        V = ELEMENT_TYPE_REGISTRY[data["vproptype"]]
-        E = ELEMENT_TYPE_REGISTRY[data["eproptype"]]
-        fmt = Val{:default}()
-        if V === SDFAtom && E === SDFBond
-            default_config = Dict{Symbol,Any}(:on_init => sdf_on_init!, :updater => sdf_on_update!)
-        elseif V === SMILESAtom && E === SMILESBond
-            default_config = Dict{Symbol,Any}(:on_init => smiles_on_init!, :updater => smiles_on_update!)
-        end
-    else
+        return MolGraph{Int,CommonChemAtom,CommonChemBond}(data; kwargs...)
+    end
+    if !haskey(data, "eltype") || !haskey(data, "vproptype") || !haskey(data, "eproptype")
         error("Invalid JSON format")
     end
-    merge!(default_config, config)
-    return molgraph_from_dict(fmt, MolGraph{T,V,E}, data, default_config; kwargs...)
+    if data["eltype"] == "Int"
+        if data["vproptype"] == "SDFAtom" && data["eproptype"] == "SDFBond"
+            return MolGraph{Int,SDFAtom,SDFBond}(data; kwargs...)
+        elseif data["vproptype"] == "SMILESAtom" && data["eproptype"] == "SMILESBond"
+            return MolGraph{Int,SMILESAtom,SMILESBond}(data; kwargs...)
+        elseif data["vproptype"] == "QueryTree" && data["eproptype"] == "QueryTree"
+            return MolGraph{Int,QueryTree,QueryTree}(data; kwargs...)
+        end
+    end
+    error("Invalid JSON format")
 end
 
 MolGraph(json::String; kwargs...) = MolGraph(JSON.parse(json); kwargs...)
+MolGraph{T,V,E}(json::String; kwargs...) where {T,V,E} = MolGraph{T,V,E}(JSON.parse(json); kwargs...)
 
 
 

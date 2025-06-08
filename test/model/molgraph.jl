@@ -7,14 +7,14 @@
     nullsmiles = SMILESMolGraph()
     fe = MolGraph(Edge{Int}[], [SDFAtom(:Fe)], SDFBond[])
     atoms = [SDFAtom(), SDFAtom(:H), SDFAtom(:H), SDFAtom(:H), SDFAtom(:H)]
-    bonds = [SDFBond(), SDFBond(), SDFBond(), SDFBond()]
+    bonds = [SDFBond() for i in 1:4]
     methane = MolGraph(collect(edges(star_graph(5))), atoms, bonds)
     atoms = [SDFAtom(), SDFAtom(), SDFAtom(:H), SDFAtom(:H),
         SDFAtom(:H), SDFAtom(:H), SDFAtom(:H), SDFAtom(:H)]
-    bonds = [SDFBond(), SDFBond(), SDFBond(), SDFBond(), SDFBond(), SDFBond(), SDFBond()]
+    bonds = [SDFBond() for i in 1:7]
     ethane = MolGraph(
         Edge.([(1, 2), (1, 3), (1, 4), (1, 5), (2, 6), (2, 7), (2, 8)]),
-        atoms, bonds, gprop_map=Dict(:hoge => 2))
+        atoms, bonds)
 
     # compatibility with Graphs.jl
     @test eltype(nullmol) === Int
@@ -52,35 +52,41 @@
     @test eproptype(nullsmiles) === SMILESBond
     @test get_prop(methane, 1, :symbol) === :C
     @test get_prop(methane, 1, 2, :order) === 1
-    @test get_prop(ethane, :hoge) == 2
-    @test !has_prop(ethane, :fuga)
 end
 
 
 @testset "modification" begin
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))  # CCC
-    set_prop!(mol, :fuga, 3)
-
-    # state
-    @test set_state!(mol, :test, collect(1:3)) == collect(1:3)
-    @test has_state(mol, :test)
-    @test get_state(mol, :test) == collect(1:3)
-
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds)  # CCC
+    @test !has_updates(mol)
     # edit graph properties
-    @test get_prop(mol, :fuga) == 3
     @test add_vertex!(mol, SDFAtom(:O))  # CCC.O
+    @test has_updates(mol)
+    reset_updates!(mol)
+    @test !has_updates(mol)
     @test get_prop(mol, 4, :symbol) === :O
+
     @test add_edge!(mol, Edge(3, 4), SDFBond())  # CCCO
+    @test has_updates(mol)
+    reset_updates!(mol)
     @test degree(mol.graph, 3) == 2
     @test get_prop(mol, Edge(3, 4), :order) == 1
+
     add_edge!(mol, Edge(1, 4), SDFBond())  # C1CCO1
+    @test has_updates(mol)
+    reset_updates!(mol)
+
     @test rem_edge!(mol, Edge(3, 4))  # C1CC.O1
+    @test has_updates(mol)
+    reset_updates!(mol)
     @test degree(mol.graph, 3) == 1
     @test issetequal(keys(mol.eprops), Edge.([(1, 2), (1, 4), (2, 3)]))
+
     @test add_edge!(mol, 4, 3, SDFBond())  # C1CCO1
     @test rem_vertex!(mol, 2)  # COC
+    @test has_updates(mol)
+    reset_updates!(mol)
     @test degree(mol.graph, 1) == 1
     @test degree(mol.graph, 2) == 2
     @test degree(mol.graph, 3) == 1
@@ -122,60 +128,23 @@ end
 
 
 @testset "metadata" begin
-    # Dict-like
-    md = Metadata(Dict(
-        "id1" => "hoge", "id2" => "fuga", "valid" => true, "exp_pka" => 9.24, "stock_mg" => 25
-    ))
-    md["id3"] = "CPD00001"  # Base.setindex!
-    @test md["id3"] == "CPD00001"  # Base.getindex
-    @test get(md, "unknownid", "unknown") == "unknown"  # Base.get
-    @test length(md) == 6  # Base.length
-    @test length(collect(m for m in md)) == 6  # Base.iterate
-    @test to_dict(:hoge, md)["data"] isa Vector  # MolecularGraph.to_dict (serialization)
-
-    # Note that mols built with `sdftomol` should have :metadata.
-    # In this case, Metadata should be added to the manually built MolGraph.
+    gprop = MolGraphProperty{Int}()
+    data = Dict(
+        "id1" => "hoge", "id2" => "fuga", "valid" => "true", "exp_pka" => "9.24", "stock_mg" => "25"
+    )
+    reconstruct!(Val(:metadata), gprop, data)
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:metadata => md))
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprops=gprop)
     # getter/setter
-    @test get_prop(mol, "valid")
+    @test get_prop(mol, "exp_pka") == "9.24"
     set_prop!(mol, "new_id", "CP00001")
     @test get_prop(mol, "new_id") == "CP00001"
     @test !has_prop(mol, "unknown")
     # comvenient methods
-    @test mol["valid"]
-    mol["deleterious"] = false
-    @test !mol["deleterious"]
-end
-
-
-@testset "serialization" begin
-    atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
-    bonds = [SDFBond(),SDFBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => 2))
-    mol2 = MolGraph(to_json(mol))
-    @test mol == mol2
-    @test mol !== mol2
-
-    atoms = [SMILESAtom(),SMILESAtom(),SMILESAtom()]
-    bonds = [SMILESBond(),SMILESBond()]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:hoge => [1,2,3,4]))
-    mol2 = MolGraph(to_json(mol))
-    @test mol == mol2
-    @test mol !== mol2
-
-    mol = MolGraph()
-    mol2 = MolGraph(to_json(mol))
-    @test mol == mol2
-    @test mol !== mol2
-
-    atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
-    bonds = SDFBond[]
-    mol = MolGraph(Edge{Int}[], atoms, bonds)
-    mol2 = MolGraph(to_json(mol))
-    @test mol == mol2
-    @test mol !== mol2
+    @test mol["valid"] == "true"
+    mol["deleterious"] = "false"
+    @test mol["deleterious"] == "false"
 end
 
 end  # model.molgraph

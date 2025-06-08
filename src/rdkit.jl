@@ -4,78 +4,82 @@
 #
 
 function rdk_on_init!(mol)
-    update_edge_rank!(mol)
     set_state!(mol, :initialized, true)
 end
 
 
 function rdk_on_update!(mol)
     update_edge_rank!(mol)
-    clear_caches!(mol)
-    set_state!(mol, :has_updates, false)
-    # preprocessing
-    #  (add some preprocessing methods here)
-    # recalculate bottleneck descriptors
+    reset_updates!(mol)
+    # Preprocess
+    default_atom_charge!(mol)
+    default_bond_order!(mol)
+    # Cache relatively expensive descriptors
     sssr!(mol)
-    lone_pair!(mol)
     apparent_valence!(mol)
     valence!(mol)
+    lone_pair!(mol)
     is_ring_aromatic!(mol)
 end
 
 
 function molgraph_from_dict(
-            ::Val{:rdkit}, ::Type{T}, data::Dict, config::Dict{Symbol,Any}; kwargs...
-        ) where T <: AbstractMolGraph
-    data["commonchem"]["version"] == 10 || error("CommonChem version other than 10 is not supported")
-    mol = data["molecules"][1]  # only single mol data is supported
-    mol["extensions"][1]["name"] == "rdkitRepresentation" || error("Invalid RDKit CommonChem file format")
-    mol["extensions"][1]["formatVersion"] == 2 || error("Unsupported RDKit CommonChem version")
-    I = eltype(T)
-    V = vproptype(T)
-    E = eproptype(T)
-    gps = Dict{Symbol,Any}(
-        :metadata => Metadata()
-    )
+        ::Val{:rdkit}, ::Type{T}, ::Type{V}, ::Type{E}, data::Dict;
+        on_init=rdk_on_init!, on_update=rdk_on_update!, kwargs...) where {T,V,E}
+    gps = MolGraphProperty{T}()
     # edges
-    es = Edge{I}[]
-    eps = Dict{Edge{I},E}()
-    stereobonds = Dict{Edge{I},Tuple{I,I,Bool}}()
+    es = Edge{T}[]
+    eps = Dict{Edge{T},E}()
     iscis = Dict("cis" => true, "trans" => false)
-    for b in mol["bonds"]
-        edge = u_edge(I, b["atoms"][1] + 1, b["atoms"][2] + 1)
+    for b in data["bonds"]
+        edge = u_edge(T, b["atoms"][1] + 1, b["atoms"][2] + 1)
         push!(es, edge)
         if haskey(b, "stereo") && b["stereo"] in keys(iscis)
             u, v = b["stereoAtoms"]
-            stereobonds[edge] = (u + 1, v + 1, iscis[b["stereo"]])
+            gps.stereobond[edge] = (u + 1, v + 1, iscis[b["stereo"]])
         end
         eps[edge] = CommonChemBond(b)
     end
     g = SimpleGraph(es)
-    gps[:stereobond] = Stereobond{I}(stereobonds)
     # vertices
-    vps = Dict{I,V}()
-    stereocenters = Dict{I,Tuple{I,I,I,Bool}}()
+    vps = Dict{T,V}()
     isclockwise = Dict("cw" => true, "ccw" => false)
-    for (i, a) in enumerate(mol["atoms"])
+    for (i, a) in enumerate(data["atoms"])
         vps[i] = CommonChemAtom(a)
         if haskey(a, "stereo") && a["stereo"] in keys(isclockwise)
             nbrs = ordered_neighbors(g, i)
             # TODO: ambiguity in implicit H
-            stereocenters[i] = (nbrs[1:3]..., isclockwise[a["stereo"]])
+            gps.stereocenter[i] = (nbrs[1:3]..., isclockwise[a["stereo"]])
         end
     end
-    gps[:stereocenter] = Stereocenter{I}(stereocenters)
-    # TODO: multiple coords
-    # TODO: wedge bond notation for drawing not supported yet, use coordgen
-    if haskey(mol, "conformers")
-        coords = Vector{Point2d}(undef, nv(g))
-        for (i, c) in enumerate(mol["conformers"][1]["coords"])
-            coords[i] = Point2d(c[1], c[2])
+    if haskey(data, "conformers")
+        for cds in data["conformers"]
+            # Wedges cannot be preserved. Use coordgen to generate 2D coords manually
+            cds["dim"] == 3 || continue
+            push!(gps.coords3d, [Point3d(cd...) for cd in cds["coords"]])
         end
-        gps[:coords2d] = coords
     end
-    return T(g, vps, eps, gprop_map=gps, config_map=config)
+    return MolGraph{T,V,E}(
+        g, vps, eps, gprops=gps, on_init=on_init, on_update=on_update; kwargs...)
+end
+
+
+function MolGraph{T,CommonChemAtom,CommonChemBond}(data::Dict; kwargs...) where T<:Integer
+    if data["commonchem"]["version"] != 10
+        error("CommonChem version other than 10 is not supported")
+    end
+    if length(data["molecules"]) != 1
+        error("Only single molecule data is supported")
+    end
+    mol = data["molecules"][1]
+    if mol["extensions"][1]["name"] != "rdkitRepresentation"
+        error("Invalid RDKit CommonChem file format")
+    end
+    if mol["extensions"][1]["formatVersion"] != 2
+        error("Unsupported RDKit CommonChem version")
+    end
+    return molgraph_from_dict(
+        Val(:rdkit), T, CommonChemAtom, CommonChemBond, mol; kwargs...)
 end
 
 
@@ -111,7 +115,6 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
     chg = atom_charge(mol)
     mul = multiplicity(mol)
     ms = [atom_mass(props(mol, i)) for i in vertices(mol)]
-    stereocenters = has_prop(mol, :stereocenter) ? get_prop(mol, :stereocenter) : Dict()
     for i in vertices(mol)
         rcd = Dict{String,Any}()
         atomnum[i] == 6 || (rcd["z"] = atomnum[i])
@@ -119,35 +122,32 @@ function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
         chg[i] == 0 || (rcd["chg"] = chg[i])
         mul[i] == 1 || (rcd["nRad"] = mul[i] - 1)
         isnothing(ms[i]) || (rcd["isotope"] = ms[i])
-        if haskey(stereocenters, i)
-            center = stereocenters[i]
+        if haskey(mol.gprops.stereocenter, i)
+            center = mol.gprops.stereocenter[i]
             nbrs = ordered_neighbors(mol, i)
             rcd["stereo"] = isclockwise(center, nbrs[1:3]...) ? "cw" : "ccw"
         end
         push!(data["molecules"][1]["atoms"], rcd)
     end
-    stereobonds = has_prop(mol, :stereobond) ? get_prop(mol, :stereobond) : Dict()
     bondorder = bond_order(mol)
     for (i, e) in enumerate(edges(mol))
         rcd = Dict{String,Any}(
             "atoms" => [src(e) - 1, dst(e) - 1]
         )
         bondorder[i] == 1 || (rcd["bo"] = bondorder[i])
-        if haskey(stereobonds, e)
-            v1, v2, is_cis = stereobonds[e]
+        if haskey(mol.gprops.stereobond, e)
+            v1, v2, is_cis = mol.gprops.stereobond[e]
             rcd["stereoAtoms"] = [v1 - 1, v2 - 1]
             rcd["stereo"] = is_cis ? "cis" : "trans"
         end
         push!(data["molecules"][1]["bonds"], rcd)
     end
-    # TODO: multiple coords
-    if has_coords(mol)
-        data["molecules"][1]["conformers"] = []
-        coords = coords2d(mol)
+    data["molecules"][1]["conformers"] = []
+    # Wedges cannot be preserved. Use coordgen to generate 2D coords manually
+    for cds in mol.gprops.coords3d
         push!(
             data["molecules"][1]["conformers"],
-            Dict("dim" => 2, "coords" => [collect(coords[i]) for i in vertices(mol)])
-        )
+            Dict("dim" => 3, "coords" => to_dict(Val(:default), Val(:coords3d), mol.gprops)))
     end
     return data
 end

@@ -40,10 +40,6 @@ end
     @test ne(mol) == 0
     @test nv(mol) == 0
     @test mol isa SDFMolGraph
-    # Default gprops SDFMol should have
-    @test has_prop(mol, :metadata)
-    @test has_prop(mol, :stereocenter)
-    @test has_prop(mol, :stereobond)
 
     demo = joinpath(assetdir, "demo.mol")
     mol = sdftomol(demo)

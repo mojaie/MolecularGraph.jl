@@ -17,7 +17,7 @@
     @testset "bondstyle" begin
         ASSET_DIR = joinpath(dirname(@__FILE__), "..", "..", "assets", "test")
         mol = sdftomol(open(joinpath(ASSET_DIR, "demo.mol")))
-        sb = sdf_bond_style(mol)
+        sb = draw2d_bond_style(mol)
         @test sb[7] === :up  # 3 ◀ 7
         @test sb[9] === :down  # 4 ◁ 8
         @test sb[10] === :unspecified # 5 ~ 11

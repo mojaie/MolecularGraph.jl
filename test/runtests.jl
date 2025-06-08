@@ -17,20 +17,23 @@ using MolecularGraph:
     translate, trim_u, trim_v, trim_uv,
     interiorangle, isclockwise, transformmatrix,
     atom_color, is_atom_visible,
-    sdf_bond_style, double_bond_style, atomhtml,
+    double_bond_style, atomhtml,
     merge_ds!,
-    Metadata,
     ordered_neighbors, u_edge, edge_rank,
+    MolGraphProperty, reconstruct!, sdf_on_init!,
+    has_updates, reset_updates!,
     atomsymbol!, atomprop!, atom!,
     bondsymbol!, bond!,
     querypropmap, generate_queryfunc, querymatch, optimize_query,
-    fragment!,specialize_nonaromatic!, remove_hydrogens!,
+    fragment!, specialize_nonaromatic!, remove_hydrogens!,
     lookahead, forward!, backtrack!,
     lgnot!, lghighand!, lgor!, lglowand!,
     chain!, fragment!, componentquery!,
+    draw2d_bond_style,
     resolve_disjoint_not, resolve_recursive, generate_truthtable, querymatch, querypropmap,
     ctab_atom_v2, ctab_bond_v2,
     exact_match_prefilter, substruct_match_prefilter
+    
 using OrderedCollections: OrderedDict
 using Test
 
@@ -53,8 +56,6 @@ include("./model/bond.jl")
 include("./model/molgraph.jl")
 
 include("sdfilereader.jl")
-include("sdfilewriter.jl")
-include("json.jl")
 include("./smarts/base.jl")
 include("./smarts/logicaloperator.jl")
 include("./smarts/atom.jl")
@@ -62,6 +63,8 @@ include("./smarts/bond.jl")
 include("./smarts/molecule.jl")
 include("./smarts/smiles.jl")
 include("./smarts/smarts.jl")
+include("sdfilewriter.jl")
+include("json.jl")
 
 include("stereo.jl")
 include("preprocess.jl")

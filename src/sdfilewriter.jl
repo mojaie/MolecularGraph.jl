@@ -24,10 +24,17 @@ function printv2atoms(io::IO, g, atomsymbol, coords)
 end
 
 
-function printv2bonds(io::IO, g, bondorder, styles)
+function printv2bonds(io::IO, g, bondorder, styles)  # 2D
     for (i, e) in enumerate(edges(g))
         u, v = styles[i] in (:revup, :revdown) ? (dst(e), src(e)) : (src(e), dst(e))
         uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v bondorder[i] BOND_STYLE_TO_SDF[styles[i]]
+        println(io, uv)
+    end
+end
+
+function printv2bonds(io::IO, g, bondorder)  # 3D
+    for (i, e) in enumerate(edges(g))
+        uv = @sprintf "%3d%3d%3d%3d  0  0  0" src(e) dst(e) bondorder[i] 0
         println(io, uv)
     end
 end
@@ -87,12 +94,10 @@ function printv2mol(io::IO, mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     # may be better to stash coords of stereo hydrogens and give back to SDFile
     ringcount = ring_count(mol_)
     imph = implicit_hydrogens(mol_)
-    if has_prop(mol_, :stereocenter)
-        for center in keys(get_prop(mol_, :stereocenter))
-            if imph[center] == 1 && ringcount[center] > 1
-                add_vertex!(mol_, V(:H))
-                add_edge!(mol_, center, nv(mol_), E())
-            end
+    for center in keys(mol_.gprops.stereocenter)
+        if imph[center] == 1 && ringcount[center] > 1
+            add_vertex!(mol_, V(:H))
+            add_edge!(mol_, center, nv(mol_), E())
         end
     end
     # write
@@ -106,15 +111,16 @@ function printv2mol(io::IO, mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
     println(io, header)
     bondorder = bond_order(mol_)
-    if has_coords(mol_)  # SDFAtom or has coordgen! precache
-        styles = (has_cache(mol_, :e_coordgen_bond_style) ?
-            get_cache(mol_, :e_coordgen_bond_style) : sdf_bond_style(mol_))
+    if length(mol_.gprops.coords3d) > 0
+        printv2atoms(io, mol_.graph, atom_symbol(mol_), coords3d(mol_))
+        printv2bonds(io, mol_.graph, bondorder)
+    elseif length(mol_.gprops.coords2d) > 0
         printv2atoms(io, mol_.graph, atom_symbol(mol_), coords2d(mol_))
-        printv2bonds(io, mol_.graph, bondorder, styles)
-    else  # default SMILESAtom
+        printv2bonds(io, mol_.graph, bondorder, draw2d_bond_style(mol_))
+    else  # Generate coords
         coords, styles = coordgen(mol_)
         printv2atoms(io, mol_.graph, atom_symbol(mol_), coords)
-        printv2bonds(io, mol_.graph, bondorder, styles)  # TODO: unspecified stereochem in SMILES
+        printv2bonds(io, mol_.graph, bondorder, styles)
     end
     printv2properties(io, mol_)
     println(io, "M  END")

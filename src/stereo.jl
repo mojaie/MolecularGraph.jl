@@ -27,81 +27,45 @@ function isclockwise(stereo::Tuple{T,T,T,Bool}, f::T, s::T, t::T) where T
 end
 
 
-"""
-    Stereocenter{T} <: AbstractDict{T,Tuple{T,T,T,Bool}}
-
-A graph-level property that describes chirality of the molecule.
-
-The dict key represents the stereocenter vertex, and the value is a 4-tuple
-in the format (l, v1, v2, is_clockwise). `is_clockwise` is a boolean value indicating
-whether nodes `v1` and `v2` are arranged clockwise when viewed from node `l`
-toward the stereocenter.
-"""
-struct Stereocenter{T} <: AbstractDict{T,Tuple{T,T,T,Bool}}
-    mapping::Dict{T,Tuple{T,T,T,Bool}}
+function to_dict(::Val{:default}, ::Val{:stereocenter}, gprop::MolGraphProperty)
+    return Dict{String,Any}(string(i) => collect(val) for (i, val) in gprop.stereocenter)
 end
 
-Stereocenter{T}(data::Vector=[]) where T = Stereocenter{T}(
-    Dict{T,Tuple{T,T,T,Bool}}(i => tuple(val...) for (i, val) in data))
+function reconstruct(::Val{:stereocenter}, gprop::MolGraphProperty{T}, data) where T
+    return Dict{T,Tuple{T,T,T,Bool}}(parse(T, i) => tuple(val...) for (i, val) in data)
+end
 
-Base.iterate(stereo::Stereocenter) = iterate(stereo.mapping)
-Base.iterate(stereo::Stereocenter, i) = iterate(stereo.mapping, i)
-Base.length(stereo::Stereocenter) = length(stereo.mapping)
-Base.get(stereo::Stereocenter, k, v) = get(stereo.mapping, k, v)
-Base.setindex!(stereo::Stereocenter, v, k) = setindex!(stereo.mapping, v, k)
-to_dict(::Val{:default}, key::Symbol, stereo::Stereocenter) = Dict{String,Any}(
-    "key" => string(key),
-    "type" => "Stereocenter",
-    "data" => [[i, val] for (i, val) in stereo.mapping]
-)
-PROPERTY_TYPE_REGISTRY["Stereocenter"] = (T, data) -> Stereocenter{eltype(T)}(data)
-
-function remap(stereo::Stereocenter{T}, vmap::Dict) where T  # vmap[old] -> new
+function remap(
+        ::Val{:stereocenter}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+        ) where T
     newmap = Dict{T,Tuple{T,T,T,Bool}}()
-    for (k, v) in stereo.mapping
+    for (k, v) in gprop.stereocenter
         isempty(setdiff([k, v[1:3]...], keys(vmap))) || continue
         newmap[vmap[k]] = (vmap[v[1]], vmap[v[2]], vmap[v[3]], v[4])
     end
-    return Stereocenter{T}(newmap)
+    return newmap
 end
 
 
-"""
-    Stereobond{T} <: AbstractDict{Edge{T},Tuple{T,T,Bool}}
-
-A graph-level property that describes cis-trans isomerism of the molecule.
-
-The dict key represents the stereogenic double bond edge, and the value is a 3-tuple
-in the format (e1, e2, is_cis). `is_cis` is a boolean value indicating
-whether edges `e1` and `e2` are placed in the same side of the stereogenic bond.
-"""
-struct Stereobond{T} <: AbstractDict{Edge{T},Tuple{T,T,Bool}}
-    mapping::Dict{Edge{T},Tuple{T,T,Bool}}
+function to_dict(::Val{:default}, ::Val{:stereobond}, gprop::MolGraphProperty)
+    return [[src(e), dst(e), collect(val)] for (e, val) in gprop.stereobond]
 end
 
-Stereobond{T}(data::Vector=[]) where T = Stereobond{T}(
-    Dict{Edge{T},Tuple{T,T,Bool}}(Edge{T}(s, d) => tuple(val...) for (s, d, val) in data))
+function reconstruct(::Val{:stereobond}, gprop::MolGraphProperty{T}, data) where T
+    return Dict{Edge{T},Tuple{T,T,Bool}}(Edge{T}(s, d) => tuple(val...) for (s, d, val) in data)
+end
 
-Base.iterate(stereo::Stereobond) = iterate(stereo.mapping)
-Base.iterate(stereo::Stereobond, i) = iterate(stereo.mapping, i)
-Base.length(stereo::Stereobond) = length(stereo.mapping)
-Base.get(stereo::Stereobond, k, v) = get(stereo.mapping, k, v)
-Base.setindex!(stereo::Stereobond, v, k) = setindex!(stereo.mapping, v, k)
-to_dict(::Val{:default}, key::Symbol, stereo::Stereobond) = Dict{String,Any}(
-    "key" => string(key),
-    "type" => "Stereobond",
-    "data" => [[src(e), dst(e), val] for (e, val) in stereo.mapping]
-)
-PROPERTY_TYPE_REGISTRY["Stereobond"] = (T, data) -> Stereobond{eltype(T)}(data)
-
-function remap(stereo::Stereobond{T}, vmap::Dict) where T  # vmap[old] -> new
+function remap(
+        ::Val{:stereobond}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+        ) where T
     newmap = Dict{Edge{T},Tuple{T,T,Bool}}()
-    for (k, v) in stereo.mapping
+    for (k, v) in gprop.stereobond
         isempty(setdiff([src(k), dst(k), v[1:2]...], keys(vmap))) || continue
         newmap[u_edge(T, vmap[src(k)], vmap[dst(k)])] = (vmap[v[1]], vmap[v[2]], v[3])
     end
-    return Stereobond{T}(newmap)
+    return newmap
 end
+
 
 
 """
@@ -112,10 +76,7 @@ Set stereocenter information to graph properties.
 function set_stereocenter!(
         mol::SimpleMolGraph{T,V,E}, center,
         looking_from, v1, v2, is_clockwise) where {T,V,E}
-    if !haskey(mol.gprops, :stereocenter)
-        mol.gprops[:stereocenter] = Stereocenter{T}()
-    end
-    mol.gprops[:stereocenter][center] = (looking_from, v1, v2, is_clockwise)
+    mol.gprops.stereocenter[center] = (looking_from, v1, v2, is_clockwise)
 end
 
 
@@ -126,10 +87,7 @@ Set stereocenter information to graph properties.
 """
 function set_stereobond!(
         mol::SimpleMolGraph{T,V,E}, bond, v1, v2, is_cis) where {T,V,E}
-    if !haskey(mol.gprops, :stereobond)
-        mol.gprops[:stereobond] = Stereobond{T}()
-    end
-    mol.gprops[:stereobond][bond] = (v1, v2, is_cis)
+    mol.gprops.stereobond[bond] = (v1, v2, is_cis)
 end
 
 
@@ -181,13 +139,13 @@ end
 
 
 """
-    stereocenter_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E} -> Stereocenter{T}
+    stereocenter_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E} -> Dict{T,Tuple{T,T,T,Bool}}
 
 Return stereocenter information obtained from 2D SDFile.
 """
 function stereocenter_from_sdf2d(
         g::SimpleGraph{T}, v_symbol, e_order, e_notation, e_isordered, v_coords2d) where T
-    centers = Stereocenter{T}()
+    centers = Dict{T,Tuple{T,T,T,Bool}}()
     edgerank = Dict(e => i for (i, e) in enumerate(edges(g)))
     comments = String[]
     for i in vertices(g)
@@ -270,7 +228,7 @@ stereocenter_from_sdf2d(mol::MolGraph) = stereocenter_from_sdf2d(
     [get_prop(mol, e, :order) for e in edges(mol)],
     [get_prop(mol, e, :notation) for e in edges(mol)],
     [get_prop(mol, e, :isordered) for e in edges(mol)],
-    sdf_coords2d(mol)
+    mol.gprops.coords2d[1]
 )
 
 """
@@ -280,19 +238,19 @@ Set stereocenter information obtained from 2D SDFile.
 """
 function stereocenter_from_sdf2d!(mol::MolGraph)
     centers, comments = stereocenter_from_sdf2d(mol)
-    mol.gprops[:stereocenter] = centers
+    mol.gprops.stereocenter = centers
     if length(comments) > 0
-        mol.gprops[:stereocenter_ignored] = join(comments, "; ")
+        mol.gprops.logs["stereocenter_ignored"] = join(comments, "; ")
     end
 end
 
 
 """
-    stereocenter_from_smiles(g::SimpleGraph{T}, v_stereo) where T -> Stereocenter{T}
+    stereocenter_from_smiles(g::SimpleGraph{T}, v_stereo) where T -> Dict{T,Tuple{T,T,T,Bool}}
 Return stereocenter information obtained from SMILES.
 """
 function stereocenter_from_smiles(g::SimpleGraph{T}, succ, v_stereo) where T
-    centers = Stereocenter{T}()
+    centers = Dict{T,Tuple{T,T,T,Bool}}()
     for i in vertices(g)
         degree(g, i) in (3, 4) || continue
         v_stereo[i] === :unspecified && continue
@@ -305,7 +263,7 @@ function stereocenter_from_smiles(g::SimpleGraph{T}, succ, v_stereo) where T
 end
 
 stereocenter_from_smiles(mol::SimpleMolGraph) = stereocenter_from_smiles(
-    mol.graph, get_prop(mol, :lexical_successors),
+    mol.graph, mol.gprops.smarts_lexical_succ,
     [get_prop(mol, i, :stereo) for i in vertices(mol)]
 )
 
@@ -314,17 +272,18 @@ stereocenter_from_smiles(mol::SimpleMolGraph) = stereocenter_from_smiles(
 
 Set stereocenter information obtained from SMILES.
 """
-stereocenter_from_smiles!(mol::MolGraph
-    ) = begin mol.gprops[:stereocenter] = stereocenter_from_smiles(mol) end
+stereocenter_from_smiles!(mol::MolGraph) = setproperty!(
+    mol.gprops, :stereocenter, stereocenter_from_smiles(mol)
+)
 
 
 """
-    stereobond_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, v_coords2d) where T -> Stereobond{T}
+    stereobond_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, v_coords2d) where T -> Dict{Edge{T},Tuple{T,T,Bool}}
 
 Return cis-trans diastereomerism information obtained from 2D SDFile.
 """
 function stereobond_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, v_coords2d) where T
-    stereobonds = Stereobond{T}()
+    stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
     smallcycles = Edge{T}[]
     for cyc in edgemincyclebasis(g)
         length(cyc) < 8 && push!(smallcycles, cyc...)
@@ -353,7 +312,7 @@ stereobond_from_sdf2d(mol::SimpleMolGraph) = stereobond_from_sdf2d(
     mol.graph,
     [get_prop(mol, e, :order) for e in edges(mol)],
     [get_prop(mol, e, :notation) for e in edges(mol)],
-    sdf_coords2d(mol)
+    mol.gprops.coords2d[1]
 )
 
 """
@@ -361,17 +320,18 @@ stereobond_from_sdf2d(mol::SimpleMolGraph) = stereobond_from_sdf2d(
 
 Set cis-trans diastereomerism information obtained from 2D SDFile.
 """
-stereobond_from_sdf2d!(mol::MolGraph
-    ) = begin mol.gprops[:stereobond] = stereobond_from_sdf2d(mol) end
+stereobond_from_sdf2d!(mol::MolGraph) = setproperty!(
+    mol.gprops, :stereobond, stereobond_from_sdf2d(mol)
+)
 
 
 """
-    stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T -> Stereobond{T}
+    stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T -> Dict{Edge{T},Tuple{T,T,Bool}}
 
 Return cis-trans diastereomerism information obtained from SMILES.
 """
 function stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T
-    stereobonds = Stereobond{T}()
+    stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
     comments = String[]
     edgerank = Dict(e => i for (i, e) in enumerate(edges(g)))
     for (i, e) in enumerate(edges(g))
@@ -424,9 +384,9 @@ Set cis-trans diastereomerism information obtained from SMILES.
 """
 function stereobond_from_smiles!(mol::MolGraph)
     bonds, comments = stereobond_from_smiles(mol)
-    mol.gprops[:stereobond] = bonds
+    setproperty!(mol.gprops, :stereobond, bonds)
     if length(comments) > 0
-        mol.gprops[:stereobond_ignored] = join(comments, "; ")
+        mol.gprops.logs["stereobond_ignored"] = join(comments, "; ")
     end
 end
 

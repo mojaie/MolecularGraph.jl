@@ -60,7 +60,7 @@ export
     vproptype, eproptype,
     props, vprops, eprops,
     get_prop, has_prop,
-    set_state!, has_state, get_state,
+    set_state!, get_state,
     set_cache!, has_cache, get_cache, clear_caches!,
     set_prop!, update_edge_rank!,
     edge_neighbors, ordered_edge_neighbors
@@ -94,7 +94,7 @@ include("stereo.jl")
 include("preprocess.jl")
 
 export
-    has_coords, sdf_coords2d, coords2d, coords3d, coordgen, coordgen!,
+    coords2d, has_coords2d, coords3d, has_coords3d, coordgen, coordgen!,
     set_stereocenter!, set_stereobond!, stereo_hydrogen, safe_stereo_hydrogen!,
     stereocenter_from_smiles!, stereocenter_from_sdf2d!,
     stereobond_from_smiles!, stereobond_from_sdf2d!,

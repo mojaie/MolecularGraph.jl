@@ -5,12 +5,6 @@
     nullmol = smilestomol("")
     @test nv(nullmol) == 0
     @test ne(nullmol) == 0
-    # Default gprops that SMILESMol should have
-    @test has_prop(nullmol, :metadata)  # SMILES does not have, but users may want to define
-    @test has_prop(nullmol, :stereocenter)
-    @test has_prop(nullmol, :stereobond)
-    @test has_prop(nullmol, :lexical_successors)  # to keep stereochem
-    @test has_prop(nullmol, :pyrrole_like)  # to keep pyrrole H position
 
     methane = smilestomol("C")
     @test get_prop(methane, 1, :symbol) === :C
@@ -126,23 +120,6 @@ end
     pyrrole = smilestomol("[nH]1cccc1")
     @test get_prop(pyrrole, 1, :isaromatic)
     @test degree(pyrrole, 1) == 3
-end
-
-@testset "serialization" begin
-    mol = smilestomol("OCCc1c(C)[n+](=cs1)Cc2cnc(C)nc(N)2")
-    mol2 = MolGraph(to_json(mol))
-    @test mol == mol2
-    @test mol !== mol2
-
-    mol = smilestomol("C1=CC=C2C(=C1)C(=O)OC23C4=C(C=C(C=C4)O)OC5=C3C=CC(=C5)O")
-    mol2 = MolGraph(to_json(mol))
-    @test mol == mol2
-    @test mol !== mol2
-
-    sildenafil = smilestomol("O=S(=O)(N1CCN(C)CC1)c4cc(c2[nH]c(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")
-    sildenafil2 = MolGraph(to_json(sildenafil))
-    @test sildenafil == sildenafil2
-    @test sildenafil !== sildenafil2
 end
 
 end # smarts.smiles
