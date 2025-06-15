@@ -10,4 +10,7 @@ clean:
 	rm -rf $(OUTPUT)
 
 build: clean
+	$(JULIA) --project=. $(JULIAC) --output-lib $(OUTPUT) --compile-ccallable src/MolecularGraph.jl
+
+build-trim: clean
 	$(JULIA) --project=. $(JULIAC) --experimental --output-lib $(OUTPUT) --trim=safe --compile-ccallable src/MolecularGraph.jl
