@@ -19,13 +19,11 @@ function MolGraphState{T}(on_init, on_update) where T
 end
 
 function default_on_init!(mol)
-    # No initialization by default, just set flag
-    set_state!(mol, :initialized, true)
+    # No initialization by default
 end
 
 function default_on_update!(mol)
-    update_edge_rank!(mol)
-    reset_updates!(mol)
+    # These two emthods are necessary
 end
 
 
@@ -58,7 +56,8 @@ function MolGraph{T,V,E}(
     config = MolGraphState{T}(on_init, on_update)
     mol = MolGraph{T,V,E}(g, vprops, eprops, gprops, config)
     mol.state.initialized || mol.state.on_init(mol)
-    mol.state.has_updates && mol.state.on_update(mol)
+    mol.state.initialized = true
+    dispatch_update!(mol)
     return mol
 end
 
@@ -95,25 +94,29 @@ const SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
 const SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
 const CommonChemMolGraph = MolGraph{Int,CommonChemAtom,CommonChemBond}
 
+# Types
+
+vproptype(::Type{<:MolGraph{T,V,E}}) where {T,V,E} = V
+vproptype(::Type{T}) where T<:MolGraph = vproptype(T)
+vproptype(mol::T) where T<:MolGraph = vproptype(T)
+eproptype(::Type{<:MolGraph{T,V,E}}) where {T,V,E} = E
+eproptype(mol::T) where T<:MolGraph = eproptype(T)
+props(mol::MolGraph, v::Integer) = mol.vprops[v]
+props(mol::MolGraph, e::Edge) = mol.eprops[e]
+props(mol::MolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
 
 # Update mechanisms
 
-dispatch!(mol::MolGraph, event::Symbol) = getproperty(mol.state, event)(mol)
-
-get_state(mol::MolGraph, sym::Symbol) = getproperty(mol.state, sym)
-set_state!(mol::MolGraph, sym::Symbol, value) = setproperty!(mol.state, sym, value)
-
-reset_updates!(mol) = setproperty!(mol.state, :has_updates, false)
-has_updates(mol) = mol.state.has_updates
-
 function dispatch_update!(mol::MolGraph)
-    has_updates(mol) || return
+    mol.state.has_updates || return
+    update_edge_rank!(mol)  # necessary
+    mol.state.has_updates = false  # call before update to avoid infinite roop
     mol.state.on_update(mol)
 end
 
-function notify_updates!(mol)
-    # TODO: flag to inactivate update
-    setproperty!(mol.state, :has_updates, true)
+function notify_updates!(mol::MolGraph)
+    # TODO: flag to inactivate auto-update
+    mol.state.has_updates = true
 end
 
 function update_edge_rank!(mol::MolGraph)
@@ -126,7 +129,7 @@ end
 
 # Edit graph
 
-function add_u_edge!(mol::MolGraph{T,V,E}, e::Edge, prop::E) where {T,V,E}
+function add_u_edge!(mol::MolGraph{T,V,E}, e::Edge{T}, prop::E) where {T,V,E}
     # Can be directly called if src < dst is guaranteed.
     add_edge!(mol.graph, e) || return false
     mol.eprops[e] = prop

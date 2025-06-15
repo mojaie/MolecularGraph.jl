@@ -58,34 +58,33 @@ end
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds)  # CCC
-    @test !has_updates(mol)
+    @test !mol.state.has_updates
     # edit graph properties
     @test add_vertex!(mol, SDFAtom(;symbol=:O))  # CCC.O
-    @test has_updates(mol)
-    reset_updates!(mol)
-    @test !has_updates(mol)
+    @test mol.state.has_updates
+    mol.state.has_updates = false
     @test get_prop(mol, 4, :symbol) === :O
 
     @test add_edge!(mol, Edge(3, 4), SDFBond())  # CCCO
-    @test has_updates(mol)
-    reset_updates!(mol)
+    @test mol.state.has_updates
+    mol.state.has_updates = false
     @test degree(mol.graph, 3) == 2
     @test get_prop(mol, Edge(3, 4), :order) == 1
 
     add_edge!(mol, Edge(1, 4), SDFBond())  # C1CCO1
-    @test has_updates(mol)
-    reset_updates!(mol)
+    @test mol.state.has_updates
+    mol.state.has_updates = false
 
     @test rem_edge!(mol, Edge(3, 4))  # C1CC.O1
-    @test has_updates(mol)
-    reset_updates!(mol)
+    @test mol.state.has_updates
+    mol.state.has_updates = false
     @test degree(mol.graph, 3) == 1
     @test issetequal(keys(mol.eprops), Edge.([(1, 2), (1, 4), (2, 3)]))
 
     @test add_edge!(mol, 4, 3, SDFBond())  # C1CCO1
     @test rem_vertex!(mol, 2)  # COC
-    @test has_updates(mol)
-    reset_updates!(mol)
+    @test mol.state.has_updates
+    mol.state.has_updates = false
     @test degree(mol.graph, 1) == 1
     @test degree(mol.graph, 2) == 2
     @test degree(mol.graph, 3) == 1

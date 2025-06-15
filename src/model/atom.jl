@@ -173,8 +173,6 @@ atom_charge(a::SDFAtom) = a.charge
 multiplicity(a::SDFAtom) = a.multiplicity
 atom_mass(a::SDFAtom) = a.mass
 
-ELEMENT_TYPE_REGISTRY["SDFAtom"] = SDFAtom
-
 function to_dict(::Val{:default}, a::SDFAtom)
     rcd = Dict{String,Any}()
     a.symbol === :C || setindex!(rcd, string(a.symbol), "symbol")
@@ -236,8 +234,6 @@ atom_number(a::SMILESAtom) = atom_number(a.symbol)
 atom_charge(a::SMILESAtom) = a.charge
 multiplicity(a::SMILESAtom) = a.multiplicity
 atom_mass(a::SMILESAtom) = a.mass
-
-ELEMENT_TYPE_REGISTRY["SMILESAtom"] = SMILESAtom
 
 function to_dict(::Val{:default}, a::SMILESAtom)
     rcd = Dict{String,Any}()
@@ -301,8 +297,6 @@ atom_number(a::CommonChemAtom) = a.z
 atom_charge(a::CommonChemAtom) = a.chg
 multiplicity(a::CommonChemAtom) = a.nRad + 1
 atom_mass(a::CommonChemAtom) = a.isotope == 0 ? nothing : a.mass
-
-ELEMENT_TYPE_REGISTRY["CommonChemAtom"] = CommonChemAtom
 
 function to_dict(::Val, a::CommonChemAtom)
     rcd = Dict{String,Any}()

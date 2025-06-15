@@ -96,16 +96,13 @@ function ctab_props_v2(io::IO)
 end
 
 
-function sdf_on_init!(mol)
+function sdf_on_init!(mol::SimpleMolGraph)
     coords_from_sdf!(mol)
     stereocenter_from_sdf2d!(mol)
     stereobond_from_sdf2d!(mol)
-    set_state!(mol, :initialized, true)
 end
 
-function sdf_on_update!(mol)
-    update_edge_rank!(mol)
-    reset_updates!(mol)
+function sdf_on_update!(mol::SimpleMolGraph)
     # Preprocess
     default_atom_charge!(mol)
     default_bond_order!(mol)

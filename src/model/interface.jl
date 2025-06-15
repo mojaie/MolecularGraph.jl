@@ -3,14 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-# Registered gprop types and converters for (de)serialization
-const ELEMENT_TYPE_REGISTRY = Dict{String,Type}(
-    "Int" => Int,
-    "Any" => Any
-)
-const PROPERTY_TYPE_REGISTRY = Dict{String,Function}()
-
-
 """
     AbstractMolGraph{T} <: Graphs.AbstractGraph{T}
 
@@ -62,7 +54,7 @@ Graphs.outneighbors(g::AbstractMolGraph, v::Integer) = outneighbors(g.graph, v)
 Base.zero(::Type{G}) where G <: AbstractMolGraph = G()
 
 
-# SimpleGraph interface
+# SimpleMolGraph interface
 
 Base.copy(mol::SimpleMolGraph) = deepcopy(mol)
 Graphs.add_edge!(mol::SimpleMolGraph, u::Integer, v::Integer, prop
@@ -76,6 +68,7 @@ Graphs.induced_subgraph(mol::T, vlist::AbstractVector{U}
 Graphs.induced_subgraph(mol::T, elist::AbstractVector{U}
     ) where {T<:SimpleMolGraph, U<:Edge} = _induced_subgraph(mol, elist)
 
+
 """
     u_edge(::Type{T}, src, dst) where T <: Integer -> Edge{T}
     u_edge(g::SimpleGraph{T}, src, dst) where T -> Edge{T}
@@ -83,10 +76,11 @@ Graphs.induced_subgraph(mol::T, elist::AbstractVector{U}
 
 A workaround for UndirectedEdge that are not yet implemented in SimpleGraph
 """
-u_edge(::Type{T}, src, dst) where T <: Integer = src < dst ? Edge{T}(src, dst) : Edge{T}(dst, src)
-u_edge(g::SimpleGraph{T}, src, dst) where T = u_edge(T, src, dst)
-u_edge(g, e) = u_edge(g, src(e), dst(e))
-u_edge(e::Edge{T}) where T = u_edge(T, src(e), dst(e))
+u_edge(::Type{T}, src::T, dst::T) where T<:Integer = src < dst ? Edge{T}(src, dst) : Edge{T}(dst, src)
+u_edge(g::SimpleGraph{T}, src::T, dst::T) where T<:Integer = u_edge(T, src, dst)
+u_edge(g::SimpleGraph, e::Edge) = u_edge(g, src(e), dst(e))
+u_edge(e::Edge{T}) where T<:Integer = u_edge(T, src(e), dst(e))
+
 
 """
     edge_neighbors(g::SimpleGraph{T}, u::Integer, v::Integer) where T -> Tuple{Vector{T},Vector{T}}
@@ -109,20 +103,12 @@ ordered_edge_neighbors = edge_neighbors
 
 # SimpleMolGraph interface (node/edge primary attributes)
 
-u_edge(mol::AbstractMolGraph{T}, src, dst) where T = u_edge(T, src, dst)
-vproptype(::Type{<:SimpleMolGraph{T,V,E}}) where {T,V,E} = V
-vproptype(mol::T) where T<:SimpleMolGraph = vproptype(T)
-eproptype(::Type{<:SimpleMolGraph{T,V,E}}) where {T,V,E} = E
-eproptype(mol::T) where T<:SimpleMolGraph = eproptype(T)
-props(mol::SimpleMolGraph, v::Integer) = mol.vprops[v]
-props(mol::SimpleMolGraph, e::Edge) = mol.eprops[e]
-props(mol::SimpleMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
+u_edge(mol::AbstractMolGraph{T}, src::T, dst::T) where T<:Integer = u_edge(T, src, dst)
+u_edge(mol::AbstractMolGraph, e::Edge) = u_edge(mol, src(e), dst(e))
 get_prop(mol::SimpleMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
-get_prop(mol::SimpleMolGraph, prop::String) = mol.gprops.metadata[prop]
 get_prop(mol::SimpleMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
 get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
 get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
-has_prop(mol::SimpleMolGraph, prop::String) = haskey(mol.gprops.metadata, prop)
 edge_rank(mol::SimpleMolGraph, e::Edge) = mol.state.edge_rank[e]
 edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, u_edge(mol, u, v))
 edge_neighbors(mol::AbstractMolGraph, u, v) = edge_neighbors(mol.graph, u, v)
@@ -130,21 +116,14 @@ edge_neighbors(mol::AbstractMolGraph, e) = edge_neighbors(mol.graph, e)
 
 function set_prop!(mol::SimpleMolGraph{T,V,E}, v::T, value::V) where {T,V,E}
     mol.vprops[v] = value
-    set_state!(mol, :has_updates, true)
+    notify_updates!(mol)
 end
 
 function set_prop!(mol::SimpleMolGraph{T,V,E}, e::Edge{T}, value::E) where {T,V,E}
     mol.eprops[e] = value
-    set_state!(mol, :has_updates, true)
+    notify_updates!(mol)
 end
 
-function set_prop!(mol::SimpleMolGraph, prop::String, value)
-    # Metadata update would not affect graph state
-    mol.gprops.metadata[prop] = value
-end
-
-Base.getindex(mol::SimpleMolGraph, k::String) = get_prop(mol, k)
-Base.setindex!(mol::SimpleMolGraph, v, k::String) = set_prop!(mol, k, v)
 
 function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph)
     print(io, "{$(nv(g)), $(ne(g))} simple molecular graph $(typeof(g))")

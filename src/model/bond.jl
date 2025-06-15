@@ -48,8 +48,6 @@ Base.hash(b::SDFBond, h::UInt
 
 bond_order(b::SDFBond) = b.order
 
-ELEMENT_TYPE_REGISTRY["SDFBond"] = SDFBond
-
 function to_dict(::Val{:default}, b::SDFBond)
     rcd = Dict{String,Any}()
     b.order == 1 || setindex!(rcd, b.order, "order")
@@ -96,8 +94,6 @@ Base.hash(b::SMILESBond, h::UInt
 
 bond_order(b::SMILESBond) = b.order
 
-ELEMENT_TYPE_REGISTRY["SMILESBond"] = SMILESBond
-
 function to_dict(::Val{:default}, b::SMILESBond)
     rcd = Dict{String,Any}()
     b.order == 1 || setindex!(rcd, b.order, "order")
@@ -142,8 +138,6 @@ Base.:(==)(b1::CommonChemBond, b2::CommonChemBond) = all(
 Base.hash(b::CommonChemBond, h::UInt) = hash(b.type, h)
 
 bond_order(b::CommonChemBond) = b.type
-
-ELEMENT_TYPE_REGISTRY["CommonChemBond"] = CommonChemBond
 
 function to_dict(::Val, b::CommonChemBond)
     rcd = Dict{String,Any}()

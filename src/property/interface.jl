@@ -3,16 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-function reconstruct!(::Val{T}, gprop, data) where T
-    setproperty!(gprop, T, reconstruct(Val(T), gprop, data))
-end
-
-# vmap[old] -> new
-function remap!(::Val{T}, gprop, vmap) where T
-    setproperty!(gprop, T, remap(Val(T), gprop, vmap))
-end
-
-
 @kwdef mutable struct Descriptors{T}
     # cached relatively expensive descriptors
     sssr::Vector{Vector{T}} = Vector{T}[]
@@ -39,6 +29,7 @@ function Base.:(==)(g::Descriptors, h::Descriptors)
     end
     return true
 end
+
 
 
 @kwdef mutable struct MolGraphProperty{T}
@@ -82,7 +73,18 @@ function to_dict(::Val{T}, gprop::MolGraphProperty) where T
 end
 
 
-function remap_gprops(mol::SimpleMolGraph{T,V,E}, vmap) where {T,V,E}
+function reconstruct!(::Val{T}, gprop::MolGraphProperty, data) where T
+    setproperty!(gprop, T, reconstruct(Val(T), gprop, data))
+end
+
+
+function remap!(::Val{T}, gprop::MolGraphProperty, vmap::Dict) where T
+    # vmap[old] -> new
+    setproperty!(gprop, T, remap(Val(T), gprop, vmap))
+end
+
+
+function remap_gprops(mol::SimpleMolGraph{T,V,E}, vmap::Dict{T,T}) where {T,V,E}
     gprop = MolGraphProperty{T}()
     for k in fieldnames(typeof(mol.gprops))
         setproperty!(gprop, k, remap(Val(k), mol.gprops, vmap))
@@ -90,7 +92,7 @@ function remap_gprops(mol::SimpleMolGraph{T,V,E}, vmap) where {T,V,E}
     return gprop
 end
 
-function remap_gprops!(mol::SimpleMolGraph, vmap)
+function remap_gprops!(mol::SimpleMolGraph, vmap::Dict)
     for k in fieldnames(typeof(mol.gprops))
         remap!(Val(k), mol.gprops, vmap)
     end
@@ -100,7 +102,7 @@ end
 to_dict(
     ::Val{:default}, ::Val{T}, gprop::MolGraphProperty) where T = getproperty(gprop, T)
 reconstruct(::Val{T}, gprop::MolGraphProperty, data) where T = data
-remap(::Val{T}, gprop::MolGraphProperty, vmap) where T = getproperty(gprop, T)
+remap(::Val{T}, gprop::MolGraphProperty, vmap::Dict) where T = getproperty(gprop, T)
 
 
 function to_dict(::Val{:default}, ::Val{:descriptors}, gprop::MolGraphProperty)
@@ -118,11 +120,26 @@ function reconstruct(::Val{:descriptors}, gprop::MolGraphProperty{T}, data) wher
     end
     return desc
 end
-# recalculate
-remap(::Val{:descriptors}, gprop::MolGraphProperty, vmap) = gprop.descriptors
+
+# Descriptors would be recalculated by the update callback. Do nothing.
+remap(::Val{:descriptors}, gprop::MolGraphProperty, vmap::Dict) = gprop.descriptors
 
 
 to_dict(
     ::Val{:default}, ::Val{:metadata}, gprop::MolGraphProperty) = [collect(d) for d in gprop.metadata]
 reconstruct(::Val{:metadata}, gprop::MolGraphProperty, data) = OrderedDict(d[1] => d[2] for d in data)
-remap(::Val{:metadata}, gprop::MolGraphProperty, vmap) = gprop.metadata
+remap(::Val{:metadata}, gprop::MolGraphProperty, vmap::Dict) = gprop.metadata
+
+
+# Metadata shortcuts
+
+function set_prop!(mol::SimpleMolGraph, prop::String, value::String)
+    # Metadata update would not affect graph state
+    mol.gprops.metadata[prop] = value
+end
+
+get_prop(mol::SimpleMolGraph, prop::String) = mol.gprops.metadata[prop]
+has_prop(mol::SimpleMolGraph, prop::String) = haskey(mol.gprops.metadata, prop)
+
+Base.getindex(mol::SimpleMolGraph, key::String) = get_prop(mol, key)
+Base.setindex!(mol::SimpleMolGraph, value::String, key::String) = set_prop!(mol, key, value)

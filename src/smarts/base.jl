@@ -62,15 +62,12 @@ SMARTSParser{T}(smarts
         smarts, 1, false, 0, 1, 1, Dict(), [], Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[], [])
 
 
-function smiles_on_init!(mol)
+function smiles_on_init!(mol::SimpleMolGraph)
     stereocenter_from_smiles!(mol)
     stereobond_from_smiles!(mol)
-    set_state!(mol, :initialized, true)
 end
 
-function smiles_on_update!(mol)
-    update_edge_rank!(mol)
-    reset_updates!(mol)
+function smiles_on_update!(mol::SimpleMolGraph)
     # preprocessing
     default_atom_charge!(mol)
     default_bond_order!(mol)
@@ -83,9 +80,8 @@ function smiles_on_update!(mol)
     is_ring_aromatic!(mol)
 end
 
-function smarts_on_init!(mol)
+function smarts_on_init!(mol::SimpleMolGraph)
     preprocess!(mol)
-    set_state!(mol, :initialized, true)
 end
 
 const SMARTSMolGraph = MolGraph{Int,QueryAtom,QueryBond}

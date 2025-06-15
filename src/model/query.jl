@@ -109,8 +109,6 @@ QueryBond{T,U}(data::Dict{String,Any}
 QueryAtom(data::Dict{String,Any}) = QueryAtom(querytree(Int, QueryNode, data)...)
 QueryBond(data::Dict{String,Any}) = QueryBond(querytree(Int, QueryNode, data)...)
 
-ELEMENT_TYPE_REGISTRY["QueryAtom"] = QueryAtom
-ELEMENT_TYPE_REGISTRY["QueryBond"] = QueryBond
 
 function to_dict(fmt::Val{:default}, qtree::QueryTree)
     return Dict(

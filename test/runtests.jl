@@ -11,33 +11,39 @@ using Graphs
 using LinearAlgebra: cross
 using Logging
 using MolecularGraph
+
 using MolecularGraph:
     combinations, sortstablemax, sortstablemin,
     logfactorial,
     translate, trim_u, trim_v, trim_uv,
     interiorangle, isclockwise, transformmatrix,
-    atom_color, is_atom_visible,
-    double_bond_style, atomhtml,
-    merge_ds!,
+    merge_ds!
+
+using MolecularGraph:
     ordered_neighbors, u_edge, edge_rank,
     MolGraphProperty, reconstruct!, sdf_on_init!,
-    has_updates, reset_updates!,
     atomsymbol!, atomprop!, atom!,
     bondsymbol!, bond!,
     QueryNode, root, querytree, canonical,
     add_qnode!, add_qedge!, set_qnode!, add_qedge!,
     rem_qnode!, rem_qnodes!, rem_qedge!,
     qeq, qtrue, qand, qor, qnot, qanytrue,
-    querypropmap, generate_queryfunc,
+    querypropmap, generate_queryfunc
+
+using MolecularGraph:
     fragment!, specialize_nonaromatic!, resolve_not_hydrogen!, remove_hydrogens!,
     lookahead, forward!, backtrack!,
     lgnot!, lgoperator!, lghighand!, lgor!, lglowand!,
     chain!, fragment!, componentquery!,
-    ctab_atom_v2, ctab_bond_v2,
+    ctab_atom_v2, ctab_bond_v2
+
+using MolecularGraph:
     exact_match_prefilter, substruct_match_prefilter,
     QueryTruthTable, querymatch,
     resolve_disjoint_not!, resolve_recursive!, generate_truthtable,
-    draw2d_bond_style
+    draw2d_bond_style,
+    atom_color, is_atom_visible,
+    double_bond_style, atomhtml
 
 
 using OrderedCollections: OrderedDict

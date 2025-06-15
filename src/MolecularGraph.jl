@@ -37,9 +37,7 @@ export
     AbstractReaction, Reaction,
     QueryTree, QueryMolGraph, 
     vproptype, eproptype,
-    props, vprops, eprops,
-    get_prop, has_prop,
-    set_state!, get_state,
+    props, get_prop, has_prop,
     set_cache!, has_cache, get_cache, clear_caches!,
     set_prop!, update_edge_rank!,
     edge_neighbors, ordered_edge_neighbors

@@ -3,14 +3,12 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-function rdk_on_init!(mol)
-    set_state!(mol, :initialized, true)
+function rdk_on_init!(mol::SimpleMolGraph)
+    # Do nothing
 end
 
 
-function rdk_on_update!(mol)
-    update_edge_rank!(mol)
-    reset_updates!(mol)
+function rdk_on_update!(mol::SimpleMolGraph)
     # Preprocess
     default_atom_charge!(mol)
     default_bond_order!(mol)
