@@ -2,7 +2,7 @@
 @testset "mass" begin
 
 @testset "mass" begin
-    iron = SDFAtom(:Fe)
+    iron = SDFAtom(;symbol=:Fe)
     @test standard_weight_unc(iron) == (55.845, 0.002)
     @test standard_weight(iron, 2) == 55.84
     @test monoiso_mass_unc(iron) == (55.93493633, 4.9e-7)
@@ -10,10 +10,10 @@
     @test exact_mass_unc(iron) == (55.93493633, 4.9e-7)
     @test exact_mass(iron, 6) == 55.934936
 
-    og = SDFAtom(:Og)
+    og = SDFAtom(;symbol=:Og)
     @test standard_weight_unc(og) === (NaN, NaN)
     @test exact_mass_unc(og) === (NaN, NaN)
-    og294 = SDFAtom(:Og, 0, 1, 294, [0.0, 0.0, 0.0])
+    og294 = SDFAtom(;symbol=:Og, mass=294)
     @test monoiso_mass_unc(og294) === (NaN, NaN)
     @test exact_mass_unc(og294) === (294.21392, 0.00071)
 

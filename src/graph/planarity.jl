@@ -6,7 +6,7 @@
 PlanarityTestDS{T} = Vector{Vector{Vector{T}}}
 
 
-struct PlanarityTestState{T}
+struct PlanarityTestState{T<:Integer}
     graph::SimpleGraph{T}
 
     rank::Dict{T,Int} # tree node n, dfsindex(n)
@@ -20,10 +20,10 @@ struct PlanarityTestState{T}
 end
 
 PlanarityTestState(g::SimpleGraph{T}
-    ) where T = PlanarityTestState{T}(g, Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), [])
+    ) where T<:Integer = PlanarityTestState{T}(g, Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), [])
 
 
-function dfs!(state::PlanarityTestState{T}, u::Int) where T
+function dfs!(state::PlanarityTestState{T}, u::T) where T<:Integer
     state.rank[u] = length(state.rank) + 1
     buckets = Dict{T,Vector{Edge{T}}}() # low(e), edges
     lows = Dict{Edge{T},T}() # edge, lownode(e)
@@ -127,7 +127,7 @@ function merge_ds!(ds1::PlanarityTestDS{T}, ds2::PlanarityTestDS{T}, cotree) whe
 end
 
 
-function planaritytest(g::SimpleGraph{T}) where T
+function planaritytest(g::SimpleGraph{T}) where T<:Integer
     # Do DFS to determine treeedge, cotree, loworder, source
     state = PlanarityTestState(g)
     nodes = Set(vertices(g))

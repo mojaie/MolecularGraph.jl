@@ -30,7 +30,7 @@ function vmatchvecgen(mol)
 end
 
 function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2<:QueryTree,E1,E2}
+        ) where {T1,T2,V1,V2<:QueryAtom,E1,E2}
     descriptors = Dict(  # precalculated descriptors
         :symbol => atom_symbol(mol1),
         :isaromatic => is_aromatic(mol1),
@@ -47,18 +47,18 @@ function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
     matches = Dict{T1,Dict{T2,Bool}}()  # cache matches
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
-        tree = get_prop(mol2, v2, :tree)
-        qprop = union(QueryLiteral[], values(querypropmap(tree))...)
+        qtree = props(mol2, v2)
+        qprop = union(QueryNode[], values(querypropmap(qtree))...)
         arr = falses(length(qprop))
         for (i, p) in enumerate(qprop)
             if p.key == :recursive
                 haskey(recursive, p.value) || (recursive[p.value] = smartstomol(p.value))
                 arr[i] = has_substruct_match(mol1, recursive[p.value], mandatory=Dict(v1 => 1))
             else
-                arr[i] = descriptors[p.key][v1] == p.value
+                arr[i] = string(descriptors[p.key][v1]) == p.value
             end
         end
-        res = generate_queryfunc(tree, qprop)(arr)
+        res = generate_queryfunc(qtree, qprop)(arr)
         haskey(matches, v1) || (matches[v1] = Dict{T2,Bool}())
         matches[v1][v2] = res
         return res
@@ -66,7 +66,7 @@ function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
 end
 
 function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1<:QueryTree,V2<:QueryTree,E1,E2}
+        ) where {T1,T2,V1<:QueryAtom,V2<:QueryAtom,E1,E2}
     recursive = Dict{String,Dict{String,Bool}}()  # cache recursive queries
     matches = Dict{T1,Dict{T2,Bool}}()  # cache matches
     return function (v1, v2)
@@ -97,7 +97,7 @@ function ematchvecgen(mol)
 end
 
 function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2,E1,E2<:QueryTree}
+        ) where {T1,T2,V1,V2,E1,E2<:QueryBond}
     descriptors = Dict(  # precalculated descriptors
         :order => bond_order(mol1),
         :is_in_ring => is_edge_in_ring(mol1),
@@ -106,10 +106,10 @@ function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
     matches = Dict{Edge{T1},Dict{Edge{T2},Bool}}()  # cache matches
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
-        tree = get_prop(mol2, e2, :tree)
-        qprop = union(QueryLiteral[], values(querypropmap(tree))...)
-        arr = [descriptors[p.key][edge_rank(mol1, e1)] == p.value for p in qprop]
-        res = generate_queryfunc(tree, qprop)(arr)
+        qtree = props(mol2, e2)
+        qprop = union(QueryNode[], values(querypropmap(qtree))...)
+        arr = [string(descriptors[p.key][edge_rank(mol1, e1)]) == p.value for p in qprop]
+        res = generate_queryfunc(qtree, qprop)(arr)
         haskey(matches, e1) || (matches[e1] = Dict{Edge{T2},Bool}())
         matches[e1][e2] = res
         return res
@@ -117,7 +117,7 @@ function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
 end
 
 function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2,E1<:QueryTree,E2<:QueryTree}
+        ) where {T1,T2,V1,V2,E1<:QueryBond,E2<:QueryBond}
     matches = Dict{Edge{T1},Dict{Edge{T2},Bool}}()  # cache matches
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]

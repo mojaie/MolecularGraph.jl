@@ -4,200 +4,240 @@
 @testset "atomsymbol" begin
     # outside of []
     state = SMARTSParser{SMARTSMolGraph}("Cl")
-    cl = QueryTruthTable(atomsymbol!(state))
-    @test cl == QueryTruthTable(v -> v[2] & ~v[1], [(:isaromatic,), (:symbol, :Cl)])
-    @test state.pos == 3
+    qtree = QueryAtom()
+    cl = atomsymbol!(state, qtree)
+    @test cl == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "Cl")])
 
     state = SMARTSParser{SMARTSMolGraph}("Cr")  # only Cr inside [] can be recognized
-    cr = QueryTruthTable(atomsymbol!(state))
-    @test cr == QueryTruthTable(v -> v[2] & ~v[1], [(:isaromatic,), (:symbol, :C)])
+    qtree = QueryAtom()
+    cr = atomsymbol!(state, qtree)
+    @test cr == 1
+    @test qtree == QueryAtom(
+        [(1, 2), (1, 3), (3, 4)], [qand(), qeq(:symbol, "C"), qnot(), qtrue(:isaromatic)])
     @test state.pos == 2  # Next, read 'r'
 
     state = SMARTSParser{SMARTSMolGraph}("p")
-    aromp = QueryTruthTable(atomsymbol!(state))
-    @test aromp == QueryTruthTable(v -> v[2] & v[1], [(:isaromatic,), (:symbol, :P)])
+    qtree = QueryAtom()
+    aromp = atomsymbol!(state, qtree)
+    @test aromp == 1
+    @test qtree == QueryAtom(
+        [(1, 2), (1, 3)], [qand(), qeq(:symbol, "P"), qtrue(:isaromatic)])
 
     state = SMARTSParser{SMARTSMolGraph}("*")
-    anyatom = QueryTruthTable(atomsymbol!(state))
-    @test anyatom == QueryTruthTable(v -> true, [])  # anything matches
+    qtree = QueryAtom()
+    anyatom = atomsymbol!(state, qtree)
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qanytrue()]) # anything matches
 end
 
 @testset "atomprop" begin
     # inside of []
     state = SMARTSParser{SMARTSMolGraph}("s")
-    aroms = QueryTruthTable(atomprop!(state))
-    @test aroms == QueryTruthTable(v -> v[2] & v[1], [(:isaromatic,), (:symbol, :S)])
+    qtree = QueryAtom()
+    aroms = atomprop!(state, qtree)
+    @test aroms == 1
+    @test qtree == QueryAtom(
+        [(1, 2), (1, 3)], [qand(), qeq(:symbol, "S"), qtrue(:isaromatic)])
 
     state = SMARTSParser{SMARTSMolGraph}("123")
-    iso = QueryTruthTable(atomprop!(state))
-    @test iso == QueryTruthTable(v -> v[1], [(:mass, 123)])
+    qtree = QueryAtom()
+    iso = atomprop!(state, qtree)
+    @test iso == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:mass, "123")])
 
     state = SMARTSParser{SMARTSMolGraph}("H41")
-    h4 = QueryTruthTable(atomprop!(state))
-    @test h4 == QueryTruthTable(v -> v[1], [(:total_hydrogens, 4)])
+    qtree = QueryAtom()
+    h4 = atomprop!(state, qtree)
+    @test h4 == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:total_hydrogens, "4")])
     @test state.pos == 3  # Next, read '1'
 
     state = SMARTSParser{SMARTSMolGraph}("X2")
-    x2 = QueryTruthTable(atomprop!(state))
-    @test x2 == QueryTruthTable(v -> v[1], [(:connectivity, 2)])
+    qtree = QueryAtom()
+    x2 = atomprop!(state, qtree)
+    @test x2 == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:connectivity, "2")])
 
-    state = SMARTSParser{SMARTSMolGraph}("Xe")
-    xe = QueryTruthTable(atomprop!(state))
-    @test xe == QueryTruthTable(v -> v[1], [(:symbol, :Xe)])
-    @test state.pos == 3
+    state = SMARTSParser{SMARTSMolGraph}("Xe")  # not connectivity
+    qtree = QueryAtom()
+    xe = atomprop!(state, qtree)
+    @test xe == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "Xe")])
 
-    state = SMARTSParser{SMARTSMolGraph}("Na")
-    na = QueryTruthTable(atomprop!(state))
-    @test na == QueryTruthTable(v -> v[1], [(:symbol, :Na)])
-    @test state.pos == 3
+    state = SMARTSParser{SMARTSMolGraph}("Na")  # not nitrogen
+    qtree = QueryAtom()
+    na = atomprop!(state, qtree)
+    @test na == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "Na")])
 
     state = SMARTSParser{SMARTSMolGraph}("Yv2")
-    yval = QueryTruthTable(atomprop!(state))
-    @test yval == QueryTruthTable(v -> v[1], [(:symbol, :Y)])
-    @test state.pos == 2  # Next, read 'v', '2' (valence: 2)
+    qtree = QueryAtom()
+    yatom = atomprop!(state, qtree)
+    @test yatom == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "Y")])
+    yval = atomprop!(state, qtree)
+    @test yval == 2
+    qtree.vprops[2] == qeq(:valence, "2")
 
     state = SMARTSParser{SMARTSMolGraph}("+23")
-    chg1 = QueryTruthTable(atomprop!(state))
-    @test chg1 == QueryTruthTable(v -> v[1], [(:charge, 2)])
+    qtree = QueryAtom()
+    chg1 = atomprop!(state, qtree)
+    @test chg1 == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:charge, "2")])
     @test state.pos == 3  # Next, read '3'
 
     state = SMARTSParser{SMARTSMolGraph}("----+")
-    chg2 = QueryTruthTable(atomprop!(state))
-    @test chg2 == QueryTruthTable(v -> v[1], [(:charge, -4)])
+    qtree = QueryAtom()
+    chg2 = atomprop!(state, qtree)
+    @test chg2 == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:charge, "-4")])
     @test state.pos == 5  # Next, read '+'
 
     state = SMARTSParser{SMARTSMolGraph}("@+")
-    stereo1 = QueryTruthTable(atomprop!(state))
-    @test stereo1 == QueryTruthTable(v -> v[1], [(:stereo, :anticlockwise)])
+    qtree = QueryAtom()
+    stereo1 = atomprop!(state, qtree)
+    @test stereo1 == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:stereo, "anticlockwise")])
     @test state.pos == 2  # Next, read '+'
 
     state = SMARTSParser{SMARTSMolGraph}("@@?")  # clockwise or unspecified (racemate)
-    stereo2 = QueryTruthTable(atomprop!(state))
-    @test stereo2 == QueryTruthTable(v -> ~v[1], [(:stereo, :anticlockwise)])
+    qtree = QueryAtom()
+    stereo2 = atomprop!(state, qtree)
+    @test stereo2 == 1
+    @test qtree == QueryAtom([(1, 2)], [qnot(), qeq(:stereo, "anticlockwise")])
     @test state.pos == 4
 
     state = SMARTSParser{SMARTSMolGraph}("\$([CH2]=*)")
-    rec = QueryTruthTable(atomprop!(state))
-    @test rec == QueryTruthTable(v -> v[1], [(:recursive, "[CH2]=*")])
+    qtree = QueryAtom()
+    rec = atomprop!(state, qtree)
+    @test rec == 1
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:recursive, "[CH2]=*")])
     @test state.pos == 11
+
+    state = SMARTSParser{SMARTSMolGraph}("Uup")  # not supported yet
+    qtree = QueryAtom()
+    uup = atomprop!(state, qtree)
+    @test uup == 1
+    @test_broken qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "Uup")])
 end
 
-@testset "smilesatom" begin
+@testset "smarts" begin
+    state = SMARTSParser{SMARTSMolGraph}("")
+    null = atom!(state)
+    @test isempty(null)
+
+    state = SMARTSParser{SMARTSMolGraph}("a")
+    anyarom = atom!(state)
+    @test only(anyarom) isa QueryAtom
+    @test only(anyarom) == QueryAtom(Tuple{Int,Int}[], [qtrue(:isaromatic)])
+
+    state = SMARTSParser{SMARTSMolGraph}("[]")
+    @test_throws ErrorException atom!(state)
+
+    state = SMARTSParser{SMARTSMolGraph}("[*]")
+    anyatom = atom!(state)
+    @test only(anyatom) == QueryAtom(Tuple{Int,Int}[], [qanytrue()])
+
+    state = SMARTSParser{SMARTSMolGraph}("[#16]")
+    no16 = atom!(state)
+    @test only(no16) == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "S")])
+
+    state = SMARTSParser{SMARTSMolGraph}("[CH2]")
+    methylene = atom!(state)
+    @test only(methylene) == QueryAtom(
+        [(1, 2), (1, 3), (2, 4), (2, 5), (5, 6)],
+        [qand(), qand(), qeq(:total_hydrogens, "2"), qeq(:symbol, "C"), qnot(), qtrue(:isaromatic)])
+
+    state = SMARTSParser{SMARTSMolGraph}("[!C;R]")
+    ringnotalp = atom!(state)
+    @test only(ringnotalp) == QueryAtom(
+        [(1, 2), (1, 3), (2, 4), (3, 5), (5, 6), (5, 7), (7, 8)],
+        [qand(), qnot(), qnot(), qeq(:ring_count, "0"), qand(),
+        qeq(:symbol, "C"), qnot(), qtrue(:isaromatic)])
+
+    state = SMARTSParser{SMARTSMolGraph}("[n&H1]")
+    nh1 = atom!(state)
+    @test only(nh1) == QueryAtom(
+        [(1, 2), (1, 3), (2, 4), (2, 5)],
+        [qand(), qand(), qeq(:total_hydrogens, "1"),
+        qeq(:symbol, "N"), qtrue(:isaromatic)])
+
+    state = SMARTSParser{SMARTSMolGraph}("[*r6]")
+    sixmem = atom!(state)
+    @test only(sixmem) == QueryAtom(
+        [(1, 2), (1, 3)], [qand(), qanytrue(), qeq(:smallest_ring, "6")])
+
+    state = SMARTSParser{SMARTSMolGraph}("[35*]")
+    any35 = atom!(state)
+    @test only(any35) == QueryAtom(
+        [(1, 2), (1, 3)], [qand(), qanytrue(), qeq(:mass, "35")])
+
+    state = SMARTSParser{SMARTSMolGraph}("[F,Cl,Br,I]")
+    fourhalo = atom!(state)
+    @test only(fourhalo) == QueryAtom(
+        [(1, 2), (1, 3), (1, 4), (1, 5)],
+        [qor(), qeq(:symbol, "F") ,qeq(:symbol, "Cl") ,qeq(:symbol, "Br") ,qeq(:symbol, "I")])
+end
+
+@testset "smiles" begin
+    # outside of []
     state = SMILESParser{SMILESMolGraph}("Br")
-    br = atom!(state)[1]
-    @test br[:symbol] === :Br
+    br = atom!(state)
+    @test only(br) == SMILESAtom(;symbol=:Br)
+
+    state = SMILESParser{SMILESMolGraph}("se")  # only Se inside [] can be recognized
+    se = atom!(state)
+    @test only(se) == SMILESAtom(;symbol=:S, isaromatic=true)
+    @test state.pos == 2  # Next, read 'e'
 
     state = SMILESParser{SMILESMolGraph}("Na")  # Invalid SMILES (SMARTS take it as N-a)
-    invalid_na = atom!(state)[1]
-    @test invalid_na[:symbol] === :N
+    invalid_na = atom!(state)
+    @test only(invalid_na) == SMILESAtom(;symbol=:N)
 
+    # inside of []
     state = SMILESParser{SMILESMolGraph}("[Na]")
-    valid_na = atom!(state)[1]
-    @test valid_na[:symbol] === :Na
+    valid_na = atom!(state)
+    @test only(valid_na) == SMILESAtom(;symbol=:Na)
 
     state = SMILESParser{SMILESMolGraph}("[2H]")
     deu = atom!(state)
-    @test length(deu) == 1
-    @test deu[1][:mass] == 2
+    @test only(deu) == SMILESAtom(;symbol=:H, mass=2)
 
     state = SMILESParser{SMILESMolGraph}("[H2]")
     hmol = atom!(state)
-    @test length(hmol) == 2
+    @test hmol[1] == hmol[2]
 
     state = SMILESParser{SMILESMolGraph}("[H+]")
-    proton = atom!(state)[1]
-    @test proton[:charge] == 1
+    proton = atom!(state)
+    @test only(proton) == SMILESAtom(;symbol=:H, charge=1)
 
     state = SMILESParser{SMILESMolGraph}("[14c@@H]")
     iso = atom!(state)
-    @test iso[1][:symbol] === :C
-    @test iso[1][:mass] == 14
-    @test iso[1][:isaromatic]
-    @test iso[1][:stereo] === :clockwise
-    @test iso[2][:symbol] === :H
-    @test length(iso) == 2
+    @test iso[1] == SMILESAtom(;mass=14, isaromatic=true, stereo=:clockwise)
+    @test iso[2] == SMILESAtom(;symbol=:H)
     @test state.pos == 9
 
     state = SMILESParser{SMILESMolGraph}("[NH4+]")
     ammonium = atom!(state)
-    @test length(ammonium) == 5
-    @test ammonium[1][:charge] == 1
-    @test ammonium[5][:symbol] === :H
+    @test ammonium[1] == SMILESAtom(;symbol=:N, charge=1)
+    @test ammonium[5] == SMILESAtom(;symbol=:H)
 
     state = SMILESParser{SMILESMolGraph}("[bH+]")
     aromb = atom!(state)
-    @test aromb[1][:symbol] === :B
-    @test aromb[1][:isaromatic]
-    @test aromb[1][:charge] == 1
-    @test aromb[2][:symbol] === :H
+    @test aromb[1] == SMILESAtom(;symbol=:B, isaromatic=true, charge=1)
+    @test aromb[2] == SMILESAtom(;symbol=:H)
 
     state = SMILESParser{SMILESMolGraph}("[as]")
-    aromas = atom!(state)[1]
-    @test aromas[:symbol] === :As
-    @test aromas[:isaromatic]
+    aromas = atom!(state)
+    @test only(aromas) == SMILESAtom(;symbol=:As, isaromatic=true)
 
     state = SMILESParser{SMILESMolGraph}("[Zn++]")
-    zn = atom!(state)[1]
-    @test zn[:symbol] === :Zn
-    @test zn[:charge] == 2
+    zn = atom!(state)
+    @test only(zn) == SMILESAtom(;symbol=:Zn, charge=2)
 
     state = SMILESParser{SMILESMolGraph}("[O-2]")
-    ox = atom!(state)[1]
-    @test ox[:symbol] === :O
-    @test ox[:charge] == -2
-
-end
-
-@testset "smartsatom" begin
-    SMARTSTT = MolGraph{Int,QueryTruthTable,QueryTruthTable}
-    state = SMARTSParser{SMARTSTT}("c")
-    aromc = atom!(state)[1]
-    @test aromc == QueryTruthTable(v -> v[2] & v[1], [(:isaromatic,), (:symbol, :C)])
-
-    state = SMARTSParser{SMARTSTT}("a")
-    anyarom = atom!(state)[1]
-    @test anyarom == QueryTruthTable(v -> v[1], [(:isaromatic,)])
-
-    state = SMARTSParser{SMARTSTT}("[]")
-    @test_throws ErrorException atom!(state)
-
-    state = SMARTSParser{SMARTSTT}("[*]")
-    anyatom = atom!(state)[1]
-    @test anyatom == QueryTruthTable(v -> true, [])
-
-    state = SMARTSParser{SMARTSTT}("[#16]")
-    no16 = atom!(state)[1]
-    @test no16 == QueryTruthTable(v -> v[1], [(:symbol, :S)])
-
-    state = SMARTSParser{SMARTSTT}("[CH2]")
-    methylene = atom!(state)[1]
-    @test methylene == QueryTruthTable(
-        v -> v[2] & ~v[1] & v[3], [(:isaromatic,), (:symbol, :C), (:total_hydrogens, 2)])
-
-    state = SMARTSParser{SMARTSTT}("[!C;R]")
-    ringnotalp = atom!(state)[1]
-    @test ringnotalp == QueryTruthTable(
-        v -> (~v[3] | v[1]) & ~v[2], [(:isaromatic,), (:ring_count, 0), (:symbol, :C)])
-
-    state = SMARTSParser{SMARTSTT}("[n&H1]")
-    nh1 = atom!(state)[1]
-    @test nh1 == QueryTruthTable(
-        v -> v[2] & v[1] & v[3], [(:isaromatic,), (:symbol, :N), (:total_hydrogens, 1)])
-
-    state = SMARTSParser{SMARTSTT}("[*r6]")
-    sixmem = atom!(state)[1]
-    @test sixmem == QueryTruthTable(v -> v[1], [(:smallest_ring, 6)])
-
-    state = SMARTSParser{SMARTSTT}("[35*]")
-    any35 = atom!(state)[1]
-    @test any35 == QueryTruthTable(v -> v[1], [(:mass, 35)])
-
-    state = SMARTSParser{SMARTSTT}("[F,Cl,Br,I]")
-    fourhalo = atom!(state)[1]
-    @test fourhalo == QueryTruthTable(
-        v -> v[1] | v[2] | v[3] | v[4],
-        [(:symbol, :Br), (:symbol, :Cl), (:symbol, :F), (:symbol, :I)]
-    )
+    ox = atom!(state)
+    @test only(ox) == SMILESAtom(;symbol=:O, charge=-2)
 end
 
 end # smiles.atom

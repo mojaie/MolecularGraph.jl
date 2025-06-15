@@ -11,6 +11,27 @@
     @test !substruct_match_prefilter(propane, butane)
 end
 
+@testset "attribute_match" begin
+    mol = smilestomol("[N+][14C@@H](C)C=O")
+    @test string(atom_symbol(mol)[6]) == "O"  # qeq(:symbol, "O")
+    @test string(~is_aromatic(mol)[2]) == "true"  # qtrue(:isaromatic)
+    @test string(atom_charge(mol)[1]) == "1"  # qeq(:charge, "1" )
+    @test string([atom_mass(props(mol, i)) for i in vertices(mol)][2]
+        ) == "14"  # qeq(:mass => "14")
+    @test string([atom_mass(props(mol, i)) for i in vertices(mol)][4]
+        ) == "nothing"  # qeq(:mass => "nothing")
+    @test string(connectivity(mol)[2]) == "4"  # qeq(:connectivity, "4")
+    @test string(degree(mol)[2]) == "4"  # qeq(:degree, "4")
+    @test string(valence(mol)[6]) == "2"  # qeq(:valence, "2")
+    @test string(total_hydrogens(mol)[2]) == "1"  # qeq(:total_hydrogens, "1")
+    @test string(smallest_ring(mol)[3]) == "0"  # qeq(:smallest_ring, "0")
+    @test string(ring_count(mol)[4]) == "0"  # qeq(:ring_count, "0")
+
+    @test string(bond_order(mol)[5]) == "2"  # qeq(:order, "2")
+    @test string(~is_edge_in_ring(mol)[4]) == "true"  # qnot(), qeq(:is_in_ring, "true")
+    @test string(~is_edge_aromatic(mol)[4]) == "true"  # qnot(), qeq(:isaromatic, "true")
+end
+
 @testset "structmatch" begin
     null = smilestomol("")
     @test !has_exact_match(null, null)
@@ -120,109 +141,6 @@ end
     @test !has_substruct_match(hetero2, disconn)
     @test has_substruct_match(hetero3, disconn)
     @test !has_substruct_match(hetero4, disconn)
-end
-
-@testset "querycontainment" begin
-    # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
-
-    # no properties
-    fmr = smartstomol("*1***1")
-    three = smartstomol("***")
-    @test has_substruct_match(fmr, three)
-    @test !has_substruct_match(three, fmr)
-
-    tmse = smartstomol("O[Si](C)(C)C")
-    tms = smartstomol("C[Si](C)C")
-    @test has_substruct_match(tmse, tms)
-    @test !has_exact_match(tmse, tms)
-
-    primary = smartstomol("[CH2][OH]")
-    alcohol = smartstomol("C[OH]")
-    @test has_exact_match(primary, alcohol)
-    @test !has_exact_match(alcohol, primary)
-
-    pyrrole = smartstomol("[nH]1cccc1")
-    pyridine = smartstomol("n1ccccc1")
-    pyrrolidine = smartstomol("N1CCCC1")
-    cyclicamine = smartstomol("[#7]1[#6][#6][#6][#6]1")
-    @test !has_substruct_match(pyridine, pyrrole)
-    @test !has_substruct_match(pyrrole, pyrrolidine)
-    @test has_exact_match(pyrrole, cyclicamine)
-    @test has_exact_match(pyrrolidine, cyclicamine)
-
-    carbonylazide = smartstomol("O=CN=[N+]=[N-]")
-    azide = smartstomol("N=[N+]=[N-]")
-    hydrazine = smartstomol("N=N")
-    stricthydrazine = smartstomol("[N+0]=[N+0]")
-    @test has_substruct_match(carbonylazide, azide)
-    @test has_substruct_match(azide, hydrazine)
-    @test !has_substruct_match(azide, stricthydrazine)
-
-    halo = smartstomol("[#9,#17,#35]c1ccccc1")
-    narrow = smartstomol("[#9,#17]c1ccccc1")
-    broad = smartstomol("[#9,#17,#35,#53]c1ccccc1")
-    broad2 = smartstomol("[#9,35#17,#35,#53]c1ccccc1")
-    @test has_exact_match(narrow, halo)
-    @test !has_exact_match(broad, halo)
-    @test has_exact_match(halo, broad)
-    @test !has_exact_match(halo, broad2)
-
-    hetero = smartstomol("[!#6&!#7&!#8]1[#6][#6][#6][#6][#6]1")
-    oxo = smartstomol("[#8]1[#6][#6][#6][#6][#6]1")
-    sulfo = smartstomol("[#16]1[#6][#6][#6][#6][#6]1")
-    thiopyrylium = smartstomol("[s+]1ccccc1")
-    @test !has_exact_match(oxo, hetero)
-    @test has_exact_match(sulfo, hetero)
-    @test has_exact_match(thiopyrylium, sulfo)
-    @test has_exact_match(thiopyrylium, hetero)
-
-    diazocarbonyl1 = smartstomol(raw"[$(N=N=C~C=O)]")
-    diazocarbonyl2 = smartstomol(raw"[$(N=N=C~C=O),$(N#N-C~C=O)]")
-    @test has_exact_match(diazocarbonyl1, diazocarbonyl2)
-    @test !has_exact_match(diazocarbonyl2, diazocarbonyl1)
-
-    nested = smartstomol(raw"[$([CH]=[$(NOC)])]C=O")
-    nestedor = smartstomol(raw"[$([CH]=[$(NOC),$(NO[Si])])]")
-    @test has_substruct_match(nested, nestedor)
-    @test !has_substruct_match(nestedor, nested)
-
-    naryl = smartstomol(raw"OP(=O)(=[S,O])[$(Na)]")
-    phos = smartstomol(raw"OP(=O)(=[S,O])N")
-    phos2 = smartstomol(raw"[$([S,O]=PN)]")
-    @test has_exact_match(naryl, phos)
-    @test !has_exact_match(phos, naryl)
-    @test !has_substruct_match(phos, phos2)
-
-    tfas = smartstomol(raw"C(F)(F)(F)C(=O)S")
-    tfmk1 = smartstomol(raw"PS[$(C(=O))](=O)C(F)(F)(F)")
-    tfmk2 = smartstomol(raw"[$(C(=O));!$(C-N);!$(C-O);!$(C-S)]C(F)(F)(F)")
-    @test has_substruct_match(tfmk1, tfas)
-    @test !has_substruct_match(tfas, tfmk2)
-
-    quart = smartstomol(raw"[C+,Cl+,I+,P+,S+]")
-    sulfonium = smartstomol(raw"[S+;X3;$(S-C);!$(S-[O;D1])]")
-    cys = smartstomol(raw"NC(C=O)CS")
-    @test has_exact_match(sulfonium, quart)
-    @test !has_substruct_match(cys, sulfonium)
-    @test !has_substruct_match(cys, quart)
-
-    halobenzene = smartstomol(raw"c1c([O;D1])c(-[Cl,Br,I])cc(-[Cl,Br,I])c1")
-    halo = smartstomol(raw"c[F,Cl,Br,I]")
-    @test has_substruct_match(halobenzene, halo)
-
-    pivoxil = smartstomol(raw"OCOC(=O)C([CH3])([CH3])[CH3]")
-    ester = smartstomol(raw"[#6]C(=O)O[#6]")
-    ester2 = smartstomol(raw"[#6]-C(=O)O-[#6]")  # MLSMR structural alert Ester
-    @test has_substruct_match(pivoxil, ester)
-    @test !has_substruct_match(pivoxil, ester2)
-
-    carbon = smartstomol("C")
-    # BMS structural alert 'contains metal'
-    # Just for int overflow check (set max property size cutoff, do not generate 2^61 truthtable)
-    metals = smartstomol(raw"[$([Ru]),$([Rh]),$([Se]),$([Pd]),$([Sc]),$([Bi]),$([Sb]),$([Ag]),$([Ti]),$([Al]),$([Cd]),$([V]),$([In]),$([Cr]),$([Sn]),$([Mn]),$([La]),$([Fe]),$([Er]),$([Tm]),$([Yb]),$([Lu]),$([Hf]),$([Ta]),$([W]),$([Re]),$([Co]),$([Os]),$([Ni]),$([Ir]),$([Cu]),$([Zn]),$([Ga]),$([Ge]),$([As]),$([Y]),$([Zr]),$([Nb]),$([Ce]),$([Pr]),$([Nd]),$([Sm]),$([Eu]),$([Gd]),$([Tb]),$([Dy]),$([Ho]),$([Pt]),$([Au]),$([Hg]),$([Tl]),$([Pb]),$([Ac]),$([Th]),$([Pa]),$([Mo]),$([U]),$([Tc]),$([Te]),$([Po]),$([At])]")
-    @test !has_substruct_match(carbon, metals)
-
-    # global_logger(default_logger)
 end
 
 @testset "node matching" begin

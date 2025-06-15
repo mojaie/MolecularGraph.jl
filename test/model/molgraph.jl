@@ -5,12 +5,11 @@
     nullmol = MolGraph()
     nullsdf = SDFMolGraph()
     nullsmiles = SMILESMolGraph()
-    fe = MolGraph(Edge{Int}[], [SDFAtom(:Fe)], SDFBond[])
-    atoms = [SDFAtom(), SDFAtom(:H), SDFAtom(:H), SDFAtom(:H), SDFAtom(:H)]
+    fe = MolGraph(Edge{Int}[], [SDFAtom(;symbol=:Fe)], SDFBond[])
+    atoms = [SDFAtom(), [SDFAtom(symbol=:H) for _ in 1:4]...]
     bonds = [SDFBond() for i in 1:4]
     methane = MolGraph(collect(edges(star_graph(5))), atoms, bonds)
-    atoms = [SDFAtom(), SDFAtom(), SDFAtom(:H), SDFAtom(:H),
-        SDFAtom(:H), SDFAtom(:H), SDFAtom(:H), SDFAtom(:H)]
+    atoms = [SDFAtom(), SDFAtom(), [SDFAtom(symbol=:H) for _ in 1:6]...]
     bonds = [SDFBond() for i in 1:7]
     ethane = MolGraph(
         Edge.([(1, 2), (1, 3), (1, 4), (1, 5), (2, 6), (2, 7), (2, 8)]),
@@ -61,7 +60,7 @@ end
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds)  # CCC
     @test !has_updates(mol)
     # edit graph properties
-    @test add_vertex!(mol, SDFAtom(:O))  # CCC.O
+    @test add_vertex!(mol, SDFAtom(;symbol=:O))  # CCC.O
     @test has_updates(mol)
     reset_updates!(mol)
     @test !has_updates(mol)

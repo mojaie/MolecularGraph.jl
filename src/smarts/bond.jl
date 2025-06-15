@@ -3,106 +3,121 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-const SMILES_BOND_SYMBOL = Dict(
-    '-' => QueryLiteral(:order, 1),
-    '=' => QueryLiteral(:order, 2),
-    '#' => QueryLiteral(:order, 3),
-    '@' => QueryLiteral(:is_in_ring),
-    ':' => QueryLiteral(:isaromatic),
-    '/' => QueryLiteral(:direction, :up),
-    '\\' => QueryLiteral(:direction, :down)
+const SMILES_BONDS = Dict{}(
+    '-' => (order=1,),
+    '=' => (order=2,),
+    '#' => (order=3,),
+    ':' => (isaromatic=true,),
+    '/' => (direction=:up,),
+    '\\' => (direction=:down,)
 )
 
+const SMARTS_NON_AROMATIC_BONDS = Dict('-' => "1", '=' => "2", '#' => "3")
 
-const SMARTS_BOND_SYMBOL = Dict(
-    '-' => QueryOperator(:and, [
-        QueryLiteral(:order, 1),
-        QueryOperator(:not, [QueryLiteral(:isaromatic)])
-    ]),
-    '=' => QueryOperator(:and, [
-        QueryLiteral(:order, 2),
-        QueryOperator(:not, [QueryLiteral(:isaromatic)])
-    ]),
-    '#' => QueryOperator(:and, [
-        QueryLiteral(:order, 3),
-        QueryOperator(:not, [QueryLiteral(:isaromatic)])
-    ]),
-    '@' => QueryLiteral(:is_in_ring),
-    ':' => QueryLiteral(:isaromatic),
-    '/' => QueryLiteral(:direction, :up),
-    '\\' => QueryLiteral(:direction, :down)
+const SMARTS_OTHER_BONDS = Dict(
+    '@' => qtrue(:is_in_ring),
+    ':' => qtrue(:isaromatic),
+    '/' => qeq(:direction, "up"),
+    '\\' => qeq(:direction, "down")
 )
-
-
-defaultbond(state::SMILESParser{T,V,E}) where {T,V,E} = E(
-    Dict(
-        :order => 1,
-        :isaromatic => false,
-        :direction => :unspecified
-    ))
-defaultbond(state::SMARTSParser{T,V,E}
-    ) where {T,V,E} = E(QueryOperator(:or, [
-        QueryOperator(:and, [
-            QueryLiteral(:order, 1),
-            QueryOperator(:not, [QueryLiteral(:isaromatic)])
-        ]),
-        QueryLiteral(:isaromatic)
-    ]))
 
 
 """
-    bondsymbol!(state::SmartsParserState) -> Union{Pair,Nothing}
+    bondsymbol!(state::SMILESParser) -> Union{NamedTuple,Nothing}
+
+BondSymbol <- [-=#:/\\]
+"""
+function bondsymbol!(state::SMILESParser)
+    sym1 = read(state)
+    if sym1 in keys(SMILES_BONDS)
+        forward!(state)
+        return SMILES_BONDS[sym1]
+    end
+    return  # end token found (or implicit bond), no position move
+end
+
+
+"""
+    bondsymbol!(state::SMARTSParser, qtree::QueryTree{T,V}) where {T,V} -> T
 
 BondSymbol <- [-=#@:/\\] / '/?' / '\\?'
 """
-function bondsymbol!(state::Union{SMILESParser,SMARTSParser})
-    mapping = isa(state, SMILESParser) ? SMILES_BOND_SYMBOL : SMARTS_BOND_SYMBOL
+function bondsymbol!(
+        state::SMARTSParser, qtree::QueryTree{T,V}) where {T<:Integer,V<:QueryNode}
     sym1 = read(state)
     sym2 = lookahead(state, 1)
     if sym1 == '/' && sym2 == '?'
         forward!(state, 2)
-        return QueryOperator(:not, [QueryLiteral(:stereo, :down)])
+        node = add_qnode!(qtree, qnot())
+        add_qnode!(qtree, node, qeq(:stereo, "down"))
+        return node
     elseif sym1 == '\\' && sym2 == '?'
         forward!(state, 2)
-        return QueryOperator(:not, [QueryLiteral(:stereo, :up)])
-    elseif sym1 in keys(mapping)
+        node = add_qnode!(qtree, qnot())
+        add_qnode!(qtree, node, qeq(:stereo, "up"))
+        return node
+    elseif sym1 in keys(SMARTS_NON_AROMATIC_BONDS)
         forward!(state)
-        return mapping[sym1]
+        node = add_qnode!(qtree, qand())
+        add_qnode!(qtree, node, qeq(:order, SMARTS_NON_AROMATIC_BONDS[sym1]))
+        c = add_qnode!(qtree, node, qnot())
+        add_qnode!(qtree, c, qtrue(:isaromatic))
+        return node
+    elseif sym1 in keys(SMARTS_OTHER_BONDS)
+        forward!(state)
+        return add_qnode!(qtree, SMARTS_OTHER_BONDS[sym1])
     end
-    # Implicit single bond returns nothing
+    return zero(T)  # end token found (or implicit bond), no position move
 end
 
 
 """
-    bond!(state::SmilesParser) -> Union{SmilesBond,Nothing}
+    defaultbond(state::SMILESParser) -> SMILESBond
+
+SMILES default bond (single or aromatic bond)
+"""
+function defaultbond(state::SMILESParser{T,V,E}) where {T,V,E}
+    return E()
+end
+
+
+"""
+    defaultbond(state::SMARTSParser) -> QueryBond
+
+SMARTS default bond (single and non-aromatic, or aromatic)
+"""
+function defaultbond(state::SMARTSParser{T,V,E}) where {T,V,E}
+    return E(
+        [(1, 2), (2, 3), (2, 4), (4, 5), (1, 6)],
+        [qor(), qand(), qeq(:order, "1"), qnot(), qtrue(:isaromatic), qtrue(:isaromatic)]
+    )
+end
+
+
+"""
+    bond!(state::SMILESParser) -> Union{QueryTree,Nothing}
 
 Bond <- BondSymbol?
 """
 function bond!(state::SMILESParser{T,V,E}) where {T,V,E}
-    q = bondsymbol!(state)
-    q === nothing && return
-    qd = smiles_dict(q)
-    default_qd = Dict(
-        :order => 1,
-        :isaromatic => false,
-        :direction => :unspecified
-    )
-    merge!(default_qd, qd)
-    return E(default_qd)
+    v = bondsymbol!(state)
+    isnothing(v) && return
+    return E(;v...)
 end
 
 
 """
-    bond!(state::SmartsParser) -> Union{SmartsBond,Nothing}
+    bond!(state::SMARTSParser) -> Union{QueryTree,Nothing}
 
 Bond <- '~' / (BondSymbol / LogicalCond)?
 """
 function bond!(state::SMARTSParser{T,V,E}) where {T,V,E}
     if read(state) == '~'
         forward!(state)
-        return E(QueryAny(true))
+        return E(Tuple{Int,Int}[], [qanytrue()])
     end
-    q = lglowand!(state, bondsymbol!)
-    q === nothing && return
-    return E(q)
+    qtree = E()
+    v = lglowand!(state, qtree)
+    v == 0 && return
+    return qtree
 end

@@ -169,7 +169,7 @@ function add_hydrogens!(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     implicit_hs = implicit_hydrogens(mol)
     for i in vertices(mol)
         for j in 1:implicit_hs[i]
-            add_vertex!(mol, V(:H))
+            add_vertex!(mol, V(;symbol=:H))
             add_edge!(mol, i, nv(mol), E())
         end
     end

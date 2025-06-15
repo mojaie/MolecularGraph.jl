@@ -4,7 +4,8 @@
 @testset "chain" begin
     state = SMARTSParser{SMARTSMolGraph}("CCCCC")
     state.node = 1
-    push!(state.vprops, QueryTree(QueryLiteral(:symbol, :C)))
+    push!(state.vprops, QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")]))
+    push!(state.succ, [])
     forward!(state)
     chain!(state)
     @test length(state.edges) == 4
@@ -13,7 +14,7 @@
 
     state = SMARTSParser{SMARTSMolGraph}("C1CCCCC1")
     state.node = 1
-    push!(state.vprops, QueryTree(QueryLiteral(:symbol, :C)))
+    push!(state.vprops, QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")]))
     push!(state.succ, [])
     forward!(state)
     chain!(state)
@@ -23,7 +24,7 @@
 
     state = SMARTSParser{SMARTSMolGraph}("C%10CCCCC%10")
     state.node = 1
-    push!(state.vprops, QueryTree(QueryLiteral(:symbol, :C)))
+    push!(state.vprops, QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")]))
     push!(state.succ, [])
     forward!(state)
     chain!(state)

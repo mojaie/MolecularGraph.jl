@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-function bfs_path(parents, t)
+function bfs_path(parents, t::T) where T<:Integer
     path = [t]
     x = t
     while parents[x] != x
@@ -14,10 +14,10 @@ function bfs_path(parents, t)
 end
 
 
-noweight_shortestpath(g::SimpleGraph, s, t) = bfs_path(bfs_parents(g, s), t)
+noweight_shortestpath(g::SimpleGraph{T}, s::T, t::T) where T<:Integer = bfs_path(bfs_parents(g, s), t)
 
 
-function noweight_all_distances(g::SimpleGraph{T}, s, t) where T
+function noweight_all_distances(g::SimpleGraph{T}, s::T, t::T) where T<:Integer
     """ DFS based algorithm to enumerate all distances of
     the paths between two vertices."""
     stack = [s]

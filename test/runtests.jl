@@ -24,19 +24,24 @@ using MolecularGraph:
     has_updates, reset_updates!,
     atomsymbol!, atomprop!, atom!,
     bondsymbol!, bond!,
-    querypropmap, generate_queryfunc, querymatch, optimize_query,
-    fragment!, specialize_nonaromatic!, remove_hydrogens!,
+    QueryNode, root, querytree, canonical,
+    add_qnode!, add_qedge!, set_qnode!, add_qedge!,
+    rem_qnode!, rem_qnodes!, rem_qedge!,
+    qeq, qtrue, qand, qor, qnot, qanytrue,
+    querypropmap, generate_queryfunc,
+    fragment!, specialize_nonaromatic!, resolve_not_hydrogen!, remove_hydrogens!,
     lookahead, forward!, backtrack!,
-    lgnot!, lghighand!, lgor!, lglowand!,
+    lgnot!, lgoperator!, lghighand!, lgor!, lglowand!,
     chain!, fragment!, componentquery!,
-    draw2d_bond_style,
-    resolve_disjoint_not, resolve_recursive, generate_truthtable, querymatch, querypropmap,
     ctab_atom_v2, ctab_bond_v2,
-    exact_match_prefilter, substruct_match_prefilter
-    
+    exact_match_prefilter, substruct_match_prefilter,
+    QueryTruthTable, querymatch,
+    resolve_disjoint_not!, resolve_recursive!, generate_truthtable,
+    draw2d_bond_style
+
+
 using OrderedCollections: OrderedDict
 using Test
-
 
 include("./util/geometry.jl")
 include("./util/iterator.jl")
@@ -54,8 +59,8 @@ include("./graph/isomorphism_clique.jl")
 include("./model/atom.jl")
 include("./model/bond.jl")
 include("./model/molgraph.jl")
+include("./model/query.jl")
 
-include("sdfilereader.jl")
 include("./smarts/base.jl")
 include("./smarts/logicaloperator.jl")
 include("./smarts/atom.jl")
@@ -63,6 +68,7 @@ include("./smarts/bond.jl")
 include("./smarts/molecule.jl")
 include("./smarts/smiles.jl")
 include("./smarts/smarts.jl")
+include("sdfilereader.jl")
 include("sdfilewriter.jl")
 include("json.jl")
 
@@ -73,10 +79,11 @@ include("properties.jl")
 include("mass.jl")
 include("wclogp.jl")
 include("inchi.jl")
+
 include("structurematch.jl")
 include("structurematch_mcs.jl")
-include("./model/query.jl")
 include("querycontainment.jl")
+
 include("./draw/base.jl")
 include("./draw/svg.jl")
 include("./draw/3d.jl")

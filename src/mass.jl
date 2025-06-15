@@ -38,7 +38,7 @@ function monoiso_mass_unc(atomsymbol::Symbol)
     return (mass, unc)
 end
 
-monoiso_mass_unc(atom) = monoiso_mass_unc(atom[:symbol])
+monoiso_mass_unc(atom) = monoiso_mass_unc(atom_symbol(atom))
 monoiso_mass_unc(mol::MolGraph) = molecular_mass_unc(mol, monoiso_mass_unc)
 
 
@@ -90,7 +90,7 @@ function exact_mass_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
     return (mass, unc)
 end
 
-exact_mass_unc(atom) = exact_mass_unc(atom[:symbol], atom[:mass])
+exact_mass_unc(atom) = exact_mass_unc(atom_symbol(atom), atom_mass(atom))
 exact_mass_unc(mol::MolGraph) = molecular_mass_unc(mol, exact_mass_unc)
 
 
@@ -136,7 +136,7 @@ function standard_weight_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=not
     return (wt, unc)
 end
 
-standard_weight_unc(atom) = standard_weight_unc(atom[:symbol], atom[:mass])
+standard_weight_unc(atom) = standard_weight_unc(atom_symbol(atom), atom_mass(atom))
 standard_weight_unc(mol::MolGraph) = molecular_mass_unc(mol, standard_weight_unc)
 
 """

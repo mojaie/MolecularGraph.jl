@@ -53,7 +53,7 @@ MaxCliqueState{T,U}(g::SimpleGraph{T};
     g, targetsize, get_expire(timeout), postprocess, [], U(), :ongoing)
 
 
-function expand!(state:: AbstractCliquesState, subg, cand)
+function expand!(state::AbstractCliquesState{T}, subg::Set{T}, cand::Set{T}) where T<:Integer
     (state.status == :timedout || state.status == :targetreached) && return
     if isempty(subg)
         # Report max clique
@@ -85,7 +85,7 @@ function expand!(state:: AbstractCliquesState, subg, cand)
     end
 end
 
-function getpivot(g, subg, cand)
+function getpivot(g::AbstractCliquesState{T}, subg::Set{T}, cand::Set{T}) where T<:Integer
     maxadj = -1
     pv = 0
     for s in sort(collect(subg), by=x->degree(g, x), rev=true)
@@ -148,7 +148,7 @@ maximum_clique(g::SimpleGraph{T}; kwargs...
 
 # Connected cliques (c-cliques)
 
-function connfuncgen(modprod::SimpleGraph{T}, eattr::Dict{Edge{T},Bool}) where T
+function connfuncgen(modprod::SimpleGraph{T}, eattr::Dict{Edge{T},Bool}) where T <: Integer
     # connectivity adjlist
     conn = [Set{T}() for _ in vertices(modprod)]
     disconn = [Set{T}() for _ in vertices(modprod)]
@@ -195,11 +195,13 @@ end
 MaxConnCliqueState{T,U}(g::SimpleGraph{T}, connfunc::Function;
     timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=max_clique_postproc!, kwargs...
 ) where {T,U} = MaxConnCliqueState{T,U}(g, targetsize,
-    get_expire(timeout), connfunc, postprocess, [], U(), :ongoing)
+    get_expire(timeout), connfunc, postprocess, T[], U(), :ongoing)
 
 
 
-function expand!(state::AbstractConnCliquesState, P, Q, X, Y)
+function expand!(
+        state::AbstractConnCliquesState{T},
+        P::Set{T}, Q::Set{T}, X::Set{T}, Y::Set{T}) where T<:Integer
     (state.status == :timedout || state.status == :targetreached) && return
     if isempty(P) && isempty(X)
         # Report max clique
@@ -219,7 +221,7 @@ function expand!(state::AbstractConnCliquesState, P, Q, X, Y)
         n = pop!(copv)
         push!(state.Q, n)  # TODO: state.Q is R in orignal literature
         nbrs = neighbors(state.graph, n)
-        conn, disconn = state.connfunc(n)
+        conn::Set{T}, disconn::Set{T} = state.connfunc(n)
         Qnew = intersect(Q, disconn)
         Pnew = union(intersect(P, nbrs), intersect(Q, conn))
         Ynew = intersect(Y, disconn)
@@ -234,12 +236,12 @@ function expand!(state::AbstractConnCliquesState, P, Q, X, Y)
 end
 
 
-function init_conn_cliques!(state::AbstractConnCliquesState{T}) where T
+function init_conn_cliques!(state::AbstractConnCliquesState{T}) where T<:Integer
     nodes = Set(vertices(state.graph))
     done = T[]
     for n in vertices(state.graph)
         push!(state.Q, n)  # TODO: Q_ should be renamed
-        conn, disconn = state.connfunc(n)
+        conn::Set{T}, disconn::Set{T} = state.connfunc(n)
         P = intersect(setdiff(nodes, done), conn)
         Q_ = intersect(setdiff(nodes, done), disconn)
         X = intersect(conn, done)
@@ -268,7 +270,7 @@ Calculate maximal connected cliques.
 
 """
 function all_maximal_conn_cliques(::Type{U}, g::SimpleGraph{T};
-        connfunc=n->([], neighbors(g, n)), kwargs...) where {T,U}
+        connfunc=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U}
     state = ConnCliquesState{T,U}(g, connfunc; kwargs...)
     init_conn_cliques!(state)
     return state.cliques, state.status
@@ -284,7 +286,7 @@ all_maximal_conn_cliques(g::SimpleGraph{T}; kwargs...
 Calculate maximal connected cliques.
 """
 function maximum_conn_clique(::Type{U}, g::SimpleGraph{T};
-    connfunc=n->([], neighbors(g, n)), kwargs...) where {T,U}
+    connfunc=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U}
     state = MaxConnCliqueState{T,U}(g, connfunc; kwargs...)
     init_conn_cliques!(state)
     return state.maxsofar, state.status

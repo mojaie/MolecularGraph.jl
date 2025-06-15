@@ -37,8 +37,8 @@ end
 
 @testset "connected" begin
     # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
-    g, vmap = disjoint_union(complete_graph(5), complete_graph(4))
-    h, vmap = disjoint_union(complete_graph(4), complete_graph(3))
+    g = disjoint_union(complete_graph(5), complete_graph(4))
+    h = disjoint_union(complete_graph(4), complete_graph(3))
     @test length(maximum_common_subgraph(g, h)[1]) == 7
     @test length(maximum_common_subgraph(g, h, connected=true)[1]) == 4
     # global_logger(default_logger)

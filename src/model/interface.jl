@@ -16,14 +16,14 @@ const PROPERTY_TYPE_REGISTRY = Dict{String,Function}()
 
 The base class of molecular graphs
 """
-abstract type AbstractMolGraph{T} <: Graphs.AbstractGraph{T} end
+abstract type AbstractMolGraph{T<:Integer} <: Graphs.AbstractGraph{T} end
 
 """
     SimpleMolGraph{T,V,E} <: AbstractMolGraph{T}
 
 The base class of molecular graph models based on SimpleGraph
 """
-abstract type SimpleMolGraph{T,V,E} <: AbstractMolGraph{T} end
+abstract type SimpleMolGraph{T<:Integer,V,E} <: AbstractMolGraph{T} end
 
 """
     AbstractReaction{T<:AbstractMolGraph}
@@ -31,6 +31,16 @@ abstract type SimpleMolGraph{T,V,E} <: AbstractMolGraph{T} end
 The base class of reactions
 """
 abstract type AbstractReaction{T<:AbstractMolGraph} end
+
+
+"""
+    QueryTree{T,U}
+
+The base class of reactions
+"""
+abstract type QueryTree{T<:Integer,U} end
+
+const QueryMolGraph = SimpleMolGraph{<:Integer,<:QueryTree,<:QueryTree}
 
 
 # Graphs.jl common interface

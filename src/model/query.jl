@@ -3,154 +3,246 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-"""
-    QueryAny
 
-Query component type that generate tautology function (arg -> true/false).
 """
-struct QueryAny
-    value::Bool
+    QueryNode
+
+Query components
+
+- query literals (arg -> key[arg] == value).
+- logical operators (arg -> q1[arg] && q2[arg]).
+- tautology query (arg -> true/false).
+"""
+struct QueryNode
+    operator::Symbol  # :and, :or, :not, :any, :eq, (:gt, :lt)
+    key::Symbol  # keys for :eq, (:gt, :lt)
+    value::String  # :any(Bool), :eq, (:gt, :lt)
 end
 
-Base.:(==)(q::QueryAny, r::QueryAny) = q.value == r.value
-Base.hash(q::QueryAny, h::UInt) = hash(q.value, h)
-
-to_dict(::Val{:default}, q::QueryAny) = [q.value]
-
-
-"""
-    QueryLiteral
-
-General query component type (arg -> key[arg] == value).
-"""
-struct QueryLiteral
-    operator::Symbol  # :eq, :gt?, :lt? ...
-    key::Symbol
-    value::Union{Symbol,Int,String,Bool,Nothing}
+function QueryNode(;
+        operator::Union{AbstractString,Symbol}=:eq, 
+        key::Union{AbstractString,Symbol}=:none,
+        value::AbstractString="")
+    return QueryNode(Symbol(operator), Symbol(key), value)
 end
 
-QueryLiteral(key) = QueryLiteral(:eq, key, true)
-QueryLiteral(key, value) = QueryLiteral(:eq, key, value)
+QueryNode(d::Dict{String,Any}
+    ) = QueryNode(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
+QueryNode(d::Dict{Symbol,Any}
+    ) = QueryNode(; NamedTuple((k, v) for (k, v) in d)...)
 
-function Base.isless(q::QueryLiteral, r::QueryLiteral)
-    q.key < r.key && return true
-    q.key > r.key && return false
+qand() = QueryNode(:and, :none, "")
+qor() = QueryNode(:or, :none, "")
+qnot() = QueryNode(:not, :none, "")
+qanytrue() = QueryNode(:any, :none, "")
+qeq(key, value) = QueryNode(:eq, key, value)
+qtrue(key) = qeq(key, "true")
+
+
+function Base.isless(q::QueryNode, r::QueryNode)
+    # Node sorting required by truth table generator
     q.operator < r.operator && return true
     q.operator > r.operator && return false
-    return string(q.value) < string(r.value)
+    q.key < r.key && return true
+    q.key > r.key && return false
+    return q.value < r.value
 end
 
-Base.:(==)(q::QueryLiteral, r::QueryLiteral
-    ) = q.key == r.key && q.operator == r.operator && string(q.value) == string(r.value)
-Base.hash(q::QueryLiteral, h::UInt) = hash(q.key, hash(q.operator, hash(q.value, h)))
-
-to_dict(::Val{:default}, q::QueryLiteral) = [string(q.operator), string(q.key), q.value isa Symbol ? ":$(q.value)" : q.value]
-
-
-"""
-    QueryOperator
-
-Query component type for logical operators (arg -> q1[arg] && q2[arg]).
-"""
-struct QueryOperator
-    key::Symbol  # :and, :or, :not
-    value::Vector{Union{QueryAny,QueryLiteral,QueryOperator}}
+function to_dict(::Val{:default}, q::QueryNode)
+    rcd = Dict{String,Any}()
+    q.operator === :eq || setindex!(rcd, string(q.operator), "operator")
+    q.key === :none || setindex!(rcd, string(q.key), "key")
+    q.value == "" || setindex!(rcd, q.value, "value")
+    return rcd
 end
 
-Base.:(==)(q::QueryOperator, r::QueryOperator) = q.key == r.key && issetequal(q.value, r.value)
-Base.hash(q::QueryOperator, h::UInt) = hash(q.key, hash(Set(q.value), h))
+Base.hash(q::QueryNode, h::UInt
+    ) = hash(q.operator, hash(q.key, hash(q.value, h)))
+Base.:(==)(q::QueryNode, r::QueryNode
+    ) = q.operator == r.operator && q.key == r.key && q.value == r.value
 
-to_dict(fmt::Val{:default}, q::QueryOperator) = [string(q.key), [to_dict(fmt, c) for c in q.value]]
 
-
-"""
-    QueryTree
-
-Query component containar type for molecular graph properties.
-"""
-struct QueryTree
-    tree::Union{QueryAny,QueryLiteral,QueryOperator}
+struct QueryAtom{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
+    graph::SimpleDiGraph{T}
+    vprops::Dict{T,U}
 end
 
-QueryTree(data::Vector) = QueryTree(querytreefromdata(data))
+struct QueryBond{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
+    graph::SimpleDiGraph{T}
+    vprops::Dict{T,U}
+end
 
-function querytreefromdata(data::Vector)
-    # TODO: Serialization of QueryLiteral with various types
-    if data[1] in ("and", "or", "not")
-        return QueryOperator(Symbol(data[1]), [querytreefromdata(d) for d in data[2]])
-    elseif data[1] in ("eq",)
-        return QueryLiteral(
-            Symbol(data[1]), Symbol(data[2]),
-            (data[3] isa String && startswith(data[3], ":")) ? Symbol(data[3][2:end]) : data[3])
-    elseif length(data) == 1
-        return QueryAny(data[1])
+Base.eltype(::Type{<:QueryTree{T,U}}) where {T,U} = T
+Base.eltype(qtree::T) where T<:QueryTree = eltype(T)
+vproptype(::Type{<:QueryTree{T,U}}) where {T,U} = U
+vproptype(qtree::T) where T<:QueryTree = vproptype(T)
+
+function querytree(edges::Vector{Tuple{T,T}}, props::Vector{U}) where {T,U}
+    g = SimpleDiGraph(Edge{T}.(edges))
+    vprops = Dict{T,U}(i => p for (i, p) in enumerate(props))
+    # expand fadjlist and badjlist for vprops of isolated nodes
+    for _ in nv(g):(length(vprops) - 1)
+        push!(g.fadjlist, T[])
+        push!(g.badjlist, T[])
     end
-    error("Invalid query tree format")
+    return g, vprops
 end
 
-Base.getindex(a::QueryTree, prop::Symbol) = getproperty(a, prop)
-
-ELEMENT_TYPE_REGISTRY["QueryTree"] = QueryTree
-to_dict(fmt::Val{:default}, q::QueryTree) = to_dict(fmt, q.tree)
-
-
-
-# MolGraph type aliases
-
-const SMARTSMolGraph = MolGraph{Int,QueryTree,QueryTree}
-
-
-"""
-    QueryTruthTable(fml::Function, props::Vector{QueryLiteral}) -> QueryTruthTable
-
-Truth table evaluator for query match and containment. 
-
-This is expected to be generated by using `generate_truthtable`. Note that the properties
-must be unique and sorted if QueryTruthTable constructors is manually called for testing.
-
-- function: function that takes a vector whose size is `length(props)`
-  that corresponds to each property variables and returns true or false.
-- props: QueryLiteral vector.
-"""
-struct QueryTruthTable
-    func::Function
-    props::Vector{QueryLiteral}
+function querytree(::Type{T}, ::Type{U}, data::Dict{String,Any}) where {T,U}
+    edges = NTuple{2,T}[(e...,) for e in data["edges"]]
+    props = U.(data["vprops"])
+    return querytree(edges, props)
 end
 
-# Convenient constructors just for testing
-QueryTruthTable(fml::Function, props::Vector{T}
-    ) where T <: Tuple = QueryTruthTable(fml, [QueryLiteral(p...) for p in props])
+QueryAtom{T,U}(edges::Vector, props::Vector
+    ) where {T<:Integer,U<:QueryNode} = QueryAtom{T,U}(querytree(edges, props)...)
+QueryBond{T,U}(edges::Vector, props::Vector
+    ) where {T<:Integer,U<:QueryNode} = QueryBond{T,U}(querytree(edges, props)...)
+QueryAtom(edges::Vector, props::Vector) = QueryAtom(querytree(edges, props)...)
+QueryBond(edges::Vector, props::Vector) = QueryBond(querytree(edges, props)...)
+QueryAtom() = QueryAtom(Tuple{Int,Int}[], QueryNode[])
+QueryBond() = QueryBond(Tuple{Int,Int}[], QueryNode[])
+QueryAtom{T,U}(data::Dict{String,Any}
+    ) where {T<:Integer,U<:QueryNode} = QueryAtom{T,U}(querytree(T, U, data)...)
+QueryBond{T,U}(data::Dict{String,Any}
+    ) where {T<:Integer,U<:QueryNode} = QueryBond{T,U}(querytree(T, U, data)...)
+QueryAtom(data::Dict{String,Any}) = QueryAtom(querytree(Int, QueryNode, data)...)
+QueryBond(data::Dict{String,Any}) = QueryBond(querytree(Int, QueryNode, data)...)
 
-function QueryTruthTable(tree::Union{QueryAny,QueryLiteral,QueryOperator})
-    tree isa QueryAny && return QueryTruthTable(x -> tree.value, [])
-    props = sort(union(QueryLiteral[], values(querypropmap(tree))...))
-    qfunc = generate_queryfunc(tree, props)
-    return QueryTruthTable(qfunc, props)
+ELEMENT_TYPE_REGISTRY["QueryAtom"] = QueryAtom
+ELEMENT_TYPE_REGISTRY["QueryBond"] = QueryBond
+
+function to_dict(fmt::Val{:default}, qtree::QueryTree)
+    return Dict(
+        "edges" => [[src(e), dst(e)] for e in edges(qtree.graph)],
+        "vprops" => [to_dict(fmt, qtree.vprops[i]) for i in vertices(qtree.graph)]
+    )
 end
 
 
 """
-    querypropmap(tree, props) -> Dict{Symbol,Vector{QueryLiteral}}
+    canonical(qtree::QueryTree) -> Tuple{String,Vector{Int}}
+
+Return cannonical representation of String and the vertex order.
+"""
+function canonical(qtree::QueryTree)
+    root(qtree)  # connectivity check
+    cnn = Vector{String}(undef, nv(qtree.graph))
+    order = Vector{Int}[[i] for i in 1:nv(qtree.graph)]
+    revtopo = topological_sort(reverse(qtree.graph))
+    for v in revtopo
+        succs = outneighbors(qtree.graph, v)
+        vp = qtree.vprops[v]
+        if isempty(succs)
+            cnn[v] = string(vp.operator, vp.key, vp.value, "/")
+        else
+            o = sortperm(cnn[succs])
+            concat = reduce(*, cnn[succs[o]])
+            cnn[v] = string(vp.operator, vp.key, vp.value, concat)
+            append!(order[v], order[succs[o]]...)
+        end
+    end
+    return cnn[revtopo[end]], order[revtopo[end]]
+end
+
+
+function Base.:(==)(q::QueryTree, r::QueryTree)
+    typeof(q) !== typeof(r) && return false
+    nv(q.graph) != nv(r.graph) && return false
+    nv(q.graph) == 0 && return true
+    ne(q.graph) != ne(r.graph) && return false
+    return canonical(q)[1] == canonical(r)[1]
+end
+
+
+function Base.hash(qtree::QueryTree, h::UInt)
+    nv(qtree.graph) == 0 && return hash([])
+    hashes = Vector{UInt}(undef, nv(qtree.graph))
+    revtopo = topological_sort(reverse(qtree.graph))
+    for v in revtopo
+        succs = outneighbors(qtree.graph, v)
+        if isempty(succs)
+            hashes[v] = hash(qtree.vprops[v])
+        else
+            hs = reduce(hash, sort(hashes[succs]))
+            hashes[v] = hash(qtree.vprops[v], hs)
+        end
+    end
+    return hash(typeof(qtree), hashes[revtopo[end]])
+end
+
+
+"""
+    root(qtree::QueryTree) -> Integer
+
+Return root node of the tree.
+"""
+root(qtree::QueryTree) = only(findall(iszero, indegree(qtree.graph)))
+
+
+function add_qnode!(qtree::QueryTree, prop::QueryNode)
+    add_vertex!(qtree.graph)
+    qtree.vprops[nv(qtree.graph)] = prop
+    return nv(qtree.graph)
+end
+
+function add_qnode!(qtree::QueryTree, src::Integer, prop::QueryNode)
+    add_vertex!(qtree.graph)
+    qtree.vprops[nv(qtree.graph)] = prop
+    newnode = nv(qtree.graph)
+    add_edge!(qtree.graph, src, newnode)
+    return newnode
+end
+
+
+function set_qnode!(qtree::QueryTree, i::Integer, prop::QueryNode)
+    qtree.vprops[i] = prop
+    return
+end
+
+
+function rem_qnode!(qtree::QueryTree, v::Integer)
+    nv_ = nv(qtree.graph)
+    rem_vertex!(qtree.graph, v)
+    # last index node is re-indexed to the removed node
+    nv_ == v || setindex!(qtree.vprops, qtree.vprops[nv_], v)
+    delete!(qtree.vprops, nv_)
+    return
+end
+
+
+function rem_qnodes!(qtree::QueryTree, vs::Vector{<:Integer})
+    vmap = rem_vertices!(qtree.graph, vs)
+    for (i, v) in enumerate(vmap)
+        i == v && continue
+        qtree.vprops[i] = qtree.vprops[v]
+    end
+    for v in (nv(qtree.graph)+1):(nv(qtree.graph)+length(vs))
+        delete!(qtree.vprops, v)
+    end
+    return vmap
+end
+
+
+add_qedge!(qtree::QueryTree, src::Integer, dst::Integer) = add_edge!(qtree.graph, src, dst)
+rem_qedge!(qtree::QueryTree, src::Integer, dst::Integer) = rem_edge!(qtree.graph, src, dst)
+
+
+"""
+    querypropmap(qtree::QueryTree) -> Dict{Symbol,Vector{QueryNode}}
 
 Parse QueryLiteral tree and put QueryLiterals into bins labeled with their literal keys.
 """
-function querypropmap(tree)
-    if tree isa QueryAny
-        return Dict{Symbol,Vector{QueryLiteral}}()
-    elseif tree.key in (:and, :or)
-        m = Dict{Symbol,Set{QueryLiteral}}()
-        for d in tree.value
-            for (k, props) in querypropmap(d)
-                !haskey(m, k) && (m[k] = Set{QueryLiteral}())
-                push!(m[k], props...)
-            end
+function querypropmap(qtree::QueryTree)
+    pmap = Dict{Symbol,Vector{QueryNode}}()
+    for (i, p) in qtree.vprops
+        p.operator === :eq || continue
+        if !haskey(pmap, p.key)
+            pmap[p.key] = QueryNode[]
         end
-        return Dict(k => sort(collect(d)) for (k, d) in m)
-    elseif tree.key === :not
-        return querypropmap(tree.value[1])
-    else  # tree isa QueryLiteral
-        return Dict{Symbol,Vector{QueryLiteral}}(tree.key => [tree])
+        push!(pmap[p.key], p)
     end
+    return pmap
 end
 
 
@@ -162,42 +254,37 @@ Generate query truthtable function from QueryLiteral tree and the property vecto
 The query truthtable function take a Vector{Bool} of length equal to `props` and
 returns output in Bool.
 """
-function generate_queryfunc(tree, props)
-    tree isa QueryAny && return arr -> tree.value
-    if tree isa QueryLiteral
-        idx = findfirst(x -> x == tree, props)
-        return arr -> arr[idx]
-    elseif tree.key === :not
-        f = generate_queryfunc(tree.value[1], props)
-        return arr -> ~f(arr)
-    else
-        fs = [generate_queryfunc(q, props) for q in tree.value]
-        cond = Dict(:and => all, :or => any)
-        return arr -> cond[tree.key](f(arr) for f in fs)
-    end
-end
-
-
-"""
-    smiles_dict(tree) -> Dict{Symbol,Any}
-
-Convert QueryLiteral to Dict{Symbol,Any} to be provided to SMILES Atom/Bond constructor.
-"""
-function smiles_dict(tree)
-    if tree isa QueryLiteral
-        return Dict{Symbol,Any}(tree.key => tree.value)
-    elseif tree.key === :not  # -> :not is only for aromatic in SMILES
-        d = only(smiles_dict(tree.value[1]))
-        return Dict{Symbol,Any}(d.first => ~d.second)
-    else  # :and
-        d = Dict{Symbol,Any}()
-        for q in tree.value
-            merge!(d, smiles_dict(q))
+function generate_queryfunc(qtree::QueryTree, props::Vector{QueryNode})
+    nv(qtree.graph) == 0 && return arr -> false
+    func = Dict{Int,Function}()
+    revtopo = topological_sort(reverse(qtree.graph))
+    for v in revtopo
+        p = qtree.vprops[v]
+        succs = outneighbors(qtree.graph, v)
+        if isempty(succs)
+            if p.operator === :eq
+                idx = findfirst(x -> x == p, props)
+                func[v] = arr -> arr[idx]
+            elseif p.operator === :any
+                func[v] = arr -> true
+            else
+                @assert false p.operator
+            end
+            continue
         end
-        return d
+        sfunc = [func[s] for s in succs]
+        if p.operator === :not
+            func[v] = arr -> ~only(sfunc)(arr)
+        elseif p.operator === :and
+            func[v] = arr -> all(f(arr) for f in sfunc)
+        elseif p.operator === :or
+            func[v] = arr -> any(f(arr) for f in sfunc)
+        else
+            @assert false
+        end
     end
+    return func[revtopo[end]]
 end
-
 
 
 """
@@ -209,119 +296,189 @@ Convert `[#atomnumber]` queries connected to explicit single bonds to be non-aro
 Should be applied before `remove_hydrogens!`.
 This function is intended for generalization of PAINS query in PubChem dataset.
 """
-function specialize_nonaromatic!(q::SimpleMolGraph{T,V,E}) where {T,V<:QueryTree,E<:QueryTree}
+function specialize_nonaromatic!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
     aromsyms = Set([:B, :C, :N, :O, :P, :S, :As, :Se])
-    exqs = Set(QueryOperator(:and, [
-        QueryLiteral(:order, i),
-        QueryOperator(:not, [QueryLiteral(:isaromatic)])
-    ]) for i in 1:3)
-    exbonds = Dict{Edge{T},Int}()
-    for e in edges(q)
-        tr = get_prop(q, e, :tree)
-        tr in exqs || continue
-        exbonds[e] = tr.value[1].value
+    exqs = Set(E(
+            [(1, 2), (1, 3), (3, 4)],
+            [qand(), qeq(:order, string(i)), qnot(), qtrue(:isaromatic)]
+        ) for i in 1:3)
+    exbonds = Dict{Edge{Int},Int}()
+    for e in edges(qmol)
+        props(qmol, e) in exqs || continue
+        exbonds[e] = parse(Int, props(qmol, e).vprops[2].value)
     end
-    for i in vertices(q)
-        p = get_prop(q, i, :tree)
-        p isa QueryLiteral && p.key === :symbol || continue
+    for i in vertices(qmol)
+        qtree = props(qmol, i)
+        qonly = qtree.vprops[1]
+        # e.g. [#6], [#7], [#8]...
+        (nv(qtree.graph) == 1 && qonly.key === :symbol) || continue
         # number of explicitly non-aromatic incident bonds
-        cnt = sum(get(exbonds, u_edge(q, i, nbr), 0) for nbr in neighbors(q, i); init=0)
-        p.value === :C && (cnt -= 1)  # carbon allows one non-aromatic
-        if p.value in aromsyms && cnt > 0
-            set_prop!(q, i, QueryTree(QueryOperator(:and, [
-                p, QueryOperator(:not, [QueryLiteral(:isaromatic)])
-            ])))
+        cnt = sum(get(exbonds, u_edge(qmol, i, nbr), 0) for nbr in neighbors(qmol, i); init=0)
+        if qonly.value === "C"
+            cnt -= 1  # carbon allows one non-aromatic
+        end
+        if Symbol(qonly.value) in aromsyms && cnt > 0
+            set_prop!(qmol, i, V(
+                [(1, 2), (1, 3), (3, 4)],
+                [qand(), qonly, qnot(), qtrue(:isaromatic)]
+            ))
         end
     end
+    return
 end
 
 
 """
-    resolve_not_hydrogen -> QueryMol
+    resolve_not_hydrogen! -> Nothing
 
 Return the molecular query with hydrogen nodes removed.
 
 This function is intended for generalization of PAINS query in PubChem dataset.
 """
-function resolve_not_hydrogen(tree)
-    tree isa QueryOperator || return tree
-    if tree.key === :not
-        cld = tree.value[1]
-        cld isa QueryLiteral && cld.key === :symbol && cld.value === :H && return QueryAny(true)
+function resolve_not_hydrogen!(qtree::QueryTree{T,U}) where {T,U}
+    toremove = T[]
+    for (i, prop) in qtree.vprops
+        prop.operator === :not || continue
+        succ = only(outneighbors(qtree.graph, i))
+        sprop = qtree.vprops[succ]
+        if sprop.key === :symbol && sprop.value === "H"
+            push!(toremove, succ)
+            set_qnode!(qtree, i, qanytrue())
+        end
     end
-    return QueryOperator(tree.key, [resolve_not_hydrogen(v) for v in tree.value])
+    rem_qnodes!(qtree, toremove)
+    return
 end
 
 
 """
     remove_hydrogens!(q::MolGraph) -> Nothing
 
-Remove hydrogens from the molecular query. 
+Remove hydrogens from the molecular query.
 
 Should be applied after `specialize_nonaromatic!`.
 This function is intended for generalization of PAINS query in PubChem dataset.
 """
-function remove_hydrogens!(q::SimpleMolGraph{T,V,E}) where {T,V<:QueryTree,E<:QueryTree}
+function remove_hydrogens!(qmol::QueryMolGraph{T,V,E}
+        ) where {T<:Integer,V<:QueryAtom,E<:QueryBond}
     # count H nodes and mark H nodes to remove
     hnodes = T[]
-    hcntarr = zeros(Int, nv(q))
-    for n in vertices(q)
-        t = get_prop(q, n, :tree)
-        t == QueryLiteral(:symbol, :H) || continue
-        hcntarr[neighbors(q, n)[1]] += 1
+    hcntarr = zeros(Int, nv(qmol))
+    for n in vertices(qmol)
+        qtree = props(qmol, n)
+        resolve_not_hydrogen!(qtree)  # [!#1] -> [*]
+        nv(qtree.graph) == 1 || continue
+        (qtree.vprops[1].key === :symbol && qtree.vprops[1].value === "H") || continue
+        hcntarr[only(neighbors(qmol, n))] += 1
         push!(hnodes, n)
     end
-    for n in setdiff(vertices(q), hnodes)  # heavy atom nodes
-        # no longer H nodes exist, so [!#1] may be [*]
-        t = resolve_not_hydrogen(get_prop(q, n, :tree))
-        # consider H nodes as a :total_hydrogens query
-        # C([H])([H]) -> [C;!H1;!H2]
+    for n in setdiff(vertices(qmol), hnodes)  # heavy atom nodes
+        # e.g. C([H])([H]) is the same as [C;!H0;!H1]
         hs = collect(0:(hcntarr[n] - 1))
-        if !isempty(hs)
-            clds = [QueryOperator(:not, [QueryLiteral(:total_hydrogens, i)]) for i in hs]
-            t = QueryOperator(:and, [t, clds...])
+        isempty(hs) && continue
+        qtree = props(qmol, n)
+        rt = root(qtree)
+        node = add_qnode!(qtree, qand())
+        add_qedge!(qtree, node, rt)
+        for i in hs
+            c = add_qnode!(qtree, node, qnot())
+            add_qnode!(qtree, c, qeq(:total_hydrogens, string(i)))
         end
-        set_prop!(q, n, QueryTree(t))
+        set_prop!(qmol, n, qtree)
     end
-    return rem_vertices!(q, hnodes)
+    rem_vertices!(qmol, hnodes)
+    return
 end
 
 
 """
-    optimize_query(tree) -> Union{QueryAny,QueryLiteral,QueryOperator}
+    optimize_query!(tree::QueryTree{T,V}) where {T<:Integer,V<:QueryNode}) -> Nothing
 
-Return optimized query.
+Optimize query tree.
 
-- absorption of QueryAny
-  (ex. :and => (:any => true, A) -> A, :or => (:any => true, A) -> :any => true
+- Absorption
+  - (:and => (A, A)) -> A
+  - (:or => (A, A, B)) -> (:or => (A, B))
+  - (:and => (:any => true, A)) -> A
+  - :or => (:any => true, A) -> :any => true
 - `:not` has the highest precedence in SMARTS, but only in the case like [!C],
   De Morgan's law will be applied to remove `:and` under `:not`.
-  (ex. :not => (:and => (:atomsymbol => :C, :isaromatic => false)
+  (e.g. :not => (:and => (:atomsymbol => :C, :isaromatic => false)
    -> :or => (:not => (:atomsymbol => :C), isaromatic => true)
 """
-function optimize_query(tree)
-    tree isa QueryOperator || return tree
+function optimize!(tree::QueryTree{T,U}) where {T<:Integer,U<:QueryNode}
+    # TODO: possibly unnecessary
+
     # Remove `:and` under `:not`
-    if tree.key === :not
-        cld = tree.value[1]
-        if cld.key === :and
-            vals = Union{QueryAny,QueryLiteral,QueryOperator}[]
-            for c in cld.value
-                push!(vals, c.key === :not ? c.value[1] : QueryOperator(:not, [c]))
-            end
-            return QueryOperator(:or, vals)
+    toremove = []
+    # Traverse from leafs to the root
+    revtopo = topological_sort(reverse(tree.graph))
+    for i in revtopo
+        tree.vprops[i].operator === :not || continue
+        c = only(outneighbors(tree.graph, i))
+        tree.vprops[c].operator === :and || continue
+        succs = outneighbors(tree.graph, c)
+        set_qnode!(tree, i, qor())
+        push!(toremove, c)
+        for succ in succs  # by-pass qor -> qnot -> successors
+            newc = add_qnode!(tree, i, qnot())
+            add_qedge!(tree, newc, succ)
         end
-        return tree
     end
     # Absorption
-    clds = Union{QueryAny,QueryLiteral,QueryOperator}[]
-    for cld in tree.value
-        op = optimize_query(cld)
-        op isa QueryAny && tree.key === :and && (cld.value ? continue : (return op))
-        op isa QueryAny && tree.key === :or && (cld.value ? (return op) : continue)
-        push!(clds, op)
+    for i in revtopo
+        prop = tree.vprops[i]
+        succs = outneighbors(tree.graph, i)
+        if prop.operator in (:eq, :any)
+            @assert isempty(succs)
+            continue
+        elseif prop.operator === :not
+            @assert length(succs) == 1
+            continue
+        end
+        @assert prop.operator in (:and, :or) && !isempty(succs)
+        smap = Dict{T,U}()
+        anys = T[]
+        for s in succs
+            tree.vprops[s] in values(smap) && continue
+            if tree.vprops[s].operator === :any
+                push!(anys, s)
+            else
+                smap[s] = tree.vprops[s]
+            end
+        end
+        parent = inneighbors(tree.graph, i)
+        append!(toremove, setdiff(succs, keys(smap)))  # remove duplicates
+        if length(smap) == 1
+            # :and => (:foo,:any) -> :foo
+            # :and/or => (:foo,) -> :foo
+            # :and/or => (:foo,:foo) -> :foo
+            push!(toremove, i)
+            isempty(parent) || add_qedge!(tree, parent, only(keys(smap)))
+        elseif (isempty(smap) || prop.operator === :or) && !isempty(anys)
+            # :and => (:any,:any) -> :any
+            # :or => (:foo,:any) -> :any
+            push!(toremove, i)
+            isempty(parent) || add_qedge!(tree, parent, qanytrue())
+        end
     end
-    isempty(clds) && return QueryAny(tree.key === :and)
-    length(clds) == 1 && return clds[1]
-    return QueryOperator(tree.key, clds)
+    rem_qnodes!(tree, toremove)
+    return
+end
+
+
+"""
+    preprocess!(qmol::QueryMolGraph, smarts::String)
+
+The default SMARTS preprocessor called after when SMARTS is parsed.
+"""
+function preprocess!(qmol::QueryMolGraph)
+    smarts = qmol.gprops.smarts_input
+    if occursin(r"-", smarts) && occursin(r"#[1-9]", smarts)
+        specialize_nonaromatic!(qmol)
+    end
+    if occursin(r"#1", smarts)
+        remove_hydrogens!(qmol)
+    end
+    return
 end

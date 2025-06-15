@@ -75,3 +75,37 @@ function line_graph(g::SimpleGraph{T}) where T
     end
     return l, revmap, sharednode
 end
+
+
+"""
+    disjoint_union!(g::T, h::T) where {T<:Graphs.AbstractSimpleGraph} -> Nothing
+
+Add all vertices and edges in graph h to graph g.
+
+Vertices in h will be re-indexed using `i -> i + nv(g)` not to overlap with g vertices.
+"""
+function disjoint_union!(g::T, h::T) where {T<:Graphs.AbstractSimpleGraph}
+    gnv = nv(g)
+    for i in 1:nv(h)
+        push!(g.fadjlist, eltype(T)[])
+        if is_directed(g)
+            push!(g.badjlist, eltype(T)[])
+        end
+    end
+    for e in edges(h)
+        add_edge!(g, src(e) + gnv, dst(e) + gnv)
+    end
+    return
+end
+
+
+"""
+    disjoint_union(g::T, h::T) where {T<:Graphs.AbstractSimpleGraph} -> Nothing
+
+Return disjoint union of the graph. see `disjoint_union!`
+"""
+function disjoint_union(g::T, h::T) where {T<:Graphs.AbstractSimpleGraph}
+    g_ = deepcopy(g)
+    disjoint_union!(g_, h)
+    return g_
+end

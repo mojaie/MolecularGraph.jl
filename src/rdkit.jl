@@ -38,6 +38,9 @@ function molgraph_from_dict(
             u, v = b["stereoAtoms"]
             gps.stereobond[edge] = (u + 1, v + 1, iscis[b["stereo"]])
         end
+        delete!(b, "atoms")
+        delete!(b, "stereo")
+        delete!(b, "stereoAtoms")
         eps[edge] = CommonChemBond(b)
     end
     g = SimpleGraph(es)

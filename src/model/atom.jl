@@ -11,21 +11,24 @@
     Number::Int = 0
     Symbol::String = ""
 end
+
 Base.getindex(iso::Isotope, k::String) = getproperty(iso, Symbol(k))
+
 
 @kwdef mutable struct AtomTable
     WeightType::String = ""
-    Isotopes::Vector{Isotope} = []
+    Isotopes::Vector{Isotope} = Isotope[]
     WeightHigher::Float64 = NaN
     WeightLower::Float64 = NaN
     WeightUncertainty::Float64 = NaN
-    Notes::Vector{String} = []
+    Notes::Vector{String} = String[]
     Monoisotopic::Float64 = NaN
     Number::Int = 0
     Weight::Float64 = NaN
     Symbol::String = ""
     MonoisotopicUncertainty::Float64 = NaN
 end
+
 Base.getindex(a::AtomTable, k::String) = getproperty(a, Symbol(k))
 
 const ATOMTABLE = let
@@ -59,7 +62,7 @@ end
 const ATOMSYMBOLMAP = let
     symbolfile = joinpath(dirname(@__FILE__), "../../assets/const/symboltonumber.yaml")
     include_dependency(symbolfile)
-    YAML.load(open(symbolfile); dicttype=Dict{String,Int})
+    YAML.load(open(symbolfile); dicttype=Dict{Symbol,Int})
 end
 
 const ATOM_COVALENT_RADII = let
@@ -107,6 +110,7 @@ atom_charge(a::AbstractDict) = a[:charge]
 multiplicity(a::AbstractDict) = a[:multiplicity]
 atom_mass(a::AbstractDict) = a[:mass]
 
+
 """
     atom_number(atomsymbol::Symbol) -> Int
     atom_number(atomprop::SDFAtom) -> Int
@@ -115,7 +119,7 @@ atom_mass(a::AbstractDict) = a[:mass]
 
 Return atom number.
 """
-atom_number(atomsymbol::Symbol) = ATOMSYMBOLMAP[string(atomsymbol)]
+atom_number(atomsymbol::Symbol) = ATOMSYMBOLMAP[atomsymbol]
 
 
 """
@@ -140,17 +144,22 @@ struct SDFAtom
     multiplicity::Int
     mass::Union{Int,Nothing}
     coords::Union{Vector{Float64},Nothing}
-
-    function SDFAtom(sym=:C, chg=0, mul=1, ms=nothing, coords=nothing)
-        haskey(ATOMSYMBOLMAP, string(sym)) || error("Unsupported atom symbol: $(sym)")
-        new(sym, chg, mul, ms, coords)
-    end
 end
 
-SDFAtom(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFAtom(
-    Symbol(d[T("symbol")]), d[T("charge")], d[T("multiplicity")],
-    d[T("mass")], d[T("coords")])
-SDFAtom(arr::Vector) = SDFAtom(Symbol(arr[1]), arr[2], arr[3], arr[4], arr[5])
+function SDFAtom(;
+        symbol::Union{AbstractString,Symbol}=:C, 
+        charge::Int=0,
+        multiplicity::Int=1,
+        mass::Union{Int,Nothing}=nothing,
+        coords::Union{Vector,Nothing}=nothing)
+    haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("Unsupported atom symbol: $(symbol)")
+    return SDFAtom(Symbol(symbol), charge, multiplicity, mass, coords)
+end
+
+SDFAtom(d::Dict{String,Any}
+    ) = SDFAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
+SDFAtom(d::Dict{Symbol,Any}
+    ) = SDFAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
 Base.getindex(a::SDFAtom, prop::Symbol) = getproperty(a, prop)
 Base.:(==)(a1::SDFAtom, a2::SDFAtom) = all(
@@ -165,14 +174,23 @@ multiplicity(a::SDFAtom) = a.multiplicity
 atom_mass(a::SDFAtom) = a.mass
 
 ELEMENT_TYPE_REGISTRY["SDFAtom"] = SDFAtom
-to_dict(::Val{:default}, a::SDFAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.coords]
+
+function to_dict(::Val{:default}, a::SDFAtom)
+    rcd = Dict{String,Any}()
+    a.symbol === :C || setindex!(rcd, string(a.symbol), "symbol")
+    a.charge == 0 || setindex!(rcd, a.charge, "charge")
+    a.multiplicity == 1 || setindex!(rcd, a.multiplicity, "multiplicity")
+    isnothing(a.mass) || setindex!(rcd, a.mass, "mass")
+    isnothing(a.coords) || setindex!(rcd, a.coords, "coords")
+    return rcd
+end
 
 function to_dict(::Val{:rdkit}, a::SDFAtom)
     rcd = Dict{String,Any}()
-    a.symbol === :C || (rcd["z"] = atom_number(a.symbol))
-    a.charge == 0 || (rcd["chg"] = a.charge)
-    a.multiplicity == 1 || (rcd["nRad"] = a.multiplicity - 1)
-    isnothing(a.mass) || (rcd["isotope"] = a.mass)
+    a.symbol === :C || setindex!(rcd, atom_number(a.symbol), "z")
+    a.charge == 0 || setindex!(rcd, a.charge, "chg")
+    a.multiplicity == 1 || setindex!(rcd, a.multiplicity - 1, "nRad")
+    isnothing(a.mass) || setindex!(rcd, a.mass, "isotope")
     return rcd
 end
 
@@ -187,21 +205,25 @@ struct SMILESAtom
     charge::Int
     multiplicity::Int
     mass::Union{Int,Nothing}
-    isaromatic::Union{Bool,Nothing}
+    isaromatic::Bool
     stereo::Symbol
-
-    function SMILESAtom(sym=:C, chg=0, mul=1, ms=nothing, isarom=false, stereo=:unspecified)
-        new(sym, chg, mul, ms, isarom, stereo)
-    end
 end
 
-# U may be necessary to determine whether T is String (for seriarization) or Symbol (for SMILES parser)
-SMILESAtom(d::Dict{T,U}) where {T<:Union{AbstractString,Symbol},U} = SMILESAtom(
-    Symbol(get(d, T("symbol"), :C)), get(d, T("charge"), 0),
-    get(d, T("multiplicity"), 1), get(d, T("mass"), nothing),
-    get(d, T("isaromatic"), false), Symbol(get(d, T("stereo"), :unspecified))
-)
-SMILESAtom(arr::Vector) = SMILESAtom(Symbol(arr[1]), arr[2], arr[3], arr[4], arr[5], Symbol(arr[6]))
+function SMILESAtom(;
+        symbol::Union{AbstractString,Symbol}=:C,
+        charge::Int=0,
+        multiplicity::Int=1,
+        mass::Union{Int,Nothing}=nothing,
+        isaromatic::Bool=false,
+        stereo::Union{String,Symbol}=:unspecified)
+    return SMILESAtom(
+        Symbol(symbol), charge, multiplicity, mass, isaromatic, Symbol(stereo))
+end
+
+SMILESAtom(d::Dict{String,Any}
+    ) = SMILESAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
+SMILESAtom(d::Dict{Symbol,Any}
+    ) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
 Base.getindex(a::SMILESAtom, prop::Symbol) = getproperty(a, prop)
 Base.:(==)(a1::SMILESAtom, a2::SMILESAtom) = all(
@@ -216,14 +238,24 @@ multiplicity(a::SMILESAtom) = a.multiplicity
 atom_mass(a::SMILESAtom) = a.mass
 
 ELEMENT_TYPE_REGISTRY["SMILESAtom"] = SMILESAtom
-to_dict(::Val{:default}, a::SMILESAtom) = Any[a.symbol, a.charge, a.multiplicity, a.mass, a.isaromatic, a.stereo]
+
+function to_dict(::Val{:default}, a::SMILESAtom)
+    rcd = Dict{String,Any}()
+    a.symbol === :C || setindex!(rcd, string(a.symbol), "symbol")
+    a.charge == 0 || setindex!(rcd, a.charge, "charge")
+    a.multiplicity == 1 || setindex!(rcd, a.multiplicity, "multiplicity")
+    isnothing(a.mass) || setindex!(rcd, a.mass, "mass")
+    a.isaromatic === false || setindex!(rcd, a.isaromatic, "isaromatic")
+    a.stereo === :unspecified || setindex!(rcd, string(stereo), "stereo")
+    return rcd
+end
 
 function to_dict(::Val{:rdkit}, a::SMILESAtom)
     rcd = Dict{String,Any}()
-    a.symbol === :C || (rcd["z"] = atom_number(a.symbol))
-    a.charge == 0 || (rcd["chg"] = a.charge)
-    a.multiplicity == 1 || (rcd["nRad"] = a.multiplicity - 1)
-    isnothing(a.mass) || (rcd["isotope"] = a.mass)
+    a.symbol === :C || setindex!(rcd, atom_number(a.symbol), "z")
+    a.charge == 0 || setindex!(rcd, a.charge, "chg")
+    a.multiplicity == 1 || setindex!(rcd, a.multiplicity - 1, "nRad")
+    isnothing(a.mass) || setindex!(rcd, a.mass, "isotope")
     return rcd
 end
 
@@ -237,22 +269,26 @@ struct CommonChemAtom
     z::Int
     chg::Int
     impHs::Int
-    mass::Int
+    isotope::Int
     nRad::Int
     stereo::Symbol
-
-    function CommonChemAtom(z=6, chg=0, impHs=0, mass=0, nRad=0, stereo=:unspecified)
-        z <= length(ATOMTABLE) || error("Unsupported atom number: $(z)")
-        new(z, chg, impHs, mass, nRad, stereo)
-    end
 end
 
-CommonChemAtom(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = CommonChemAtom(
-    get(d, T("z"), 6), get(d, T("chg"), 0), get(d, T("impHs"), 0),
-    get(d, T("mass"), 0), get(d, T("nRad"), 0), Symbol(get(d, T("stereo"), :unspecified))
-)
-CommonChemAtom(arr::Vector) = CommonChemAtom(
-    arr[1], arr[2], arr[3], arr[4], arr[5], Symbol(arr[6]))
+function CommonChemAtom(;
+        z::Int=6,
+        chg::Int=0,
+        impHs::Int=0,
+        isotope::Int=0,
+        nRad::Int=0,
+        stereo::Union{AbstractString,Symbol}=:unspecified)
+    z <= length(ATOMTABLE) || error("Unsupported atom number: $(z)")
+    return CommonChemAtom(z, chg, impHs, isotope, nRad, Symbol(stereo))
+end
+
+CommonChemAtom(d::Dict{String,Any}
+    ) = CommonChemAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
+CommonChemAtom(d::Dict{Symbol,Any}
+    ) = CommonChemAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
 Base.getindex(a::CommonChemAtom, prop::Symbol) = getproperty(a, prop)
 Base.:(==)(a1::CommonChemAtom, a2::CommonChemAtom) = all(
@@ -264,18 +300,17 @@ atom_symbol(a::CommonChemAtom) = atom_symbol(a.z)
 atom_number(a::CommonChemAtom) = a.z
 atom_charge(a::CommonChemAtom) = a.chg
 multiplicity(a::CommonChemAtom) = a.nRad + 1
-atom_mass(a::CommonChemAtom) = a.mass == 0 ? nothing : a.mass
+atom_mass(a::CommonChemAtom) = a.isotope == 0 ? nothing : a.mass
 
 ELEMENT_TYPE_REGISTRY["CommonChemAtom"] = CommonChemAtom
-to_dict(::Val{:default}, a::CommonChemAtom) = Any[a.z, a.chg, a.impHs, a.mass, a.nRad, a.stereo]
 
-function to_dict(::Val{:rdkit}, a::CommonChemAtom)
+function to_dict(::Val, a::CommonChemAtom)
     rcd = Dict{String,Any}()
-    a.z == 6 || (rcd["z"] = a.z)
-    a.chg == 0 || (rcd["chg"] = a.chg)
-    a.impHs == 0 || (rcd["impHs"] = a.impHs)
-    a.mass == 0 || (rcd["mass"] = a.mass)
-    a.nRad == 0 || (rcd["nRad"] = a.nRad)
-    a.stereo === :unspecific || (rcd["stereo"] = a.stereo)
+    a.z == 6 || setindex!(rcd, a.z, "z")
+    a.chg == 0 || setindex!(rcd, a.chg, "chg")
+    a.impHs == 0 || setindex!(rcd, a.impHs, "impHs")
+    a.isotope == 0 || setindex!(rcd, a.isotope, "isotope")
+    a.nRad == 0 || setindex!(rcd, a.nRad, "nRad")
+    a.stereo === :unspecific || setindex!(rcd, a.stereo, "stereo")
     return rcd
 end

@@ -24,12 +24,31 @@ include("./util/iterator.jl")
 include("./util/math.jl")
 
 
-# Graph models and algorithms
+# Interfaces
 
-using DelimitedFiles: readdlm
 using Graphs
 
 include("./model/interface.jl")
+include("./property/interface.jl")
+include("./draw/interface.jl")
+
+export
+    AbstractMolGraph, SimpleMolGraph,
+    AbstractReaction, Reaction,
+    QueryTree, QueryMolGraph, 
+    vproptype, eproptype,
+    props, vprops, eprops,
+    get_prop, has_prop,
+    set_state!, get_state,
+    set_cache!, has_cache, get_cache, clear_caches!,
+    set_prop!, update_edge_rank!,
+    edge_neighbors, ordered_edge_neighbors
+
+
+# Graph models and algorithms
+
+using DelimitedFiles: readdlm
+
 include("./model/atom.jl")
 include("./model/bond.jl")
 include("./model/molgraph.jl")
@@ -52,18 +71,8 @@ export
     atom_number, atom_symbol, atom_charge, multiplicity, atom_mass,
     SDFBond, SMILESBond, CommonChemBond,
     bond_order,
-    AbstractMolGraph, SimpleMolGraph,
     MolGraph, SDFMolGraph, SMILESMolGraph, CommonChemMolGraph,
-    SMARTSMolGraph,
-    QueryAny, QueryLiteral, QueryOperator, QueryTree, QueryTruthTable,
-    AbstractReaction, Reaction,
-    vproptype, eproptype,
-    props, vprops, eprops,
-    get_prop, has_prop,
-    set_state!, get_state,
-    set_cache!, has_cache, get_cache, clear_caches!,
-    set_prop!, update_edge_rank!,
-    edge_neighbors, ordered_edge_neighbors
+    QueryAtom, QueryBond
 
 export
     maxcardmap, maxcard,
@@ -85,7 +94,28 @@ export
     isplanar, isouterplanar
 
 
-# Preprocessing
+# Basic molecular properties
+
+include("property/topology.jl")
+include("property/valence.jl")
+include("property/hybridization.jl")
+
+export
+    sssr, sssr!,
+    which_ring, edge_which_ring, fused_rings, which_fused_ring,
+    smallest_ring, ring_count, is_in_ring, is_edge_in_ring,
+    lone_pair, lone_pair!, apparent_valence, apparent_valence!, valence, valence!,
+    explicit_hydrogens, implicit_hydrogens, heavy_atoms,
+    total_hydrogens, connectivity,
+    is_hydrogen_donor, hydrogen_donor_count,
+    is_hydrogen_acceptor, hydrogen_acceptor_count,
+    is_rotatable, rotatable_count,
+    atom_counter, heavy_atom_count, molecular_formula, empirical_formula,
+    pi_electron, pi_delocalized, hybridization, hybridization_delocalized,
+    is_ring_aromatic, is_ring_aromatic!, is_aromatic, is_edge_aromatic
+
+
+# Preprocessing and molecule manipulation
 
 using coordgenlibs_jll: libcoordgen
 
@@ -106,34 +136,6 @@ export
     depolarize, depolarize!, polarize, polarize!,
     to_triple_bond, to_triple_bond!, to_allene_like, to_allene_like!
 
-
-# Molecule drawing
-
-import Cairo
-using Colors: RGB, RGBA, N0f8, hex, coloralpha
-using MakieCore:
-    @recipe, Theme, meshscatter!, mesh!
-import MakieCore
-import Statistics
-
-
-include("./draw/color.jl")
-include("./draw/interface.jl")
-include("./draw/draw2d.jl")
-include("./draw/svg.jl")
-include("./draw/cairo.jl")
-include("./draw/draw3d.jl")
-
-export
-    drawsvg, drawpng,
-    html_fixed_size, html_grid,
-    atom_radius,
-    spacefilling, spacefilling!,
-    ballstick, ballstick!,
-    stick, stick!,
-    wire, wire!
-
-
 # I/O
 
 import Dates
@@ -149,6 +151,7 @@ include("./smarts/logicaloperator.jl")
 include("./smarts/molecule.jl")
 
 export
+    SMARTSMolGraph,
     to_dict, to_json,
     SDFileReader,
     sdfilereader, rdfilereader, sdfilescanner,
@@ -167,27 +170,12 @@ using RDKitMinimalLib:
     get_pattern_fp_as_bytes, get_atom_pair_fp_as_bytes,
     get_topological_torsion_fp_as_bytes
 
-include("properties.jl")
 include("mass.jl")
 include("wclogp.jl")
 include("rdkit.jl")
 include("inchi.jl")
 include("structurematch.jl")
 include("querycontainment.jl")
-
-export
-    sssr, sssr!,
-    which_ring, edge_which_ring, fused_rings, which_fused_ring,
-    smallest_ring, ring_count, is_in_ring, is_edge_in_ring,
-    lone_pair, lone_pair!, apparent_valence, apparent_valence!, valence, valence!,
-    explicit_hydrogens, implicit_hydrogens, heavy_atoms,
-    total_hydrogens, connectivity,
-    is_hydrogen_donor, hydrogen_donor_count,
-    is_hydrogen_acceptor, hydrogen_acceptor_count,
-    is_rotatable, rotatable_count,
-    atom_counter, heavy_atom_count, molecular_formula, empirical_formula,
-    pi_electron, pi_delocalized, hybridization, hybridization_delocalized,
-    is_ring_aromatic, is_ring_aromatic!, is_aromatic, is_edge_aromatic
 
 export
     monoiso_mass_unc, monoiso_mass, nominal_mass,
@@ -222,6 +210,32 @@ export
     wclogpcontrib, wclogp
 
 export query_containment_diagram, find_queries
+
+
+# Molecule drawing
+
+import Cairo
+using Colors: RGB, RGBA, N0f8, hex, coloralpha
+using MakieCore:
+    @recipe, Theme, meshscatter!, mesh!
+import MakieCore
+import Statistics
+
+
+include("./draw/color.jl")
+include("./draw/draw2d.jl")
+include("./draw/svg.jl")
+include("./draw/cairo.jl")
+include("./draw/draw3d.jl")
+
+export
+    drawsvg, drawpng,
+    html_fixed_size, html_grid,
+    atom_radius,
+    spacefilling, spacefilling!,
+    ballstick, ballstick!,
+    stick, stick!,
+    wire, wire!
 
 
 # Package compiler

@@ -18,18 +18,11 @@ function remap(::Val{:smarts_lexical_succ}, gprop::MolGraphProperty{T}, vmap::Di
     return vec
 end
 
-to_dict(
-    ::Val{:default}, ::Val{:smarts_connectivity}, gprop::MolGraphProperty
-) = gprop.smarts_connectivity
-reconstruct(::Val{:smarts_connectivity}, gprop::MolGraphProperty, data) = data
-# TODO: modification of SMARTS not supported
-remap(
-    ::Val{:smarts_connectivity}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
-) where T = gprop.smarts_connectivity
+
+abstract type AbstractSMARTSParser{T,V,E} end
 
 
-
-mutable struct SMILESParser{T,V,E}
+mutable struct SMILESParser{T,V,E} <: AbstractSMARTSParser{T,V,E}
     input::String
     pos::Int
     done::Bool
@@ -49,7 +42,7 @@ SMILESParser{T}(smiles
 
 
 
-mutable struct SMARTSParser{T,V,E}
+mutable struct SMARTSParser{T,V,E} <: AbstractSMARTSParser{T,V,E}
     input::String
     pos::Int
     done::Bool
@@ -90,6 +83,13 @@ function smiles_on_update!(mol)
     is_ring_aromatic!(mol)
 end
 
+function smarts_on_init!(mol)
+    preprocess!(mol)
+    set_state!(mol, :initialized, true)
+end
+
+const SMARTSMolGraph = MolGraph{Int,QueryAtom,QueryBond}
+
 
 """
     smilestomol(smiles::AbstractString) -> GraphMol{SmilesAtom,SmilesBond}
@@ -104,12 +104,13 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
 function smilestomol(
-        ::Type{T}, smiles::AbstractString; kwargs...) where T <: AbstractMolGraph
+        ::Type{T}, smiles::AbstractString; kwargs...) where T <: SimpleMolGraph
     state = SMILESParser{T}(smiles)
     fragment!(state)
     # original edge index
     gprops = MolGraphProperty{eltype(T)}()
     gprops.smarts_lexical_succ = state.succ
+    gprops.smarts_input = string(smiles)
     return T(state.edges, state.vprops, state.eprops,
         gprops=gprops, on_init=smiles_on_init!,
         on_update=smiles_on_update!; kwargs...)
@@ -125,41 +126,25 @@ smilestomol(smiles::AbstractString; kwargs...
 Parse SMARTS string into `QueryMol` object.
 """
 function smartstomol(
-        ::Type{T}, ::Type{V}, ::Type{E}, smarts::AbstractString; kwargs...) where {T,V,E}
-    state = SMARTSParser{MolGraph{T,V,E}}(smarts)
+        ::Type{T}, smarts::AbstractString; kwargs...) where T <: SimpleMolGraph
+    state = SMARTSParser{T}(smarts)
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
-    gprops = MolGraphProperty{T}()
+    gprops = MolGraphProperty{eltype(T)}()
     gprops.smarts_lexical_succ = state.succ
     gprops.smarts_connectivity = state.connectivity
-    return MolGraph{T,V,E}(state.edges, state.vprops, state.eprops,
-        gprops=gprops; kwargs...)
+    gprops.smarts_input = string(smarts)
+    return T(state.edges, state.vprops, state.eprops,
+        gprops=gprops, on_init=smarts_on_init!; kwargs...)
 end
 
-function smartstomol(
-        ::Type{MolGraph{T,V,E}}, smarts::AbstractString; kwargs...
-        ) where {T,V<:QueryTree,E<:QueryTree}
-    mol = smartstomol(T, V, E, smarts; kwargs)
-    specialize_nonaromatic!(mol)
-    remove_hydrogens!(mol)
-    for i in vertices(mol)
-        set_prop!(mol, i, QueryTree(optimize_query(get_prop(mol, i, :tree))))
-    end
-    return mol
-end
-
-# Just for testing
-smartstomol(
-    ::Type{MolGraph{T,V,E}}, smarts::AbstractString; kwargs...
-) where {T,V<:QueryTruthTable,E<:QueryTruthTable} = smartstomol(T, V, E, smarts; kwargs)
-
-smartstomol(smarts::AbstractString
-    ) = smartstomol(MolGraph{Int,QueryTree,QueryTree}, smarts)
+smartstomol(smarts::AbstractString; kwargs...
+    ) = smartstomol(MolGraph{Int,QueryAtom,QueryBond}, smarts; kwargs...)
 
 
 
 # internal parser methods
 
-function lookahead(state::Union{SMILESParser,SMARTSParser}, pos::Int)
+function lookahead(state::AbstractSMARTSParser, pos::Int)
     # Negative pos can be used
     newpos = state.pos + pos
     if newpos > length(state.input) || newpos < 1
@@ -174,10 +159,10 @@ function lookahead(state::Union{SMILESParser,SMARTSParser}, pos::Int)
     end
 end
 
-Base.read(state) = lookahead(state, 0)  # TODO: rename
+Base.read(state::AbstractSMARTSParser) = lookahead(state, 0)  # TODO: rename
 
 
-function forward!(state::Union{SMILESParser,SMARTSParser}, num::Int)
+function forward!(state::AbstractSMARTSParser, num::Int)
     # Negative num can be used
     state.pos += num
     if state.pos > length(state.input)
@@ -189,6 +174,6 @@ function forward!(state::Union{SMILESParser,SMARTSParser}, num::Int)
     end
 end
 
-forward!(state) = forward!(state, 1)
-backtrack!(state, num) = forward!(state, -num)
-backtrack!(state) = backtrack!(state, 1)
+forward!(state::AbstractSMARTSParser) = forward!(state, 1)
+backtrack!(state::AbstractSMARTSParser, num::Int) = forward!(state, -num)
+backtrack!(state::AbstractSMARTSParser) = backtrack!(state, 1)

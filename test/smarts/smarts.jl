@@ -2,36 +2,45 @@
 @testset "smarts.smarts" begin
 
 @testset "smarts" begin
-    SMARTSTT = MolGraph{Int,QueryTruthTable,QueryTruthTable}
     nullmol = smartstomol("")
     @test nv(nullmol) == 0
     @test ne(nullmol) == 0
 
-    aliphatic = smartstomol(SMARTSTT, "C")
-    @test props(aliphatic, 1) == QueryTruthTable(
-        v -> v[2] & ~v[1], [(:isaromatic,), (:symbol, :C)])
+    aliphatic = smartstomol("C")
+    props(aliphatic, 1) == QueryAtom(
+        [(1, 2), (1, 3), (3, 4)],
+        [qand(), qeq(:symbol, "C"), qnot(), qtrue(:isaromatic)])
     @test ne(aliphatic) == 0
 
-    carbonyl = smartstomol(SMARTSTT, "[CX3]=[OX1]")
-    @test props(carbonyl, 1) == QueryTruthTable(
-        v -> v[3] & ~v[2] & v[1], [(:connectivity, 3), (:isaromatic,), (:symbol, :C)])
-    @test props(carbonyl, 2) == QueryTruthTable(
-        v -> v[3] & ~v[2] & v[1], [(:connectivity, 1), (:isaromatic,), (:symbol, :O)])
+    carbonyl = smartstomol("[CX3]=[OX1]")
+    @test props(carbonyl, 1) == QueryAtom(
+        [(1, 2), (1, 3), (3, 4), (3, 5), (5, 6)],
+        [qand(), qeq(:connectivity, "3"), qand(), qeq(:symbol, "C"),
+        qnot(), qtrue(:isaromatic)])
+    @test props(carbonyl, 2) == QueryAtom(
+        [(1, 2), (1, 3), (3, 4), (3, 5), (5, 6)],
+        [qand(), qeq(:connectivity, "1"), qand(), qeq(:symbol, "O"),
+        qnot(), qtrue(:isaromatic)])
 
-    ether = smartstomol(SMARTSTT, "[#6][OD2][#6]")
-    @test props(ether, 1) == QueryTruthTable(v -> v[1], [(:symbol, :C)])
-    @test props(ether, 2) == QueryTruthTable(
-        v -> v[3] & ~v[2] & v[1], [(:degree, 2), (:isaromatic,), (:symbol, :O)])
+    ether = smartstomol("[#6][OD2][#6]")
+    @test props(ether, 1) == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")])
+    @test props(ether, 2) == QueryAtom(
+        [(1, 2), (1, 3), (3, 4), (3, 5), (5, 6)],
+        [qand(), qeq(:degree, "2"), qand(), qeq(:symbol, "O"),
+        qnot(), qtrue(:isaromatic)])
 
-    notH = smartstomol(SMARTSTT, "[!#1]")
-    @test props(notH, 1) == QueryTruthTable(v -> ~v[1], [(:symbol, :H)])
+    notH = smartstomol("[!#1]")  # [!#1] -> [*] in initialization process
+    @test props(notH, 1) == QueryAtom(Tuple{Int,Int}[], [qanytrue()])
 
-    imine = smartstomol(SMARTSTT, raw"[$([CX3]([#6])[#6]),$([CX3H][#6])]=[$([NX2][#6]),$([NX2H])]")
-    @test props(imine, 1) == QueryTruthTable(
-        v -> v[1] | v[2], [(:recursive, "[CX3H][#6]"), (:recursive, "[CX3]([#6])[#6]")])
+    imine = smartstomol(
+        raw"[$([CX3]([#6])[#6]),$([CX3H][#6])]=[$([NX2][#6]),$([NX2H])]")
+    @test props(imine, 1) == QueryAtom(
+        [(1, 2), (1, 3)],
+        [qor(), qeq(:recursive, "[CX3H][#6]"), qeq(:recursive, "[CX3]([#6])[#6]")])
 
-    @test props(imine, 2) == QueryTruthTable(
-        v -> v[1] | v[2], [(:recursive, "[NX2H]"), (:recursive, "[NX2][#6]")])
+    @test props(imine, 2) == QueryAtom(
+        [(1, 2), (1, 3)],
+        [qor(), qeq(:recursive, "[NX2H]"), qeq(:recursive, "[NX2][#6]")])
 end
 
 end

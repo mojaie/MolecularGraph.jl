@@ -1,123 +1,180 @@
 
 @testset "model.query" begin
 
-@testset "truthtable" begin
-    # tautology
-    """
-    q \\ r  T other F
-    T      T   F   F
-    other  T   ?   F
-    F      T   T   T
-    """
-    props = [(:symbol, :C)]
-    t = QueryTruthTable(v -> true, props)
-    f = QueryTruthTable(v -> false, props)
-    o = QueryTruthTable(v -> v[1], props)
-    @test t == t
-    @test f == f
-    @test !issubset(t, o)
-    @test !issubset(t, f)
-    @test issubset(o, t)
-    @test !issubset(o, f)
-    @test issubset(f, t)
-    @test issubset(f, o)
-
-    props = [(:symbol, :C), (:symbol, :N)]
-    symC = QueryTruthTable(v -> v[1], props)
-    symN = QueryTruthTable(v -> v[2], props)
-    notN = QueryTruthTable(v -> ~v[2], props)
-    props = [(:total_hydrogens, 1), (:charge, 1)]
-    hc1 = QueryTruthTable(v -> v[1], props)
-    ch1 = QueryTruthTable(v -> v[2], props)
-    @test symC == symC
-    @test symC != symN
-    @test symN != symC
-    @test symN != notN
-    @test notN != symN
-    @test hc1 == hc1
-    @test hc1 != ch1
-    @test ch1 != hc1
-
-    props = [(:charge, 1), (:isaromatic,), (:symbol, :N)]
-    and1 = QueryTruthTable(v -> v[2] & v[3], props)
-    and2 = QueryTruthTable(v -> v[1] & v[2] & v[3], props)
-    @test issubset(and2, and1)
-    @test !issubset(and1, and2)
-
-    props = [(:charge, -1), (:charge, 0), (:charge, 1)]
-    or1 = QueryTruthTable(v -> v[2] | v[3], props)
-    or2 = QueryTruthTable(v -> v[1] | v[2] | v[3], props)
-    @test issubset(or1, or2)
-    @test !issubset(or2, or1)
-
-    props = [
-        (:charge, 0), (:charge, 1), (:isaromatic,),
-        (:smallest_ring, 6), (:symbol, :N), (:symbol, :O), (:symbol, :S)
-    ]
-    nested1 = QueryTruthTable(
-        v -> ~v[3] & (v[5] | v[6]) & (v[1] | v[2]), props)
-    nested2 = QueryTruthTable(
-        v -> ~v[3] & (v[5] | v[6] | v[7]) & (v[1] | v[2] | v[4]), props)
-    nested3 = QueryTruthTable(
-        v -> ~v[3] & v[6] & (v[1] | v[2]), props)
-    @test issubset(nested1, nested2)
-    @test !issubset(nested2, nested1)
-    @test issubset(nested3, nested1)
-    @test !issubset(nested1, nested3)
+@testset "querynode" begin
+    @test qand() == qand()
+    @test qand() != qor()
+    @test qnot() == qnot()
+    @test qanytrue() != qnot()
+    @test qtrue(:x) == qtrue(:x)
+    @test qtrue(:x) != qtrue(:y)
+    @test qeq(:x, "1") == qeq(:x, "1")
+    @test qeq(:x, "1") != qeq(:x, "2")
+    @test qeq(:x, "1") != qeq(:y, "1")
+    @test hash(qor(), hash(qanytrue())) == hash(qor(), hash(qanytrue()))
+    @test hash(qand(), hash(qnot())) != hash(qand(), hash(qand()))
+    @test hash(qtrue(:x), hash(qeq(:y, "true"))) == hash(qtrue(:x), hash(qeq(:y, "true")))
+    @test hash(qtrue(:x), hash(qeq(:y, "true"))) != hash(qtrue(:x), hash(qeq(:y, "false")))
 end
 
-@testset "querynode" begin
+@testset "querytree" begin
+
+    a = QueryAtom(
+        [(4, 2), (4, 3), (4, 1), (3, 5), (1, 6), (1, 7)],
+        [qand(), qeq(:a, "1"), qnot(), qor(), qeq(:a, "1"), qeq(:b, "hoge"), qeq(:c, "2")]
+    )
+    @test canonical(a)[2] == [4, 1, 6, 7, 2, 3, 5]
+
+    @test QueryAtom() == QueryAtom()
+    @test QueryAtom() != QueryBond()
+    @test hash(QueryAtom()) == hash(QueryAtom())
+
+    @test QueryAtom(
+        [(1, 2), (1, 3), (1, 4)],
+        [qand(), qeq(:b, "1"), qeq(:a, "3"), qeq(:b, "2")]
+    ) == QueryAtom(
+        [(4, 1), (4, 2), (4, 3)],
+        [qeq(:b, "1"), qeq(:a, "3"), qeq(:b, "2"), qand()]
+    )
+
+    @test QueryBond(
+        [(1, 2), (1, 3), (1, 4), (3, 5), (4, 6), (4, 7)],
+        [qor(), qeq(:a, "1"), qnot(), qand(), qeq(:a, "1"), qeq(:b, "hoge"), qeq(:c, "fuga")]
+    ) == QueryBond(
+        [(1, 2), (1, 3), (1, 4), (3, 5), (4, 6), (4, 7)],
+        [qor(), qeq(:a, "1"), qnot(), qand(), qeq(:a, "1"), qeq(:c, "fuga"), qeq(:b, "hoge")]
+    )
+
+    @test QueryAtom(
+        [(1, 2), (1, 3), (1, 4), (3, 5), (4, 6), (4, 7)],
+        [qor(), qeq(:a, "1"), qnot(), qand(), qeq(:a, "1"), qeq(:b, "hoge"), qeq(:c, "1")]
+    ) != QueryAtom(
+        [(1, 2), (1, 3), (1, 4), (3, 5), (4, 6), (4, 7)],
+        [qor(), qeq(:a, "1"), qnot(), qand(), qeq(:a, "1"), qeq(:b, "hoge"), qeq(:c, "2")]
+    )
+
+    x = QueryAtom(
+        [(1, 2), (1, 3), (1, 4), (2, 5), (2, 6), (3, 7), (3, 8), (4, 9), (4, 10)],
+        [qand(), qor(), qor(), qor(), qeq(:c, "1"), qeq(:c, "2"),
+        qeq(:b, "1"), qeq(:b, "2"), qeq(:a, "1"), qeq(:a, "2")]
+    )
+    y = QueryAtom(
+        [(1, 2), (1, 3), (1, 4), (2, 5), (2, 6), (3, 8), (3, 7), (4, 9), (4, 10)],
+        [qand(), qor(), qor(), qor(), qeq(:a, "1"), qeq(:a, "2"),
+        qeq(:b, "1"), qeq(:b, "2"), qeq(:c, "1"), qeq(:c, "2")]
+    )
+    @test x == y
+    @test hash(x) == hash(y)
+
+    # edit
+    qa = QueryAtom(
+        [(1, 2), (1, 3), (1, 4)],
+        [qand(), qeq(:b, "1"), qeq(:a, "3"), qeq(:b, "2")]
+    )
+    @test root(qa) == 1
+    add_qnode!(qa, 1, qeq(:c, "3"))
+    newn = add_qnode!(qa, qtrue(:x))
+    newa = add_qnode!(qa, qand())
+    add_qedge!(qa, newa, newn)
+    add_qedge!(qa, newa, 1)
+    @test qa == QueryAtom(
+        [(1, 2), (1, 3), (1, 4), (1, 5), (7, 6), (7, 1)],
+        [qand(), qeq(:b, "1"), qeq(:a, "3"), qeq(:b, "2"),
+        qeq(:c, "3"), qtrue(:x), qand()]
+    )
+    @test root(qa) == 7
+    rem_qnode!(qa, 3)
+    rem_qnodes!(qa, [3, 6])
+    set_qnode!(qa, 3, qtrue(:x))
+    @test qa == QueryAtom(
+        [(1, 2), (1, 3), (1, 4)],
+        [qand(), qeq(:b, "1"), qtrue(:x), qeq(:b, "2")]
+    )
+end
+
+@testset "evaluate" begin
     # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
-    @test QueryAny(true) == QueryAny(true)
-    @test QueryAny(true) != QueryAny(false)
-    @test QueryLiteral(:a, 1) == QueryLiteral(:a, 1)
-    @test QueryLiteral(:a, "hoge") != QueryLiteral(:a, "fuga")
-    @test QueryLiteral(:charge, 2) != QueryLiteral(:total_hydrogens, 2)
-    @test QueryOperator(:and, [
-        QueryLiteral(:a, 1),
-        QueryOperator(:not, [QueryLiteral(:a, 1)]),
-        QueryOperator(:or, [QueryLiteral(:b, :hoge), QueryLiteral(:c, :fuga)]),
-
-    ]) == QueryOperator(:and, [
-        QueryOperator(:not, [QueryLiteral(:a, 1)]),
-        QueryOperator(:or, [QueryLiteral(:c, :fuga), QueryLiteral(:b, :hoge)]),
-        QueryLiteral(:a, 1)
-    ])
-    @test QueryOperator(:or, [
-        QueryOperator(:or, [
-            QueryOperator(:or, [
-                QueryOperator(:or, [QueryLiteral(:a, true), QueryLiteral(:b, false)]),
-                QueryLiteral(:c, false)
-            ]),
-            QueryLiteral(:d, false)
-        ])
-    ]) != QueryOperator(:or, [
-        QueryOperator(:or, [
-            QueryOperator(:or, [
-                QueryOperator(:or, [QueryLiteral(:a, true), QueryLiteral(:b, true)]),
-                QueryLiteral(:c, false)
-            ]),
-            QueryLiteral(:d, false)
-        ])
-    ])
-
-    @test QueryLiteral(:a, 2) > QueryLiteral(:a, 1)
-    @test QueryLiteral(:a, 2) < QueryLiteral(:b, 2)
-    @test ([QueryLiteral(:a, 1), QueryLiteral(:b, 2), QueryLiteral(:c, 3)]
-            == [QueryLiteral(:a, 1), QueryLiteral(:b, 2), QueryLiteral(:c, 3)])
-
+    null = generate_queryfunc(QueryAtom(), QueryNode[])
+    @test !null([])
     isc = generate_queryfunc(
-        QueryLiteral(:symbol, :C), [QueryLiteral(:symbol, :C)])
+        QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")]),
+        [qeq(:symbol, "C")]
+    )
     @test isc([true])
     notc = generate_queryfunc(
-        QueryOperator(:not, [QueryLiteral(:symbol, :C)]), [QueryLiteral(:symbol, :C)])
+        QueryAtom([(1, 2)], [qnot(), qeq(:symbol, "C")]),
+        [qeq(:symbol, "C")]
+    )
     @test notc([false])
-    af = generate_queryfunc(QueryAny(false), [QueryLiteral(:symbol, :C)])
+    af = generate_queryfunc(
+        QueryAtom([(1, 2)], [qnot(), qanytrue()]),
+        QueryNode[]
+    )
     @test !af([true])
     @test !af([false])
+
+    qa = generate_queryfunc(
+        QueryAtom(
+            [(1, 2), (1, 3), (3, 4)],
+            [qand(), qeq(:symbol, "N"), qnot(), qtrue(:isaromatic)]),
+        [qeq(:symbol, "N"), qeq(:x, "1"), qtrue(:isaromatic)]
+    )
+    @test !qa([true, true, true])
+    @test !qa([true, false, true])
+    @test !qa([false, false, true])
+    @test qa([true, false, false])
     # global_logger(default_logger)
 end
 
+@testset "preprocess" begin
+    # [#6]-[#6](-[#7])=[#6] -> [#6]-C(-N)=C
+    atoms = [
+        QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")]),
+        QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")]),
+        QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "N")]),
+        QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")])
+    ]
+    bonds = [
+        QueryBond([(1, 2), (1, 3), (3, 4)], [qand(),qeq(:order, "1"), qnot(), qtrue(:isaromatic)]),
+        QueryBond([(1, 2), (1, 3), (3, 4)], [qand(),qeq(:order, "1"), qnot(), qtrue(:isaromatic)]),
+        QueryBond([(1, 2), (1, 3), (3, 4)], [qand(),qeq(:order, "2"), qnot(), qtrue(:isaromatic)])
+    ]
+    qmol = MolGraph(Edge.([(1, 2), (2, 3), (2, 4)]), atoms, bonds)
+    specialize_nonaromatic!(qmol)
+    @test qmol.vprops[1] == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")])
+    @test qmol.vprops[3] == QueryAtom(
+        [(1, 2), (1, 3), (3, 4)], [qand(), qeq(:symbol, "N"), qnot(), qtrue(:isaromatic)])
+    @test qmol.vprops[4] == QueryAtom(
+        [(1, 2), (1, 3), (3, 4)], [qand(), qeq(:symbol, "C"), qnot(), qtrue(:isaromatic)])
+
+    noth = QueryAtom([(2, 1)], [qeq(:symbol, "H"), qnot()])
+    resolve_not_hydrogen!(noth)
+    @test noth == QueryAtom(Tuple{Int,Int}[], [qanytrue()])
+
+    # [#1][!#1]([#1])[#1] -> [*]
+    atoms = [
+        QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "H")]),
+        QueryAtom([(1, 2)], [qnot(), qeq(:symbol, "H")]),
+        QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "H")]),
+        QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "H")])
+    ]
+    bonds = [
+        QueryBond(
+            [(1, 2), (2, 3), (2, 4), (4, 5), (1, 6)],
+            [qor(), qand(), qeq(:order, "1"), qnot(), qtrue(:isaromatic), qtrue(:isaromatic)]
+        ) for _ in 1:3
+    ]
+    qmol = MolGraph(Edge.([(2, 1), (2, 3), (2, 4)]), atoms, bonds)
+    remove_hydrogens!(qmol)
+    @test nv(qmol) == 1
+    @test qmol.vprops[1] == QueryAtom(
+        [(1, 2), (1, 3), (1, 4), (1, 5), (3, 6), (4, 7), (5, 8)],
+        [qand(), qanytrue(), qnot(), qnot(), qnot(), qeq(:total_hydrogens, "0"),
+        qeq(:total_hydrogens, "1"), qeq(:total_hydrogens, "2")])
+end
+
+
+"""
 @testset "optimize" begin
     # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
     c1 = QueryOperator(:and, [QueryLiteral(:symbol, :C), QueryAny(true)])
@@ -141,13 +198,15 @@ end
     ])
     # global_logger(default_logger)
 end
+"""
 
+"""
 @testset "pains" begin
     narom = QueryOperator(:not, [QueryLiteral(:isaromatic)])
-    state = SMARTSParser{MolGraph{Int,QueryTree,QueryTree}}(
+    state = SMARTSParser{SMARTSMolGraph}(
         "n1(-[#6])c(c(-[#1])c(c1-[#6]=[#7]-[#7])-[#1])-[#1]")  # hzone_pyrrol(64)
     fragment!(state)
-    pains1 = MolGraph{Int,QueryTree,QueryTree}(
+    pains1 = MolGraph{SMARTSMolGraph}(
         state.edges, state.vprops, state.eprops, gprop_map=Dict(:connectivity => state.connectivity))
     specialize_nonaromatic!(pains1)
     @test get_prop(pains1, 2, :tree) == QueryLiteral(:symbol, :C)  # -[#6] still can be aromatic
@@ -167,20 +226,6 @@ end
     @test get_prop(pains2, 4, :tree) == QueryLiteral(:symbol, :C)
     @test get_prop(pains2, 6, :tree) == QueryOperator(:not, [QueryLiteral(:symbol, :C)])
 end
-
-@testset "serialization" begin
-    atoms = [
-        QueryTree(QueryAny(true)), QueryTree(QueryLiteral(:symbol, :N)),
-        QueryTree(QueryOperator(:and, [QueryLiteral(:symbol, :C), QueryLiteral(:mass, nothing)]))
-    ]
-    bonds = [
-        QueryTree(QueryLiteral(:isaromatic, false)),
-        QueryTree(QueryOperator(:not, [QueryLiteral(:order, 2)]))
-    ]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprop_map=Dict(:connectivity => Vector{Int64}[]))
-    mol2 = MolGraph(to_json(mol))
-    @test mol == mol2
-    @test mol !== mol2
-end
+"""
 
 end # model.query

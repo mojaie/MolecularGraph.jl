@@ -17,9 +17,45 @@
     @test mol2 isa SMILESMolGraph
     @test mol == mol2
     @test mol !== mol2
+
+    assetdir = joinpath(dirname(@__FILE__), "..", "assets", "test")
+    mol = sdftomol(joinpath(assetdir, "demo.mol"))
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+    mol = sdftomol(joinpath(assetdir, "aspirin_v3.mol"))
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
 end
 
-@testset "serialization" begin
+@testset "smarts" begin
+    atoms = [
+        QueryAtom([(1, 2), (1, 3)], [qor(), qeq(:symbol, "N"), qeq(:symbol, "O")]),
+        QueryAtom([(1, 2), (1, 3)], [qand(), qeq(:symbol, "C"), qeq(:mass, "14")]),
+        QueryAtom([(1, 2)], [qnot(), qtrue(:isaromatic)])
+    ]
+    bonds = [
+        QueryBond(Tuple{Int,Int}[], [qeq(:order, "2")]),
+        QueryBond([(1, 2)], [qnot(), qtrue(:isaromatic)])
+    ]
+    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds)
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+
+    mol = smartstomol(raw"[$([CX3]([#6])[#6]),$([CX3H][#6])]=[$([NX2][#6]),$([NX2H])]")
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+
+    mol = smartstomol("[O,S]=P([O,S])([O,S])[O,S]")
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+end
+
+@testset "smiles" begin
     mol = smilestomol("OCCc1c(C)[n+](=cs1)Cc2cnc(C)nc(N)2")
     mol2 = MolGraph(to_json(mol))
     @test mol == mol2
@@ -34,18 +70,6 @@ end
     sildenafil2 = MolGraph(to_json(sildenafil))
     @test sildenafil == sildenafil2
     @test sildenafil !== sildenafil2
-end
-
-@testset "smarts" begin
-    mol = smartstomol(raw"[$([CX3]([#6])[#6]),$([CX3H][#6])]=[$([NX2][#6]),$([NX2H])]")
-    mol2 = MolGraph(to_json(mol))
-    @test mol == mol2
-    @test mol !== mol2
-
-    mol = smartstomol("[O,S]=P([O,S])([O,S])[O,S]")
-    mol2 = MolGraph(to_json(mol))
-    @test mol == mol2
-    @test mol !== mol2
 end
 
 @testset "rdkit" begin

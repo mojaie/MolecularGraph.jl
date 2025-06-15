@@ -14,6 +14,7 @@ function componentquery!(state::SMARTSParser)
         state.root = state.node + 1
         component!(state)
     end
+    return
 end
 
 
@@ -27,10 +28,11 @@ function component!(state::SMARTSParser)
     c2 = read(state)
     c2 == ')' || error("component not closed: $(c2) found at $(state.pos)")
     forward!(state)
+    return
 end
 
 
-function fragment!(state::Union{SMILESParser,SMARTSParser})
+function fragment!(state::AbstractSMARTSParser)
     """ Fragment <- Group
     """
     read(state) == '\0' && return  # Empty molecule
@@ -38,10 +40,11 @@ function fragment!(state::Union{SMILESParser,SMARTSParser})
     # Validity check
     state.node + 1 == state.root && error("empty group: $(read(state)) found at $(state.pos)")
     length(state.ringlabel) == 0 || error("unclosed ring: $(collect(keys(state.ringlabel))[1])")
+    return
 end
 
 
-function group!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}, bond) where {T,V,E}
+function group!(state::AbstractSMARTSParser{T,V,E}, bond::Union{E,Nothing}) where {T,V,E}
     """ Group <- Atom ((Bond? Group) / Chain)* Chain
     """
     a = atom!(state)
@@ -50,7 +53,7 @@ function group!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}, bond) whe
     state.node += 1
     push!(state.vprops, popfirst!(a))
     push!(state.succ, [])
-    if bond !== nothing
+    if !isnothing(bond)
         # Connect branch
         push!(state.edges, u_edge(T, state.branch, state.node))
         push!(state.eprops, bond)
@@ -92,10 +95,21 @@ function group!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}, bond) whe
             end
         end
     end
+    return
 end
 
 
-function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,V,E}
+function chain_conn!(state::SMARTSParser)
+    for conn in state.connectivity
+        conn[1] == state.root && push!(conn, state.node)
+    end
+    return
+end
+
+function chain_conn!(state::SMILESParser) end
+
+
+function chain!(state::AbstractSMARTSParser{T,V,E}) where {T,V,E}
     """ Chain <- (Bond? (Atom / RingLabel))+
     """
     u = state.branch
@@ -108,7 +122,6 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
         else
             b = something(bond!(state), defaultbond(state))
         end
-
         # RingLabel
         if isdigit(read(state)) || read(state) == '%'
             if read(state) == '%'
@@ -136,7 +149,8 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
                 state.eprops[eidx] = b == db ? rb : b
                 # record lexical order of bonds for stereochemsitry
                 push!(state.succ[u], v)
-                state.succ[v][findfirst(x -> x==-num, state.succ[v])] = u
+                stored = only(findall(x -> x == -num, state.succ[v]))
+                state.succ[v][stored] = u
             else
                 push!(state.edges, Edge{T}(u, u))  # placeholder
                 push!(state.eprops, b)
@@ -159,11 +173,7 @@ function chain!(state::Union{SMILESParser{T,V,E},SMARTSParser{T,V,E}}) where {T,
             push!(state.succ, [])
         end
         if isnothing(b)
-            if isa(state, SMARTSParser)
-                for conn in state.connectivity
-                    conn[1] == state.root && push!(conn, state.node)
-                end
-            end
+            chain_conn!(state)
         else
             push!(state.edges, u_edge(T, u, state.node))
             push!(state.eprops, b)

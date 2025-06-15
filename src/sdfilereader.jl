@@ -16,7 +16,7 @@ function sympair(s)::Pair{Symbol, Union{String, Int}}
 end
 
 
-function ctab_atom_v2(T, line)
+function ctab_atom_v2(::Type{T}, line) where T
     d = Dict{String,Any}()
     xpos = parse(Float64, line[1:10])
     ypos = parse(Float64, line[11:20])
@@ -33,7 +33,7 @@ function ctab_atom_v2(T, line)
     return T(d)
 end
 
-function ctab_atom_v3(T, line)
+function ctab_atom_v3(::Type{T}, line) where T
     d = Dict{String,Any}()
     ss = split(line)
     d["coords"] = parse.(Float64, ss[5:7])

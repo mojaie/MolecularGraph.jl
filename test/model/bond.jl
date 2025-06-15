@@ -3,21 +3,21 @@
 
 @testset "bond" begin
 
-    sdfb = SDFBond(2, 0, true)
+    sdfb = SDFBond(; order=2, isordered=true)
     @test sdfb[:order] == 2
     @test sdfb[:notation] == 0
     @test sdfb[:isordered]
-    sdfb2 = SDFBond([2, 0, true])
-    @test hash(sdfb) == hash(sdfb2)
+    sdfb2 = SDFBond(;order=2, isordered=true)
     @test sdfb == sdfb2
+    @test hash(sdfb) == hash(sdfb2)
 
-    smib = SMILESBond(1, false, :up)
+    smib = SMILESBond(; isaromatic=false, direction=:up)
     @test smib[:order] == 1
     @test smib[:isaromatic] == 0
     @test smib[:direction] === :up
-    smib2 = SMILESBond([1, false, "up"])
-    @test hash(smib) == hash(smib2)
+    smib2 = SMILESBond(; isaromatic=false, direction=:up)
     @test smib == smib2
+    @test hash(smib) == hash(smib2)
 end
 
 end # model.bond

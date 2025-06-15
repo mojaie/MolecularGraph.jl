@@ -8,13 +8,11 @@
 
 Convert molecule object into JSON compatible dictionary.
 """
-function to_dict(fmt::Val{:default}, mol::MolGraph)
+function to_dict(fmt::Val{:default}, mol::MolGraph{T,V,E}) where {T,V,E}
     dispatch_update!(mol)
-    rev_type = Dict(v => k for (k, v) in ELEMENT_TYPE_REGISTRY)
     return Dict(
-        "eltype" => get(rev_type, eltype(mol), Int),
-        "vproptype" => rev_type[vproptype(mol)],
-        "eproptype" => rev_type[eproptype(mol)],
+        "vproptype" => string(nameof(V)),
+        "eproptype" => string(nameof(E)),
         "graph" => [[src(e), dst(e)] for e in edges(mol)],
         "vprops" => [to_dict(fmt, props(mol, i)) for i in vertices(mol)],
         "eprops" => [to_dict(fmt, props(mol, e)) for e in edges(mol)],
@@ -22,6 +20,7 @@ function to_dict(fmt::Val{:default}, mol::MolGraph)
     )
 end
 
+to_dict(mol::AbstractMolGraph) = to_dict(Val{:default}(), mol)
 
 """
     to_json(fmt::Val, mol::AbstractMolGraph) -> String
@@ -69,14 +68,14 @@ function MolGraph{T,SMILESAtom,SMILESBond}(data::Dict;
         Val(:default), T, SMILESAtom, SMILESBond, data, config)
 end
 
-function MolGraph{T,QueryTree,QueryTree}(data::Dict;
+function MolGraph{T,QueryAtom,QueryBond}(data::Dict;
         on_init=default_on_init!, on_update=default_on_update!) where T<:Integer
-    if data["vproptype"] != "QueryTree" || data["eproptype"] != "QueryTree"
+    if data["vproptype"] != "QueryAtom" || data["eproptype"] != "QueryBond"
         error("Incompatible element property types")
     end
     config=MolGraphState{T}(on_init, on_update)
     return molgraph_from_dict(
-        Val(:default), T, QueryTree, QueryTree, data, config)
+        Val(:default), T, QueryAtom, QueryBond, data, config)
 end
 
 
@@ -86,24 +85,19 @@ function MolGraph(data::Dict; kwargs...)
     if haskey(data, "commonchem")
         return MolGraph{Int,CommonChemAtom,CommonChemBond}(data; kwargs...)
     end
-    if !haskey(data, "eltype") || !haskey(data, "vproptype") || !haskey(data, "eproptype")
+    if !haskey(data, "vproptype") || !haskey(data, "eproptype")
         error("Invalid JSON format")
     end
-    if data["eltype"] == "Int"
-        if data["vproptype"] == "SDFAtom" && data["eproptype"] == "SDFBond"
-            return MolGraph{Int,SDFAtom,SDFBond}(data; kwargs...)
-        elseif data["vproptype"] == "SMILESAtom" && data["eproptype"] == "SMILESBond"
-            return MolGraph{Int,SMILESAtom,SMILESBond}(data; kwargs...)
-        elseif data["vproptype"] == "QueryTree" && data["eproptype"] == "QueryTree"
-            return MolGraph{Int,QueryTree,QueryTree}(data; kwargs...)
-        end
+    if data["vproptype"] == "SDFAtom" && data["eproptype"] == "SDFBond"
+        return MolGraph{Int,SDFAtom,SDFBond}(data; kwargs...)
+    elseif data["vproptype"] == "SMILESAtom" && data["eproptype"] == "SMILESBond"
+        return MolGraph{Int,SMILESAtom,SMILESBond}(data; kwargs...)
+    elseif data["vproptype"] == "QueryAtom" && data["eproptype"] == "QueryBond"
+        return MolGraph{Int,QueryAtom,QueryBond}(data; kwargs...)
     end
     error("Invalid JSON format")
 end
 
 MolGraph(json::String; kwargs...) = MolGraph(JSON.parse(json); kwargs...)
-MolGraph{T,V,E}(json::String; kwargs...) where {T,V,E} = MolGraph{T,V,E}(JSON.parse(json); kwargs...)
-
-
-
-
+MolGraph{T,V,E}(json::String; kwargs...
+    ) where {T,V,E} = MolGraph{T,V,E}(JSON.parse(json); kwargs...)

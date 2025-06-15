@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
+function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T<:Integer
     # TODO: refactoring
     head = Set(vertices(g))  # Initial exposed node set
     for m in matching
@@ -97,7 +97,7 @@ function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
 end
 
 
-function findmaxmatch(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T
+function findmaxmatch(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T<:Integer
     P = findaugpath(g, matching)
     isempty(P) && return matching
     p_edges = Set{Edge{T}}()
@@ -114,7 +114,7 @@ end
 
 Compute maximum cardinality matching by Edmonds' blossom algorithm and return the set of matched edges.
 """
-max_matching(g::SimpleGraph{T}; method=:Blossom) where T = findmaxmatch(g, Set{Edge{T}}())
+max_matching(g::SimpleGraph{T}; method=:Blossom) where T<:Integer = findmaxmatch(g, Set{Edge{T}}())
 
 
 """

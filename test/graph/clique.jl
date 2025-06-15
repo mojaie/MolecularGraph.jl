@@ -46,12 +46,12 @@ end
     k5 = complete_graph(5)
     @test length(all_maximal_conn_cliques(k5)[1]) == 5
     @test length(maximum_conn_clique(k5)[1]) == 1
-    connfunc = n -> Dict(
+    connfunc = n -> Set.(Dict(
         1 => ([2], [3, 4, 5]), 2 => ([1, 3], [4, 5]), 3 => ([2], [1, 4, 5]),
-        4 => ([5], [1, 2, 3]), 5 => ([4], [1, 2, 3]))[n]
+        4 => ([5], [1, 2, 3]), 5 => ([4], [1, 2, 3]))[n])
     @test length(all_maximal_conn_cliques(k5, connfunc=connfunc)[1]) == 2
     @test length(maximum_conn_clique(k5, connfunc=connfunc)[1]) == 3
-    connfunc = n -> (neighbors(k5, n), [])
+    connfunc = n -> (Set(neighbors(k5, n)), Set{Int}())
     @test length(all_maximal_conn_cliques(k5, connfunc=connfunc)[1]) == 1
     @test length(maximum_conn_clique(k5, connfunc=connfunc)[1]) == 5
 end

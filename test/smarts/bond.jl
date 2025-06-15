@@ -3,43 +3,51 @@
 
 @testset "bondsymbol" begin
     state = SMARTSParser{SMARTSMolGraph}("")
-    implicit1 = bondsymbol!(state)
-    @test implicit1 === nothing
+    qtree = QueryBond()
+    implicit1 = bondsymbol!(state, qtree)
+    @test implicit1 == 0
 
     state = SMARTSParser{SMARTSMolGraph}("-")
-    explicit1 = QueryTruthTable(bondsymbol!(state))
-    @test explicit1 == QueryTruthTable(v -> v[2] & ~v[1], [(:isaromatic,), (:order, 1)])
+    qtree = QueryBond()
+    explicit1 = bondsymbol!(state, qtree)
+    @test explicit1 == 1
+    @test qtree == QueryBond(
+        [(1, 2), (1, 3), (3, 4)],
+        [qand(), qeq(:order, "1"), qnot(), qtrue(:isaromatic)])
 
     state = SMARTSParser{SMARTSMolGraph}(raw"\?")
-    stereo4 = QueryTruthTable(bondsymbol!(state))
-    @test stereo4 == QueryTruthTable(v -> ~v[1], [(:stereo, :up)])
+    qtree = QueryBond()
+    stereo = bondsymbol!(state, qtree)
+    @test explicit1 == 1
+    @test qtree == QueryBond([(1, 2)], [qnot(), qeq(:stereo, "up")])
     @test state.pos == 3
 end
 
-@testset "bond" begin
+@testset "smiles" begin
     state = SMILESParser{SMILESMolGraph}("#")
     triple = bond!(state)
-    @test triple[:order] == 3
+    @test triple == SMILESBond(;order=3)
 
     state = SMILESParser{SMILESMolGraph}(":")
     arom = bond!(state)
-    @test arom[:isaromatic]
+    @test arom == SMILESBond(;isaromatic=true)
 
     state = SMILESParser{SMILESMolGraph}("\\")
     down = bond!(state)
-    @test down[:direction] === :down
+    @test down == SMILESBond(;direction=:down)
 end
 
-@testset "smartsbond" begin
-    SMARTSTT = MolGraph{Int,QueryTruthTable,QueryTruthTable}
-    state = SMARTSParser{SMARTSTT}("~")
+@testset "smarts" begin
+    state = SMARTSParser{SMARTSMolGraph}("~")
     anyb = bond!(state)
-    @test anyb == QueryTruthTable(v -> true, [])
+    @test anyb == QueryBond(Tuple{Int,Int}[], [qanytrue()])
 
-    state = SMARTSParser{SMARTSTT}("-!@")
+    state = SMARTSParser{SMARTSMolGraph}("-!@")
     notring = bond!(state)
-    @test notring == QueryTruthTable(
-        v -> v[3] & ~v[1] & ~v[2], [(:is_in_ring,), (:isaromatic,), (:order, 1)])
+    @test notring == QueryBond(
+        [(1, 2), (1, 3), (2, 4), (2, 5), (5, 6), (3, 7)],
+        [qand(), qand(), qnot(), qeq(:order, "1"), qnot(),
+        qtrue(:isaromatic), qtrue(:is_in_ring)])
 end
 
 end # smiles.bond

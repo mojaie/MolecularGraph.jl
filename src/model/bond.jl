@@ -26,15 +26,19 @@ struct SDFBond
     order::Int
     notation::Int
     isordered::Bool
-
-    function SDFBond(order=1, notation=0, isordered=true)
-        new(order, notation, isordered)
-    end
 end
 
-SDFBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SDFBond(
-    d[T("order")], d[T("notation")], d[T("isordered")])
-SDFBond(arr::Vector) = SDFBond(arr...)
+function SDFBond(;
+        order::Int=1,
+        notation::Int=0,
+        isordered::Bool=true)
+    return SDFBond(order, notation, isordered)
+end
+
+SDFBond(d::Dict{String,Any}
+    ) = SDFBond(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
+SDFBond(d::Dict{Symbol,Any}
+    ) = SDFBond(; NamedTuple((k, v) for (k, v) in d)...)
 
 Base.getindex(b::SDFBond, prop::Symbol) = getproperty(b, prop)
 Base.:(==)(b1::SDFBond, b2::SDFBond) = all(
@@ -45,11 +49,18 @@ Base.hash(b::SDFBond, h::UInt
 bond_order(b::SDFBond) = b.order
 
 ELEMENT_TYPE_REGISTRY["SDFBond"] = SDFBond
-to_dict(::Val{:default}, b::SDFBond) = Any[b.order, b.notation, b.isordered]
+
+function to_dict(::Val{:default}, b::SDFBond)
+    rcd = Dict{String,Any}()
+    b.order == 1 || setindex!(rcd, b.order, "order")
+    b.notation == 0 || setindex!(rcd, b.notation, "notation")
+    b.isordered === true || setindex!(rcd, b.isordered, "isordered")
+    return rcd
+end
 
 function to_dict(::Val{:rdkit}, b::SDFBond)
     rcd = Dict{String,Any}()
-    b.order == 1 || (rcd["bo"] = b.order)
+    b.order == 1 || setindex!(rcd, b.order, "bo")
     return rcd
 end
 
@@ -63,15 +74,19 @@ struct SMILESBond
     order::Int
     isaromatic::Bool
     direction::Symbol  # :up, :down or :unspecified
-
-    function SMILESBond(order=1, isaromatic=false, direction=:unspecified)
-        new(order, isaromatic, direction)
-    end
 end
 
-SMILESBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = SMILESBond(
-    d[T("order")], d[T("isaromatic")], Symbol(d[T("direction")]))
-SMILESBond(arr::Vector) = SMILESBond(arr[1], arr[2], Symbol(arr[3]))
+function SMILESBond(;
+        order::Int=1,
+        isaromatic::Bool=false,
+        direction::Union{AbstractString,Symbol}=:unspecified)
+    return SMILESBond(order, isaromatic, Symbol(direction))
+end
+
+SMILESBond(d::Dict{String,Any}
+    ) = SMILESBond(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
+SMILESBond(d::Dict{Symbol,Any}
+    ) = SMILESBond(; NamedTuple((k, v) for (k, v) in d)...)
 
 Base.getindex(b::SMILESBond, prop::Symbol) = getproperty(b, prop)
 Base.:(==)(b1::SMILESBond, b2::SMILESBond) = all(
@@ -82,11 +97,18 @@ Base.hash(b::SMILESBond, h::UInt
 bond_order(b::SMILESBond) = b.order
 
 ELEMENT_TYPE_REGISTRY["SMILESBond"] = SMILESBond
-to_dict(::Val{:default}, b::SMILESBond) = Any[b.order, b.isaromatic, b.direction]
+
+function to_dict(::Val{:default}, b::SMILESBond)
+    rcd = Dict{String,Any}()
+    b.order == 1 || setindex!(rcd, b.order, "order")
+    b.isaromatic === false || setindex!(rcd, b.isaromatic, "isaromatic")
+    b.direction === :unspecified || setindex!(rcd, b.direction, "direction")
+    return rcd
+end
 
 function to_dict(::Val{:rdkit}, b::SMILESBond)
     rcd = Dict{String,Any}()
-    b.order == 1 || (rcd["bo"] = b.order)
+    b.order == 1 || setindex!(rcd, b.order, "bo")
     return rcd
 end
 
@@ -98,15 +120,20 @@ CommonChem bond property type.
 """
 struct CommonChemBond
     type::Int  # bond order
-
-    function CommonChemBond(type=1)
-        new(type)
-    end
 end
 
+function CommonChemBond(;
+        type::Union{Int,Nothing}=1,
+        bo::Union{Int,Nothing}=nothing)
+    # RDkit notation is 'bo', not 'type'
+    CommonChemBond(something(bo, type))
+end
 
-CommonChemBond(d::Dict{T,Any}) where T <: Union{AbstractString,Symbol} = CommonChemBond(
-    get(d, T("bo"), 1))
+CommonChemBond(d::Dict{String,Any}
+    ) = CommonChemBond(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
+CommonChemBond(d::Dict{Symbol,Any}
+    ) = CommonChemBond(; NamedTuple((k, v) for (k, v) in d)...)
+
 CommonChemBond(arr::Vector) = CommonChemBond(arr[1])
 
 Base.getindex(b::CommonChemBond, prop::Symbol) = getproperty(b, prop)
@@ -117,10 +144,9 @@ Base.hash(b::CommonChemBond, h::UInt) = hash(b.type, h)
 bond_order(b::CommonChemBond) = b.type
 
 ELEMENT_TYPE_REGISTRY["CommonChemBond"] = CommonChemBond
-to_dict(::Val{:default}, b::CommonChemBond) = Any[b.type]
 
-function to_dict(::Val{:rdkit}, b::CommonChemBond)
+function to_dict(::Val, b::CommonChemBond)
     rcd = Dict{String,Any}()
-    b.type == 1 || (rcd["bo"] = b.type)
+    b.type == 1 || setindex!(rcd, b.type, "bo")
     return rcd
 end
