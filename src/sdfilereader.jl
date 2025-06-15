@@ -16,7 +16,7 @@ function sympair(s)::Pair{Symbol, Union{String, Int}}
 end
 
 
-function ctab_atom_v2(::Type{T}, line) where T
+function ctab_atom_v2(::Type{T}, line::AbstractString) where T
     d = Dict{String,Any}()
     xpos = parse(Float64, line[1:10])
     ypos = parse(Float64, line[11:20])
@@ -33,7 +33,7 @@ function ctab_atom_v2(::Type{T}, line) where T
     return T(d)
 end
 
-function ctab_atom_v3(::Type{T}, line) where T
+function ctab_atom_v3(::Type{T}, line::AbstractString) where T
     d = Dict{String,Any}()
     ss = split(line)
     d["coords"] = parse.(Float64, ss[5:7])
@@ -45,7 +45,7 @@ function ctab_atom_v3(::Type{T}, line) where T
     return T(d)
 end
 
-function ctab_bond_v2(::Type{T}, B, line) where T <: Integer
+function ctab_bond_v2(::Type{T}, ::Type{E}, line::AbstractString) where {T<:Integer,E}
     d = Dict{String,Any}()
     u = parse(T, line[1:3])
     v = parse(T, line[4:6])
@@ -53,10 +53,10 @@ function ctab_bond_v2(::Type{T}, B, line) where T <: Integer
     d["notation"] = parse(Int, line[10:12])
     d["isordered"] = u < v
     u, v = d["isordered"] ? (u, v) : (v, u)
-    return (u_edge(T, u, v), B(d))
+    return (u_edge(T, u, v), E(d))
 end
 
-function ctab_bond_v3(::Type{T}, B, line) where T <: Integer
+function ctab_bond_v3(::Type{T}, ::Type{E}, line::AbstractString) where {T<:Integer,E}
     d = Dict{String,Any}()
     ss = split(line)
     d["order"], u, v = parse.(T, ss[4:6])
@@ -64,7 +64,7 @@ function ctab_bond_v3(::Type{T}, B, line) where T <: Integer
     d["notation"] = get(props, :CFG, 0)  # TODO: not compatible with v2
     d["isordered"] = u < v
     u, v = d["isordered"] ? (u, v) : (v, u)
-    return (u_edge(T, u, v), B(d))
+    return (u_edge(T, u, v), E(d))
 end
 
 function ctab_props_v2(io::IO)
@@ -115,7 +115,7 @@ function sdf_on_update!(mol::SimpleMolGraph)
 end
 
 
-function parse_ctab(::Type{T}, io::IO, config) where T <: AbstractMolGraph
+function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: SimpleMolGraph
     line1 = readline(io)  # name line, not implemented
     if startswith(line1, "M  V30")  # v3 no header (rxnfile)
         startswith(line1, "M  V30 BEGIN CTAB") || (readuntil(io, "M  V30 BEGIN CTAB"); readline(io))  # skip END tags
@@ -190,12 +190,11 @@ function parse_ctab(::Type{T}, io::IO, config) where T <: AbstractMolGraph
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")
         readline(io)
     end
-    return T(edges, vprops, eprops,
-        on_init=sdf_on_init!, on_update=sdf_on_update!)
+    return T(edges, vprops, eprops; NamedTuple((k, v) for (k, v) in config)...)
 end
 
 
-function parse_rxn(::Type{T}, io::IO, config) where T <: AbstractReaction
+function parse_rxn(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: AbstractReaction
     line1 = readline(io)  # $RXN
     startswith(line1, "\$RXN") || error("\$RXN token not found")
     ver = line1 == "\$RXN V3000" ? :v3 : :v2
@@ -345,14 +344,18 @@ If this behavior is not desirable, you can use the customized supplier function
 instead of default supplier `nohaltsupplier`
 
 """
-sdfilereader(::Type{T}, file::IO; unsupported=:log, config=Dict{Symbol,Any}(), kwargs...
+sdfilereader(
+        ::Type{T}, file::IO; unsupported=:log,
+        config=Dict{Symbol,Any}(:on_init => sdf_on_init!, :on_update => sdf_on_update!), kwargs...
     ) where T <: AbstractMolGraph = SDFileReader{T}(file, unsupported, config)
 sdfilereader(file::IO; kwargs...) = sdfilereader(SDFMolGraph, file; kwargs...)
 sdfilereader(::Type{T}, path::AbstractString; kwargs...
     ) where T <: AbstractMolGraph = sdfilereader(T, open(path); kwargs...)
 sdfilereader(path::AbstractString; kwargs...) = sdfilereader(SDFMolGraph, open(path); kwargs...)
 
-rdfilereader(::Type{T}, file::IO; unsupported=:log, config=Dict{Symbol,Any}(), kwargs...
+rdfilereader(
+        ::Type{T}, file::IO; unsupported=:log,
+        config=Dict{Symbol,Any}(:on_init => sdf_on_init!, :on_update => sdf_on_update!), kwargs...
     ) where T <: AbstractReaction = SDFileReader{T}(file, unsupported, config)
 rdfilereader(file::IO; kwargs...) = rdfilereader(Reaction{SDFMolGraph}, file; kwargs...)
 rdfilereader(::Type{T}, path::AbstractString; kwargs...
