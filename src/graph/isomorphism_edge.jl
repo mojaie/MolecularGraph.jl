@@ -9,7 +9,9 @@
 
 A line graph vmatch function for MCES calculation.
 """
-function lgvmatch(g, h, grev, hrev, vmatch, ematch)
+function lgvmatch(
+        g::SimpleGraph{T}, h::SimpleGraph{T}, grev::Dict{T,Edge{T}}, hrev::Dict{T,Edge{T}},
+        vmatch::Function, ematch::Function) where T
     return function (lgn, lhn)
         ge = grev[lgn]
         he = hrev[lhn]
@@ -27,13 +29,16 @@ end
 
 A line graph ematch function for MCES calculation.
 """
-function lgematch(g, h, gsh, hsh, vmatch)
+function lgematch(
+        g::SimpleGraph{T}, h::SimpleGraph{T},
+        gsh::Dict{Edge{T},T}, hsh::Dict{Edge{T},T}, vmatch::Function) where T
     return (lge, lhe) -> vmatch(gsh[lge], hsh[lhe])
 end
 
 
 
-function lgvmatchvecgen(revmap, vmatchvec, ematchvec)
+function lgvmatchvecgen(
+        revmap::Dict{T,Edge{T}}, vmatchvec::Function, ematchvec::Function) where T
     return function (i)
         e = revmap[i]
         u, v = (src(e), dst(e))
@@ -47,7 +52,8 @@ function lgvmatchvecgen(revmap, vmatchvec, ematchvec)
 end
 
 
-function lgematchvecgen(lg, shared, vmatchvec)
+function lgematchvecgen(
+        lg::SimpleGraph{T}, shared::Dict{Edge{T},T}, vmatchvec::Function) where T
     return function (u, v)
         has_edge(lg, u, v) || return 0
         return vmatchvec(shared[u_edge(lg, u, v)])
@@ -108,7 +114,12 @@ end
 
 Returns whether the edge-induced isomorphism mapping does not have Δ-Y mismatches.
 """
-function delta_y_test(mapping, gtri, gy, htri, hy)  # edge mapping g(e) => h(e)
+function delta_y_test(
+        mapping::Dict{Edge{T},Edge{T}},  # edge mapping g(e) => h(e)
+        gtri::Vector{Tuple{Edge{T},Edge{T},Edge{T}}},
+        gy::Vector{Tuple{Edge{T},Edge{T},Edge{T}}},
+        htri::Vector{Tuple{Edge{T},Edge{T},Edge{T}}},
+        hy::Vector{Tuple{Edge{T},Edge{T},Edge{T}}}) where T
     revmap = Dict(v => k for (k, v) in mapping)
     for t in gtri  # triangle edges
         issubset(t, keys(mapping)) || continue
@@ -141,7 +152,12 @@ If vertex attribute matching is enabled, any attribute mismatch would break isom
 so this function only deals with triangles and stars that have uniform vertex attributes.
 Note that any edge attribute mismatch would not affect isomorphism of other two edges in the triplets.
 """
-function delta_y_correction!(mapping, gtri, gy, htri, hy)  # edge mapping g(e) => h(e)s
+function delta_y_correction!(
+        mapping::Dict{Edge{T},Edge{T}},  # edge mapping g(e) => h(e)
+        gtri::Vector{Tuple{Edge{T},Edge{T},Edge{T}}},
+        gy::Vector{Tuple{Edge{T},Edge{T},Edge{T}}},
+        htri::Vector{Tuple{Edge{T},Edge{T},Edge{T}}},
+        hy::Vector{Tuple{Edge{T},Edge{T},Edge{T}}}) where T
     revmap = Dict(v => k for (k, v) in mapping)
     for t in gtri  # triangle edges
         issubset(t, keys(mapping)) || continue

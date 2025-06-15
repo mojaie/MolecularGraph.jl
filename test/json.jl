@@ -61,10 +61,10 @@ end
     @test mol == mol2
     @test mol !== mol2
 
-    mol = smilestomol("C1=CC=C2C(=C1)C(=O)OC23C4=C(C=C(C=C4)O)OC5=C3C=CC(=C5)O")
-    mol2 = MolGraph(to_json(mol))
-    @test mol == mol2
-    @test mol !== mol2
+    pinene = smilestomol("CC1([C@H]2CCC(=C)[C@@H]1C2)C")
+    pinene2 = MolGraph(to_json(pinene))
+    @test pinene == pinene2
+    @test pinene !== pinene2
 
     sildenafil = smilestomol("O=S(=O)(N1CCN(C)CC1)c4cc(c2[nH]c(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")
     sildenafil2 = MolGraph(to_json(sildenafil))

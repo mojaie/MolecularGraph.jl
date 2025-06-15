@@ -242,7 +242,7 @@ function to_dict(::Val{:default}, a::SMILESAtom)
     a.multiplicity == 1 || setindex!(rcd, a.multiplicity, "multiplicity")
     isnothing(a.mass) || setindex!(rcd, a.mass, "mass")
     a.isaromatic === false || setindex!(rcd, a.isaromatic, "isaromatic")
-    a.stereo === :unspecified || setindex!(rcd, string(stereo), "stereo")
+    a.stereo === :unspecified || setindex!(rcd, string(a.stereo), "stereo")
     return rcd
 end
 

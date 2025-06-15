@@ -91,7 +91,7 @@ function candidatepairs(iter::VF2Matcher{T,U,G,H}) where {T,U,G,H}
 end
 
 
-function is_feasible(iter::VF2Matcher, gv, hv)
+function is_feasible(iter::VF2Matcher{T,U,G,H}, gv::T, hv::U) where {T,U,G,H}
     # Note: assume simple graph (no self loops and multi edges)
     g_nbrs = neighbors(iter.g, gv)
     h_nbrs = neighbors(iter.h, hv)
@@ -136,7 +136,7 @@ function is_feasible(iter::VF2Matcher, gv, hv)
 end
 
 
-function is_semantic_feasible(iter::VF2Matcher, gv, hv)
+function is_semantic_feasible(iter::VF2Matcher{T,U,G,H}, gv::T, hv::U) where {T,U,G,H}
     if !iter.vmatch(gv, hv)
         @debug "Infeasible: node attribute mismatch"
         return false
@@ -156,7 +156,7 @@ function is_semantic_feasible(iter::VF2Matcher, gv, hv)
 end
 
 
-function expand!(iter::VF2Matcher, g, h)
+function expand!(iter::VF2Matcher{T,U,G,H}, g::T, h::U) where {T,U,G,H}
     iter.g_core[g] = h
     iter.h_core[h] = g
     depth = length(iter.g_core)
@@ -178,7 +178,7 @@ function expand!(iter::VF2Matcher, g, h)
 end
 
 
-function restore!(iter::VF2Matcher, g, h)
+function restore!(iter::VF2Matcher{T,U,G,H}, g::T, h::U) where {T,U,G,H}
     depth = length(iter.g_core)
     if g !== nothing && h !== nothing
         delete!(iter.g_core, g)
@@ -246,7 +246,8 @@ Base.IteratorEltype(::Type{<:VF2Matcher}) = Base.EltypeUnknown()
 Return an iterator that generate isomorphic mappings between `G` and `H`.
 The returned iterator has `ig => ih` pairs that correspond to the indices of matching nodes in `G` and `H`, respectively.
 """
-isomorphisms(g, h; kwargs...) = VF2Matcher(g, h, :isomorphic; kwargs...) 
+isomorphisms(g::SimpleGraph, h::SimpleGraph; kwargs...
+    ) = VF2Matcher(g, h, :isomorphic; kwargs...) 
 
 
 """
@@ -254,7 +255,8 @@ isomorphisms(g, h; kwargs...) = VF2Matcher(g, h, :isomorphic; kwargs...)
 
 Return whether `G` and `H` are isomorphic.
 """
-is_isomorphic(g, h; kwargs...) = !isempty(isomorphisms(g, h; kwargs...))
+is_isomorphic(g::SimpleGraph, h::SimpleGraph; kwargs...
+    ) = !isempty(isomorphisms(g, h; kwargs...))
 
 
 # Node-induced subgraph isomorphism
@@ -265,7 +267,7 @@ is_isomorphic(g, h; kwargs...) = !isempty(isomorphisms(g, h; kwargs...))
 Return an iterator that generate isomorphic mappings between `H` and node-induced subgraphs of `G`.
 The returned iterator has `ig => ih` pairs that correspond to the indices of matching nodes in `G` and `H`, respectively.
 """
-nodesubgraph_isomorphisms(g, h; kwargs...
+nodesubgraph_isomorphisms(g::SimpleGraph, h::SimpleGraph; kwargs...
     ) = VF2Matcher(g, h, :subgraph_isomorphic; kwargs...) 
 
 
@@ -274,7 +276,7 @@ nodesubgraph_isomorphisms(g, h; kwargs...
 
 Return whether a node-induced subgraph of `G` is isomorphic to `H`.
 """
-nodesubgraph_is_isomorphic(g, h; kwargs...
+nodesubgraph_is_isomorphic(g::SimpleGraph, h::SimpleGraph; kwargs...
     ) = !isempty(nodesubgraph_isomorphisms(g, h; kwargs...))
 
 
@@ -296,7 +298,7 @@ in `G` and `H`, respectively.
 See `Graphs.induced_subgraph` to construct the subgraphs that result from the match.
 """
 function edgesubgraph_isomorphisms(
-        g, h; vmatch=(gv,hv)->true, ematch=(ge,he)->true,
+        g::SimpleGraph, h::SimpleGraph; vmatch=(gv,hv)->true, ematch=(ge,he)->true,
         ggmatch=(n1,n2)->true, hhmatch=(n1,n2)->true, kwargs...)
     lg, grev, gsh = line_graph(g)
     lh, hrev, hsh = line_graph(h)
@@ -321,7 +323,8 @@ end
 
 Return whether an edge-induced subgraph of `G` is isomorphic to `H`.
 """
-edgesubgraph_is_isomorphic(g, h; kwargs...) = !isempty(edgesubgraph_isomorphisms(g, h; kwargs...))
+edgesubgraph_is_isomorphic(g::SimpleGraph, h::SimpleGraph; kwargs...
+    ) = !isempty(edgesubgraph_isomorphisms(g, h; kwargs...))
 
 
 # Subgraph monomorphism
@@ -333,7 +336,8 @@ Generate monomorphism mappings between `H` and subgraphs of `G`.
 The returned iterator has `ig => ih` pairs that correspond to the indices of
 matching nodes in `G` and `H`, respectively.
 """
-subgraph_monomorphisms(g, h; kwargs...) = VF2Matcher(g, h, :monomorphic; kwargs...)
+subgraph_monomorphisms(g::SimpleGraph, h::SimpleGraph; kwargs...
+    ) = VF2Matcher(g, h, :monomorphic; kwargs...)
 
 
 """
@@ -341,4 +345,5 @@ subgraph_monomorphisms(g, h; kwargs...) = VF2Matcher(g, h, :monomorphic; kwargs.
 
 Return whether a subgraph of `G` is monomorphic to `H`.
 """
-subgraph_is_monomorphic(g, h; kwargs...) = !isempty(subgraph_monomorphisms(g, h; kwargs...))
+subgraph_is_monomorphic(g::SimpleGraph, h::SimpleGraph; kwargs...
+    ) = !isempty(subgraph_monomorphisms(g, h; kwargs...))

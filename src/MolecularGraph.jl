@@ -37,10 +37,8 @@ export
     AbstractReaction, Reaction,
     QueryTree, QueryMolGraph, 
     vproptype, eproptype,
-    props, get_prop, has_prop,
-    set_cache!, has_cache, get_cache, clear_caches!,
-    set_prop!, update_edge_rank!,
-    edge_neighbors, ordered_edge_neighbors
+    props, get_prop, has_prop, set_prop!,
+    u_edge, ordered_neighbors, edge_neighbors, ordered_edge_neighbors
 
 
 # Graph models and algorithms
@@ -97,11 +95,13 @@ export
 include("property/topology.jl")
 include("property/valence.jl")
 include("property/hybridization.jl")
+include("property/wclogp.jl")
 
 export
     sssr, sssr!,
     which_ring, edge_which_ring, fused_rings, which_fused_ring,
     smallest_ring, ring_count, is_in_ring, is_edge_in_ring,
+    default_atom_charge!, default_bond_order!,
     lone_pair, lone_pair!, apparent_valence, apparent_valence!, valence, valence!,
     explicit_hydrogens, implicit_hydrogens, heavy_atoms,
     total_hydrogens, connectivity,
@@ -110,7 +110,8 @@ export
     is_rotatable, rotatable_count,
     atom_counter, heavy_atom_count, molecular_formula, empirical_formula,
     pi_electron, pi_delocalized, hybridization, hybridization_delocalized,
-    is_ring_aromatic, is_ring_aromatic!, is_aromatic, is_edge_aromatic
+    is_ring_aromatic, is_ring_aromatic!, is_aromatic, is_edge_aromatic,
+    wclogp
 
 
 # Preprocessing and molecule manipulation
@@ -122,7 +123,8 @@ include("stereo.jl")
 include("preprocess.jl")
 
 export
-    coords2d, has_coords2d, coords3d, has_coords3d, coordgen, coordgen!,
+    coords2d, has_coords2d, coords3d, has_coords3d,
+    coordgen, coordgen!, coords_from_sdf!,
     set_stereocenter!, set_stereobond!, stereo_hydrogen, safe_stereo_hydrogen!,
     stereocenter_from_smiles!, stereocenter_from_sdf2d!,
     stereobond_from_smiles!, stereobond_from_sdf2d!,
@@ -149,13 +151,14 @@ include("./smarts/logicaloperator.jl")
 include("./smarts/molecule.jl")
 
 export
-    SMARTSMolGraph,
     to_dict, to_json,
     SDFileReader,
+    sdf_on_init!, sdf_on_update!,
     sdfilereader, rdfilereader, sdfilescanner,
     printv2mol, printv2sdf, sdfilewriter,
     sdftomol, rxntoreaction,
-    SMILESParser, SMARTSParser,
+    SMILESParser, SMARTSParser, SMARTSMolGraph,
+    smiles_on_init!, smiles_on_update!,
     smilestomol, smartstomol
 
 
@@ -169,7 +172,6 @@ using RDKitMinimalLib:
     get_topological_torsion_fp_as_bytes
 
 include("mass.jl")
-include("wclogp.jl")
 include("rdkit.jl")
 include("inchi.jl")
 include("structurematch.jl")
@@ -202,10 +204,6 @@ export
     tcmcis, tcmces, tdmcis, tdmces,
     emaptonmap,
     tdmcis_constraints, tdmces_constraints
-
-export
-    wclogptype, wclogphydrogentype,
-    wclogpcontrib, wclogp
 
 export query_containment_diagram, find_queries
 

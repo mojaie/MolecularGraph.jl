@@ -72,7 +72,7 @@ function run()
     errormol = unsafe_string(sdftomol(
         unsafe_convert(Cstring, errormol_sdf), unsafe_convert(Cstring, op)))
     @debug "standard_weight(errormol)" standard_weight(unsafe_convert(Cstring, errormol))
-    @debug "errormol error msg" MolGraph(errormol).gprops[:error_sdfilereader]
+    @debug "errormol error msg" MolGraph(errormol).gprops.logs["error_sdfilereader"]
 
     notamide = unsafe_string(smartstomol(
         unsafe_convert(Cstring, raw"[NX3;H2,H1;!$(NC=O)]")))

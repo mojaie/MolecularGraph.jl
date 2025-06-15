@@ -31,6 +31,9 @@ using MolecularGraph:
     querypropmap, generate_queryfunc
 
 using MolecularGraph:
+    wclogptype, wclogphydrogentype
+
+using MolecularGraph:
     fragment!, specialize_nonaromatic!, resolve_not_hydrogen!, remove_hydrogens!,
     lookahead, forward!, backtrack!,
     lgnot!, lgoperator!, lghighand!, lgor!, lglowand!,

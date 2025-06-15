@@ -80,7 +80,7 @@ end
 
 
 function printv2data(io::IO, mol::SimpleMolGraph)
-    for (key, val) in mol.gprops[:metadata]
+    for (key, val) in mol.gprops.metadata
         println(io, "> <$(string(key))>")
         println(io, string(val))
         println(io, "")

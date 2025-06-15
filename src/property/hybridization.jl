@@ -14,7 +14,9 @@ The hybridization value in inorganic atoms and non-typical organic atoms will be
 (e.g. s, sp3d and sp3d2 orbitals). Note that this is a simplified geometry descriptor
 for substructure matching and does not reflect actual molecular orbital hybridization.
 """
-function hybridization(g, symbol_arr, valence_arr, connectivity_arr, lone_pair_arr)
+function hybridization(
+        g::SimpleGraph, symbol_arr::Vector{Symbol}, valence_arr::Vector{Int},
+        connectivity_arr::Vector{Int}, lone_pair_arr::Vector{Int})
     arr = fill(:none, length(lone_pair_arr))
     hybmap = Dict(4 => :sp3, 3 => :sp2, 2 => :sp)
     for i in 1:length(arr)
@@ -51,7 +53,9 @@ The number of ``\\pi`` electrons is calculated as `valence` - `connectivity`.
 Typically, each atom connected to double bonds adds one pi electron for each, and each
 atom connected to a triple bond adds two pi electrons.
 """
-function pi_electron(valence_arr, connectivity_arr, lone_pair_arr, hyb_arr)
+function pi_electron(
+        valence_arr::Vector{Int}, connectivity_arr::Vector{Int},
+        lone_pair_arr::Vector{Int}, hyb_arr::Vector{Symbol})
     arr = fill(zero(Int), length(valence_arr))
     for i in 1:length(arr)
         pie = valence_arr[i] - connectivity_arr[i]
@@ -79,7 +83,10 @@ of a given molecule are aromatic or not.
 This is a binary descriptor based on a chemoinformatic algorithm and may not reflect
 actual molecular orbitals. Atypical aromaticities such as Moebius aromaticity are not considered.
 """
-function is_ring_aromatic(g, sssr_, which_ring_arr, symbol_arr, order_arr, hyb_arr, pi_arr)
+function is_ring_aromatic(
+        g::SimpleGraph, sssr_::Vector{Vector{Int}}, which_ring_arr::Vector{Vector{Int}},
+        symbol_arr::Vector{Symbol}, order_arr::Vector{Int}, hyb_arr::Vector{Symbol},
+        pi_arr::Vector{Int})
     # 1. evaluate each rings
     confirmed_ring = Int[]  # marked as aromatic
     not_aromatic = Int[]  # Unlikely to be aromatic (sp2 conjugation break)
@@ -223,7 +230,8 @@ of the given molecule belong to an aromatic ring or not.
 
 See [`is_ring_aromatic`](@ref).
 """
-function is_aromatic(g, sssr_, is_ring_arom)
+function is_aromatic(
+        g::SimpleGraph, sssr_::Vector{Vector{Int}}, is_ring_arom::Vector{Bool})
     arr = falses(nv(g))
     for ring in sssr_[findall(is_ring_arom)]
         arr[ring] .= true
@@ -246,7 +254,8 @@ of the given molecule belong to an aromatic ring or not.
 
 See [`is_ring_aromatic`](@ref).
 """
-function is_edge_aromatic(g, sssr_, is_ring_arom)
+function is_edge_aromatic(
+        g::SimpleGraph, sssr_::Vector{Vector{Int}}, is_ring_arom::Vector{Bool})
     arr = falses(ne(g))
     er = Dict(e => i for (i, e) in enumerate(edges(g)))
     for ring in sssr_[findall(is_ring_arom)]

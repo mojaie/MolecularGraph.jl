@@ -5,7 +5,7 @@
 
 const WCLOGP_TABLE = Dict{String,Float64}(
     k => v for (k, v) in YAML.load(open(
-        joinpath(dirname(@__FILE__), "..", "assets", "const", "wclogp.yaml")
+        joinpath(dirname(@__FILE__), "../../", "assets", "const", "wclogp.yaml")
     ))["logP"])
 
 const ALIPH_HETERO = Set([:H, :C, :N, :O, :P, :S, :F, :Cl, :Br, :I])

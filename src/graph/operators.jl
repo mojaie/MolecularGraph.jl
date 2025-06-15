@@ -4,11 +4,11 @@
 #
 
 """
-    induced_subgraph_edges(g, node_list)
+    induced_subgraph_edges(g::SimpleGraph, node_list::AbstractVector)
 
 Return the node-induced subgraph edges.
 """
-function induced_subgraph_edges(g, node_list)
+function induced_subgraph_edges(g::SimpleGraph, node_list::AbstractVector)
     subg, vmap = induced_subgraph(g, node_list)
     return [u_edge(g, vmap[src(e)], vmap[dst(e)]) for e in edges(subg)]
 end

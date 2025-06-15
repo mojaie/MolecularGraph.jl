@@ -103,7 +103,7 @@ default_bond_order!(mol::SimpleMolGraph) = setproperty!(
 Return a vector of size ``n`` representing the number of total bond order
 incident to 1 to ``n``th atoms of the given molecule.
 """
-function apparent_valence(g, order_arr)
+function apparent_valence(g::SimpleGraph, order_arr::Vector{Int})
     arr = fill(zero(Int), nv(g))
     er = Dict(e => i for (i, e) in enumerate(edges(g)))
     for e in edges(g)
@@ -134,7 +134,9 @@ The number of implicit hydrogens would be calculated based on the valence.
 The valence of a hypervalent atom or a non-organic atom is the same as
 its `apparent_valence`. This property corresponds to SMARTS `v` query.
 """
-function valence(symbol_arr, charge_arr, apparent_valence_arr)
+function valence(
+        symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
+        apparent_valence_arr::Vector{Int})
     arr = fill(zero(Int), length(symbol_arr))
     for i in 1:length(symbol_arr)
         if haskey(LONEPAIR_COUNT, symbol_arr[i])
@@ -166,7 +168,7 @@ connected to 1 to ``n``th atoms of the given molecule.
 
 "Explicit" means hydrogens are explicitly represented as graph nodes.
 """
-function explicit_hydrogens(g, symbol_arr)
+function explicit_hydrogens(g::SimpleGraph, symbol_arr::Vector{Symbol})
     arr = fill(zero(Int), nv(g))
     for i in vertices(g)
         symbol_arr[i] === :H || continue
@@ -244,7 +246,8 @@ end
 Return a vector of size ``n`` representing the number of lone pairs of
 1 to ``n``th atoms of the given molecule.
 """
-function lone_pair(symbol_arr, charge_arr, connectivity_arr)
+function lone_pair(
+        symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, connectivity_arr::Vector{Int})
     arr = fill(zero(Int), length(symbol_arr))
     for i in 1:length(symbol_arr)
         if haskey(LONEPAIR_COUNT, symbol_arr[i])
@@ -273,7 +276,7 @@ lone_pair!(mol::SimpleMolGraph) = setproperty!(
 
 # Hydrogen bond donor/acceptor
 
-function is_hydrogen_acceptor(symbol_arr, lone_pair_arr)
+function is_hydrogen_acceptor(symbol_arr::Vector{Symbol}, lone_pair_arr::Vector{Int})
     arr = falses(length(symbol_arr))
     for i in 1:length(symbol_arr)
         if symbol_arr[i] in HYDROGEN_ACCEPTOR_ATOMS && lone_pair_arr[i] > 0
@@ -297,7 +300,7 @@ Return the total number of hydrogen bond acceptors (N, O and F).
 hydrogen_acceptor_count(mol::SimpleMolGraph) = reduce(+, is_hydrogen_acceptor(mol); init=0)
 
 
-function is_hydrogen_donor(symbol_arr, total_hydrogens_arr)
+function is_hydrogen_donor(symbol_arr::Vector{Symbol}, total_hydrogens_arr::Vector{Int})
     arr = falses(length(symbol_arr))
     for i in 1:length(symbol_arr)
         if symbol_arr[i] in HYDROGEN_DONOR_ATOMS && total_hydrogens_arr[i] > 0
@@ -331,7 +334,9 @@ hydrogen_donor_count(mol::SimpleMolGraph) = reduce(+, is_hydrogen_donor(mol); in
 Return a vector of size ``n`` representing whether 1 to ``n``th bonds
 of the given molecule are rotatable or not.
 """
-function is_rotatable(edge_list, degree_arr, edge_in_ring_arr, order_arr)
+function is_rotatable(
+        edge_list, degree_arr::Vector{Int},
+        edge_in_ring_arr::BitVector, order_arr::Vector{Int})
     arr = falses(length(edge_list))
     for (i, e) in enumerate(edge_list)
         if (!edge_in_ring_arr[i] && order_arr[i] == 1

@@ -153,7 +153,7 @@ end
 
 
 """
-    is_in_ring(mol::MolGraph) -> Vector{Bool}
+    is_in_ring(mol::MolGraph) -> BitVector
 
 Return a vector of size ``n`` representing whether 1 to ``n``th atoms of
 the given molecule belong to a ring or not.
@@ -165,7 +165,7 @@ end
 
 
 """
-    is_edge_in_ring(mol::MolGraph) -> Vector{Bool}
+    is_edge_in_ring(mol::MolGraph) -> BitVector
 
 Return a vector of size ``n`` representing whether 1 to ``n``th bonds of
 the given molecule belong to a ring or not.
