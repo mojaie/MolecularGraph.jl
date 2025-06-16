@@ -144,6 +144,16 @@ struct SDFAtom
     multiplicity::Int
     mass::Union{Int,Nothing}
     coords::Union{Vector{Float64},Nothing}
+
+    function SDFAtom(
+            symbol::Union{AbstractString,Symbol},
+            charge::Int=0,
+            multiplicity::Int=1,
+            mass::Union{Int,Nothing}=nothing,
+            coords::Union{Vector,Nothing}=nothing)
+        haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("Unsupported atom symbol: $(symbol)")
+        new(Symbol(symbol), charge, multiplicity, mass, coords)
+    end
 end
 
 function SDFAtom(;
@@ -205,6 +215,16 @@ struct SMILESAtom
     mass::Union{Int,Nothing}
     isaromatic::Bool
     stereo::Symbol
+
+    function SMILESAtom(
+            symbol::Union{AbstractString,Symbol},
+            charge::Int=0,
+            multiplicity::Int=1,
+            mass::Union{Int,Nothing}=nothing,
+            isaromatic::Bool=false,
+            stereo::Union{String,Symbol}=:unspecified)
+        new(Symbol(symbol), charge, multiplicity, mass, isaromatic, Symbol(stereo))
+    end
 end
 
 function SMILESAtom(;
@@ -268,6 +288,17 @@ struct CommonChemAtom
     isotope::Int
     nRad::Int
     stereo::Symbol
+
+    function CommonChemAtom(
+            z::Int,
+            chg::Int=0,
+            impHs::Int=0,
+            isotope::Int=0,
+            nRad::Int=0,
+            stereo::Union{AbstractString,Symbol}=:unspecified)
+        z <= length(ATOMTABLE) || error("Unsupported atom number: $(z)")
+        new(z, chg, impHs, isotope, nRad, Symbol(stereo))
+    end
 end
 
 function CommonChemAtom(;

@@ -98,7 +98,7 @@ function printv2mol(io::IO, mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     imph = implicit_hydrogens(mol_)
     for center in keys(mol_.gprops.stereocenter)
         if imph[center] == 1 && ringcount[center] > 1
-            add_vertex!(mol_, V(:H))
+            add_vertex!(mol_, V(symbol=:H))
             add_edge!(mol_, center, nv(mol_), E())
         end
     end

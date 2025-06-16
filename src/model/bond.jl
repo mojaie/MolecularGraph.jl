@@ -26,6 +26,13 @@ struct SDFBond
     order::Int
     notation::Int
     isordered::Bool
+
+    function SDFBond(
+            order::Int,
+            notation::Int=0,
+            isordered::Bool=true)
+        new(order, notation, isordered)
+    end
 end
 
 function SDFBond(;
@@ -72,6 +79,13 @@ struct SMILESBond
     order::Int
     isaromatic::Bool
     direction::Symbol  # :up, :down or :unspecified
+
+    function SMILESBond(
+            order::Int,
+            isaromatic::Bool=false,
+            direction::Union{AbstractString,Symbol}=:unspecified)
+        new(order, isaromatic, Symbol(direction))
+    end
 end
 
 function SMILESBond(;
@@ -116,6 +130,13 @@ CommonChem bond property type.
 """
 struct CommonChemBond
     type::Int  # bond order
+
+    function CommonChemBond(
+            type::Union{Int,Nothing},
+            bo::Union{Int,Nothing}=nothing)
+        # RDkit notation is 'bo', not 'type'
+        new(something(bo, type))
+    end
 end
 
 function CommonChemBond(;
