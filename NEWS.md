@@ -1,5 +1,21 @@
 # NEWS
 
+## v0.20.0
+
+This version introduces substantial breaking changes to internal data structures and methods, while the public APIs remain largely unchanged.
+
+- The graph-level properties of `MolGraph` have been refactored from a `Dict`-based structure to a dedicated data class, `MolGraphProperty`. This may improve type stability and enables a more sophisticated auto-update mechanism for molecular descriptors.
+- Molecular query structures (parsed from SMARTS) are no longer recursive. The new query representation is based on `SimpleDiGraph`, allowing for more straightforward topological searches and equality checks.
+- SMILES/SMARTS parsing now accepts the special case `[HH]` to represent molecular hydrogen (#124).
+
+### API changes
+
+- Atom and bond constructors now accept keyword arguments (e.g., `SMILESAtom(symbol=:N, isaromatic=true)`).
+- Options in molecule readers (e.g., SMILES, SDFile) have been changed from a `Dict`-based interface to keyword arguments (e.g., `smilestomol("CCC", on_update=custom_updater!)`).
+- Graph-level properties (e.g., SDFile metadata and stereochemistry) are now accessed via fields (e.g., mol.gprops.stereocenter) instead of by index (e.g., `mol.gprops[:stereocenter]`). Metadata accessors remain available (e.g., `mol["compound_id"]` is equivalent to `mol.gprops.metadata["compound_id"]`).
+- MolGraph can now store multiple sets of 2D/3D Cartesian coordinates (e.g., generated 3D conformers). As there is currently no API for managing multiple coordinate sets, drawing methods will use the first entry by default.
+
+
 ## v0.19.1
 
 - Fixed SDFilereader (#126)
