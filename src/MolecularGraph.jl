@@ -33,9 +33,7 @@ include("./property/interface.jl")
 include("./draw/interface.jl")
 
 export
-    AbstractMolGraph, SimpleMolGraph,
-    AbstractReaction, Reaction,
-    QueryTree, QueryMolGraph, 
+    Reaction, QueryTree,
     vproptype, eproptype,
     props, get_prop, has_prop, set_prop!,
     u_edge, ordered_neighbors, edge_neighbors, ordered_edge_neighbors
@@ -68,6 +66,7 @@ export
     SDFBond, SMILESBond, CommonChemBond,
     bond_order,
     MolGraph, SDFMolGraph, SMILESMolGraph, CommonChemMolGraph,
+    QueryMolGraph,
     QueryAtom, QueryBond
 
 export

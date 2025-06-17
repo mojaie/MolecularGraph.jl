@@ -84,13 +84,13 @@ function smarts_on_init!(mol::SimpleMolGraph)
     preprocess!(mol)
 end
 
-const SMARTSMolGraph = MolGraph{Int,QueryAtom,QueryBond}
+const SMARTSMolGraph = QueryMolGraph{Int,QueryAtom,QueryBond}
 
 
 """
-    smilestomol(smiles::AbstractString) -> GraphMol{SmilesAtom,SmilesBond}
+    smilestomol(smiles::AbstractString) -> MolGraph{SmilesAtom,SmilesBond}
 
-Parse SMILES string into `GraphMol` object.
+Parse SMILES string into `MolGraph` object.
 
 The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES.
 
@@ -117,9 +117,9 @@ smilestomol(smiles::AbstractString; kwargs...
 
 
 """
-    smartstomol(smarts::AbstractString) -> QueryMol{SmartsAtom,SmartsBond}
+    smartstomol(smarts::AbstractString) -> QueryMolGraph{SmartsAtom,SmartsBond}
 
-Parse SMARTS string into `QueryMol` object.
+Parse SMARTS string into `QueryMolGraph` object.
 """
 function smartstomol(
         ::Type{T}, smarts::AbstractString; kwargs...) where T <: SimpleMolGraph
@@ -134,7 +134,7 @@ function smartstomol(
 end
 
 smartstomol(smarts::AbstractString; kwargs...
-    ) = smartstomol(MolGraph{Int,QueryAtom,QueryBond}, smarts; kwargs...)
+    ) = smartstomol(QueryMolGraph{Int,QueryAtom,QueryBond}, smarts; kwargs...)
 
 
 

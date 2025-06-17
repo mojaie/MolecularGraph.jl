@@ -43,10 +43,10 @@
     @test length(ordered_edge_neighbors(ethane, Edge(1 => 2))[1]) == 3
 
     # node, edge or graph properties
-    @test vproptype(nullmol) === Any
+    @test vproptype(nullmol) === SDFAtom
     @test vproptype(nullsdf) === SDFAtom
     @test vproptype(nullsmiles) === SMILESAtom
-    @test eproptype(nullmol) === Any
+    @test eproptype(nullmol) === SDFAtom
     @test eproptype(nullsdf) === SDFBond
     @test eproptype(nullsmiles) === SMILESBond
     @test get_prop(methane, 1, :symbol) === :C
@@ -58,7 +58,7 @@ end
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds)  # CCC
-    @test !mol.state.has_updates
+    @test !mol.state.has_updates  # dispatch_update! called after initialization
     # edit graph properties
     @test add_vertex!(mol, SDFAtom(;symbol=:O))  # CCC.O
     @test mol.state.has_updates

@@ -29,8 +29,7 @@ function vmatchvecgen(mol)
     end
 end
 
-function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2<:QueryAtom,E1,E2}
+function vmatchgen(mol1::MolGraph, mol2::T) where T <: QueryMolGraph
     descriptors = Dict(  # precalculated descriptors
         :symbol => atom_symbol(mol1),
         :isaromatic => is_aromatic(mol1),
@@ -43,8 +42,8 @@ function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
         :smallest_ring => smallest_ring(mol1),
         :ring_count => ring_count(mol1),
     )
-    recursive = Dict{String,MolGraph}()  # cache recursive mols
-    matches = Dict{T1,Dict{T2,Bool}}()  # cache matches
+    recursive = Dict{String,T}()  # cache recursive mols
+    matches = Dict{Int,Dict{Int,Bool}}()  # cache matches
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
         qtree = props(mol2, v2)
@@ -59,20 +58,19 @@ function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
             end
         end
         res = generate_queryfunc(qtree, qprop)(arr)
-        haskey(matches, v1) || (matches[v1] = Dict{T2,Bool}())
+        haskey(matches, v1) || (matches[v1] = Dict{Int,Bool}())
         matches[v1][v2] = res
         return res
     end
 end
 
-function vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1<:QueryAtom,V2<:QueryAtom,E1,E2}
+function vmatchgen(mol1::QueryMolGraph, mol2::QueryMolGraph)
     recursive = Dict{String,Dict{String,Bool}}()  # cache recursive queries
-    matches = Dict{T1,Dict{T2,Bool}}()  # cache matches
+    matches = Dict{Int,Dict{Int,Bool}}()  # cache matches
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
         res = issubset(props(mol1, v1), props(mol2, v2); recursive_cache=recursive)
-        haskey(matches, v1) || (matches[v1] = Dict{T2,Bool}())
+        haskey(matches, v1) || (matches[v1] = Dict{Int,Bool}())
         matches[v1][v2] = res
         return res
     end
@@ -96,33 +94,31 @@ function ematchvecgen(mol)
     return (u, v) -> 0
 end
 
-function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2,E1,E2<:QueryBond}
+function ematchgen(mol1::MolGraph, mol2::QueryMolGraph)
     descriptors = Dict(  # precalculated descriptors
         :order => bond_order(mol1),
         :is_in_ring => is_edge_in_ring(mol1),
         :isaromatic => is_edge_aromatic(mol1)
     )
-    matches = Dict{Edge{T1},Dict{Edge{T2},Bool}}()  # cache matches
+    matches = Dict{Edge{Int},Dict{Edge{Int},Bool}}()  # cache matches
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
         qtree = props(mol2, e2)
         qprop = union(QueryNode[], values(querypropmap(qtree))...)
         arr = [string(descriptors[p.key][edge_rank(mol1, e1)]) == p.value for p in qprop]
         res = generate_queryfunc(qtree, qprop)(arr)
-        haskey(matches, e1) || (matches[e1] = Dict{Edge{T2},Bool}())
+        haskey(matches, e1) || (matches[e1] = Dict{Edge{Int},Bool}())
         matches[e1][e2] = res
         return res
     end
 end
 
-function ematchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
-        ) where {T1,T2,V1,V2,E1<:QueryBond,E2<:QueryBond}
-    matches = Dict{Edge{T1},Dict{Edge{T2},Bool}}()  # cache matches
+function ematchgen(mol1::QueryMolGraph, mol2::QueryMolGraph)
+    matches = Dict{Edge{Int},Dict{Edge{Int},Bool}}()  # cache matches
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
         res = issubset(props(mol1, e1), props(mol2, e2))
-        haskey(matches, e1) || (matches[e1] = Dict{Edge{T2},Bool}())
+        haskey(matches, e1) || (matches[e1] = Dict{Edge{Int},Bool}())
         matches[e1][e2] = res
         return res
     end
@@ -136,7 +132,7 @@ function circuitrank(g::SimpleGraph)
 end
 
 
-function exact_match_prefilter(mol1::MolGraph, mol2::MolGraph)
+function exact_match_prefilter(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     nv(mol1) == nv(mol2) || return false
     ne(mol1) == ne(mol2) || return false
     circuitrank(mol1.graph) == circuitrank(mol2.graph) ||  return false
@@ -144,7 +140,7 @@ function exact_match_prefilter(mol1::MolGraph, mol2::MolGraph)
 end
 
 
-function substruct_match_prefilter(mol1::MolGraph, mol2::MolGraph)
+function substruct_match_prefilter(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     nv(mol1) >= nv(mol2) || return false
     ne(mol1) >= ne(mol2) || return false
     circuitrank(mol1.graph) >= circuitrank(mol2.graph) ||  return false
@@ -158,7 +154,7 @@ end
 Return a lazy iterator that generate node mappings between `mol` and `query` if these are exactly same.
 See [`substruct_matches`](@ref) for available options.
 """
-function exact_matches(mol1::MolGraph, mol2::MolGraph;
+function exact_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     # Note: InChI is better if you don't need mapping
     exact_match_prefilter(mol1, mol2) || return ()
@@ -191,7 +187,7 @@ Return a lazy iterator that generate node mappings between `mol` and `query` if 
 - `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time reached and return empty iterator (default: 10 seconds).
 
 """
-function substruct_matches(mol1::MolGraph, mol2::MolGraph;
+function substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
     substruct_match_prefilter(mol1, mol2) || return ()
@@ -216,7 +212,7 @@ has_substruct_match(mol1, mol2; kwargs...) = !isempty(substruct_matches(mol1, mo
 Return a lazy iterator that generate node mappings between `mol` and `query` if `mol` has `query` as a substructure.
 See [`substruct_matches`](@ref) for available options.
 """
-function node_substruct_matches(mol1::MolGraph, mol2::MolGraph;
+function node_substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
     substruct_match_prefilter(mol1, mol2) || return ()
@@ -241,7 +237,7 @@ has_node_substruct_match(mol1, mol2; kwargs...) = !isempty(node_substruct_matche
 Return a lazy iterator that generate node mappings between `mol` and `query` if `mol` has `query` as a substructure.
 See [`substruct_matches`](@ref) for available options.
 """
-function edge_substruct_matches(mol1::MolGraph, mol2::MolGraph;
+function edge_substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     (ne(mol1) == 0 || ne(mol2) == 0) && return ()
     substruct_match_prefilter(mol1, mol2) || return ()
@@ -266,33 +262,33 @@ has_edge_substruct_match(mol1, mol2; kwargs...) = !isempty(edge_substruct_matche
 
 
 mcis_constraints(
-    mol::MolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen
+    mol::SimpleMolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen
 ) = mcis_constraints(
     Val{:connection}(), mol.graph, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol)
 )
 
 mces_constraints(
-    mol::MolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen
+    mol::SimpleMolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen
 ) = mces_constraints(
     Val{:connection}(), mol.graph, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol)
 )
 
 tdmcis_constraints(
-    mol::MolGraph; vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen, kwargs...
+    mol::SimpleMolGraph; vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen, kwargs...
 ) = mcis_constraints(
     Val{:shortest}(), mol.graph, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...
 )
 
 tdmces_constraints(
-    mol::MolGraph; vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen, kwargs...
+    mol::SimpleMolGraph; vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen, kwargs...
 ) = mces_constraints(
     Val{:shortest}(), mol.graph, vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...
 )
 
 
 """
-    disconnected_mcis(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
-    disconnected_mces(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
+    disconnected_mcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...) -> (Dict, Symbol)
+    disconnected_mces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...) -> (Dict, Symbol)
 
 Compute disconnected maximum common substructure (MCS) of mol1 and mol2.
 
@@ -303,13 +299,13 @@ time has reached the given value (default=60, in seconds).
 - targetsize(Int): abort calculation and return suboptimal result so far if the
 given mcs size achieved.
 """
-function disconnected_mcis(mol1::MolGraph, mol2::MolGraph; kwargs...)
+function disconnected_mcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     mol1_ = mcis_constraints(mol1)
     mol2_ = mcis_constraints(mol2)
     return maximum_common_subgraph(mol1_, mol2_; kwargs...)
 end
 
-function disconnected_mces(mol1::MolGraph, mol2::MolGraph; kwargs...)
+function disconnected_mces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     mol1_ = mces_constraints(mol1)
     mol2_ = mces_constraints(mol2)
     return maximum_common_subgraph(mol1_, mol2_; kwargs...)
@@ -317,8 +313,8 @@ end
 
 
 """
-    connected_mcis(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
-    connected_mces(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
+    connected_mcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...) -> (Dict, Symbol)
+    connected_mces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...) -> (Dict, Symbol)
 
 Compute connected maximum common substructure (MCS) of mol1 and mol2.
 
@@ -329,13 +325,13 @@ time has reached the given value (default=60, in seconds).
 - targetsize(Int): abort calculation and return suboptimal result so far if the
 given mcs size achieved.
 """
-function connected_mcis(mol1::MolGraph, mol2::MolGraph; kwargs...)
+function connected_mcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     mol1_ = mcis_constraints(mol1)
     mol2_ = mcis_constraints(mol2)
     return maximum_common_subgraph(mol1_, mol2_, connected=true; kwargs...)
 end
 
-function connected_mces(mol1::MolGraph, mol2::MolGraph; kwargs...)
+function connected_mces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     mol1_ = mces_constraints(mol1)
     mol2_ = mces_constraints(mol2)
     return maximum_common_subgraph(mol1_, mol2_, connected=true; kwargs...)
@@ -343,8 +339,8 @@ end
 
 
 """
-    tdmcis(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
-    tdmces(mol1::MolGraph, mol2::MolGraph; kwargs...) -> (Dict, Symbol)
+    tdmcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...) -> (Dict, Symbol)
+    tdmces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...) -> (Dict, Symbol)
 
 Compute disconnected MCS of mol1 and mol2 with topological constraint (td-MCS).
 
@@ -364,13 +360,13 @@ Chemical Structures. Journal of Chemical Information and Modeling, 51(8),
 1775–1787. https://doi.org/10.1021/ci2001023
 1. https://www.jstage.jst.go.jp/article/ciqs/2017/0/2017_P4/_article/-char/en
 """
-function tdmcis(mol1::MolGraph, mol2::MolGraph; kwargs...)
+function tdmcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     mol1_ = tdmcis_constraints(mol1; kwargs...)
     mol2_ = tdmcis_constraints(mol2; kwargs...)
     return maximum_common_subgraph(mol1_, mol2_; kwargs...)
 end
 
-function tdmces(mol1::MolGraph, mol2::MolGraph; kwargs...)
+function tdmces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     mol1_ = tdmces_constraints(mol1; kwargs...)
     mol2_ = tdmces_constraints(mol2; kwargs...)
     return maximum_common_subgraph(mol1_, mol2_; kwargs...)
@@ -385,7 +381,7 @@ a map between nodes. Commonly, `nmap[i]` is a length-1 vector `[j]`, where `i=>j
 from `nodeattr(query, i)` to `nodeattr(mol, j)`. In cases where the mapping is ambiguous,
 `nmap[i]` may be multivalued.
 """
-function emaptonmap(emap, mol::MolGraph, query::MolGraph)
+function emaptonmap(emap, mol::SimpleMolGraph, query::SimpleMolGraph)
     nmol, nq = nv(mol), nv(query)
     nq <= nmol || throw(ArgumentError("query must be a substructure of mol"))
     # Each node in the query edges can map to either of two nodes in mol

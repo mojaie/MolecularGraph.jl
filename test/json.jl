@@ -39,18 +39,18 @@ end
         QueryBond(Tuple{Int,Int}[], [qeq(:order, "2")]),
         QueryBond([(1, 2)], [qnot(), qtrue(:isaromatic)])
     ]
-    mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds)
-    mol2 = MolGraph(to_json(mol))
+    mol = QueryMolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds)
+    mol2 = QueryMolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
 
     mol = smartstomol(raw"[$([CX3]([#6])[#6]),$([CX3H][#6])]=[$([NX2][#6]),$([NX2H])]")
-    mol2 = MolGraph(to_json(mol))
+    mol2 = QueryMolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
 
     mol = smartstomol("[O,S]=P([O,S])([O,S])[O,S]")
-    mol2 = MolGraph(to_json(mol))
+    mol2 = QueryMolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
 end

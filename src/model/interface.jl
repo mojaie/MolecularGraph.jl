@@ -11,12 +11,31 @@ The base class of molecular graphs
 abstract type AbstractMolGraph{T<:Integer} <: Graphs.AbstractGraph{T} end
 
 
+# Graphs.jl common interface
+
+Base.eltype(g::AbstractMolGraph) = eltype(g.graph)
+# https://github.com/JuliaGraphs/Graphs.jl/pull/144
+Base.eltype(::Type{<:AbstractMolGraph{T}}) where T = T
+Base.zero(::Type{G}) where G <: AbstractMolGraph = G()
+Graphs.edgetype(g::AbstractMolGraph) = edgetype(g.graph)
+Graphs.edgetype(::Type{<:AbstractMolGraph{T}}) where T = Edge{T}
+Graphs.nv(g::AbstractMolGraph) = nv(g.graph)
+Graphs.ne(g::AbstractMolGraph) = ne(g.graph)
+Graphs.vertices(g::AbstractMolGraph) = vertices(g.graph)
+Graphs.edges(g::AbstractMolGraph) = edges(g.graph)
+Graphs.is_directed(::Type{<:AbstractMolGraph}) = false
+Graphs.has_vertex(g::AbstractMolGraph, x::Integer) = has_vertex(g.graph, x)
+Graphs.has_edge(g::AbstractMolGraph, s::Integer, d::Integer) = has_edge(g.graph, s, d)
+Graphs.inneighbors(g::AbstractMolGraph, v::Integer) = inneighbors(g.graph, v)
+Graphs.outneighbors(g::AbstractMolGraph, v::Integer) = outneighbors(g.graph, v)
+
+
 """
-    AbstractReaction{T<:AbstractMolGraph}
+    AbstractReaction
 
 The base class of reactions
 """
-abstract type AbstractReaction{T<:AbstractMolGraph} end
+abstract type AbstractReaction end
 
 
 """
@@ -66,27 +85,6 @@ The base class of molecule model which have auto-update mechanism of properties
 """
 abstract type ReactiveMolGraph{T<:Integer,V,E} <: SimpleMolGraph{T} end
 
-const QueryMolGraph = ReactiveMolGraph{<:Integer,<:QueryTree,<:QueryTree}
-
-
-# Graphs.jl common interface
-
-Graphs.edgetype(g::AbstractMolGraph) = edgetype(g.graph)
-Graphs.edgetype(::Type{<:AbstractMolGraph{T}}) where T = Edge{T}
-Base.eltype(g::AbstractMolGraph) = eltype(g.graph)
-# https://github.com/JuliaGraphs/Graphs.jl/pull/144
-Base.eltype(::Type{<:AbstractMolGraph{T}}) where T = T
-Graphs.nv(g::AbstractMolGraph) = nv(g.graph)
-Graphs.ne(g::AbstractMolGraph) = ne(g.graph)
-Graphs.vertices(g::AbstractMolGraph) = vertices(g.graph)
-Graphs.edges(g::AbstractMolGraph) = edges(g.graph)
-Graphs.is_directed(::Type{<:AbstractMolGraph}) = false
-Graphs.has_vertex(g::AbstractMolGraph, x::Integer) = has_vertex(g.graph, x)
-Graphs.has_edge(g::AbstractMolGraph, s::Integer, d::Integer) = has_edge(g.graph, s, d)
-Graphs.inneighbors(g::AbstractMolGraph, v::Integer) = inneighbors(g.graph, v)
-Graphs.outneighbors(g::AbstractMolGraph, v::Integer) = outneighbors(g.graph, v)
-Base.zero(::Type{G}) where G <: AbstractMolGraph = G()
-
 
 # SimpleMolGraph interface
 
@@ -122,10 +120,6 @@ u_edge(mol::AbstractMolGraph{T}, src::T, dst::T) where T<:Integer = u_edge(T, sr
 u_edge(mol::AbstractMolGraph, e::Edge) = u_edge(mol, src(e), dst(e))
 
 
-edge_rank(mol::SimpleMolGraph, e::Edge) = mol.state.edge_rank[e]
-edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) = edge_rank(mol, u_edge(mol, u, v))
-
-
 """
     edge_neighbors(g::SimpleGraph{T}, u::Integer, v::Integer) where T -> Tuple{Vector{T},Vector{T}}
     edge_neighbors(g::SimpleGraph{T}, e::Edge) where T -> Tuple{Vector{T},Vector{T}}
@@ -156,6 +150,7 @@ vproptype(mol::T) where T<:SimpleMolGraph = vproptype(T)
 eproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = E
 eproptype(::Type{T}) where T<:SimpleMolGraph = eproptype(T)
 eproptype(mol::T) where T<:SimpleMolGraph = eproptype(T)
+
 props(mol::ReactiveMolGraph, v::Integer) = mol.vprops[v]
 props(mol::ReactiveMolGraph, e::Edge) = mol.eprops[e]
 props(mol::ReactiveMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
@@ -194,12 +189,13 @@ function Base.:(==)(g::ReactionProperty, h::ReactionProperty)
     return true
 end
 
+
 """
-    Reaction{T}
+    Reaction{T<:AbstractMolGraph}
 
 Reaction type.
 """
-struct Reaction{T} <: AbstractReaction{T}
+struct Reaction{T<:AbstractMolGraph} <: AbstractReaction
     reactants::Vector{T}
     products::Vector{T}
     rprops::ReactionProperty
@@ -207,5 +203,5 @@ end
 
 Reaction{T}() where T = Reaction{T}([], [], ReactionProperty())
 
+Base.eltype(rxn::Reaction) = eltype(rxn.reactants)
 Base.eltype(::Type{Reaction{T}}) where T = T
-Base.eltype(rxn::Reaction{T}) where T = T

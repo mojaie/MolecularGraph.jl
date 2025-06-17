@@ -119,6 +119,38 @@ end
 
 
 """
+    MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
+
+Basic molecular graph type.
+"""
+struct QueryMolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
+    graph::SimpleGraph{T}
+    vprops::Dict{T,V}
+    eprops::Dict{Edge{T},E}
+    gprops::MolProperty{T}
+    state::MolState{T}
+end
+
+function QueryMolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
+    mol = QueryMolGraph{T,V,E}(reactive_molgraph(args...; kwargs...)...)
+    mol.state.initialized || mol.state.on_init(mol)
+    mol.state.initialized = true
+    initialize!(mol)
+    return mol
+end
+
+QueryMolGraph(
+    g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E}; kwargs...
+) where {T,V,E} = QueryMolGraph{T,V,E}(g, vprops, eprops; kwargs...)
+QueryMolGraph(
+    edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}; kwargs...
+) where {T,V,E} = QueryMolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
+
+QueryMolGraph{T,V,E}() where {T,V,E} = QueryMolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
+QueryMolGraph() = QueryMolGraph{Int,QueryAtom,QueryBond}()
+
+
+"""
     canonical(qtree::QueryTree) -> Tuple{String,Vector{Int}}
 
 Return cannonical representation of String and the vertex order.
@@ -286,7 +318,7 @@ end
 
 
 """
-    specialize_nonaromatic!(q::MolGraph) -> Nothing
+    specialize_nonaromatic!(q::QueryMolGraph) -> Nothing
 
 Convert `[#atomnumber]` queries connected to explicit single bonds to be non-aromatic
 (e.g. -[#6]- -> -C-).
@@ -357,8 +389,7 @@ Remove hydrogens from the molecular query.
 Should be applied after `specialize_nonaromatic!`.
 This function is intended for generalization of PAINS query in PubChem dataset.
 """
-function remove_hydrogens!(qmol::QueryMolGraph{T,V,E}
-        ) where {T<:Integer,V<:QueryAtom,E<:QueryBond}
+function remove_hydrogens!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
     # count H nodes and mark H nodes to remove
     hnodes = T[]
     hcntarr = zeros(Int, nv(qmol))
@@ -404,7 +435,7 @@ Optimize query tree.
   (e.g. :not => (:and => (:atomsymbol => :C, :isaromatic => false)
    -> :or => (:not => (:atomsymbol => :C), isaromatic => true)
 """
-function optimize!(tree::QueryTree{T,U}) where {T<:Integer,U<:QueryNode}
+function optimize!(tree::QueryTree{T,U}) where {T,U}
     # TODO: possibly unnecessary
 
     # Remove `:and` under `:not`

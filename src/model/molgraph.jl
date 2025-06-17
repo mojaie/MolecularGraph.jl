@@ -3,7 +3,16 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-@kwdef mutable struct MolState{T}
+function default_on_init!(mol::ReactiveMolGraph)
+    return  # No initialization by default
+end
+
+function default_on_update!(mol::ReactiveMolGraph)
+    return  # No auto-update callbacks by default
+end
+
+
+@kwdef mutable struct MolState{T} <: AbstractState
     initialized::Bool = false
     has_updates::Bool = true
     on_init::Function = default_on_init!
@@ -11,19 +20,78 @@
     edge_rank::Dict{Edge{T},Int} = Dict{Edge{T},Int}()
 end
 
-function MolState{T}(on_init, on_update) where T
-    state = MolState{T}()
-    state.on_init = on_init
-    state.on_update = on_update
-    return state
+
+# Update mechanisms
+
+function initialize!(mol::ReactiveMolGraph)
+    mol.state.initialized || mol.state.on_init(mol)
+    mol.state.initialized = true
+    dispatch_update!(mol)  # checking on-update callback errors
+    return
 end
 
-function default_on_init!(mol)
-    # No initialization by default
+function dispatch_update!(mol::ReactiveMolGraph)
+    mol.state.has_updates || return
+    update_edge_rank!(mol)  # necessary
+    mol.state.has_updates = false  # call before update to avoid infinite roop
+    mol.state.on_update(mol)
+    return
 end
 
-function default_on_update!(mol)
-    # These two emthods are necessary
+function notify_updates!(mol::ReactiveMolGraph)
+    # TODO: flag to inactivate auto-update
+    mol.state.has_updates = true
+    return
+end
+
+function update_edge_rank!(mol::ReactiveMolGraph)
+    empty!(mol.state.edge_rank)
+    for (i, e) in enumerate(edges(mol.graph))
+        mol.state.edge_rank[e] = i
+    end
+    return
+end
+
+"""
+    edge_rank(mol::SimpleMolGraph, e::Edge) -> Integer
+    edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) -> Integer
+
+A workaround for Edge property
+"""
+function edge_rank(mol::ReactiveMolGraph, e::Edge)
+    dispatch_update!(mol)
+    return mol.state.edge_rank[e]
+end
+
+edge_rank(mol::ReactiveMolGraph, u::Integer, v::Integer) = edge_rank(mol, u_edge(mol, u, v))
+
+
+function reactive_molgraph(
+        g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E};
+        gprops=MolProperty{T}(), kwargs...) where {T,V,E}
+    if nv(g) > length(vprops)
+        error("Mismatch in the number of nodes and node properties")
+    elseif ne(g) != length(eprops)
+        error("Mismatch in the number of edges and edge properties")
+    end
+    # expand fadjlist for vprops of isolated nodes
+    for _ in nv(g):(length(vprops) - 1)
+        push!(g.fadjlist, T[])
+    end
+    config = MolState{T}(;kwargs...)
+    return (g, vprops, eprops, gprops, config)
+end
+
+# from edge and property list (sdftomol, smilestomol interface)
+
+function reactive_molgraph(
+        edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}
+        ; kwargs...) where {T,V,E}
+    g = SimpleGraph(edge_list)
+    vps = Dict{T,V}(i => v for (i, v) in enumerate(vprop_list))
+    # eprop_list in edge_list order
+    eps = Dict{Edge{T},E}(e => eprop_list[i] for (i, e) in enumerate(edge_list))
+    return reactive_molgraph(g, vps, eps; kwargs...)
 end
 
 
@@ -40,52 +108,23 @@ struct MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
     state::MolState{T}
 end
 
-function MolGraph{T,V,E}(
-        g::SimpleGraph, vprops::Dict, eprops::Dict;
-        gprops=MolProperty{T}(),
-        on_init=default_on_init!,
-        on_update=default_on_update!, kwargs...) where {T,V,E}
-    (nv(g) > length(vprops)
-        && error("Mismatch in the number of nodes and node properties"))
-    (ne(g) == length(eprops)
-        || error("Mismatch in the number of edges and edge properties"))
-    # expand fadjlist for vprops of isolated nodes
-    for _ in nv(g):(length(vprops) - 1)
-        push!(g.fadjlist, T[])
-    end
-    config = MolState{T}(on_init, on_update)
-    mol = MolGraph{T,V,E}(g, vprops, eprops, gprops, config)
+function MolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
+    mol = MolGraph{T,V,E}(reactive_molgraph(args...; kwargs...)...)
     mol.state.initialized || mol.state.on_init(mol)
     mol.state.initialized = true
-    dispatch_update!(mol)
+    initialize!(mol)
     return mol
 end
 
 MolGraph(
     g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E}; kwargs...
 ) where {T,V,E} = MolGraph{T,V,E}(g, vprops, eprops; kwargs...)
-
-
-# from empty set
-
-MolGraph{T,V,E}() where {T,V,E} = MolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
-MolGraph() = MolGraph{Int,Any,Any}()
-
-
-# from edge and property list (sdftomol, smilestomol interface)
-
-function MolGraph{T,V,E}(
-        edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}; kwargs...
-        ) where {T,V,E}
-    g = SimpleGraph(edge_list)
-    vps = Dict(i => v for (i, v) in enumerate(vprop_list))
-    eps = Dict(e => eprop_list[i] for (i, e) in enumerate(edge_list))  # eprop_list in edge_list order
-    return MolGraph{T,V,E}(g, vps, eps; kwargs...)
-end
-
 MolGraph(
     edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}; kwargs...
 ) where {T,V,E} = MolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
+
+MolGraph{T,V,E}() where {T,V,E} = MolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
+MolGraph() = MolGraph{Int,SDFAtom,SDFAtom}()
 
 
 # MolGraph type aliases
@@ -93,28 +132,6 @@ MolGraph(
 const SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
 const SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
 const CommonChemMolGraph = MolGraph{Int,CommonChemAtom,CommonChemBond}
-
-
-# Update mechanisms
-
-function dispatch_update!(mol::ReactiveMolGraph)
-    mol.state.has_updates || return
-    update_edge_rank!(mol)  # necessary
-    mol.state.has_updates = false  # call before update to avoid infinite roop
-    mol.state.on_update(mol)
-end
-
-function notify_updates!(mol::ReactiveMolGraph)
-    # TODO: flag to inactivate auto-update
-    mol.state.has_updates = true
-end
-
-function update_edge_rank!(mol::ReactiveMolGraph)
-    empty!(mol.state.edge_rank)
-    for (i, e) in enumerate(edges(mol.graph))
-        mol.state.edge_rank[e] = i
-    end
-end
 
 
 # Edit graph

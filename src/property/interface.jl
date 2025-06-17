@@ -32,7 +32,7 @@ end
 
 
 
-@kwdef mutable struct MolProperty{T}
+@kwdef mutable struct MolProperty{T} <: AbstractProperty
     stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
     stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
     pyrrole_like::Vector{T} = T[]  # pyrrole H position for SMILES kekulization

@@ -139,7 +139,7 @@ end
         QueryBond([(1, 2), (1, 3), (3, 4)], [qand(),qeq(:order, "1"), qnot(), qtrue(:isaromatic)]),
         QueryBond([(1, 2), (1, 3), (3, 4)], [qand(),qeq(:order, "2"), qnot(), qtrue(:isaromatic)])
     ]
-    qmol = MolGraph(Edge.([(1, 2), (2, 3), (2, 4)]), atoms, bonds)
+    qmol = QueryMolGraph(Edge.([(1, 2), (2, 3), (2, 4)]), atoms, bonds)
     specialize_nonaromatic!(qmol)
     @test qmol.vprops[1] == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")])
     @test qmol.vprops[3] == QueryAtom(
@@ -164,7 +164,7 @@ end
             [qor(), qand(), qeq(:order, "1"), qnot(), qtrue(:isaromatic), qtrue(:isaromatic)]
         ) for _ in 1:3
     ]
-    qmol = MolGraph(Edge.([(2, 1), (2, 3), (2, 4)]), atoms, bonds)
+    qmol = QueryMolGraph(Edge.([(2, 1), (2, 3), (2, 4)]), atoms, bonds)
     remove_hydrogens!(qmol)
     @test nv(qmol) == 1
     @test qmol.vprops[1] == QueryAtom(

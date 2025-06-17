@@ -21,9 +21,9 @@ function rdk_on_update!(mol::SimpleMolGraph)
 end
 
 
-function molgraph_from_dict(
-        ::Val{:rdkit}, ::Type{T}, ::Type{V}, ::Type{E}, data::Dict;
-        on_init=rdk_on_init!, on_update=rdk_on_update!, kwargs...) where {T,V,E}
+function reactive_molgraph(
+        ::Val{:rdkit}, ::Type{T}, ::Type{V}, ::Type{E},
+        data::Dict, config::MolState) where {T,V,E}
     gps = MolProperty{T}()
     # edges
     es = Edge{T}[]
@@ -60,27 +60,33 @@ function molgraph_from_dict(
             push!(gps.coords3d, [Point3d(cd...) for cd in cds["coords"]])
         end
     end
-    return MolGraph{T,V,E}(
-        g, vps, eps, gprops=gps, on_init=on_init, on_update=on_update; kwargs...)
+    return (g, vps, eps, gps, config)
 end
 
 
-function MolGraph{T,CommonChemAtom,CommonChemBond}(data::Dict; kwargs...) where T<:Integer
+function MolGraph{T,CommonChemAtom,CommonChemBond}(data::Dict
+        ; on_init=rdk_on_init!, on_update=rdk_on_update!, kwargs...) where T
     if data["commonchem"]["version"] != 10
         error("CommonChem version other than 10 is not supported")
     end
     if length(data["molecules"]) != 1
         error("Only single molecule data is supported")
     end
-    mol = data["molecules"][1]
-    if mol["extensions"][1]["name"] != "rdkitRepresentation"
+    moldata = data["molecules"][1]
+    if moldata["extensions"][1]["name"] != "rdkitRepresentation"
         error("Invalid RDKit CommonChem file format")
     end
-    if mol["extensions"][1]["formatVersion"] != 2
+    if moldata["extensions"][1]["formatVersion"] != 2
         error("Unsupported RDKit CommonChem version")
     end
-    return molgraph_from_dict(
-        Val(:rdkit), T, CommonChemAtom, CommonChemBond, mol; kwargs...)
+
+    config=MolState{T}(;
+        on_init=on_init,
+        on_update=on_update,
+    )
+    mol = MolGraph(reactive_molgraph(
+        Val(:rdkit), T, CommonChemAtom, CommonChemBond, moldata, config)...)
+    return mol
 end
 
 
