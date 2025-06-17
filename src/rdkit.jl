@@ -24,7 +24,7 @@ end
 function molgraph_from_dict(
         ::Val{:rdkit}, ::Type{T}, ::Type{V}, ::Type{E}, data::Dict;
         on_init=rdk_on_init!, on_update=rdk_on_update!, kwargs...) where {T,V,E}
-    gps = MolGraphProperty{T}()
+    gps = MolProperty{T}()
     # edges
     es = Edge{T}[]
     eps = Dict{Edge{T},E}()

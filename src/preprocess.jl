@@ -5,11 +5,11 @@
 
 
 to_dict(
-    ::Val{:default}, ::Val{:pyrrole_like}, gprop::MolGraphProperty
+    ::Val{:default}, ::Val{:pyrrole_like}, gprop::MolProperty
 ) = gprop.pyrrole_like
-reconstruct(::Val{:pyrrole_like}, gprop::MolGraphProperty, data) = data
+reconstruct(::Val{:pyrrole_like}, gprop::MolProperty, data) = data
 remap(
-    ::Val{:pyrrole_like}, gprop::MolGraphProperty, vmap::Dict
+    ::Val{:pyrrole_like}, gprop::MolProperty, vmap::Dict
 ) = [vmap[v] for v in gprop.pyrrole_like if haskey(vmap, v)]
 
 

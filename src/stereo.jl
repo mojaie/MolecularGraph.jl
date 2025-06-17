@@ -27,16 +27,16 @@ function isclockwise(stereo::Tuple{T,T,T,Bool}, f::T, s::T, t::T) where T
 end
 
 
-function to_dict(::Val{:default}, ::Val{:stereocenter}, gprop::MolGraphProperty)
+function to_dict(::Val{:default}, ::Val{:stereocenter}, gprop::MolProperty)
     return Dict{String,Any}(string(i) => collect(val) for (i, val) in gprop.stereocenter)
 end
 
-function reconstruct(::Val{:stereocenter}, gprop::MolGraphProperty{T}, data) where T
+function reconstruct(::Val{:stereocenter}, gprop::MolProperty{T}, data) where T
     return Dict{T,Tuple{T,T,T,Bool}}(parse(T, i) => tuple(val...) for (i, val) in data)
 end
 
 function remap(
-        ::Val{:stereocenter}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+        ::Val{:stereocenter}, gprop::MolProperty{T}, vmap::Dict{T,T}
         ) where T
     newmap = Dict{T,Tuple{T,T,T,Bool}}()
     for (k, v) in gprop.stereocenter
@@ -47,16 +47,16 @@ function remap(
 end
 
 
-function to_dict(::Val{:default}, ::Val{:stereobond}, gprop::MolGraphProperty)
+function to_dict(::Val{:default}, ::Val{:stereobond}, gprop::MolProperty)
     return [[src(e), dst(e), collect(val)] for (e, val) in gprop.stereobond]
 end
 
-function reconstruct(::Val{:stereobond}, gprop::MolGraphProperty{T}, data) where T
+function reconstruct(::Val{:stereobond}, gprop::MolProperty{T}, data) where T
     return Dict{Edge{T},Tuple{T,T,Bool}}(Edge{T}(s, d) => tuple(val...) for (s, d, val) in data)
 end
 
 function remap(
-        ::Val{:stereobond}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+        ::Val{:stereobond}, gprop::MolProperty{T}, vmap::Dict{T,T}
         ) where T
     newmap = Dict{Edge{T},Tuple{T,T,Bool}}()
     for (k, v) in gprop.stereobond

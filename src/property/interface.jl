@@ -32,10 +32,10 @@ end
 
 
 
-@kwdef mutable struct MolGraphProperty{T}
+@kwdef mutable struct MolProperty{T}
     stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
     stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
-    pyrrole_like::Vector{T} = T[]  # to keep pyrrole H position
+    pyrrole_like::Vector{T} = T[]  # pyrrole H position for SMILES kekulization
     smarts_input::String = ""
     smarts_lexical_succ::Vector{Vector{T}} = Vector{T}[]  # lexical index used for stereochem
     smarts_connectivity::Vector{Vector{T}} = Vector{T}[]  # SMARTS connectivity query
@@ -49,22 +49,22 @@ end
     logs::Dict{String,String} = Dict{String,String}()
 end
 
-function MolGraphProperty{T}(data::Dict{String,Any}) where T
-    gprop = MolGraphProperty{T}()
+function MolProperty{T}(data::Dict{String,Any}) where T
+    gprop = MolProperty{T}()
     for sym in fieldnames(typeof(gprop))
         reconstruct!(Val(sym), gprop, data[string(sym)])
     end
     return gprop
 end
 
-function Base.:(==)(g::MolGraphProperty, h::MolGraphProperty)
+function Base.:(==)(g::MolProperty, h::MolProperty)
     for sym in fieldnames(typeof(g))
         getproperty(g, sym) == getproperty(h, sym) || return false
     end
     return true
 end
 
-function to_dict(::Val{T}, gprop::MolGraphProperty) where T
+function to_dict(::Val{T}, gprop::MolProperty) where T
     data = Dict{String,Any}()
     for sym in fieldnames(typeof(gprop))
         data[string(sym)] = to_dict(Val(T), Val(sym), gprop)
@@ -73,19 +73,19 @@ function to_dict(::Val{T}, gprop::MolGraphProperty) where T
 end
 
 
-function reconstruct!(::Val{T}, gprop::MolGraphProperty, data) where T
+function reconstruct!(::Val{T}, gprop::MolProperty, data) where T
     setproperty!(gprop, T, reconstruct(Val(T), gprop, data))
 end
 
 
-function remap!(::Val{T}, gprop::MolGraphProperty, vmap::Dict) where T
+function remap!(::Val{T}, gprop::MolProperty, vmap::Dict) where T
     # vmap[old] -> new
     setproperty!(gprop, T, remap(Val(T), gprop, vmap))
 end
 
 
 function remap_gprops(mol::ReactiveMolGraph{T,V,E}, vmap::Dict{T,T}) where {T,V,E}
-    gprop = MolGraphProperty{T}()
+    gprop = MolProperty{T}()
     for k in fieldnames(typeof(mol.gprops))
         setproperty!(gprop, k, remap(Val(k), mol.gprops, vmap))
     end
@@ -100,12 +100,12 @@ end
 
 
 to_dict(
-    ::Val{:default}, ::Val{T}, gprop::MolGraphProperty) where T = getproperty(gprop, T)
-reconstruct(::Val{T}, gprop::MolGraphProperty, data) where T = data
-remap(::Val{T}, gprop::MolGraphProperty, vmap::Dict) where T = getproperty(gprop, T)
+    ::Val{:default}, ::Val{T}, gprop::MolProperty) where T = getproperty(gprop, T)
+reconstruct(::Val{T}, gprop::MolProperty, data) where T = data
+remap(::Val{T}, gprop::MolProperty, vmap::Dict) where T = getproperty(gprop, T)
 
 
-function to_dict(::Val{:default}, ::Val{:descriptors}, gprop::MolGraphProperty)
+function to_dict(::Val{:default}, ::Val{:descriptors}, gprop::MolProperty)
     data = Dict{String,Any}()
     for sym in fieldnames(typeof(gprop.descriptors))
         data[string(sym)] = getproperty(gprop.descriptors, sym)
@@ -113,7 +113,7 @@ function to_dict(::Val{:default}, ::Val{:descriptors}, gprop::MolGraphProperty)
     return data
 end
 
-function reconstruct(::Val{:descriptors}, gprop::MolGraphProperty{T}, data) where T
+function reconstruct(::Val{:descriptors}, gprop::MolProperty{T}, data) where T
     desc = Descriptors{T}()
     for sym in fieldnames(typeof(gprop.descriptors))
         setproperty!(desc, sym, data[string(sym)])
@@ -122,13 +122,13 @@ function reconstruct(::Val{:descriptors}, gprop::MolGraphProperty{T}, data) wher
 end
 
 # Descriptors would be recalculated by the update callback. Do nothing.
-remap(::Val{:descriptors}, gprop::MolGraphProperty, vmap::Dict) = gprop.descriptors
+remap(::Val{:descriptors}, gprop::MolProperty, vmap::Dict) = gprop.descriptors
 
 
 to_dict(
-    ::Val{:default}, ::Val{:metadata}, gprop::MolGraphProperty) = [collect(d) for d in gprop.metadata]
-reconstruct(::Val{:metadata}, gprop::MolGraphProperty, data) = OrderedDict(d[1] => d[2] for d in data)
-remap(::Val{:metadata}, gprop::MolGraphProperty, vmap::Dict) = gprop.metadata
+    ::Val{:default}, ::Val{:metadata}, gprop::MolProperty) = [collect(d) for d in gprop.metadata]
+reconstruct(::Val{:metadata}, gprop::MolProperty, data) = OrderedDict(d[1] => d[2] for d in data)
+remap(::Val{:metadata}, gprop::MolProperty, vmap::Dict) = gprop.metadata
 
 
 # Metadata shortcuts

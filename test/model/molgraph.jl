@@ -126,7 +126,7 @@ end
 
 
 @testset "metadata" begin
-    gprop = MolGraphProperty{Int}()
+    gprop = MolProperty{Int}()
     data = Dict(
         "id1" => "hoge", "id2" => "fuga", "valid" => "true", "exp_pka" => "9.24", "stock_mg" => "25"
     )

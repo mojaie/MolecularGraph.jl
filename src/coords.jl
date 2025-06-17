@@ -4,33 +4,33 @@
 #
 
 to_dict(
-    ::Val{:default}, ::Val{:coords2d}, gprop::MolGraphProperty
+    ::Val{:default}, ::Val{:coords2d}, gprop::MolProperty
 ) = [[collect(cd) for cd in cds] for cds in gprop.coords2d]
 reconstruct(
-    ::Val{:coords2d}, gprop::MolGraphProperty, data
+    ::Val{:coords2d}, gprop::MolProperty, data
 ) = [[Point2d(cd...) for cd in cds] for cds in data]
 remap(  # TODO
-    ::Val{:coords2d}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+    ::Val{:coords2d}, gprop::MolProperty{T}, vmap::Dict{T,T}
 ) where T = gprop.coords2d
 
 to_dict(
-    ::Val{:default}, ::Val{:coords3d}, gprop::MolGraphProperty
+    ::Val{:default}, ::Val{:coords3d}, gprop::MolProperty
 ) = [[collect(cd) for cd in cds] for cds in gprop.coords3d]
 reconstruct(
-    ::Val{:coords3d}, gprop::MolGraphProperty, data
+    ::Val{:coords3d}, gprop::MolProperty, data
 ) = [[Point3d(cd...) for cd in cds] for cds in data]
 remap(  # TODO
-    ::Val{:coords3d}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+    ::Val{:coords3d}, gprop::MolProperty{T}, vmap::Dict{T,T}
 ) where T = gprop.coords3d
 
 to_dict(
-    ::Val{:default}, ::Val{:draw2d_bond_style}, gprop::MolGraphProperty
+    ::Val{:default}, ::Val{:draw2d_bond_style}, gprop::MolProperty
 ) = [[string(s) for s in sty] for sty in gprop.draw2d_bond_style]
 reconstruct(
-    ::Val{:draw2d_bond_style}, gprop::MolGraphProperty, data
+    ::Val{:draw2d_bond_style}, gprop::MolProperty, data
 ) = [[Symbol(s) for s in sty] for sty in data]
 remap(  # TODO
-    ::Val{:draw2d_bond_style}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+    ::Val{:draw2d_bond_style}, gprop::MolProperty{T}, vmap::Dict{T,T}
 ) where T = gprop.draw2d_bond_style
 
 

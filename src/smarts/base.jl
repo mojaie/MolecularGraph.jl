@@ -4,11 +4,11 @@
 #
 
 to_dict(
-    ::Val{:default}, ::Val{:smarts_lexical_succ}, gprop::MolGraphProperty
+    ::Val{:default}, ::Val{:smarts_lexical_succ}, gprop::MolProperty
 ) = gprop.smarts_lexical_succ
-reconstruct(::Val{:smarts_lexical_succ}, gprop::MolGraphProperty, data) = data
+reconstruct(::Val{:smarts_lexical_succ}, gprop::MolProperty, data) = data
 
-function remap(::Val{:smarts_lexical_succ}, gprop::MolGraphProperty{T}, vmap::Dict{T,T}
+function remap(::Val{:smarts_lexical_succ}, gprop::MolProperty{T}, vmap::Dict{T,T}
         ) where T
     vec = [T[] for i in 1:length(vmap)]
     for (k, v) in vmap
@@ -104,7 +104,7 @@ function smilestomol(
     state = SMILESParser{T}(smiles)
     fragment!(state)
     # original edge index
-    gprops = MolGraphProperty{eltype(T)}()
+    gprops = MolProperty{eltype(T)}()
     gprops.smarts_lexical_succ = state.succ
     gprops.smarts_input = string(smiles)
     return T(state.edges, state.vprops, state.eprops,
@@ -125,7 +125,7 @@ function smartstomol(
         ::Type{T}, smarts::AbstractString; kwargs...) where T <: SimpleMolGraph
     state = SMARTSParser{T}(smarts)
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
-    gprops = MolGraphProperty{eltype(T)}()
+    gprops = MolProperty{eltype(T)}()
     gprops.smarts_lexical_succ = state.succ
     gprops.smarts_connectivity = state.connectivity
     gprops.smarts_input = string(smarts)

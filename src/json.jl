@@ -34,11 +34,11 @@ to_json(mol::AbstractMolGraph) = to_json(Val{:default}(), mol)
 
 function molgraph_from_dict(
         ::Val{:default}, ::Type{T}, ::Type{V}, ::Type{E},
-        data::Dict, config::MolGraphState) where {T,V,E}
+        data::Dict, config::MolState) where {T,V,E}
     g = SimpleGraph(Edge{T}[Edge{T}(e...) for e in data["graph"]])
     vps = Dict{T,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
     eps = Dict{Edge{T},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
-    gps = MolGraphProperty{T}(data["gprops"])
+    gps = MolProperty{T}(data["gprops"])
     # Skip initialization to use stored descriptors without recalculation
     config.initialized = true
     config.has_updates = false
@@ -53,7 +53,7 @@ function MolGraph{T,SDFAtom,SDFBond}(data::Dict;
     if data["vproptype"] != "SDFAtom" || data["eproptype"] != "SDFBond"
         error("Incompatible element property types")
     end
-    config=MolGraphState{T}(on_init, on_update)
+    config=MolState{T}(on_init, on_update)
     return molgraph_from_dict(
         Val(:default), T, SDFAtom, SDFBond, data, config)
 end
@@ -63,7 +63,7 @@ function MolGraph{T,SMILESAtom,SMILESBond}(data::Dict;
     if data["vproptype"] != "SMILESAtom" || data["eproptype"] != "SMILESBond"
         error("Incompatible element property types")
     end
-    config=MolGraphState{T}(on_init, on_update)
+    config=MolState{T}(on_init, on_update)
     return molgraph_from_dict(
         Val(:default), T, SMILESAtom, SMILESBond, data, config)
 end
@@ -73,7 +73,7 @@ function MolGraph{T,QueryAtom,QueryBond}(data::Dict;
     if data["vproptype"] != "QueryAtom" || data["eproptype"] != "QueryBond"
         error("Incompatible element property types")
     end
-    config=MolGraphState{T}(on_init, on_update)
+    config=MolState{T}(on_init, on_update)
     return molgraph_from_dict(
         Val(:default), T, QueryAtom, QueryBond, data, config)
 end

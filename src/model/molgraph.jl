@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-@kwdef mutable struct MolGraphState{T}
+@kwdef mutable struct MolState{T}
     initialized::Bool = false
     has_updates::Bool = true
     on_init::Function = default_on_init!
@@ -11,8 +11,8 @@
     edge_rank::Dict{Edge{T},Int} = Dict{Edge{T},Int}()
 end
 
-function MolGraphState{T}(on_init, on_update) where T
-    state = MolGraphState{T}()
+function MolState{T}(on_init, on_update) where T
+    state = MolState{T}()
     state.on_init = on_init
     state.on_update = on_update
     return state
@@ -36,13 +36,13 @@ struct MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
     vprops::Dict{T,V}
     eprops::Dict{Edge{T},E}
-    gprops::MolGraphProperty{T}
-    state::MolGraphState{T}
+    gprops::MolProperty{T}
+    state::MolState{T}
 end
 
 function MolGraph{T,V,E}(
         g::SimpleGraph, vprops::Dict, eprops::Dict;
-        gprops=MolGraphProperty{T}(),
+        gprops=MolProperty{T}(),
         on_init=default_on_init!,
         on_update=default_on_update!, kwargs...) where {T,V,E}
     (nv(g) > length(vprops)
@@ -53,7 +53,7 @@ function MolGraph{T,V,E}(
     for _ in nv(g):(length(vprops) - 1)
         push!(g.fadjlist, T[])
     end
-    config = MolGraphState{T}(on_init, on_update)
+    config = MolState{T}(on_init, on_update)
     mol = MolGraph{T,V,E}(g, vprops, eprops, gprops, config)
     mol.state.initialized || mol.state.on_init(mol)
     mol.state.initialized = true
