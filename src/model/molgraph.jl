@@ -28,11 +28,11 @@ end
 
 
 """
-    MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
+    MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
 
 Basic molecular graph type.
 """
-struct MolGraph{T,V,E} <: SimpleMolGraph{T,V,E}
+struct MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
     vprops::Dict{T,V}
     eprops::Dict{Edge{T},E}
@@ -94,32 +94,22 @@ const SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
 const SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
 const CommonChemMolGraph = MolGraph{Int,CommonChemAtom,CommonChemBond}
 
-# Types
-
-vproptype(::Type{<:MolGraph{T,V,E}}) where {T,V,E} = V
-vproptype(::Type{T}) where T<:MolGraph = vproptype(T)
-vproptype(mol::T) where T<:MolGraph = vproptype(T)
-eproptype(::Type{<:MolGraph{T,V,E}}) where {T,V,E} = E
-eproptype(mol::T) where T<:MolGraph = eproptype(T)
-props(mol::MolGraph, v::Integer) = mol.vprops[v]
-props(mol::MolGraph, e::Edge) = mol.eprops[e]
-props(mol::MolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
 
 # Update mechanisms
 
-function dispatch_update!(mol::MolGraph)
+function dispatch_update!(mol::ReactiveMolGraph)
     mol.state.has_updates || return
     update_edge_rank!(mol)  # necessary
     mol.state.has_updates = false  # call before update to avoid infinite roop
     mol.state.on_update(mol)
 end
 
-function notify_updates!(mol::MolGraph)
+function notify_updates!(mol::ReactiveMolGraph)
     # TODO: flag to inactivate auto-update
     mol.state.has_updates = true
 end
 
-function update_edge_rank!(mol::MolGraph)
+function update_edge_rank!(mol::ReactiveMolGraph)
     empty!(mol.state.edge_rank)
     for (i, e) in enumerate(edges(mol.graph))
         mol.state.edge_rank[e] = i
@@ -129,7 +119,7 @@ end
 
 # Edit graph
 
-function add_u_edge!(mol::MolGraph{T,V,E}, e::Edge{T}, prop::E) where {T,V,E}
+function add_u_edge!(mol::ReactiveMolGraph{T,V,E}, e::Edge{T}, prop::E) where {T,V,E}
     # Can be directly called if src < dst is guaranteed.
     add_edge!(mol.graph, e) || return false
     mol.eprops[e] = prop
@@ -138,7 +128,7 @@ function add_u_edge!(mol::MolGraph{T,V,E}, e::Edge{T}, prop::E) where {T,V,E}
 end
 
 
-function Graphs.add_vertex!(mol::MolGraph{T,V,E}, prop::V) where {T,V,E}
+function Graphs.add_vertex!(mol::ReactiveMolGraph{T,V,E}, prop::V) where {T,V,E}
     add_vertex!(mol.graph) || return false
     mol.vprops[nv(mol.graph)] = prop
     notify_updates!(mol)
@@ -146,7 +136,7 @@ function Graphs.add_vertex!(mol::MolGraph{T,V,E}, prop::V) where {T,V,E}
 end
 
 
-function rem_u_edge!(mol::MolGraph, e::Edge)
+function rem_u_edge!(mol::ReactiveMolGraph, e::Edge)
     # Can be directly called if src < dst is guaranteed.
     rem_edge!(mol.graph, e) || return false
     delete!(mol.eprops, e)
@@ -155,7 +145,7 @@ function rem_u_edge!(mol::MolGraph, e::Edge)
 end
 
 
-function Graphs.rem_vertex!(mol::MolGraph, v::Integer)
+function Graphs.rem_vertex!(mol::ReactiveMolGraph, v::Integer)
     nv_ = nv(mol)
     edges_ = collect(edges(mol))
     rem_vertex!(mol.graph, v) || return false
@@ -181,7 +171,7 @@ function Graphs.rem_vertex!(mol::MolGraph, v::Integer)
 end
 
 
-function Graphs.rem_vertices!(mol::MolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
+function Graphs.rem_vertices!(mol::ReactiveMolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
     # TODO: if many vertices should be removed, induced_subgraph may be more efficient.
     vmap = rem_vertices!(mol.graph, vs)
     for (i, v) in enumerate(vmap)
@@ -206,7 +196,7 @@ function Graphs.rem_vertices!(mol::MolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
 end
 
 
-function _induced_subgraph(mol::T, vlist_or_elist) where {T<:MolGraph}
+function _induced_subgraph(mol::T, vlist_or_elist) where {T<:ReactiveMolGraph}
     # In many cases, induced_subgraph(mol.graph, vlist_or_elist) is sufficient
     subg, vmap = induced_subgraph(mol.graph, vlist_or_elist)
     vps = Dict(v => mol.vprops[vmap[v]] for v in vertices(subg))

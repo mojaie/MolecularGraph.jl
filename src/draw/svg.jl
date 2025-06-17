@@ -165,9 +165,9 @@ Base.show(io::IO, m::MIME"text/html", mols::Vector{<:SimpleMolGraph}
     ) = show(io, m, html_grid(mols, 4, "200px"))
 
 # Workaround until query visualizer implemented
-Base.show(io::IO, m::MIME"text/html", mol::SimpleMolGraph{<:Integer,<:QueryTree,<:QueryTree}
+Base.show(io::IO, m::MIME"text/html", mol::QueryMolGraph
     ) = print(io, "{$(nv(mol)), $(ne(mol))} simple molecular graph query $(typeof(mol))")
-Base.show(io::IO, m::MIME"text/html", mols::Vector{<:SimpleMolGraph{<:Integer,<:QueryTree,<:QueryTree}}
+Base.show(io::IO, m::MIME"text/html", mols::Vector{QueryMolGraph}
     ) = print(io, "$(length(mols)) simple molecular graph queries $(eltype(mols))")
 
 

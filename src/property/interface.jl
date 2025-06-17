@@ -84,7 +84,7 @@ function remap!(::Val{T}, gprop::MolGraphProperty, vmap::Dict) where T
 end
 
 
-function remap_gprops(mol::SimpleMolGraph{T,V,E}, vmap::Dict{T,T}) where {T,V,E}
+function remap_gprops(mol::ReactiveMolGraph{T,V,E}, vmap::Dict{T,T}) where {T,V,E}
     gprop = MolGraphProperty{T}()
     for k in fieldnames(typeof(mol.gprops))
         setproperty!(gprop, k, remap(Val(k), mol.gprops, vmap))
@@ -92,7 +92,7 @@ function remap_gprops(mol::SimpleMolGraph{T,V,E}, vmap::Dict{T,T}) where {T,V,E}
     return gprop
 end
 
-function remap_gprops!(mol::SimpleMolGraph, vmap::Dict)
+function remap_gprops!(mol::ReactiveMolGraph, vmap::Dict)
     for k in fieldnames(typeof(mol.gprops))
         remap!(Val(k), mol.gprops, vmap)
     end
@@ -133,13 +133,13 @@ remap(::Val{:metadata}, gprop::MolGraphProperty, vmap::Dict) = gprop.metadata
 
 # Metadata shortcuts
 
-function set_prop!(mol::SimpleMolGraph, prop::String, value::String)
+function set_prop!(mol::ReactiveMolGraph, prop::String, value::String)
     # Metadata update would not affect graph state
     mol.gprops.metadata[prop] = value
 end
 
-get_prop(mol::SimpleMolGraph, prop::String) = mol.gprops.metadata[prop]
-has_prop(mol::SimpleMolGraph, prop::String) = haskey(mol.gprops.metadata, prop)
+get_prop(mol::ReactiveMolGraph, prop::String) = mol.gprops.metadata[prop]
+has_prop(mol::ReactiveMolGraph, prop::String) = haskey(mol.gprops.metadata, prop)
 
-Base.getindex(mol::SimpleMolGraph, key::String) = get_prop(mol, key)
-Base.setindex!(mol::SimpleMolGraph, value::String, key::String) = set_prop!(mol, key, value)
+Base.getindex(mol::ReactiveMolGraph, key::String) = get_prop(mol, key)
+Base.setindex!(mol::ReactiveMolGraph, value::String, key::String) = set_prop!(mol, key, value)

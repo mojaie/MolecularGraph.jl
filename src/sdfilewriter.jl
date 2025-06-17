@@ -90,7 +90,7 @@ function printv2data(io::IO, mol::SimpleMolGraph)
 end
 
 
-function printv2mol(io::IO, mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+function printv2mol(io::IO, mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
     mol_ = copy(mol)  # TODO: expensive deep copy
     # stereospecific hydrogens for aesthetics of fused rings
     # may be better to stash coords of stereo hydrogens and give back to SDFile

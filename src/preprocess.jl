@@ -22,7 +22,7 @@ Double bonds and single bonds will be assigned to aromatic rings which consist o
 lowercase atoms (called Kekulization). Kekulization is necessary for the valence and
 implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
 """
-function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+function kekulize(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
     # "raw" bond orders
     bondorder = [bond_order(props(mol, e)) for e in edges(mol)]
     # lone pair in p-orbital, pyrrole-like aromatic atom
@@ -80,7 +80,7 @@ function kekulize(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
     return bondorder, pyrrole_like
 end
 
-function kekulize!(mol::MolGraph)
+function kekulize!(mol::ReactiveMolGraph)
     bondorder, pyrrole_like = kekulize(mol)
     mol.gprops.descriptors.bond_order = bondorder
     mol.gprops.pyrrole_like = pyrrole_like
@@ -88,14 +88,14 @@ end
 
 
 """
-    removable_hydrogens(mol::SimpleMolGraph{T,V,E}) -> Vector{T}
+    removable_hydrogens(mol::ReactiveMolGraph{T,V,E}) -> Vector{T}
 
 Return a vector of removable hydrogen nodes.
 
 Removable hydrogens are not charged, have no unpaired electron, have no specific mass,
 are non-stereospecific and are attached to organic heavy atoms.
 """
-function removable_hydrogens(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+function removable_hydrogens(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
     hs = T[]
     organic_heavy = Set([
         :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I
@@ -117,11 +117,11 @@ end
 
 
 """
-    all_hydrogens(mol::SimpleMolGraph{T,V,E}) -> Vector{T}
+    all_hydrogens(mol::SimpleMolGraph) -> Vector{T}
 
 Return a vector of all hydrogen nodes.
 """
-function all_hydrogens(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+function all_hydrogens(mol::SimpleMolGraph{T}) where T
     hs = T[]
     for i in vertices(mol)
         atom_symbol(props(mol, i)) === :H || continue
@@ -132,7 +132,7 @@ end
 
 
 """
-    remove_hydrogens!(mol::SimpleMolGraph{T,V,E}) -> Vector{T}
+    remove_hydrogens!(mol::ReactiveMolGraph{T,V,E}) -> Vector{T}
 
 Remove following hydrogen vertices from the molecule: that are not charged, have no
 unpaired electron, have no specific mass, are non-stereospecific and are
@@ -140,17 +140,17 @@ attached to organic heavy atoms.
 
 This returns vmap array similar to `Graphs.rem_vertices!`.
 """
-remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(mol))
+remove_hydrogens!(mol::ReactiveMolGraph) = rem_vertices!(mol, removable_hydrogens(mol))
 
 
 """
-    remove_all_hydrogens!(mol::SimpleMolGraph{T,V,E}) -> Vector{T}
+    remove_all_hydrogens!(mol::ReactiveMolGraph{T,V,E}) -> Vector{T}
 
 Remove all hydrogen vertices from the molecule.
 
 This returns vmap array similar to `Graphs.rem_vertices!`.
 """
-function remove_all_hydrogens!(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+function remove_all_hydrogens!(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
     to_remove = T[]
     for center in keys(mol.gprops.stereocenter)
         safe_stereo_hydrogen!(mol, center)
@@ -161,11 +161,11 @@ end
 
 
 """
-    add_hydrogens!(mol::SimpleMolGraph)
+    add_hydrogens!(mol::ReactiveMolGraph)
 
 Return the molecule with all hydrogen nodes explicitly attached.
 """
-function add_hydrogens!(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+function add_hydrogens!(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
     implicit_hs = implicit_hydrogens(mol)
     for i in vertices(mol)
         for j in 1:implicit_hs[i]
@@ -182,8 +182,8 @@ end
 
 Return a vector of nodes in the largest connected component.
 """
-largest_component_nodes(mol::SimpleMolGraph{T,V,E}
-    ) where {T,V,E} = sortstablemax(connected_components(mol.graph), by=length, init=T[])
+largest_component_nodes(mol::SimpleMolGraph{T}
+    ) where T = sortstablemax(connected_components(mol.graph), by=length, init=T[])
 
 
 """
@@ -218,7 +218,7 @@ function protonate_acids(mol::SimpleMolGraph)
     return arr
 end
 
-protonate_acids!(mol::MolGraph) = setproperty!(
+protonate_acids!(mol::ReactiveMolGraph) = setproperty!(
     mol.gprops.descriptors, :atom_charge, protonate_acids(mol))
 
 
@@ -238,7 +238,7 @@ function deprotonate_oniums(mol::SimpleMolGraph)
     return arr
 end
 
-deprotonate_oniums!(mol::MolGraph) = setproperty!(
+deprotonate_oniums!(mol::ReactiveMolGraph) = setproperty!(
     mol.gprops.descriptors, :atom_charge, deprotonate_oniums(mol))
 
 
@@ -268,7 +268,7 @@ function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
     return carr, oarr
 end
 
-function depolarize!(mol::MolGraph)
+function depolarize!(mol::ReactiveMolGraph)
     carr, oarr = depolarize(mol)
     mol.gprops.descriptors.atom_charge = carr
     mol.gprops.descriptors.bond_order = oarr
@@ -302,7 +302,7 @@ function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
     return carr, oarr
 end
 
-function polarize!(mol::MolGraph)
+function polarize!(mol::ReactiveMolGraph)
     carr, oarr = polarize(mol)
     mol.gprops.descriptors.atom_charge = carr
     mol.gprops.descriptors.bond_order = oarr
@@ -346,7 +346,7 @@ function to_triple_bond(mol::SimpleMolGraph)
     return carr, oarr
 end
 
-function to_triple_bond!(mol::MolGraph)
+function to_triple_bond!(mol::ReactiveMolGraph)
     carr, oarr = to_triple_bond(mol)
     mol.gprops.descriptors.atom_charge = carr
     mol.gprops.descriptors.bond_order = oarr
@@ -372,7 +372,7 @@ function to_allene_like(mol::SimpleMolGraph)
     return carr, oarr
 end
 
-function to_allene_like!(mol::MolGraph)
+function to_allene_like!(mol::ReactiveMolGraph)
     carr, oarr = to_allene_like(mol)
     mol.gprops.descriptors.atom_charge = carr
     mol.gprops.descriptors.bond_order = oarr

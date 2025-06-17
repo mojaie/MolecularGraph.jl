@@ -40,7 +40,7 @@ Return a vector of size ``n`` representing [`sssr`](@ref) membership of
 SSSR membership is represented as a vector of SSSR indices assigned to each rings.
 This means nodes that have the same SSSR index belong to the same SSSR.
 """
-function which_ring(mol::SimpleMolGraph{T,V,E}) where {T,V,E}
+function which_ring(mol::SimpleMolGraph)
     dispatch_update!(mol)
     arr = [Int[] for _ in vertices(mol)]
     for (i, cyc) in enumerate(sssr(mol))
@@ -139,38 +139,38 @@ end
 
 
 """
-    ring_count(mol::MolGraph) -> Vector{Int}
+    ring_count(mol::SimpleMolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of [`sssr`](@ref)
 that 1 to ``n``th atoms of the given molecule belong to.
 
 This property corresponds to SMARTS `R` query.
 """
-function ring_count(mol::MolGraph)
+function ring_count(mol::SimpleMolGraph)
     dispatch_update!(mol)
     return length.(which_ring(mol))
 end
 
 
 """
-    is_in_ring(mol::MolGraph) -> BitVector
+    is_in_ring(mol::SimpleMolGraph) -> BitVector
 
 Return a vector of size ``n`` representing whether 1 to ``n``th atoms of
 the given molecule belong to a ring or not.
 """
-function is_in_ring(mol::MolGraph)
+function is_in_ring(mol::SimpleMolGraph)
     dispatch_update!(mol)
     return .!isempty.(which_ring(mol))
 end
 
 
 """
-    is_edge_in_ring(mol::MolGraph) -> BitVector
+    is_edge_in_ring(mol::SimpleMolGraph) -> BitVector
 
 Return a vector of size ``n`` representing whether 1 to ``n``th bonds of
 the given molecule belong to a ring or not.
 """
-function is_edge_in_ring(mol::MolGraph)
+function is_edge_in_ring(mol::SimpleMolGraph)
     dispatch_update!(mol)
     return .!isempty.(edge_which_ring(mol))
 end
@@ -178,7 +178,7 @@ end
 
 
 """
-    bmscaffold(mol::MolGraph) -> Vector{Int}
+    bmscaffold(mol::SimpleMolGraph) -> Vector{Int}
 
 Return Bemis-Murcko scaffold as a vector of scaffold vertices.
 """
