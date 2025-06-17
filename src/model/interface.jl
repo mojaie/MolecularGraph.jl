@@ -65,7 +65,7 @@ abstract type AbstractState end
 """
     QueryTree{T,U}
 
-The base class of reactions
+The base class of molecular query trees.
 """
 abstract type QueryTree{T<:Integer,U} end
 
@@ -141,52 +141,11 @@ ordered_neighbors = neighbors
 ordered_edge_neighbors = edge_neighbors
 
 
-
-# ReactiveMolGraph interface (node/edge primary attributes)
-
-vproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = V
-vproptype(::Type{T}) where T<:SimpleMolGraph = vproptype(T)
-vproptype(mol::T) where T<:SimpleMolGraph = vproptype(T)
-eproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = E
-eproptype(::Type{T}) where T<:SimpleMolGraph = eproptype(T)
-eproptype(mol::T) where T<:SimpleMolGraph = eproptype(T)
-
-props(mol::ReactiveMolGraph, v::Integer) = mol.vprops[v]
-props(mol::ReactiveMolGraph, e::Edge) = mol.eprops[e]
-props(mol::ReactiveMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
-
-get_prop(mol::ReactiveMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
-get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
-get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
-get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
-
-function set_prop!(mol::ReactiveMolGraph{T,V,E}, v::T, value::V) where {T,V,E}
-    mol.vprops[v] = value
-    notify_updates!(mol)
-end
-
-function set_prop!(mol::ReactiveMolGraph{T,V,E}, e::Edge{T}, value::E) where {T,V,E}
-    mol.eprops[e] = value
-    notify_updates!(mol)
-end
-
-
-Base.:(==)(g::ReactiveMolGraph, h::ReactiveMolGraph
-    ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops
-
-
-@kwdef mutable struct ReactionProperty
+@kwdef mutable struct ReactionProperty <: AbstractProperty
     # Reaction-level metadata properties (e.g. SDFile option fields)
     metadata::OrderedDict{String,String} = OrderedDict()
     # Parse errors
     logs::Dict{String,String} = Dict()
-end
-
-function Base.:(==)(g::ReactionProperty, h::ReactionProperty)
-    for sym in fieldnames(typeof(g))
-        getproperty(g, sym) == getproperty(h, sym) || return false
-    end
-    return true
 end
 
 

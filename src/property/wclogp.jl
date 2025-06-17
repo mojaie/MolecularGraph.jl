@@ -20,11 +20,11 @@ const D_BLOCK = (:Fe, :Co, :Cu, :Zn, :Tc, :Cd, :Pt, :Au, :Hg, :Gd)
 
 
 """
-    wclogptype(mol::MolGraph)
+    wclogptype(mol::SimpleMolGraph)
 
 Return Wildman-Crippen LogP atom types.
 """
-function wclogptype(mol::MolGraph)
+function wclogptype(mol::SimpleMolGraph)
     atomtypes = Vector{Symbol}(undef, nv(mol))
     fill!(atomtypes, :undef)
     atomsymbol_ = atom_symbol(mol)
@@ -284,7 +284,7 @@ function wclogptype(mol::MolGraph)
 end
 
 
-function wclogphydrogentype(mol::MolGraph)
+function wclogphydrogentype(mol::SimpleMolGraph)
     atomtypes = Vector{Symbol}(undef, nv(mol))
     fill!(atomtypes, :undef)
     atomsymbol_ = atom_symbol(mol)
@@ -329,7 +329,7 @@ function wclogphydrogentype(mol::MolGraph)
 end
 
 
-function wclogpcontrib(mol::MolGraph)
+function wclogpcontrib(mol::SimpleMolGraph)
     contrib = zeros(Float64, nv(mol))
     atomsymbol_ = atom_symbol(mol)
     heavyatoms_ = heavy_atoms(mol)
@@ -355,7 +355,7 @@ end
 
 
 """
-    wclogp(mol::GraphMol) -> Float64
+    wclogp(mol::SimpleMolGraph) -> Float64
 
 Return predicted logP value calculated by using Wildman and Crippen method.
 
@@ -365,5 +365,5 @@ Return predicted logP value calculated by using Wildman and Crippen method.
    Parameters by Atomic Contributions. Journal of Chemical Information and
    Modeling, 39(5), 868–873. https://doi.org/10.1021/ci990307l
 """
-wclogp(mol::MolGraph) = reduce(+, wclogpcontrib(mol); init=0)
-wclogp(mol::MolGraph, digits) = round(wclogp(mol), digits=digits)
+wclogp(mol::SimpleMolGraph) = reduce(+, wclogpcontrib(mol); init=0)
+wclogp(mol::SimpleMolGraph, digits) = round(wclogp(mol), digits=digits)

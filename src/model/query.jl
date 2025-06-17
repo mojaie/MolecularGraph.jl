@@ -62,20 +62,6 @@ Base.:(==)(q::QueryNode, r::QueryNode
     ) = q.operator == r.operator && q.key == r.key && q.value == r.value
 
 
-struct QueryAtom{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
-    graph::SimpleDiGraph{T}
-    vprops::Dict{T,U}
-end
-
-struct QueryBond{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
-    graph::SimpleDiGraph{T}
-    vprops::Dict{T,U}
-end
-
-Base.eltype(::Type{<:QueryTree{T,U}}) where {T,U} = T
-Base.eltype(qtree::T) where T<:QueryTree = eltype(T)
-vproptype(::Type{<:QueryTree{T,U}}) where {T,U} = U
-vproptype(qtree::T) where T<:QueryTree = vproptype(T)
 
 function querytree(edges::Vector{Tuple{T,T}}, props::Vector{U}) where {T,U}
     g = SimpleDiGraph(Edge{T}.(edges))
@@ -88,11 +74,37 @@ function querytree(edges::Vector{Tuple{T,T}}, props::Vector{U}) where {T,U}
     return g, vprops
 end
 
+
 function querytree(::Type{T}, ::Type{U}, data::Dict{String,Any}) where {T,U}
     edges = NTuple{2,T}[(e...,) for e in data["edges"]]
     props = U.(data["vprops"])
     return querytree(edges, props)
 end
+
+
+Base.eltype(::Type{<:QueryTree{T,U}}) where {T,U} = T
+Base.eltype(qtree::T) where T<:QueryTree = eltype(T)
+vproptype(::Type{<:QueryTree{T,U}}) where {T,U} = U
+vproptype(qtree::T) where T<:QueryTree = vproptype(T)
+
+function to_dict(fmt::Val{:default}, qtree::QueryTree)
+    return Dict(
+        "edges" => [[src(e), dst(e)] for e in edges(qtree.graph)],
+        "vprops" => [to_dict(fmt, qtree.vprops[i]) for i in vertices(qtree.graph)]
+    )
+end
+
+
+struct QueryAtom{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
+    graph::SimpleDiGraph{T}
+    vprops::Dict{T,U}
+end
+
+struct QueryBond{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
+    graph::SimpleDiGraph{T}
+    vprops::Dict{T,U}
+end
+
 
 QueryAtom{T,U}(edges::Vector, props::Vector
     ) where {T<:Integer,U<:QueryNode} = QueryAtom{T,U}(querytree(edges, props)...)
@@ -110,16 +122,9 @@ QueryAtom(data::Dict{String,Any}) = QueryAtom(querytree(Int, QueryNode, data)...
 QueryBond(data::Dict{String,Any}) = QueryBond(querytree(Int, QueryNode, data)...)
 
 
-function to_dict(fmt::Val{:default}, qtree::QueryTree)
-    return Dict(
-        "edges" => [[src(e), dst(e)] for e in edges(qtree.graph)],
-        "vprops" => [to_dict(fmt, qtree.vprops[i]) for i in vertices(qtree.graph)]
-    )
-end
-
 
 """
-    MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
+    QueryMolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
 
 Basic molecular graph type.
 """

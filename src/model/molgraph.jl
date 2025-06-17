@@ -3,32 +3,20 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-function default_on_init!(mol::ReactiveMolGraph)
-    return  # No initialization by default
-end
-
-function default_on_update!(mol::ReactiveMolGraph)
-    return  # No auto-update callbacks by default
-end
-
-
-@kwdef mutable struct MolState{T} <: AbstractState
-    initialized::Bool = false
-    has_updates::Bool = true
-    on_init::Function = default_on_init!
-    on_update::Function = default_on_update!
-    edge_rank::Dict{Edge{T},Int} = Dict{Edge{T},Int}()
-end
+# ReactiveMolGraph interfaces
 
 
 # Update mechanisms
 
-function initialize!(mol::ReactiveMolGraph)
-    mol.state.initialized || mol.state.on_init(mol)
-    mol.state.initialized = true
-    dispatch_update!(mol)  # checking on-update callback errors
+
+function update_edge_rank!(mol::ReactiveMolGraph)
+    empty!(mol.state.edge_rank)
+    for (i, e) in enumerate(edges(mol.graph))
+        mol.state.edge_rank[e] = i
+    end
     return
 end
+
 
 function dispatch_update!(mol::ReactiveMolGraph)
     mol.state.has_updates || return
@@ -38,19 +26,52 @@ function dispatch_update!(mol::ReactiveMolGraph)
     return
 end
 
+
 function notify_updates!(mol::ReactiveMolGraph)
     # TODO: flag to inactivate auto-update
     mol.state.has_updates = true
     return
 end
 
-function update_edge_rank!(mol::ReactiveMolGraph)
-    empty!(mol.state.edge_rank)
-    for (i, e) in enumerate(edges(mol.graph))
-        mol.state.edge_rank[e] = i
-    end
+
+function initialize!(mol::ReactiveMolGraph)
+    mol.state.initialized || mol.state.on_init(mol)
+    mol.state.initialized = true
+    dispatch_update!(mol)  # checking on-update callback errors
     return
 end
+
+
+function default_on_init!(mol::ReactiveMolGraph)
+    return  # No initialization by default
+end
+
+
+function default_on_update!(mol::ReactiveMolGraph)
+    return  # No auto-update callbacks by default
+end
+
+
+Base.:(==)(g::ReactiveMolGraph, h::ReactiveMolGraph
+    ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops
+
+vproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = V
+vproptype(::Type{T}) where T<:SimpleMolGraph = vproptype(T)
+vproptype(mol::T) where T<:SimpleMolGraph = vproptype(T)
+eproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = E
+eproptype(::Type{T}) where T<:SimpleMolGraph = eproptype(T)
+eproptype(mol::T) where T<:SimpleMolGraph = eproptype(T)
+
+props(mol::ReactiveMolGraph, v::Integer) = mol.vprops[v]
+props(mol::ReactiveMolGraph, e::Edge) = mol.eprops[e]
+props(mol::ReactiveMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
+
+get_prop(mol::ReactiveMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
+get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
+get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
+get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
+
+
 
 """
     edge_rank(mol::SimpleMolGraph, e::Edge) -> Integer
@@ -66,75 +87,18 @@ end
 edge_rank(mol::ReactiveMolGraph, u::Integer, v::Integer) = edge_rank(mol, u_edge(mol, u, v))
 
 
-function reactive_molgraph(
-        g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E};
-        gprops=MolProperty{T}(), kwargs...) where {T,V,E}
-    if nv(g) > length(vprops)
-        error("Mismatch in the number of nodes and node properties")
-    elseif ne(g) != length(eprops)
-        error("Mismatch in the number of edges and edge properties")
-    end
-    # expand fadjlist for vprops of isolated nodes
-    for _ in nv(g):(length(vprops) - 1)
-        push!(g.fadjlist, T[])
-    end
-    config = MolState{T}(;kwargs...)
-    return (g, vprops, eprops, gprops, config)
+# Edit graph topology and properties
+
+function set_prop!(mol::ReactiveMolGraph{T,V,E}, v::T, value::V) where {T,V,E}
+    mol.vprops[v] = value
+    notify_updates!(mol)
 end
 
-# from edge and property list (sdftomol, smilestomol interface)
-
-function reactive_molgraph(
-        edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}
-        ; kwargs...) where {T,V,E}
-    g = SimpleGraph(edge_list)
-    vps = Dict{T,V}(i => v for (i, v) in enumerate(vprop_list))
-    # eprop_list in edge_list order
-    eps = Dict{Edge{T},E}(e => eprop_list[i] for (i, e) in enumerate(edge_list))
-    return reactive_molgraph(g, vps, eps; kwargs...)
+function set_prop!(mol::ReactiveMolGraph{T,V,E}, e::Edge{T}, value::E) where {T,V,E}
+    mol.eprops[e] = value
+    notify_updates!(mol)
 end
 
-
-"""
-    MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
-
-Basic molecular graph type.
-"""
-struct MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
-    graph::SimpleGraph{T}
-    vprops::Dict{T,V}
-    eprops::Dict{Edge{T},E}
-    gprops::MolProperty{T}
-    state::MolState{T}
-end
-
-function MolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
-    mol = MolGraph{T,V,E}(reactive_molgraph(args...; kwargs...)...)
-    mol.state.initialized || mol.state.on_init(mol)
-    mol.state.initialized = true
-    initialize!(mol)
-    return mol
-end
-
-MolGraph(
-    g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E}; kwargs...
-) where {T,V,E} = MolGraph{T,V,E}(g, vprops, eprops; kwargs...)
-MolGraph(
-    edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}; kwargs...
-) where {T,V,E} = MolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
-
-MolGraph{T,V,E}() where {T,V,E} = MolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
-MolGraph() = MolGraph{Int,SDFAtom,SDFAtom}()
-
-
-# MolGraph type aliases
-
-const SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
-const SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
-const CommonChemMolGraph = MolGraph{Int,CommonChemAtom,CommonChemBond}
-
-
-# Edit graph
 
 function add_u_edge!(mol::ReactiveMolGraph{T,V,E}, e::Edge{T}, prop::E) where {T,V,E}
     # Can be directly called if src < dst is guaranteed.
@@ -223,3 +187,81 @@ function _induced_subgraph(mol::T, vlist_or_elist) where {T<:ReactiveMolGraph}
     notify_updates!(mol)
     return T(subg, vps, eps, newgp, mol.state), vmap
 end
+
+
+
+@kwdef mutable struct MolState{T} <: AbstractState
+    initialized::Bool = false
+    has_updates::Bool = true
+    on_init::Function = default_on_init!
+    on_update::Function = default_on_update!
+    edge_rank::Dict{Edge{T},Int} = Dict{Edge{T},Int}()
+end
+
+
+function reactive_molgraph(
+        g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E};
+        gprops=MolProperty{T}(), kwargs...) where {T,V,E}
+    if nv(g) > length(vprops)
+        error("Mismatch in the number of nodes and node properties")
+    elseif ne(g) != length(eprops)
+        error("Mismatch in the number of edges and edge properties")
+    end
+    # expand fadjlist for vprops of isolated nodes
+    for _ in nv(g):(length(vprops) - 1)
+        push!(g.fadjlist, T[])
+    end
+    config = MolState{T}(;kwargs...)
+    return (g, vprops, eprops, gprops, config)
+end
+
+# from edge and property list (sdftomol, smilestomol interface)
+
+function reactive_molgraph(
+        edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}
+        ; kwargs...) where {T,V,E}
+    g = SimpleGraph(edge_list)
+    vps = Dict{T,V}(i => v for (i, v) in enumerate(vprop_list))
+    # eprop_list in edge_list order
+    eps = Dict{Edge{T},E}(e => eprop_list[i] for (i, e) in enumerate(edge_list))
+    return reactive_molgraph(g, vps, eps; kwargs...)
+end
+
+
+"""
+    MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
+
+Basic molecular graph type.
+"""
+struct MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
+    graph::SimpleGraph{T}
+    vprops::Dict{T,V}
+    eprops::Dict{Edge{T},E}
+    gprops::MolProperty{T}
+    state::MolState{T}
+end
+
+function MolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
+    mol = MolGraph{T,V,E}(reactive_molgraph(args...; kwargs...)...)
+    mol.state.initialized || mol.state.on_init(mol)
+    mol.state.initialized = true
+    initialize!(mol)
+    return mol
+end
+
+MolGraph(
+    g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E}; kwargs...
+) where {T,V,E} = MolGraph{T,V,E}(g, vprops, eprops; kwargs...)
+MolGraph(
+    edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}; kwargs...
+) where {T,V,E} = MolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
+
+MolGraph{T,V,E}() where {T,V,E} = MolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
+MolGraph() = MolGraph{Int,SDFAtom,SDFAtom}()
+
+
+# MolGraph type aliases
+
+const SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
+const SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
+const CommonChemMolGraph = MolGraph{Int,CommonChemAtom,CommonChemBond}

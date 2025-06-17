@@ -90,7 +90,7 @@ function MolGraph{T,CommonChemAtom,CommonChemBond}(data::Dict
 end
 
 
-function to_dict(fmt::Val{:rdkit}, mol::MolGraph)
+function to_dict(fmt::Val{:rdkit}, mol::SimpleMolGraph)
     data = Dict{String,Any}(
         "commonchem" => Dict("version" => 10),
         "defaults" => Dict(
@@ -181,7 +181,7 @@ to_rdkjson(x) = to_json(Val{:rdkit}(), x)
 
 Convert the molecule object into a RDKit molecule object that can be used in RDKitMinimalLib.jl
 """
-function rdkitmol(mol::MolGraph)
+function rdkitmol(mol::SimpleMolGraph)
     return get_mol(to_json(Val{:rdkit}(), mol))
 end
 
@@ -191,7 +191,7 @@ end
 
 Return a SMILES string of the molecule object.
 """
-function smiles(mol::MolGraph, details=nothing)
+function smiles(mol::SimpleMolGraph, details=nothing)
     return get_smiles(rdkitmol(mol), details)
 end
 
@@ -215,7 +215,7 @@ Return a Morgan fingerprint bit array
 """
 morgan_fp_vector(mol::Mol; kwargs...
     ) = uint8vec_to_bitarray(get_morgan_fp_as_bytes(mol::Mol, kwargs...))
-morgan_fp_vector(mol::MolGraph; kwargs...
+morgan_fp_vector(mol::SimpleMolGraph; kwargs...
     ) = morgan_fp_vector(rdkitmol(mol); kwargs...)
 
 """
@@ -226,7 +226,7 @@ Return a RDKit fingerprint bit array
 """
 rdkit_fp_vector(mol::Mol; kwargs...
     ) = uint8vec_to_bitarray(get_rdkit_fp_as_bytes(mol::Mol, kwargs...))
-rdkit_fp_vector(mol::MolGraph; kwargs...
+rdkit_fp_vector(mol::SimpleMolGraph; kwargs...
     ) = rdkit_fp_vector(rdkitmol(mol); kwargs...)
 
 """
@@ -238,7 +238,7 @@ optimized for substructure screening
 """
 pattern_fp_vector(mol::Mol; kwargs...
     ) = uint8vec_to_bitarray(get_pattern_fp_as_bytes(mol::Mol, kwargs...))
-pattern_fp_vector(mol::MolGraph; kwargs...
+pattern_fp_vector(mol::SimpleMolGraph; kwargs...
     ) = pattern_fp_vector(rdkitmol(mol); kwargs...)
 
 """
@@ -249,7 +249,7 @@ Return a atom pairs fingerprint bit array
 """
 atom_pair_fp_vector(mol::Mol; kwargs...
     ) = uint8vec_to_bitarray(get_atom_pair_fp_as_bytes(mol::Mol, kwargs...))
-atom_pair_fp_vector(mol::MolGraph; kwargs...
+atom_pair_fp_vector(mol::SimpleMolGraph; kwargs...
     ) = atom_pair_fp_vector(rdkitmol(mol); kwargs...)
 
 """
@@ -260,7 +260,7 @@ Return a topological torsions fingerprint bit array
 """
 topological_torsion_fp_vector(mol::Mol; kwargs...
     ) = uint8vec_to_bitarray(get_topological_torsion_fp_as_bytes(mol::Mol, kwargs...))
-topological_torsion_fp_vector(mol::MolGraph; kwargs...
+topological_torsion_fp_vector(mol::SimpleMolGraph; kwargs...
     ) = topological_torsion_fp_vector(rdkitmol(mol); kwargs...)
 
 

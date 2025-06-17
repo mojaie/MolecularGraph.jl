@@ -131,7 +131,7 @@ function inchi(molblock::String; options::String = "", verbose::Bool = false)
     return res
 end
 
-inchi(mol::MolGraph; options::String = "", verbose = false) = inchi(printv2mol(mol); options, verbose)
+inchi(mol::SimpleMolGraph; options::String = "", verbose = false) = inchi(printv2mol(mol); options, verbose)
 
 
 """
@@ -152,7 +152,7 @@ function inchikey(inchi::Union{String,Nothing})
     return unsafe_string(ikeybuf)
 end
 
-inchikey(mol::MolGraph) = inchikey(inchi(mol))
+inchikey(mol::SimpleMolGraph) = inchikey(inchi(mol))
 
 """
     inchitosdf(inchi::String; options::String = "") -> Union{String,Nothing}

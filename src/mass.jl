@@ -7,7 +7,7 @@ const DEFAULT_WEIGHT_DIGITS = 2
 const DEFAULT_MASS_DIGITS = 6
 
 
-function molecular_mass_unc(mol::MolGraph, massfunc)
+function molecular_mass_unc(mol::SimpleMolGraph, massfunc)
     mass = 0.0
     unc = 0.0
     hm, hu = massfunc(:H)
@@ -39,7 +39,7 @@ function monoiso_mass_unc(atomsymbol::Symbol)
 end
 
 monoiso_mass_unc(atom) = monoiso_mass_unc(atom_symbol(atom))
-monoiso_mass_unc(mol::MolGraph) = molecular_mass_unc(mol, monoiso_mass_unc)
+monoiso_mass_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, monoiso_mass_unc)
 
 
 """
@@ -51,11 +51,11 @@ Return monoisotopic mass of the atom/molecule.
 """
 monoiso_mass(atomsymbol::Symbol) = monoiso_mass_unc(atomsymbol)[1]
 monoiso_mass(atom) = monoiso_mass_unc(atom)[1]
-monoiso_mass(mol::MolGraph) = monoiso_mass_unc(mol)[1]
+monoiso_mass(mol::SimpleMolGraph) = monoiso_mass_unc(mol)[1]
 
 monoiso_mass(atomsymbol::Symbol, digits) = round(monoiso_mass(atomsymbol), digits=digits)
 monoiso_mass(atom, digits) = round(monoiso_mass(atom), digits=digits)
-monoiso_mass(mol::MolGraph, digits) = round(monoiso_mass(mol), digits=digits)
+monoiso_mass(mol::SimpleMolGraph, digits) = round(monoiso_mass(mol), digits=digits)
 
 
 """
@@ -67,7 +67,7 @@ Return nominal mass of the atom/molecule.
 """
 nominal_mass(atomsymbol::Symbol) = round(Int, monoiso_mass(atomsymbol))
 nominal_mass(atom) = round(Int, monoiso_mass(atom))
-nominal_mass(mol::MolGraph) = round(Int, monoiso_mass(mol))
+nominal_mass(mol::SimpleMolGraph) = round(Int, monoiso_mass(mol))
 
 
 """
@@ -91,7 +91,7 @@ function exact_mass_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
 end
 
 exact_mass_unc(atom) = exact_mass_unc(atom_symbol(atom), atom_mass(atom))
-exact_mass_unc(mol::MolGraph) = molecular_mass_unc(mol, exact_mass_unc)
+exact_mass_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, exact_mass_unc)
 
 
 """
@@ -103,11 +103,11 @@ Return calculated exact mass.
 """
 exact_mass(atomsymbol::Symbol) = exact_mass_unc(atomsymbol)[1]
 exact_mass(atom) = exact_mass_unc(atom)[1]
-exact_mass(mol::MolGraph) = exact_mass_unc(mol)[1]
+exact_mass(mol::SimpleMolGraph) = exact_mass_unc(mol)[1]
 
 exact_mass(atomsymbol::Symbol, digits) = round(exact_mass(atomsymbol), digits=digits)
 exact_mass(atom, digits) = round(exact_mass(atom), digits=digits)
-exact_mass(mol::MolGraph, digits) = round(exact_mass(mol), digits=digits)
+exact_mass(mol::SimpleMolGraph, digits) = round(exact_mass(mol), digits=digits)
 
 
 """
@@ -137,7 +137,7 @@ function standard_weight_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=not
 end
 
 standard_weight_unc(atom) = standard_weight_unc(atom_symbol(atom), atom_mass(atom))
-standard_weight_unc(mol::MolGraph) = molecular_mass_unc(mol, standard_weight_unc)
+standard_weight_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, standard_weight_unc)
 
 """
     standard_weight(atomsymbol::Symbol, [digits::Int]) -> Float64
@@ -148,10 +148,10 @@ Return standard atomic weight (or molecular weight).
 """
 standard_weight(atomsymbol::Symbol) = standard_weight_unc(atomsymbol)[1]
 standard_weight(atom) = standard_weight_unc(atom)[1]
-standard_weight(mol::MolGraph) = standard_weight_unc(mol)[1]
+standard_weight(mol::SimpleMolGraph) = standard_weight_unc(mol)[1]
 standard_weight(atomsymbol::Symbol, digits) = round(standard_weight(atomsymbol), digits=digits)
 standard_weight(atom, digits) = round(standard_weight(atom), digits=digits)
-standard_weight(mol::MolGraph, digits) = round(standard_weight(mol), digits=digits)
+standard_weight(mol::SimpleMolGraph, digits) = round(standard_weight(mol), digits=digits)
 
 
 """
@@ -195,7 +195,7 @@ function isotopic_composition(atomsymbol::Symbol, number::Int; threshold=0.001)
 end
 
 
-function isotopic_composition(mol::MolGraph; threshold=0.001)
+function isotopic_composition(mol::SimpleMolGraph; threshold=0.001)
     data = Tuple{Float64,Float64}[]
     for tup in Iterators.product(
             (isotopic_composition(sym, cnt; threshold=threshold)
@@ -220,7 +220,7 @@ Return a vector of tuples of each isotopic masses and their relative intensity i
 
 Records that have lower abundance (not peak intensity) than the given threshold will be filtered out (default 0.001 = 0.1%)
 """
-function massspec_peaks(mol::MolGraph; threshold=0.001)
+function massspec_peaks(mol::SimpleMolGraph; threshold=0.001)
     isocomp = isotopic_composition(mol; threshold=threshold)
     bp = maximum(x->x[2], isocomp)
     data = Tuple{Float64,Float64}[]
@@ -278,7 +278,7 @@ function simulate_massspec(
     return hcat(arr, superposed.(arr))
 end
 
-simulate_massspec(mol::MolGraph; kwargs...
+simulate_massspec(mol::SimpleMolGraph; kwargs...
     ) = simulate_massspec(massspec_peaks(mol; kwargs...); kwargs...)
 
 
