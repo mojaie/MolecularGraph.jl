@@ -24,7 +24,10 @@ See [`mincyclebasis`](@ref).
 """
 function sssr(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return mol.gprops.descriptors.sssr
+    if has_descriptor(mol, :sssr)
+        return get_descriptor(mol, :sssr)
+    end
+    return mincyclebasis(mol.graph)
 end
 
 sssr!(mol::SimpleMolGraph) = setproperty!(

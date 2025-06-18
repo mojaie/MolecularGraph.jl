@@ -10,6 +10,9 @@
     @test is_in_ring(biphenyl)[6]
     @test is_in_ring(biphenyl)[7]
     @test !is_edge_in_ring(biphenyl)[edge_rank(biphenyl, 6, 7)]
+
+    subpyr = smartstomol("c1[cX3]nccc1")
+    @test length(sssr(subpyr)) == 1
 end
 
 @testset "elements" begin
@@ -26,6 +29,9 @@ end
         1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 2]
     @test all(atom_charge(isocyanurate) .== 0)
     @test degree(isocyanurate) == [1, 3, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1]
+
+    aldehyde = smartstomol("[CH]=O")
+    @test_throws MethodError atom_symbol(aldehyde)
 end
 
 @testset "formula" begin

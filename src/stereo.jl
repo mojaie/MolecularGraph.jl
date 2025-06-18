@@ -28,7 +28,7 @@ end
 
 
 function remap!(
-        ::Val{:stereocenter}, gprop::MolProperty{T}, vmap::Dict{T,T}
+        ::Val{:stereocenter}, gprop::SimpleMolProperty{T}, vmap::Dict{T,T}
         ) where T <: Integer
     newmap = Dict{T,Tuple{T,T,T,Bool}}()
     for (k, v) in gprop.stereocenter
@@ -39,8 +39,9 @@ function remap!(
     return
 end
 
-function reconstruct(::Val{:stereocenter}, ::Type{MolProperty{T}}, data) where T
-    return Dict{T,Tuple{T,T,T,Bool}}(parse(T, i) => tuple(val...) for (i, val) in data)
+function reconstruct(::Val{:stereocenter}, T::Type{<:SimpleMolProperty}, data)
+    U = eltype(T)
+    return Dict{U,Tuple{U,U,U,Bool}}(parse(U, i) => tuple(val...) for (i, val) in data)
 end
 
 function to_dict(::Val{:stereocenter}, ::Val{:default}, gprop::AbstractProperty)
@@ -49,7 +50,7 @@ end
 
 
 function remap!(
-        ::Val{:stereobond}, gprop::MolProperty{T}, vmap::Dict{T,T}
+        ::Val{:stereobond}, gprop::SimpleMolProperty{T}, vmap::Dict{T,T}
         ) where T <: Integer
     newmap = Dict{Edge{T},Tuple{T,T,Bool}}()
     for (k, v) in gprop.stereobond
@@ -60,8 +61,10 @@ function remap!(
     return
 end
 
-function reconstruct(::Val{:stereobond}, ::Type{MolProperty{T}}, data) where T
-    return Dict{Edge{T},Tuple{T,T,Bool}}(Edge{T}(s, d) => tuple(val...) for (s, d, val) in data)
+function reconstruct(::Val{:stereobond}, T::Type{<:SimpleMolProperty}, data)
+    U = eltype(T)
+    return Dict{Edge{U},Tuple{U,U,Bool}}(
+        Edge{U}(s, d) => tuple(val...) for (s, d, val) in data)
 end
 
 function to_dict(::Val{:stereobond}, ::Val{:default}, gprop::AbstractProperty)

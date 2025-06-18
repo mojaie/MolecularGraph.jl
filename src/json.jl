@@ -34,11 +34,11 @@ to_json(mol::AbstractMolGraph) = to_json(Val{:default}(), mol)
 
 function reactive_molgraph(
         ::Val{:default}, ::Type{T}, ::Type{V}, ::Type{E},
-        @nospecialize(data::Dict), config::MolState) where {T,V,E}
+        @nospecialize(data::Dict), gps::AbstractProperty,
+        config::MolState) where {T,V,E}
     g = SimpleGraph(Edge{T}[Edge{T}(e...) for e in data["graph"]])
     vps = Dict{T,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
     eps = Dict{Edge{T},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
-    gps = reconstruct(MolProperty{T}, data["gprops"])
     return (g, vps, eps, gps, config)
 end
 
@@ -48,6 +48,7 @@ function MolGraph{T,SDFAtom,SDFBond}(@nospecialize(data::Dict)
     if data["vproptype"] != "SDFAtom" || data["eproptype"] != "SDFBond"
         error("Incompatible element property types")
     end
+    gps = reconstruct(MolProperty{T}, data["gprops"])
     config=MolState{T}(;
         on_init=on_init,
         on_update=on_update,
@@ -55,7 +56,7 @@ function MolGraph{T,SDFAtom,SDFBond}(@nospecialize(data::Dict)
         has_updates = false  # Do not update ready-to-use descriptors!
     )
     mol = MolGraph(
-        reactive_molgraph(Val(:default), T, SDFAtom, SDFBond, data, config)...)
+        reactive_molgraph(Val(:default), T, SDFAtom, SDFBond, data, gps, config)...)
     update_edge_rank!(mol)  # but edge_rank should be resumed
     return mol
 end
@@ -65,6 +66,7 @@ function MolGraph{T,SMILESAtom,SMILESBond}(@nospecialize(data::Dict)
     if data["vproptype"] != "SMILESAtom" || data["eproptype"] != "SMILESBond"
         error("Incompatible element property types")
     end
+    gps = reconstruct(MolProperty{T}, data["gprops"])
     config=MolState{T}(;
         on_init=on_init,
         on_update=on_update,
@@ -72,7 +74,7 @@ function MolGraph{T,SMILESAtom,SMILESBond}(@nospecialize(data::Dict)
         has_updates = false  # Do not update ready-to-use descriptors!
     )
     mol = MolGraph(
-        reactive_molgraph(Val(:default), T, SMILESAtom, SMILESBond, data, config)...)
+        reactive_molgraph(Val(:default), T, SMILESAtom, SMILESBond, data, gps, config)...)
     update_edge_rank!(mol)  # but edge_rank should be resumed
     return mol
 end
@@ -82,6 +84,7 @@ function QueryMolGraph{T,QueryAtom,QueryBond}(@nospecialize(data::Dict)
     if data["vproptype"] != "QueryAtom" || data["eproptype"] != "QueryBond"
         error("Incompatible element property types")
     end
+    gps = reconstruct(QueryMolProperty{T}, data["gprops"])
     config=MolState{T}(
         on_init=on_init,
         on_update=on_update,
@@ -89,7 +92,7 @@ function QueryMolGraph{T,QueryAtom,QueryBond}(@nospecialize(data::Dict)
         has_updates = false  # Do not update ready-to-use descriptors!
     )
     mol = QueryMolGraph(
-        reactive_molgraph(Val(:default), T, QueryAtom, QueryBond, data, config)...)
+        reactive_molgraph(Val(:default), T, QueryAtom, QueryBond, data, gps, config)...)
     update_edge_rank!(mol)  # but edge_rank should be resumed
     return mol
 end

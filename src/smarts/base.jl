@@ -3,8 +3,8 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-function remap!(::Val{:smarts_lexical_succ}, gprop::MolProperty{T}, vmap::Dict{T,T}
-        ) where T <: Integer
+function remap!(::Val{:smarts_lexical_succ}, gprop::SimpleMolProperty{T},
+        vmap::Dict{T,T}) where T <: Integer
     vec = [T[] for i in 1:length(vmap)]
     for (k, v) in vmap
         k <= length(gprop.smarts_lexical_succ) || continue
@@ -122,7 +122,7 @@ function smartstomol(
         ::Type{T}, smarts::AbstractString; kwargs...) where T <: SimpleMolGraph
     state = SMARTSParser{T}(smarts)
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
-    gprops = MolProperty{eltype(T)}()
+    gprops = QueryMolProperty{eltype(T)}()
     gprops.smarts_lexical_succ = state.succ
     gprops.smarts_connectivity = state.connectivity
     gprops.smarts_input = string(smarts)

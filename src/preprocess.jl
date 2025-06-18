@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-function remap!(::Val{:pyrrole_like}, gprop::MolProperty{T}, vmap::Dict{T,T}
+function remap!(::Val{:pyrrole_like}, gprop::SimpleMolProperty{T}, vmap::Dict{T,T}
         ) where T <: Integer
     vec = T[vmap[v] for v in gprop.pyrrole_like if haskey(vmap, v)]
     gprop.pyrrole_like = vec

@@ -123,6 +123,29 @@ QueryBond(data::Dict{String,Any}) = QueryBond(querytree(Int, QueryNode, data)...
 
 
 
+@kwdef mutable struct QueryMolDescriptor{T} <: SimpleMolProperty{T}
+    coords2d::Vector{Vector{Point2d}} = Vector{Point2d}[]
+    coords3d::Vector{Vector{Point3d}} = Vector{Point3d}[]
+end
+
+
+@kwdef mutable struct QueryMolProperty{T} <: SimpleMolProperty{T}
+    stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
+    stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
+    smarts_input::String = ""
+    smarts_lexical_succ::Vector{Vector{T}} = Vector{T}[]  # lexical index used for stereochem
+    smarts_connectivity::Vector{Vector{T}} = Vector{T}[]  # SMARTS connectivity query
+    descriptors::QueryMolDescriptor{T} = QueryMolDescriptor{T}()
+    # Graph-level metadata properties (e.g. SDFile option fields)
+    metadata::OrderedDict{String,String} = OrderedDict{String,String}()
+    # Parse errors
+    logs::Dict{String,String} = Dict{String,String}()
+end
+
+reconstruct(::Val{:descriptors}, ::Type{QueryMolProperty{T}}, data
+    ) where T = reconstruct(QueryMolDescriptor{T}, data)
+
+
 """
     QueryMolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
 
@@ -132,12 +155,13 @@ struct QueryMolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
     vprops::Dict{T,V}
     eprops::Dict{Edge{T},E}
-    gprops::MolProperty{T}
+    gprops::QueryMolProperty{T}
     state::MolState{T}
 end
 
 function QueryMolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
-    mol = QueryMolGraph{T,V,E}(reactive_molgraph(args...; kwargs...)...)
+    mol = QueryMolGraph{T,V,E}(
+        reactive_molgraph(args...; gprops=QueryMolProperty{T}(), kwargs...)...)
     mol.state.initialized || mol.state.on_init(mol)
     mol.state.initialized = true
     initialize!(mol)

@@ -45,6 +45,7 @@ The base class of graph-level property of the molecular model.
 """
 abstract type AbstractProperty end
 
+abstract type SimpleMolProperty{T<:Integer} <: AbstractProperty end
 
 function Base.:(==)(g::AbstractProperty, h::AbstractProperty)
     for sym in fieldnames(typeof(g))
@@ -53,6 +54,7 @@ function Base.:(==)(g::AbstractProperty, h::AbstractProperty)
     return true
 end
 
+Base.eltype(::Type{<:SimpleMolProperty{T}}) where T = T
 
 """
     AbstractState

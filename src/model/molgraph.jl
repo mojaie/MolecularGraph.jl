@@ -66,7 +66,6 @@ props(mol::ReactiveMolGraph, v::Integer) = mol.vprops[v]
 props(mol::ReactiveMolGraph, e::Edge) = mol.eprops[e]
 props(mol::ReactiveMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
 
-get_prop(mol::ReactiveMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
 get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
 get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
 get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]

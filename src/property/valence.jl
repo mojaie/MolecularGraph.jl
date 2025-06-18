@@ -52,7 +52,10 @@ the given molecule.
 """
 function atom_charge(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return mol.gprops.descriptors.atom_charge
+    if has_descriptor(mol, :atom_charge)
+        return get_descriptor(mol, :atom_charge)
+    end
+    return [atom_charge(props(mol, i)) for i in vertices(mol)]
 end
 
 default_atom_charge!(mol::SimpleMolGraph) = setproperty!(
@@ -81,7 +84,10 @@ the given molecule.
 """
 function bond_order(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return mol.gprops.descriptors.bond_order
+    if has_descriptor(mol, :bond_order)
+        return get_descriptor(mol, :bond_order)
+    end
+    return [bond_order(props(mol, e)) for e in edges(mol)]
 end
 
 default_bond_order!(mol::SimpleMolGraph) = setproperty!(
@@ -115,7 +121,10 @@ end
 
 function apparent_valence(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return mol.gprops.descriptors.apparent_valence
+    if has_descriptor(mol, :apparent_valence)
+        return get_descriptor(mol, :apparent_valence)
+    end
+    return apparent_valence(mol.graph, bond_order(mol))
 end
 
 apparent_valence!(mol::SimpleMolGraph) = setproperty!(
@@ -151,7 +160,10 @@ end
 
 function valence(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return mol.gprops.descriptors.valence
+    if has_descriptor(mol, :valence)
+        return get_descriptor(mol, :valence)
+    end
+    return valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
 end
 
 valence!(mol::SimpleMolGraph) = setproperty!(
@@ -263,7 +275,10 @@ end
 
 function lone_pair(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return mol.gprops.descriptors.lone_pair
+    if has_descriptor(mol, :lone_pair)
+        return get_descriptor(mol, :lone_pair)
+    end
+    return lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
 end
 
 lone_pair!(mol::SimpleMolGraph) = setproperty!(

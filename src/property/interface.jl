@@ -4,7 +4,7 @@
 #
 
 
-function remap!(container::AbstractProperty, vmap::Dict{T,T}) where T <: Integer
+function remap!(container::SimpleMolProperty{T}, vmap::Dict{T,T}) where T <: Integer
     # vmap[old] -> new
     for sym in fieldnames(typeof(container))
         remap!(Val(sym), container, vmap)
@@ -12,7 +12,7 @@ function remap!(container::AbstractProperty, vmap::Dict{T,T}) where T <: Integer
     return
 end
 
-function remap!(::Val, container::AbstractProperty, vmap::Dict{T,T}) where T <: Integer
+function remap!(::Val, container::SimpleMolProperty{T}, vmap::Dict{T,T}) where T <: Integer
     return
 end
 
@@ -47,7 +47,7 @@ function Base.:(==)(g::T, h::T) where T <: AbstractProperty
 end
 
 
-@kwdef mutable struct Descriptors{T} <: AbstractProperty
+@kwdef mutable struct MolDescriptor{T} <: SimpleMolProperty{T}
     # cached relatively expensive descriptors
     sssr::Vector{Vector{T}} = Vector{T}[]
     lone_pair::Vector{Int} = Int[]
@@ -65,14 +65,13 @@ end
 end
 
 
-@kwdef mutable struct MolProperty{T} <: AbstractProperty
+@kwdef mutable struct MolProperty{T} <: SimpleMolProperty{T}
     stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
     stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
     pyrrole_like::Vector{T} = T[]  # pyrrole H position for SMILES kekulization
     smarts_input::String = ""
     smarts_lexical_succ::Vector{Vector{T}} = Vector{T}[]  # lexical index used for stereochem
-    smarts_connectivity::Vector{Vector{T}} = Vector{T}[]  # SMARTS connectivity query
-    descriptors::Descriptors{T} = Descriptors{T}()
+    descriptors::MolDescriptor{T} = MolDescriptor{T}()
     # Graph-level metadata properties (e.g. SDFile option fields)
     metadata::OrderedDict{String,String} = OrderedDict{String,String}()
     # Parse errors
@@ -94,10 +93,16 @@ end
 # Descriptors would be recalculated by the update callback. `remap` does nothing.
 
 reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, data
-    ) where T = reconstruct(Descriptors{T}, data)
+    ) where T = reconstruct(MolDescriptor{T}, data)
 
-to_dict(::Val{:descriptors}, ::Val{:default}, gprop::MolProperty
+to_dict(::Val{:descriptors}, ::Val{:default}, gprop::AbstractProperty
     ) = to_dict(Val(:default), gprop.descriptors)
+
+get_prop(mol::ReactiveMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
+get_descriptor(mol::ReactiveMolGraph, field::Symbol
+    ) = getproperty(mol.gprops.descriptors, field)
+has_descriptor(mol::ReactiveMolGraph, field::Symbol
+    ) = hasproperty(mol.gprops.descriptors, field)
 
 
 # Metadata
@@ -105,8 +110,8 @@ to_dict(::Val{:descriptors}, ::Val{:default}, gprop::MolProperty
 reconstruct(::Val{:metadata}, ::Type{T}, data
     ) where T <: AbstractProperty = OrderedDict(d[1] => d[2] for d in data)
 
-to_dict(
-    ::Val{:metadata}, ::Val{:default}, gprop::MolProperty) = [collect(d) for d in gprop.metadata]
+to_dict(::Val{:metadata}, ::Val{:default}, gprop::AbstractProperty
+    ) = [collect(d) for d in gprop.metadata]
 
 
 # Metadata shortcuts

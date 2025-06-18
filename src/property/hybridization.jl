@@ -209,7 +209,14 @@ end
 
 function is_ring_aromatic(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return mol.gprops.descriptors.is_ring_aromatic
+    if has_descriptor(mol, :is_ring_aromatic)
+        return get_descriptor(mol, :is_ring_aromatic)
+    end
+    return is_ring_aromatic(
+        mol.graph, sssr(mol), edge_which_ring(mol),
+        atom_symbol(mol), bond_order(mol),
+        hybridization(mol), pi_electron(mol)
+    )
 end
 
 is_ring_aromatic!(mol::SimpleMolGraph) = setproperty!(
