@@ -189,12 +189,21 @@ end
 
 
 
-@kwdef mutable struct MolState{T} <: AbstractState
-    initialized::Bool = false
-    has_updates::Bool = true
-    on_init::Function = default_on_init!
-    on_update::Function = default_on_update!
-    edge_rank::Dict{Edge{T},Int} = Dict{Edge{T},Int}()
+mutable struct MolState{T,F1,F2} <: AbstractState
+    initialized::Bool
+    has_updates::Bool
+    on_init::F1
+    on_update::F2
+    edge_rank::Dict{Edge{T},Int}
+end
+
+
+function MolState{T}(
+        ; initialized=false, has_updates=true,
+        on_init=default_on_init!, on_update=default_on_update!,
+        edge_rank=Dict{Edge{T},Int}()) where T
+    return MolState{T,typeof(on_init),typeof(on_update)}(
+        initialized, has_updates, on_init, on_update, edge_rank)
 end
 
 

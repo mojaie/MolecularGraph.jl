@@ -39,9 +39,13 @@ must be unique and sorted if QueryTruthTable constructors is manually called for
   that corresponds to each property variables and returns true or false.
 - props: QueryLiteral vector.
 """
-struct QueryTruthTable
-    func::Function
+struct QueryTruthTable{F}
+    func::F
     props::Vector{QueryNode}
+end
+
+function QueryTruthTable(@nospecialize(f), props)
+    return QueryTruthTable{typeof(f)}(f, props)
 end
 
 function QueryTruthTable(tree::QueryTree)

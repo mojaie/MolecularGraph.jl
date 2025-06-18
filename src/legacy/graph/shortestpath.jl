@@ -72,7 +72,7 @@ end
 Compute the distance (shortest path length) from `source` to `target`.
 If the nodes are not reachable each other, the value will be `nothing`.
 """
-function distance(adjfunc::Function, graph, source, target)
+function distance(adjfunc::F, graph, source, target) where F
     source == target && return
     dps = bfsdepth(adjfunc, graph, source)
     haskey(dps, target) || return
@@ -111,7 +111,7 @@ isreversereachable(graph::DirectedGraph, u, v) = distance(predecessors, graph, u
 Compute the eccentricity of the graph (the largest distance between `v` and
 any other nodes).
 """
-function eccentricity(adjfunc::Function, graph, v)
+function eccentricity(adjfunc::F, graph, v) where F
     dists = values(bfsdepth(adjfunc, graph, v))
     isempty(dists) && return
     return maximum(dists)
@@ -145,7 +145,7 @@ Generate the distance matrix of the graph.
 Note that the type of the generated matrix will be `Float64`. If the nodes are
 not reachable each other, the distance value will be `Inf`.
 """
-function distancematrix(adjfunc::Function, graph)
+function distancematrix(adjfunc::F, graph) where F
     ncnt = nodecount(graph)
     distmat = fill(Inf, (ncnt, ncnt))
     for s in 1:ncnt
@@ -166,7 +166,7 @@ distancematrix(graph::OrderedDiGraph) = distancematrix(successors, graph)
 Compute the shortest path between `u` and `v` as a vector of the nodes that
 forms the path. Return nothing if not reachable.
 """
-function shortestpathnodes(func::Function, graph, source, target)
+function shortestpathnodes(func::F, graph, source, target) where F
     source == target && return
     tree = bfstree(func, graph, source)
     path = Int[target]
@@ -189,7 +189,7 @@ reverseshortestpathnodes(graph::DirectedGraph, u, v) = shortestpathnodes(predece
 Compute the shortest path between `u` and `v` as a vector of the edges that
 forms the path. Return nothing if not reachable.
 """
-function shortestpathedges(func::Function, graph, source, target)
+function shortestpathedges(func::F, graph, source, target) where F
     source == target && return
     tree = bfstree_edges(func, graph, source)
     path = Int[]

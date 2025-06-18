@@ -18,7 +18,7 @@ ConstraintArrayMCIS{T,D,V,E}(@nospecialize(data::Dict)) where {T,D,V,E} = Constr
     data["nv"], [(p...,) for p in data["pairs"]],
     data["distances"], data["vattrs1"], data["vattrs2"], data["eattrs"])
 
-to_dict(arr::ConstraintArrayMCIS) = Dict(
+to_dict(arr::ConstraintArrayMCIS) = Dict{String,Any}(
     "nv" => arr.nv,
     "pairs" => arr.pairs,
     "distances" => arr.distances,
@@ -48,7 +48,7 @@ ConstraintArrayMCES{T,D,V,E}(@nospecialize(data::Dict)) where {T,D,V,E} = Constr
     [Tuple([Edge{T}(e...) for e in t]) for t in data["y_edges"]]
 )
 
-to_dict(arr::ConstraintArrayMCES) = Dict(
+to_dict(arr::ConstraintArrayMCES) = Dict{String,Any}(
     "nv" => arr.nv,
     "pairs" => arr.pairs,
     "distances" => arr.distances,

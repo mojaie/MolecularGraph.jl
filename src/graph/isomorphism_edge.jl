@@ -11,7 +11,7 @@ A line graph vmatch function for MCES calculation.
 """
 function lgvmatch(
         g::SimpleGraph{T}, h::SimpleGraph{T}, grev::Dict{T,Edge{T}}, hrev::Dict{T,Edge{T}},
-        vmatch::Function, ematch::Function) where T
+        vmatch::F1, ematch::F2) where {T,F1,F2}
     return function (lgn, lhn)
         ge = grev[lgn]
         he = hrev[lhn]
@@ -31,14 +31,14 @@ A line graph ematch function for MCES calculation.
 """
 function lgematch(
         g::SimpleGraph{T}, h::SimpleGraph{T},
-        gsh::Dict{Edge{T},T}, hsh::Dict{Edge{T},T}, vmatch::Function) where T
+        gsh::Dict{Edge{T},T}, hsh::Dict{Edge{T},T}, vmatch::F) where {T,F}
     return (lge, lhe) -> vmatch(gsh[lge], hsh[lhe])
 end
 
 
 
 function lgvmatchvecgen(
-        revmap::Dict{T,Edge{T}}, vmatchvec::Function, ematchvec::Function) where T
+        revmap::Dict{T,Edge{T}}, vmatchvec::F1, ematchvec::F2) where {T,F1,F2}
     return function (i)
         e = revmap[i]
         u, v = (src(e), dst(e))
@@ -53,7 +53,7 @@ end
 
 
 function lgematchvecgen(
-        lg::SimpleGraph{T}, shared::Dict{Edge{T},T}, vmatchvec::Function) where T
+        lg::SimpleGraph{T}, shared::Dict{Edge{T},T}, vmatchvec::F) where {T,F}
     return function (u, v)
         has_edge(lg, u, v) || return 0
         return vmatchvec(shared[u_edge(lg, u, v)])

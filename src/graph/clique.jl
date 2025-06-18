@@ -9,10 +9,10 @@ get_expire(timeout::Real) = UInt64(time_ns() + timeout * 1_000_000_000)
 
 # Cliques
 
-abstract type AbstractCliquesState{T,U} end
+abstract type AbstractCliquesState end
 
-abstract type CliquesState{T,U} <: AbstractCliquesState{T,U} end
-abstract type ConnCliquesState{T,U} <: AbstractCliquesState{T,U} end
+abstract type CliquesState{T<:Integer} <: AbstractCliquesState end
+abstract type ConnCliquesState{T<:Integer} <: AbstractCliquesState end
 
 
 function max_clique_postproc!(state::AbstractCliquesState)
@@ -26,11 +26,11 @@ function cliques_postproc!(state::AbstractCliquesState)
 end
 
 
-mutable struct AllCliquesState{T,U} <: CliquesState{T,U}
+mutable struct AllCliquesState{T,U,F} <: CliquesState{T}
     graph::SimpleGraph{T}
     targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
     expire::Union{UInt64,Nothing} # UInt64, nanoseconds
-    postprocess::Function
+    postprocess::F
     Q::Vector{T}
     cliques::Vector{U}  # Vector{T} (MCIS) or Dict{Edge{T},Edge{T}} (MCES)
     status::Symbol
@@ -38,15 +38,15 @@ end
 
 AllCliquesState{T,U}(g::SimpleGraph{T};
     timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=cliques_postproc!, kwargs...
-) where {T,U} = AllCliquesState{T,U}(
+) where {T,U} = AllCliquesState{T,U,typeof(postprocess)}(
     g, targetsize, get_expire(timeout), postprocess, [], U[], :ongoing)
 
 
-mutable struct MaxCliqueState{T,U} <: CliquesState{T,U}
+mutable struct MaxCliqueState{T,U,F} <: CliquesState{T}
     graph::SimpleGraph{T}
     targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
     expire::Union{UInt64,Nothing} # UInt64, nanoseconds
-    postprocess::Function
+    postprocess::F
     Q::Vector{T}
     maxsofar::U
     status::Symbol
@@ -54,11 +54,11 @@ end
 
 MaxCliqueState{T,U}(g::SimpleGraph{T};
     timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=max_clique_postproc!, kwargs...
-) where {T,U} = MaxCliqueState{T,U}(
+) where {T,U} = MaxCliqueState{T,U,typeof(postprocess)}(
     g, targetsize, get_expire(timeout), postprocess, [], U(), :ongoing)
 
 
-function expand!(state::CliquesState{T,U}, subg::Set{T}, cand::Set{T}) where {T<:Integer,U}
+function expand!(state::CliquesState{T}, subg::Set{T}, cand::Set{T}) where T
     (state.status == :timedout || state.status == :targetreached) && return
     if isempty(subg)
         # Report max clique
@@ -90,7 +90,7 @@ function expand!(state::CliquesState{T,U}, subg::Set{T}, cand::Set{T}) where {T<
     end
 end
 
-function getpivot(g::CliquesState{T}, subg::Set{T}, cand::Set{T}) where T<:Integer
+function getpivot(g::CliquesState{T}, subg::Set{T}, cand::Set{T}) where T
     maxadj = -1
     pv = 0
     for s in sort(collect(subg), by=x->degree(g, x), rev=true)
@@ -168,44 +168,44 @@ end
 
 
 
-mutable struct AllConnCliquesState{T,U} <: ConnCliquesState{T,U}
+mutable struct AllConnCliquesState{T,U,F1,F2} <: ConnCliquesState{T}
     graph::SimpleGraph{T}
     targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
     expire::Union{UInt64,Nothing} # UInt64, nanoseconds
-    connfunc::Function
-    postprocess::Function
+    connfunc::F1
+    postprocess::F2
     Q::Vector{T}
     cliques::Vector{U}
     status::Symbol
 end
 
-AllConnCliquesState{T,U}(g::SimpleGraph{T}, connfunc::Function;
+AllConnCliquesState{T,U,F}(g::SimpleGraph{T}, connfunc::F;
     timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=cliques_postproc!, kwargs...
-) where {T,U} = AllConnCliquesState{T,U}(g, targetsize,
+) where {T,U,F} = AllConnCliquesState{T,U,F,typeof(postprocess)}(g, targetsize,
     get_expire(timeout), connfunc, postprocess, [], U[], :ongoing)
 
 
-mutable struct MaxConnCliqueState{T,U} <: ConnCliquesState{T,U}
+mutable struct MaxConnCliqueState{T,U,F1,F2} <: ConnCliquesState{T}
     graph::SimpleGraph{T}
     targetsize::Union{Int,Nothing} # if Q reached the size, finish and return cliques found so far.
     expire::Union{UInt64,Nothing} # UInt64, nanoseconds
-    connfunc::Function
-    postprocess::Function
+    connfunc::F1
+    postprocess::F2
     Q::Vector{T}
     maxsofar::U
     status::Symbol
 end
 
-MaxConnCliqueState{T,U}(g::SimpleGraph{T}, connfunc::Function;
+MaxConnCliqueState{T,U,F}(g::SimpleGraph{T}, connfunc::F;
     timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=max_clique_postproc!, kwargs...
-) where {T,U} = MaxConnCliqueState{T,U}(g, targetsize,
+) where {T,U,F} = MaxConnCliqueState{T,U,F,typeof(postprocess)}(g, targetsize,
     get_expire(timeout), connfunc, postprocess, T[], U(), :ongoing)
 
 
 
 function expand!(
-        state::ConnCliquesState{T,U},
-        P::Set{T}, Q::Set{T}, X::Set{T}, Y::Set{T}) where {T<:Integer,U}
+        state::ConnCliquesState{T},
+        P::Set{T}, Q::Set{T}, X::Set{T}, Y::Set{T}) where T
     (state.status == :timedout || state.status == :targetreached) && return
     if isempty(P) && isempty(X)
         # Report max clique
@@ -240,7 +240,7 @@ function expand!(
 end
 
 
-function init_conn_cliques!(state::ConnCliquesState{T,U}) where {T<:Integer,U}
+function init_conn_cliques!(state::ConnCliquesState{T}) where T
     nodes = Set(vertices(state.graph))
     done = T[]
     for n in vertices(state.graph)
@@ -275,7 +275,7 @@ Calculate maximal connected cliques.
 """
 function all_maximal_conn_cliques(::Type{U}, g::SimpleGraph{T};
         connfunc=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U}
-    state = AllConnCliquesState{T,U}(g, connfunc; kwargs...)
+    state = AllConnCliquesState{T,U,typeof(connfunc)}(g, connfunc; kwargs...)
     init_conn_cliques!(state)
     return state.cliques, state.status
 end
@@ -291,7 +291,7 @@ Calculate maximal connected cliques.
 """
 function maximum_conn_clique(::Type{U}, g::SimpleGraph{T};
     connfunc=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U}
-    state = MaxConnCliqueState{T,U}(g, connfunc; kwargs...)
+    state = MaxConnCliqueState{T,U,typeof(connfunc)}(g, connfunc; kwargs...)
     init_conn_cliques!(state)
     return state.maxsofar, state.status
 end

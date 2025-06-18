@@ -6,7 +6,7 @@
 
 function lgoperator!(
         state::AbstractSMARTSParser, qtree::QueryTree,
-        token::Char, downstream::Function, op::QueryNode)
+        token::Char, downstream::F, op::QueryNode) where F
     vs = Int[]
     v = downstream(state, qtree)
     v == 0 && return 0  # not found
@@ -66,7 +66,7 @@ process tokens found in the given text, and returns nothing if no valid tokens w
 lghighand!(state::SMARTSParser, qtree::QueryTree
     ) = lgoperator!(state, qtree, '&', lgnot!, qand())
 
-function lghighand!(state::SMILESParser{T,V,E}, downstream::Function) where {T,V,E}
+function lghighand!(state::SMILESParser{T,V,E}, downstream::F) where {T,V,E,F}
     vs = NamedTuple[]
     hcnt = 0
     v = downstream(state)
@@ -97,7 +97,7 @@ Not <- '!'? Element
 The argument `func` is a parser function which has a parser state as an argument,
 process tokens found in the given text, and returns nothing if no valid tokens were found.
 """
-function lgnot!(state::SMARTSParser, qtree::QueryTree, downstream::Function)
+function lgnot!(state::SMARTSParser, qtree::QueryTree, downstream::F) where F
     if read(state) == '!'
         forward!(state)
         v = downstream(state, qtree)
