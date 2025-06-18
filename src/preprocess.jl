@@ -3,14 +3,11 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-
-to_dict(
-    ::Val{:default}, ::Val{:pyrrole_like}, gprop::MolProperty
-) = gprop.pyrrole_like
-reconstruct(::Val{:pyrrole_like}, gprop::MolProperty, data) = data
-remap(
-    ::Val{:pyrrole_like}, gprop::MolProperty, vmap::Dict
-) = [vmap[v] for v in gprop.pyrrole_like if haskey(vmap, v)]
+function remap!(::Val{:pyrrole_like}, gprop::MolProperty{T}, vmap::Dict{T,T}) where T
+    vec = T[vmap[v] for v in gprop.pyrrole_like if haskey(vmap, v)]
+    gprop.pyrrole_like = vec
+    return
+end
 
 
 """

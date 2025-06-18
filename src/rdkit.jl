@@ -12,6 +12,7 @@ function rdk_on_update!(mol::SimpleMolGraph)
     # Preprocess
     default_atom_charge!(mol)
     default_bond_order!(mol)
+    # TODO: only if new node are added, run coordgen!(mol)
     # Cache relatively expensive descriptors
     sssr!(mol)
     apparent_valence!(mol)
@@ -57,7 +58,7 @@ function reactive_molgraph(
         for cds in data["conformers"]
             # Wedges cannot be preserved. Use coordgen to generate 2D coords manually
             cds["dim"] == 3 || continue
-            push!(gps.coords3d, [Point3d(cd...) for cd in cds["coords"]])
+            push!(gps.descriptors.coords3d, [Point3d(cd...) for cd in cds["coords"]])
         end
     end
     return (g, vps, eps, gps, config)
@@ -151,10 +152,10 @@ function to_dict(fmt::Val{:rdkit}, mol::SimpleMolGraph)
     end
     data["molecules"][1]["conformers"] = []
     # Wedges cannot be preserved. Use coordgen to generate 2D coords manually
-    for cds in mol.gprops.coords3d
+    for cds in mol.gprops.descriptors.coords3d
         push!(
             data["molecules"][1]["conformers"],
-            Dict("dim" => 3, "coords" => to_dict(Val(:default), Val(:coords3d), mol.gprops)))
+            Dict("dim" => 3, "coords" => to_dict(Val(:coords3d), Val(:default), mol.gprops)))
     end
     return data
 end

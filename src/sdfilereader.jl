@@ -106,6 +106,7 @@ function sdf_on_update!(mol::SimpleMolGraph)
     # Preprocess
     default_atom_charge!(mol)
     default_bond_order!(mol)
+    update_coords!(mol)
     # Cache relatively expensive descriptors
     sssr!(mol)
     apparent_valence!(mol)

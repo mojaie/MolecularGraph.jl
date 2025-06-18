@@ -3,19 +3,15 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-to_dict(
-    ::Val{:default}, ::Val{:smarts_lexical_succ}, gprop::MolProperty
-) = gprop.smarts_lexical_succ
-reconstruct(::Val{:smarts_lexical_succ}, gprop::MolProperty, data) = data
-
-function remap(::Val{:smarts_lexical_succ}, gprop::MolProperty{T}, vmap::Dict{T,T}
+function remap!(::Val{:smarts_lexical_succ}, gprop::MolProperty{T}, vmap::Dict{T,T}
         ) where T
     vec = [T[] for i in 1:length(vmap)]
     for (k, v) in vmap
         k <= length(gprop.smarts_lexical_succ) || continue
         vec[v] = [vmap[s] for s in gprop.smarts_lexical_succ[k] if haskey(vmap, s)]
     end
-    return vec
+    gprop.smarts_lexical_succ = vec
+    return
 end
 
 
@@ -72,6 +68,7 @@ function smiles_on_update!(mol::SimpleMolGraph)
     default_atom_charge!(mol)
     default_bond_order!(mol)
     kekulize!(mol)
+    update_coords!(mol)
     # recalculate bottleneck descriptors
     sssr!(mol)
     apparent_valence!(mol)

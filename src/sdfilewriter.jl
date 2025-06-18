@@ -113,10 +113,10 @@ function printv2mol(io::IO, mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
     header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
     println(io, header)
     bondorder = bond_order(mol_)
-    if length(mol_.gprops.coords3d) > 0
+    if length(mol_.gprops.descriptors.coords3d) > 0
         printv2atoms(io, mol_.graph, atom_symbol(mol_), coords3d(mol_))
         printv2bonds(io, mol_.graph, bondorder)
-    elseif length(mol_.gprops.coords2d) > 0
+    elseif length(mol_.gprops.descriptors.coords2d) > 0
         printv2atoms(io, mol_.graph, atom_symbol(mol_), coords2d(mol_))
         printv2bonds(io, mol_.graph, bondorder, draw2d_bond_style(mol_))
     else  # Generate coords

@@ -27,45 +27,44 @@ function isclockwise(stereo::Tuple{T,T,T,Bool}, f::T, s::T, t::T) where T
 end
 
 
-function to_dict(::Val{:default}, ::Val{:stereocenter}, gprop::MolProperty)
-    return Dict{String,Any}(string(i) => collect(val) for (i, val) in gprop.stereocenter)
-end
-
-function reconstruct(::Val{:stereocenter}, gprop::MolProperty{T}, data) where T
-    return Dict{T,Tuple{T,T,T,Bool}}(parse(T, i) => tuple(val...) for (i, val) in data)
-end
-
-function remap(
-        ::Val{:stereocenter}, gprop::MolProperty{T}, vmap::Dict{T,T}
-        ) where T
+function remap!(
+        ::Val{:stereocenter}, gprop::MolProperty{T}, vmap::Dict{T,T}) where T
     newmap = Dict{T,Tuple{T,T,T,Bool}}()
     for (k, v) in gprop.stereocenter
         isempty(setdiff([k, v[1:3]...], keys(vmap))) || continue
         newmap[vmap[k]] = (vmap[v[1]], vmap[v[2]], vmap[v[3]], v[4])
     end
-    return newmap
+    gprop.stereocenter = newmap
+    return
+end
+
+function reconstruct(::Val{:stereocenter}, ::Type{MolProperty{T}}, data) where T
+    return Dict{T,Tuple{T,T,T,Bool}}(parse(T, i) => tuple(val...) for (i, val) in data)
+end
+
+function to_dict(::Val{:stereocenter}, ::Val{:default}, gprop::AbstractProperty)
+    return Dict{String,Any}(string(i) => collect(val) for (i, val) in gprop.stereocenter)
 end
 
 
-function to_dict(::Val{:default}, ::Val{:stereobond}, gprop::MolProperty)
-    return [[src(e), dst(e), collect(val)] for (e, val) in gprop.stereobond]
-end
-
-function reconstruct(::Val{:stereobond}, gprop::MolProperty{T}, data) where T
-    return Dict{Edge{T},Tuple{T,T,Bool}}(Edge{T}(s, d) => tuple(val...) for (s, d, val) in data)
-end
-
-function remap(
-        ::Val{:stereobond}, gprop::MolProperty{T}, vmap::Dict{T,T}
-        ) where T
+function remap!(
+        ::Val{:stereobond}, gprop::MolProperty{T}, vmap::Dict{T,T}) where T
     newmap = Dict{Edge{T},Tuple{T,T,Bool}}()
     for (k, v) in gprop.stereobond
         isempty(setdiff([src(k), dst(k), v[1:2]...], keys(vmap))) || continue
         newmap[u_edge(T, vmap[src(k)], vmap[dst(k)])] = (vmap[v[1]], vmap[v[2]], v[3])
     end
-    return newmap
+    gprop.stereobond = newmap
+    return
 end
 
+function reconstruct(::Val{:stereobond}, ::Type{MolProperty{T}}, data) where T
+    return Dict{Edge{T},Tuple{T,T,Bool}}(Edge{T}(s, d) => tuple(val...) for (s, d, val) in data)
+end
+
+function to_dict(::Val{:stereobond}, ::Val{:default}, gprop::AbstractProperty)
+    return [[src(e), dst(e), collect(val)] for (e, val) in gprop.stereobond]
+end
 
 
 """
@@ -228,7 +227,7 @@ stereocenter_from_sdf2d(mol::ReactiveMolGraph) = stereocenter_from_sdf2d(
     [get_prop(mol, e, :order) for e in edges(mol)],
     [get_prop(mol, e, :notation) for e in edges(mol)],
     [get_prop(mol, e, :isordered) for e in edges(mol)],
-    mol.gprops.coords2d[1]
+    mol.gprops.descriptors.coords2d[1]
 )
 
 """
@@ -312,7 +311,7 @@ stereobond_from_sdf2d(mol::ReactiveMolGraph) = stereobond_from_sdf2d(
     mol.graph,
     [get_prop(mol, e, :order) for e in edges(mol)],
     [get_prop(mol, e, :notation) for e in edges(mol)],
-    mol.gprops.coords2d[1]
+    mol.gprops.descriptors.coords2d[1]
 )
 
 """

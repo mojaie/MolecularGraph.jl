@@ -3,7 +3,51 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-@kwdef mutable struct Descriptors{T}
+
+function remap!(container::AbstractProperty, vmap::Dict)
+    # vmap[old] -> new
+    for sym in fieldnames(typeof(container))
+        remap!(Val(sym), container, vmap)
+    end
+    return
+end
+
+function remap!(::Val, container::AbstractProperty, vmap::Dict)
+    return
+end
+
+
+function reconstruct(::Type{T}, data::Dict{String,Any}) where T <: AbstractProperty
+    container = T()
+    for sym in fieldnames(typeof(container))
+        setproperty!(container, sym, reconstruct(Val(sym), T, data[string(sym)]))
+    end
+    return container
+end
+
+reconstruct(::Val{V}, ::Type{T}, data) where {V,T<:AbstractProperty} = data
+
+
+function to_dict(::Val{F}, container::AbstractProperty) where F
+    data = Dict{String,Any}()
+    for sym in fieldnames(typeof(container))
+        data[string(sym)] = to_dict(Val(sym), Val(F), container)
+    end
+    return data
+end
+
+to_dict(::Val{V}, ::Val{F}, container::AbstractProperty) where {V,F} = getproperty(container, V)
+
+
+function Base.:(==)(g::T, h::T) where T <: AbstractProperty
+    for sym in fieldnames(typeof(g))
+        getproperty(g, sym) == getproperty(h, sym) || return false
+    end
+    return true
+end
+
+
+@kwdef mutable struct Descriptors{T} <: AbstractProperty
     # cached relatively expensive descriptors
     sssr::Vector{Vector{T}} = Vector{T}[]
     lone_pair::Vector{Int} = Int[]
@@ -13,23 +57,12 @@
     # standardized atom charges and bond orders
     atom_charge::Vector{Int} = Int[]
     bond_order::Vector{Int} = Int[]
+    # coordinates
+    coords2d::Vector{Vector{Point2d}} = Vector{Point2d}[]
+    coords3d::Vector{Vector{Point3d}} = Vector{Point3d}[]
+    # wedge notation in drawing
+    draw2d_bond_style::Vector{Vector{Symbol}} = Vector{Symbol}[]
 end
-
-function Descriptors{T}(data::Dict{String,Any}) where T
-    desc = Descriptors{T}()
-    for (k, v) in data
-        setproperty!(desc, k, v)
-    end
-    return desc
-end
-
-function Base.:(==)(g::Descriptors, h::Descriptors)
-    for sym in fieldnames(typeof(g))
-        getproperty(g, sym) == getproperty(h, sym) || return false
-    end
-    return true
-end
-
 
 
 @kwdef mutable struct MolProperty{T} <: AbstractProperty
@@ -40,95 +73,40 @@ end
     smarts_lexical_succ::Vector{Vector{T}} = Vector{T}[]  # lexical index used for stereochem
     smarts_connectivity::Vector{Vector{T}} = Vector{T}[]  # SMARTS connectivity query
     descriptors::Descriptors{T} = Descriptors{T}()
-    coords2d::Vector{Vector{Point2d}} = Vector{Point2d}[]
-    draw2d_bond_style::Vector{Vector{Symbol}} = Vector{Symbol}[]  # wedge notation
-    coords3d::Vector{Vector{Point3d}} = Vector{Point3d}[]
     # Graph-level metadata properties (e.g. SDFile option fields)
     metadata::OrderedDict{String,String} = OrderedDict{String,String}()
     # Parse errors
     logs::Dict{String,String} = Dict{String,String}()
 end
 
-function MolProperty{T}(data::Dict{String,Any}) where T
-    gprop = MolProperty{T}()
-    for sym in fieldnames(typeof(gprop))
-        reconstruct!(Val(sym), gprop, data[string(sym)])
-    end
-    return gprop
-end
 
-function Base.:(==)(g::MolProperty, h::MolProperty)
-    for sym in fieldnames(typeof(g))
-        getproperty(g, sym) == getproperty(h, sym) || return false
-    end
-    return true
-end
-
-function to_dict(::Val{T}, gprop::MolProperty) where T
-    data = Dict{String,Any}()
-    for sym in fieldnames(typeof(gprop))
-        data[string(sym)] = to_dict(Val(T), Val(sym), gprop)
-    end
-    return data
-end
-
-
-function reconstruct!(::Val{T}, gprop::MolProperty, data) where T
-    setproperty!(gprop, T, reconstruct(Val(T), gprop, data))
-end
-
-
-function remap!(::Val{T}, gprop::MolProperty, vmap::Dict) where T
-    # vmap[old] -> new
-    setproperty!(gprop, T, remap(Val(T), gprop, vmap))
-end
-
-
-function remap_gprops(mol::ReactiveMolGraph{T,V,E}, vmap::Dict{T,T}) where {T,V,E}
-    gprop = MolProperty{T}()
-    for k in fieldnames(typeof(mol.gprops))
-        setproperty!(gprop, k, remap(Val(k), mol.gprops, vmap))
-    end
+function remap_gprops(mol::ReactiveMolGraph, vmap::Dict)
+    gprop = deepcopy(mol.gprops)
+    remap!(gprop, vmap)
     return gprop
 end
 
 function remap_gprops!(mol::ReactiveMolGraph, vmap::Dict)
-    for k in fieldnames(typeof(mol.gprops))
-        remap!(Val(k), mol.gprops, vmap)
-    end
+    remap!(mol.gprops, vmap)
+    return
 end
 
+# Descriptors would be recalculated by the update callback. `remap` does nothing.
+
+reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, data
+    ) where T = reconstruct(Descriptors{T}, data)
+
+to_dict(::Val{:descriptors}, ::Val{:default}, gprop::MolProperty
+    ) = to_dict(Val(:default), gprop.descriptors)
+
+
+# Metadata
+
+reconstruct(::Val{:metadata}, ::Type{T}, data
+    ) where T <: AbstractProperty = OrderedDict(d[1] => d[2] for d in data)
 
 to_dict(
-    ::Val{:default}, ::Val{T}, gprop::MolProperty) where T = getproperty(gprop, T)
-reconstruct(::Val{T}, gprop::MolProperty, data) where T = data
-remap(::Val{T}, gprop::MolProperty, vmap::Dict) where T = getproperty(gprop, T)
-
-
-function to_dict(::Val{:default}, ::Val{:descriptors}, gprop::MolProperty)
-    data = Dict{String,Any}()
-    for sym in fieldnames(typeof(gprop.descriptors))
-        data[string(sym)] = getproperty(gprop.descriptors, sym)
-    end
-    return data
-end
-
-function reconstruct(::Val{:descriptors}, gprop::MolProperty{T}, data) where T
-    desc = Descriptors{T}()
-    for sym in fieldnames(typeof(gprop.descriptors))
-        setproperty!(desc, sym, data[string(sym)])
-    end
-    return desc
-end
-
-# Descriptors would be recalculated by the update callback. Do nothing.
-remap(::Val{:descriptors}, gprop::MolProperty, vmap::Dict) = gprop.descriptors
-
-
-to_dict(
-    ::Val{:default}, ::Val{:metadata}, gprop::MolProperty) = [collect(d) for d in gprop.metadata]
-reconstruct(::Val{:metadata}, gprop::MolProperty, data) = OrderedDict(d[1] => d[2] for d in data)
-remap(::Val{:metadata}, gprop::MolProperty, vmap::Dict) = gprop.metadata
+    ::Val{:metadata}, ::Val{:default}, gprop::MolProperty) = [collect(d) for d in gprop.metadata]
 
 
 # Metadata shortcuts

@@ -3,44 +3,38 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# TODO: just remap nodes if still all existing vertices have coords.
+
+reconstruct(::Val{:coords2d}, ::Type{T}, data
+    ) where T <: AbstractProperty = [[Point2d(cd...) for cd in cds] for cds in data]
 to_dict(
-    ::Val{:default}, ::Val{:coords2d}, gprop::MolProperty
+    ::Val{:coords2d}, ::Val{:default}, gprop::AbstractProperty
 ) = [[collect(cd) for cd in cds] for cds in gprop.coords2d]
-reconstruct(
-    ::Val{:coords2d}, gprop::MolProperty, data
-) = [[Point2d(cd...) for cd in cds] for cds in data]
-remap(  # TODO
-    ::Val{:coords2d}, gprop::MolProperty{T}, vmap::Dict{T,T}
-) where T = gprop.coords2d
 
+reconstruct(::Val{:coords3d}, ::Type{T}, data
+    ) where T <: AbstractProperty = [[Point3d(cd...) for cd in cds] for cds in data]
 to_dict(
-    ::Val{:default}, ::Val{:coords3d}, gprop::MolProperty
+    ::Val{:coords3d}, ::Val{:default}, gprop::AbstractProperty
 ) = [[collect(cd) for cd in cds] for cds in gprop.coords3d]
-reconstruct(
-    ::Val{:coords3d}, gprop::MolProperty, data
-) = [[Point3d(cd...) for cd in cds] for cds in data]
-remap(  # TODO
-    ::Val{:coords3d}, gprop::MolProperty{T}, vmap::Dict{T,T}
-) where T = gprop.coords3d
 
+reconstruct(::Val{:draw2d_bond_style}, ::Type{T}, data
+    ) where T <: AbstractProperty = [[Symbol(s) for s in sty] for sty in data]
 to_dict(
-    ::Val{:default}, ::Val{:draw2d_bond_style}, gprop::MolProperty
+    ::Val{:draw2d_bond_style}, ::Val{:default}, gprop::AbstractProperty
 ) = [[string(s) for s in sty] for sty in gprop.draw2d_bond_style]
-reconstruct(
-    ::Val{:draw2d_bond_style}, gprop::MolProperty, data
-) = [[Symbol(s) for s in sty] for sty in data]
-remap(  # TODO
-    ::Val{:draw2d_bond_style}, gprop::MolProperty{T}, vmap::Dict{T,T}
-) where T = gprop.draw2d_bond_style
 
 
 function coords_from_sdf!(mol)
     # Initializer. should be called before stereochem initializers.
     zrange = nv(mol) == 0 ? (0, 0) : extrema(get_prop(mol, i, :coords)[3] for i in vertices(mol))
     # Embed 3D coords to 2D
-    push!(mol.gprops.coords2d, [Point2d(get_prop(mol, i, :coords)[1:2]...) for i in vertices(mol)])
+    push!(
+        mol.gprops.descriptors.coords2d,
+        [Point2d(get_prop(mol, i, :coords)[1:2]...) for i in vertices(mol)])
     if zrange[2] - zrange[1] > 0.001  # 3D coords available
-        push!(mol.gprops.coords3d, [Point3d(get_prop(mol, i, :coords)[1:3]...) for i in vertices(mol)])
+        push!(
+            mol.gprops.descriptors.coords3d,
+            [Point3d(get_prop(mol, i, :coords)[1:3]...) for i in vertices(mol)])
     end
     # Bond style in 2D notation (wedges)
     bondorder = [get_prop(mol, e, :order) for e in edges(mol)]
@@ -62,31 +56,47 @@ function coords_from_sdf!(mol)
             arr[i] = :none
         end
     end
-    push!(mol.gprops.draw2d_bond_style, arr)
+    push!(mol.gprops.descriptors.draw2d_bond_style, arr)
 end
 
 
 function coords2d(mol::SimpleMolGraph, i::Int)
     dispatch_update!(mol)
-    return mol.gprops.coords2d[i]
+    return mol.gprops.descriptors.coords2d[i]
 end
 coords2d(mol) = coords2d(mol, 1)
-has_coords2d(mol) = length(mol.gprops.coords2d) > 0
+has_coords2d(mol) = length(mol.gprops.descriptors.coords2d) > 0
 
 
 function coords3d(mol::SimpleMolGraph, i::Int)
     dispatch_update!(mol)
-    return mol.gprops.coords3d[i]
+    return mol.gprops.descriptors.coords3d[i]
 end
 coords3d(mol) = coords3d(mol, 1)
-has_coords3d(mol) = length(mol.gprops.coords3d) > 0
+has_coords3d(mol) = length(mol.gprops.descriptors.coords3d) > 0
 
 
 function draw2d_bond_style(mol::SimpleMolGraph, i::Int)
     dispatch_update!(mol)
-    return mol.gprops.draw2d_bond_style[i]
+    return mol.gprops.descriptors.draw2d_bond_style[i]
 end
 draw2d_bond_style(mol) = draw2d_bond_style(mol, 1)
+
+
+function update_coords!(mol::SimpleMolGraph)
+    # TODO: just remap nodes if still all existing vertices have coords.
+    empty!(mol.gprops.descriptors.coords2d)
+    empty!(mol.gprops.descriptors.coords3d)
+    empty!(mol.gprops.descriptors.draw2d_bond_style)
+    if hasfield(vproptype(mol), :coords)
+        if !any(isnothing(get_prop(mol, i, :coords)) for i in vertices(mol))
+            coords_from_sdf!(mol)
+        end
+    else
+        coordgen!(mol)
+    end
+end
+
 
 
 """
@@ -178,13 +188,13 @@ end
 
 function coordgen!(mol::SimpleMolGraph)
     # Initialize
-    empty!(mol.gprops.coords2d)
-    empty!(mol.gprops.draw2d_bond_style)
+    empty!(mol.gprops.descriptors.coords2d)
+    empty!(mol.gprops.descriptors.draw2d_bond_style)
     # TODO: unspecified stereochem in SMILES
     coords, styles = coordgen(
         mol.graph, atom_symbol(mol), bond_order(mol),
         get_prop(mol, :stereocenter), get_prop(mol, :stereobond)
     )
-    push!(mol.gprops.coords2d, coords)
-    push!(mol.gprops.draw2d_bond_style, styles)
+    push!(mol.gprops.descriptors.coords2d, coords)
+    push!(mol.gprops.descriptors.draw2d_bond_style, styles)
 end

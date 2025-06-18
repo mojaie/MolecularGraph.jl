@@ -1,7 +1,7 @@
 
-@testset "json" begin
+# @testset "json" begin
 
-@testset "sdfile" begin
+@testset "json.sdfile" begin
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds)
@@ -29,7 +29,7 @@
     @test mol !== mol2
 end
 
-@testset "smarts" begin
+@testset "json.smarts" begin
     atoms = [
         QueryAtom([(1, 2), (1, 3)], [qor(), qeq(:symbol, "N"), qeq(:symbol, "O")]),
         QueryAtom([(1, 2), (1, 3)], [qand(), qeq(:symbol, "C"), qeq(:mass, "14")]),
@@ -55,7 +55,7 @@ end
     @test mol !== mol2
 end
 
-@testset "smiles" begin
+@testset "json.smiles" begin
     mol = smilestomol("OCCc1c(C)[n+](=cs1)Cc2cnc(C)nc(N)2")
     mol2 = MolGraph(to_json(mol))
     @test mol == mol2
@@ -72,7 +72,7 @@ end
     @test sildenafil !== sildenafil2
 end
 
-@testset "rdkit" begin
+@testset "json.rdkit" begin
     assetdir = joinpath(dirname(@__FILE__), "..", "assets", "test")
     mol = sdftomol(joinpath(assetdir, "demo.mol"))
     rmol = MolGraph(to_rdkdict(mol))
@@ -82,4 +82,4 @@ end
     @test smiles(mol2) == smiles(rmol2)
 end
 
-end # json
+# end # json

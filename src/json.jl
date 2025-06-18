@@ -38,7 +38,7 @@ function reactive_molgraph(
     g = SimpleGraph(Edge{T}[Edge{T}(e...) for e in data["graph"]])
     vps = Dict{T,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
     eps = Dict{Edge{T},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
-    gps = MolProperty{T}(data["gprops"])
+    gps = reconstruct(MolProperty{T}, data["gprops"])
     return (g, vps, eps, gps, config)
 end
 

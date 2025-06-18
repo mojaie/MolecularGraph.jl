@@ -21,7 +21,7 @@ using MolecularGraph:
 
 using MolecularGraph:
     ordered_neighbors, u_edge, edge_rank,
-    MolProperty, reconstruct!, sdf_on_init!,
+    MolProperty, reconstruct, sdf_on_init!,
     atomsymbol!, atomprop!, atom!,
     bondsymbol!, bond!,
     QueryNode, root, querytree, canonical,
