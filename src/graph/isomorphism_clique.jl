@@ -14,7 +14,7 @@ struct ConstraintArrayMCIS{T,D,V,E} <: ConstraintArrayMCS{T}
     eattrs::Vector{E}
 end
 
-ConstraintArrayMCIS{T,D,V,E}(data::Dict) where {T,D,V,E} = ConstraintArrayMCIS{T,D,V,E}(
+ConstraintArrayMCIS{T,D,V,E}(@nospecialize(data::Dict)) where {T,D,V,E} = ConstraintArrayMCIS{T,D,V,E}(
     data["nv"], [(p...,) for p in data["pairs"]],
     data["distances"], data["vattrs1"], data["vattrs2"], data["eattrs"])
 
@@ -40,7 +40,7 @@ struct ConstraintArrayMCES{T,D,V,E} <: ConstraintArrayMCS{T}
     y_edges::Vector{Tuple{Edge{T},Edge{T},Edge{T}}}
 end
 
-ConstraintArrayMCES{T,D,V,E}(data::Dict) where {T,D,V,E} = ConstraintArrayMCES{T,D,V,E}(
+ConstraintArrayMCES{T,D,V,E}(@nospecialize(data::Dict)) where {T,D,V,E} = ConstraintArrayMCES{T,D,V,E}(
     data["nv"], [(p...,) for p in data["pairs"]],
     data["distances"], data["vattrs1"], data["vattrs2"], data["eattrs"],
     Dict(parse(T, i) => Edge{T}(e...) for (i, e) in data["revmap"]),

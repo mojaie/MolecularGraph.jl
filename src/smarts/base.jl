@@ -4,7 +4,7 @@
 #
 
 function remap!(::Val{:smarts_lexical_succ}, gprop::MolProperty{T}, vmap::Dict{T,T}
-        ) where T
+        ) where T <: Integer
     vec = [T[] for i in 1:length(vmap)]
     for (k, v) in vmap
         k <= length(gprop.smarts_lexical_succ) || continue

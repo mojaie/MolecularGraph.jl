@@ -157,7 +157,7 @@ struct SDFAtom
 end
 
 function SDFAtom(;
-        symbol::Union{AbstractString,Symbol}=:C, 
+        symbol::Union{AbstractString,Symbol}=:C,
         charge::Int=0,
         multiplicity::Int=1,
         mass::Union{Int,Nothing}=nothing,

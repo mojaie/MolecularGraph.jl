@@ -28,7 +28,8 @@ end
 
 
 function remap!(
-        ::Val{:stereocenter}, gprop::MolProperty{T}, vmap::Dict{T,T}) where T
+        ::Val{:stereocenter}, gprop::MolProperty{T}, vmap::Dict{T,T}
+        ) where T <: Integer
     newmap = Dict{T,Tuple{T,T,T,Bool}}()
     for (k, v) in gprop.stereocenter
         isempty(setdiff([k, v[1:3]...], keys(vmap))) || continue
@@ -48,7 +49,8 @@ end
 
 
 function remap!(
-        ::Val{:stereobond}, gprop::MolProperty{T}, vmap::Dict{T,T}) where T
+        ::Val{:stereobond}, gprop::MolProperty{T}, vmap::Dict{T,T}
+        ) where T <: Integer
     newmap = Dict{Edge{T},Tuple{T,T,Bool}}()
     for (k, v) in gprop.stereobond
         isempty(setdiff([src(k), dst(k), v[1:2]...], keys(vmap))) || continue

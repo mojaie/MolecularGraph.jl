@@ -24,7 +24,7 @@ to_dict(
 ) = [[string(s) for s in sty] for sty in gprop.draw2d_bond_style]
 
 
-function coords_from_sdf!(mol)
+function coords_from_sdf!(mol::SimpleMolGraph)
     # Initializer. should be called before stereochem initializers.
     zrange = nv(mol) == 0 ? (0, 0) : extrema(get_prop(mol, i, :coords)[3] for i in vertices(mol))
     # Embed 3D coords to 2D
@@ -60,27 +60,27 @@ function coords_from_sdf!(mol)
 end
 
 
-function coords2d(mol::SimpleMolGraph, i::Int)
+function coords2d(mol::SimpleMolGraph, i::Integer)
     dispatch_update!(mol)
     return mol.gprops.descriptors.coords2d[i]
 end
-coords2d(mol) = coords2d(mol, 1)
-has_coords2d(mol) = length(mol.gprops.descriptors.coords2d) > 0
+coords2d(mol::SimpleMolGraph) = coords2d(mol, 1)
+has_coords2d(mol::SimpleMolGraph) = length(mol.gprops.descriptors.coords2d) > 0
 
 
-function coords3d(mol::SimpleMolGraph, i::Int)
+function coords3d(mol::SimpleMolGraph, i::Integer)
     dispatch_update!(mol)
     return mol.gprops.descriptors.coords3d[i]
 end
-coords3d(mol) = coords3d(mol, 1)
-has_coords3d(mol) = length(mol.gprops.descriptors.coords3d) > 0
+coords3d(mol::SimpleMolGraph) = coords3d(mol, 1)
+has_coords3d(mol::SimpleMolGraph) = length(mol.gprops.descriptors.coords3d) > 0
 
 
-function draw2d_bond_style(mol::SimpleMolGraph, i::Int)
+function draw2d_bond_style(mol::SimpleMolGraph, i::Integer)
     dispatch_update!(mol)
     return mol.gprops.descriptors.draw2d_bond_style[i]
 end
-draw2d_bond_style(mol) = draw2d_bond_style(mol, 1)
+draw2d_bond_style(mol::SimpleMolGraph) = draw2d_bond_style(mol, 1)
 
 
 function update_coords!(mol::SimpleMolGraph)
@@ -108,7 +108,10 @@ This will returns a tuple of `coords` and `styles` arrays. `coords` is a size(n,
 where n is atom count, which stores 2D coordinates (x, y) of each atoms.
 `styles` is a size e vector of wedge notation of stereobond, where e is bond count.
 """
-function coordgen(g, atomsymbol_, bondorder_, stereocenters, stereobonds)
+function coordgen(
+        g::SimpleGraph{T}, atomsymbol_::Vector{Symbol}, bondorder_::Vector{Int},
+        stereocenters::Dict{T,Tuple{T,T,T,Bool}},
+        stereobonds::Dict{Edge{T},Tuple{T,T,Bool}}) where T
     minmol = @ccall libcoordgen.getSketcherMinimizer()::Ptr{Cvoid}
     atoms = Ptr{Cvoid}[]
     bonds = Ptr{Cvoid}[]

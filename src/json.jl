@@ -34,7 +34,7 @@ to_json(mol::AbstractMolGraph) = to_json(Val{:default}(), mol)
 
 function reactive_molgraph(
         ::Val{:default}, ::Type{T}, ::Type{V}, ::Type{E},
-        data::Dict, config::MolState) where {T,V,E}
+        @nospecialize(data::Dict), config::MolState) where {T,V,E}
     g = SimpleGraph(Edge{T}[Edge{T}(e...) for e in data["graph"]])
     vps = Dict{T,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
     eps = Dict{Edge{T},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
@@ -43,7 +43,7 @@ function reactive_molgraph(
 end
 
 
-function MolGraph{T,SDFAtom,SDFBond}(data::Dict
+function MolGraph{T,SDFAtom,SDFBond}(@nospecialize(data::Dict)
         ; on_init=sdf_on_init!, on_update=sdf_on_update!) where T<:Integer
     if data["vproptype"] != "SDFAtom" || data["eproptype"] != "SDFBond"
         error("Incompatible element property types")
@@ -60,7 +60,7 @@ function MolGraph{T,SDFAtom,SDFBond}(data::Dict
     return mol
 end
 
-function MolGraph{T,SMILESAtom,SMILESBond}(data::Dict
+function MolGraph{T,SMILESAtom,SMILESBond}(@nospecialize(data::Dict)
         ; on_init=smiles_on_init!, on_update=smiles_on_update!) where T<:Integer
     if data["vproptype"] != "SMILESAtom" || data["eproptype"] != "SMILESBond"
         error("Incompatible element property types")
@@ -77,7 +77,7 @@ function MolGraph{T,SMILESAtom,SMILESBond}(data::Dict
     return mol
 end
 
-function QueryMolGraph{T,QueryAtom,QueryBond}(data::Dict
+function QueryMolGraph{T,QueryAtom,QueryBond}(@nospecialize(data::Dict)
         ; on_init=default_on_init!, on_update=default_on_update!) where T<:Integer
     if data["vproptype"] != "QueryAtom" || data["eproptype"] != "QueryBond"
         error("Incompatible element property types")
@@ -97,7 +97,7 @@ end
 
 # JSON auto detect
 
-function MolGraph(data::Dict; kwargs...)
+function MolGraph(@nospecialize(data::Dict); kwargs...)
     if haskey(data, "commonchem")
         return MolGraph{Int,CommonChemAtom,CommonChemBond}(data; kwargs...)
     end
@@ -112,7 +112,7 @@ function MolGraph(data::Dict; kwargs...)
     error("Invalid JSON format")
 end
 
-function QueryMolGraph(data::Dict; kwargs...)
+function QueryMolGraph(@nospecialize(data::Dict); kwargs...)
     if !haskey(data, "vproptype") || !haskey(data, "eproptype")
         error("Invalid JSON format")
     end

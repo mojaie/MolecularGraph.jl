@@ -4,7 +4,7 @@
 #
 
 
-function remap!(container::AbstractProperty, vmap::Dict)
+function remap!(container::AbstractProperty, vmap::Dict{T,T}) where T <: Integer
     # vmap[old] -> new
     for sym in fieldnames(typeof(container))
         remap!(Val(sym), container, vmap)
@@ -12,7 +12,7 @@ function remap!(container::AbstractProperty, vmap::Dict)
     return
 end
 
-function remap!(::Val, container::AbstractProperty, vmap::Dict)
+function remap!(::Val, container::AbstractProperty, vmap::Dict{T,T}) where T <: Integer
     return
 end
 
@@ -80,13 +80,13 @@ end
 end
 
 
-function remap_gprops(mol::ReactiveMolGraph, vmap::Dict)
+function remap_gprops(mol::ReactiveMolGraph, vmap::Dict{T,T}) where T <: Integer
     gprop = deepcopy(mol.gprops)
     remap!(gprop, vmap)
     return gprop
 end
 
-function remap_gprops!(mol::ReactiveMolGraph, vmap::Dict)
+function remap_gprops!(mol::ReactiveMolGraph, vmap::Dict{T,T}) where T <: Integer
     remap!(mol.gprops, vmap)
     return
 end
