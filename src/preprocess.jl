@@ -30,7 +30,7 @@ function kekulize(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
         for i in ring
             get_prop(mol, i, :isaromatic) === true || continue  # not nothing or false
             if i in mol.gprops.pyrrole_like
-                push!(pyrrole_like, i)
+                push!(pyrrole_like, i) # explicit pyrrole-like
                 continue
             end
             sym = atom_symbol(props(mol, i))
@@ -65,7 +65,7 @@ function kekulize(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
             length(canbepyl) > 1 && error("Kekulization failed: ambiguity in pyrrole-like ring")
             # if there is only one n without hydrogen, that might be a pyrrole-like n
             setdiff!(arom_vs, canbepyl)
-            push!(pyrrole_like, only(canbepyl))
+            # push!(pyrrole_like, only(canbepyl))  # implicit pyrrole n is not stored
         end
         subg, vmap = induced_subgraph(mol.graph, arom_vs)
         matching = max_matching(subg)
@@ -170,6 +170,7 @@ function add_hydrogens!(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
             add_edge!(mol, i, nv(mol), E())
         end
     end
+    return
 end
 
 

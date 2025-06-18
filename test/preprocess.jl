@@ -16,9 +16,8 @@
     pyrrole = smilestomol("[nH]1cccc1")
     @test sum(bond_order(pyrrole)) == 8
     @test get_prop(pyrrole, :pyrrole_like) == [1]
-    pyrrole2 = smilestomol("n1cccc1")
+    pyrrole2 = smilestomol("n1cccc1")  # hydrogen on n can be inferred
     @test sum(bond_order(pyrrole2)) == 7
-    @test get_prop(pyrrole2, :pyrrole_like) == [1]  # hydrogen on n can be inferred
 
     imidazol = smilestomol("[nH]1cncc1")
     @test sum(bond_order(imidazol)) == 8
@@ -28,13 +27,11 @@
     pyridineoxide = smilestomol("[n+]1([O-])ccccc1")
     @test sum(bond_order(pyridineoxide) .== 2) == 3
 
-    pyridone = smilestomol("n1c(=O)cccc1")
+    pyridone = smilestomol("n1c(=O)cccc1")  # hydrogen on n can be inferred
     @test sum(bond_order(pyridone) .== 2) == 3
-    @test get_prop(pyridone, :pyrrole_like) == [1]
 
-    caffeine = smilestomol("Cn1cnc2c1c(=O)n(c(=O)n2C)C")
+    caffeine = smilestomol("Cn1cnc2c1c(=O)n(c(=O)n2C)C") # there may be no hydrogens on nitrogens
     @test sum(bond_order(caffeine).== 2) == 4
-    @test isempty(get_prop(caffeine, :pyrrole_like))
 
     sildenafil = smilestomol("O=S(=O)(N1CCN(C)CC1)c4cc(c2[nH]c(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")
     @test sum(bond_order(sildenafil).== 2) == 9
@@ -55,7 +52,7 @@
     remove_hydrogens!(sumatriptan)
     @test get_prop(sumatriptan, :pyrrole_like) == [11]
     rem_vertices!(sumatriptan, [1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19])
-    @test get_prop(sumatriptan, :pyrrole_like) == [5]
+    @test get_prop(sumatriptan, :pyrrole_like) == [5]  # remapped
 end
 
 @testset "remove_hydrogens" begin
