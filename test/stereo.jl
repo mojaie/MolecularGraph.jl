@@ -380,9 +380,9 @@ end
     @test !haskey(get_prop(mol5, :stereobond), Edge(1 => 2))
     @test get_prop(mol5, :stereobond)[Edge(3 => 4)] == (2, 5, false)
     
-    # TODO: Takes long time and error : CHMMol-> sketcher stereo error: wrong number for RSpriorities
-    #thiostrepton = smilestomol(raw"C[C@@H](O)[C@@](C)(O)[C@@H](C2=NC6=CS2)NC(C1CSC(/C(NC([C@@H](NC(C3=CS[C@]([C@]4(NC([C@@H](NC(C(NC([C@H](C)NC%10=O)=O)=C)=O)C)=O)C(C5=CSC([C@H]([C@@H](C)OC(C8=CC([C@H](C)O)=C(C=CC(N[C@]([H])%10[C@H](CC)C)[C@@H]9O)C9=N8)=O)NC6=O)=N5)N=C(C7=NC(C(NC(C(NC(C(N)=O)=C)=O)=C)=O)=CS7)CC4)=N3)=O)[C@@H](C)O)=O)=C/C)=N1)=O")
-    #@test get_prop(thiostrepton, :stereobond)[Edge(21 => 123)] == (20, 124, false)
+    # Note: coordgenlib error : CHMMol-> sketcher stereo error: wrong number for RSpriorities
+    thiostrepton = smilestomol(raw"C[C@@H](O)[C@@](C)(O)[C@@H](C2=NC6=CS2)NC(C1CSC(/C(NC([C@@H](NC(C3=CS[C@]([C@]4(NC([C@@H](NC(C(NC([C@H](C)NC%10=O)=O)=C)=O)C)=O)C(C5=CSC([C@H]([C@@H](C)OC(C8=CC([C@H](C)O)=C(C=CC(N[C@]([H])%10[C@H](CC)C)[C@@H]9O)C9=N8)=O)NC6=O)=N5)N=C(C7=NC(C(NC(C(NC(C(N)=O)=C)=O)=C)=O)=CS7)CC4)=N3)=O)[C@@H](C)O)=O)=C/C)=N1)=O")
+    @test get_prop(thiostrepton, :stereobond)[Edge(21 => 123)] == (20, 124, false)
 
     linoleic_acid = smilestomol(raw"OC(=O)CCCCCCC/C=C\C/C=C\CCCCC")
     @test get_prop(linoleic_acid, :stereobond)[Edge(11 => 12)] == (10, 13, true)

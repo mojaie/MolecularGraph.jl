@@ -68,7 +68,7 @@ function smiles_on_update!(mol::SimpleMolGraph)
     default_atom_charge!(mol)
     default_bond_order!(mol)
     kekulize!(mol)
-    update_coords!(mol)
+    # update_coords!(mol) default disabled
     # recalculate bottleneck descriptors
     sssr!(mol)
     apparent_valence!(mol)

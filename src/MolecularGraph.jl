@@ -123,7 +123,7 @@ include("preprocess.jl")
 
 export
     coords2d, has_coords2d, coords3d, has_coords3d,
-    coordgen, coordgen!, coords_from_sdf!,
+    coordgen, coordgen!, coords_from_sdf!, update_coords!,
     set_stereocenter!, set_stereobond!, stereo_hydrogen, safe_stereo_hydrogen!,
     stereocenter_from_smiles!, stereocenter_from_sdf2d!,
     stereobond_from_smiles!, stereobond_from_sdf2d!,
