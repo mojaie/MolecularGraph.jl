@@ -131,7 +131,7 @@ end
 
 
 """
-    remove_hydrogens!(mol::SimpleMolGraph) -> Vector{T}
+    remove_hydrogens!(mol::SimpleMolGraph) -> Vector{T<:Integer}
 
 Remove trivial hydrogen vertices using `Graphs.rem_vertices!` and return vmap array.
 
@@ -142,12 +142,11 @@ remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(
 
 
 """
-    remove_all_hydrogens!(mol::SimpleMolGraph{T}) -> Vector{T}
+    remove_all_hydrogens!(mol::SimpleMolGraph) -> Vector{T<:Integer}
 
 Remove all hydrogen vertices using `Graphs.rem_vertices!` and return vmap array.
 """
-function remove_all_hydrogens!(mol::SimpleMolGraph{T}) where T
-    to_remove = T[]
+function remove_all_hydrogens!(mol::SimpleMolGraph)
     for center in keys(mol.gprops.stereocenter)
         safe_stereo_hydrogen!(mol, center)
     end
@@ -157,7 +156,7 @@ end
 
 
 """
-    add_hydrogens!(mol::ReactiveMolGraph)
+    add_hydrogens!(mol::ReactiveMolGraph) -> Nothing
 
 Return the molecule with all hydrogen nodes explicitly attached.
 """

@@ -99,6 +99,11 @@ to_dict(::Val{:descriptors}, ::Val{:default}, gprop::AbstractProperty
     ) = to_dict(Val(:default), gprop.descriptors)
 
 get_prop(mol::ReactiveMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
+has_prop(mol::ReactiveMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
+# Note: editing graph-level properties may break consistency.
+set_prop!(mol::ReactiveMolGraph, prop::Symbol, value
+    ) = setproperty!(mol.gprops, prop, value)
+
 get_descriptor(mol::ReactiveMolGraph, field::Symbol
     ) = getproperty(mol.gprops.descriptors, field)
 has_descriptor(mol::ReactiveMolGraph, field::Symbol

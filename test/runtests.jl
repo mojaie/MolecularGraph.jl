@@ -41,7 +41,7 @@ using MolecularGraph:
     ctab_atom_v2, ctab_bond_v2
 
 using MolecularGraph:
-    exact_match_prefilter, substruct_match_prefilter,
+    exact_topology_prefilter, topology_prefilter,
     QueryTruthTable, querymatch,
     resolve_disjoint_not!, resolve_recursive!, generate_truthtable,
     draw2d_bond_style,

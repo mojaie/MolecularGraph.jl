@@ -5,44 +5,44 @@
 
 @testset "stereo" begin
 
+@testset "isclockwise" begin
+    @test isclockwise((1, 3, 4, true), 1, 4, 5)  # 3-4 4-5 (same)
+    @test isclockwise((1, 3, 4, false), 1, 3, 5)  # 4-5 (reverse)
+    @test !isclockwise((1, 3, 6, true), 3, 6, 7)  # 1-3 1-6 1-7 (reverse)
+    @test !isclockwise((2, 5, 6, false), 2, 6, 7)  # 5-6 5-7 (same)
+end
+
 @testset "stereo_hydrogen" begin
+    # safe_remove_hydrogen! is already applied
     LAla1 = smilestomol("N[C@@H](C)C(=O)O")
     @test get_prop(LAla1, 2, :stereo) === :clockwise
-    @test get_prop(LAla1, :stereocenter)[2] == (1, 3, 4, true)
-    safe_stereo_hydrogen!(LAla1, 2)
-    @test get_prop(LAla1, :stereocenter)[2] == (1, 4, 5, true)
+    @test get_prop(LAla1, :stereocenter)[2] == (1, 4, 5, true)  # No.3 -> :H
 
     LAla2 = smilestomol("N[C@](C)([H])C(=O)O")
     @test get_prop(LAla2, 2, :stereo) === :anticlockwise
-    @test get_prop(LAla2, :stereocenter)[2] == (1, 3, 4, false)
-    safe_stereo_hydrogen!(LAla2, 2)
-    @test get_prop(LAla2, :stereocenter)[2] == (1, 3, 5, true)
+    @test get_prop(LAla2, :stereocenter)[2] == (1, 3, 5, true)  # No.4 -> :H
 
     LAla3 = smilestomol("[H][C@@](C(=O)O)(C)N")
     @test get_prop(LAla3, 2, :stereo) === :clockwise
-    @test get_prop(LAla3, :stereocenter)[2] == (1, 3, 6, true)
-    safe_stereo_hydrogen!(LAla3, 2)
-    @test get_prop(LAla3, :stereocenter)[2] == (3, 6, 7, false)
+    @test get_prop(LAla3, :stereocenter)[2] == (3, 6, 7, false)  # No.1 -> :H
 
     LAla4 = smilestomol("OC(=O)[C@]([H])(C)N")
     @test get_prop(LAla4, 4, :stereo) === :anticlockwise
-    @test get_prop(LAla4, :stereocenter)[4] == (2, 5, 6, false)
-    safe_stereo_hydrogen!(LAla4, 4)
-    @test get_prop(LAla4, :stereocenter)[4] == (2, 6, 7, false)
+    @test get_prop(LAla4, :stereocenter)[4] == (2, 6, 7, false)  # No.5 -> :H
 
     atomoxetine = smilestomol("O(c1ccccc1C)[C@H](c2ccccc2)CCNC")
-    @test get_prop(atomoxetine, :stereocenter)[9] == (1, 10, 11, false)
-    rem_vertex!(atomoxetine, 10)
-    @test isempty(get_prop(atomoxetine, :stereocenter))
+    @test get_prop(atomoxetine, :stereocenter)[9] == (1, 11, 17, false)
+    rem_vertex!(atomoxetine, 10)  # :H can be safely removed
+    @test  get_prop(atomoxetine, :stereocenter)[9] == (1, 11, 17, false)
 
     ldopa = smilestomol("c1c(O)c(o)ccc1C[C@@H](N)C(=O)O")
-    @test get_prop(ldopa, :stereocenter)[10] == (9, 11, 12, true)
+    @test get_prop(ldopa, :stereocenter)[10] == (9, 12, 13, true)
     subg, vmap = induced_subgraph(ldopa, collect(9:15))
     # revmap 9 => 1, 10 => 2, 11 => 3, 12 => 4, 13 => 5, 14 => 6, 15 => 7
-    @test get_prop(subg, :stereocenter)[2] == (1, 3, 4, true)
+    @test get_prop(subg, :stereocenter)[2] == (1, 4, 5, true)
     rem_vertices!(ldopa, collect(1:8))
     # revmap 9 => 7, 10 => 6, 11 => 5, 12 => 4, 13 => 3, 14 => 2, 15 => 1
-    @test get_prop(ldopa, :stereocenter)[6] == (7, 5, 4, true)
+    @test get_prop(ldopa, :stereocenter)[6] == (7, 4, 3, true)
 end
 
 
@@ -51,16 +51,16 @@ end
     asc = smilestomol("C([C@@H]([C@@H]1C(=C(C(=O)O1)O)O)O)O")
     @test get_prop(asc, :smarts_lexical_succ)[2] == [3, 4, 13]
     @test get_prop(asc, :smarts_lexical_succ)[4] == [5, 10, 6]
-    @test get_prop(asc, :stereocenter)[2] == (1, 3, 4, true)
-    @test get_prop(asc, :stereocenter)[4] == (2, 5, 10, true)
+    @test get_prop(asc, :stereocenter)[2] == (1, 4, 13, true)
+    @test get_prop(asc, :stereocenter)[4] == (2, 6, 10, false)
     subg, vmap = induced_subgraph(asc, [2, 4, 5, 6, 10])
     @test get_prop(subg, :smarts_lexical_succ)[2] == [3, 5, 4]
-    @test get_prop(subg, :stereocenter)[2] == (1, 3, 5, true)
+    @test get_prop(subg, :stereocenter)[2] == (1, 4, 5, false)
     codeine = smilestomol("CN1CC[C@]23c4c5ccc(c4O[C@H]2[C@H](C=C[C@H]3[C@H]1C5)O)OC")
     @test get_prop(codeine, :smarts_lexical_succ)[5] == [13, 19, 6]
     @test get_prop(codeine, :smarts_lexical_succ)[19] == [20, 5, 21]
     @test get_prop(codeine, :stereocenter)[5] == (4, 13, 19, false)
-    @test get_prop(codeine, :stereocenter)[19] == (18, 20, 5, false)
+    @test get_prop(codeine, :stereocenter)[19] == (5, 18, 21, true)
 end
 
 

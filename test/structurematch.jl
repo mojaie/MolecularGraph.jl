@@ -5,10 +5,10 @@
     BuOH = smilestomol("CCCO")
     butane = smilestomol("CCCC")
     propane = smilestomol("CCC")
-    @test exact_match_prefilter(butane, BuOH)
-    @test !exact_match_prefilter(propane, butane)
-    @test substruct_match_prefilter(butane, propane)
-    @test !substruct_match_prefilter(propane, butane)
+    @test exact_topology_prefilter(butane, BuOH)
+    @test !exact_topology_prefilter(propane, butane)
+    @test topology_prefilter(butane, propane)
+    @test !topology_prefilter(propane, butane)
 end
 
 @testset "attribute_match" begin

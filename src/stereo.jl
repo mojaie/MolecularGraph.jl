@@ -232,7 +232,7 @@ stereocenter_from_sdf2d(mol::ReactiveMolGraph) = stereocenter_from_sdf2d(
     [get_prop(mol, e, :order) for e in edges(mol)],
     [get_prop(mol, e, :notation) for e in edges(mol)],
     [get_prop(mol, e, :isordered) for e in edges(mol)],
-    mol.gprops.descriptors.coords2d[1]
+    get_descriptor(mol, :coords2d)[1]
 )
 
 """
@@ -242,10 +242,14 @@ Set stereocenter information obtained from 2D SDFile.
 """
 function stereocenter_from_sdf2d!(mol::ReactiveMolGraph)
     centers, comments = stereocenter_from_sdf2d(mol)
-    mol.gprops.stereocenter = centers
-    if length(comments) > 0
-        mol.gprops.logs["stereocenter_ignored"] = join(comments, "; ")
+    set_prop!(mol, :stereocenter, centers)
+    for c in keys(get_prop(mol, :stereocenter))
+        safe_stereo_hydrogen!(mol, c)
     end
+    if length(comments) > 0
+        get_prop(mol, :logs)["stereocenter_ignored"] = join(comments, "; ")
+    end
+    return
 end
 
 
@@ -266,8 +270,8 @@ function stereocenter_from_smiles(g::SimpleGraph{T}, succ, v_stereo) where T
     return centers
 end
 
-stereocenter_from_smiles(mol::ReactiveMolGraph) = stereocenter_from_smiles(
-    mol.graph, mol.gprops.smarts_lexical_succ,
+stereocenter_from_smiles(mol::SimpleMolGraph) = stereocenter_from_smiles(
+    mol.graph, get_prop(mol, :smarts_lexical_succ),
     [get_prop(mol, i, :stereo) for i in vertices(mol)]
 )
 
@@ -276,9 +280,14 @@ stereocenter_from_smiles(mol::ReactiveMolGraph) = stereocenter_from_smiles(
 
 Set stereocenter information obtained from SMILES.
 """
-stereocenter_from_smiles!(mol::ReactiveMolGraph) = setproperty!(
-    mol.gprops, :stereocenter, stereocenter_from_smiles(mol)
-)
+function stereocenter_from_smiles!(mol::ReactiveMolGraph)
+    centers = stereocenter_from_smiles(mol)
+    set_prop!(mol, :stereocenter, centers)
+    for c in keys(get_prop(mol, :stereocenter))
+        safe_stereo_hydrogen!(mol, c)
+    end
+    return
+end
 
 
 """
