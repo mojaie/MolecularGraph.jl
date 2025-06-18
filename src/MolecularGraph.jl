@@ -66,8 +66,7 @@ export
     SDFBond, SMILESBond, CommonChemBond,
     bond_order,
     MolGraph, SDFMolGraph, SMILESMolGraph, CommonChemMolGraph,
-    QueryMolGraph,
-    QueryAtom, QueryBond
+    QueryMolGraph, QueryAtom, QueryBond
 
 export
     maxcardmap, maxcard,

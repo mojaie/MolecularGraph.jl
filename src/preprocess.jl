@@ -82,18 +82,19 @@ function kekulize!(mol::ReactiveMolGraph)
     bondorder, pyrrole_like = kekulize(mol)
     mol.gprops.descriptors.bond_order = bondorder
     mol.gprops.pyrrole_like = pyrrole_like
+    return
 end
 
 
 """
-    removable_hydrogens(mol::ReactiveMolGraph{T,V,E}) -> Vector{T}
+    removable_hydrogens(mol::SimpleMolGraph{T}) -> Vector{T}
 
 Return a vector of removable hydrogen nodes.
 
 Removable hydrogens are not charged, have no unpaired electron, have no specific mass,
 are non-stereospecific and are attached to organic heavy atoms.
 """
-function removable_hydrogens(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
+function removable_hydrogens(mol::SimpleMolGraph{T}) where {T}
     hs = T[]
     organic_heavy = Set([
         :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I
@@ -104,7 +105,7 @@ function removable_hydrogens(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
         multiplicity(props(mol, i)) == 1 || continue
         isnothing(atom_mass(props(mol, i))) || continue
         degree(mol.graph, i) == 1 || continue
-        nbr = neighbors(mol, i)[1]
+        nbr = only(neighbors(mol, i))
         atom_symbol(props(mol, nbr)) in organic_heavy || continue
         bond_order(props(mol, i, nbr)) == 1 || continue
         haskey(get_prop(mol, :stereocenter), nbr) && continue
@@ -130,25 +131,22 @@ end
 
 
 """
-    remove_hydrogens!(mol::ReactiveMolGraph{T,V,E}) -> Vector{T}
+    remove_hydrogens!(mol::SimpleMolGraph) -> Vector{T}
 
-Remove following hydrogen vertices from the molecule: that are not charged, have no
-unpaired electron, have no specific mass, are non-stereospecific and are
-attached to organic heavy atoms.
+Remove trivial hydrogen vertices using `Graphs.rem_vertices!` and return vmap array.
 
-This returns vmap array similar to `Graphs.rem_vertices!`.
+'Trivial' means that are not charged, have no unpaired electron, have no specific mass,
+are non-stereospecific and are attached to organic heavy atoms.
 """
-remove_hydrogens!(mol::ReactiveMolGraph) = rem_vertices!(mol, removable_hydrogens(mol))
+remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(mol))
 
 
 """
-    remove_all_hydrogens!(mol::ReactiveMolGraph{T,V,E}) -> Vector{T}
+    remove_all_hydrogens!(mol::SimpleMolGraph{T}) -> Vector{T}
 
-Remove all hydrogen vertices from the molecule.
-
-This returns vmap array similar to `Graphs.rem_vertices!`.
+Remove all hydrogen vertices using `Graphs.rem_vertices!` and return vmap array.
 """
-function remove_all_hydrogens!(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
+function remove_all_hydrogens!(mol::SimpleMolGraph{T}) where T
     to_remove = T[]
     for center in keys(mol.gprops.stereocenter)
         safe_stereo_hydrogen!(mol, center)
@@ -217,9 +215,11 @@ function protonate_acids(mol::SimpleMolGraph)
     return arr
 end
 
-protonate_acids!(mol::ReactiveMolGraph) = setproperty!(
-    mol.gprops.descriptors, :atom_charge, protonate_acids(mol))
-
+function protonate_acids!(mol::ReactiveMolGraph)
+    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
+    set_descriptor!(mol, :atom_charge, protonate_acids(mol))
+    return
+end
 
 """
     deprotonate_oniums(mol::SimpleMolGraph) -> Vector{Int}
@@ -237,8 +237,11 @@ function deprotonate_oniums(mol::SimpleMolGraph)
     return arr
 end
 
-deprotonate_oniums!(mol::ReactiveMolGraph) = setproperty!(
-    mol.gprops.descriptors, :atom_charge, deprotonate_oniums(mol))
+function deprotonate_oniums!(mol::ReactiveMolGraph)
+    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
+    set_descriptor!(mol, :atom_charge, deprotonate_oniums(mol))
+    return
+end
 
 
 """
@@ -268,10 +271,12 @@ function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
 end
 
 function depolarize!(mol::ReactiveMolGraph)
+    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
+    has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
     carr, oarr = depolarize(mol)
-    mol.gprops.descriptors.atom_charge = carr
-    mol.gprops.descriptors.bond_order = oarr
-    return carr, oarr
+    set_descriptor!(mol, :atom_charge, carr)
+    set_descriptor!(mol, :bond_order, oarr)
+    return
 end
 
 
@@ -302,12 +307,13 @@ function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
 end
 
 function polarize!(mol::ReactiveMolGraph)
+    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
+    has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
     carr, oarr = polarize(mol)
-    mol.gprops.descriptors.atom_charge = carr
-    mol.gprops.descriptors.bond_order = oarr
-    return carr, oarr
+    set_descriptor!(mol, :atom_charge, carr)
+    set_descriptor!(mol, :bond_order, oarr)
+    return
 end
-
 
 
 function find_dipoles(mol::SimpleMolGraph)
@@ -346,12 +352,13 @@ function to_triple_bond(mol::SimpleMolGraph)
 end
 
 function to_triple_bond!(mol::ReactiveMolGraph)
+    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
+    has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
     carr, oarr = to_triple_bond(mol)
-    mol.gprops.descriptors.atom_charge = carr
-    mol.gprops.descriptors.bond_order = oarr
-    return carr, oarr
+    set_descriptor!(mol, :atom_charge, carr)
+    set_descriptor!(mol, :bond_order, oarr)
+    return
 end
-
 
 """
     to_allene_like(mol::SimpleMolGraph) -> Nothing
@@ -372,8 +379,10 @@ function to_allene_like(mol::SimpleMolGraph)
 end
 
 function to_allene_like!(mol::ReactiveMolGraph)
+    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
+    has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
     carr, oarr = to_allene_like(mol)
-    mol.gprops.descriptors.atom_charge = carr
-    mol.gprops.descriptors.bond_order = oarr
-    return carr, oarr
+    set_descriptor!(mol, :atom_charge, carr)
+    set_descriptor!(mol, :bond_order, oarr)
+    return
 end

@@ -103,6 +103,8 @@ get_descriptor(mol::ReactiveMolGraph, field::Symbol
     ) = getproperty(mol.gprops.descriptors, field)
 has_descriptor(mol::ReactiveMolGraph, field::Symbol
     ) = hasproperty(mol.gprops.descriptors, field)
+set_descriptor!(mol::ReactiveMolGraph, field::Symbol, value
+    ) = setproperty!(mol.gprops.descriptors, field, value)
 
 
 # Metadata
