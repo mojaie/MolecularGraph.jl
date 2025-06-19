@@ -125,45 +125,44 @@ function ematchgen(mol1::QueryMolGraph, mol2::QueryMolGraph)
 end
 
 
-
-function circuitrank(g::SimpleGraph)
-    nv(g) == 0 && return 0
-    return ne(g) - nv(g) + length(connected_components(g))
-end
-
-
 function exact_topology_prefilter(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     nv(mol1) == nv(mol2) || return false
     ne(mol1) == ne(mol2) || return false
-    circuitrank(mol1.graph) == circuitrank(mol2.graph) ||  return false
+    if has_descriptor(mol1, :sssr) && has_descriptor(mol2, :sssr)
+        r1 = get_descriptor(mol1, :sssr)
+        r2 = get_descriptor(mol2, :sssr)
+        length(r1) == length(r2) || return false
+    end
     return true
 end
-
 
 function topology_prefilter(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     nv(mol1) >= nv(mol2) || return false
     ne(mol1) >= ne(mol2) || return false
-    circuitrank(mol1.graph) >= circuitrank(mol2.graph) ||  return false
+    if has_descriptor(mol1, :sssr) && has_descriptor(mol2, :sssr)
+        r1 = get_descriptor(mol1, :sssr)
+        r2 = get_descriptor(mol2, :sssr)
+        length(r1) >= length(r2) ||  return false
+    end
     return true
 end
 
 
 """
-    preprocess_structmatch(mol::SimpleMolGraph) -> SimpleMolGraph, vmap
+    structmatch_compatible!(mol::ReactiveMolGraph) -> ReactiveMolGraph
+    structmatch_compatible!(mol::QueryMolGraph) -> QueryMolGraph
 
-Remove all hydrogen vertices using `Graphs.rem_vertices!` and return vmap array.
+Return mol as it is or its preprocessed copy as necessary.
 """
-function structmatch_compatible(mol::ReactiveMolGraph)
+function structmatch_compatible!(mol::ReactiveMolGraph)
+    any(atom_symbol(mol) .=== :H) || return mol  # No changes
     mol_ = deepcopy(mol)
-    any(atom_symbol(mol) .=== :H) || return mol_
     remove_all_hydrogens!(mol_)
     return mol_
 end
 
-function structmatch_compatible(qmol::QueryMolGraph)
-    qmol_ = deepcopy(qmol)
-    preprocess!(qmol_)
-    return qmol_
+function structmatch_compatible!(qmol::QueryMolGraph)
+    return qmol  # No changes
 end
 
 
@@ -177,12 +176,12 @@ function exact_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     # Note: InChI is better if you don't need mapping
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
-    mol1_ = structmatch_compatible(mol1)
-    mol2_ = structmatch_compatible(mol2)
-    exact_topology_prefilter(mol1_, mol2_) || return ()
+    mol1 = structmatch_compatible!(mol1)
+    mol2 = structmatch_compatible!(mol2)
+    exact_topology_prefilter(mol1, mol2) || return ()
     return isomorphisms(
-        mol1_.graph, mol2_.graph,
-        vmatch=vmatchgen(mol1_, mol2_), ematch=ematchgen(mol1_, mol2_); kwargs...)
+        mol1.graph, mol2.graph,
+        vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); kwargs...)
 end
 
 
@@ -212,12 +211,12 @@ Return a lazy iterator that generate node mappings between `mol` and `query` if 
 function substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
-    mol1_ = structmatch_compatible(mol1)
-    mol2_ = structmatch_compatible(mol2)
-    topology_prefilter(mol1_, mol2_) || return ()
+    mol1 = structmatch_compatible!(mol1)
+    mol2 = structmatch_compatible!(mol2)
+    topology_prefilter(mol1, mol2) || return ()
     return subgraph_monomorphisms(
-        mol1_.graph, mol2_.graph,
-        vmatch=vmatchgen(mol1_, mol2_), ematch=ematchgen(mol1_, mol2_); kwargs...)
+        mol1.graph, mol2.graph,
+        vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); kwargs...)
 end
 
 
@@ -240,12 +239,12 @@ See [`substruct_matches`](@ref) for available options.
 function node_substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
-    mol1_ = structmatch_compatible(mol1)
-    mol2_ = structmatch_compatible(mol2)
-    topology_prefilter(mol1_, mol2_) || return ()
+    mol1 = structmatch_compatible!(mol1)
+    mol2 = structmatch_compatible!(mol2)
+    topology_prefilter(mol1, mol2) || return ()
     return nodesubgraph_isomorphisms(
-        mol1_.graph, mol2_.graph,
-        vmatch=vmatchgen(mol1_, mol2_), ematch=ematchgen(mol1_, mol2_); kwargs...)
+        mol1.graph, mol2.graph,
+        vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); kwargs...)
 end
 
 
@@ -268,13 +267,13 @@ See [`substruct_matches`](@ref) for available options.
 function edge_substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     (ne(mol1) == 0 || ne(mol2) == 0) && return ()
-    mol1_ = structmatch_compatible(mol1)
-    mol2_ = structmatch_compatible(mol2)
-    topology_prefilter(mol1_, mol2_) || return ()
+    mol1 = structmatch_compatible!(mol1)
+    mol2 = structmatch_compatible!(mol2)
+    topology_prefilter(mol1, mol2) || return ()
     return edgesubgraph_isomorphisms(
-        mol1_.graph, mol2_.graph,
-        vmatch=vmatchgen(mol1_, mol2_), ematch=ematchgen(mol1_, mol2_),
-        ggmatch=vmatchgen(mol1_, mol1_), hhmatch=vmatchgen(mol2_, mol2_); kwargs...)
+        mol1.graph, mol2.graph,
+        vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2),
+        ggmatch=vmatchgen(mol1, mol1), hhmatch=vmatchgen(mol2, mol2); kwargs...)
 end
 
 
@@ -294,35 +293,35 @@ has_edge_substruct_match(mol1, mol2; kwargs...
 
 function mcis_constraints(
         mol::SimpleMolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen)
-    mol_ = structmatch_compatible(mol)
+    mol = structmatch_compatible!(mol)
     return mcis_constraints(
-        Val{:connection}(), mol_.graph,
-        vmatchvec=vmatchvecgen(mol_), ematchvec=ematchvecgen(mol_))
+        Val{:connection}(), mol.graph,
+        vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol))
 end
 
 function mces_constraints(
         mol::SimpleMolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen)
-    mol_ = structmatch_compatible(mol)
+    mol = structmatch_compatible!(mol)
     return mces_constraints(
-        Val{:connection}(), mol_.graph,
-        vmatchvec=vmatchvecgen(mol_), ematchvec=ematchvecgen(mol_))
+        Val{:connection}(), mol.graph,
+        vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol))
 end
 
 function tdmcis_constraints(
         mol::SimpleMolGraph; vmatchvecgen=vmatchvecgen,
         ematchvecgen=ematchvecgen, kwargs...)
-    mol_ = structmatch_compatible(mol)
+    mol = structmatch_compatible!(mol)
     return mcis_constraints(
-        Val{:shortest}(), mol_.graph,
-        vmatchvec=vmatchvecgen(mol_), ematchvec=ematchvecgen(mol_); kwargs...)
+        Val{:shortest}(), mol.graph,
+        vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...)
 end
 function tdmces_constraints(
         mol::SimpleMolGraph; vmatchvecgen=vmatchvecgen,
         ematchvecgen=ematchvecgen, kwargs...)
-    mol_ = structmatch_compatible(mol)
+    mol = structmatch_compatible!(mol)
     return mces_constraints(
-        Val{:shortest}(), mol_.graph,
-        vmatchvec=vmatchvecgen(mol_), ematchvec=ematchvecgen(mol_); kwargs...)
+        Val{:shortest}(), mol.graph,
+        vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...)
 end
 
 
@@ -341,15 +340,15 @@ time has reached the given value (default=60, in seconds).
 given mcs size achieved.
 """
 function disconnected_mcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
-    mol1_ = mcis_constraints(mol1)
-    mol2_ = mcis_constraints(mol2)
-    return maximum_common_subgraph(mol1_, mol2_; kwargs...)
+    mol1 = mcis_constraints(mol1)
+    mol2 = mcis_constraints(mol2)
+    return maximum_common_subgraph(mol1, mol2; kwargs...)
 end
 
 function disconnected_mces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
-    mol1_ = mces_constraints(mol1)
-    mol2_ = mces_constraints(mol2)
-    return maximum_common_subgraph(mol1_, mol2_; kwargs...)
+    mol1 = mces_constraints(mol1)
+    mol2 = mces_constraints(mol2)
+    return maximum_common_subgraph(mol1, mol2; kwargs...)
 end
 
 
@@ -367,15 +366,15 @@ time has reached the given value (default=60, in seconds).
 given mcs size achieved.
 """
 function connected_mcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
-    mol1_ = mcis_constraints(mol1)
-    mol2_ = mcis_constraints(mol2)
-    return maximum_common_subgraph(mol1_, mol2_, connected=true; kwargs...)
+    mol1 = mcis_constraints(mol1)
+    mol2 = mcis_constraints(mol2)
+    return maximum_common_subgraph(mol1, mol2, connected=true; kwargs...)
 end
 
 function connected_mces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
-    mol1_ = mces_constraints(mol1)
-    mol2_ = mces_constraints(mol2)
-    return maximum_common_subgraph(mol1_, mol2_, connected=true; kwargs...)
+    mol1 = mces_constraints(mol1)
+    mol2 = mces_constraints(mol2)
+    return maximum_common_subgraph(mol1, mol2, connected=true; kwargs...)
 end
 
 
@@ -402,15 +401,15 @@ Chemical Structures. Journal of Chemical Information and Modeling, 51(8),
 1. https://www.jstage.jst.go.jp/article/ciqs/2017/0/2017_P4/_article/-char/en
 """
 function tdmcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
-    mol1_ = tdmcis_constraints(mol1; kwargs...)
-    mol2_ = tdmcis_constraints(mol2; kwargs...)
-    return maximum_common_subgraph(mol1_, mol2_; kwargs...)
+    mol1 = tdmcis_constraints(mol1; kwargs...)
+    mol2 = tdmcis_constraints(mol2; kwargs...)
+    return maximum_common_subgraph(mol1, mol2; kwargs...)
 end
 
 function tdmces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
-    mol1_ = tdmces_constraints(mol1; kwargs...)
-    mol2_ = tdmces_constraints(mol2; kwargs...)
-    return maximum_common_subgraph(mol1_, mol2_; kwargs...)
+    mol1 = tdmces_constraints(mol1; kwargs...)
+    mol2 = tdmces_constraints(mol2; kwargs...)
+    return maximum_common_subgraph(mol1, mol2; kwargs...)
 end
 
 

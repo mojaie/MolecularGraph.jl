@@ -3,6 +3,13 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+function circuitrank(g::SimpleGraph)
+    nv(g) == 0 && return 0
+    return ne(g) - nv(g) + length(connected_components(g))
+end
+
+
 function cotree_edges(g::SimpleGraph{T}) where T
     root = vertices(g)[1]
     stack = [root]

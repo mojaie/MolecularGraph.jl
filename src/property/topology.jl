@@ -30,8 +30,26 @@ function sssr(mol::SimpleMolGraph)
     return mincyclebasis(mol.graph)
 end
 
-sssr!(mol::SimpleMolGraph) = setproperty!(
-    mol.gprops.descriptors, :sssr, mincyclebasis(mol.graph))
+function sssr!(mol::SimpleMolGraph)
+    mol.state.has_new_edges || return  # skip if new edges
+    set_descriptor!(mol, :sssr, mincyclebasis(mol.graph))
+    return
+end
+
+function remap!(
+        ::Val{:sssr}, desc::MolDescriptor{T}, vmap::Dict{T,T}
+        ) where T <: Integer
+    # Just remove incomplete cycles after `rem_vertex!`
+    # to avoid expensive recalculation of myncycles
+    cont = Vector{T}[]
+    oldmems = keys(vmap)
+    for cyc in desc.sssr
+        isempty(setdiff(cyc, oldmems)) || continue
+        push!(cont, [vmap[v] for v in cyc])
+    end
+    desc.sssr = cont
+    return
+end
 
 
 """
@@ -122,7 +140,7 @@ end
     smallest_ring(mol::SimpleMolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the size of the smallest [`sssr`](@ref)
-that 1 to ``n``th atoms of the given molecule belong to. 
+that 1 to ``n``th atoms of the given molecule belong to.
 
 If the node is not in a ring, the value would be 0.
 This property corresponds to SMARTS `r` query.

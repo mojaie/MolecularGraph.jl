@@ -10,7 +10,7 @@ Convert molecule object into JSON compatible dictionary.
 """
 function to_dict(fmt::Val{:default}, mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
     dispatch_update!(mol)
-    return Dict(
+    return Dict{String,Any}(
         "vproptype" => string(nameof(V)),
         "eproptype" => string(nameof(E)),
         "graph" => [[src(e), dst(e)] for e in edges(mol)],

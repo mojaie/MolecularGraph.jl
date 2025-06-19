@@ -23,6 +23,7 @@ function dispatch_update!(mol::ReactiveMolGraph)
     update_edge_rank!(mol)  # necessary
     mol.state.has_updates = false  # call before update to avoid infinite roop
     mol.state.on_update(mol)
+    mol.state.has_new_edges = false
     return
 end
 
@@ -30,6 +31,12 @@ end
 function notify_updates!(mol::ReactiveMolGraph)
     # TODO: flag to inactivate auto-update
     mol.state.has_updates = true
+    return
+end
+
+function notify_new_edges!(mol::ReactiveMolGraph)
+    # TODO: flag to inactivate auto-update
+    mol.state.has_new_edges = true
     return
 end
 
@@ -104,6 +111,7 @@ function add_u_edge!(mol::ReactiveMolGraph{T,V,E}, e::Edge{T}, prop::E) where {T
     add_edge!(mol.graph, e) || return false
     mol.eprops[e] = prop
     notify_updates!(mol)
+    notify_new_edges!(mol)
     return true
 end
 
@@ -192,6 +200,7 @@ end
 mutable struct MolState{T,F1,F2} <: AbstractState
     initialized::Bool
     has_updates::Bool
+    has_new_edges::Bool  # as a SSSR recalculation flag
     on_init::F1
     on_update::F2
     edge_rank::Dict{Edge{T},Int}
@@ -199,11 +208,11 @@ end
 
 
 function MolState{T}(
-        ; initialized=false, has_updates=true,
+        ; initialized=false, has_updates=true, has_new_edges=true,
         on_init=default_on_init!, on_update=default_on_update!,
         edge_rank=Dict{Edge{T},Int}()) where T
     return MolState{T,typeof(on_init),typeof(on_update)}(
-        initialized, has_updates, on_init, on_update, edge_rank)
+        initialized, has_updates, has_new_edges, on_init, on_update, edge_rank)
 end
 
 

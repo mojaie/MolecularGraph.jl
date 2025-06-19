@@ -153,12 +153,14 @@ end
 Generate truthtable to compare queries.
 """
 function generate_truthtable(
-        q::QueryTree, r::QueryTree
-        ; recursive_cache=Dict{String,Dict{String,Bool}}())
+        q::T, r::U
+        ; recursive_cache=Dict{String,Dict{String,Bool}}()) where {T<:QueryTree,U<:QueryTree}
+    # TODO: unnecessary?
     # qt = optimize_query(q.tree)
     # rt = optimize_query(r.tree)
-    q_ = deepcopy(q)
-    r_ = deepcopy(r)
+    # Note: avoid slower deepcopy
+    q_ = T([(src(e), dst(e)) for e in edges(q.graph)], [q.vprops[i] for i in vertices(q.graph)])
+    r_ = U([(src(e), dst(e)) for e in edges(r.graph)], [r.vprops[i] for i in vertices(r.graph)])
     # convert not query (e.g. !C -> [!#6,!A]) smarts/logicaloperator.jl
     qpropmap = querypropmap(q_)
     rpropmap = querypropmap(r_)

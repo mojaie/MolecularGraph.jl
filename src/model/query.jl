@@ -88,7 +88,7 @@ vproptype(::Type{<:QueryTree{T,U}}) where {T,U} = U
 vproptype(qtree::T) where T<:QueryTree = vproptype(T)
 
 function to_dict(fmt::Val{:default}, qtree::QueryTree)
-    return Dict(
+    return Dict{String,Any}(
         "edges" => [[src(e), dst(e)] for e in edges(qtree.graph)],
         "vprops" => [to_dict(fmt, qtree.vprops[i]) for i in vertices(qtree.graph)]
     )
