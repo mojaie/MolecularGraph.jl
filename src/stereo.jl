@@ -39,7 +39,7 @@ function remap!(
     return
 end
 
-function reconstruct(::Val{:stereocenter}, T::Type{<:SimpleMolProperty}, data)
+function reconstruct(::Val{:stereocenter}, T::Type{<:SimpleMolProperty}, @nospecialize(data))
     U = eltype(T)
     return Dict{U,Tuple{U,U,U,Bool}}(parse(U, i) => tuple(val...) for (i, val) in data)
 end
@@ -61,7 +61,7 @@ function remap!(
     return
 end
 
-function reconstruct(::Val{:stereobond}, T::Type{<:SimpleMolProperty}, data)
+function reconstruct(::Val{:stereobond}, T::Type{<:SimpleMolProperty}, @nospecialize(data))
     U = eltype(T)
     return Dict{Edge{U},Tuple{U,U,Bool}}(
         Edge{U}(s, d) => tuple(val...) for (s, d, val) in data)

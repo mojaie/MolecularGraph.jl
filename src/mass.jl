@@ -7,7 +7,7 @@ const DEFAULT_WEIGHT_DIGITS = 2
 const DEFAULT_MASS_DIGITS = 6
 
 
-function molecular_mass_unc(mol::SimpleMolGraph, massfunc)
+function molecular_mass_unc(mol::SimpleMolGraph, massfunc::F) where F
     mass = 0.0
     unc = 0.0
     hm, hu = massfunc(:H)
@@ -38,7 +38,7 @@ function monoiso_mass_unc(atomsymbol::Symbol)
     return (mass, unc)
 end
 
-monoiso_mass_unc(atom) = monoiso_mass_unc(atom_symbol(atom))
+monoiso_mass_unc(atom::AbstractAtom) = monoiso_mass_unc(atom_symbol(atom))
 monoiso_mass_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, monoiso_mass_unc)
 
 
@@ -50,12 +50,12 @@ monoiso_mass_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, monoiso_mass_unc
 Return monoisotopic mass of the atom/molecule.
 """
 monoiso_mass(atomsymbol::Symbol) = monoiso_mass_unc(atomsymbol)[1]
-monoiso_mass(atom) = monoiso_mass_unc(atom)[1]
+monoiso_mass(atom::AbstractAtom) = monoiso_mass_unc(atom)[1]
 monoiso_mass(mol::SimpleMolGraph) = monoiso_mass_unc(mol)[1]
 
-monoiso_mass(atomsymbol::Symbol, digits) = round(monoiso_mass(atomsymbol), digits=digits)
-monoiso_mass(atom, digits) = round(monoiso_mass(atom), digits=digits)
-monoiso_mass(mol::SimpleMolGraph, digits) = round(monoiso_mass(mol), digits=digits)
+monoiso_mass(atomsymbol::Symbol, digits::Int) = round(monoiso_mass(atomsymbol), digits=digits)
+monoiso_mass(atom::AbstractAtom, digits::Int) = round(monoiso_mass(atom), digits=digits)
+monoiso_mass(mol::SimpleMolGraph, digits::Int) = round(monoiso_mass(mol), digits=digits)
 
 
 """
@@ -66,7 +66,7 @@ monoiso_mass(mol::SimpleMolGraph, digits) = round(monoiso_mass(mol), digits=digi
 Return nominal mass of the atom/molecule.
 """
 nominal_mass(atomsymbol::Symbol) = round(Int, monoiso_mass(atomsymbol))
-nominal_mass(atom) = round(Int, monoiso_mass(atom))
+nominal_mass(atom::AbstractAtom) = round(Int, monoiso_mass(atom))
 nominal_mass(mol::SimpleMolGraph) = round(Int, monoiso_mass(mol))
 
 
@@ -90,7 +90,7 @@ function exact_mass_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
     return (mass, unc)
 end
 
-exact_mass_unc(atom) = exact_mass_unc(atom_symbol(atom), atom_mass(atom))
+exact_mass_unc(atom::AbstractAtom) = exact_mass_unc(atom_symbol(atom), atom_mass(atom))
 exact_mass_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, exact_mass_unc)
 
 
@@ -102,12 +102,12 @@ exact_mass_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, exact_mass_unc)
 Return calculated exact mass.
 """
 exact_mass(atomsymbol::Symbol) = exact_mass_unc(atomsymbol)[1]
-exact_mass(atom) = exact_mass_unc(atom)[1]
+exact_mass(atom::AbstractAtom) = exact_mass_unc(atom)[1]
 exact_mass(mol::SimpleMolGraph) = exact_mass_unc(mol)[1]
 
-exact_mass(atomsymbol::Symbol, digits) = round(exact_mass(atomsymbol), digits=digits)
-exact_mass(atom, digits) = round(exact_mass(atom), digits=digits)
-exact_mass(mol::SimpleMolGraph, digits) = round(exact_mass(mol), digits=digits)
+exact_mass(atomsymbol::Symbol, digits::Int) = round(exact_mass(atomsymbol), digits=digits)
+exact_mass(atom::AbstractAtom, digits::Int) = round(exact_mass(atom), digits=digits)
+exact_mass(mol::SimpleMolGraph, digits::Int) = round(exact_mass(mol), digits=digits)
 
 
 """
@@ -136,7 +136,7 @@ function standard_weight_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=not
     return (wt, unc)
 end
 
-standard_weight_unc(atom) = standard_weight_unc(atom_symbol(atom), atom_mass(atom))
+standard_weight_unc(atom::AbstractAtom) = standard_weight_unc(atom_symbol(atom), atom_mass(atom))
 standard_weight_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, standard_weight_unc)
 
 """
@@ -147,11 +147,11 @@ standard_weight_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, standard_weig
 Return standard atomic weight (or molecular weight).
 """
 standard_weight(atomsymbol::Symbol) = standard_weight_unc(atomsymbol)[1]
-standard_weight(atom) = standard_weight_unc(atom)[1]
+standard_weight(atom::AbstractAtom) = standard_weight_unc(atom)[1]
 standard_weight(mol::SimpleMolGraph) = standard_weight_unc(mol)[1]
-standard_weight(atomsymbol::Symbol, digits) = round(standard_weight(atomsymbol), digits=digits)
-standard_weight(atom, digits) = round(standard_weight(atom), digits=digits)
-standard_weight(mol::SimpleMolGraph, digits) = round(standard_weight(mol), digits=digits)
+standard_weight(atomsymbol::Symbol, digits::Int) = round(standard_weight(atomsymbol), digits=digits)
+standard_weight(atom::AbstractAtom, digits::Int) = round(standard_weight(atom), digits=digits)
+standard_weight(mol::SimpleMolGraph, digits::Int) = round(standard_weight(mol), digits=digits)
 
 
 """

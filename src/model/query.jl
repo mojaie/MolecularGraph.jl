@@ -13,7 +13,7 @@ Query components
 - logical operators (arg -> q1[arg] && q2[arg]).
 - tautology query (arg -> true/false).
 """
-struct QueryNode
+struct QueryNode <: AbstractQueryNode
     operator::Symbol  # :and, :or, :not, :any, :eq, (:gt, :lt)
     key::Symbol  # keys for :eq, (:gt, :lt)
     value::String  # :any(Bool), :eq, (:gt, :lt)
@@ -142,7 +142,7 @@ end
     logs::Dict{String,String} = Dict{String,String}()
 end
 
-reconstruct(::Val{:descriptors}, ::Type{QueryMolProperty{T}}, data
+reconstruct(::Val{:descriptors}, ::Type{QueryMolProperty{T}}, @nospecialize(data)
     ) where T = reconstruct(QueryMolDescriptor{T}, data)
 
 
@@ -151,7 +151,7 @@ reconstruct(::Val{:descriptors}, ::Type{QueryMolProperty{T}}, data
 
 Basic molecular graph type.
 """
-struct QueryMolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
+struct QueryMolGraph{T<:Integer,V<:QueryTree,E<:QueryTree} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
     vprops::Dict{T,V}
     eprops::Dict{Edge{T},E}

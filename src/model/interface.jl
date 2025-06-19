@@ -64,12 +64,18 @@ The base class of molecular model states.
 abstract type AbstractState end
 
 
+abstract type AbstractQueryNode end
+
+abstract type AbstractElement end
+abstract type AbstractAtom <: AbstractElement end
+abstract type AbstractBond <: AbstractElement end
+
 """
     QueryTree{T,U}
 
 The base class of molecular query trees.
 """
-abstract type QueryTree{T<:Integer,U} end
+abstract type QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement end
 
 
 """
@@ -85,7 +91,7 @@ abstract type SimpleMolGraph{T<:Integer} <: AbstractMolGraph{T} end
 
 The base class of molecule model which have auto-update mechanism of properties
 """
-abstract type ReactiveMolGraph{T<:Integer,V,E} <: SimpleMolGraph{T} end
+abstract type ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T} end
 
 
 # SimpleMolGraph interface

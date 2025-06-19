@@ -250,7 +250,7 @@ end
 
 Basic molecular graph type.
 """
-struct MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
+struct MolGraph{T<:Integer,V<:AbstractAtom,E<:AbstractBond} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
     vprops::Dict{T,V}
     eprops::Dict{Edge{T},E}
@@ -274,7 +274,7 @@ MolGraph(
 ) where {T,V,E} = MolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
 
 MolGraph{T,V,E}() where {T,V,E} = MolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
-MolGraph() = MolGraph{Int,SDFAtom,SDFAtom}()
+MolGraph() = MolGraph{Int,SDFAtom,SDFBond}()
 
 
 # MolGraph type aliases

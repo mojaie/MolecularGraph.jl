@@ -138,7 +138,7 @@ atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
 
 SDFile (CTAB) atom property type.
 """
-struct SDFAtom
+struct SDFAtom <: AbstractAtom
     symbol::Symbol
     charge::Int
     multiplicity::Int
@@ -208,7 +208,7 @@ end
 
 SMILES atom property type.
 """
-struct SMILESAtom
+struct SMILESAtom <: AbstractAtom
     symbol::Symbol
     charge::Int
     multiplicity::Int
@@ -281,7 +281,7 @@ end
 
 CommonChem atom property type.
 """
-struct CommonChemAtom
+struct CommonChemAtom <: AbstractAtom
     z::Int
     chg::Int
     impHs::Int

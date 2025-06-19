@@ -20,7 +20,7 @@ Double bonds and single bonds will be assigned to aromatic rings which consist o
 lowercase atoms (called Kekulization). Kekulization is necessary for the valence and
 implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
 """
-function kekulize(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
+function kekulize(mol::SimpleMolGraph{T}) where T
     # "raw" bond orders
     bondorder = [bond_order(props(mol, e)) for e in edges(mol)]
     # lone pair in p-orbital, pyrrole-like aromatic atom
@@ -94,7 +94,7 @@ Return a vector of removable hydrogen nodes.
 Removable hydrogens are not charged, have no unpaired electron, have no specific mass,
 are non-stereospecific and are attached to organic heavy atoms.
 """
-function removable_hydrogens(mol::SimpleMolGraph{T}) where {T}
+function removable_hydrogens(mol::SimpleMolGraph{T}) where T
     hs = T[]
     organic_heavy = Set([
         :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I

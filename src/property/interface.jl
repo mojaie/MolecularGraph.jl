@@ -37,7 +37,7 @@ function reconstruct(::Type{T}, data::Dict{String,Any}) where T <: AbstractPrope
     return container
 end
 
-reconstruct(::Val{V}, ::Type{T}, data) where {V,T<:AbstractProperty} = data
+reconstruct(::Val{V}, ::Type{T}, @nospecialize(data)) where {V,T<:AbstractProperty} = data
 
 
 """
@@ -66,7 +66,7 @@ end
 
 # Metadata
 
-reconstruct(::Val{:metadata}, ::Type{T}, data
+reconstruct(::Val{:metadata}, ::Type{T}, @nospecialize(data)
     ) where T <: AbstractProperty = OrderedDict(d[1] => d[2] for d in data)
 
 to_dict(::Val{:metadata}, ::Val{:default}, gprop::AbstractProperty
@@ -146,7 +146,7 @@ Container of graph-level molecule properties compatible with `ReactiveMolGraph`.
 end
 
 
-reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, data
+reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, @nospecialize(data)
     ) where T = reconstruct(MolDescriptor{T}, data)
 
 

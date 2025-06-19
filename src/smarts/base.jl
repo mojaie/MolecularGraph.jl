@@ -18,7 +18,7 @@ end
 abstract type AbstractSMARTSParser{T,V,E} end
 
 
-mutable struct SMILESParser{T,V,E} <: AbstractSMARTSParser{T,V,E}
+mutable struct SMILESParser{T<:Integer,V<:AbstractAtom,E<:AbstractBond} <: AbstractSMARTSParser{T,V,E}
     input::String
     pos::Int
     done::Bool
@@ -32,13 +32,12 @@ mutable struct SMILESParser{T,V,E} <: AbstractSMARTSParser{T,V,E}
     eprops::Vector{E}
 end
 
-SMILESParser{T}(smiles
-    ) where T <: SimpleMolGraph = SMILESParser{eltype(T),vproptype(T),eproptype(T)}(
-        smiles, 1, false, 0, 1, 1, Dict(), [], Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[])
+SMILESParser{T,V,E}(smiles) where {T,V,E} = SMILESParser{T,V,E}(
+    smiles, 1, false, 0, 1, 1, Dict{Int,Int}(), Vector{T}[], Edge{T}[], V[], E[])
 
 
 
-mutable struct SMARTSParser{T,V,E} <: AbstractSMARTSParser{T,V,E}
+mutable struct SMARTSParser{T<:Integer,V<:QueryTree,E<:QueryTree} <: AbstractSMARTSParser{T,V,E}
     input::String
     pos::Int
     done::Bool
@@ -53,9 +52,8 @@ mutable struct SMARTSParser{T,V,E} <: AbstractSMARTSParser{T,V,E}
     connectivity::Vector{Vector{T}}
 end
 
-SMARTSParser{T}(smarts
-    ) where T <: SimpleMolGraph = SMARTSParser{eltype(T),vproptype(T),eproptype(T)}(
-        smarts, 1, false, 0, 1, 1, Dict(), [], Edge{eltype(T)}[], vproptype(T)[], eproptype(T)[], [])
+SMARTSParser{T,V,E}(smarts) where {T,V,E} = SMARTSParser{T,V,E}(
+    smarts, 1, false, 0, 1, 1, Dict{Int,Int}(), Vector{T}[], Edge{T}[], V[], E[], Vector{T}[])
 
 
 function smiles_on_init!(mol::SimpleMolGraph)
@@ -97,14 +95,17 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
 function smilestomol(
-        ::Type{T}, smiles::AbstractString; kwargs...) where T <: SimpleMolGraph
-    state = SMILESParser{T}(smiles)
+        ::Type{G}, smiles::AbstractString; kwargs...) where G <: SimpleMolGraph
+    T = eltype(G)
+    V = vproptype(G)
+    E = eproptype(G)
+    state = SMILESParser{T,V,E}(smiles)
     fragment!(state)
     # original edge index
-    gprops = MolProperty{eltype(T)}()
+    gprops = MolProperty{T}()
     gprops.smarts_lexical_succ = state.succ
     gprops.smarts_input = string(smiles)
-    return T(state.edges, state.vprops, state.eprops,
+    return G(state.edges, state.vprops, state.eprops,
         gprops=gprops, on_init=smiles_on_init!,
         on_update=smiles_on_update!; kwargs...)
 end
@@ -119,14 +120,17 @@ smilestomol(smiles::AbstractString; kwargs...
 Parse SMARTS string into `QueryMolGraph` object.
 """
 function smartstomol(
-        ::Type{T}, smarts::AbstractString; kwargs...) where T <: SimpleMolGraph
-    state = SMARTSParser{T}(smarts)
+        ::Type{G}, smarts::AbstractString; kwargs...) where G <: SimpleMolGraph
+    T = eltype(G)
+    V = vproptype(G)
+    E = eproptype(G)
+    state = SMARTSParser{T,V,E}(smarts)
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
-    gprops = QueryMolProperty{eltype(T)}()
+    gprops = QueryMolProperty{T}()
     gprops.smarts_lexical_succ = state.succ
     gprops.smarts_connectivity = state.connectivity
     gprops.smarts_input = string(smarts)
-    return T(state.edges, state.vprops, state.eprops,
+    return G(state.edges, state.vprops, state.eprops,
         gprops=gprops, on_init=smarts_on_init!; kwargs...)
 end
 

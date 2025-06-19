@@ -46,7 +46,7 @@
     @test vproptype(nullmol) === SDFAtom
     @test vproptype(nullsdf) === SDFAtom
     @test vproptype(nullsmiles) === SMILESAtom
-    @test eproptype(nullmol) === SDFAtom
+    @test eproptype(nullmol) === SDFBond
     @test eproptype(nullsdf) === SDFBond
     @test eproptype(nullsmiles) === SMILESBond
     @test get_prop(methane, 1, :symbol) === :C
@@ -92,32 +92,39 @@ end
     @test issetequal(keys(mol.eprops), Edge.([(1, 2), (2, 3)]))
     @test rem_vertex!(mol, 2)  # C.C
 
+    struct IntAtom <: MolecularGraph.AbstractAtom
+        value::Int
+    end
+    struct IntBond <: MolecularGraph.AbstractBond
+        value::Int
+    end
     # Vertex re-ordering when vertices/edges are removed
     mol = MolGraph(
-        collect(edges(smallgraph(:dodecahedral))), collect(1:20), collect(1:30)
-    )  # MolGraph{Int,Int,Int}
+        collect(edges(smallgraph(:dodecahedral))),
+        [IntAtom(i) for i in 1:20], [IntBond(i) for i in 1:30])
     for e in Edge.([(1, 2), (1, 20), (11, 12), (19, 20)])
         rem_edge!(mol, e)
     end
     @test isempty(intersect(mol.eprops, [1, 3, 20, 30]))
-    for (e, p) in zip(Edge.([(1, 2), (1, 20), (11, 12), (19, 20)]), [1, 3, 20, 30])
+    for (e, p) in zip(Edge.([(1, 2), (1, 20), (11, 12), (19, 20)]), [IntBond(i) for i in [1, 3, 20, 30]])
         add_edge!(mol, e, p)
     end
-    @test issetequal(values(mol.eprops), collect(1:30))
+    @test issetequal(values(mol.eprops), [IntBond(i) for i in 1:30])
     vmap = rem_vertices!(mol, [1, 3, 5, 7, 9])
     @test ne(mol) == 16
-    @test issetequal(vmap, values(mol.vprops))
+    @test issetequal(vmap, [mol.vprops[i].value for i in vertices(mol)])
     vmap = rem_vertices!(mol, collect(1:14))
     @test ne(mol) == 0
-    @test issetequal(vmap, values(mol.vprops))
+    @test issetequal(vmap, [mol.vprops[i].value for i in vertices(mol)])
 
-    mol = MolGraph(collect(edges(smallgraph(:dodecahedral))), collect(1:20), collect(1:30))
+    mol = MolGraph(collect(edges(smallgraph(:dodecahedral))),
+        [IntAtom(i) for i in 1:20], [IntBond(i) for i in 1:30])
     subg, vmap = induced_subgraph(mol, [6, 7, 8, 15, 16])
     @test ne(subg) == 5
-    @test issetequal(vmap, values(subg.vprops))
+    @test issetequal(vmap, [subg.vprops[i].value for i in vertices(subg)])
     subg, vmap = induced_subgraph(mol, Edge.([(1, 2), (1, 11), (1, 20), (4, 20), (19, 20)]))
     @test nv(subg) == 6
-    @test sum(values(subg.eprops)) == 45  # edge_rank 1,2,3,9,30
+    @test sum([subg.eprops[e].value for e in edges(subg)]) == 45  # edge_rank 1,2,3,9,30
     rem_vertex!(mol, 20)
     @test nv(mol) == 19
     rem_vertices!(mol, [17, 18, 19])

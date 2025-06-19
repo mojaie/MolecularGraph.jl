@@ -22,7 +22,7 @@ SDFile (CTAB) bond property type.
         * 0: v = u
         * 3: u x v (Cis-Trans Unknown)
 """
-struct SDFBond
+struct SDFBond <: AbstractBond
     order::Int
     notation::Int
     isordered::Bool
@@ -75,7 +75,7 @@ end
 
 SMILES bond property type.
 """
-struct SMILESBond
+struct SMILESBond <: AbstractBond
     order::Int
     isaromatic::Bool
     direction::Symbol  # :up, :down or :unspecified
@@ -128,7 +128,7 @@ end
 
 CommonChem bond property type.
 """
-struct CommonChemBond
+struct CommonChemBond <: AbstractBond
     type::Int  # bond order
 
     function CommonChemBond(

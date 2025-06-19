@@ -25,25 +25,25 @@
     MolecularGraph.lgnot!(state::SMARTSParser, qtree::QueryTest
         ) = lgnot!(state, qtree, parseabc!)
 
-    state = SMARTSParser{MolGraph{Int,QueryTest,QueryTest}}("!a")
+    state = SMARTSParser{Int,QueryTest,QueryTest}("!a")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     not1 = lgnot!(state, qtree)
     @test not1 == 2
     @test qtree == QueryTest(querytree([(1, 2)], [qnot(), qeq(:v, "a")])...)
 
-    state = SMARTSParser{SMARTSMolGraph}("")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     null = lglowand!(state, qtree)
     @test null == 0
     @test qtree == QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
 
-    state = SMARTSParser{SMARTSMolGraph}("a&b")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("a&b")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     and1 = lghighand!(state, qtree)
     @test and1 == 3
     @test qtree == QueryTest(querytree([(1, 2), (1, 3)], [qand(), qeq(:v, "a"), qeq(:v, "b")])...)
 
-    state = SMARTSParser{SMARTSMolGraph}("abc")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("abc")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     and2 = lghighand!(state, qtree)
     @test and2 == 4
@@ -51,7 +51,7 @@
         [(1, 2), (1, 3), (1, 4)],
         [qand(), qeq(:v, "a"), qeq(:v, "b"), qeq(:v, "c")])...)
 
-    state = SMARTSParser{SMARTSMolGraph}("!ab")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("!ab")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     not2 = lghighand!(state, qtree)
     @test not2 == 4
@@ -59,19 +59,19 @@
         [(1, 2), (2, 3), (1, 4)],
         [qand(), qnot(), qeq(:v, "a"), qeq(:v, "b")])...)
 
-    state = SMARTSParser{SMARTSMolGraph}("a,b")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("a,b")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     or1 = lgor!(state, qtree)
     @test or1 == 3
     @test qtree == QueryTest(querytree([(1, 2), (1, 3)], [qor(), qeq(:v, "a"), qeq(:v, "b")])...)
 
-    state = SMARTSParser{SMARTSMolGraph}("a;b")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("a;b")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     and3 = lglowand!(state, qtree)
     @test and3 == 3
     @test qtree == QueryTest(querytree([(1, 2), (1, 3)], [qand(), qeq(:v, "a"), qeq(:v, "b")])...)
 
-    state = SMARTSParser{SMARTSMolGraph}("!a!b")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("!a!b")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     not3 = lglowand!(state, qtree)
     @test not3 == 5
@@ -79,7 +79,7 @@
         [(1, 2), (1, 3), (2, 4), (3, 5)],
         [qand(), qnot(), qnot(), qeq(:v, "a"), qeq(:v, "b")])...)
 
-    state = SMARTSParser{SMARTSMolGraph}("abcdef")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("abcdef")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     and4 = lghighand!(state, qtree)
     @test and4 == 4
@@ -88,7 +88,7 @@
         [qand(), qeq(:v, "a"), qeq(:v, "b"), qeq(:v, "c")])...)
     @test state.pos == 4
 
-    state = SMARTSParser{SMARTSMolGraph}("a,b&c")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("a,b&c")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     comp1 = lglowand!(state, qtree)
     @test comp1 == 5
@@ -96,7 +96,7 @@
         [(1, 2), (1, 3), (3, 4), (3, 5)],
         [qor(), qeq(:v, "a"), qand(), qeq(:v, "b"), qeq(:v, "c")])...)
 
-    state = SMARTSParser{SMARTSMolGraph}("a,b;c")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("a,b;c")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     comp2 = lglowand!(state, qtree)
     @test comp2 == 5
@@ -104,7 +104,7 @@
         [(1, 2), (1, 3), (2, 4), (2, 5)],
         [qand(), qor(), qeq(:v, "c"), qeq(:v, "a"), qeq(:v, "b")])...)
 
-    state = SMARTSParser{SMARTSMolGraph}("ac;a!b,c;bx")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("ac;a!b,c;bx")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     comp3 = lglowand!(state, qtree)
     @test comp3 == 11

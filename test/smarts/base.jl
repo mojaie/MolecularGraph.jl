@@ -2,8 +2,8 @@
 @testset "smarts.base" begin
 
 @testset "base" begin
-    state1 = SMILESParser{SMILESMolGraph}("C1SC(C=O)CCC1")
-    state2 = SMARTSParser{SMARTSMolGraph}(raw"*OC$([Cv4H2+0])")
+    state1 = SMILESParser{Int,SMILESAtom,SMILESBond}("C1SC(C=O)CCC1")
+    state2 = SMARTSParser{Int,QueryAtom,QueryBond}(raw"*OC$([Cv4H2+0])")
     @test read(state1) == 'C'
     @test lookahead(state1, 2) == 'S'
     @test read(state2) == '*'
