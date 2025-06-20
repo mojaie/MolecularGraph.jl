@@ -27,6 +27,13 @@
     mol2 = MolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
+
+    # multibyte properties
+    mol = sdftomol(joinpath(assetdir, "biotin_2d.sdf"))
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+    @test mol2["日本国内法規制情報"] == "該当なし"
 end
 
 @testset "json.smarts" begin

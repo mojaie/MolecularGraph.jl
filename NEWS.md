@@ -4,9 +4,11 @@
 
 This version introduces substantial breaking changes to internal data structures and methods, while the public APIs remain largely unchanged.
 
-- The graph-level properties of `MolGraph` have been refactored from a `Dict`-based structure to a dedicated data class, `MolGraphProperty`. This may improve type stability and enables a more sophisticated auto-update mechanism for molecular descriptors.
+- `RDKitMinimalLib` and `Cairo` will be weak dependencies (Added extensions `RDKitExt` and `CairoExt`). Cairo is a large library but has been used only for PNG image export. RDKitMinimalLib is not so large but there are known OS compatibility issues.
+- The graph-level properties of `MolGraph` have been refactored from a `Dict`-based structure to a dedicated data class, `MolProperty`. This may improve type stability and enables a more sophisticated auto-update mechanism for molecular descriptors.
 - Molecular query structures (parsed from SMARTS) are no longer recursive. The new query representation is based on `SimpleDiGraph`, allowing for more straightforward topological searches and equality checks.
 - SMILES/SMARTS parsing now accepts the special case `[HH]` to represent molecular hydrogen (#124).
+- Rewrite many functions to increase type-stablitly (hopefully this improves JIT compile time). 
 
 ### API changes
 
