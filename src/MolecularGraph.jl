@@ -163,11 +163,6 @@ export
 # Descriptors
 
 using libinchi_jll: libinchi
-using RDKitMinimalLib:
-    Mol, get_mol, get_smiles,
-    get_morgan_fp_as_bytes, get_rdkit_fp_as_bytes,
-    get_pattern_fp_as_bytes, get_atom_pair_fp_as_bytes,
-    get_topological_torsion_fp_as_bytes
 
 include("mass.jl")
 include("rdkit.jl")

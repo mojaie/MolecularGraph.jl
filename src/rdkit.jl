@@ -12,7 +12,6 @@ function rdk_on_update!(mol::SimpleMolGraph)
     # Preprocess
     default_atom_charge!(mol)
     default_bond_order!(mol)
-    # TODO: only if new node are added, run coordgen!(mol)
     # Cache relatively expensive descriptors
     sssr!(mol)
     apparent_valence!(mol)
@@ -182,9 +181,7 @@ to_rdkjson(x) = to_json(Val{:rdkit}(), x)
 
 Convert the molecule object into a RDKit molecule object that can be used in RDKitMinimalLib.jl
 """
-function rdkitmol(mol::SimpleMolGraph)
-    return get_mol(to_json(Val{:rdkit}(), mol))
-end
+function rdkitmol end
 
 
 """
@@ -192,20 +189,7 @@ end
 
 Return a SMILES string of the molecule object.
 """
-function smiles(mol::SimpleMolGraph, details=nothing)
-    return get_smiles(rdkitmol(mol), details)
-end
-
-
-function uint8vec_to_bitarray(uvec::Vector{UInt8})
-    bits = BitVector(undef, 8 * length(uvec))
-    for (i, byte) in enumerate(uvec)
-        for j in 1:8
-            bits[8*(i-1) + j] = (byte >> (8 - j)) & 0x01
-        end
-    end
-    return bits
-end
+function smiles end
 
 
 """
@@ -214,10 +198,8 @@ end
 
 Return a Morgan fingerprint bit array
 """
-morgan_fp_vector(mol::Mol; kwargs...
-    ) = uint8vec_to_bitarray(get_morgan_fp_as_bytes(mol::Mol, kwargs...))
-morgan_fp_vector(mol::SimpleMolGraph; kwargs...
-    ) = morgan_fp_vector(rdkitmol(mol); kwargs...)
+function morgan_fp_vector end
+
 
 """
     rdkit_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
@@ -225,10 +207,8 @@ morgan_fp_vector(mol::SimpleMolGraph; kwargs...
 
 Return a RDKit fingerprint bit array
 """
-rdkit_fp_vector(mol::Mol; kwargs...
-    ) = uint8vec_to_bitarray(get_rdkit_fp_as_bytes(mol::Mol, kwargs...))
-rdkit_fp_vector(mol::SimpleMolGraph; kwargs...
-    ) = rdkit_fp_vector(rdkitmol(mol); kwargs...)
+function rdkit_fp_vector end
+
 
 """
     pattern_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
@@ -237,10 +217,8 @@ rdkit_fp_vector(mol::SimpleMolGraph; kwargs...
 Return a pattern fingerprint bit array, a topological fingerprint
 optimized for substructure screening
 """
-pattern_fp_vector(mol::Mol; kwargs...
-    ) = uint8vec_to_bitarray(get_pattern_fp_as_bytes(mol::Mol, kwargs...))
-pattern_fp_vector(mol::SimpleMolGraph; kwargs...
-    ) = pattern_fp_vector(rdkitmol(mol); kwargs...)
+function pattern_fp_vector end
+
 
 """
     atom_pair_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
@@ -248,10 +226,8 @@ pattern_fp_vector(mol::SimpleMolGraph; kwargs...
 
 Return a atom pairs fingerprint bit array
 """
-atom_pair_fp_vector(mol::Mol; kwargs...
-    ) = uint8vec_to_bitarray(get_atom_pair_fp_as_bytes(mol::Mol, kwargs...))
-atom_pair_fp_vector(mol::SimpleMolGraph; kwargs...
-    ) = atom_pair_fp_vector(rdkitmol(mol); kwargs...)
+function atom_pair_fp_vector end
+
 
 """
     topological_torsion_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
@@ -259,10 +235,8 @@ atom_pair_fp_vector(mol::SimpleMolGraph; kwargs...
 
 Return a topological torsions fingerprint bit array
 """
-topological_torsion_fp_vector(mol::Mol; kwargs...
-    ) = uint8vec_to_bitarray(get_topological_torsion_fp_as_bytes(mol::Mol, kwargs...))
-topological_torsion_fp_vector(mol::SimpleMolGraph; kwargs...
-    ) = topological_torsion_fp_vector(rdkitmol(mol); kwargs...)
+function topological_torsion_fp_vector end
+
 
 
 jaccard_index(a::BitVector, b::BitVector
