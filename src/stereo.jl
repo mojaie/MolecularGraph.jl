@@ -28,14 +28,16 @@ end
 
 
 function remap!(
-        ::Val{:stereocenter}, gprop::SimpleMolProperty{T}, vmap::Dict{T,T}
-        ) where T <: Integer
+        ::Val{:stereocenter}, gprop::SimpleMolProperty{T},
+        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    revv = Dict(v => i for (i, v) in enumerate(vmap))
     newmap = Dict{T,Tuple{T,T,T,Bool}}()
     for (k, v) in gprop.stereocenter
-        isempty(setdiff([k, v[1:3]...], keys(vmap))) || continue
-        newmap[vmap[k]] = (vmap[v[1]], vmap[v[2]], vmap[v[3]], v[4])
+        isempty(setdiff([k, v[1:3]...], keys(revv))) || continue
+        newmap[revv[k]] = (revv[v[1]], revv[v[2]], revv[v[3]], v[4])
     end
-    gprop.stereocenter = newmap
+    empty!(gprop.stereocenter)
+    merge!(gprop.stereocenter, newmap)
     return
 end
 
@@ -50,14 +52,16 @@ end
 
 
 function remap!(
-        ::Val{:stereobond}, gprop::SimpleMolProperty{T}, vmap::Dict{T,T}
-        ) where T <: Integer
+        ::Val{:stereobond}, gprop::SimpleMolProperty{T},
+        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    revv = Dict(v => i for (i, v) in enumerate(vmap))
     newmap = Dict{Edge{T},Tuple{T,T,Bool}}()
     for (k, v) in gprop.stereobond
-        isempty(setdiff([src(k), dst(k), v[1:2]...], keys(vmap))) || continue
-        newmap[u_edge(T, vmap[src(k)], vmap[dst(k)])] = (vmap[v[1]], vmap[v[2]], v[3])
+        isempty(setdiff([src(k), dst(k), v[1:2]...], keys(revv))) || continue
+        newmap[u_edge(T, revv[src(k)], revv[dst(k)])] = (revv[v[1]], revv[v[2]], v[3])
     end
-    gprop.stereobond = newmap
+    empty!(gprop.stereobond)
+    merge!(gprop.stereobond, newmap)
     return
 end
 

@@ -223,49 +223,49 @@ Base.issubset(q::QueryTree, r::QueryTree; kwargs...) = querymatch(q, r, false; k
 
 
 """
-    query_containment_diagram(;sourcefile=DEFAULT_QUERY_DEFAULT_QUERIES
+    query_containment_diagram(;sourcefile=DEFAULT_QUERIES
         ) -> DictDiGraph, vprops, eprops
 
 Generate query containment diagram.
 """
-function query_containment_diagram(;sources=[], sourcefile=DEFAULT_QUERIES)
+function query_containment_diagram(;sources=[], termset=DEFAULT_QUERIES)
     # filter sources
-    filtered = Dict{String,Dict}()
-    for rcd in YAML.load(open(sourcefile))
-        (isempty(sources) || (rcd["source"] in sources)) || continue
-        filtered[rcd["key"]] = rcd
+    filtered = Dict{String,QueryTerm}()
+    for rcd in termset
+        (isempty(sources) || (rcd.source in sources)) || continue
+        filtered[rcd.key] = rcd
     end
     # merge duplicate entries
     dupes = Set{String}()
     merged = Dict{String,Dict}()
     for rcd in values(filtered)
-        rcd["key"] in dupes && continue
+        rcd.key in dupes && continue
         newrcd = Dict(
-            "key" => rcd["key"],
-            "parsed" => smartstomol(rcd["query"]),
-            "sources" => [rcd["source"]],
+            "key" => rcd.key,
+            "parsed" => smartstomol(rcd.query),
+            "sources" => [rcd.source],
             "info" => [Dict(
-                "name" => rcd["name"],
-                "query" => rcd["query"],
-                "source" => rcd["source"]
+                "name" => rcd.name,
+                "query" => rcd.query,
+                "source" => rcd.source
             )]
         )
-        haskey(rcd, "isa") && (newrcd["isa"] = rcd["isa"])
-        haskey(rcd, "has") && (newrcd["has"] = rcd["has"])
-        if haskey(rcd, "aliases")
-            for aliase in rcd["aliases"]
+        hasproperty(rcd, :isa) && (newrcd["isa"] = rcd.isa)
+        hasproperty(rcd, :has) && (newrcd["has"] = rcd.has)
+        if hasproperty(rcd, :aliases)
+            for aliase in rcd.aliases
                 if aliase in keys(filtered)
                     arcd = filtered[aliase]
                     push!(newrcd["info"], Dict(
-                        "name" => arcd["name"],
-                        "query" => arcd["query"],
-                        "source" => arcd["source"]
+                        "name" => arcd.name,
+                        "query" => arcd.query,
+                        "source" => arcd.source
                     ))
                 end
                 push!(dupes, aliase)
             end
         end
-        merged[rcd["key"]] = newrcd
+        merged[rcd.key] = newrcd
     end
     # generate graph
     # TODO: should be MetaGraph
@@ -313,7 +313,7 @@ end
 Find query relationship diagram by the given molecule.
 The filtered diagram represents query relationship that the molecule have.
 """
-function find_queries(mol::MolGraph, query_diagram; sources=[], filtering=true)
+function find_queries(mol::SimpleMolGraph, query_diagram; sources=[], filtering=true)
     qr, vs, es = query_diagram
     matched = Set{Int}()
     vs_ = deepcopy(vs)

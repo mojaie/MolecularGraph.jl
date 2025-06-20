@@ -37,17 +37,19 @@ function sssr!(mol::SimpleMolGraph)
 end
 
 function remap!(
-        ::Val{:sssr}, desc::MolDescriptor{T}, vmap::Dict{T,T}
-        ) where T <: Integer
+        ::Val{:sssr}, desc::MolDescriptor{T}, vmap::Vector{T},
+        edges::Vector{Edge{T}}) where T <: Integer
     # Just remove incomplete cycles after `rem_vertex!`
     # to avoid expensive recalculation of myncycles
+    revv = Dict(v => i for (i, v) in enumerate(vmap))
     cont = Vector{T}[]
-    oldmems = keys(vmap)
+    oldmems = keys(revv)
     for cyc in desc.sssr
         isempty(setdiff(cyc, oldmems)) || continue
-        push!(cont, [vmap[v] for v in cyc])
+        push!(cont, [revv[v] for v in cyc])
     end
-    desc.sssr = cont
+    empty!(desc.sssr)
+    append!(desc.sssr, cont)
     return
 end
 

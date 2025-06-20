@@ -130,6 +130,7 @@ end
 
 
 @kwdef mutable struct QueryMolProperty{T} <: SimpleMolProperty{T}
+    # TODO: should be immutable
     stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
     stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
     smarts_input::String = ""

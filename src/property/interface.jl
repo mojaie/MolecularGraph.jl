@@ -7,19 +7,21 @@
 # Common interfaces of AbstractProperty
 
 """
-    remap!(container::SimpleMolProperty{T}, vmap::Dict{T,T}) where T <: Integer
+    remap!(container::SimpleMolProperty{T}, vmap::DVector{T}, edges::Vector{Edge{T}}) where T <: Integer
 
 Remap vertices according to the given vmap (new_v = old_v -> vmap[old_v]).
 """
-function remap!(container::SimpleMolProperty{T}, vmap::Dict{T,T}) where T <: Integer
+function remap!(container::SimpleMolProperty{T}, vmap::Vector{T},
+        edges::Vector{Edge{T}}) where T <: Integer
     # vmap[old] -> new
     for sym in fieldnames(typeof(container))
-        remap!(Val(sym), container, vmap)
+        remap!(Val(sym), container, vmap, edges)
     end
     return
 end
 
-function remap!(::Val, container::SimpleMolProperty{T}, vmap::Dict{T,T}) where T <: Integer
+function remap!(::Val, container::SimpleMolProperty{T}, vmap::Vector{T},
+        edges::Vector{Edge{T}}) where T <: Integer
     return
 end
 
@@ -117,9 +119,9 @@ to_dict(::Val{:descriptors}, ::Val{:default}, gprop::AbstractProperty
     ) = to_dict(Val(:default), gprop.descriptors)
 
 function remap!(::Val{:descriptors}, gprop::SimpleMolProperty{T},
-        vmap::Dict{T,T}) where T <: Integer
+        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
     for sym in fieldnames(typeof(gprop.descriptors))
-        remap!(Val(sym), gprop.descriptors, vmap)
+        remap!(Val(sym), gprop.descriptors, vmap, edges)
     end
     return
 end
@@ -133,6 +135,7 @@ end
 Container of graph-level molecule properties compatible with `ReactiveMolGraph`.
 """
 @kwdef mutable struct MolProperty{T} <: SimpleMolProperty{T}
+    # TODO: should be immutable
     stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
     stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
     pyrrole_like::Vector{T} = T[]  # pyrrole H position for SMILES kekulization
@@ -161,9 +164,10 @@ Return updated `MolProperty`.
 Only `Graph.rem_vertex!` variants should call this function to remap vertices
 after removal.
 """
-function remap_gprops(mol::ReactiveMolGraph, vmap::Dict{T,T}) where T <: Integer
+function remap_gprops(mol::ReactiveMolGraph, vmap::Vector{T},
+        edges::Vector{Edge{T}}) where T <: Integer
     gprop = deepcopy(mol.gprops)
-    remap!(gprop, vmap)
+    remap!(gprop, vmap, edges)
     return gprop
 end
 
@@ -175,8 +179,9 @@ Update `MolProperty` in place.
 Only `Graph.rem_vertex!` variants should call this function to remap vertices
 after removal.
 """
-function remap_gprops!(mol::ReactiveMolGraph, vmap::Dict{T,T}) where T <: Integer
-    remap!(mol.gprops, vmap)
+function remap_gprops!(mol::ReactiveMolGraph, vmap::Vector{T},
+        edges::Vector{Edge{T}}) where T <: Integer
+    remap!(mol.gprops, vmap, edges)
     return
 end
 

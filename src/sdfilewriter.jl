@@ -91,16 +91,20 @@ end
 
 
 function printv2mol(io::IO, mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
-    mol_ = copy(mol)  # TODO: expensive deep copy
     # stereospecific hydrogens for aesthetics of fused rings
     # may be better to stash coords of stereo hydrogens and give back to SDFile
-    ringcount = ring_count(mol_)
-    imph = implicit_hydrogens(mol_)
-    for center in keys(mol_.gprops.stereocenter)
-        if imph[center] == 1 && ringcount[center] > 1
-            add_vertex!(mol_, V(symbol=:H))
-            add_edge!(mol_, center, nv(mol_), E())
+    if has_prop(mol, :stereocenter) && !isempty(get_prop(mol, :stereocenter))
+        ringcount = ring_count(mol)
+        imph = implicit_hydrogens(mol)
+        # TODO: expensive deep copy
+        mol_ = copy(mol)
+        for center in keys(mol_.gprops.stereocenter)
+            if imph[center] == 1 && ringcount[center] > 1
+                add_vertex!(mol_, V(symbol=:H))
+                add_edge!(mol_, center, nv(mol_), E())
+            end
         end
+        mol = mol_
     end
     # write
     program = "MGjlv$(string(VERSION.major)[end])$(string(VERSION.minor)[end-1:end])"
@@ -108,23 +112,23 @@ function printv2mol(io::IO, mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
     println(io)
     println(io, "  $(program)$(datetime)2D            ")
     println(io)
-    ncnt = nv(mol_)
-    ecnt = ne(mol_)
+    ncnt = nv(mol)
+    ecnt = ne(mol)
     header = @sprintf "%3d%3d  0  0  0  0  0  0  0  0999 V2000" ncnt ecnt
     println(io, header)
-    bondorder = bond_order(mol_)
-    if length(mol_.gprops.descriptors.coords3d) > 0
-        printv2atoms(io, mol_.graph, atom_symbol(mol_), coords3d(mol_))
-        printv2bonds(io, mol_.graph, bondorder)
-    elseif length(mol_.gprops.descriptors.coords2d) > 0
-        printv2atoms(io, mol_.graph, atom_symbol(mol_), coords2d(mol_))
-        printv2bonds(io, mol_.graph, bondorder, draw2d_bond_style(mol_))
+    bondorder = bond_order(mol)  # dispatch update
+    if has_coords3d(mol)
+        printv2atoms(io, mol.graph, atom_symbol(mol), coords3d(mol))
+        printv2bonds(io, mol.graph, bondorder)
+    elseif has_coords2d(mol)
+        printv2atoms(io, mol.graph, atom_symbol(mol), coords2d(mol))
+        printv2bonds(io, mol.graph, bondorder, draw2d_bond_style(mol))
     else  # Generate coords
-        coords, styles = coordgen(mol_)
-        printv2atoms(io, mol_.graph, atom_symbol(mol_), coords)
-        printv2bonds(io, mol_.graph, bondorder, styles)
+        coords, styles = coordgen(mol)
+        printv2atoms(io, mol.graph, atom_symbol(mol), coords)
+        printv2bonds(io, mol.graph, bondorder, styles)
     end
-    printv2properties(io, mol_)
+    printv2properties(io, mol)
     println(io, "M  END")
 end
 

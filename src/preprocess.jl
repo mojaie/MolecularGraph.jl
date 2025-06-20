@@ -3,10 +3,12 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-function remap!(::Val{:pyrrole_like}, gprop::SimpleMolProperty{T}, vmap::Dict{T,T}
-        ) where T <: Integer
-    vec = T[vmap[v] for v in gprop.pyrrole_like if haskey(vmap, v)]
-    gprop.pyrrole_like = vec
+function remap!(::Val{:pyrrole_like}, gprop::SimpleMolProperty{T},
+        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    revv = Dict(v => i for (i, v) in enumerate(vmap))
+    vec = T[revv[v] for v in gprop.pyrrole_like if haskey(revv, v)]
+    empty!(gprop.pyrrole_like)
+    append!(gprop.pyrrole_like, vec)
     return
 end
 

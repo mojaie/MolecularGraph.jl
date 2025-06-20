@@ -3,6 +3,26 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+@testset "coords.descriptor" begin
+    desc = MolDescriptor{Int}()
+    push!(desc.draw2d_bond_style, [:revup, :none, :cis_trans, :none])
+    remap!(
+        Val(:draw2d_bond_style), desc, [1, 2, 5, 4],
+        Edge.([(1, 2), (1, 3), (1, 4), (3, 5)])
+    )
+    @test desc.draw2d_bond_style[1] == [:revup, :cis_trans]
+
+    desc = MolDescriptor{Int}()
+    push!(desc.draw2d_bond_style, [:none, :none, :none, :unspecified, :up, :down])
+    remap!(
+        Val(:draw2d_bond_style), desc, [1, 7, 3, 6, 5],
+        Edge.([(1, 2), (2, 3), (3, 4), (3, 5), (3, 6), (5, 7)])
+    )
+    @test desc.draw2d_bond_style[1] == [:revdown, :up, :unspecified]
+end
+
+
 @testset "coords" begin
     # Rifampicin
     mol = smilestomol(raw"CN1CCN(CC1)/N=C/c2c(O)c3c5C(=O)[C@@]4(C)O/C=C/[C@H](OC)[C@@H](C)[C@@H](OC(C)=O)[C@H](C)[C@H](O)[C@H](C)[C@@H](O)[C@@H](C)\C=C\C=C(\C)C(=O)Nc2c(O)c3c(O)c(C)c5O4")

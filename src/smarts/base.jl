@@ -4,13 +4,15 @@
 #
 
 function remap!(::Val{:smarts_lexical_succ}, gprop::SimpleMolProperty{T},
-        vmap::Dict{T,T}) where T <: Integer
-    vec = [T[] for i in 1:length(vmap)]
-    for (k, v) in vmap
+        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    revv = Dict(v => i for (i, v) in enumerate(vmap))
+    vec = [T[] for i in 1:length(revv)]
+    for (k, v) in revv
         k <= length(gprop.smarts_lexical_succ) || continue
-        vec[v] = [vmap[s] for s in gprop.smarts_lexical_succ[k] if haskey(vmap, s)]
+        vec[v] = [revv[s] for s in gprop.smarts_lexical_succ[k] if haskey(revv, s)]
     end
-    gprop.smarts_lexical_succ = vec
+    empty!(gprop.smarts_lexical_succ)
+    append!(gprop.smarts_lexical_succ, vec)
     return
 end
 
@@ -66,7 +68,6 @@ function smiles_on_update!(mol::SimpleMolGraph)
     default_atom_charge!(mol)
     default_bond_order!(mol)
     kekulize!(mol)
-    # update_coords!(mol) default disabled
     # recalculate bottleneck descriptors
     sssr!(mol)
     apparent_valence!(mol)
