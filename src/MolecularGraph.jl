@@ -203,7 +203,6 @@ export query_containment_diagram, find_queries
 
 # Molecule drawing
 
-import Cairo
 using Colors: RGB, RGBA, N0f8, hex, coloralpha
 using MakieCore:
     @recipe, Theme, meshscatter!, mesh!
@@ -214,7 +213,6 @@ import Statistics
 include("./draw/color.jl")
 include("./draw/draw2d.jl")
 include("./draw/svg.jl")
-include("./draw/cairo.jl")
 include("./draw/draw3d.jl")
 
 export

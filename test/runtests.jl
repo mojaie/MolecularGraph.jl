@@ -48,8 +48,10 @@ using MolecularGraph:
     atom_color, is_atom_visible,
     double_bond_style, atomhtml
 
+using MolecularGraph: smiles
 
 using OrderedCollections: OrderedDict
+using RDKitMinimalLib
 using Test
 
 include("./util/geometry.jl")
