@@ -28,7 +28,7 @@ the given molecule.
 """
 function atom_symbol(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return [atom_symbol(props(mol, i)) for i in vertices(mol)]
+    return [atom_symbol(get_prop(mol, i)) for i in vertices(mol)]
 end
 
 
@@ -40,7 +40,7 @@ the given molecule.
 """
 function atom_number(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return [atom_number(props(mol, i)) for i in vertices(mol)]
+    return [atom_number(get_prop(mol, i)) for i in vertices(mol)]
 end
 
 
@@ -55,12 +55,12 @@ function atom_charge(mol::SimpleMolGraph)
     if has_descriptor(mol, :atom_charge)
         return get_descriptor(mol, :atom_charge)
     end
-    return [atom_charge(props(mol, i)) for i in vertices(mol)]
+    return [atom_charge(get_prop(mol, i)) for i in vertices(mol)]
 end
 
 default_atom_charge!(mol::SimpleMolGraph) = setproperty!(
     mol.gprops.descriptors, :atom_charge,
-    [atom_charge(props(mol, i)) for i in vertices(mol)]
+    [atom_charge(get_prop(mol, i)) for i in vertices(mol)]
 )
 
 
@@ -72,7 +72,7 @@ the given molecule (1: non-radical, 2: radical, 3: biradical).
 """
 function multiplicity(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return [multiplicity(props(mol, i)) for i in vertices(mol)]
+    return [multiplicity(get_prop(mol, i)) for i in vertices(mol)]
 end
 
 
@@ -87,12 +87,12 @@ function bond_order(mol::SimpleMolGraph)
     if has_descriptor(mol, :bond_order)
         return get_descriptor(mol, :bond_order)
     end
-    return [bond_order(props(mol, e)) for e in edges(mol)]
+    return [bond_order(get_prop(mol, e)) for e in edges(mol)]
 end
 
 default_bond_order!(mol::SimpleMolGraph) = setproperty!(
     mol.gprops.descriptors, :bond_order,
-    [bond_order(props(mol, e)) for e in edges(mol)]
+    [bond_order(get_prop(mol, e)) for e in edges(mol)]
 )
 
 # mass -> src/mass.jl

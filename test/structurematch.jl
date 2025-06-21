@@ -16,9 +16,9 @@ end
     @test string(atom_symbol(mol)[6]) == "O"  # qeq(:symbol, "O")
     @test string(~is_aromatic(mol)[2]) == "true"  # qtrue(:isaromatic)
     @test string(atom_charge(mol)[1]) == "1"  # qeq(:charge, "1" )
-    @test string([atom_mass(props(mol, i)) for i in vertices(mol)][2]
+    @test string([atom_mass(get_prop(mol, i)) for i in vertices(mol)][2]
         ) == "14"  # qeq(:mass => "14")
-    @test string([atom_mass(props(mol, i)) for i in vertices(mol)][4]
+    @test string([atom_mass(get_prop(mol, i)) for i in vertices(mol)][4]
         ) == "nothing"  # qeq(:mass => "nothing")
     @test string(connectivity(mol)[2]) == "4"  # qeq(:connectivity, "4")
     @test string(degree(mol)[2]) == "4"  # qeq(:degree, "4")

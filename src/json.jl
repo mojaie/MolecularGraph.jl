@@ -14,8 +14,8 @@ function to_dict(fmt::Val{:default}, mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
         "vproptype" => string(nameof(V)),
         "eproptype" => string(nameof(E)),
         "graph" => [[src(e), dst(e)] for e in edges(mol)],
-        "vprops" => [to_dict(fmt, props(mol, i)) for i in vertices(mol)],
-        "eprops" => [to_dict(fmt, props(mol, e)) for e in edges(mol)],
+        "vprops" => [to_dict(fmt, get_prop(mol, i)) for i in vertices(mol)],
+        "eprops" => [to_dict(fmt, get_prop(mol, e)) for e in edges(mol)],
         "gprops" => to_dict(fmt, mol.gprops)
     )
 end

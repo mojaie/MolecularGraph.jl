@@ -51,7 +51,6 @@ using MolecularGraph:
 using MolecularGraph: smiles
 
 using OrderedCollections: OrderedDict
-using RDKitMinimalLib
 using Test
 
 include("./util/geometry.jl")
@@ -81,20 +80,20 @@ include("./smarts/smiles.jl")
 include("./smarts/smarts.jl")
 include("sdfilereader.jl")
 include("sdfilewriter.jl")
-include("json.jl")
 
+include("properties.jl")
+include("wclogp.jl")
 include("stereo.jl")
 include("preprocess.jl")
 include("coords.jl")
-include("properties.jl")
 include("mass.jl")
-include("wclogp.jl")
 include("inchi.jl")
 
 include("structurematch.jl")
 include("structurematch_mcs.jl")
 include("querycontainment.jl")
 
+include("json.jl")
 include("./draw/base.jl")
 include("./draw/svg.jl")
 include("./draw/3d.jl")

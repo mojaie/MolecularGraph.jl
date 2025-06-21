@@ -3,8 +3,14 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# Bond interfaces
 
-bond_order(b::AbstractDict) = b[:order]
+"""
+    bond_order(bond::AbstractBond) -> Int
+
+Return bond order of the given bond.
+"""
+bond_order(bond::AbstractBond) = error("bond_order is not implemented for this bond type")
 
 
 """
@@ -46,12 +52,6 @@ SDFBond(d::Dict{String,Any}
     ) = SDFBond(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
 SDFBond(d::Dict{Symbol,Any}
     ) = SDFBond(; NamedTuple((k, v) for (k, v) in d)...)
-
-Base.getindex(b::SDFBond, prop::Symbol) = getproperty(b, prop)
-Base.:(==)(b1::SDFBond, b2::SDFBond) = all(
-    [getfield(b1, f1) == getfield(b2, f2) for (f1, f2) in zip(fieldnames(typeof(b1)), fieldnames(typeof(b2)))])
-Base.hash(b::SDFBond, h::UInt
-    ) = hash(b.order, hash(b.notation, hash(b.isordered, h)))
 
 bond_order(b::SDFBond) = b.order
 
@@ -100,12 +100,6 @@ SMILESBond(d::Dict{String,Any}
 SMILESBond(d::Dict{Symbol,Any}
     ) = SMILESBond(; NamedTuple((k, v) for (k, v) in d)...)
 
-Base.getindex(b::SMILESBond, prop::Symbol) = getproperty(b, prop)
-Base.:(==)(b1::SMILESBond, b2::SMILESBond) = all(
-    [getfield(b1, f1) == getfield(b2, f2) for (f1, f2) in zip(fieldnames(typeof(b1)), fieldnames(typeof(b2)))])
-Base.hash(b::SMILESBond, h::UInt
-    ) = hash(b.order, hash(b.isaromatic, hash(b.direction, h)))
-
 bond_order(b::SMILESBond) = b.order
 
 function to_dict(::Val{:default}, b::SMILESBond)
@@ -150,13 +144,6 @@ CommonChemBond(d::Dict{String,Any}
     ) = CommonChemBond(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
 CommonChemBond(d::Dict{Symbol,Any}
     ) = CommonChemBond(; NamedTuple((k, v) for (k, v) in d)...)
-
-CommonChemBond(arr::Vector) = CommonChemBond(arr[1])
-
-Base.getindex(b::CommonChemBond, prop::Symbol) = getproperty(b, prop)
-Base.:(==)(b1::CommonChemBond, b2::CommonChemBond) = all(
-    [getfield(b1, f1) == getfield(b2, f2) for (f1, f2) in zip(fieldnames(typeof(b1)), fieldnames(typeof(b2)))])
-Base.hash(b::CommonChemBond, h::UInt) = hash(b.type, h)
 
 bond_order(b::CommonChemBond) = b.type
 

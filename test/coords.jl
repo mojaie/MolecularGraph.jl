@@ -20,6 +20,9 @@
         Edge.([(1, 2), (2, 3), (3, 4), (3, 5), (3, 6), (5, 7)])
     )
     @test desc.draw2d_bond_style[1] == [:revdown, :up, :unspecified]
+    dump = to_dict(Val(:draw2d_bond_style), Val(:default), desc)
+    @test reconstruct(
+        Val(:draw2d_bond_style), MolDescriptor{Int}, dump) == desc.draw2d_bond_style
 end
 
 

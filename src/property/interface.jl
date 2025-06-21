@@ -43,7 +43,7 @@ reconstruct(::Val{V}, ::Type{T}, @nospecialize(data)) where {V,T<:AbstractProper
 
 
 """
-    reconstruct(::Type{T}, data::Dict{String,Any}) where T <: AbstractProperty
+    to_dict(::Type{T}, data::Dict{String,Any}) where T <: AbstractProperty
 
 Dump properties to a dict for serialization.
 """

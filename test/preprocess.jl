@@ -2,6 +2,15 @@
 @testset "preprocess" begin
 
 @testset "kekulize" begin
+    # remap!
+    desc = MolProperty{Int}()
+    push!(desc.pyrrole_like, 3, 4, 7, 9)
+    remap!(
+        Val(:pyrrole_like), desc, [1, 7, 3, 8, 5, 6],
+        Edge.([(1, 2), (3, 4)])
+    )
+    @test desc.pyrrole_like == [2, 3]
+
     null = smilestomol("")
     @test isempty(bond_order(null))
     @test_throws ErrorException smilestomol("c1cccc1")  # wrong ring size

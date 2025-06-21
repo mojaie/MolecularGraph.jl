@@ -3,6 +3,9 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+# Constants
+
 @kwdef mutable struct Isotope
     Composition::Float64 = NaN
     Mass::Float64 = NaN
@@ -104,33 +107,55 @@ const ATOM_VANDERWAALS_RADII = let
     radii
 end
 
-atom_symbol(a::AbstractDict) = a[:symbol]
-atom_number(a::AbstractDict) = atom_number(a[:symbol])
-atom_charge(a::AbstractDict) = a[:charge]
-multiplicity(a::AbstractDict) = a[:multiplicity]
-atom_mass(a::AbstractDict) = a[:mass]
 
+# Atom interfaces
 
 """
     atom_number(atomsymbol::Symbol) -> Int
-    atom_number(atomprop::SDFAtom) -> Int
-    atom_number(atomprop::SMILESAtom) -> Int
-    atom_number(atomprop::CommonChemAtom) -> Int
+    atom_number(atomp::AbstractAtom) -> Int
 
-Return atom number.
+Return an atomic number of the given atom or the atomic symbol.
 """
 atom_number(atomsymbol::Symbol) = ATOMSYMBOLMAP[atomsymbol]
+atom_number(atom::AbstractAtom) = error("atom_number is not implemented for this atom type")
 
 
 """
     atom_symbol(n::Int) -> Symbol
-    atom_symbol(atomprop::SDFAtom) -> Symbol
-    atom_symbol(atomprop::SMILESAtom) -> Symbol
-    atom_symbol(atomprop::CommonChemAtom) -> Symbol
+    atom_symbol(atom::AbstractAtom) -> Symbol
 
-Return atom symbol of given atomic number.
+Return an atomic symbol of the given atom or the atomic number.
 """
 atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
+atom_symbol(atom::AbstractAtom) = error("atom_symbol is not implemented for this atom type")
+
+
+"""
+    atom_charge(atom::AbstractAtom) -> Int
+
+Return atomic charge of the given atom.
+"""
+atom_charge(atom::AbstractAtom) = error("atom_charge is not implemented for this atom type")
+
+
+"""
+    multiplicity(atom::AbstractAtom) -> Int
+
+Return multiplicity (num of radicals + 1) of the given atom.
+
+This is experimental feature - free radical chemistry is still not introduced to this library.
+This does nothing for now, but for example, you can set multiplicity=2 to molecular oxygens manually.
+"""
+multiplicity(atom::AbstractAtom) = error("multiplicity is not implemented for this atom type")
+
+
+"""
+    atom_mass(atom::AbstractAtom) -> Int
+
+Return specific atomic mass of given atom, or return nothing if the mass is unspecified.
+"""
+atom_mass(atom::AbstractAtom) = error("atom_mass is not implemented for this atom type")
+
 
 
 """
@@ -170,12 +195,6 @@ SDFAtom(d::Dict{String,Any}
     ) = SDFAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
 SDFAtom(d::Dict{Symbol,Any}
     ) = SDFAtom(; NamedTuple((k, v) for (k, v) in d)...)
-
-Base.getindex(a::SDFAtom, prop::Symbol) = getproperty(a, prop)
-Base.:(==)(a1::SDFAtom, a2::SDFAtom) = all(
-    [getfield(a1, f1) == getfield(a2, f2) for (f1, f2) in zip(fieldnames(typeof(a1)), fieldnames(typeof(a2)))])
-Base.hash(a::SDFAtom, h::UInt
-    ) = hash(a.symbol, hash(a.charge, hash(a.multiplicity, hash(a.mass, hash(a.coords, h)))))
 
 atom_symbol(a::SDFAtom) = a.symbol
 atom_number(a::SDFAtom) = atom_number(a.symbol)
@@ -242,12 +261,6 @@ SMILESAtom(d::Dict{String,Any}
     ) = SMILESAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
 SMILESAtom(d::Dict{Symbol,Any}
     ) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
-
-Base.getindex(a::SMILESAtom, prop::Symbol) = getproperty(a, prop)
-Base.:(==)(a1::SMILESAtom, a2::SMILESAtom) = all(
-    [getfield(a1, f1) == getfield(a2, f2) for (f1, f2) in zip(fieldnames(typeof(a1)), fieldnames(typeof(a2)))])
-Base.hash(a::SMILESAtom, h::UInt
-    ) = hash(a.symbol, hash(a.charge, hash(a.multiplicity, hash(a.mass, hash(a.isaromatic, hash(a.stereo, h))))))
 
 atom_symbol(a::SMILESAtom) = a.symbol
 atom_number(a::SMILESAtom) = atom_number(a.symbol)
@@ -316,12 +329,6 @@ CommonChemAtom(d::Dict{String,Any}
     ) = CommonChemAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
 CommonChemAtom(d::Dict{Symbol,Any}
     ) = CommonChemAtom(; NamedTuple((k, v) for (k, v) in d)...)
-
-Base.getindex(a::CommonChemAtom, prop::Symbol) = getproperty(a, prop)
-Base.:(==)(a1::CommonChemAtom, a2::CommonChemAtom) = all(
-    [getfield(a1, f1) == getfield(a2, f2) for (f1, f2) in zip(fieldnames(typeof(a1)), fieldnames(typeof(a2)))])
-Base.hash(a::CommonChemAtom, h::UInt
-    ) = hash(a.z, hash(a.chg, hash(a.impHs, hash(a.mass, hash(a.nRad, hash(a.stereo, h))))))
 
 atom_symbol(a::CommonChemAtom) = atom_symbol(a.z)
 atom_number(a::CommonChemAtom) = a.z

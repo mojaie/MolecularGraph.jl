@@ -37,7 +37,7 @@ end
 function is_atom_visible(mol::SimpleMolGraph; show_carbon=:simple, kwargs...)
     dispatch_update!(mol)
     return is_atom_visible(mol.graph, atom_symbol(mol), atom_charge(mol), multiplicity(mol),
-        [atom_mass(props(mol, i)) for i in vertices(mol)], bond_order(mol); kwargs...)
+        [atom_mass(get_prop(mol, i)) for i in vertices(mol)], bond_order(mol); kwargs...)
 end
 
 

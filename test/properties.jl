@@ -1,6 +1,20 @@
 
 @testset "properties" begin
 
+@testset "descriptor" begin
+    desc = MolDescriptor{Int}()
+    push!(desc.sssr, collect(2:7), collect(9:14))
+    remap!(
+        Val(:sssr), desc, [1, 2, 14, 4, 5, 13, 7, 8, 9, 10, 11, 12],
+        Edge.([(1, 2), (2, 3)]) # Not used
+    )
+    @test length(desc.sssr) == 1
+    @test desc.sssr[1] == [9, 10, 11, 12, 6, 3]
+    dump = to_dict(Val(:sssr), Val(:default), desc)
+    @test reconstruct(
+        Val(:sssr), MolDescriptor{Int}, dump) == desc.sssr
+end
+
 @testset "topology" begin
     cubane = smilestomol("C12C3C4C1C1C4C3C12")
     @test all(is_in_ring(cubane))

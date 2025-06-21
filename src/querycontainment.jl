@@ -119,7 +119,7 @@ function resolve_recursive!(
         # [$([nH]C=O)], [nH] -> [$([nH]C);[nH]]
         gnv = nv(qtree.graph)
         tmol = smartstomol(nprop.value)
-        head_ = props(tmol, 1)
+        head_ = get_prop(tmol, 1)
         headroot = root(head_) + gnv
         disjoint_union!(qtree.graph, head_.graph)
         for (k, v) in head_.vprops

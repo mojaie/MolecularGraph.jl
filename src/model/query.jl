@@ -56,12 +56,6 @@ function to_dict(::Val{:default}, q::QueryNode)
     return rcd
 end
 
-Base.hash(q::QueryNode, h::UInt
-    ) = hash(q.operator, hash(q.key, hash(q.value, h)))
-Base.:(==)(q::QueryNode, r::QueryNode
-    ) = q.operator == r.operator && q.key == r.key && q.value == r.value
-
-
 
 function querytree(edges::Vector{Tuple{T,T}}, props::Vector{U}) where {T,U}
     g = SimpleDiGraph(Edge{T}.(edges))
@@ -81,11 +75,6 @@ function querytree(::Type{T}, ::Type{U}, data::Dict{String,Any}) where {T,U}
     return querytree(edges, props)
 end
 
-
-Base.eltype(::Type{<:QueryTree{T,U}}) where {T,U} = T
-Base.eltype(qtree::T) where T<:QueryTree = eltype(T)
-vproptype(::Type{<:QueryTree{T,U}}) where {T,U} = U
-vproptype(qtree::T) where T<:QueryTree = vproptype(T)
 
 function to_dict(fmt::Val{:default}, qtree::QueryTree)
     return Dict{String,Any}(
@@ -364,11 +353,11 @@ function specialize_nonaromatic!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
         ) for i in 1:3)
     exbonds = Dict{Edge{Int},Int}()
     for e in edges(qmol)
-        props(qmol, e) in exqs || continue
-        exbonds[e] = parse(Int, props(qmol, e).vprops[2].value)
+        get_prop(qmol, e) in exqs || continue
+        exbonds[e] = parse(Int, get_prop(qmol, e).vprops[2].value)
     end
     for i in vertices(qmol)
-        qtree = props(qmol, i)
+        qtree = get_prop(qmol, i)
         qonly = qtree.vprops[1]
         # e.g. [#6], [#7], [#8]...
         (nv(qtree.graph) == 1 && qonly.key === :symbol) || continue
@@ -424,7 +413,7 @@ function remove_hydrogens!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
     hnodes = T[]
     hcntarr = zeros(Int, nv(qmol))
     for n in vertices(qmol)
-        qtree = props(qmol, n)
+        qtree = get_prop(qmol, n)
         resolve_not_hydrogen!(qtree)  # [!#1] -> [*]
         nv(qtree.graph) == 1 || continue
         (qtree.vprops[1].key === :symbol && qtree.vprops[1].value === "H") || continue
@@ -435,7 +424,7 @@ function remove_hydrogens!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
         # e.g. C([H])([H]) is the same as [C;!H0;!H1]
         hs = collect(0:(hcntarr[n] - 1))
         isempty(hs) && continue
-        qtree = props(qmol, n)
+        qtree = get_prop(qmol, n)
         rt = root(qtree)
         node = add_qnode!(qtree, qand())
         add_qedge!(qtree, node, rt)
@@ -449,6 +438,26 @@ function remove_hydrogens!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
     return
 end
 
+
+"""
+    preprocess!(qmol::QueryMolGraph, smarts::String)
+
+The default SMARTS preprocessor called after when SMARTS is parsed.
+"""
+function preprocess!(qmol::QueryMolGraph)
+    smarts = qmol.gprops.smarts_input
+    if occursin(r"-", smarts) && occursin(r"#[1-9]", smarts)
+        specialize_nonaromatic!(qmol)
+    end
+    if occursin(r"#1", smarts)
+        remove_hydrogens!(qmol)
+    end
+    return
+end
+
+
+
+# Not used
 
 """
     optimize_query!(tree::QueryTree{T,V}) where {T<:Integer,V<:QueryNode}) -> Nothing
@@ -522,22 +531,5 @@ function optimize!(tree::QueryTree{T,U}) where {T,U}
         end
     end
     rem_qnodes!(tree, toremove)
-    return
-end
-
-
-"""
-    preprocess!(qmol::QueryMolGraph, smarts::String)
-
-The default SMARTS preprocessor called after when SMARTS is parsed.
-"""
-function preprocess!(qmol::QueryMolGraph)
-    smarts = qmol.gprops.smarts_input
-    if occursin(r"-", smarts) && occursin(r"#[1-9]", smarts)
-        specialize_nonaromatic!(qmol)
-    end
-    if occursin(r"#1", smarts)
-        remove_hydrogens!(qmol)
-    end
     return
 end

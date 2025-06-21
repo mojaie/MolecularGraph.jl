@@ -4,7 +4,7 @@
 #
 
 """
-    AbstractMolGraph{T} <: Graphs.AbstractGraph{T}
+    AbstractMolGraph{T<:Integer} <: Graphs.AbstractGraph{T}
 
 The base class of molecular graphs
 """
@@ -45,8 +45,6 @@ The base class of graph-level property of the molecular model.
 """
 abstract type AbstractProperty end
 
-abstract type SimpleMolProperty{T<:Integer} <: AbstractProperty end
-
 function Base.:(==)(g::AbstractProperty, h::AbstractProperty)
     for sym in fieldnames(typeof(g))
         getproperty(g, sym) == getproperty(h, sym) || return false
@@ -54,7 +52,16 @@ function Base.:(==)(g::AbstractProperty, h::AbstractProperty)
     return true
 end
 
+
+"""
+    SimpleMolProperty{T<:Integer} <: AbstractProperty
+
+The base class of graph-level property for SimpleMolGraph.
+"""
+abstract type SimpleMolProperty{T<:Integer} <: AbstractProperty end
+
 Base.eltype(::Type{<:SimpleMolProperty{T}}) where T = T
+
 
 """
     AbstractState
@@ -64,34 +71,83 @@ The base class of molecular model states.
 abstract type AbstractState end
 
 
+"""
+    AbstractQueryNode
+
+The base class of query node.
+"""
 abstract type AbstractQueryNode end
 
-abstract type AbstractElement end
-abstract type AbstractAtom <: AbstractElement end
-abstract type AbstractBond <: AbstractElement end
+Base.getindex(elem::AbstractQueryNode, prop::Symbol) = getproperty(elem, prop)
+
+Base.:(==)(x::T, y::T) where T <: AbstractQueryNode = all(
+    [getfield(x, f) == getfield(y, f) for f in fieldnames(T)])
+
+function Base.hash(elem::T, h::UInt) where T <: AbstractQueryNode
+    for name in fieldnames(T)
+        val = getfield(elem, name)
+        h = hash(val, h)
+    end
+    return h
+end
+
 
 """
-    QueryTree{T,U}
+    AbstractElement
+
+The base class of vertex properties (atom) and edge properties (bond).
+"""
+abstract type AbstractElement end
+
+Base.getindex(elem::AbstractElement, prop::Symbol) = getproperty(elem, prop)
+
+Base.:(==)(x::T, y::T) where T <: AbstractElement = all(
+    [getfield(x, f) == getfield(y, f) for f in fieldnames(T)])
+
+function Base.hash(elem::T, h::UInt) where T <: AbstractElement
+    for name in fieldnames(T)
+        val = getfield(elem, name)
+        h = hash(val, h)
+    end
+    return h
+end
+
+
+"""
+    AbstractAtom <: AbstractElement
+
+The base class of vertex properties (atom).
+"""
+abstract type AbstractAtom <: AbstractElement end
+
+
+"""
+    AbstractBond <: AbstractElement
+
+The base class of edge properties (bond).
+"""
+abstract type AbstractBond <: AbstractElement end
+
+
+"""
+    QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement
 
 The base class of molecular query trees.
 """
 abstract type QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement end
 
+Base.eltype(::Type{<:QueryTree{T,U}}) where {T,U} = T
+Base.eltype(qtree::T) where T<:QueryTree = eltype(T)
+vproptype(::Type{<:QueryTree{T,U}}) where {T,U} = U
+vproptype(qtree::T) where T<:QueryTree = vproptype(T)
+
 
 """
-    SimpleMolGraph{T} <: AbstractMolGraph{T}
+    SimpleMolGraph{T<:Integer} <: AbstractMolGraph{T}
 
 The base class of molecular graph models based on SimpleGraph
 """
 abstract type SimpleMolGraph{T<:Integer} <: AbstractMolGraph{T} end
-
-
-"""
-    ReactiveMolGraph{T,V,E} <: SimpleMolGraph{T}
-
-The base class of molecule model which have auto-update mechanism of properties
-"""
-abstract type ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T} end
 
 
 # SimpleMolGraph interface
@@ -114,6 +170,26 @@ end
 
 
 """
+    vproptype(::Type{SimpleMolGraph}) -> Type
+    vproptype(mol::SimpleMolGraph) -> Type
+
+Return the type of vertex properties
+"""
+vproptype(::Type{T}) where T<:SimpleMolGraph = vproptype(T)
+vproptype(mol::T) where T<:SimpleMolGraph = vproptype(T)
+
+
+"""
+    eproptype(::Type{SimpleMolGraph}) -> Type
+    eproptype(mol::SimpleMolGraph) -> Type
+
+Return the type of edge properties
+"""
+eproptype(::Type{T}) where T<:SimpleMolGraph = eproptype(T)
+eproptype(mol::T) where T<:SimpleMolGraph = eproptype(T)
+
+
+"""
     u_edge(::Type{T}, src, dst) where T <: Integer -> Edge{T}
     u_edge(g::SimpleGraph{T}, src, dst) where T -> Edge{T}
     u_edge(mol::AbstractMolGraph{T}, src, dst) where T -> Edge{T}
@@ -128,11 +204,12 @@ u_edge(mol::AbstractMolGraph{T}, src::T, dst::T) where T<:Integer = u_edge(T, sr
 u_edge(mol::AbstractMolGraph, e::Edge) = u_edge(mol, src(e), dst(e))
 
 
+
 """
     edge_neighbors(g::SimpleGraph{T}, u::Integer, v::Integer) where T -> Tuple{Vector{T},Vector{T}}
     edge_neighbors(g::SimpleGraph{T}, e::Edge) where T -> Tuple{Vector{T},Vector{T}}
 
-Return neighbors of the source and destination vertices of the edge, respectively
+Return neighbors of the source and destination vertices of the edge, respectively.
 """
 edge_neighbors(g::SimpleGraph, u::Integer, v::Integer) = (
     filter(n -> n != v, neighbors(g, u)),
@@ -142,11 +219,36 @@ edge_neighbors(g::SimpleGraph, e::Edge) = edge_neighbors(g, src(e), dst(e))
 edge_neighbors(mol::AbstractMolGraph, u, v) = edge_neighbors(mol.graph, u, v)
 edge_neighbors(mol::AbstractMolGraph, e) = edge_neighbors(mol.graph, e)
 
+
 # if specific index order is required.
 # neighbors in SimpleGraph guarantees output index in lexicographic order now,
 # but it is not formulated in API
 ordered_neighbors = neighbors
 ordered_edge_neighbors = edge_neighbors
+
+
+
+"""
+    ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T}
+
+The base class of molecule model which have auto-update mechanism of properties.
+
+Typically `ReactiveMolGraph` should have the following properties:
+- `graph`: molecular graph topology in `Graphs.SimpleGraph`.
+- `vprops`: `Vector` of atom properties (e.g. SDFAtom, SMILESAtom)
+- `eprops`: `Vector` of bond properties (e.g. SDFBond, SMILESBond)
+- `gprops`: graph-level properties and stored descriptors (e.g. stereocenter)
+- `states`: update flags and callback functions for `reactive` property update
+
+"""
+abstract type ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T} end
+
+Base.:(==)(g::ReactiveMolGraph, h::ReactiveMolGraph
+    ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops
+
+vproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = V
+eproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = E
+
 
 
 @kwdef mutable struct ReactionProperty <: AbstractProperty

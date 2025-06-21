@@ -12,6 +12,36 @@
     @test !isclockwise((2, 5, 6, false), 2, 6, 7)  # 5-6 5-7 (same)
 end
 
+@testset "property" begin
+    prop = MolProperty{Int}()
+    prop.stereocenter[4] = (2, 6, 7, true)
+    prop.stereocenter[5] = (4, 8, 9, false)
+    prop.stereocenter[10] = (8, 3, 11, false)
+    remap!(
+        Val(:stereocenter), prop, [11, 2, 3, 4, 10, 6, 7, 8, 9],
+        Edge.([(2, 4), (4, 5)])  # Not used
+    )
+    @test length(prop.stereocenter) == 2
+    @test prop.stereocenter[4] == (2, 6, 7, true)
+    @test prop.stereocenter[5] == (8, 3, 1, false)
+    dump = to_dict(Val(:stereocenter), Val(:default), prop)
+    @test reconstruct(
+        Val(:stereocenter), MolProperty{Int}, dump) == prop.stereocenter
+
+    prop = MolProperty{Int}()
+    prop.stereobond[Edge(2 => 3)] = (1, 5, true)
+    prop.stereobond[Edge(7 => 10)] = (8, 11, false)
+    remap!(
+        Val(:stereobond), prop, [1, 11, 3, 4, 10, 6, 7, 8, 9],
+        Edge.([(1, 2), (2, 3)])  # Not used
+    )
+    @test length(prop.stereobond) == 1
+    @test prop.stereobond[Edge(5 => 7)] == (8, 2, false)
+    dump = to_dict(Val(:stereobond), Val(:default), prop)
+    @test reconstruct(
+        Val(:stereobond), MolProperty{Int}, dump) == prop.stereobond
+end
+
 @testset "stereo_hydrogen" begin
     # safe_remove_hydrogen! is already applied
     LAla1 = smilestomol("N[C@@H](C)C(=O)O")

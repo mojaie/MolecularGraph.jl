@@ -6,9 +6,58 @@
 # ReactiveMolGraph interfaces
 
 
-# Update mechanisms
+"""
+    MolState{T,F1,F2} <: AbstractState
+
+The state container for `ReactiveMolGraph`.
+"""
+mutable struct MolState{T,F1,F2} <: AbstractState
+    initialized::Bool
+    has_updates::Bool
+    has_new_edges::Bool  # as a SSSR recalculation flag
+    on_init::F1
+    on_update::F2
+    edge_rank::Dict{Edge{T},Int}
+end
 
 
+function MolState{T}(
+        ; initialized=false, has_updates=true, has_new_edges=true,
+        on_init=default_on_init!, on_update=default_on_update!,
+        edge_rank=Dict{Edge{T},Int}()) where T
+    return MolState{T,typeof(on_init),typeof(on_update)}(
+        initialized, has_updates, has_new_edges, on_init, on_update, edge_rank)
+end
+
+
+# Property update mechanisms
+
+"""
+    edge_rank(mol::SimpleMolGraph, e::Edge) -> Integer
+    edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) -> Integer
+
+Return stored edge rank mapping `Dict{Edge, Int}(e => i for (i, e) in edges(mol))`
+"""
+function edge_rank(mol::ReactiveMolGraph, e::Edge)
+    dispatch_update!(mol)
+    return mol.state.edge_rank[e]
+end
+
+edge_rank(mol::ReactiveMolGraph, u::Integer, v::Integer) = edge_rank(mol, u_edge(mol, u, v))
+
+
+"""
+    update_edge_rank!(mol::ReactiveMolGraph) -> Nothing
+
+Update stored edge_rank mapping.
+
+The edge rank mapping `Dict{Edge, Int}(e => i for (i, e) in edges(mol))` is stored
+in `state.edge_rank` to provide indexed access to edge-related properties in descriptor arrays.  
+Because operations that add or remove vertices or edges invalidate this mapping,
+such methods call `notify_updates!` to set the `:has_updates` flag.  
+The mapping is then reconstructed by calling `update_edge_rank!`, which is triggered
+automatically the next time descriptor functions are invoked.
+"""
 function update_edge_rank!(mol::ReactiveMolGraph)
     empty!(mol.state.edge_rank)
     for (i, e) in enumerate(edges(mol.graph))
@@ -18,6 +67,15 @@ function update_edge_rank!(mol::ReactiveMolGraph)
 end
 
 
+"""
+    dispatch_update!(mol::ReactiveMolGraph) -> Nothing
+
+Dispatch property auto-update mechanisms.
+
+This is called by functions that returns calculated properties (descriptors).
+If the vertices or edges has been added or removed, on_update callback is triggered
+to recalculate descriptors. If there are no changes, just return the stored descriptors.
+"""
 function dispatch_update!(mol::ReactiveMolGraph)
     mol.state.has_updates || return
     update_edge_rank!(mol)  # necessary
@@ -28,12 +86,30 @@ function dispatch_update!(mol::ReactiveMolGraph)
 end
 
 
+"""
+    notify_updates!(mol::ReactiveMolGraph) -> Nothing
+
+Set :has_updates flag to inform property updaters that recalculation is required.
+
+This is called by graph manipulation functions (add, remove or set).
+"""
 function notify_updates!(mol::ReactiveMolGraph)
     # TODO: flag to inactivate auto-update
     mol.state.has_updates = true
     return
 end
 
+
+"""
+    notify_new_edges!(mol::ReactiveMolGraph) -> Nothing
+
+Set `:has_new_edges` flag to inform property updaters that recalculation is required.
+
+This mechanism is similar to `notify_updates!`, but is specific to the `add_edge!` method.  
+Unlike other descriptors, the `sssr` descriptor does not require recalculation when vertices or edge
+are removed, or when new vertices are added — remapping is sufficient in those cases.
+Therefore, the `:has_new_edges` flag is used to avoid unnecessary and costly minimum cycle recalculation.
+"""
 function notify_new_edges!(mol::ReactiveMolGraph)
     # TODO: flag to inactivate auto-update
     mol.state.has_new_edges = true
@@ -41,72 +117,94 @@ function notify_new_edges!(mol::ReactiveMolGraph)
 end
 
 
+"""
+    initialize!(mol::ReactiveMolGraph) -> Nothing
+
+Initialize `ReactiveMolGraph`
+
+Custom `on_init` function is called inside this method.
+"""
 function initialize!(mol::ReactiveMolGraph)
     mol.state.initialized || mol.state.on_init(mol)
     mol.state.initialized = true
-    dispatch_update!(mol)  # checking on-update callback errors
+    dispatch_update!(mol)  # just checking on-update callback errors
     return
 end
 
 
+"""
+    default_on_init!(mol::ReactiveMolGraph) -> Nothing
+
+Default `on_init` callback for `ReactiveMolGraph`
+
+This should be implemented indivisually to each molecule readers.
+"""
 function default_on_init!(mol::ReactiveMolGraph)
     return  # No initialization by default
 end
 
 
+"""
+    default_on_update!(mol::ReactiveMolGraph) -> Nothing
+
+Default `on_update` callback for `ReactiveMolGraph`
+
+This should be implemented indivisually to each molecule readers.
+"""
 function default_on_update!(mol::ReactiveMolGraph)
     return  # No auto-update callbacks by default
 end
 
 
-Base.:(==)(g::ReactiveMolGraph, h::ReactiveMolGraph
-    ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops
+# Property accessors
 
-vproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = V
-vproptype(::Type{T}) where T<:SimpleMolGraph = vproptype(T)
-vproptype(mol::T) where T<:SimpleMolGraph = vproptype(T)
-eproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = E
-eproptype(::Type{T}) where T<:SimpleMolGraph = eproptype(T)
-eproptype(mol::T) where T<:SimpleMolGraph = eproptype(T)
+"""
+    get_prop(mol::ReactiveMolGraph, v::Integer) -> AbstractElement
+    get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol) -> AbstractElement
+    get_prop(mol::ReactiveMolGraph, e::Edge) -> AbstractElement
+    get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol) -> AbstractElement
+    get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer) -> AbstractElement
+    get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol) -> AbstractElement
 
-props(mol::ReactiveMolGraph, v::Integer) = mol.vprops[v]
-props(mol::ReactiveMolGraph, e::Edge) = mol.eprops[e]
-props(mol::ReactiveMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
+Return properties (vertex or edge attributes).
+"""
+get_prop(mol::ReactiveMolGraph, v::Integer) = mol.vprops[v]
+get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol) = get_prop(mol, v)[prop]
 
-get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
-get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
-get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
+get_prop(mol::ReactiveMolGraph, e::Edge) = mol.eprops[e]
+get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol) = get_prop(mol, e)[prop]
 
+get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer) = get_prop(mol, u_edge(mol, u, v))
+get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol) = get_prop(mol, u, v)[prop]
 
 
 """
-    edge_rank(mol::SimpleMolGraph, e::Edge) -> Integer
-    edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) -> Integer
+    set_prop!(mol::ReactiveMolGraph, v::Integer, value::AbstractAtom) -> Nothing
+    set_prop!(mol::ReactiveMolGraph, e::Edge, value::AbstractBond) -> Nothing
 
-A workaround for Edge property
+Set properties (vertex or edge attributes).
 """
-function edge_rank(mol::ReactiveMolGraph, e::Edge)
-    dispatch_update!(mol)
-    return mol.state.edge_rank[e]
-end
-
-edge_rank(mol::ReactiveMolGraph, u::Integer, v::Integer) = edge_rank(mol, u_edge(mol, u, v))
-
-
-# Edit graph topology and properties
-
-function set_prop!(mol::ReactiveMolGraph{T,V,E}, v::T, value::V) where {T,V,E}
+function set_prop!(mol::ReactiveMolGraph, v::Integer, value::AbstractElement)
     mol.vprops[v] = value
     notify_updates!(mol)
 end
 
-function set_prop!(mol::ReactiveMolGraph{T,V,E}, e::Edge{T}, value::E) where {T,V,E}
+function set_prop!(mol::ReactiveMolGraph, e::Edge, value::AbstractElement)
     mol.eprops[e] = value
     notify_updates!(mol)
 end
 
 
-function add_u_edge!(mol::ReactiveMolGraph{T,V,E}, e::Edge{T}, prop::E) where {T,V,E}
+"""
+    add_u_edge!(mol::ReactiveMolGraph, e::Edge, prop::AbstractElement) -> Bool
+
+Add undirected edge to the `ReactiveMolGraph` and notifies the update to updator functions.
+
+This is called internally by the API function `add_edge!(mol, e, prop)`.
+`add_edge!(mol, e, prop)` always add the sorted edge to the `undirected` molecular graph.
+`add_u_edge!` can be directly called if src < dst is guaranteed.
+"""
+function add_u_edge!(mol::ReactiveMolGraph, e::Edge, prop::AbstractElement)
     # Can be directly called if src < dst is guaranteed.
     add_edge!(mol.graph, e) || return false
     mol.eprops[e] = prop
@@ -124,6 +222,15 @@ function Graphs.add_vertex!(mol::ReactiveMolGraph{T,V,E}, prop::V) where {T,V,E}
 end
 
 
+"""
+    rem_u_edge!(mol::ReactiveMolGraph, e::Edge) -> Bool
+
+Remove undirected edge to the `ReactiveMolGraph` and notifies the update to updator functions.
+
+This is called internally by the API function `rem_edge!(mol, e)`.
+`rem_edge!(mol, e)` always remove the sorted edge from the `undirected` molecular graph.
+`rem_u_edge!` can be directly called if src < dst is guaranteed.
+"""
 function rem_u_edge!(mol::ReactiveMolGraph, e::Edge)
     # Can be directly called if src < dst is guaranteed.
     rem_edge!(mol.graph, e) || return false
@@ -205,26 +312,6 @@ function _induced_subgraph(mol::T, vlist_or_elist) where {T<:ReactiveMolGraph}
 end
 
 
-
-mutable struct MolState{T,F1,F2} <: AbstractState
-    initialized::Bool
-    has_updates::Bool
-    has_new_edges::Bool  # as a SSSR recalculation flag
-    on_init::F1
-    on_update::F2
-    edge_rank::Dict{Edge{T},Int}
-end
-
-
-function MolState{T}(
-        ; initialized=false, has_updates=true, has_new_edges=true,
-        on_init=default_on_init!, on_update=default_on_update!,
-        edge_rank=Dict{Edge{T},Int}()) where T
-    return MolState{T,typeof(on_init),typeof(on_update)}(
-        initialized, has_updates, has_new_edges, on_init, on_update, edge_rank)
-end
-
-
 function reactive_molgraph(
         g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E};
         gprops=MolProperty{T}(), kwargs...) where {T,V,E}
@@ -258,6 +345,11 @@ end
     MolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
 
 Basic molecular graph type.
+
+Usually `MolGraph`s are not directly constructed, but constructed by
+molecule reader methods such as `smilestomol` or `sdfilereader`.
+Atom and Bond properties of `MolGraph` are specific to the type of morecular reader
+(e.g. sdfilereader generates `MolGraph{Int,SDFAtom,SDFBond}` instances).
 """
 struct MolGraph{T<:Integer,V<:AbstractAtom,E<:AbstractBond} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
