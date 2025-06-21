@@ -35,7 +35,7 @@ include("./draw/interface.jl")
 export
     Reaction, QueryTree,
     vproptype, eproptype,
-    get_prop, has_prop, set_prop!,
+    props, get_prop, has_prop, set_prop!,
     u_edge, ordered_neighbors, edge_neighbors, ordered_edge_neighbors
 
 

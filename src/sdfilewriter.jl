@@ -47,9 +47,9 @@ function printv2properties(io::IO, mol::SimpleMolGraph)
     radicals = Tuple{Int,Int}[]
     masses = Tuple{Int,Float64}[]
     for i in vertices(mol)
-        atom_charge(get_prop(mol, i)) == 0 || push!(charges, (i, atom_charge(get_prop(mol, i))))
-        multiplicity(get_prop(mol, i)) == 1 || push!(radicals, (i, multiplicity(get_prop(mol, i))))
-        isnothing(atom_mass(get_prop(mol, i))) || push!(masses, (i, atom_mass(get_prop(mol, i))))
+        atom_charge(props(mol, i)) == 0 || push!(charges, (i, atom_charge(props(mol, i))))
+        multiplicity(props(mol, i)) == 1 || push!(radicals, (i, multiplicity(props(mol, i))))
+        isnothing(atom_mass(props(mol, i))) || push!(masses, (i, atom_mass(props(mol, i))))
     end
     if !isempty(charges)
         head = @sprintf "M  CHG%3d" length(charges)

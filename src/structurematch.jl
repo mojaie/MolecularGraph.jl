@@ -34,7 +34,7 @@ function vmatchgen(mol1::MolGraph, mol2::T) where T <: QueryMolGraph
         :symbol => atom_symbol(mol1),
         :isaromatic => is_aromatic(mol1),
         :charge => atom_charge(mol1),
-        :mass => [atom_mass(get_prop(mol1, i)) for i in vertices(mol1)],
+        :mass => [atom_mass(props(mol1, i)) for i in vertices(mol1)],
         :connectivity => connectivity(mol1),
         :degree => degree(mol1),
         :valence => valence(mol1),
@@ -46,7 +46,7 @@ function vmatchgen(mol1::MolGraph, mol2::T) where T <: QueryMolGraph
     matches = Dict{Int,Dict{Int,Bool}}()  # cache matches
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
-        qtree = get_prop(mol2, v2)
+        qtree = props(mol2, v2)
         qprop = union(QueryNode[], values(querypropmap(qtree))...)
         arr = falses(length(qprop))
         for (i, p) in enumerate(qprop)
@@ -69,7 +69,7 @@ function vmatchgen(mol1::QueryMolGraph, mol2::QueryMolGraph)
     matches = Dict{Int,Dict{Int,Bool}}()  # cache matches
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
-        res = issubset(get_prop(mol1, v1), get_prop(mol2, v2); recursive_cache=recursive)
+        res = issubset(props(mol1, v1), props(mol2, v2); recursive_cache=recursive)
         haskey(matches, v1) || (matches[v1] = Dict{Int,Bool}())
         matches[v1][v2] = res
         return res
@@ -103,7 +103,7 @@ function ematchgen(mol1::MolGraph, mol2::QueryMolGraph)
     matches = Dict{Edge{Int},Dict{Edge{Int},Bool}}()  # cache matches
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
-        qtree = get_prop(mol2, e2)
+        qtree = props(mol2, e2)
         qprop = union(QueryNode[], values(querypropmap(qtree))...)
         arr = [string(descriptors[p.key][edge_rank(mol1, e1)]) == p.value for p in qprop]
         res = generate_queryfunc(qtree, qprop)(arr)
@@ -117,7 +117,7 @@ function ematchgen(mol1::QueryMolGraph, mol2::QueryMolGraph)
     matches = Dict{Edge{Int},Dict{Edge{Int},Bool}}()  # cache matches
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
-        res = issubset(get_prop(mol1, e1), get_prop(mol2, e2))
+        res = issubset(props(mol1, e1), props(mol2, e2))
         haskey(matches, e1) || (matches[e1] = Dict{Edge{Int},Bool}())
         matches[e1][e2] = res
         return res

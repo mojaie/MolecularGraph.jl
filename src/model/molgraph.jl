@@ -159,23 +159,23 @@ end
 # Property accessors
 
 """
-    get_prop(mol::ReactiveMolGraph, v::Integer) -> AbstractElement
-    get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol) -> AbstractElement
-    get_prop(mol::ReactiveMolGraph, e::Edge) -> AbstractElement
-    get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol) -> AbstractElement
-    get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer) -> AbstractElement
-    get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol) -> AbstractElement
+    props(mol::ReactiveMolGraph, v::Integer) -> AbstractElement
+    props(mol::ReactiveMolGraph, e::Edge) -> AbstractElement
+    props(mol::ReactiveMolGraph, u::Integer, v::Integer) -> AbstractElement
+
+    get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol)
+    get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol)
+    get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol)
 
 Return properties (vertex or edge attributes).
 """
-get_prop(mol::ReactiveMolGraph, v::Integer) = mol.vprops[v]
-get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol) = get_prop(mol, v)[prop]
+props(mol::ReactiveMolGraph, v::Integer) = mol.vprops[v]
+props(mol::ReactiveMolGraph, e::Edge) = mol.eprops[e]
+props(mol::ReactiveMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
 
-get_prop(mol::ReactiveMolGraph, e::Edge) = mol.eprops[e]
-get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol) = get_prop(mol, e)[prop]
-
-get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer) = get_prop(mol, u_edge(mol, u, v))
-get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol) = get_prop(mol, u, v)[prop]
+get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
+get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
+get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
 
 
 """

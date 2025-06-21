@@ -101,7 +101,7 @@ end
 
 function stereo_hydrogen(mol::SimpleMolGraph, v::Integer)
     nbrs = neighbors(mol, v)
-    hpos = findfirst(x -> atom_symbol(get_prop(mol, x)) === :H, nbrs)
+    hpos = findfirst(x -> atom_symbol(props(mol, x)) === :H, nbrs)
     isnothing(hpos) && return  # 4° center or already removed
     return nbrs[hpos]
 end

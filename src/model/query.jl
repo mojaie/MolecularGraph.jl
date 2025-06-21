@@ -353,11 +353,11 @@ function specialize_nonaromatic!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
         ) for i in 1:3)
     exbonds = Dict{Edge{Int},Int}()
     for e in edges(qmol)
-        get_prop(qmol, e) in exqs || continue
-        exbonds[e] = parse(Int, get_prop(qmol, e).vprops[2].value)
+        props(qmol, e) in exqs || continue
+        exbonds[e] = parse(Int, props(qmol, e).vprops[2].value)
     end
     for i in vertices(qmol)
-        qtree = get_prop(qmol, i)
+        qtree = props(qmol, i)
         qonly = qtree.vprops[1]
         # e.g. [#6], [#7], [#8]...
         (nv(qtree.graph) == 1 && qonly.key === :symbol) || continue
@@ -413,7 +413,7 @@ function remove_hydrogens!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
     hnodes = T[]
     hcntarr = zeros(Int, nv(qmol))
     for n in vertices(qmol)
-        qtree = get_prop(qmol, n)
+        qtree = props(qmol, n)
         resolve_not_hydrogen!(qtree)  # [!#1] -> [*]
         nv(qtree.graph) == 1 || continue
         (qtree.vprops[1].key === :symbol && qtree.vprops[1].value === "H") || continue
@@ -424,7 +424,7 @@ function remove_hydrogens!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
         # e.g. C([H])([H]) is the same as [C;!H0;!H1]
         hs = collect(0:(hcntarr[n] - 1))
         isempty(hs) && continue
-        qtree = get_prop(qmol, n)
+        qtree = props(qmol, n)
         rt = root(qtree)
         node = add_qnode!(qtree, qand())
         add_qedge!(qtree, node, rt)
