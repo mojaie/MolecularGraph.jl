@@ -128,7 +128,7 @@ Generate fixed-size HTML wrapper for the SVG element.
 
 The width and height args can be numeric values (converted to `px`) or CSS strings like `100%`.
 """
-function html_fixed_size(mol, width, height; kwargs...)
+function html_fixed_size(mol::SimpleMolGraph, width, height; kwargs...)
     wstr = width isa Real ? "$(convert(Int, round(width)))px" : width
     hstr = height isa Real ? "$(convert(Int, round(height)))px" : height
     svg = drawsvg(mol; kwargs...)
@@ -137,14 +137,14 @@ end
 
 
 """
-    html_grid(mols, cols, rowheight) -> HTML{String}
+    html_grid(mols, cols::Int, rowheight) -> HTML{String}
 
 Generate grid layout HTML wrapper for the SVG elements.
 
 `cols` - number of columns in the grid.
 `rowheight` - numeric value (converted to `px`) or CSS string like `100%`.
 """
-function html_grid(mols, cols, rowheight; kwargs...)
+function html_grid(mols, cols::Int, rowheight; kwargs...)
     htmls = String[]
     hstr = rowheight isa Real ? "$(convert(Int, round(rowheight)))px" : rowheight
     for row in Iterators.partition(mols, cols)

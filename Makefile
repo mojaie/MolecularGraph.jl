@@ -12,5 +12,6 @@ clean:
 build: clean
 	$(JULIA) --project=. $(JULIAC) --output-lib $(OUTPUT) --compile-ccallable src/MolecularGraph.jl
 
+# Does not work for now
 build-trim: clean
 	$(JULIA) --project=. $(JULIAC) --experimental --output-lib $(OUTPUT) --trim=safe --compile-ccallable src/MolecularGraph.jl

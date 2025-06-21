@@ -51,7 +51,6 @@ using MolecularGraph:
 using MolecularGraph: smiles
 
 using OrderedCollections: OrderedDict
-using RDKitMinimalLib
 using Test
 
 include("./util/geometry.jl")

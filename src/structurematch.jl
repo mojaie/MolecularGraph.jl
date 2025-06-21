@@ -12,7 +12,7 @@
 
 Return a default vertex attribute matching function for graph isomorphism algorithms.
 """
-function vmatchgen(mol1::MolGraph, mol2::MolGraph)
+function vmatchgen(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     sym1 = atom_symbol(mol1)
     sym2 = atom_symbol(mol2)
     geo1 = hybridization(mol1)
@@ -20,7 +20,7 @@ function vmatchgen(mol1::MolGraph, mol2::MolGraph)
     return (v1, v2) -> sym1[v1] == sym2[v2] && geo1[v1] === geo2[v2]
 end
 
-function vmatchvecgen(mol)
+function vmatchvecgen(mol::SimpleMolGraph)
     sym = atom_symbol(mol)  # atom number 1-118
     geo = hybridization(mol)
     conv = Dict(:none => 0, :sp => 1, :sp2 => 2, :sp3 => 3)
@@ -29,7 +29,7 @@ function vmatchvecgen(mol)
     end
 end
 
-function vmatchgen(mol1::MolGraph, mol2::T) where T <: QueryMolGraph
+function vmatchgen(mol1::SimpleMolGraph, mol2::T) where T <: QueryMolGraph
     descriptors = Dict(  # precalculated descriptors
         :symbol => atom_symbol(mol1),
         :isaromatic => is_aromatic(mol1),
@@ -86,15 +86,15 @@ end
 
 Return a default edge attribute matching function for graph isomorphism algorithms.
 """
-function ematchgen(mol1::MolGraph, mol2::MolGraph)
+function ematchgen(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     return (e1, e2) -> true
 end
 
-function ematchvecgen(mol)
+function ematchvecgen(mol::SimpleMolGraph)
     return (u, v) -> 0
 end
 
-function ematchgen(mol1::MolGraph, mol2::QueryMolGraph)
+function ematchgen(mol1::SimpleMolGraph, mol2::QueryMolGraph)
     descriptors = Dict(  # precalculated descriptors
         :order => bond_order(mol1),
         :is_in_ring => is_edge_in_ring(mol1),
@@ -149,12 +149,12 @@ end
 
 
 """
-    structmatch_compatible!(mol::ReactiveMolGraph) -> ReactiveMolGraph
-    structmatch_compatible!(mol::QueryMolGraph) -> QueryMolGraph
+    structmatch_compatible!(mol::SimpleMolGraph) -> SimpleMolGraph
+    structmatch_compatible!(qmol::QueryMolGraph) -> QueryMolGraph
 
 Return mol as it is or its preprocessed copy as necessary.
 """
-function structmatch_compatible!(mol::ReactiveMolGraph)
+function structmatch_compatible!(mol::SimpleMolGraph)
     any(atom_symbol(mol) .=== :H) || return mol  # No changes
     mol_ = deepcopy(mol)
     remove_all_hydrogens!(mol_)

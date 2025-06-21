@@ -16,7 +16,7 @@ function sympair(s)::Pair{Symbol, Union{String, Int}}
 end
 
 
-function ctab_atom_v2(::Type{T}, line::AbstractString) where T
+function ctab_atom_v2(::Type{T}, line::AbstractString) where T <: AbstractElement
     d = Dict{String,Any}()
     xpos = parse(Float64, line[1:10])
     ypos = parse(Float64, line[11:20])
@@ -33,7 +33,7 @@ function ctab_atom_v2(::Type{T}, line::AbstractString) where T
     return T(d)
 end
 
-function ctab_atom_v3(::Type{T}, line::AbstractString) where T
+function ctab_atom_v3(::Type{T}, line::AbstractString) where T <: AbstractElement
     d = Dict{String,Any}()
     ss = split(line)
     d["coords"] = parse.(Float64, ss[5:7])
@@ -45,7 +45,8 @@ function ctab_atom_v3(::Type{T}, line::AbstractString) where T
     return T(d)
 end
 
-function ctab_bond_v2(::Type{T}, ::Type{E}, line::AbstractString) where {T<:Integer,E}
+function ctab_bond_v2(
+        ::Type{T}, ::Type{E}, line::AbstractString) where {T<:Integer,E<:AbstractElement}
     d = Dict{String,Any}()
     u = parse(T, line[1:3])
     v = parse(T, line[4:6])
@@ -56,7 +57,8 @@ function ctab_bond_v2(::Type{T}, ::Type{E}, line::AbstractString) where {T<:Inte
     return (u_edge(T, u, v), E(d))
 end
 
-function ctab_bond_v3(::Type{T}, ::Type{E}, line::AbstractString) where {T<:Integer,E}
+function ctab_bond_v3(
+        ::Type{T}, ::Type{E}, line::AbstractString) where {T<:Integer,E<:AbstractElement}
     d = Dict{String,Any}()
     ss = split(line)
     d["order"], u, v = parse.(T, ss[4:6])
@@ -363,7 +365,7 @@ rdfilereader(::Type{T}, path::AbstractString; kwargs...
 rdfilereader(path::AbstractString; kwargs...) = rdfilereader(Reaction{SDFMolGraph}, open(path); kwargs...)
 
 
-struct SDFileScanner{T}
+struct SDFileScanner{T<:AbstractMolGraph}
     io::IO
 end
 

@@ -77,16 +77,16 @@ to_dict(::Val{:metadata}, ::Val{:default}, gprop::AbstractProperty
 
 # Metadata specific shorthands (e.g. mol["compound_id"] = "CP000001")
 
-function set_prop!(mol::ReactiveMolGraph, prop::String, value::String)
+function set_prop!(mol::SimpleMolGraph, prop::String, value::String)
     # Metadata update would not affect graph state
     mol.gprops.metadata[prop] = value
 end
 
-get_prop(mol::ReactiveMolGraph, prop::String) = mol.gprops.metadata[prop]
-has_prop(mol::ReactiveMolGraph, prop::String) = haskey(mol.gprops.metadata, prop)
+get_prop(mol::SimpleMolGraph, prop::String) = mol.gprops.metadata[prop]
+has_prop(mol::SimpleMolGraph, prop::String) = haskey(mol.gprops.metadata, prop)
 
-Base.getindex(mol::ReactiveMolGraph, key::String) = get_prop(mol, key)
-Base.setindex!(mol::ReactiveMolGraph, value::String, key::String) = set_prop!(mol, key, value)
+Base.getindex(mol::SimpleMolGraph, key::String) = get_prop(mol, key)
+Base.setindex!(mol::SimpleMolGraph, value::String, key::String) = set_prop!(mol, key, value)
 
 
 # Descriptors
@@ -186,16 +186,16 @@ function remap_gprops!(mol::ReactiveMolGraph, vmap::Vector{T},
 end
 
 
-get_prop(mol::ReactiveMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
-has_prop(mol::ReactiveMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
+get_prop(mol::SimpleMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
+has_prop(mol::SimpleMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
 # Note: editing graph-level properties may break consistency.
-set_prop!(mol::ReactiveMolGraph, prop::Symbol, value
+set_prop!(mol::SimpleMolGraph, prop::Symbol, value
     ) = setproperty!(mol.gprops, prop, value)
 
-get_descriptor(mol::ReactiveMolGraph, field::Symbol
+get_descriptor(mol::SimpleMolGraph, field::Symbol
     ) = getproperty(mol.gprops.descriptors, field)
-has_descriptor(mol::ReactiveMolGraph, field::Symbol
+has_descriptor(mol::SimpleMolGraph, field::Symbol
     ) = hasproperty(mol.gprops.descriptors, field)
-set_descriptor!(mol::ReactiveMolGraph, field::Symbol, value
+set_descriptor!(mol::SimpleMolGraph, field::Symbol, value
     ) = setproperty!(mol.gprops.descriptors, field, value)
 

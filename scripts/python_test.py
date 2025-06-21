@@ -162,7 +162,7 @@ if __name__ == "__main__":
     print(has_substruct_match(jl, mol1, mol2, json.dumps({}).encode()))
     print(tdmces_size(jl, mol1, mol2, json.dumps({}).encode()))
     print(len(mol_to_svg(jl, mol1, json.dumps({}).encode())))
-    print(len(mol_to_png(jl, mol1, 100, 100, json.dumps({}).encode())))
+    # print(len(mol_to_png(jl, mol1, 100, 100, json.dumps({}).encode())))
     print(len(mol_to_molblock(jl, mol1)))
     print(len(mol_to_sdfblock(jl, mol1)))
     jl_exit(jl)

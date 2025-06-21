@@ -80,7 +80,7 @@ function kekulize(mol::SimpleMolGraph{T}) where T
     return bondorder, pyrrole_like
 end
 
-function kekulize!(mol::ReactiveMolGraph)
+function kekulize!(mol::SimpleMolGraph)
     bondorder, pyrrole_like = kekulize(mol)
     mol.gprops.descriptors.bond_order = bondorder
     mol.gprops.pyrrole_like = pyrrole_like
@@ -216,7 +216,7 @@ function protonate_acids(mol::SimpleMolGraph)
     return arr
 end
 
-function protonate_acids!(mol::ReactiveMolGraph)
+function protonate_acids!(mol::SimpleMolGraph)
     has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
     set_descriptor!(mol, :atom_charge, protonate_acids(mol))
     return
@@ -238,7 +238,7 @@ function deprotonate_oniums(mol::SimpleMolGraph)
     return arr
 end
 
-function deprotonate_oniums!(mol::ReactiveMolGraph)
+function deprotonate_oniums!(mol::SimpleMolGraph)
     has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
     set_descriptor!(mol, :atom_charge, deprotonate_oniums(mol))
     return
@@ -271,7 +271,7 @@ function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
     return carr, oarr
 end
 
-function depolarize!(mol::ReactiveMolGraph)
+function depolarize!(mol::SimpleMolGraph)
     has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
     has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
     carr, oarr = depolarize(mol)
@@ -307,7 +307,7 @@ function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
     return carr, oarr
 end
 
-function polarize!(mol::ReactiveMolGraph)
+function polarize!(mol::SimpleMolGraph)
     has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
     has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
     carr, oarr = polarize(mol)
@@ -352,7 +352,7 @@ function to_triple_bond(mol::SimpleMolGraph)
     return carr, oarr
 end
 
-function to_triple_bond!(mol::ReactiveMolGraph)
+function to_triple_bond!(mol::SimpleMolGraph)
     has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
     has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
     carr, oarr = to_triple_bond(mol)
@@ -379,7 +379,7 @@ function to_allene_like(mol::SimpleMolGraph)
     return carr, oarr
 end
 
-function to_allene_like!(mol::ReactiveMolGraph)
+function to_allene_like!(mol::SimpleMolGraph)
     has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
     has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
     carr, oarr = to_allene_like(mol)
