@@ -51,64 +51,64 @@ end
 
 
 """
-    morgan_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
-    morgan_fp_vector(mol::SimpleMolGraph; kwargs...) -> BitArray
+    morgan_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
+    morgan_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
 
 Return a Morgan fingerprint bit array
 """
-MolecularGraph.morgan_fp_vector(mol::Mol; kwargs...
-    ) = uint8vec_to_bitarray(get_morgan_fp_as_bytes(mol::Mol, kwargs...))
-MolecularGraph.morgan_fp_vector(mol::SimpleMolGraph; kwargs...
-    ) = morgan_fp_vector(rdkitmol(mol); kwargs...)
+MolecularGraph.morgan_fp_vector(mol::Mol, details=nothing
+    ) = uint8vec_to_bitarray(get_morgan_fp_as_bytes(mol::Mol, details))
+MolecularGraph.morgan_fp_vector(mol::SimpleMolGraph, details=nothing
+    ) = morgan_fp_vector(rdkitmol(mol), details)
 
 
 """
-    rdkit_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
-    rdkit_fp_vector(mol::SimpleMolGraph; kwargs...) -> BitArray
+    rdkit_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
+    rdkit_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
 
 Return a RDKit fingerprint bit array
 """
-MolecularGraph.rdkit_fp_vector(mol::Mol; kwargs...
-    ) = uint8vec_to_bitarray(get_rdkit_fp_as_bytes(mol::Mol, kwargs...))
-MolecularGraph.rdkit_fp_vector(mol::SimpleMolGraph; kwargs...
-    ) = rdkit_fp_vector(rdkitmol(mol); kwargs...)
+MolecularGraph.rdkit_fp_vector(mol::Mol, details=nothing
+    ) = uint8vec_to_bitarray(get_rdkit_fp_as_bytes(mol::Mol, details))
+MolecularGraph.rdkit_fp_vector(mol::SimpleMolGraph, details=nothing
+    ) = rdkit_fp_vector(rdkitmol(mol), details)
 
 
 """
-    pattern_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
-    pattern_fp_vector(mol::SimpleMolGraph; kwargs...) -> BitArray
+    pattern_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
+    pattern_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
 
 Return a pattern fingerprint bit array, a topological fingerprint
 optimized for substructure screening
 """
-MolecularGraph.pattern_fp_vector(mol::Mol; kwargs...
-    ) = uint8vec_to_bitarray(get_pattern_fp_as_bytes(mol::Mol, kwargs...))
-MolecularGraph.pattern_fp_vector(mol::SimpleMolGraph; kwargs...
-    ) = pattern_fp_vector(rdkitmol(mol); kwargs...)
+MolecularGraph.pattern_fp_vector(mol::Mol, details=nothing
+    ) = uint8vec_to_bitarray(get_pattern_fp_as_bytes(mol::Mol, details))
+MolecularGraph.pattern_fp_vector(mol::SimpleMolGraph, details=nothing
+    ) = pattern_fp_vector(rdkitmol(mol), details)
 
 
 """
-    atom_pair_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
-    atom_pair_fp_vector(mol::SimpleMolGraph; kwargs...) -> BitArray
+    atom_pair_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
+    atom_pair_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
 
 Return a atom pairs fingerprint bit array
 """
-MolecularGraph.atom_pair_fp_vector(mol::Mol; kwargs...
-    ) = uint8vec_to_bitarray(get_atom_pair_fp_as_bytes(mol::Mol, kwargs...))
-MolecularGraph.atom_pair_fp_vector(mol::SimpleMolGraph; kwargs...
-    ) = atom_pair_fp_vector(rdkitmol(mol); kwargs...)
+MolecularGraph.atom_pair_fp_vector(mol::Mol, details=nothing
+    ) = uint8vec_to_bitarray(get_atom_pair_fp_as_bytes(mol::Mol, details))
+MolecularGraph.atom_pair_fp_vector(mol::SimpleMolGraph, details=nothing
+    ) = atom_pair_fp_vector(rdkitmol(mol), details)
 
 
 """
-    topological_torsion_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
-    topological_torsion_fp_vector(mol::SimpleMolGraph; kwargs...) -> BitArray
+    topological_torsion_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
+    topological_torsion_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
 
 Return a topological torsions fingerprint bit array
 """
-MolecularGraph.topological_torsion_fp_vector(mol::Mol; kwargs...
-    ) = uint8vec_to_bitarray(get_topological_torsion_fp_as_bytes(mol::Mol, kwargs...))
-MolecularGraph.topological_torsion_fp_vector(mol::SimpleMolGraph; kwargs...
-    ) = topological_torsion_fp_vector(rdkitmol(mol); kwargs...)
+MolecularGraph.topological_torsion_fp_vector(mol::Mol, details=nothing
+    ) = uint8vec_to_bitarray(get_topological_torsion_fp_as_bytes(mol::Mol, details))
+MolecularGraph.topological_torsion_fp_vector(mol::SimpleMolGraph, details=nothing
+    ) = topological_torsion_fp_vector(rdkitmol(mol), details)
 
 
 end # module
