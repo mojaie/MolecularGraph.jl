@@ -179,9 +179,11 @@ export
 export
     to_rdkdict, to_rdkjson,
     rdkitmol, smiles,
-    morgan_fp_vector, rdkit_fp_vector,
-    pattern_fp_vector, atom_pair_fp_vector,
-    topological_torsion_fp_vector
+    morgan_fp_vector, morgan_fp_string,
+    rdkit_fp_vector, rdkit_fp_string,
+    pattern_fp_vector, pattern_fp_string,
+    atom_pair_fp_vector, atom_pair_fp_string,
+    topological_torsion_fp_vector, topological_torsion_fp_string
 
 export
     inchi, inchikey, inchitomol, inchitosdf

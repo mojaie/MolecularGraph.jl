@@ -14,9 +14,11 @@ using MolecularGraph:
 
 using RDKitMinimalLib:
     RDKitMinimalLib, Mol, get_mol, get_smiles,
-    get_morgan_fp_as_bytes, get_rdkit_fp_as_bytes,
-    get_pattern_fp_as_bytes, get_atom_pair_fp_as_bytes,
-    get_topological_torsion_fp_as_bytes
+    get_morgan_fp, get_morgan_fp_as_bytes,
+    get_rdkit_fp, get_rdkit_fp_as_bytes,
+    get_pattern_fp, get_pattern_fp_as_bytes,
+    get_atom_pair_fp, get_atom_pair_fp_as_bytes,
+    get_topological_torsion_fp, get_topological_torsion_fp_as_bytes
 
 
 function uint8vec_to_bitarray(uvec::Vector{UInt8})
@@ -41,13 +43,14 @@ end
 
 
 """
+    RDKitMinimalLib.get_smiles(mol::SimpleMolGraph) -> String
     smiles(mol::SimpleMolGraph) -> String
 
 Return a SMILES string of the molecule object.
 """
-function MolecularGraph.smiles(mol::SimpleMolGraph, details=nothing)
-    return get_smiles(rdkitmol(mol), details)
-end
+RDKitMinimalLib.get_smiles(mol::SimpleMolGraph, args...
+    ) = get_smiles(rdkitmol(mol), args...)
+MolecularGraph.smiles(mol, args...) = RDKitMinimalLib.get_smiles(mol, args...)
 
 
 """
@@ -56,10 +59,20 @@ end
 
 Return a Morgan fingerprint bit array
 """
-MolecularGraph.morgan_fp_vector(mol::Mol, details=nothing
-    ) = uint8vec_to_bitarray(get_morgan_fp_as_bytes(mol::Mol, details))
-MolecularGraph.morgan_fp_vector(mol::SimpleMolGraph, details=nothing
-    ) = morgan_fp_vector(rdkitmol(mol), details)
+MolecularGraph.morgan_fp_vector(mol::Mol, args...
+    ) = uint8vec_to_bitarray(get_morgan_fp_as_bytes(mol::Mol, args...))
+MolecularGraph.morgan_fp_vector(mol::SimpleMolGraph, args...
+    ) = morgan_fp_vector(rdkitmol(mol), args...)
+
+"""
+    RDKitMinimalLib.get_morgan_fp(mol::SimpleMolGraph, details=nothing) -> String
+    morgan_fp_string(mol::SimpleMolGraph, details=nothing) -> String
+
+Return a Morgan fingerprint string
+"""
+RDKitMinimalLib.get_morgan_fp(mol::SimpleMolGraph, args...
+    ) = get_morgan_fp(rdkitmol(mol), args...)
+MolecularGraph.morgan_fp_string(args...) = get_morgan_fp(args...)
 
 
 """
@@ -68,23 +81,42 @@ MolecularGraph.morgan_fp_vector(mol::SimpleMolGraph, details=nothing
 
 Return a RDKit fingerprint bit array
 """
-MolecularGraph.rdkit_fp_vector(mol::Mol, details=nothing
-    ) = uint8vec_to_bitarray(get_rdkit_fp_as_bytes(mol::Mol, details))
-MolecularGraph.rdkit_fp_vector(mol::SimpleMolGraph, details=nothing
-    ) = rdkit_fp_vector(rdkitmol(mol), details)
+MolecularGraph.rdkit_fp_vector(mol::Mol, args...
+    ) = uint8vec_to_bitarray(get_rdkit_fp_as_bytes(mol::Mol, args...))
+MolecularGraph.rdkit_fp_vector(mol::SimpleMolGraph, args...
+    ) = rdkit_fp_vector(rdkitmol(mol), args...)
+
+"""
+    RDKitMinimalLib.get_rdkit_fp(mol::SimpleMolGraph, details=nothing) -> String
+    rdkit_fp_string(mol::SimpleMolGraph, details=nothing) -> String
+
+Return a rdkit fingerprint string
+"""
+RDKitMinimalLib.get_rdkit_fp(mol::SimpleMolGraph, args...
+    ) = get_rdkit_fp(rdkitmol(mol), args...)
+MolecularGraph.rdkit_fp_string(args...) = get_rdkit_fp(args...)
 
 
 """
     pattern_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
     pattern_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
 
-Return a pattern fingerprint bit array, a topological fingerprint
-optimized for substructure screening
+Return a pattern fingerprint bit array
 """
-MolecularGraph.pattern_fp_vector(mol::Mol, details=nothing
-    ) = uint8vec_to_bitarray(get_pattern_fp_as_bytes(mol::Mol, details))
-MolecularGraph.pattern_fp_vector(mol::SimpleMolGraph, details=nothing
-    ) = pattern_fp_vector(rdkitmol(mol), details)
+MolecularGraph.pattern_fp_vector(mol::Mol, args...
+    ) = uint8vec_to_bitarray(get_pattern_fp_as_bytes(mol::Mol, args...))
+MolecularGraph.pattern_fp_vector(mol::SimpleMolGraph, args...
+    ) = pattern_fp_vector(rdkitmol(mol), args...)
+
+"""
+    RDKitMinimalLib.get_pattern_fp(mol::SimpleMolGraph, details=nothing) -> String
+    pattern_fp_string(mol::SimpleMolGraph, details=nothing) -> String
+
+Return a pattern fingerprint string
+"""
+RDKitMinimalLib.get_pattern_fp(mol::SimpleMolGraph, args...
+    ) = get_pattern_fp(rdkitmol(mol), args...)
+MolecularGraph.pattern_fp_string(args...) = get_pattern_fp(args...)
 
 
 """
@@ -93,22 +125,47 @@ MolecularGraph.pattern_fp_vector(mol::SimpleMolGraph, details=nothing
 
 Return a atom pairs fingerprint bit array
 """
-MolecularGraph.atom_pair_fp_vector(mol::Mol, details=nothing
-    ) = uint8vec_to_bitarray(get_atom_pair_fp_as_bytes(mol::Mol, details))
-MolecularGraph.atom_pair_fp_vector(mol::SimpleMolGraph, details=nothing
-    ) = atom_pair_fp_vector(rdkitmol(mol), details)
+MolecularGraph.atom_pair_fp_vector(mol::Mol, args...
+    ) = uint8vec_to_bitarray(get_atom_pair_fp_as_bytes(mol::Mol, args...))
+MolecularGraph.atom_pair_fp_vector(mol::SimpleMolGraph, args...
+    ) = atom_pair_fp_vector(rdkitmol(mol), args...)
+
+
+"""
+    RDKitMinimalLib.get_atom_pair_fp(mol::SimpleMolGraph, details=nothing) -> String
+    atom_pair_fp_string(mol::SimpleMolGraph, details=nothing) -> String
+
+Return a atom pairs fingerprint string
+"""
+RDKitMinimalLib.get_atom_pair_fp(mol::SimpleMolGraph, args...
+    ) = get_atom_pair_fp(rdkitmol(mol), args...)
+MolecularGraph.atom_pair_fp_string(args...) = get_atom_pair_fp(args...)
+
+
+
 
 
 """
     topological_torsion_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
     topological_torsion_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
 
-Return a topological torsions fingerprint bit array
+Return a atom pairs fingerprint bit array
 """
-MolecularGraph.topological_torsion_fp_vector(mol::Mol, details=nothing
-    ) = uint8vec_to_bitarray(get_topological_torsion_fp_as_bytes(mol::Mol, details))
-MolecularGraph.topological_torsion_fp_vector(mol::SimpleMolGraph, details=nothing
-    ) = topological_torsion_fp_vector(rdkitmol(mol), details)
+MolecularGraph.topological_torsion_fp_vector(mol::Mol, args...
+    ) = uint8vec_to_bitarray(get_topological_torsion_fp_as_bytes(mol::Mol, args...))
+MolecularGraph.topological_torsion_fp_vector(mol::SimpleMolGraph, args...
+    ) = topological_torsion_fp_vector(rdkitmol(mol), args...)
+
+
+"""
+    RDKitMinimalLib.get_topological_torsion_fp(mol::SimpleMolGraph, details=nothing) -> String
+    topological_torsion_fp_string(mol::SimpleMolGraph, details=nothing) -> String
+
+Return a atom pairs fingerprint string
+"""
+RDKitMinimalLib.get_topological_torsion_fp(mol::SimpleMolGraph, args...
+    ) = get_topological_torsion_fp(rdkitmol(mol), args...)
+MolecularGraph.topological_torsion_fp_string(args...) = get_topological_torsion_fp(args...)
 
 
 end # module

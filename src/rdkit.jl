@@ -193,49 +193,54 @@ function smiles end
 
 
 """
-    morgan_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
-    morgan_fp_vector(mol::MolGraph; kwargs...) -> BitArray
+    morgan_fp_vector(mol::MolGraph, details=nothing) -> BitArray
+    morgan_fp_string(mol::MolGraph, details=nothing) -> String
 
 Return a Morgan fingerprint bit array
 """
 function morgan_fp_vector end
+function morgan_fp_string end
 
 
 """
-    rdkit_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
-    rdkit_fp_vector(mol::MolGraph; kwargs...) -> BitArray
+    rdkit_fp_vector(mol::MolGraph, details=nothing) -> BitArray
+    rdkit_fp_string(mol::MolGraph, details=nothing) -> String
 
 Return a RDKit fingerprint bit array
 """
 function rdkit_fp_vector end
+function rdkit_fp_string end
 
 
 """
-    pattern_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
-    pattern_fp_vector(mol::MolGraph; kwargs...) -> BitArray
+    pattern_fp_vector(mol::MolGraph, details=nothing) -> BitArray
+    pattern_fp_string(mol::MolGraph, details=nothing) -> String
 
 Return a pattern fingerprint bit array, a topological fingerprint
 optimized for substructure screening
 """
 function pattern_fp_vector end
+function pattern_fp_string end
 
 
 """
-    atom_pair_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
-    atom_pair_fp_vector(mol::MolGraph; kwargs...) -> BitArray
+    atom_pair_fp_vector(mol::MolGraph, details=nothing) -> BitArray
+    atom_pair_fp_string(mol::MolGraph, details=nothing) -> String
 
 Return a atom pairs fingerprint bit array
 """
 function atom_pair_fp_vector end
+function atom_pair_fp_string end
 
 
 """
-    topological_torsion_fp_vector(mol::RDKitMinimalLib.Mol; kwargs...) -> BitArray
-    topological_torsion_fp_vector(mol::MolGraph; kwargs...) -> BitArray
+    topological_torsion_fp_vector(mol::MolGraph, details=nothing) -> BitArray
+    topological_torsion_fp_string(mol::MolGraph, details=nothing) -> String
 
 Return a topological torsions fingerprint bit array
 """
 function topological_torsion_fp_vector end
+function topological_torsion_fp_string end
 
 
 
