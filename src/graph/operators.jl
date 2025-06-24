@@ -105,7 +105,7 @@ end
 Return disjoint union of the graph. see `disjoint_union!`
 """
 function disjoint_union(g::T, h::T) where {T<:Graphs.AbstractSimpleGraph}
-    g_ = deepcopy(g)
+    g_ = copy(g)
     disjoint_union!(g_, h)
     return g_
 end

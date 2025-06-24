@@ -51,6 +51,7 @@
     @test eproptype(nullsmiles) === SMILESBond
     @test get_prop(methane, 1, :symbol) === :C
     @test get_prop(methane, 1, 2, :order) === 1
+    @test copy(methane) == methane
 end
 
 

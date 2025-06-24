@@ -65,3 +65,14 @@ function sortstablemin(iter; by=identity, kwargs...)
     cmp(x, y) = by(x) > by(y) ? y : x
     return reduce(cmp, iter; kwargs...)
 end
+
+
+
+function copy_vec_of_vec(vec::Vector{Vector{T}}) where T
+    n = length(vec)
+    container = Vector{Vector{T}}(undef, n)
+    for i in 1:n
+        container[i] = copy(vec[i])
+    end
+    return container
+end

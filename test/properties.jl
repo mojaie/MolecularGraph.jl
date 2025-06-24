@@ -13,6 +13,9 @@
     dump = to_dict(Val(:sssr), Val(:default), desc)
     @test reconstruct(
         Val(:sssr), MolDescriptor{Int}, dump) == desc.sssr
+    cp = copy(desc)
+    desc.sssr[1][3] == 13
+    cp.sssr[1][3] == 11
 end
 
 @testset "topology" begin

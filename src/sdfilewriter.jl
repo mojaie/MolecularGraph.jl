@@ -96,7 +96,6 @@ function printv2mol(io::IO, mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
     if has_prop(mol, :stereocenter) && !isempty(get_prop(mol, :stereocenter))
         ringcount = ring_count(mol)
         imph = implicit_hydrogens(mol)
-        # TODO: expensive deep copy
         mol_ = copy(mol)
         for center in keys(mol_.gprops.stereocenter)
             if imph[center] == 1 && ringcount[center] > 1

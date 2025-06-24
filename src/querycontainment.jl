@@ -158,9 +158,8 @@ function generate_truthtable(
     # TODO: unnecessary?
     # qt = optimize_query(q.tree)
     # rt = optimize_query(r.tree)
-    # Note: avoid slower deepcopy
-    q_ = T([(src(e), dst(e)) for e in edges(q.graph)], [q.vprops[i] for i in vertices(q.graph)])
-    r_ = U([(src(e), dst(e)) for e in edges(r.graph)], [r.vprops[i] for i in vertices(r.graph)])
+    q_ = copy(q)
+    r_ = copy(r)
     # convert not query (e.g. !C -> [!#6,!A]) smarts/logicaloperator.jl
     qpropmap = querypropmap(q_)
     rpropmap = querypropmap(r_)
@@ -316,7 +315,7 @@ The filtered diagram represents query relationship that the molecule have.
 function find_queries(mol::SimpleMolGraph, query_diagram; sources=[], filtering=true)
     qr, vs, es = query_diagram
     matched = Set{Int}()
-    vs_ = deepcopy(vs)
+    vs_ = copy(vs)
     for n in topological_sort(reverse(qr))
         rcd = vs_[n]
         if filtering

@@ -95,7 +95,7 @@ end
         [(1, 2), (1, 3)],
         [qor(), qeq(:symbol, "O"), qeq(:symbol, "S")])  # [#8,#16]
     notn = QueryAtom([(1, 2)], [qnot(), qeq(:symbol, "N")])  # [!#7]
-    oors_ = deepcopy(oors)
+    oors_ = copy(oors)
     resolve_disjoint_not!(oors_, querypropmap(notn))  # [#8,#16]
     @test oors == oors_
     resolve_disjoint_not!(notn, querypropmap(oors))  # [!#7,#8,#16]
@@ -109,7 +109,7 @@ end
         [(1, 2), (1, 3), (3, 4)],
         [qor(), qeq(:symbol, "S"), qnot(), qeq(:symbol, "O")])
     notarom = QueryAtom([(1, 2)], [qnot(), qtrue(:isaromatic)])  # [a]
-    notarom_ = deepcopy(notarom)
+    notarom_ = copy(notarom)
     resolve_disjoint_not!(notarom, querypropmap(oors))  # [a]
     @test notarom_ == notarom
 end
@@ -117,12 +117,12 @@ end
 @testset "resolve_recursive" begin
     rec1 = QueryAtom(Tuple{Int,Int}[], [qeq(:recursive, "[#6][NH]")])  # [$([#6][NH])]
     rec2 = QueryAtom(Tuple{Int,Int}[], [qeq(:recursive, "[#6]N")])  # [$([#6]N)]
-    rec1_ = deepcopy(rec1)
+    rec1_ = copy(rec1)
     resolve_recursive!(rec1_, querypropmap(rec2))  # [$([#6][NH]);#6;$([#6]N)]
     @test rec1_ == QueryAtom(
         [(1, 2), (1, 3), (1, 4)],
         [qand(), qeq(:symbol, "C"), qeq(:recursive, "[#6][NH]"), qeq(:recursive, "[#6]N")])
-    rec2_ = deepcopy(rec2)
+    rec2_ = copy(rec2)
     resolve_recursive!(rec2_, querypropmap(rec1))  # [$([#6]N);#6]
     @test rec2_ == QueryAtom(
         [(1, 2), (1, 3)],
@@ -135,19 +135,19 @@ end
     nonan = QueryAtom(
         [(1, 2), (1, 3), (3, 4)],
         [qand(), qeq(:symbol, "N"), qnot(), qtrue(:isaromatic)]) # N
-    nc_ = deepcopy(nc)
+    nc_ = copy(nc)
     resolve_recursive!(nc_, querypropmap(aromn))  # [$([nH][#6]);[nH]]
     @test nc_ == QueryAtom(
         [(1, 2), (1, 3), (3, 4), (3, 5), (5, 6), (5, 7)],
         [qand(), qeq(:recursive, "[nH][#6]"),
         qand(), qeq(:total_hydrogens, "1"), qand(), qeq(:symbol, "N"), qtrue(:isaromatic)])
-    nc2_ = deepcopy(nc)
+    nc2_ = copy(nc)
     resolve_recursive!(nc2_, querypropmap(nonan))  # [$([nH][#6]);[nH]]
     @test nc_ == nc2_
-    aromn_ = deepcopy(aromn)
+    aromn_ = copy(aromn)
     resolve_recursive!(aromn_, querypropmap(nonan))  # [nH]
     @test aromn_ == aromn
-    nonan_ = deepcopy(nonan)
+    nonan_ = copy(nonan)
     resolve_recursive!(nonan_, querypropmap(aromn))  # N
     @test nonan_ == nonan
 
@@ -155,13 +155,13 @@ end
     diazo2 = QueryAtom(
         [(1, 2), (1, 3)],
         [qor(), qeq(:recursive, "N=N=C"), qeq(:recursive, "N#N-C")])
-    diazo1_ = deepcopy(diazo1)
+    diazo1_ = copy(diazo1)
     resolve_recursive!(diazo1_, querypropmap(diazo2))
     @test diazo1_ == QueryAtom(
         [(1, 2), (2, 3), (2, 4), (4, 5), (1, 6)],
         [qand(), qand(), qeq(:symbol, "N"), qnot(), qtrue(:isaromatic),
         qeq(:recursive, "N=N=C")])
-    diazo2_ = deepcopy(diazo2)
+    diazo2_ = copy(diazo2)
     resolve_recursive!(diazo2_, querypropmap(diazo1))
     @test diazo2_ == QueryAtom(
         [(1, 2), (1, 3), (2, 4), (2, 5), (5, 6), (5, 7), (7, 8),

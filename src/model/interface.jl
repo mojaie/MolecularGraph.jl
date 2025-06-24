@@ -152,7 +152,6 @@ abstract type SimpleMolGraph{T<:Integer} <: AbstractMolGraph{T} end
 
 # SimpleMolGraph interface
 
-Base.copy(mol::SimpleMolGraph) = deepcopy(mol)
 Graphs.add_edge!(mol::SimpleMolGraph, u::Integer, v::Integer, prop
     ) = add_u_edge!(mol, u_edge(mol, u, v), prop)
 Graphs.add_edge!(mol::SimpleMolGraph, e::Edge, prop
@@ -228,28 +227,7 @@ ordered_edge_neighbors = edge_neighbors
 
 
 
-"""
-    ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T}
-
-The base class of molecule model which have auto-update mechanism of properties.
-
-Typically `ReactiveMolGraph` should have the following properties:
-- `graph`: molecular graph topology in `Graphs.SimpleGraph`.
-- `vprops`: `Vector` of atom properties (e.g. SDFAtom, SMILESAtom)
-- `eprops`: `Vector` of bond properties (e.g. SDFBond, SMILESBond)
-- `gprops`: graph-level properties and stored descriptors (e.g. stereocenter)
-- `states`: update flags and callback functions for `reactive` property update
-
-"""
-abstract type ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T} end
-
-Base.:(==)(g::ReactiveMolGraph, h::ReactiveMolGraph
-    ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops
-
-vproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = V
-eproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = E
-
-
+# Reactions
 
 @kwdef mutable struct ReactionProperty <: AbstractProperty
     # Reaction-level metadata properties (e.g. SDFile option fields)

@@ -3,7 +3,29 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-# ReactiveMolGraph interfaces
+"""
+    ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T}
+
+The base class of molecule model which have auto-update mechanism of properties.
+
+Typically `ReactiveMolGraph` should have the following properties:
+- `graph`: molecular graph topology in `Graphs.SimpleGraph`.
+- `vprops`: `Vector` of atom properties (e.g. SDFAtom, SMILESAtom)
+- `eprops`: `Vector` of bond properties (e.g. SDFBond, SMILESBond)
+- `gprops`: graph-level properties and stored descriptors (e.g. stereocenter)
+- `states`: update flags and callback functions for `reactive` property update
+
+"""
+abstract type ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T} end
+
+Base.:(==)(g::ReactiveMolGraph, h::ReactiveMolGraph
+    ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops
+
+vproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = V
+eproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = E
+
+Base.copy(mol::T) where T <: ReactiveMolGraph = T(
+    copy(mol.graph), copy(mol.vprops), copy(mol.eprops), copy(mol.gprops), copy(mol.state))
 
 
 """
@@ -24,10 +46,16 @@ end
 function MolState{T}(
         ; initialized=false, has_updates=true, has_new_edges=true,
         on_init=default_on_init!, on_update=default_on_update!,
-        edge_rank=Dict{Edge{T},Int}()) where T
+        edge_rank=Dict{Edge{T},Int}()) where T <: Integer
     return MolState{T,typeof(on_init),typeof(on_update)}(
         initialized, has_updates, has_new_edges, on_init, on_update, edge_rank)
 end
+
+
+Base.copy(state::T) where T <: MolState = T(
+    state.initialized, state.has_updates, state.has_new_edges,
+    state.on_init, state.on_update, copy(state.edge_rank)
+)
 
 
 # Property update mechanisms
@@ -128,6 +156,36 @@ function initialize!(mol::ReactiveMolGraph)
     mol.state.initialized || mol.state.on_init(mol)
     mol.state.initialized = true
     dispatch_update!(mol)  # just checking on-update callback errors
+    return
+end
+
+
+"""
+    remap_gprops(mol::ReactiveMolGraph, vmap::Dict{T,T}) -> MolProperty
+
+Return updated `MolProperty`.
+
+Only `Graph.rem_vertex!` variants should call this function to remap vertices
+after removal.
+"""
+function remap_gprops(mol::ReactiveMolGraph, vmap::Vector{T},
+        edges::Vector{Edge{T}}) where T <: Integer
+    gprop = copy(mol.gprops)
+    remap!(gprop, vmap, edges)
+    return gprop
+end
+
+"""
+    remap_gprops!(mol::ReactiveMolGraph, vmap::Dict{T,T}) -> Nothing
+
+Update `MolProperty` in place.
+
+Only `Graph.rem_vertex!` variants should call this function to remap vertices
+after removal.
+"""
+function remap_gprops!(mol::ReactiveMolGraph, vmap::Vector{T},
+        edges::Vector{Edge{T}}) where T <: Integer
+    remap!(mol.gprops, vmap, edges)
     return
 end
 

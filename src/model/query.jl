@@ -94,6 +94,8 @@ struct QueryBond{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
     vprops::Dict{T,U}
 end
 
+Base.copy(qtree::T) where T <: QueryAtom = T(copy(qtree.graph), copy(qtree.vprops))
+Base.copy(qtree::T) where T <: QueryBond = T(copy(qtree.graph), copy(qtree.vprops))
 
 QueryAtom{T,U}(edges::Vector, props::Vector
     ) where {T<:Integer,U<:QueryNode} = QueryAtom{T,U}(querytree(edges, props)...)
@@ -117,6 +119,10 @@ QueryBond(data::Dict{String,Any}) = QueryBond(querytree(Int, QueryNode, data)...
     coords3d::Vector{Vector{Point3d}} = Vector{Point3d}[]
 end
 
+Base.copy(desc::T) where T <: QueryMolDescriptor = T(
+    copy_vec_of_vec(desc.coords2d), copy_vec_of_vec(desc.coords3d)
+)
+
 
 @kwdef mutable struct QueryMolProperty{T} <: SimpleMolProperty{T}
     # TODO: should be immutable
@@ -131,6 +137,14 @@ end
     # Parse errors
     logs::Dict{String,String} = Dict{String,String}()
 end
+
+
+Base.copy(prop::T) where T <: QueryMolProperty = T(
+    copy(prop.stereocenter), copy(prop.stereobond), prop.smarts_input,
+    copy_vec_of_vec(prop.smarts_lexical_succ), copy_vec_of_vec(prop.smarts_connectivity),
+    copy(prop.descriptors), copy(prop.metadata), copy(prop.logs)
+)
+
 
 reconstruct(::Val{:descriptors}, ::Type{QueryMolProperty{T}}, @nospecialize(data)
     ) where T = reconstruct(QueryMolDescriptor{T}, data)

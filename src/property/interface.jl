@@ -113,6 +113,13 @@ Container of calculated secondary properties (descriptor) compatible with `React
     draw2d_bond_style::Vector{Vector{Symbol}} = Vector{Symbol}[]
 end
 
+Base.copy(desc::T) where T <: MolDescriptor = T(
+    copy_vec_of_vec(desc.sssr), copy(desc.lone_pair), copy(desc.apparent_valence),
+    copy(desc.valence), copy(desc.is_ring_aromatic), copy(desc.atom_charge),
+    copy(desc.bond_order), copy_vec_of_vec(desc.coords2d), copy_vec_of_vec(desc.coords3d),
+    copy_vec_of_vec(desc.draw2d_bond_style)
+)
+
 # `reconstruct` should be interfaced indivisually
 
 to_dict(::Val{:descriptors}, ::Val{:default}, gprop::AbstractProperty
@@ -149,42 +156,18 @@ Container of graph-level molecule properties compatible with `ReactiveMolGraph`.
 end
 
 
+Base.copy(prop::T) where T <: MolProperty = T(
+    copy(prop.stereocenter), copy(prop.stereobond), copy(prop.pyrrole_like),
+    prop.smarts_input, copy_vec_of_vec(prop.smarts_lexical_succ), copy(prop.descriptors),
+    copy(prop.metadata), copy(prop.logs)
+)
+
+
 reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, @nospecialize(data)
     ) where T = reconstruct(MolDescriptor{T}, data)
 
 
-
-# Interfaces for ReactiveMolGraph
-
-"""
-    remap_gprops(mol::ReactiveMolGraph, vmap::Dict{T,T}) -> MolProperty
-
-Return updated `MolProperty`.
-
-Only `Graph.rem_vertex!` variants should call this function to remap vertices
-after removal.
-"""
-function remap_gprops(mol::ReactiveMolGraph, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
-    gprop = deepcopy(mol.gprops)
-    remap!(gprop, vmap, edges)
-    return gprop
-end
-
-"""
-    remap_gprops!(mol::ReactiveMolGraph, vmap::Dict{T,T}) -> Nothing
-
-Update `MolProperty` in place.
-
-Only `Graph.rem_vertex!` variants should call this function to remap vertices
-after removal.
-"""
-function remap_gprops!(mol::ReactiveMolGraph, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
-    remap!(mol.gprops, vmap, edges)
-    return
-end
-
+# Property accessors
 
 get_prop(mol::SimpleMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
 has_prop(mol::SimpleMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)

@@ -156,7 +156,7 @@ Return mol as it is or its preprocessed copy as necessary.
 """
 function structmatch_compatible!(mol::SimpleMolGraph)
     any(atom_symbol(mol) .=== :H) || return mol  # No changes
-    mol_ = deepcopy(mol)
+    mol_ = copy(mol)
     remove_all_hydrogens!(mol_)
     return mol_
 end

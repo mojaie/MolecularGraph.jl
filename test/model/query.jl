@@ -24,6 +24,7 @@ end
         [qand(), qeq(:a, "1"), qnot(), qor(), qeq(:a, "1"), qeq(:b, "hoge"), qeq(:c, "2")]
     )
     @test canonical(a)[2] == [4, 1, 6, 7, 2, 3, 5]
+    @test copy(a) == a
 
     @test QueryAtom() == QueryAtom()
     @test QueryAtom() != QueryBond()
@@ -140,6 +141,7 @@ end
         QueryBond([(1, 2), (1, 3), (3, 4)], [qand(),qeq(:order, "2"), qnot(), qtrue(:isaromatic)])
     ]
     qmol = QueryMolGraph(Edge.([(1, 2), (2, 3), (2, 4)]), atoms, bonds)
+    @test copy(qmol) == qmol
     specialize_nonaromatic!(qmol)
     @test qmol.vprops[1] == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")])
     @test qmol.vprops[3] == QueryAtom(
