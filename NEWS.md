@@ -1,5 +1,12 @@
 # NEWS
 
+## v0.20.1
+
+- The shortest path algorithm used inside `sssr` was specialized for typical molecular graph tasks and get more efficient.
+- Implemented `Base.copy` for `MolGraph` and `MolProperty` types (#131). Similar to `copy(graph::SimpleGraph)`, this returns a deepcopy in effect, but far faster than `deepcopy`.
+- Fixed RDKit fingerprint options and added some method aliases.
+- `MolProperty` types are no longer mutable.
+
 ## v0.20.0
 
 This version introduces substantial breaking changes to internal data structures and methods, while the public APIs remain largely unchanged.
