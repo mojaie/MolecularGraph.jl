@@ -25,6 +25,16 @@ function printv2atoms(
 end
 
 
+function printv2atoms(
+        io::IO, g::SimpleGraph, atomsymbol::Vector{Symbol}, coords::Vector{Point3d})
+    for i in vertices(g)
+        x, y, z = coords[i][1:3]
+        xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atomsymbol[i])
+        println(io, "$(xyzsym) 0  0  0  0  0  0  0  0  0  0  0  0")
+    end
+end
+
+
 function printv2bonds(
         io::IO, g::SimpleGraph, bondorder::Vector{Int}, styles::Vector{Symbol})  # 2D
     for (i, e) in enumerate(edges(g))
