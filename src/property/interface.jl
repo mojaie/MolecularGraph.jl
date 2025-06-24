@@ -32,11 +32,8 @@ end
 Reconstruct properties from a dict, typically form a serialized form of the data (e.g. JSON)
 """
 function reconstruct(::Type{T}, data::Dict{String,Any}) where T <: AbstractProperty
-    container = T()
-    for sym in fieldnames(typeof(container))
-        setproperty!(container, sym, reconstruct(Val(sym), T, data[string(sym)]))
-    end
-    return container
+    return T(; NamedTuple(
+        (sym, reconstruct(Val(sym), T, data[string(sym)])) for sym in fieldnames(T))...)
 end
 
 reconstruct(::Val{V}, ::Type{T}, @nospecialize(data)) where {V,T<:AbstractProperty} = data
@@ -141,8 +138,7 @@ end
 
 Container of graph-level molecule properties compatible with `ReactiveMolGraph`.
 """
-@kwdef mutable struct MolProperty{T} <: SimpleMolProperty{T}
-    # TODO: should be immutable
+@kwdef struct MolProperty{T} <: SimpleMolProperty{T}
     stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
     stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
     pyrrole_like::Vector{T} = T[]  # pyrrole H position for SMILES kekulization
@@ -171,9 +167,10 @@ reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, @nospecialize(data)
 
 get_prop(mol::SimpleMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
 has_prop(mol::SimpleMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
-# Note: editing graph-level properties may break consistency.
-set_prop!(mol::SimpleMolGraph, prop::Symbol, value
-    ) = setproperty!(mol.gprops, prop, value)
+# set_prop! is not available because MolProperty types should be immutable.
+
+# Internally called by descriptor methods (e.g. `is_ring_aromatic(mol)`)
+# Do not expose
 
 get_descriptor(mol::SimpleMolGraph, field::Symbol
     ) = getproperty(mol.gprops.descriptors, field)

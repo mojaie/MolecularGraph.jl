@@ -83,7 +83,8 @@ end
 function kekulize!(mol::SimpleMolGraph)
     bondorder, pyrrole_like = kekulize(mol)
     mol.gprops.descriptors.bond_order = bondorder
-    mol.gprops.pyrrole_like = pyrrole_like
+    empty!(mol.gprops.pyrrole_like)
+    append!(mol.gprops.pyrrole_like, pyrrole_like)
     return
 end
 

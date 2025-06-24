@@ -293,7 +293,7 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractMolGr
             throw(e)
         end
     end
-    mol.gprops.metadata = parse_options(reader.io)
+    merge!(mol.gprops.metadata, parse_options(reader.io))
     return (mol, state + 1)
 end
 

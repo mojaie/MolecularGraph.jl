@@ -103,9 +103,10 @@ function smilestomol(
     state = SMILESParser{T,V,E}(smiles)
     fragment!(state)
     # original edge index
-    gprops = MolProperty{T}()
-    gprops.smarts_lexical_succ = state.succ
-    gprops.smarts_input = string(smiles)
+    gprops = MolProperty{T}(
+        smarts_lexical_succ=state.succ,
+        smarts_input=string(smiles)
+    )
     return G(state.edges, state.vprops, state.eprops,
         gprops=gprops, on_init=smiles_on_init!,
         on_update=smiles_on_update!; kwargs...)
@@ -127,10 +128,11 @@ function smartstomol(
     E = eproptype(G)
     state = SMARTSParser{T,V,E}(smarts)
     occursin('.', smarts) ? componentquery!(state) : fragment!(state)
-    gprops = QueryMolProperty{T}()
-    gprops.smarts_lexical_succ = state.succ
-    gprops.smarts_connectivity = state.connectivity
-    gprops.smarts_input = string(smarts)
+    gprops = QueryMolProperty{T}(
+        smarts_lexical_succ=state.succ,
+        smarts_connectivity=state.connectivity,
+        smarts_input=string(smarts)
+    )
     return G(state.edges, state.vprops, state.eprops,
         gprops=gprops, on_init=smarts_on_init!; kwargs...)
 end

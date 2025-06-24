@@ -124,8 +124,7 @@ Base.copy(desc::T) where T <: QueryMolDescriptor = T(
 )
 
 
-@kwdef mutable struct QueryMolProperty{T} <: SimpleMolProperty{T}
-    # TODO: should be immutable
+@kwdef struct QueryMolProperty{T} <: SimpleMolProperty{T}
     stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
     stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
     smarts_input::String = ""
