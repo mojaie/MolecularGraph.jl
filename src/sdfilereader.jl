@@ -90,7 +90,7 @@ function ctab_props_v2(io::IO)
             elseif proptype == "RAD"
                 props[idx][:RAD] = parse(Int, val)
             elseif proptype == "ISO"
-                props[idx][:ISO] = parse(Float64, val)
+                props[idx][:ISO] = parse(Int, val)
             end
         end
     end
