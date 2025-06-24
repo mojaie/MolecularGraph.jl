@@ -6,6 +6,7 @@
 - Implemented `Base.copy` for `MolGraph` and `MolProperty` types (#131). Similar to `copy(graph::SimpleGraph)`, this returns a deepcopy in effect, but far faster than `deepcopy`.
 - Fixed RDKit fingerprint options and added some method aliases.
 - `MolProperty` types are no longer mutable.
+- Fixed sdfilereader (#135)
 
 ## v0.20.0
 
