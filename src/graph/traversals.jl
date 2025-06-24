@@ -14,7 +14,26 @@ function bfs_path(parents, t::T) where T<:Integer
 end
 
 
-noweight_shortestpath(g::SimpleGraph{T}, s::T, t::T) where T<:Integer = bfs_path(bfs_parents(g, s), t)
+function unweighted_shortestpath(g::SimpleGraph{T}, src::T, dst::T) where T <: Integer
+    # Specialized BFS implementation for molecular graphs.
+    # Reference: https://github.com/JuliaGraphs/Graphs.jl/blob/master/src/traversals/bfs.jl
+    n = nv(g)
+    dst > n && return T[]  # Invalid target
+    parents = zeros(T, n)
+    queue = [src]
+    parents[src] = src
+    while !isempty(queue)
+        v = popfirst!(queue)
+        for nbr in neighbors(g, v)
+            if parents[nbr] == 0
+                push!(queue, nbr)
+                parents[nbr] = v
+            end
+            nbr == dst && return bfs_path(parents, nbr)  # target reached
+        end
+    end
+    return T[]  # Unreachable target
+end
 
 
 function noweight_all_distances(g::SimpleGraph{T}, s::T, t::T) where T<:Integer

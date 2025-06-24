@@ -43,7 +43,7 @@ function findmincycle(g::SimpleGraph, S::Set)
     for n in vertices(g)
         n1 = rev[n]
         n2 = hrev[rev[n]]
-        sp = noweight_shortestpath(U, n1, n2)
+        sp = unweighted_shortestpath(U, n1, n2)
         pop!(sp)
         push!(paths, sp)
     end
