@@ -3,7 +3,14 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-Base.@ccallable function smilestomol(smiles::Cstring, options::Cstring)::Cstring
+using Base: unsafe_convert
+using Base64: Base64EncodePipe
+using Cairo
+using JSON
+using MolecularGraph
+
+
+Base.@ccallable function MolecularGraph.smilestomol(smiles::Cstring, options::Cstring)::Cstring
     try
         mol = smilestomol(unsafe_string(smiles))
         op = JSON.parse(unsafe_string(options))
@@ -20,7 +27,7 @@ Base.@ccallable function smilestomol(smiles::Cstring, options::Cstring)::Cstring
 end
 
 
-Base.@ccallable function smartstomol(smarts::Cstring)::Cstring
+Base.@ccallable function MolecularGraph.smartstomol(smarts::Cstring)::Cstring
     return try
         mol = smartstomol(unsafe_string(smarts))
         return unsafe_convert(Cstring, JSON.json(to_dict(mol)))
@@ -30,7 +37,7 @@ Base.@ccallable function smartstomol(smarts::Cstring)::Cstring
 end
 
 
-Base.@ccallable function sdftomol(sdf::Cstring, options::Cstring)::Cstring
+Base.@ccallable function MolecularGraph.sdftomol(sdf::Cstring, options::Cstring)::Cstring
     return try
         # return empty mol on error
         mol = iterate(sdfilereader(IOBuffer(unsafe_string(sdf)); unsupported=:ignore))[1]
@@ -68,7 +75,7 @@ Base.@ccallable function edge_count(mol::Cstring)::Cint
 end
 
 
-Base.@ccallable function inchikey(mol::Cstring)::Cstring
+Base.@ccallable function MolecularGraph.inchikey(mol::Cstring)::Cstring
     return try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
         ikey = inchikey(molobj)
@@ -79,7 +86,7 @@ Base.@ccallable function inchikey(mol::Cstring)::Cstring
 end
 
 
-Base.@ccallable function standard_weight(mol::Cstring)::Cdouble
+Base.@ccallable function MolecularGraph.standard_weight(mol::Cstring)::Cdouble
     return try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
         return standard_weight(molobj, 2)
@@ -113,7 +120,7 @@ Base.@ccallable function sdfmolblock(mol::Cstring)::Cstring
 end
 
 
-Base.@ccallable function drawsvg(mol::Cstring, options::Cstring)::Cstring
+Base.@ccallable function MolecularGraph.drawsvg(mol::Cstring, options::Cstring)::Cstring
     return try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
         op = JSON.parse(unsafe_string(options))
@@ -130,7 +137,7 @@ Base.@ccallable function drawsvg(mol::Cstring, options::Cstring)::Cstring
 end
 
 
-Base.@ccallable function drawpng(
+Base.@ccallable function MolecularGraph.drawpng(
         mol::Cstring, width::UInt32, height::UInt32, options::Cstring)::Cstring
     return try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
@@ -152,7 +159,7 @@ Base.@ccallable function drawpng(
 end
 
 
-Base.@ccallable function has_exact_match(
+Base.@ccallable function MolecularGraph.has_exact_match(
         mol1::Cstring, mol2::Cstring, kwargs::Cstring)::Cint
     return try
         mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
@@ -165,7 +172,7 @@ Base.@ccallable function has_exact_match(
 end
 
 
-Base.@ccallable function has_substruct_match(
+Base.@ccallable function MolecularGraph.has_substruct_match(
         mol1::Cstring, mol2::Cstring, kwargs::Cstring)::Cint
     return try
         mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))

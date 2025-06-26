@@ -227,16 +227,4 @@ export
     wire, wire!
 
 
-# Package compiler
-
-using Base: unsafe_convert
-using Base64: Base64EncodePipe
-
-include("libmoleculargraph.jl")
-
-export
-    vertex_count, edge_count,
-    molblock, sdfmolblock,
-    tdmcis_size, tdmces_size, tdmcis_gls, tdmces_gls
-
-end
+end  # module
