@@ -1,6 +1,7 @@
-JULIA ?= $(shell which julia)
+JULIA ?= julia
 JULIAC ?= $(shell $(JULIA) -e 'print(normpath(joinpath(Sys.BINDIR, Base.DATAROOTDIR, "julia", "juliac.jl")))')
-OUTPUT := /opt/moleculargraphjl/libmoleculargraph.dylib
+DLEXT := $(shell $(JULIA) --startup-file=no -e 'using Libdl; print(Libdl.dlext)')
+OUTPUT := /opt/moleculargraphjl/libmoleculargraph.$(DLEXT)
 .PHONY: docs, clean, build
 
 docs:
