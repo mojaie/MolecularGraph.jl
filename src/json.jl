@@ -100,6 +100,24 @@ end
 
 # JSON auto detect
 
+function mol_from_dict(@nospecialize(data::Dict); kwargs...)
+    if haskey(data, "commonchem")
+        return MolGraph{Int,CommonChemAtom,CommonChemBond}(data; kwargs...)
+    end
+    if !haskey(data, "vproptype") || !haskey(data, "eproptype")
+        error("Invalid JSON format")
+    end
+    if data["vproptype"] == "SDFAtom" && data["eproptype"] == "SDFBond"
+        return MolGraph{Int,SDFAtom,SDFBond}(data; kwargs...)
+    elseif data["vproptype"] == "SMILESAtom" && data["eproptype"] == "SMILESBond"
+        return MolGraph{Int,SMILESAtom,SMILESBond}(data; kwargs...)
+    elseif data["vproptype"] == "QueryAtom" && data["eproptype"] == "QueryBond"
+        return QueryMolGraph{Int,QueryAtom,QueryBond}(data; kwargs...)
+    end
+    error("Invalid JSON format")
+end
+
+
 function MolGraph(@nospecialize(data::Dict); kwargs...)
     if haskey(data, "commonchem")
         return MolGraph{Int,CommonChemAtom,CommonChemBond}(data; kwargs...)

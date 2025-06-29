@@ -1,15 +1,15 @@
 
 using PackageCompiler
 
-target_dir = "$(@__DIR__)/../compiled"
-target_dir = replace(target_dir, "\\"=>"/")  # Change Windows paths to use "/"
+target_dir = "/opt/julia/moleculargraph"
+# target_dir = replace(target_dir, "\\"=>"/")  # Change Windows paths to use "/"
 
 println("Creating library in $target_dir")
 
 PackageCompiler.create_library(
-    "../", target_dir;
+    ".", target_dir;
     lib_name="libmoleculargraph",
-    precompile_execution_file=["$(@__DIR__)/generate_precompile.jl"],
-    header_files=["$(@__DIR__)/libmoleculargraph.h"],
-    incremental=true
+    precompile_execution_file=["./generate_precompile.jl"],
+    header_files=["./libmoleculargraph.h"],
+    incremental=true, force=true
 )

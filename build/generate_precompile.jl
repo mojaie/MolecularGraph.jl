@@ -1,13 +1,14 @@
 
 
 # For testing, execute following command at the project dir.
-# JULIA_DEBUG=Script julia --project=. -- ./build/generate_precompile.jl
+# JULIA_DEBUG=Script julia --project=. -- ./generate_precompile.jl
 
 
 module Script
 
 using Base: unsafe_convert
 using Base64
+using Cairo
 using JSON
 using MolecularGraph
 
@@ -76,6 +77,7 @@ function run()
 
     notamide = unsafe_string(smartstomol(
         unsafe_convert(Cstring, raw"[NX3;H2,H1;!$(NC=O)]")))
+    @info notamide
     notamide2 = unsafe_string(smartstomol(
         unsafe_convert(Cstring, raw"[NX3;H2,H1]")))
     rotatable = unsafe_string(smartstomol(
