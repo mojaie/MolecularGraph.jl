@@ -3,11 +3,12 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-module LibMolGraph
+module LibMolGraphJL
 
 using Base: unsafe_convert
 using Base64: Base64EncodePipe
 using Cairo
+using Graphs
 using JSON
 using MolecularGraph
 
