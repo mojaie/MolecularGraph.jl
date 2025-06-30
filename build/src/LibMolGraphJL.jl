@@ -3,9 +3,12 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+module LibMolGraphJL
+
 using Base: unsafe_convert
 using Base64: Base64EncodePipe
 using Cairo
+using Graphs
 using JSON
 using MolecularGraph
 
@@ -162,8 +165,8 @@ end
 Base.@ccallable function MolecularGraph.has_exact_match(
         mol1::Cstring, mol2::Cstring, kwargs::Cstring)::Cint
     return try
-        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
-        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
+        mol1 = mol_from_dict(JSON.parse(unsafe_string(mol1)))
+        mol2 = mol_from_dict(JSON.parse(unsafe_string(mol2)))
         kwargs = JSON.parse(unsafe_string(kwargs))
         return has_exact_match(mol1, mol2; kwargs...)
     catch
@@ -175,8 +178,8 @@ end
 Base.@ccallable function MolecularGraph.has_substruct_match(
         mol1::Cstring, mol2::Cstring, kwargs::Cstring)::Cint
     return try
-        mol1 = MolGraph(JSON.parse(unsafe_string(mol1)))
-        mol2 = MolGraph(JSON.parse(unsafe_string(mol2)))
+        mol1 = mol_from_dict(JSON.parse(unsafe_string(mol1)))
+        mol2 = mol_from_dict(JSON.parse(unsafe_string(mol2)))
         kwargs = JSON.parse(unsafe_string(kwargs))
         return has_substruct_match(mol1, mol2; kwargs...)
     catch
@@ -251,3 +254,5 @@ Base.@ccallable function tdmces_gls(
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
 end
+
+end  # module

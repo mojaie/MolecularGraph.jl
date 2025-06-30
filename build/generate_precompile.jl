@@ -1,15 +1,18 @@
 
 
 # For testing, execute following command at the project dir.
-# JULIA_DEBUG=Script julia --project=. -- ./build/generate_precompile.jl
+# JULIA_DEBUG=generate_precompile julia --project=. -- ./generate_precompile.jl
 
-
-module Script
 
 using Base: unsafe_convert
 using Base64
+using Cairo
 using JSON
 using MolecularGraph
+using LibMolGraphJL:
+    vertex_count, edge_count, molblock, sdfmolblock,
+    tdmcis_size, tdmces_size, tdmcis_gls, tdmces_gls
+
 
 function run()
     op = JSON.json(Dict())
@@ -155,6 +158,5 @@ function run()
         unsafe_convert(Cstring, JSON.json(Dict("diameter" => 8))))
 end
 
-end
 
-Script.run()
+run()

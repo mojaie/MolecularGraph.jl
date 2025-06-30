@@ -7,19 +7,19 @@ from pathlib import Path
 import platform
 
 
-def jl_init():
+def jl_init_juliac():
     dlext = "dylib" if platform.system() == "Darwin" else "so"
-    libdir = Path("/opt/moleculargraphjl")
-    jl = CDLL(libdir / f"libmoleculargraph.{dlext}", RTLD_GLOBAL)
-    jl.jl_init_with_image_file(bytes(libdir), f"libmoleculargraph.{dlext}".encode())
+    libdir = Path("/opt/julia/libmolgraphjl/lib")
+    jl = CDLL(libdir / f"libmolgraphjl.{dlext}", RTLD_GLOBAL)
+    jl.jl_init_with_image_file(bytes(libdir), f"libmolgraphjl.{dlext}".encode())
     return jl
 
 
-def jl_init_pc():  # For PackageCompiler. TODO: To be removed.
+def jl_init():
     dlext = "dylib" if platform.system() == "Darwin" else "so"
-    libdir = Path("/opt/moleculargraphjl/lib")
-    jl = CDLL(libdir / f"libmoleculargraph.{dlext}", RTLD_GLOBAL)
-    jl.jl_init_with_image(bytes(libdir), f"libmoleculargraph.{dlext}".encode())
+    libdir = Path("/opt/julia/libmolgraphjl/lib")
+    jl = CDLL(libdir / f"libmolgraphjl.{dlext}", RTLD_GLOBAL)
+    jl.jl_init_with_image(bytes(libdir), f"libmolgraphjl.{dlext}".encode())
     return jl
 
 
