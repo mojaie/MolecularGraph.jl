@@ -1,14 +1,15 @@
 JULIA ?= julia
 JULIAC ?= $(shell $(JULIA) -e 'print(normpath(joinpath(Sys.BINDIR, Base.DATAROOTDIR, "julia", "juliac.jl")))')
 DLEXT := $(shell $(JULIA) --startup-file=no -e 'using Libdl; print(Libdl.dlext)')
-OUTPUT := /opt/julia/juliac-libmolgraphjl/libmolgraphjl.$(DLEXT)
+OUTDIR := /opt/julia/juliac-libmolgraphjl
+OUTPUT := $(OUTDIR)/libmolgraphjl.$(DLEXT)
 .PHONY: docs, clean, build
 
 docs:
 	@julia --project=docs/ --color=yes docs/make.jl
 
 clean:
-	rm -rf $(OUTPUT)
+	rm -rf $(OUTDIR) && mkdir $(OUTDIR)
 
 build: clean
 	$(JULIA) --project=./build $(JULIAC) --output-lib $(OUTPUT) --compile-ccallable ./build/src/LibMolGraphJL.jl

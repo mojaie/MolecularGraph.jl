@@ -1,40 +1,51 @@
 
-libmoleculargraph
+Build package binary
 ===================================================
 
-A library builder for calling some functions of MolecularGraph.jl from external applications. See [PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl) for details.
+1. Test environment
 
+    - MolecularGraph.jl 0.20.2
+    - Julia 1.11.5
+    - Python 3.13.2
+    - MacOS 15.5 (M3, for local test)
+    - Ubuntu 22.04.5 LTS (production)
+      - Docker Engine 27.3.1
 
-### Dockerfile (recommended)
+1. Create destination directory
 
-- See `./docker-example`
-- A test script `../scripts/python_test.py` worked with Python 3.10.0
+    - e.g. `sudo mkdir /opt/julia` and `sudo chown <user>:<group> /opt/julia`
 
+1. Build binary
 
-### Other platforms
+    - PackageCompiler.jl
 
-Building in environments shown below and other platforms are not supported.
+      See [PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl) for details.
 
+      ```sh
+      cd $YOUR_WORKSPACE/MolecularGraph.jl
+      cd build
+      make
+      ```
 
-#### For Intel Mac
+    - juliac.jl (experimental, requires Julia 1.12)
 
-- Building MacOS binary has some potential issues.
-- Run `make` to build binary and then `sudo make link` to copy them to `/usr/local`
-- Testing environment:
+      ```sh
+      cd $YOUR_WORKSPACE/MolecularGraph.jl
+      make build
+      ```
 
-  ```
-  julia> versioninfo()
-  Julia Version 1.10.0
-  Commit 3120989f39b (2023-12-25 18:01 UTC)
-  Build Info:
-    Official https://julialang.org/ release
-  Platform Info:
-    OS: macOS (x86_64-apple-darwin22.4.0)
-    CPU: 4 × Intel(R) Core(TM) i5-8210Y CPU @ 1.60GHz
-    WORD_SIZE: 64
-    LIBM: libopenlibm
-    LLVM: libLLVM-15.0.7 (ORCJIT, skylake)
-    Threads: 1 on 4 virtual cores
-  ```
+1. Add library path
 
-  - did not work with Julia version 1.7.3 (and below) due to a link error.
+    add to your profile file (e.g. `.zprofile`)  
+    - `export DYLD_FALLBACK_LIBRARY_PATH='/opt/julia/libmolgraphjl/lib:/opt/julia/libmolgraphjl/lib/julia'`
+
+1. Test Python script
+
+    ```sh
+    cd $YOUR_WORKSPACE/MolecularGraph.jl
+    python ./scripts/python_test.py
+    ```
+
+1. Create Docker image
+
+    - See `./build/docker-example`
