@@ -37,6 +37,7 @@ struct SDFBond <: AbstractBond
             order::Int,
             notation::Int=0,
             isordered::Bool=true)
+        order > 3 && error("Unsupported bond order type: $(order)")
         new(order, notation, isordered)
     end
 end

@@ -56,6 +56,11 @@ end
     @test nv(mols[2]) == 0
     @test get_prop(mols[2], "Name") == "Artemisinin"
 
+    sdf = joinpath(assetdir, "marvin_dative.sdf")
+    mols = collect(sdfilereader(sdf))
+    @test nv(mols[1]) == 0
+    @test get_prop(mols[1], "Name") == "Auranofin"
+
     aspirin_v3 = joinpath(assetdir, "aspirin_v3.mol")
     mol = sdftomol(aspirin_v3)
     @test ne(mol) == 13
