@@ -203,7 +203,9 @@ atommarkupright(canvas::SvgCanvas, symbol, charge, implicith) = atommarkupsvg(
 
 
 function drawtextsvg!(canvas::SvgCanvas, pos, text, color, anchor, xoffset)
-    xy = svgcoords(pos + Point2d(xoffset, canvas.fontsize / 2))
+    x_exof = 0.5 # TODO: x-extra offset
+    y_exof = -2.0  # TODO: y-extra offset
+    xy = svgcoords(pos + Point2d(xoffset + x_exof, canvas.fontsize / 2 + y_exof))
     elem = """<text $(xy) font-size="$(canvas.fontsize)" fill="$(svgcolor(color))"$(anchor)>$(text)</text>"""
     push!(canvas.elements, elem)
     return

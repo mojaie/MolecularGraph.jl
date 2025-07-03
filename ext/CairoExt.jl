@@ -171,8 +171,10 @@ function drawtextcairo!(canvas::CairoCanvas, pos, text, color, fxoff, halign)
     Cairo.set_font_face(canvas.context, join([canvas.fontfamily, canvas.fontweight, fs], " "))
     Cairo.set_source(canvas.context, color)
     cext = Cairo.text_extents(canvas.context, "C")
-    xoffset = fxoff(cext[3])  # extent of character "C": xb, yb, w, h, xa, ya
-    yoffset = cext[4] / 2
+    x_exof = 0.5 # TODO: x-extra offset
+    y_exof = -2.0  # TODO: y-extra offset
+    xoffset = fxoff(cext[3]) + x_exof  # extent of character "C": xb, yb, w, h, xa, ya
+    yoffset = cext[4] / 2 + y_exof
     Cairo.text(
         canvas.context, pos[1] + xoffset, pos[2] + yoffset,
         text, halign=halign, valign="center", markup=true
