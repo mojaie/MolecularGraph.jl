@@ -149,24 +149,6 @@ end
 
 
 """
-    structmatch_compatible!(mol::SimpleMolGraph) -> SimpleMolGraph
-    structmatch_compatible!(qmol::QueryMolGraph) -> QueryMolGraph
-
-Return mol as it is or its preprocessed copy as necessary.
-"""
-function structmatch_compatible!(mol::SimpleMolGraph)
-    any(atom_symbol(mol) .=== :H) || return mol  # No changes
-    mol_ = copy(mol)
-    remove_all_hydrogens!(mol_)
-    return mol_
-end
-
-function structmatch_compatible!(qmol::QueryMolGraph)
-    return qmol  # No changes
-end
-
-
-"""
     exact_matches(mol1, mol2; kwargs...) -> Iterator
 
 Return a lazy iterator that generate node mappings between `mol` and `query` if these are exactly same.
@@ -176,8 +158,6 @@ function exact_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     # Note: InChI is better if you don't need mapping
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
-    mol1 = structmatch_compatible!(mol1)
-    mol2 = structmatch_compatible!(mol2)
     exact_topology_prefilter(mol1, mol2) || return ()
     return isomorphisms(
         mol1.graph, mol2.graph,
@@ -211,8 +191,6 @@ Return a lazy iterator that generate node mappings between `mol` and `query` if 
 function substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
-    mol1 = structmatch_compatible!(mol1)
-    mol2 = structmatch_compatible!(mol2)
     topology_prefilter(mol1, mol2) || return ()
     return subgraph_monomorphisms(
         mol1.graph, mol2.graph,
@@ -239,8 +217,6 @@ See [`substruct_matches`](@ref) for available options.
 function node_substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
-    mol1 = structmatch_compatible!(mol1)
-    mol2 = structmatch_compatible!(mol2)
     topology_prefilter(mol1, mol2) || return ()
     return nodesubgraph_isomorphisms(
         mol1.graph, mol2.graph,
@@ -267,8 +243,6 @@ See [`substruct_matches`](@ref) for available options.
 function edge_substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
         vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
     (ne(mol1) == 0 || ne(mol2) == 0) && return ()
-    mol1 = structmatch_compatible!(mol1)
-    mol2 = structmatch_compatible!(mol2)
     topology_prefilter(mol1, mol2) || return ()
     return edgesubgraph_isomorphisms(
         mol1.graph, mol2.graph,
@@ -293,7 +267,6 @@ has_edge_substruct_match(mol1, mol2; kwargs...
 
 function mcis_constraints(
         mol::SimpleMolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen)
-    mol = structmatch_compatible!(mol)
     return mcis_constraints(
         Val{:connection}(), mol.graph,
         vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol))
@@ -301,7 +274,6 @@ end
 
 function mces_constraints(
         mol::SimpleMolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen)
-    mol = structmatch_compatible!(mol)
     return mces_constraints(
         Val{:connection}(), mol.graph,
         vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol))
@@ -310,7 +282,6 @@ end
 function tdmcis_constraints(
         mol::SimpleMolGraph; vmatchvecgen=vmatchvecgen,
         ematchvecgen=ematchvecgen, kwargs...)
-    mol = structmatch_compatible!(mol)
     return mcis_constraints(
         Val{:shortest}(), mol.graph,
         vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...)
@@ -318,7 +289,6 @@ end
 function tdmces_constraints(
         mol::SimpleMolGraph; vmatchvecgen=vmatchvecgen,
         ematchvecgen=ematchvecgen, kwargs...)
-    mol = structmatch_compatible!(mol)
     return mces_constraints(
         Val{:shortest}(), mol.graph,
         vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...)
