@@ -39,8 +39,11 @@ function atomsymbol!(state::SMILESParser{T,V,E}) where {T,V,E}
     elseif sym1 in "bcnops"
         forward!(state)
         return [V(symbol=Symbol(uppercase(sym1)), isaromatic=true)]
+    elseif sym1 in ('(', ')', '.', '\0')
+        # end token found, no position move
+        return V[]
     end
-    return V[]  # end token ().\0 found, no position move
+    error("unexpected token: '$(sym1)' at $(state.pos)")
 end
 
 
@@ -79,8 +82,11 @@ function atomsymbol!(state::SMARTSParser, qtree::QueryTree{T,V}) where {T,V}
     elseif sym1 == '*'
         forward!(state)
         return add_qnode!(qtree, qanytrue())
+    elseif sym1 in ('(', ')', '.', '\0')
+        # end token found, no position move
+        return zero(T)
     end
-    return zero(T)  # end token ().\0 found, no position move
+    error("unexpected token: '$(sym1)' at $(state.pos)")
 end
 
 

@@ -148,7 +148,7 @@ function lookahead(state::AbstractSMARTSParser, pos::Int)
     # Negative pos can be used
     newpos = state.pos + pos
     if newpos > length(state.input) || newpos < 1
-        return Char(0)
+        return Char(0)  # \0
     else
         c = state.input[newpos]
         if isascii(c)

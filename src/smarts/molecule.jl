@@ -78,7 +78,7 @@ function group!(state::AbstractSMARTSParser{T,V,E}, bond::Union{E,Nothing}) wher
             group!(state, b)
             state.branch = buf
             c = read(state)
-            @assert c == ')' "unexpected token: $(c) at $(state.pos)"
+            c == ')' || error("unexpected token: $(c) at $(state.pos)")
             forward!(state)
 
             # ex. CC(C)(C) should be CC(C)C but acceptable

@@ -81,6 +81,8 @@ end
     @test length(valid9.vprops) == 22
     @test length(valid9.eprops) == 21
 
+    invalid10 = SMARTSParser{Int,QueryAtom,QueryBond}("C(=OO")
+    @test_throws ErrorException fragment!(invalid10)
 end
 
 
@@ -114,6 +116,9 @@ end
 
     invalid2 = SMARTSParser{Int,QueryAtom,QueryBond}("CCC.")
     @test_throws ErrorException fragment!(invalid2)
+
+    invalid3 = SMARTSParser{Int,QueryAtom,QueryBond}("(C.(C)")
+    @test_throws ErrorException fragment!(invalid3)
 
     valid3 = SMARTSParser{Int,QueryAtom,QueryBond}("CC(C).C")
     componentquery!(conn0)
