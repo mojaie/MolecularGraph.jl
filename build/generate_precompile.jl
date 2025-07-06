@@ -10,7 +10,10 @@ using Cairo
 using JSON
 using MolecularGraph
 using LibMolGraphJL:
-    vertex_count, edge_count, molblock, sdfmolblock,
+    smilestomol, smartstomol, sdftomol, 
+    vertex_count, edge_count, inchikey, standard_weight,
+    molblock, sdfmolblock, drawsvg, drawpng,
+    has_exact_match, has_substruct_match,
     tdmcis_size, tdmces_size, tdmcis_gls, tdmces_gls
 
 

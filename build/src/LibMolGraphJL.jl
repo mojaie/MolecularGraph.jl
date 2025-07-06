@@ -13,9 +13,9 @@ using JSON
 using MolecularGraph
 
 
-Base.@ccallable function MolecularGraph.smilestomol(smiles::Cstring, options::Cstring)::Cstring
+Base.@ccallable function smilestomol(smiles::Cstring, options::Cstring)::Cstring
     try
-        mol = smilestomol(unsafe_string(smiles))
+        mol = MolecularGraph.smilestomol(unsafe_string(smiles))
         op = JSON.parse(unsafe_string(options))
         if haskey(op, "extract_largest_component") && op["extract_largest_component"]
             extract_largest_component!(mol)  # default extract_largest_component=false
@@ -30,9 +30,9 @@ Base.@ccallable function MolecularGraph.smilestomol(smiles::Cstring, options::Cs
 end
 
 
-Base.@ccallable function MolecularGraph.smartstomol(smarts::Cstring)::Cstring
+Base.@ccallable function smartstomol(smarts::Cstring)::Cstring
     return try
-        mol = smartstomol(unsafe_string(smarts))
+        mol = MolecularGraph.smartstomol(unsafe_string(smarts))
         return unsafe_convert(Cstring, JSON.json(to_dict(mol)))
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
@@ -40,7 +40,7 @@ Base.@ccallable function MolecularGraph.smartstomol(smarts::Cstring)::Cstring
 end
 
 
-Base.@ccallable function MolecularGraph.sdftomol(sdf::Cstring, options::Cstring)::Cstring
+Base.@ccallable function sdftomol(sdf::Cstring, options::Cstring)::Cstring
     return try
         # return empty mol on error
         mol = iterate(sdfilereader(IOBuffer(unsafe_string(sdf)); unsupported=:ignore))[1]
@@ -78,10 +78,10 @@ Base.@ccallable function edge_count(mol::Cstring)::Cint
 end
 
 
-Base.@ccallable function MolecularGraph.inchikey(mol::Cstring)::Cstring
+Base.@ccallable function inchikey(mol::Cstring)::Cstring
     return try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
-        ikey = inchikey(molobj)
+        ikey = MolecularGraph.inchikey(molobj)
         return unsafe_convert(Cstring, something(ikey, ""))
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
@@ -89,10 +89,10 @@ Base.@ccallable function MolecularGraph.inchikey(mol::Cstring)::Cstring
 end
 
 
-Base.@ccallable function MolecularGraph.standard_weight(mol::Cstring)::Cdouble
+Base.@ccallable function standard_weight(mol::Cstring)::Cdouble
     return try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
-        return standard_weight(molobj, 2)
+        return MolecularGraph.standard_weight(molobj, 2)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
@@ -123,7 +123,7 @@ Base.@ccallable function sdfmolblock(mol::Cstring)::Cstring
 end
 
 
-Base.@ccallable function MolecularGraph.drawsvg(mol::Cstring, options::Cstring)::Cstring
+Base.@ccallable function drawsvg(mol::Cstring, options::Cstring)::Cstring
     return try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
         op = JSON.parse(unsafe_string(options))
@@ -132,7 +132,7 @@ Base.@ccallable function MolecularGraph.drawsvg(mol::Cstring, options::Cstring):
         haskey(op, "show_carbon") && push!(kwgs, :show_carbon => Symbol(op["show_carbon"]))
         haskey(op, "bgcolor") && push!(kwgs, :bgcolor => op["bgcolor"])
         haskey(op, "bgopacity") && push!(kwgs, :bgopacity => op["bgopacity"])
-        svg = drawsvg(molobj; kwgs...)
+        svg = MolecularGraph.drawsvg(molobj; kwgs...)
         return unsafe_convert(Cstring, svg)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
@@ -140,7 +140,7 @@ Base.@ccallable function MolecularGraph.drawsvg(mol::Cstring, options::Cstring):
 end
 
 
-Base.@ccallable function MolecularGraph.drawpng(
+Base.@ccallable function drawpng(
         mol::Cstring, width::UInt32, height::UInt32, options::Cstring)::Cstring
     return try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
@@ -151,7 +151,7 @@ Base.@ccallable function MolecularGraph.drawpng(
         haskey(op, "bgopacity") && push!(kwgs, :bgopacity => op["bgopacity"])
         buf = IOBuffer()
         iob64_encode = Base64EncodePipe(buf)
-        drawpng(iob64_encode, molobj, Int(width), Int(height); kwgs...)
+        MolecularGraph.drawpng(iob64_encode, molobj, Int(width), Int(height); kwgs...)
         close(iob64_encode)
         str = String(take!(buf))
         close(buf)
@@ -162,26 +162,26 @@ Base.@ccallable function MolecularGraph.drawpng(
 end
 
 
-Base.@ccallable function MolecularGraph.has_exact_match(
+Base.@ccallable function has_exact_match(
         mol1::Cstring, mol2::Cstring, kwargs::Cstring)::Cint
     return try
         mol1 = mol_from_dict(JSON.parse(unsafe_string(mol1)))
         mol2 = mol_from_dict(JSON.parse(unsafe_string(mol2)))
         kwargs = JSON.parse(unsafe_string(kwargs))
-        return has_exact_match(mol1, mol2; kwargs...)
+        return MolecularGraph.has_exact_match(mol1, mol2; kwargs...)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
 end
 
 
-Base.@ccallable function MolecularGraph.has_substruct_match(
+Base.@ccallable function has_substruct_match(
         mol1::Cstring, mol2::Cstring, kwargs::Cstring)::Cint
     return try
         mol1 = mol_from_dict(JSON.parse(unsafe_string(mol1)))
         mol2 = mol_from_dict(JSON.parse(unsafe_string(mol2)))
         kwargs = JSON.parse(unsafe_string(kwargs))
-        return has_substruct_match(mol1, mol2; kwargs...)
+        return MolecularGraph.has_substruct_match(mol1, mol2; kwargs...)
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
