@@ -13,10 +13,14 @@ Typically `ReactiveMolGraph` should have the following properties:
 - `vprops`: `Vector` of atom properties (e.g. SDFAtom, SMILESAtom)
 - `eprops`: `Vector` of bond properties (e.g. SDFBond, SMILESBond)
 - `gprops`: graph-level properties and stored descriptors (e.g. stereocenter)
-- `states`: update flags and callback functions for `reactive` property update
+- `state`: update flags and callback functions for `reactive` property update
 
 """
 abstract type ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T} end
+
+StructTypes.StructType(::Type{T}) where T <: ReactiveMolGraph = StructTypes.Struct()
+StructTypes.excludes(::Type{T}) where T <: ReactiveMolGraph = (:state,)
+
 
 Base.:(==)(g::ReactiveMolGraph, h::ReactiveMolGraph
     ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops

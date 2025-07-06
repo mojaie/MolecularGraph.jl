@@ -105,7 +105,8 @@ function smilestomol(
     # original edge index
     gprops = MolProperty{T}(
         smarts_lexical_succ=state.succ,
-        smarts_input=string(smiles)
+        smarts_input=string(smiles),
+        default_serializer="smiles"
     )
     return G(state.edges, state.vprops, state.eprops,
         gprops=gprops, on_init=smiles_on_init!,

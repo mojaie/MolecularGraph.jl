@@ -117,6 +117,11 @@ function mol_from_dict(@nospecialize(data::Dict); kwargs...)
     error("Invalid JSON format")
 end
 
+function mol_from_json(json::String; kwargs...)
+    if json["gprops"]["default_serializer"] == "smiles"
+        return JSON3.read(json, MolGraph{Int,SMILESAtom,SMILESBond})
+    end
+end
 
 function MolGraph(@nospecialize(data::Dict); kwargs...)
     if haskey(data, "commonchem")

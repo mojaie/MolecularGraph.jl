@@ -257,6 +257,29 @@ function SMILESAtom(;
         Symbol(symbol), charge, multiplicity, mass, isaromatic, Symbol(stereo))
 end
 
+
+StructTypes.construct(::Type{SMILESAtom}, d::Dict) = SMILESAtom(
+    Symbol(get(d, "symbol", :C)),
+    get(d, "charge", 0),
+    get(d, "multiplicity", 1),
+    get(d, "mass", nothing),
+    get(d, "isaromatic", false),
+    Symbol(get(d, "stereo", :unspecified))
+)
+
+StructTypes.StructType(::Type{SMILESAtom}) = StructTypes.DictType()
+
+function StructTypes.keyvaluepairs(a::SMILESAtom)
+    rcd = Dict{String,Any}()
+    a.symbol === :C || setindex!(rcd, string(a.symbol), "symbol")
+    a.charge == 0 || setindex!(rcd, a.charge, "charge")
+    a.multiplicity == 1 || setindex!(rcd, a.multiplicity, "multiplicity")
+    isnothing(a.mass) || setindex!(rcd, a.mass, "mass")
+    a.isaromatic === false || setindex!(rcd, a.isaromatic, "isaromatic")
+    a.stereo === :unspecified || setindex!(rcd, string(a.stereo), "stereo")
+    return rcd
+end
+
 SMILESAtom(d::Dict{String,Any}
     ) = SMILESAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
 SMILESAtom(d::Dict{Symbol,Any}

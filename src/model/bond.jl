@@ -96,6 +96,24 @@ function SMILESBond(;
     return SMILESBond(order, isaromatic, Symbol(direction))
 end
 
+
+StructTypes.construct(::Type{SMILESBond}, d::Dict) = SMILESBond(
+    get(d, "order", 1),
+    get(d, "isaromatic", false),
+    Symbol(get(d, "direction", :unspecified))
+)
+
+StructTypes.StructType(::Type{SMILESBond}) = StructTypes.DictType()
+
+function StructTypes.keyvaluepairs(b::SMILESBond)
+    rcd = Dict{String,Any}()
+    b.order == 1 || setindex!(rcd, b.order, "order")
+    b.isaromatic === false || setindex!(rcd, b.isaromatic, "isaromatic")
+    b.direction === :unspecified || setindex!(rcd, b.direction, "direction")
+    return rcd
+end
+
+
 SMILESBond(d::Dict{String,Any}
     ) = SMILESBond(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
 SMILESBond(d::Dict{Symbol,Any}

@@ -27,6 +27,8 @@ include("./util/math.jl")
 # Interfaces
 
 using Graphs
+import JSON3
+using StructTypes
 
 include("./model/interface.jl")
 include("./property/interface.jl")
@@ -149,7 +151,7 @@ include("./smarts/logicaloperator.jl")
 include("./smarts/molecule.jl")
 
 export
-    to_dict, to_json, mol_from_dict,
+    to_dict, to_json, mol_from_dict, mol_from_json, 
     SDFileReader,
     sdf_on_init!, sdf_on_update!,
     sdfilereader, rdfilereader, sdfilescanner,

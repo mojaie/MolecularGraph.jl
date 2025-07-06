@@ -149,6 +149,7 @@ Container of graph-level molecule properties compatible with `ReactiveMolGraph`.
     metadata::OrderedDict{String,String} = OrderedDict{String,String}()
     # Parse errors
     logs::Dict{String,String} = Dict{String,String}()
+    default_serializer = ""
 end
 
 

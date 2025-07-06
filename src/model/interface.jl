@@ -10,6 +10,7 @@ The base class of molecular graphs
 """
 abstract type AbstractMolGraph{T<:Integer} <: Graphs.AbstractGraph{T} end
 
+StructTypes.StructType(::Type{T}) where T <: AbstractMolGraph = StructTypes.Struct()
 
 # Graphs.jl common interface
 
@@ -51,6 +52,8 @@ function Base.:(==)(g::AbstractProperty, h::AbstractProperty)
     end
     return true
 end
+
+StructTypes.StructType(::Type{T}) where T <: AbstractProperty = StructTypes.Struct()
 
 
 """
