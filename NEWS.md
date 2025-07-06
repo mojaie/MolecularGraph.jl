@@ -1,5 +1,13 @@
 # NEWS
 
+## v0.20.2
+
+- Reverted some undesirable changes in v0.20
+  - `svgcolor` in hex form
+  - It is still challenging to run juliac.jl in Docker environment. PackageCompiler.jl will be a primary option for a while longer.
+  - Newly introduced `remove_all_hydrogen!` in preprocessing method for substructure match can cause mismatch in isomorphism mappings (#136). This has been removed and alternative workflow will be documented in the tutorial soon.
+- Text positioning in 2D drawings has been slightly improved.
+
 ## v0.20.1
 
 - The shortest path algorithm used inside `sssr` was specialized for typical molecular graph tasks and get more efficient.
