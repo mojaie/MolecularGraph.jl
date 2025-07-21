@@ -99,6 +99,7 @@ function atompropsymbol!(
     return (symbol=sym,)
 end
 
+
 function atompropsymbol!(
         state::SMARTSParser, qtree::QueryTree, sym::Symbol,
         slow::Bool, cond::NTuple)
@@ -118,24 +119,7 @@ function atompropsymbol!(
 end
 
 
-function atompropcond!(
-        state::SMARTSParser, qtree::QueryTree, sym1::Char, sym2::Char)
-    forward!(state)
-    cond = SMARTS_ATOM_COND_SYMBOL[sym1]
-    if isdigit(sym2)
-        num = parse(Int, sym2)
-        forward!(state)
-    elseif sym1 in ('r', 'R')
-        node = add_qnode!(qtree, qnot())
-        add_qnode!(qtree, node, qeq(:ring_count, "0"))
-        return node
-    else
-        num = 1
-    end
-    return add_qnode!(qtree, qeq(cond, string(num)))
-end
-
-function _atompropcharge!(state::AbstractSMARTSParser, sym1::Char, sym2::Char)
+function atompropcharge!(state::AbstractSMARTSParser, sym1::Char, sym2::Char)
     forward!(state)
     if isdigit(sym2)
         chg = parse(Int, sym2)
@@ -150,17 +134,6 @@ function _atompropcharge!(state::AbstractSMARTSParser, sym1::Char, sym2::Char)
     return chg
 end
 
-function atompropcharge!(
-        state::SMARTSParser, qtree::QueryTree, sym1::Char, sym2::Char)
-    chg = _atompropcharge!(state, sym1, sym2)
-    return add_qnode!(qtree, qeq(:charge, string(chg * SMARTS_CHARGE_SIGN[sym1])))
-end
-
-function atompropcharge!(state::SMILESParser, sym1::Char, sym2::Char)
-    chg = _atompropcharge!(state, sym1, sym2)
-    return (charge=chg * SMARTS_CHARGE_SIGN[sym1],)
-end
-
 
 function atompropnumber!(state::AbstractSMARTSParser)
     start = state.pos
@@ -173,9 +146,37 @@ function atompropnumber!(state::AbstractSMARTSParser)
 end
 
 
-function atompropisotope!(state::SMILESParser)
-    num = atompropnumber!(state)
-    return (mass=num,)
+"""
+    atompropcond!(state::SMILESParser) -> Union{NamedTuple,Nothing}
+
+AtomProp <- Stereo / CHG / H
+"""
+function atompropcond!(state::SMILESParser)
+    sym1 = read(state)
+    sym2 = lookahead(state, 1)
+    if sym1 == 'H' # Hydrogen count
+        forward!(state)
+        if isdigit(sym2)
+            num = parse(Int, sym2)
+            forward!(state)
+        else
+            num = 1
+        end
+        return (total_hydrogens=num,)
+    elseif sym1 in keys(SMARTS_CHARGE_SIGN)  # Charge
+        chg = atompropcharge!(state, sym1, sym2)
+        return (charge=chg * SMARTS_CHARGE_SIGN[sym1],)
+    elseif sym1 == '@'
+        # Stereo: @ -> anticlockwise, @@ -> clockwise
+        forward!(state)
+        cw = :anticlockwise
+        if read(state) == '@'
+            forward!(state)
+            cw = :clockwise
+        end
+        return (stereo=cw,)
+    end
+    return  # can be nothing
 end
 
 
@@ -189,9 +190,22 @@ function atompropcond!(state::SMARTSParser, qtree::QueryTree)
     sym2 = lookahead(state, 1)
     if haskey(SMARTS_ATOM_COND_SYMBOL, sym1)
         # Neighbor and ring conditions
-        return atompropcond!(state, qtree, sym1, sym2)
+        forward!(state)
+        cond = SMARTS_ATOM_COND_SYMBOL[sym1]
+        if isdigit(sym2)
+            num = parse(Int, sym2)
+            forward!(state)
+        elseif sym1 in ('r', 'R')
+            node = add_qnode!(qtree, qnot())
+            add_qnode!(qtree, node, qeq(:ring_count, "0"))
+            return node
+        else
+            num = 1
+        end
+        return add_qnode!(qtree, qeq(cond, string(num)))
     elseif sym1 in keys(SMARTS_CHARGE_SIGN)  # Charge
-        return atompropcharge!(state, qtree, sym1, sym2)
+        chg = atompropcharge!(state, sym1, sym2)
+        return add_qnode!(qtree, qeq(:charge, string(chg * SMARTS_CHARGE_SIGN[sym1])))
     elseif sym1 == '@'
         # Stereo: @ -> anticlockwise, @@ -> clockwise, ? -> or not specified
         forward!(state)
@@ -233,7 +247,36 @@ end
 
 
 """
-    atompropsymcond!(state::SMARTSParser, qtree::QueryTree) -> Vector{Integer}
+    atompropsymcond!(state::SMILESParser) -> Union{NamedTuple,Nothing}
+
+AtomPropSymConds <- Symbol / AtomNum
+"""
+function atompropsymcond!(state::SMILESParser)
+    sym1 = read(state)
+    sym2 = lookahead(state, 1)
+    if sym1 == '\0'  # End token
+        return 
+    elseif sym2 != '\0' && haskey(ATOMSYMBOLMAP, Symbol(uppercase(sym1), sym2))
+        # Two letter atoms
+        forward!(state, 2)
+        return atompropsymbol!(
+            state, Symbol(uppercase(sym1), sym2),
+            islowercase(sym1), (:As, :Se)
+        )
+    elseif haskey(ATOMSYMBOLMAP, Symbol(uppercase(sym1))) && !isdigit(sym2)
+        # Single letter atoms
+        forward!(state)
+        return atompropsymbol!(
+            state, Symbol(uppercase(sym1)),
+            islowercase(sym1), (:B, :C, :N, :O, :P, :S)
+        )
+    end
+    return  # can be nothing
+end
+
+
+"""
+    atompropsymcond!(state::SMARTSParser, qtree::QueryTree) -> Integer
 
 AtomPropSymConds <- Symbol / AtomNum
 """
@@ -282,52 +325,39 @@ end
 """
     atomprop!(state::SMILESParser) -> Union{NamedTuple,Nothing}
 
-AtomProp <- Mass / Symbol / Stereo / CHG / H
+AtomProp <- ((Mass? / AtomPropSymConds) / AtomPropConds)+
 """
-function atomprop!(state::SMILESParser)
+function atomprop!(state::SMILESParser{T,V,E}) where {T,V,E}
     sym1 = read(state)
-    sym2 = lookahead(state, 1)
-    if sym2 != '\0' && haskey(ATOMSYMBOLMAP, Symbol(uppercase(sym1), sym2))
-        # Two letter atoms
-        forward!(state, 2)
-        return atompropsymbol!(
-            state, Symbol(uppercase(sym1), sym2),
-            islowercase(sym1), (:As, :Se)
-        )
-    elseif sym1 == 'H' # Hydrogen count
-        forward!(state)
-        if isdigit(sym2)
-            num = parse(Int, sym2)
-            forward!(state)
-        elseif sym2 == 'H' # [HH] looks awkward, but often accepted
-            num = 2
-            forward!(state)
-        else
-            num = 1
-        end
-        return (total_hydrogens=num,)
-    elseif haskey(ATOMSYMBOLMAP, Symbol(uppercase(sym1)))
-        # Single letter atoms
-        forward!(state)
-        return atompropsymbol!(
-            state, Symbol(uppercase(sym1)),
-            islowercase(sym1), (:B, :C, :N, :O, :P, :S)
-        )
-    elseif sym1 in keys(SMARTS_CHARGE_SIGN)  # Charge
-        return atompropcharge!(state, sym1, sym2)
-    elseif sym1 == '@'
-        # Stereo: @ -> anticlockwise, @@ -> clockwise
-        forward!(state)
-        cw = :anticlockwise
-        if read(state) == '@'
-            forward!(state)
-            cw = :clockwise
-        end
-        return (stereo=cw,)
-    elseif isdigit(sym1)  # Isotope
-        return atompropisotope!(state)
+    vs = NamedTuple[]
+    hcnt = 0
+    hasiso = isdigit(sym1)
+    if hasiso  # Isotope
+        num = atompropnumber!(state)
+        push!(vs, (mass=num,))
     end
-    return  # can be nothing
+    v = atompropsymcond!(state)
+    if !isnothing(v)
+        push!(vs, v)
+    end
+    hasiso && isnothing(v) && error("(atomprop!) atom symbol not specified")
+    v = atompropcond!(state)
+    while !isnothing(v)
+        if haskey(v, :total_hydrogens)
+            hcnt = v[:total_hydrogens]
+        else
+            push!(vs, v)
+        end
+        v = atompropcond!(state)
+    end
+    isempty(vs) && hcnt == 0 && error("(atomprop!) empty atomprop")
+    # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
+    merged = isempty(vs) ? NamedTuple() : merge(vs...)
+    if !haskey(merged, :symbol)  # special case: [H2]
+        merged = merge(merged, (symbol=:H,))
+        hcnt -= 1
+    end
+    return [V(;merged...), (V(;symbol=:H) for _ in 1:hcnt)...]
 end
 
 
@@ -373,7 +403,7 @@ function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
     sym1 = read(state)
     if sym1 == '['
         forward!(state)
-        props = lghighand!(state, atomprop!)
+        props = atomprop!(state)
         read(state) == ']' || error("(atom)! unexpected token: $(read(state))")
         forward!(state)
     else

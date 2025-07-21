@@ -66,28 +66,6 @@ process tokens found in the given text, and returns nothing if no valid tokens w
 lghighand!(state::SMARTSParser, qtree::QueryTree
     ) = lgoperator!(state, qtree, '&', lgnot!, qand())
 
-function lghighand!(state::SMILESParser{T,V,E}, downstream::F) where {T,V,E,F}
-    vs = NamedTuple[]
-    hcnt = 0
-    v = downstream(state)
-    isnothing(v) && return  # not found
-    while !isnothing(v)
-        if haskey(v, :total_hydrogens)
-            hcnt = v[:total_hydrogens]
-        else
-            push!(vs, v)
-        end
-        v = downstream(state)
-    end
-    isempty(vs) && hcnt == 0 && error("($(string(downstream))) invalid operator '&'")
-    # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
-    merged = isempty(vs) ? NamedTuple() : merge(vs...)
-    if !haskey(merged, :symbol)  # special case: [H2]
-        merged = merge(merged, (symbol=:H,))
-        hcnt -= 1
-    end
-    return [V(;merged...), (V(;symbol=:H) for _ in 1:hcnt)...]
-end
 
 """
     lgnot!(state::SmartsParserState) -> Union{Pair,Nothing}

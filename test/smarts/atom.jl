@@ -190,6 +190,8 @@ end
     @test_throws ErrorException atom!(state)
     state = SMARTSParser{Int,QueryAtom,QueryBond}("[35,37;Cl]")
     @test_throws ErrorException atom!(state)
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("[C@O]")
+    @test_throws ErrorException atom!(state)
 end
 
 @testset "smiles" begin
@@ -251,6 +253,21 @@ end
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[O-2]")
     ox = atom!(state)
     @test only(ox) == SMILESAtom(;symbol=:O, charge=-2)
+
+    state = SMILESParser{Int,SMILESAtom,SMILESBond}("[16]")
+    @test_throws ErrorException atom!(state)
+    state = SMILESParser{Int,SMILESAtom,SMILESBond}("[Cl35]")
+    @test_throws ErrorException atom!(state)
+    state = SMILESParser{Int,SMILESAtom,SMILESBond}("[HC]")
+    @test_throws ErrorException atom!(state)
+    state = SMILESParser{Int,SMILESAtom,SMILESBond}("[C@@N]")
+    @test_throws ErrorException atom!(state)
+    state = SMILESParser{Int,SMILESAtom,SMILESBond}("[*]")
+    @test_throws ErrorException atom!(state)
+    state = SMILESParser{Int,SMILESAtom,SMILESBond}("[OD]")
+    @test_throws ErrorException atom!(state)
+    state = SMILESParser{Int,SMILESAtom,SMILESBond}("[nX2]")
+    @test_throws ErrorException atom!(state)
 end
 
 end # smiles.atom
