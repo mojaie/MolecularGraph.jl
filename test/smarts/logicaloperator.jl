@@ -37,13 +37,7 @@
     @test null == 0
     @test qtree == QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
 
-    state = SMARTSParser{Int,QueryAtom,QueryBond}("a&b")
-    qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
-    and1 = lghighand!(state, qtree)
-    @test and1 == 3
-    @test qtree == QueryTest(querytree([(1, 2), (1, 3)], [qand(), qeq(:v, "a"), qeq(:v, "b")])...)
-
-    state = SMARTSParser{Int,QueryAtom,QueryBond}("abc")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("a&b&cd")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     and2 = lghighand!(state, qtree)
     @test and2 == 4
@@ -51,7 +45,7 @@
         [(1, 2), (1, 3), (1, 4)],
         [qand(), qeq(:v, "a"), qeq(:v, "b"), qeq(:v, "c")])...)
 
-    state = SMARTSParser{Int,QueryAtom,QueryBond}("!ab")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("!a&b")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     not2 = lghighand!(state, qtree)
     @test not2 == 4
@@ -79,14 +73,14 @@
         [(1, 2), (1, 3), (2, 4), (3, 5)],
         [qand(), qnot(), qnot(), qeq(:v, "a"), qeq(:v, "b")])...)
 
-    state = SMARTSParser{Int,QueryAtom,QueryBond}("abcdef")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("a&b&c")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     and4 = lghighand!(state, qtree)
     @test and4 == 4
     @test qtree == QueryTest(querytree(
         [(1, 2), (1, 3), (1, 4)],
         [qand(), qeq(:v, "a"), qeq(:v, "b"), qeq(:v, "c")])...)
-    @test state.pos == 4
+    @test state.pos == 6
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("a,b&c")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
@@ -104,7 +98,7 @@
         [(1, 2), (1, 3), (2, 4), (2, 5)],
         [qand(), qor(), qeq(:v, "c"), qeq(:v, "a"), qeq(:v, "b")])...)
 
-    state = SMARTSParser{Int,QueryAtom,QueryBond}("ac;a!b,c;bx")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("a&c;a!b,c;bx")
     qtree = QueryTest(querytree(Tuple{Int,Int}[], QueryNode[])...)
     comp3 = lglowand!(state, qtree)
     @test comp3 == 11
@@ -113,7 +107,7 @@
         [qand(), qand(), qor(), qeq(:v, "b"), qeq(:v, "a"), qeq(:v, "c"),
         qand(), qeq(:v, "c"), qeq(:v, "a"), qnot(), qeq(:v, "b")])...)
     # (v -> v[1] & v[3] & (v[1] & ~v[2] | v[3]) & v[2]), [(:v, :a), (:v, :b), (:v, :c)]
-    @test state.pos == 11
+    @test state.pos == 12
 end
 
 end # logicalopelator

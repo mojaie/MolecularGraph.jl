@@ -172,21 +172,112 @@ function atompropnumber!(state::AbstractSMARTSParser)
     return num
 end
 
-function atompropatomnumber!(state::SMARTSParser, qtree::QueryTree)
-    forward!(state)
-    num = atompropnumber!(state)
-    return add_qnode!(qtree, qeq(:symbol, string(atom_symbol(num))))
-end
 
 function atompropisotope!(state::SMILESParser)
     num = atompropnumber!(state)
     return (mass=num,)
 end
 
-function atompropisotope!(state::SMARTSParser, qtree::QueryTree)
-    num = atompropnumber!(state)
-    return add_qnode!(qtree, qeq(:mass, string(num)))
+
+"""
+    atompropcond!(state::SMARTSParser, qtree::QueryTree) -> Integer
+
+AtomProp <- '\$(' RecursiveQuery ')' / Stereo / CHG / [DHRrvX]
+"""
+function atompropcond!(state::SMARTSParser, qtree::QueryTree)
+    sym1 = read(state)
+    sym2 = lookahead(state, 1)
+    if haskey(SMARTS_ATOM_COND_SYMBOL, sym1)
+        # Neighbor and ring conditions
+        return atompropcond!(state, qtree, sym1, sym2)
+    elseif sym1 in keys(SMARTS_CHARGE_SIGN)  # Charge
+        return atompropcharge!(state, qtree, sym1, sym2)
+    elseif sym1 == '@'
+        # Stereo: @ -> anticlockwise, @@ -> clockwise, ? -> or not specified
+        forward!(state)
+        cw = false
+        if read(state) == '@'
+            forward!(state)
+            cw = true
+        end
+        if read(state) == '?'
+            forward!(state)
+            node = add_qnode!(qtree, qnot())
+            add_qnode!(qtree, node, qeq(:stereo, cw ? "anticlockwise" : "clockwise"))
+            return node
+        else
+            return add_qnode!(qtree, qeq(:stereo, cw ? "clockwise" : "anticlockwise"))
+        end
+    elseif sym1 == '$' && sym2 == '('  # Recursive
+        forward!(state, 2)
+        start = state.pos
+        toclose = 1
+        while true
+            if read(state) == ')'
+                if toclose == 1
+                    break
+                else
+                    toclose -= 1
+                end
+            elseif read(state) == '('
+                toclose += 1
+            end
+            forward!(state)
+        end
+        q = SubString(state.input, start, state.pos - 1)
+        forward!(state)
+        return add_qnode!(qtree, qeq(:recursive, string(q)))
+    end
+    return 0  # End token found
 end
+
+
+"""
+    atompropsymcond!(state::SMARTSParser, qtree::QueryTree) -> Vector{Integer}
+
+AtomPropSymConds <- Symbol / AtomNum
+"""
+function atompropsymcond!(state::SMARTSParser, qtree::QueryTree)
+    sym1 = read(state)
+    sym2 = lookahead(state, 1)
+    vs = Int[]
+    if sym1 == '\0'  # End token
+        return 0
+    elseif sym1 == '#'  # Atomic number
+        forward!(state)
+        num = atompropnumber!(state)
+        return add_qnode!(qtree, qeq(:symbol, string(atom_symbol(num))))
+    elseif sym2 != '\0' && haskey(ATOMSYMBOLMAP, Symbol(uppercase(sym1), sym2))
+        # Two letter atoms
+        forward!(state, 2)
+         return atompropsymbol!(
+            state, qtree, Symbol(uppercase(sym1), sym2),
+            islowercase(sym1), (:As, :Se)
+        )
+    elseif sym1 == 'A'
+        forward!(state)
+        node = add_qnode!(qtree, qnot())
+        add_qnode!(qtree, node, qtrue(:isaromatic))
+        return node
+    elseif sym1 == 'a'
+        forward!(state)
+        return add_qnode!(qtree, qtrue(:isaromatic))
+    elseif sym1 == '*'
+        forward!(state)
+        return add_qnode!(qtree, qanytrue())
+    elseif sym1 in ('D', 'T')  # D is not a deuterium, but Degree
+        return 0
+    elseif haskey(ATOMSYMBOLMAP, Symbol(uppercase(sym1))) && !isdigit(sym2)  # `H2` is not a symbol, but HydrogenCount
+        # Single letter atoms
+        forward!(state)
+        return atompropsymbol!(
+            state, qtree, Symbol(uppercase(sym1)),
+            islowercase(sym1), (:B, :C, :N, :O, :P, :S)
+        )
+    end
+    return 0
+end
+
 
 """
     atomprop!(state::SMILESParser) -> Union{NamedTuple,Nothing}
@@ -243,82 +334,33 @@ end
 """
     atomprop!(state::SMARTSParser, qtree::QueryTree) -> Integer
 
-AtomProp <- '\$(' RecursiveQuery ')' / Mass / Symbol / AtomNum / Stereo / CHG / [DHRrvX]
+AtomProp <- ((Mass? / AtomPropSymConds) / AtomPropConds)+
 """
 function atomprop!(state::SMARTSParser, qtree::QueryTree)
     sym1 = read(state)
-    sym2 = lookahead(state, 1)
-    if sym2 != '\0' && haskey(ATOMSYMBOLMAP, Symbol(uppercase(sym1), sym2))
-        # Two letter atoms
-        forward!(state, 2)
-        return atompropsymbol!(
-            state, qtree, Symbol(uppercase(sym1), sym2),
-            islowercase(sym1), (:As, :Se)
-        )
-    elseif haskey(SMARTS_ATOM_COND_SYMBOL, sym1)
-        # Neighbor and ring conditions
-        return atompropcond!(state, qtree, sym1, sym2)
-    elseif sym1 == 'A'
-        forward!(state)
-        node = add_qnode!(qtree, qnot())
-        add_qnode!(qtree, node, qtrue(:isaromatic))
-        return node
-    elseif sym1 == 'a'
-        forward!(state)
-        return add_qnode!(qtree, qtrue(:isaromatic))
-    elseif sym1 == '*'
-        forward!(state)
-        return add_qnode!(qtree, qanytrue())
-    elseif haskey(ATOMSYMBOLMAP, Symbol(uppercase(sym1)))
-        # Single letter atoms
-        forward!(state)
-        return atompropsymbol!(
-            state, qtree, Symbol(uppercase(sym1)),
-            islowercase(sym1), (:B, :C, :N, :O, :P, :S)
-        )
-    elseif sym1 == '#'  # Atomic number
-        return atompropatomnumber!(state, qtree)
-    elseif sym1 in keys(SMARTS_CHARGE_SIGN)  # Charge
-        return atompropcharge!(state, qtree, sym1, sym2)
-    elseif sym1 == '@'
-        # Stereo: @ -> anticlockwise, @@ -> clockwise, ? -> or not specified
-        forward!(state)
-        cw = false
-        if read(state) == '@'
-            forward!(state)
-            cw = true
-        end
-        if read(state) == '?'
-            forward!(state)
-            node = add_qnode!(qtree, qnot())
-            add_qnode!(qtree, node, qeq(:stereo, cw ? "anticlockwise" : "clockwise"))
-            return node
-        else
-            return add_qnode!(qtree, qeq(:stereo, cw ? "clockwise" : "anticlockwise"))
-        end
-    elseif isdigit(sym1)  # Isotope
-        return atompropisotope!(state, qtree)
-    elseif sym1 == '$' && sym2 == '('  # Recursive
-        forward!(state, 2)
-        start = state.pos
-        toclose = 1
-        while true
-            if read(state) == ')'
-                if toclose == 1
-                    break
-                else
-                    toclose -= 1
-                end
-            elseif read(state) == '('
-                toclose += 1
-            end
-            forward!(state)
-        end
-        q = SubString(state.input, start, state.pos - 1)
-        forward!(state)
-        return add_qnode!(qtree, qeq(:recursive, string(q)))
+    vs = Int[]
+    hasiso = isdigit(sym1)
+    if hasiso  # Isotope
+        num = atompropnumber!(state)
+        push!(vs, add_qnode!(qtree, qeq(:mass, string(num))))
     end
-    return 0  # End token found
+    v = atompropsymcond!(state, qtree)
+    if v != 0
+        push!(vs, v)
+    end
+    hasiso && v == 0 && error("(atomprop!) atom symbol not specified")
+    v = atompropcond!(state, qtree)
+    while v != 0
+        push!(vs, v)
+        v = atompropcond!(state, qtree)
+    end
+    isempty(vs) && error("(atomprop!) empty atomprop")
+    length(vs) == 1 && return vs[1]
+    node = add_qnode!(qtree, qand())
+    for i in vs
+        add_qedge!(qtree, node, i)
+    end
+    return node
 end
 
 

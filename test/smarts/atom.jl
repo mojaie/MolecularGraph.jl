@@ -40,10 +40,7 @@ end
         [(1, 2), (1, 3)], [qand(), qeq(:symbol, "S"), qtrue(:isaromatic)])
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("123")
-    qtree = QueryAtom()
-    iso = atomprop!(state, qtree)
-    @test iso == 1
-    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:mass, "123")])
+    @test_throws ErrorException atomprop!(state, QueryAtom())
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("H41")
     qtree = QueryAtom()
@@ -73,11 +70,8 @@ end
     state = SMARTSParser{Int,QueryAtom,QueryBond}("Yv2")
     qtree = QueryAtom()
     yatom = atomprop!(state, qtree)
-    @test yatom == 1
-    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "Y")])
-    yval = atomprop!(state, qtree)
-    @test yval == 2
-    qtree.vprops[2] == qeq(:valence, "2")
+    @test yatom == 3
+    @test qtree == QueryAtom([(1, 2), (1, 3)], [qand(), qeq(:symbol, "Y"), qeq(:valence, "2")])
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("+23")
     qtree = QueryAtom()
@@ -86,19 +80,19 @@ end
     @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:charge, "2")])
     @test state.pos == 3  # Next, read '3'
 
-    state = SMARTSParser{Int,QueryAtom,QueryBond}("----+")
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("----1")
     qtree = QueryAtom()
     chg2 = atomprop!(state, qtree)
     @test chg2 == 1
     @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:charge, "-4")])
-    @test state.pos == 5  # Next, read '+'
+    @test state.pos == 5  # Next, read '1'
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("@+")
     qtree = QueryAtom()
     stereo1 = atomprop!(state, qtree)
-    @test stereo1 == 1
-    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:stereo, "anticlockwise")])
-    @test state.pos == 2  # Next, read '+'
+    @test stereo1 == 3
+    @test qtree == QueryAtom(
+        [(1, 2), (1, 3)], [qand(), qeq(:stereo, "anticlockwise"), qeq(:charge, "1")])
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("@@?")  # clockwise or unspecified (racemate)
     qtree = QueryAtom()
@@ -148,6 +142,12 @@ end
         [(1, 2), (1, 3), (2, 4), (2, 5), (5, 6)],
         [qand(), qand(), qeq(:total_hydrogens, "2"), qeq(:symbol, "C"), qnot(), qtrue(:isaromatic)])
 
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("[#8D]")
+    hydroxyl = atom!(state)
+    @test only(hydroxyl) == QueryAtom(
+        [(1, 2), (1, 3)],
+        [qand(), qeq(:symbol, "O"), qeq(:degree, "1")])
+
     state = SMARTSParser{Int,QueryAtom,QueryBond}("[!C;R]")
     ringnotalp = atom!(state)
     @test only(ringnotalp) == QueryAtom(
@@ -161,6 +161,12 @@ end
         [(1, 2), (1, 3), (2, 4), (2, 5)],
         [qand(), qand(), qeq(:total_hydrogens, "1"),
         qeq(:symbol, "N"), qtrue(:isaromatic)])
+
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("[X3,r5]")
+    x3r5 = atom!(state)
+    @test only(x3r5) == QueryAtom(
+        [(1, 2), (1, 3)],
+        [qor(), qeq(:connectivity, "3"), qeq(:smallest_ring, "5")])
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("[*r6]")
     sixmem = atom!(state)
@@ -177,6 +183,13 @@ end
     @test only(fourhalo) == QueryAtom(
         [(1, 2), (1, 3), (1, 4), (1, 5)],
         [qor(), qeq(:symbol, "F") ,qeq(:symbol, "Cl") ,qeq(:symbol, "Br") ,qeq(:symbol, "I")])
+
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("[14]")
+    @test_throws ErrorException atom!(state)
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("[D2*]")
+    @test_throws ErrorException atom!(state)
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("[35,37;Cl]")
+    @test_throws ErrorException atom!(state)
 end
 
 @testset "smiles" begin

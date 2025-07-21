@@ -15,7 +15,7 @@ function lgoperator!(
         if read(state) == token
             forward!(state)
             v = downstream(state, qtree)
-        elseif token == '&'
+        elseif read(state) == '!'  # `&!`
             v = downstream(state, qtree)
         else
             break
