@@ -18,52 +18,12 @@ function initcanvas! end
 
 
 """
-    atommarkupleft(
-        canvas::Canvas, atomsymbol::Symbol, charge::Int, implicith::Int) -> String
-
-Return a HTML or SVG text of the atom and implicit hydrogens in a right-to-left direction.
-
-The number of hydrogens is expressed as a subscript and the number of charges as a superscript.
-"""
-function atommarkupleft end
-
-
-"""
-    atommarkupright(
-        canvas::Canvas, atomsymbol::Symbol, charge::Int, implicith::Int) -> String
-
-Return a HTML or SVG text of the atom and implicit hydrogens in a left-to-right direction.
-
-The number of hydrogens is expressed as a subscript and the number of charges as a superscript.
-"""
-function atommarkupright end
-
-
-"""
-    drawtextleft!(
-        canvas::Canvas, coords::Array{Float64,2}, text::String, color::Color)
+    drawtext!(
+        canvas::Canvas, coords::Array{Float64,2}, text::String, color::Color, align::Symbol)
 
 Draw characters of an atom and implicit hydrogens in a right-to-left direction.
 """
-function drawtextleft! end
-
-
-"""
-    drawtextcenter!(
-        canvas::Canvas, coords::Array{Float64,2}, text::String, color::Color)
-
-Draw characters of an atom and implicit hydrogens between bonds.
-"""
-function drawtextcenter! end
-
-
-"""
-    drawtextright!(
-        canvas::Canvas, coords::Array{Float64,2}, text::String, color::Color)
-
-Draw characters of an atom and implicit hydrogens in a left-to-right direction.
-"""
-function drawtextright! end
+function drawtext! end
 
 
 """

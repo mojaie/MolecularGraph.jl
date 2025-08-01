@@ -17,13 +17,12 @@ using Graphs:
 
 using MolecularGraph:
     MolecularGraph, Canvas, SimpleMolGraph,
-    initcanvas!, atommarkupleft, atommarkupright,
-    drawtextleft!, drawtextcenter!, drawtextright!,
-    drawtextannot!, drawtexthighlight!,
+    initcanvas!, atom_markup,
+    drawtext!, drawtextannot!, drawtexthighlight!,
     drawline!, drawdashedline!, drawwedge!, drawdashedwedge!,
     drawwave!, drawlinehighlight!,
     is_atom_visible, transformmatrix,
-    draw2d!, sethighlight!, drawatomindex!, atomhtml
+    draw2d!, sethighlight!, drawatomindex!
 
 using Cairo:
     Cairo, CairoContext, CairoMatrix,
@@ -70,7 +69,7 @@ mutable struct CairoCanvas <: Canvas
         canvas.wedgewidth = 4.5
         canvas.wavewidth = 4.5
         canvas.triminner = 3.0
-        canvas.trimoverlap = 8.0
+        canvas.trimoverlap = 9.0
         canvas.linehlwidth = 9.0
         canvas.annotsizef = 0.7
         canvas.hlsizef = 0.8
@@ -159,37 +158,29 @@ function MolecularGraph.initcanvas!(
 end
 
 
-MolecularGraph.atommarkupleft(canvas::CairoCanvas, symbol, charge, implicith) = atomhtml(
-    symbol, charge, implicith, :left)
-
-MolecularGraph.atommarkupright(canvas::CairoCanvas, symbol, charge, implicith) = atomhtml(
-    symbol, charge, implicith, :right)
+const CAIRO_ATOM_MARKUP = Dict(:sub => ("<sub>", "</sub>"), :sup => ("<sup>", "</sup>"))
+const CAIRO_ATOM_TEXT_HALIGN = Dict(:left => "right", :center => "center", :right => "left")
+const CAIRO_ATOM_TEXT_XOFFSET = Dict(:left => 1, :center => 0, :right => -1)
 
 
-function drawtextcairo!(canvas::CairoCanvas, pos, text, color, fxoff, halign)
+function MolecularGraph.drawtext!(canvas::CairoCanvas, pos, markup, color, align)
+    text = atom_markup(markup, CAIRO_ATOM_MARKUP)
+    halign = CAIRO_ATOM_TEXT_HALIGN[align]
+    xoff = CAIRO_ATOM_TEXT_XOFFSET[align]
     fs = round(canvas.fontsize * canvas.cairoscalef, digits=1)
     Cairo.set_font_face(canvas.context, join([canvas.fontfamily, canvas.fontweight, fs], " "))
     Cairo.set_source(canvas.context, color)
     cext = Cairo.text_extents(canvas.context, "C")
-    x_exof = 0.5 # TODO: x-extra offset
-    y_exof = -2.0  # TODO: y-extra offset
-    xoffset = fxoff(cext[3]) + x_exof  # extent of character "C": xb, yb, w, h, xa, ya
-    yoffset = cext[4] / 2 + y_exof
+    exof = Point2d(0.5, -2.0)  # TODO: extra offset
+    xoffset = cext[3] * xoff  # extent of character "C": xb, yb, w, h, xa, ya
+    yoffset = cext[4] / 2
+    pos_ = pos + Point2d(xoffset, yoffset) + exof
     Cairo.text(
-        canvas.context, pos[1] + xoffset, pos[2] + yoffset,
+        canvas.context, pos_[1], pos_[2],
         text, halign=halign, valign="center", markup=true
     )
     return
 end
-
-MolecularGraph.drawtextleft!(canvas::CairoCanvas, pos, text, color) = drawtextcairo!(
-    canvas, pos, text, color, x -> x, "right")
-
-MolecularGraph.drawtextcenter!(canvas::CairoCanvas, pos, text, color) = drawtextcairo!(
-    canvas, pos, text, color, x -> 0, "center")
-
-MolecularGraph.drawtextright!(canvas::CairoCanvas, pos, text, color) = drawtextcairo!(
-    canvas, pos, text, color, x -> -x, "left")
 
 
 function MolecularGraph.drawtextannot!(canvas::CairoCanvas, pos, text, color, bgcolor)

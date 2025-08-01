@@ -38,7 +38,7 @@ mutable struct SvgCanvas <: Canvas
         canvas.wedgewidth = 4.5
         canvas.wavewidth = 4.5
         canvas.triminner = 3.0
-        canvas.trimoverlap = 8.0
+        canvas.trimoverlap = 9.0
         canvas.linehlwidth = 9.0
         canvas.annotsizef = 0.7
         canvas.hlsizef = 1.2
@@ -186,39 +186,25 @@ function initcanvas!(
 end
 
 
-function atommarkupsvg(canvas::SvgCanvas, symbol, charge, implicith, direction)
-    small = round(Int, canvas.fontsize * 0.7)
-    return atommarkup(
-        symbol, charge, implicith, direction,
-        """<tspan baseline-shift="-25%" font-size="$(small)">""", "</tspan>",
-        """<tspan baseline-shift="50%" font-size="$(small)">""", "</tspan>"
-    )
-end
-
-atommarkupleft(canvas::SvgCanvas, symbol, charge, implicith) = atommarkupsvg(
-    canvas, symbol, charge, implicith, :left)
-
-atommarkupright(canvas::SvgCanvas, symbol, charge, implicith) = atommarkupsvg(
-    canvas, symbol, charge, implicith, :right)
+const SVG_ATOM_MARKUP = Dict(
+    :sub => ("""<tspan baseline-shift="-25%" font-size="70%">""", "</tspan>"),
+    :sup => ("""<tspan baseline-shift="50%" font-size="70%">""", "</tspan>")
+)
+const SVG_ATOM_TEXT_ANCHOR = Dict(
+        :left => """ text-anchor="end" """, :center => """ text-anchor="middle" """, :right => "")
+const SVG_ATOM_TEXT_XOFFSET = Dict(:left => 1, :center => 0, :right => -1)
 
 
-function drawtextsvg!(canvas::SvgCanvas, pos, text, color, anchor, xoffset)
-    x_exof = 0.5 # TODO: x-extra offset
-    y_exof = -2.0  # TODO: y-extra offset
-    xy = svgcoords(pos + Point2d(xoffset + x_exof, canvas.fontsize / 2 + y_exof))
+function drawtext!(canvas::SvgCanvas, pos, markup, color, align)
+    text = atom_markup(markup, SVG_ATOM_MARKUP)
+    anchor = SVG_ATOM_TEXT_ANCHOR[align]
+    xoffset = SVG_ATOM_TEXT_XOFFSET[align]
+    exof = Point2d(0.5, -2.0)  # TODO: extra offset
+    xy = svgcoords(pos + Point2d(xoffset, 1) * canvas.fontsize / 2 + exof)
     elem = """<text $(xy) font-size="$(canvas.fontsize)" fill="$(svgcolor(color))"$(anchor)>$(text)</text>"""
     push!(canvas.elements, elem)
     return
 end
-
-drawtextleft!(canvas::SvgCanvas, pos, text, color) = drawtextsvg!(
-    canvas, pos, text, color, """ text-anchor="end" """, canvas.fontsize / 2)
-
-drawtextcenter!(canvas::SvgCanvas, pos, text, color) = drawtextsvg!(
-    canvas, pos, text, color, """ text-anchor="middle" """, 0)
-
-drawtextright!(canvas::SvgCanvas, pos, text, color) = drawtextsvg!(
-    canvas, pos, text, color, " ", canvas.fontsize / -2)
 
 
 function drawtextannot!(canvas::SvgCanvas, pos, text, color, bgcolor)

@@ -110,25 +110,49 @@ function chargesign(charge::Int)
 end
 
 
-function atommarkup(symbol, charge, implicith, direction,
-                    substart, subend, supstart, supend)
-    if implicith == 1
-        hs = "H"
-    elseif implicith > 1
-        hs = string("H", substart, implicith, subend)
-    else
-        hs = ""
+function atom_markup(contents::Vector{Tuple{Symbol,String}}, mapping::Dict{Symbol,Tuple{String,String}})
+    texts = String[]
+    for (tag, cont) in contents
+        if tag === :default
+            push!(texts, cont)
+        else
+            st, ed = mapping[tag]
+            push!(texts, st, cont, ed)
+        end
     end
-    chg = charge == 0 ? "" : string(supstart, chargesign(charge), supend)
-    txt = direction == :left ? [chg, hs, symbol] : [symbol, hs, chg]
-    return string(txt...)
+    return join(texts)
 end
 
 
-atomhtml(
-    symbol, charge, implicith, direction
-) = atommarkup(
-    symbol, charge, implicith, direction, "<sub>", "</sub>", "<sup>", "</sup>")
+function atom_markup(sym::Symbol, charge::Int, implicith::Int)
+    contents = [[(:default, string(sym))]]
+    if implicith == 1
+        push!(contents, [(:default, "H")])
+    elseif implicith > 1
+        push!(contents, [(:default, "H"), (:sub, string(implicith))])
+    end
+    if charge != 0
+        push!(contents, [(:sup, chargesign(charge))])
+    end
+    return contents
+end
+
+
+function atom_markup(mol::SimpleMolGraph)
+    arr = Vector{Vector{Vector{Tuple{Symbol,String}}}}(undef, nv(mol))
+    sym = atom_symbol(mol)
+    chg = atom_charge(mol)
+    imph = implicit_hydrogens(mol)
+    for i in vertices(mol)
+        atom = props(mol, i)
+        if hasproperty(atom, :label)
+            arr[i] = atom_markup(atom)
+        else
+            arr[i] = atom_markup(sym[i], chg[i], imph[i])
+        end
+    end
+    return arr
+end
 
 
 """
@@ -287,13 +311,12 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     # Canvas settings
     initcanvas!(canvas, crds, boundary(mol, crds))
     # Properties
-    atomsymbol_ = atom_symbol(mol)
-    charge_ = atom_charge(mol)
     implicith_ = implicit_hydrogens(mol)
     bondorder_ = bond_order(mol)
     atomcolor_ = atom_color(mol; kwargs...)
     isatomvisible_ = is_atom_visible(mol; kwargs...)
     bondstyle_ = bond_style(mol.graph, bondorder_, draw2d_bond_style(mol), crds, sssr(mol))
+    atommarkup_ = atom_markup(mol)
 
     # Draw bonds
     for (i, e) in enumerate(edges(mol))
@@ -323,19 +346,16 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
             end
             if isempty(cosnbrs) || minimum(cosnbrs) > 0
                 # [atom]< or isolated node(ex. H2O, HCl)
-                mk = atommarkupleft(canvas, atomsymbol_[i], charge_[i], implicith_[i])
-                drawtextleft!(canvas, pos, mk, atomcolor_[i])
+                drawtext!(canvas, pos, vcat(reverse(atommarkup_[i])...), atomcolor_[i], :left)
                 continue
             elseif maximum(cosnbrs) < 0
                 # >[atom]
-                mk = atommarkupright(canvas, atomsymbol_[i], charge_[i], implicith_[i])
-                drawtextright!(canvas, pos, mk, atomcolor_[i])
+                drawtext!(canvas, pos, vcat(atommarkup_[i]...), atomcolor_[i], :right)
                 continue
             end
         end
         # -[atom]- or no hydrogens
-        mk = atommarkupright(canvas, atomsymbol_[i], charge_[i], implicith_[i])
-        drawtextcenter!(canvas, pos, mk, atomcolor_[i])
+        drawtext!(canvas, pos, vcat(atommarkup_[i]...), atomcolor_[i], :center)
     end
     return
 end

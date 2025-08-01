@@ -27,8 +27,8 @@
         @test db[12] === :none  # 10 = 13
     end
 
-    @testset "atomhtml" begin
-        @test atomhtml(:C, 0, 3, :right) == "CH<sub>3</sub>"
-        @test atomhtml(:N, 1, 4, :left) == "<sup>+</sup>H<sub>4</sub>N"
+    @testset "atom_markup" begin
+        @test atom_markup(:C, 0, 3) == [[(:default, "C")], [(:default, "H"), (:sub, "3")]]
+        @test atom_markup(:N, 1, 4) == [[(:default, "N")], [(:default, "H"), (:sub, "4")], [(:sup, "+")]]
     end
 end
