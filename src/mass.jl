@@ -7,13 +7,18 @@ const DEFAULT_WEIGHT_DIGITS = 2
 const DEFAULT_MASS_DIGITS = 6
 
 
+function atom_mass_unc(atom::AbstractAtom, massfunc::F) where F
+    return massfunc(atom_symbol(atom), atom_mass(atom))
+end
+
+
 function molecular_mass_unc(mol::SimpleMolGraph, massfunc::F) where F
     mass = 0.0
     unc = 0.0
     hm, hu = massfunc(:H)
     imp_hs = implicit_hydrogens(mol)
     for i in vertices(mol)
-        m, u = massfunc(props(mol, i))
+        m, u = atom_mass_unc(props(mol, i), massfunc)
         mass += m + hm * imp_hs[i]
         unc += u + hu * imp_hs[i]
     end
@@ -31,14 +36,14 @@ Return a tuple of monoisotopic mass of the atom/molecule and its uncertainty.
 
 Monoisotopic mass is the relative atomic mass of the most abundant isotope. Even if there is specific `Atom.mass` value, it will be ignored.
 """
-function monoiso_mass_unc(atomsymbol::Symbol)
+function monoiso_mass_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
     num = atom_number(atomsymbol)
     mass = ATOMTABLE[num]["Monoisotopic"]
     unc = ATOMTABLE[num]["MonoisotopicUncertainty"]
     return (mass, unc)
 end
 
-monoiso_mass_unc(atom::AbstractAtom) = monoiso_mass_unc(atom_symbol(atom))
+monoiso_mass_unc(atom::AbstractAtom) = atom_mass_unc(atom, monoiso_mass_unc)
 monoiso_mass_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, monoiso_mass_unc)
 
 
@@ -90,7 +95,7 @@ function exact_mass_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
     return (mass, unc)
 end
 
-exact_mass_unc(atom::AbstractAtom) = exact_mass_unc(atom_symbol(atom), atom_mass(atom))
+exact_mass_unc(atom::AbstractAtom) = atom_mass_unc(atom, exact_mass_unc)
 exact_mass_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, exact_mass_unc)
 
 
@@ -136,7 +141,7 @@ function standard_weight_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=not
     return (wt, unc)
 end
 
-standard_weight_unc(atom::AbstractAtom) = standard_weight_unc(atom_symbol(atom), atom_mass(atom))
+standard_weight_unc(atom::AbstractAtom) = atom_mass_unc(atom, standard_weight_unc)
 standard_weight_unc(mol::SimpleMolGraph) = molecular_mass_unc(mol, standard_weight_unc)
 
 """
