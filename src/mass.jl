@@ -26,6 +26,18 @@ function molecular_mass_unc(mol::SimpleMolGraph, massfunc::F) where F
 end
 
 
+function molecular_mass_unc(counter::Dict{Symbol,Int}, massfunc::F) where F
+    mass = 0.0
+    unc = 0.0
+    for (sym, cnt) in counter
+        m, u = massfunc(sym)
+        mass += m * cnt
+        unc += u * cnt
+    end
+    return (mass, unc)
+end
+
+
 
 """
     monoiso_mass_unc(atomsymbol::Symbol) -> Tuple{Float64,Float64}
