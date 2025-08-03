@@ -60,18 +60,23 @@ const RASMOL_ATOM_COLOR = Dict(k => RGB{N0f8}((v ./ 255)...) for (k, v) in Dict(
 ))
 
 
+atom_color(atom::AbstractAtom; color_theme=DEFAULT_ATOM_COLOR, kwargs...
+    ) = get(color_theme, atom_symbol(atom), color_theme[:default])
+
+
 """
     atom_color(mol::SimpleMolGraph) -> Vector{RGB}
 
 Return atom colors for molecule 2D drawing
 """
-atom_color(mol::SimpleMolGraph; color_theme=DEFAULT_ATOM_COLOR, kwargs...
-    ) = [get(color_theme, sym, color_theme[:default]) for sym in atom_symbol(mol)]
+atom_color(mol::SimpleMolGraph; kwargs...
+    ) = [atom_color(props(mol, i); kwargs...) for i in vertices(mol)]
+
 
 """
     atom_coloralpha(mol::SimpleMolGraph; alpha=1.0) -> Vector{RGBA}
 
 Return atom colors for molecule 2D drawing
 """
-atom_coloralpha(mol::SimpleMolGraph; alpha=1.0, color_theme=DEFAULT_ATOM_COLOR, kwargs...
-    ) = [coloralpha(get(color_theme, sym, color_theme[:default]), alpha) for sym in atom_symbol(mol)]
+atom_coloralpha(mol::SimpleMolGraph; alpha=1.0, kwargs...
+    ) = [coloralpha(c, alpha) for c in atom_color(mol; kwargs...)]
