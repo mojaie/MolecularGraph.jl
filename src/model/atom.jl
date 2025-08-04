@@ -262,11 +262,14 @@ SMILESAtom(d::Dict{String,Any}
 SMILESAtom(d::Dict{Symbol,Any}
     ) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
+has_isaromatic(::Type{SMILESAtom}) = true
+
 atom_symbol(a::SMILESAtom) = a.symbol
 atom_number(a::SMILESAtom) = atom_number(a.symbol)
 atom_charge(a::SMILESAtom) = a.charge
 multiplicity(a::SMILESAtom) = a.multiplicity
 atom_mass(a::SMILESAtom) = a.mass
+isaromatic(a::SMILESAtom) = a.isaromatic
 
 function to_dict(::Val{:default}, a::SMILESAtom)
     rcd = Dict{String,Any}()

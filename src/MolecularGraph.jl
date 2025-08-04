@@ -33,7 +33,7 @@ include("./property/interface.jl")
 include("./draw/interface.jl")
 
 export
-    Reaction, QueryTree,
+    AbstractAtom, AbstractBond, Reaction, QueryTree,
     vproptype, eproptype,
     props, get_prop, has_prop, set_prop!,
     u_edge, ordered_neighbors, edge_neighbors, ordered_edge_neighbors
@@ -119,8 +119,11 @@ using coordgenlibs_jll: libcoordgen
 include("coords.jl")
 include("stereo.jl")
 include("preprocess.jl")
+include("virtualatom.jl")
 
 export
+    GeneralMolGraph,
+    VirtualAtom, HydrogenatedAtom, FormulaGroup, StructGroup,
     coords2d, has_coords2d, coords3d, has_coords3d,
     coordgen, coordgen!, coords_from_sdf!, update_coords!,
     set_stereocenter!, set_stereobond!, stereo_hydrogen, safe_stereo_hydrogen!,

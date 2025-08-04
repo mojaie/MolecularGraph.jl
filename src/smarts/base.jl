@@ -96,20 +96,19 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 1. Daylight Tutorials https://www.daylight.com/dayhtml_tutorials/index.html
 """
 function smilestomol(
-        ::Type{G}, smiles::AbstractString; kwargs...) where G <: SimpleMolGraph
-    T = eltype(G)
-    V = vproptype(G)
-    E = eproptype(G)
-    state = SMILESParser{T,V,E}(smiles)
+        ::Type{T}, smiles::AbstractString;
+        on_init=smiles_on_init!, on_update=smiles_on_update!, kwargs...) where T <: SimpleMolGraph
+    V = vproptype(T) === AbstractAtom ? SMILESAtom : vproptype(T)
+    E = eproptype(T) === AbstractBond ? SMILESBond : eproptype(T)
+    state = SMILESParser{eltype(T),V,E}(smiles)
     fragment!(state)
     # original edge index
-    gprops = MolProperty{T}(
+    gprops = MolProperty{eltype(T)}(
         smarts_lexical_succ=state.succ,
         smarts_input=string(smiles)
     )
-    return G(state.edges, state.vprops, state.eprops,
-        gprops=gprops, on_init=smiles_on_init!,
-        on_update=smiles_on_update!; kwargs...)
+    return T(state.edges, state.vprops, state.eprops,
+        gprops=gprops, on_init=on_init, on_update=on_update; kwargs...)
 end
 
 smilestomol(smiles::AbstractString; kwargs...
@@ -122,7 +121,7 @@ smilestomol(smiles::AbstractString; kwargs...
 Parse SMARTS string into `QueryMolGraph` object.
 """
 function smartstomol(
-        ::Type{G}, smarts::AbstractString; kwargs...) where G <: SimpleMolGraph
+        ::Type{G}, smarts::AbstractString; on_init=smarts_on_init!, kwargs...) where G <: SimpleMolGraph
     T = eltype(G)
     V = vproptype(G)
     E = eproptype(G)
@@ -134,7 +133,7 @@ function smartstomol(
         smarts_input=string(smarts)
     )
     return G(state.edges, state.vprops, state.eprops,
-        gprops=gprops, on_init=smarts_on_init!; kwargs...)
+        gprops=gprops, on_init=on_init; kwargs...)
 end
 
 smartstomol(smarts::AbstractString; kwargs...

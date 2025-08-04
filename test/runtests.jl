@@ -22,6 +22,7 @@ using MolecularGraph:
 using MolecularGraph:
     ordered_neighbors, u_edge, edge_rank,
     MolProperty, MolDescriptor, remap!, reconstruct, sdf_on_init!,
+    set_descriptor!,
     atomsymbol!, atomprop!, atom!,
     bondsymbol!, bond!,
     QueryNode, root, querytree, canonical,
@@ -31,6 +32,8 @@ using MolecularGraph:
     querypropmap, generate_queryfunc
 
 using MolecularGraph:
+    default_on_update!,
+    markup_formula,
     wclogptype, wclogphydrogentype
 
 using MolecularGraph:
@@ -51,6 +54,10 @@ using MolecularGraph: smiles
 
 using OrderedCollections: OrderedDict
 using Test
+
+
+include("virtualatom.jl")
+
 
 include("./util/geometry.jl")
 include("./util/iterator.jl")

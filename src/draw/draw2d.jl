@@ -97,19 +97,6 @@ function bond_style(g, bondorder, defaultbondstyle, coords_, sssr_)
 end
 
 
-"""
-    chargesign(charge::Int) -> String
-
-Get a charge sign.
-"""
-function chargesign(charge::Int)
-    charge == 0 && return ""
-    sign = charge > 0 ? "+" : "–" # en dash, not hyphen-minus
-    num = abs(charge)
-    return num > 1 ? string(num, sign) : sign
-end
-
-
 function atom_markup(contents::Vector{Tuple{Symbol,String}}, mapping::Dict{Symbol,Tuple{String,String}})
     texts = String[]
     for (tag, cont) in contents
@@ -145,11 +132,7 @@ function atom_markup(mol::SimpleMolGraph)
     imph = implicit_hydrogens(mol)
     for i in vertices(mol)
         atom = props(mol, i)
-        if hasproperty(atom, :label)
-            arr[i] = atom_markup(atom)
-        else
-            arr[i] = atom_markup(sym[i], chg[i], imph[i])
-        end
+        arr[i] = has_label(typeof(atom)) ? atom_markup(atom) : atom_markup(sym[i], chg[i], imph[i])
     end
     return arr
 end

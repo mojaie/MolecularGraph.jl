@@ -387,11 +387,15 @@ Count the number of atoms and return symbol => count dict.
 """
 function atom_counter(mol::SimpleMolGraph)
     counter = Dict{Symbol,Int}()
-    for sym in atom_symbol(mol)
-        if !haskey(counter, sym)
-            counter[sym] = 0
+    for i in vertices(mol)
+        p = props(mol, i)
+        cnt = is_group(typeof(p)) ? atom_counter(p) : Dict(atom_symbol(p) => 1)
+        for (sym, cnt) in cnt
+            if !haskey(counter, sym)
+                counter[sym] = 0
+            end
+            counter[sym] += cnt
         end
-        counter[sym] += 1
     end
     hcnt = reduce(+, implicit_hydrogens(mol); init=0)
     if hcnt > 0
@@ -416,25 +420,49 @@ function heavy_atom_count(mol::SimpleMolGraph)
 end
 
 
-function write_formula(counter::Dict{Symbol,Int})
-    strs = []
+"""
+    chargesign(charge::Int) -> String
+
+Get a charge sign.
+"""
+function chargesign(charge::Int)
+    charge == 0 && return ""
+    sign = charge > 0 ? "+" : "–" # en dash, not hyphen-minus
+    num = abs(charge)
+    return num > 1 ? string(num, sign) : sign
+end
+
+
+function markup_formula(counter_::Dict{Symbol,Int}; charge=0)
+    contents = Vector{Tuple{Symbol,String}}[]
+    counter = copy(counter_)
     if haskey(counter, :C)
-        push!(strs, "C")
+        elems = [(:default, "C")]
         c = pop!(counter, :C)
-        c > 1 && push!(strs, string(c))
+        c > 1 && push!(elems, (:sub, string(c)))
+        push!(contents, elems)
         if haskey(counter, :H)
-            push!(strs, "H")
+            elems = [(:default, "H")]
             h = pop!(counter, :H)
-            h > 1 && push!(strs, string(h))
+            h > 1 && push!(elems, (:sub, string(h)))
+            push!(contents, elems)
         end
     end
     for sym in sort(collect(keys(counter)))
-        push!(strs, string(sym))
+        elems = [(:default, string(sym))]
         cnt = counter[sym]
-        cnt > 1 && push!(strs, string(cnt))
+        cnt > 1 && push!(elems, (:sub, string(cnt)))
+        push!(contents, elems)
     end
-    return join(strs)
+    if charge != 0
+        push!(contents, [(:sup, chargesign(charge))])
+    end
+    return contents
 end
+
+
+write_formula(markup::Vector{Vector{Tuple{Symbol,String}}}) = join(e[2] for e in vcat(markup...))
+write_formula(counter::Dict{Symbol,Int}; kwargs...) = write_formula(markup_formula(counter; kwargs...))
 
 
 """

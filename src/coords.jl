@@ -200,7 +200,7 @@ where n is atom count, which stores 2D coordinates (x, y) of each atoms.
 `styles` is a size e vector of wedge notation of stereobond, where e is bond count.
 """
 function coordgen(
-        g::SimpleGraph{T}, atomsymbol_::Vector{Symbol}, bondorder_::Vector{Int},
+        g::SimpleGraph{T}, atomnum::Vector{Int}, bondorder_::Vector{Int},
         stereocenters::Dict{T,Tuple{T,T,T,Bool}},
         stereobonds::Dict{Edge{T},Tuple{T,T,Bool}}) where T
     minmol = @ccall libcoordgen.getSketcherMinimizer()::Ptr{Cvoid}
@@ -209,9 +209,10 @@ function coordgen(
     er = Dict(e => i for (i, e) in enumerate(edges(g)))
 
     # Atoms
-    for a in atomsymbol_
+    for a in atomnum
+        a = a > 0 ? a : 9  # F as a placeholder of virtual atom
         atom = @ccall libcoordgen.setAtom(
-            minmol::Ptr{Cvoid}, atom_number(a)::Cint)::Ptr{Cvoid}
+            minmol::Ptr{Cvoid}, a::Cint)::Ptr{Cvoid}
         push!(atoms, atom)
     end
 
@@ -274,7 +275,7 @@ end
 function coordgen(mol::SimpleMolGraph)
     dispatch_update!(mol)
     return coordgen(
-        mol.graph, atom_symbol(mol), bond_order(mol),
+        mol.graph, atom_number(mol), bond_order(mol),
         mol.gprops.stereocenter, mol.gprops.stereobond
     )
 end
@@ -286,7 +287,7 @@ function coordgen!(mol::SimpleMolGraph)
     empty!(mol.gprops.descriptors.draw2d_bond_style)
     # TODO: unspecified stereochem in SMILES
     coords, styles = coordgen(
-        mol.graph, atom_symbol(mol), bond_order(mol),
+        mol.graph, atom_number(mol), bond_order(mol),
         get_prop(mol, :stereocenter), get_prop(mol, :stereobond)
     )
     push!(mol.gprops.descriptors.coords2d, coords)

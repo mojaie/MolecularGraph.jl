@@ -419,8 +419,6 @@ end
 
 function MolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
     mol = MolGraph{T,V,E}(reactive_molgraph(args...; kwargs...)...)
-    mol.state.initialized || mol.state.on_init(mol)
-    mol.state.initialized = true
     initialize!(mol)
     return mol
 end

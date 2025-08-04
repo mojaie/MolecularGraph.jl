@@ -159,19 +159,21 @@ function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: Simp
         end
     end
 
+    V = vproptype(T) === AbstractAtom ? SDFAtom : vproptype(T)
+    E = eproptype(T) === AbstractBond ? SDFBond : eproptype(T)
     # Parse atoms
     ver === :v3 && (readuntil(io, "M  V30 BEGIN ATOM"); readline(io))
-    vprops = vproptype(T)[]
+    vprops = V[]
     for _ in 1:atomcount
-        push!(vprops, ctab_atom(vproptype(T), readline(io)))
+        push!(vprops, ctab_atom(V, readline(io)))
     end
 
     # Parse bonds
     ver === :v3 && (readuntil(io, "M  V30 BEGIN BOND"); readline(io))
     edges = edgetype(T)[]
-    eprops = eproptype(T)[]
+    eprops = E[]
     for _ in 1:bondcount
-        edge, eprop = ctab_bond(eltype(T), eproptype(T), readline(io))
+        edge, eprop = ctab_bond(eltype(T), E, readline(io))
         push!(edges, edge)
         push!(eprops, eprop)
     end
@@ -186,7 +188,7 @@ function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: Simp
             d["charge"] = get(ps, :CHG, 0)
             d["multiplicity"] = get(ps, :RAD, 1)
             d["mass"] = get(ps, :ISO, nothing)
-            vprops[i] = vproptype(T)(d)
+            vprops[i] = V(d)
         end
     elseif ver === :v3
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")

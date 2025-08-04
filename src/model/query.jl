@@ -165,8 +165,6 @@ end
 function QueryMolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
     mol = QueryMolGraph{T,V,E}(
         reactive_molgraph(args...; gprops=QueryMolProperty{T}(), kwargs...)...)
-    mol.state.initialized || mol.state.on_init(mol)
-    mol.state.initialized = true
     initialize!(mol)
     return mol
 end

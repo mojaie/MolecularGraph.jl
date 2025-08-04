@@ -120,6 +120,11 @@ The base class of vertex properties (atom).
 """
 abstract type AbstractAtom <: AbstractElement end
 
+is_group(::Type{T}) where T <: AbstractAtom = false
+has_isaromatic(::Type{T}) where T <: AbstractAtom = false
+has_label(::Type{T}) where T <: AbstractAtom = false
+has_hydrogens(::Type{T}) where T <: AbstractAtom = false
+
 
 """
     AbstractBond <: AbstractElement

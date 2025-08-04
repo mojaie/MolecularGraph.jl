@@ -31,12 +31,13 @@ function kekulize(mol::SimpleMolGraph{T}) where T
         arom_vs = T[]
         canbepyl = T[]  # can be pyrrole-like aromatic atom
         for i in ring
-            get_prop(mol, i, :isaromatic) === true || continue  # not nothing or false
+            atmp = props(mol, i)
+            has_isaromatic(typeof(atmp)) && isaromatic(atmp) || continue  # not nothing or false
             if i in mol.gprops.pyrrole_like
                 push!(pyrrole_like, i) # explicit pyrrole-like
                 continue
             end
-            sym = atom_symbol(props(mol, i))
+            sym = atom_symbol(atmp)
             deg = degree(mol.graph, i)
             if deg == 2
                 sym in (:O, :S) && continue  # o, s, se
@@ -51,9 +52,12 @@ function kekulize(mol::SimpleMolGraph{T}) where T
                     hasdouble && continue  # c=O
                     push!(arom_vs, i)
                 else  # sym in (:N, :P, :As)
-                    if atom_charge(props(mol, i)) == 0 && !hasdouble
-                        if any(atom_symbol(props(mol, nbr)) === :H for nbr in neighbors(mol, i))
-                            push!(pyrrole_like, i) # explicit pyrrole-like [nH]
+                    if atom_charge(atmp) == 0 && !hasdouble
+                        # explicit pyrrole-like [nH]
+                        if has_hydrogens(typeof(atmp)) && atmp.hydrogens == 1
+                            push!(pyrrole_like, i)
+                        elseif any(atom_symbol(props(mol, nbr)) === :H for nbr in neighbors(mol, i))
+                            push!(pyrrole_like, i)
                         end
                         continue  # including [nH0X3]
                     end
