@@ -108,53 +108,20 @@ const ATOM_VANDERWAALS_RADII = let
 end
 
 
-# Atom interfaces
-
 """
     atom_number(atomsymbol::Symbol) -> Int
-    atom_number(atomp::AbstractAtom) -> Int
 
 Return an atomic number of the given atom or the atomic symbol.
 """
 atom_number(atomsymbol::Symbol) = ATOMSYMBOLMAP[atomsymbol]
-atom_number(atom::AbstractAtom) = error("atom_number is not implemented for this atom type")
 
 
 """
     atom_symbol(n::Int) -> Symbol
-    atom_symbol(atom::AbstractAtom) -> Symbol
 
 Return an atomic symbol of the given atom or the atomic number.
 """
 atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
-atom_symbol(atom::AbstractAtom) = error("atom_symbol is not implemented for this atom type")
-
-
-"""
-    atom_charge(atom::AbstractAtom) -> Int
-
-Return atomic charge of the given atom.
-"""
-atom_charge(atom::AbstractAtom) = error("atom_charge is not implemented for this atom type")
-
-
-"""
-    multiplicity(atom::AbstractAtom) -> Int
-
-Return multiplicity (num of radicals + 1) of the given atom.
-
-This is experimental feature - free radical chemistry is still not introduced to this library.
-This does nothing for now, but for example, you can set multiplicity=2 to molecular oxygens manually.
-"""
-multiplicity(atom::AbstractAtom) = error("multiplicity is not implemented for this atom type")
-
-
-"""
-    atom_mass(atom::AbstractAtom) -> Int
-
-Return specific atomic mass of given atom, or return nothing if the mass is unspecified.
-"""
-atom_mass(atom::AbstractAtom) = error("atom_mass is not implemented for this atom type")
 
 
 
@@ -163,7 +130,7 @@ atom_mass(atom::AbstractAtom) = error("atom_mass is not implemented for this ato
 
 SDFile (CTAB) atom property type.
 """
-struct SDFAtom <: AbstractAtom
+struct SDFAtom <: StandardAtom
     symbol::Symbol
     charge::Int
     multiplicity::Int
@@ -227,7 +194,7 @@ end
 
 SMILES atom property type.
 """
-struct SMILESAtom <: AbstractAtom
+struct SMILESAtom <: StandardAtom
     symbol::Symbol
     charge::Int
     multiplicity::Int
@@ -297,7 +264,7 @@ end
 
 CommonChem atom property type.
 """
-struct CommonChemAtom <: AbstractAtom
+struct CommonChemAtom <: StandardAtom
     z::Int
     chg::Int
     impHs::Int

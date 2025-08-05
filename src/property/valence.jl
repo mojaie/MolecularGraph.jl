@@ -28,7 +28,7 @@ the given molecule.
 """
 function atom_symbol(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return [atom_symbol(props(mol, i)) for i in vertices(mol)]
+    return Symbol[atom_symbol(props(mol, i)) for i in vertices(mol)]
 end
 
 
@@ -40,7 +40,7 @@ the given molecule.
 """
 function atom_number(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return [atom_number(props(mol, i)) for i in vertices(mol)]
+    return Int[atom_number(props(mol, i)) for i in vertices(mol)]
 end
 
 
@@ -55,12 +55,12 @@ function atom_charge(mol::SimpleMolGraph)
     if has_descriptor(mol, :atom_charge)
         return get_descriptor(mol, :atom_charge)
     end
-    return [atom_charge(props(mol, i)) for i in vertices(mol)]
+    return Int[atom_charge(props(mol, i)) for i in vertices(mol)]
 end
 
 default_atom_charge!(mol::SimpleMolGraph) = setproperty!(
     mol.gprops.descriptors, :atom_charge,
-    [atom_charge(props(mol, i)) for i in vertices(mol)]
+    Int[atom_charge(props(mol, i)) for i in vertices(mol)]
 )
 
 
@@ -72,7 +72,7 @@ the given molecule (1: non-radical, 2: radical, 3: biradical).
 """
 function multiplicity(mol::SimpleMolGraph)
     dispatch_update!(mol)
-    return [multiplicity(props(mol, i)) for i in vertices(mol)]
+    return Int[multiplicity(props(mol, i)) for i in vertices(mol)]
 end
 
 
@@ -87,12 +87,12 @@ function bond_order(mol::SimpleMolGraph)
     if has_descriptor(mol, :bond_order)
         return get_descriptor(mol, :bond_order)
     end
-    return [bond_order(props(mol, e)) for e in edges(mol)]
+    return Int[bond_order(props(mol, e)) for e in edges(mol)]
 end
 
 default_bond_order!(mol::SimpleMolGraph) = setproperty!(
     mol.gprops.descriptors, :bond_order,
-    [bond_order(props(mol, e)) for e in edges(mol)]
+    Int[bond_order(props(mol, e)) for e in edges(mol)]
 )
 
 # mass -> src/mass.jl
@@ -379,30 +379,78 @@ rotatable_count(mol::SimpleMolGraph) = reduce(+, is_rotatable(mol); init=0)
 
 
 # Composition
+function _inc!(counter::Dict{Symbol,Int}, sym::Symbol, cnt=1)
+    if !haskey(counter, sym)
+        counter[sym] = 0
+    end
+    counter[sym] += cnt
+end
 
-"""
-    atom_counter(mol::SimpleMolGraph) -> Dict{Symbol,Int}
-
-Count the number of atoms and return symbol => count dict.
-"""
-function atom_counter(mol::SimpleMolGraph)
+function _atom_counter(mol::SimpleMolGraph)
     counter = Dict{Symbol,Int}()
-    for i in vertices(mol)
-        p = props(mol, i)
-        cnt = is_group(typeof(p)) ? atom_counter(p) : Dict(atom_symbol(p) => 1)
-        for (sym, cnt) in cnt
-            if !haskey(counter, sym)
-                counter[sym] = 0
-            end
-            counter[sym] += cnt
-        end
+    for sym in atom_symbol(mol)
+        haskey(ATOMSYMBOLMAP, sym) || continue
+        _inc!(counter, sym)
     end
     hcnt = reduce(+, implicit_hydrogens(mol); init=0)
     if hcnt > 0
-        if !haskey(counter, :H)
-            counter[:H] = 0
+        _inc!(counter, :H, hcnt)
+    end
+    return counter
+end
+
+
+"""
+    atom_counter(mol::ReactiveMolGraph) -> Dict{Symbol,Int}
+
+Count the number of atoms and return symbol => count dict.
+"""
+function atom_counter(mol::ReactiveMolGraph{T,V,E}) where {T,V<:StandardAtom,E<:StandardBond}
+    return _atom_counter(mol)
+end
+
+
+function atom_counter(mol::ReactiveMolGraph{T,V,E}) where {T,V<:AbstractAtom,E<:AbstractBond}
+    counter = _atom_counter(mol)
+    # count groups
+    for i in vertices(mol)
+        p = props(mol, i)
+        if is_group(typeof(p))
+            for (sym, cnt) in atom_counter(p)
+                _inc!(counter, sym, cnt)
+            end
+        elseif has_label(typeof(p))
+            _inc!(counter, atom_symbol(p))
         end
-        counter[:H] += hcnt
+    end
+    # virtual bond correction
+    for e in edges(mol)
+        p = props(mol, e)
+        is_group(typeof(p)) || continue
+        if p.src > 0
+            src = props(mol, e.src)
+            implhs = implicit_hydrogens(src.mol)
+            if p.srcsub
+                asym = atom_symbol(src.mol)
+                counter[asym[p.src]] -= 1
+                counter[:H] -= implhs[p.src]
+            else
+                implhs[p.src] == 0 && error("invalid valence")
+                counter[:H] -= 1
+            end
+        end
+        if p.dst > 0
+            dst = props(mol, e.dst)
+            implhs = implicit_hydrogens(dst.mol)
+            if p.dstsub
+                asym = atom_symbol(dst.mol)
+                counter[asym[p.dst]] -= 1
+                counter[:H] -= implhs[p.dst]
+            else
+                implhs[p.dst] == 0 && error("invalid valence")
+                counter[:H] -= 1
+            end
+        end
     end
     return counter
 end

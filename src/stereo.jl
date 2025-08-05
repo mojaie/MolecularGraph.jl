@@ -237,10 +237,10 @@ end
 
 stereocenter_from_sdf2d(mol::SimpleMolGraph) = stereocenter_from_sdf2d(
     mol.graph,
-    [get_prop(mol, i, :symbol) for i in vertices(mol)],
-    [get_prop(mol, e, :order) for e in edges(mol)],
-    [get_prop(mol, e, :notation) for e in edges(mol)],
-    [get_prop(mol, e, :isordered) for e in edges(mol)],
+    Symbol[get_prop(mol, i, :symbol) for i in vertices(mol)],
+    Int[get_prop(mol, e, :order) for e in edges(mol)],
+    Int[get_prop(mol, e, :notation) for e in edges(mol)],
+    Bool[get_prop(mol, e, :isordered) for e in edges(mol)],
     get_descriptor(mol, :coords2d)[1]
 )
 
@@ -284,7 +284,7 @@ end
 
 stereocenter_from_smiles(mol::SimpleMolGraph) = stereocenter_from_smiles(
     mol.graph, get_prop(mol, :smarts_lexical_succ),
-    [get_prop(mol, i, :stereo) for i in vertices(mol)]
+    Symbol[get_prop(mol, i, :stereo) for i in vertices(mol)]
 )
 
 """
@@ -338,8 +338,8 @@ end
 
 stereobond_from_sdf2d(mol::SimpleMolGraph) = stereobond_from_sdf2d(
     mol.graph,
-    [get_prop(mol, e, :order) for e in edges(mol)],
-    [get_prop(mol, e, :notation) for e in edges(mol)],
+    Int[get_prop(mol, e, :order) for e in edges(mol)],
+    Int[get_prop(mol, e, :notation) for e in edges(mol)],
     mol.gprops.descriptors.coords2d[1]
 )
 
@@ -404,8 +404,8 @@ end
 
 stereobond_from_smiles(mol::SimpleMolGraph) = stereobond_from_smiles(
     mol.graph,
-    [get_prop(mol, e, :order) for e in edges(mol)],
-    [get_prop(mol, e, :direction) for e in edges(mol)]
+    Int[get_prop(mol, e, :order) for e in edges(mol)],
+    Symbol[get_prop(mol, e, :direction) for e in edges(mol)]
 )
 
 """

@@ -5,13 +5,6 @@
 
 # Bond interfaces
 
-"""
-    bond_order(bond::AbstractBond) -> Int
-
-Return bond order of the given bond.
-"""
-bond_order(bond::AbstractBond) = error("bond_order is not implemented for this bond type")
-
 
 """
     SDFBond
@@ -28,7 +21,7 @@ SDFile (CTAB) bond property type.
         * 0: v = u
         * 3: u x v (Cis-Trans Unknown)
 """
-struct SDFBond <: AbstractBond
+struct SDFBond <: StandardBond
     order::Int
     notation::Int
     isordered::Bool
@@ -76,7 +69,7 @@ end
 
 SMILES bond property type.
 """
-struct SMILESBond <: AbstractBond
+struct SMILESBond <: StandardBond
     order::Int
     isaromatic::Bool
     direction::Symbol  # :up, :down or :unspecified
@@ -123,7 +116,7 @@ end
 
 CommonChem bond property type.
 """
-struct CommonChemBond <: AbstractBond
+struct CommonChemBond <: StandardBond
     type::Int  # bond order
 
     function CommonChemBond(

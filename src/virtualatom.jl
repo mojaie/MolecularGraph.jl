@@ -45,7 +45,7 @@ atom_mass_unc(atom::VirtualAtom, f::F) where F = (0.0, 0.0)
 
 
 
-struct HydrogenatedAtom{T<:AbstractAtom} <: AbstractAtom
+struct HydrogenatedAtom{T<:StandardAtom} <: AbstractAtom
     center::T
     hydrogens::Int
     coords::Union{Vector{Float64},Nothing}
@@ -101,13 +101,23 @@ atom_counter(group::FormulaGroup) = group.formula
 
 
 
-struct StructGroup{T<:SimpleMolGraph,U<:Integer} <: AbstractAtom
-    mol::T
+struct StructGroup{T<:Integer,V<:StandardAtom,E<:StandardBond} <: AbstractAtom
+    mol::MolGraph{T,V,E}
     label::Vector{Vector{Tuple{Symbol,String}}}
+
+    function StructGroup{T,V,E}(
+                mol::MolGraph{T,V,E},
+                label::Vector{Vector{Tuple{Symbol,String}}}) where {T,V,E}
+        new(mol, sanitize_markup(label))
+    end
 end
 
-is_group(::Type{StructGroup}) = true
-has_label(::Type{StructGroup}) = true
+StructGroup(mol::MolGraph{T,V,E}, label::String
+    ) where {T,V,E} = StructGroup{T,V,E}(mol, [[(:default, label)]])
+
+
+is_group(::Type{<:StructGroup}) = true
+has_label(::Type{<:StructGroup}) = true
 
 atom_number(group::StructGroup) = -1
 atom_symbol(group::StructGroup) = Symbol(write_formula(group.label))
@@ -120,24 +130,51 @@ atom_mass_unc(group::StructGroup, f::F) where F = molecular_mass_unc(group.mol, 
 atom_counter(group::StructGroup) = atom_counter(group.mol)
 
 
-struct GroupBond{T<:AbstractBond,U<:Integer} <: AbstractBond
-    bond::T
-    position::U
+
+struct StructGroupBond{T<:Integer,E<:StandardBond} <: AbstractBond
+    bond::E
+    src::T  # -1 if source vertex is not StructGroup
+    dst::T
+    srcsub::Bool
+    dstsub::Bool
 end
 
+StructGroupBond(
+    bond::E; src::T=-1, dst::T=-1, srcsub::Bool=false, dstsub::Bool=false
+) where {T,E} = StructGroupBond{T,E}(bond, src, dst, srcsub, dstsub)
+
+is_group(::Type{<:StructGroupBond}) = true
+
+bond_order(bond::StructGroupBond) = bond_order(bond.bond)
 
 const GeneralMolGraph = MolGraph{Int,AbstractAtom,AbstractBond}
 
 
+# TODO: functional groups (Ph, Bz, Ts ...)
+methyl_group() = HydrogenatedAtom(SMILESAtom(:C), 3, "Me")
+ethyl_group() = StructGroup(smilestomol("CC"), "Et")
+tbutyl_group() = StructGroup(smilestomol("C(C)(C)C"), "tBu")
 
-methyl_group(::Type{T}) where T <: SimpleMolGraph = HydrogenatedAtom(vproptype(T)(:C), 3, "Me")
-ethyl_group(::Type{T}) where T <: SimpleMolGraph = StructGroup(smilestomol(T, "CC"), "Et")
-tbutyl_group(::Type{T}) where T <: SimpleMolGraph = StructGroup(smilestomol(T, "C(C)(C)C"), "tBu")
+gly() = StructGroup(smilestomol("NCC(=O)O"), "Gly")
+ala() = StructGroup(smilestomol("N[C@H](C(=O)O)C"), "Ala")
+ser() = StructGroup(smilestomol("N[C@H](C(=O)O)CO"), "Ser")
+cys() = StructGroup(smilestomol("N[C@H](C(=O)O)CS"), "Cys")
+met() = StructGroup(smilestomol("N[C@H](C(=O)O)CCSC"), "Met")
+lys() = StructGroup(smilestomol("N[C@H](C(=O)O)CCCCN"), "Lys")
+val() = StructGroup(smilestomol("N[C@H](C(=O)O)C(C)C"), "Val")
+thr() = StructGroup(smilestomol("N[C@H](C(=O)O)C(O)C"), "Thr")
+ile() = StructGroup(smilestomol("N[C@H](C(=O)O)C(C)CC"), "Ile")
+leu() = StructGroup(smilestomol("N[C@H](C(=O)O)CC(C)C"), "Leu")
+pro() = StructGroup(smilestomol("N[C@H](C(=O)O)C1NCCC1"), "Pro")
+asn() = StructGroup(smilestomol("N[C@H](C(=O)O)CC(=O)N"), "Asn")
+asp() = StructGroup(smilestomol("N[C@H](C(=O)O)CC(=O)O"), "Asp")
+gln() = StructGroup(smilestomol("N[C@H](C(=O)O)CCC(=O)N"), "Gln")
+glu() = StructGroup(smilestomol("N[C@H](C(=O)O)CCC(=O)O"), "Glu")
+phe() = StructGroup(smilestomol("N[C@H](C(=O)O)Cc1ccccc1"), "Phe")
+arg() = StructGroup(smilestomol("N[C@H](C(=O)O)CCCNC(=N)N"), "Arg")
+his() = StructGroup(smilestomol("N[C@H](C(=O)O)Cc1nc[nH]c1"), "His")
+tyr() = StructGroup(smilestomol("N[C@H](C(=O)O)Cc1ccc(O)cc1"), "Tyr")
+trp() = StructGroup(smilestomol("N[C@H](C(=O)O)Cc1cnc2ccccc12"), "Trp")
 
-gly(::Type{T}) where T <: SimpleMolGraph = StructGroup(smilestomol(T, "NCC(=O)O"), "Gly")
-ala(::Type{T}) where T <: SimpleMolGraph = StructGroup(smilestomol(T, "N[C@H](C(=O)O)C"), "Ala")
-ser(::Type{T}) where T <: SimpleMolGraph = StructGroup(smilestomol(T, "N[C@H](C(=O)O)CO"), "Ser")
-thr(::Type{T}) where T <: SimpleMolGraph = StructGroup(smilestomol(T, "N[C@H](C(=O)O)C(O)C"), "Thr")
-val(::Type{T}) where T <: SimpleMolGraph = StructGroup(smilestomol(T, "N[C@H](C(=O)O)C(C)C"), "Val")
-leu(::Type{T}) where T <: SimpleMolGraph = StructGroup(smilestomol(T, "N[C@H](C(=O)O)CC(C)C"), "Leu")
-ile(::Type{T}) where T <: SimpleMolGraph = StructGroup(smilestomol(T, "N[C@H](C(=O)O)C(C)CC"), "Ile")
+
+# TODO: sugar
