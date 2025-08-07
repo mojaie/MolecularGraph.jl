@@ -121,10 +121,11 @@ The base class of vertex properties (atom).
 """
 abstract type AbstractAtom <: AbstractElement end
 
-is_group(::Type{T}) where T <: AbstractAtom = false
 has_isaromatic(::Type{T}) where T <: AbstractAtom = false
-has_label(::Type{T}) where T <: AbstractAtom = false
+has_mol(::Type{T}) where T <: AbstractAtom = false
+has_formula(::Type{T}) where T <: AbstractAtom = false
 has_hydrogens(::Type{T}) where T <: AbstractAtom = false
+has_label(::Type{T}) where T <: AbstractAtom = false
 
 """
     atom_number(atom::AbstractAtom) -> Int
@@ -180,7 +181,7 @@ The base class of edge properties (bond).
 """
 abstract type AbstractBond <: AbstractElement end
 
-is_group(::Type{T}) where T <: AbstractBond = false
+has_submap(::Type{T}) where T <: AbstractBond = false
 
 
 """

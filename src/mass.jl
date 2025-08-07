@@ -7,9 +7,16 @@ const DEFAULT_WEIGHT_DIGITS = 2
 const DEFAULT_MASS_DIGITS = 6
 
 
-function atom_mass_unc(atom::AbstractAtom, massfunc::F) where F
+function atom_mass_unc(atom::StandardAtom, massfunc::F) where F
     return massfunc(atom_symbol(atom), atom_mass(atom))
 end
+
+atom_mass_unc(atom::AbstractAtom, f::F
+    ) where F = atom_mass_unc(atom, f, Val(has_mol(typeof(atom))))
+# does not consider isotopes
+atom_mass_unc(atom, f::F, ::Val{false}) where F = molecular_mass_unc(atom_counter(atom), f)
+# consider isotopes
+atom_mass_unc(atom, f::F, ::Val{true}) where F = molecular_mass_unc(atom.mol, f)
 
 
 function molecular_mass_unc(mol::SimpleMolGraph, massfunc::F) where F
@@ -22,6 +29,20 @@ function molecular_mass_unc(mol::SimpleMolGraph, massfunc::F) where F
         mass += m + hm * imp_hs[i]
         unc += u + hu * imp_hs[i]
     end
+    # virtual bond correction
+    corr = 0
+    for e in edges(mol)
+        p = props(mol, e)
+        has_submap(typeof(p)) || continue
+        if p.src > 0
+            corr += 1
+        end
+        if p.dst > 0
+            corr += 1
+        end
+    end
+    mass -= hm * corr
+    unc -= hu * corr
     return (mass, unc)
 end
 

@@ -32,18 +32,18 @@ end
 end
 
 @testset "structgroup" begin
-    mol = smilestomol(GeneralMolGraph, "")
-    # add_glu!(mol)
-    # add_cys!(mol, 1, pos=10, substitute=true)  # cterm=false
-    # add_gly!(mol, 2)
-    add_vertex!(mol, MolecularGraph.glu())
+    mol = smilestomol(GeneralMolGraph, "N[C@H](C(=O)O)CCC(=O)")
     add_vertex!(mol, MolecularGraph.cys())
     add_vertex!(mol, MolecularGraph.gly())
-    add_edge!(mol, 1, 2, StructGroupBond(SMILESBond(1), src=11, dst=1, srcsub=true))
-    add_edge!(mol, 2, 3, StructGroupBond(SMILESBond(1), src=6, dst=1, srcsub=true))
+    add_vertex!(mol, SMILESAtom(:O))
+    add_edge!(mol, 9, 11, StructGroupBond(SMILESBond(1), src=-1, dst=1))
+    add_edge!(mol, 11, 12, StructGroupBond(SMILESBond(1), src=4, dst=1))
+    add_edge!(mol, 12, 13, StructGroupBond(SMILESBond(1), src=4, dst=-1))
     @test molecular_formula(mol) == "C10H17N3O6S"
-    # collapse(mol, MolecularGraph.glu())
-    # expand(mol, MolecularGraph.glu())
+    @test isapprox(standard_weight(mol), 307.33, atol=1e-2)
+    @test rotatable_count(mol) == 9
+    # collapse(mol, MolecularGraph.cys())
+    # expand(mol, MolecularGraph.cys())
     # expand(mol)
     @test false
 end

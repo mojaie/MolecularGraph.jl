@@ -20,6 +20,7 @@ mutable struct SvgCanvas <: Canvas
     fontweight::String
     fontfamily::String
     fontsize::Float64
+    fonttagmap::Dict{Symbol,Tuple{String,String}}
     bgcolor::RGB
     bgopacity::Float64
 
@@ -49,6 +50,10 @@ mutable struct SvgCanvas <: Canvas
         canvas.fontweight = "normal"
         canvas.fontfamily = "Helvetica"
         canvas.fontsize = 14.0
+        canvas.fonttagmap = Dict(
+            :sub => ("""<tspan baseline-shift="-25%" font-size="70%">""", "</tspan>"),
+            :sup => ("""<tspan baseline-shift="50%" font-size="70%">""", "</tspan>")
+        )
         canvas.bgcolor = bgcolor
         canvas.bgopacity = bgopacity
 
@@ -186,17 +191,12 @@ function initcanvas!(
 end
 
 
-const SVG_ATOM_MARKUP = Dict(
-    :sub => ("""<tspan baseline-shift="-25%" font-size="70%">""", "</tspan>"),
-    :sup => ("""<tspan baseline-shift="50%" font-size="70%">""", "</tspan>")
-)
 const SVG_ATOM_TEXT_ANCHOR = Dict(
         :left => """ text-anchor="end" """, :center => """ text-anchor="middle" """, :right => "")
 const SVG_ATOM_TEXT_XOFFSET = Dict(:left => 1, :center => 0, :right => -1)
 
 
-function drawtext!(canvas::SvgCanvas, pos, markup, color, align)
-    text = atom_markup(markup, SVG_ATOM_MARKUP)
+function drawtext!(canvas::SvgCanvas, pos, text, color, align)
     anchor = SVG_ATOM_TEXT_ANCHOR[align]
     xoffset = SVG_ATOM_TEXT_XOFFSET[align]
     exof = Point2d(0.5, -2.0)  # TODO: extra offset

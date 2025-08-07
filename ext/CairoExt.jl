@@ -17,7 +17,7 @@ using Graphs:
 
 using MolecularGraph:
     MolecularGraph, Canvas, SimpleMolGraph,
-    initcanvas!, atom_markup,
+    initcanvas!,
     drawtext!, drawtextannot!, drawtexthighlight!,
     drawline!, drawdashedline!, drawwedge!, drawdashedwedge!,
     drawwave!, drawlinehighlight!,
@@ -52,6 +52,7 @@ mutable struct CairoCanvas <: Canvas
     fontweight::String
     fontfamily::String
     fontsize::Float64
+    fonttagmap::Dict{Symbol,Tuple{String,String}}
     bgcolor::RGB
     bgopacity::Float64
 
@@ -80,6 +81,10 @@ mutable struct CairoCanvas <: Canvas
         canvas.fontweight = "Normal"
         canvas.fontfamily = "Sans"
         canvas.fontsize = 11.0
+        canvas.fonttagmap = Dict(
+            :sub => ("<sub>", "</sub>"),
+            :sup => ("<sup>", "</sup>")
+        )
         canvas.bgcolor = bgcolor
         canvas.bgopacity = bgopacity
 
@@ -158,13 +163,11 @@ function MolecularGraph.initcanvas!(
 end
 
 
-const CAIRO_ATOM_MARKUP = Dict(:sub => ("<sub>", "</sub>"), :sup => ("<sup>", "</sup>"))
 const CAIRO_ATOM_TEXT_HALIGN = Dict(:left => "right", :center => "center", :right => "left")
 const CAIRO_ATOM_TEXT_XOFFSET = Dict(:left => 1, :center => 0, :right => -1)
 
 
-function MolecularGraph.drawtext!(canvas::CairoCanvas, pos, markup, color, align)
-    text = atom_markup(markup, CAIRO_ATOM_MARKUP)
+function MolecularGraph.drawtext!(canvas::CairoCanvas, pos, text, color, align)
     halign = CAIRO_ATOM_TEXT_HALIGN[align]
     xoff = CAIRO_ATOM_TEXT_XOFFSET[align]
     fs = round(canvas.fontsize * canvas.cairoscalef, digits=1)
