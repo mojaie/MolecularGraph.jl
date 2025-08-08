@@ -134,17 +134,17 @@ struct SDFAtom <: StandardAtom
     symbol::Symbol
     charge::Int
     multiplicity::Int
-    mass::Union{Int,Nothing}
+    isotope::Int
     coords::Union{Vector{Float64},Nothing}
 
     function SDFAtom(
             symbol::Union{AbstractString,Symbol},
             charge::Int=0,
             multiplicity::Int=1,
-            mass::Union{Int,Nothing}=nothing,
+            isotope::Int=0,
             coords::Union{Vector,Nothing}=nothing)
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("Unsupported atom symbol: $(symbol)")
-        new(Symbol(symbol), charge, multiplicity, mass, coords)
+        new(Symbol(symbol), charge, multiplicity, isotope, coords)
     end
 end
 
@@ -152,10 +152,10 @@ function SDFAtom(;
         symbol::Union{AbstractString,Symbol}=:C,
         charge::Int=0,
         multiplicity::Int=1,
-        mass::Union{Int,Nothing}=nothing,
+        isotope::Int=0,
         coords::Union{Vector,Nothing}=nothing)
     haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("Unsupported atom symbol: $(symbol)")
-    return SDFAtom(Symbol(symbol), charge, multiplicity, mass, coords)
+    return SDFAtom(Symbol(symbol), charge, multiplicity, isotope, coords)
 end
 
 SDFAtom(d::Dict{String,Any}
@@ -163,18 +163,20 @@ SDFAtom(d::Dict{String,Any}
 SDFAtom(d::Dict{Symbol,Any}
     ) = SDFAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
+has_isotope(::Type{SDFAtom}) = true
+
 atom_symbol(a::SDFAtom) = a.symbol
 atom_number(a::SDFAtom) = atom_number(a.symbol)
 atom_charge(a::SDFAtom) = a.charge
 multiplicity(a::SDFAtom) = a.multiplicity
-atom_mass(a::SDFAtom) = a.mass
+isotope(a::SDFAtom) = a.isotope
 
 function to_dict(::Val{:default}, a::SDFAtom)
     rcd = Dict{String,Any}()
     a.symbol === :C || setindex!(rcd, string(a.symbol), "symbol")
     a.charge == 0 || setindex!(rcd, a.charge, "charge")
     a.multiplicity == 1 || setindex!(rcd, a.multiplicity, "multiplicity")
-    isnothing(a.mass) || setindex!(rcd, a.mass, "mass")
+    a.isotope == 0 || setindex!(rcd, a.isotope, "isotope")
     isnothing(a.coords) || setindex!(rcd, a.coords, "coords")
     return rcd
 end
@@ -184,7 +186,7 @@ function to_dict(::Val{:rdkit}, a::SDFAtom)
     a.symbol === :C || setindex!(rcd, atom_number(a.symbol), "z")
     a.charge == 0 || setindex!(rcd, a.charge, "chg")
     a.multiplicity == 1 || setindex!(rcd, a.multiplicity - 1, "nRad")
-    isnothing(a.mass) || setindex!(rcd, a.mass, "isotope")
+    a.isotope == 0 || setindex!(rcd, a.isotope, "isotope")
     return rcd
 end
 
@@ -198,7 +200,7 @@ struct SMILESAtom <: StandardAtom
     symbol::Symbol
     charge::Int
     multiplicity::Int
-    mass::Union{Int,Nothing}
+    isotope::Int
     isaromatic::Bool
     stereo::Symbol
 
@@ -206,10 +208,10 @@ struct SMILESAtom <: StandardAtom
             symbol::Union{AbstractString,Symbol},
             charge::Int=0,
             multiplicity::Int=1,
-            mass::Union{Int,Nothing}=nothing,
+            isotope::Int=0,
             isaromatic::Bool=false,
             stereo::Union{String,Symbol}=:unspecified)
-        new(Symbol(symbol), charge, multiplicity, mass, isaromatic, Symbol(stereo))
+        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo))
     end
 end
 
@@ -217,11 +219,11 @@ function SMILESAtom(;
         symbol::Union{AbstractString,Symbol}=:C,
         charge::Int=0,
         multiplicity::Int=1,
-        mass::Union{Int,Nothing}=nothing,
+        isotope::Int=0,
         isaromatic::Bool=false,
         stereo::Union{String,Symbol}=:unspecified)
     return SMILESAtom(
-        Symbol(symbol), charge, multiplicity, mass, isaromatic, Symbol(stereo))
+        Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo))
 end
 
 SMILESAtom(d::Dict{String,Any}
@@ -229,13 +231,14 @@ SMILESAtom(d::Dict{String,Any}
 SMILESAtom(d::Dict{Symbol,Any}
     ) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
+has_isotope(::Type{SMILESAtom}) = true
 has_isaromatic(::Type{SMILESAtom}) = true
 
 atom_symbol(a::SMILESAtom) = a.symbol
 atom_number(a::SMILESAtom) = atom_number(a.symbol)
 atom_charge(a::SMILESAtom) = a.charge
 multiplicity(a::SMILESAtom) = a.multiplicity
-atom_mass(a::SMILESAtom) = a.mass
+isotope(a::SMILESAtom) = a.isotope
 isaromatic(a::SMILESAtom) = a.isaromatic
 
 function to_dict(::Val{:default}, a::SMILESAtom)
@@ -243,7 +246,7 @@ function to_dict(::Val{:default}, a::SMILESAtom)
     a.symbol === :C || setindex!(rcd, string(a.symbol), "symbol")
     a.charge == 0 || setindex!(rcd, a.charge, "charge")
     a.multiplicity == 1 || setindex!(rcd, a.multiplicity, "multiplicity")
-    isnothing(a.mass) || setindex!(rcd, a.mass, "mass")
+    a.isotope == 0 || setindex!(rcd, a.isotope, "isotope")
     a.isaromatic === false || setindex!(rcd, a.isaromatic, "isaromatic")
     a.stereo === :unspecified || setindex!(rcd, string(a.stereo), "stereo")
     return rcd
@@ -254,7 +257,7 @@ function to_dict(::Val{:rdkit}, a::SMILESAtom)
     a.symbol === :C || setindex!(rcd, atom_number(a.symbol), "z")
     a.charge == 0 || setindex!(rcd, a.charge, "chg")
     a.multiplicity == 1 || setindex!(rcd, a.multiplicity - 1, "nRad")
-    isnothing(a.mass) || setindex!(rcd, a.mass, "isotope")
+    a.isotope == 0 || setindex!(rcd, a.isotope, "isotope")
     return rcd
 end
 
@@ -300,11 +303,13 @@ CommonChemAtom(d::Dict{String,Any}
 CommonChemAtom(d::Dict{Symbol,Any}
     ) = CommonChemAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
+has_isotope(::Type{CommonChemAtom}) = true
+
 atom_symbol(a::CommonChemAtom) = atom_symbol(a.z)
 atom_number(a::CommonChemAtom) = a.z
 atom_charge(a::CommonChemAtom) = a.chg
 multiplicity(a::CommonChemAtom) = a.nRad + 1
-atom_mass(a::CommonChemAtom) = a.isotope == 0 ? nothing : a.mass
+isotope(a::CommonChemAtom) = a.isotope
 
 function to_dict(::Val, a::CommonChemAtom)
     rcd = Dict{String,Any}()

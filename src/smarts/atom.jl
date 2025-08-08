@@ -334,7 +334,7 @@ function atomprop!(state::SMILESParser{T,V,E}) where {T,V,E}
     hasiso = isdigit(sym1)
     if hasiso  # Isotope
         num = atompropnumber!(state)
-        push!(vs, (mass=num,))
+        push!(vs, (isotope=num,))
     end
     v = atompropsymcond!(state)
     if !isnothing(v)
@@ -372,7 +372,7 @@ function atomprop!(state::SMARTSParser, qtree::QueryTree)
     hasiso = isdigit(sym1)
     if hasiso  # Isotope
         num = atompropnumber!(state)
-        push!(vs, add_qnode!(qtree, qeq(:mass, string(num))))
+        push!(vs, add_qnode!(qtree, qeq(:isotope, string(num))))
     end
     v = atompropsymcond!(state, qtree)
     if v != 0

@@ -121,6 +121,7 @@ The base class of vertex properties (atom).
 """
 abstract type AbstractAtom <: AbstractElement end
 
+has_isotope(::Type{T}) where T <: AbstractAtom = false
 has_isaromatic(::Type{T}) where T <: AbstractAtom = false
 has_mol(::Type{T}) where T <: AbstractAtom = false
 has_formula(::Type{T}) where T <: AbstractAtom = false
@@ -161,13 +162,6 @@ This does nothing for now, but for example, you can set multiplicity=2 to molecu
 """
 multiplicity(atom::AbstractAtom) = error("multiplicity is not implemented for this atom type")
 
-
-"""
-    atom_mass(atom::AbstractAtom) -> Int
-
-Return specific atomic mass of given atom, or return nothing if the mass is unspecified.
-"""
-atom_mass(atom::AbstractAtom) = error("atom_mass is not implemented for this atom type")
 
 
 abstract type StandardAtom <: AbstractAtom end

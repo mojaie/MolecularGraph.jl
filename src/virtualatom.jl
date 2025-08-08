@@ -42,8 +42,6 @@ atom_number(atom::VirtualAtom) = -1
 atom_symbol(atom::VirtualAtom) = Symbol(write_formula(atom.label))
 atom_charge(atom::VirtualAtom) = 0
 multiplicity(atom::VirtualAtom) = 1
-atom_color(atom::VirtualAtom; color_theme=DEFAULT_ATOM_COLOR, kwargs...) = color_theme[:C]
-
 
 
 struct HydrogenatedAtom{T<:StandardAtom} <: AbstractAtom
@@ -55,15 +53,16 @@ end
 HydrogenatedAtom(atom::T, hs::Int; coords=nothing
     ) where T <: AbstractAtom = HydrogenatedAtom{T}(atom, hs, coords)
 
-has_hydrogens(::Type{<:HydrogenatedAtom}) = true
-has_isaromatic(::Type{<:HydrogenatedAtom}) = true
+has_hydrogens(::Type{T}) where T <: HydrogenatedAtom = true
+has_isotope(::Type{T}) where T <: HydrogenatedAtom = true
+has_isaromatic(::Type{T}) where T <: HydrogenatedAtom = true
 
 atom_number(atom::HydrogenatedAtom) = atom_number(atom.center)
 atom_symbol(atom::HydrogenatedAtom) = atom_symbol(atom.center)
 atom_charge(atom::HydrogenatedAtom) = atom_charge(atom.center)
 multiplicity(atom::HydrogenatedAtom) = multiplicity(atom.center)
+isotope(atom::HydrogenatedAtom) = isotope(atom.center)
 isaromatic(atom::HydrogenatedAtom) = has_isaromatic(typeof(atom.center)) ? isaromatic(atom.center) : false
-atom_color(atom::HydrogenatedAtom; color_theme=DEFAULT_ATOM_COLOR, kwargs...) = atom_color(atom.center)
 
 
 
@@ -87,7 +86,6 @@ atom_number(group::FormulaGroup) = -1
 atom_symbol(group::FormulaGroup) = Symbol(write_formula(atom_markup(group)))
 atom_charge(group::FormulaGroup) = group.charge
 multiplicity(group::FormulaGroup) = 1
-atom_color(group::FormulaGroup; color_theme=DEFAULT_ATOM_COLOR, kwargs...) = color_theme[:C]
 
 
 
@@ -112,7 +110,6 @@ atom_number(group::StructGroup) = -1
 atom_symbol(group::StructGroup) = Symbol(write_formula(group.label))
 atom_charge(group::StructGroup) = sum(atom_charge(group.mol))
 multiplicity(group::StructGroup) = sum(multiplicity(group.mol))
-atom_color(group::StructGroup; color_theme=DEFAULT_ATOM_COLOR, kwargs...) = color_theme[:C]
 
 
 

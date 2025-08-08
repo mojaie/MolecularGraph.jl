@@ -8,7 +8,7 @@ const DEFAULT_MASS_DIGITS = 6
 
 
 function atom_mass_unc(atom::StandardAtom, massfunc::F) where F
-    return massfunc(atom_symbol(atom), atom_mass(atom))
+    return massfunc(atom_symbol(atom), isotope(atom))
 end
 
 atom_mass_unc(atom::AbstractAtom, f::F
@@ -69,7 +69,7 @@ Return a tuple of monoisotopic mass of the atom/molecule and its uncertainty.
 
 Monoisotopic mass is the relative atomic mass of the most abundant isotope. Even if there is specific `Atom.mass` value, it will be ignored.
 """
-function monoiso_mass_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
+function monoiso_mass_unc(atomsymbol::Symbol, number::Int=0)
     num = atom_number(atomsymbol)
     mass = ATOMTABLE[num]["Monoisotopic"]
     unc = ATOMTABLE[num]["MonoisotopicUncertainty"]
@@ -117,12 +117,12 @@ Return a tuple of calculated exact mass and its uncertainty.
 
 If `number` is not given or `Atom.mass` is not specified, monoisotopic mass will be used instead.
 """
-function exact_mass_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
-    number === nothing && return monoiso_mass_unc(atomsymbol)
+function exact_mass_unc(atomsymbol::Symbol, number::Int=0)
+    number == 0 && return monoiso_mass_unc(atomsymbol)
     pred = rcd -> rcd["Number"] == number
     iso = ATOMTABLE[atom_number(atomsymbol)]["Isotopes"]
     k = findfirst(pred.(iso))
-    k === nothing && error("No isotope data for $(number)$(atomsymbol)")
+    k == 0 && error("No isotope data for $(number)$(atomsymbol)")
     mass = iso[k]["Mass"]
     unc = iso[k]["MassUncertainty"]
     return (mass, unc)
@@ -157,8 +157,8 @@ Return a tuple of standard atomic weight (or molecular weight) and its uncertain
 
 If `Atom.mass` is specified, calculated exact mass of the atom will be used instead. 
 """
-function standard_weight_unc(atomsymbol::Symbol, number::Union{Int, Nothing}=nothing)
-    number === nothing || return exact_mass_unc(atomsymbol, number)
+function standard_weight_unc(atomsymbol::Symbol, number::Int=0)
+    number == 0 || return exact_mass_unc(atomsymbol, number)
     num = atom_number(atomsymbol)
     wt = ATOMTABLE[num]["Weight"]
     unctype = ATOMTABLE[num]["WeightType"]

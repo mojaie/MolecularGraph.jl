@@ -24,7 +24,7 @@ function ctab_atom_v2(::Type{T}, line::AbstractString) where T <: AbstractElemen
     d["coords"] = Float64[xpos, ypos, zpos]
     d["symbol"] = rstrip(line[32:34])
     # atom.mass_diff = parse(Int, line[35:36])
-    d["mass"] = nothing  # will be ignored, use ISO property instead
+    d["isotope"] = 0  # will be ignored, use ISO property instead
     old_sdf_charge = parse(Int, line[37:39])
     d["charge"] = SDF_CHARGE_TABLE[old_sdf_charge]
     d["multiplicity"] = old_sdf_charge == 4 ? 2 : 1
@@ -40,7 +40,7 @@ function ctab_atom_v3(::Type{T}, line::AbstractString) where T <: AbstractElemen
     d["symbol"] = ss[4]
     props = Dict(sympair.(ss[9:end])...)
     d["charge"] = get(props, :CHG, 0)
-    d["mass"] = get(props, :MASS, nothing)
+    d["isotope"] = get(props, :MASS, 0)
     d["multiplicity"] = get(props, :RAD, 1)
     return T(d)
 end
@@ -187,7 +187,7 @@ function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: Simp
             # If prop block exists, any annotations in atom blocks will be overwritten
             d["charge"] = get(ps, :CHG, 0)
             d["multiplicity"] = get(ps, :RAD, 1)
-            d["mass"] = get(ps, :ISO, nothing)
+            d["isotope"] = get(ps, :ISO, 0)
             vprops[i] = V(d)
         end
     elseif ver === :v3

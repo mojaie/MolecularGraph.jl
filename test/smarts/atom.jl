@@ -176,7 +176,7 @@ end
     state = SMARTSParser{Int,QueryAtom,QueryBond}("[35*]")
     any35 = atom!(state)
     @test only(any35) == QueryAtom(
-        [(1, 2), (1, 3)], [qand(), qanytrue(), qeq(:mass, "35")])
+        [(1, 2), (1, 3)], [qand(), qanytrue(), qeq(:isotope, "35")])
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("[F,Cl,Br,I]")
     fourhalo = atom!(state)
@@ -216,7 +216,7 @@ end
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[2H]")
     deu = atom!(state)
-    @test only(deu) == SMILESAtom(;symbol=:H, mass=2)
+    @test only(deu) == SMILESAtom(;symbol=:H, isotope=2)
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[H2]")
     hmol = atom!(state)
@@ -228,7 +228,7 @@ end
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[14c@@H]")
     iso = atom!(state)
-    @test iso[1] == SMILESAtom(;mass=14, isaromatic=true, stereo=:clockwise)
+    @test iso[1] == SMILESAtom(;isotope=14, isaromatic=true, stereo=:clockwise)
     @test iso[2] == SMILESAtom(;symbol=:H)
     @test state.pos == 9
 

@@ -10,7 +10,7 @@ Return whether the atom is visible in the 2D drawing.
 `show_carbon`: `simple` - does not show carbon labels, `terminal` - show only terminal carbonlabels,
 `all` - show all carbon labels.
 """
-function is_atom_visible(g, sym, chg, mul, ms, bo; show_carbon=:simple, kwargs...)
+function is_atom_visible(g, sym, chg, mul, iso, bo; show_carbon=:simple, kwargs...)
     arr = trues(nv(g))
     show_carbon === :all && return arr
     er = Dict(e => i for (i, e) in enumerate(edges(g)))
@@ -18,7 +18,7 @@ function is_atom_visible(g, sym, chg, mul, ms, bo; show_carbon=:simple, kwargs..
         sym[i] === :C || continue
         chg[i] == 0 || continue
         mul[i] == 1 || continue
-        ms[i] === nothing || continue
+        iso[i] == 0 || continue
         degree(g, i) == 0 && continue
         degree(g, i) == 1 && show_carbon === :terminal && continue
         if degree(g, i) == 2
@@ -37,7 +37,7 @@ end
 function is_atom_visible(mol::SimpleMolGraph; show_carbon=:simple, kwargs...)
     dispatch_update!(mol)
     return is_atom_visible(mol.graph, atom_symbol(mol), atom_charge(mol), multiplicity(mol),
-        [atom_mass(props(mol, i)) for i in vertices(mol)], bond_order(mol); kwargs...)
+        [isotope(props(mol, i)) for i in vertices(mol)], bond_order(mol); kwargs...)
 end
 
 

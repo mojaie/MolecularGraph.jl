@@ -59,7 +59,7 @@ function printv2properties(io::IO, mol::SimpleMolGraph)
     for i in vertices(mol)
         atom_charge(props(mol, i)) == 0 || push!(charges, (i, atom_charge(props(mol, i))))
         multiplicity(props(mol, i)) == 1 || push!(radicals, (i, multiplicity(props(mol, i))))
-        isnothing(atom_mass(props(mol, i))) || push!(masses, (i, atom_mass(props(mol, i))))
+        isotope(props(mol, i)) == 0 || push!(masses, (i, isotope(props(mol, i))))
     end
     if !isempty(charges)
         head = @sprintf "M  CHG%3d" length(charges)

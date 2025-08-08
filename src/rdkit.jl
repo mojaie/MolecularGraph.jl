@@ -121,14 +121,14 @@ function to_dict(fmt::Val{:rdkit}, mol::SimpleMolGraph)
     implh = implicit_hydrogens(mol)
     chg = atom_charge(mol)
     mul = multiplicity(mol)
-    ms = [atom_mass(props(mol, i)) for i in vertices(mol)]
+    iso = [isotope(props(mol, i)) for i in vertices(mol)]
     for i in vertices(mol)
         rcd = Dict{String,Any}()
         atomnum[i] == 6 || (rcd["z"] = atomnum[i])
         implh[i] == 0 || (rcd["impHs"] = implh[i])
         chg[i] == 0 || (rcd["chg"] = chg[i])
         mul[i] == 1 || (rcd["nRad"] = mul[i] - 1)
-        isnothing(ms[i]) || (rcd["isotope"] = ms[i])
+        iso[i] == 0 || (rcd["isotope"] = iso[i])
         if haskey(mol.gprops.stereocenter, i)
             center = mol.gprops.stereocenter[i]
             nbrs = ordered_neighbors(mol, i)

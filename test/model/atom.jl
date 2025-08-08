@@ -14,14 +14,14 @@
     @test sdfa == sdfa2
     @test hash(sdfa) == hash(sdfa2)
 
-    smia = SMILESAtom(mass=13, stereo=:clockwise)
+    smia = SMILESAtom(isotope=13, stereo=:clockwise)
     @test smia[:symbol] === :C
     @test smia[:charge] == 0
     @test smia[:multiplicity] == 1
-    @test smia[:mass] == 13
+    @test smia[:isotope] == 13
     @test !smia[:isaromatic]
     @test smia[:stereo] === :clockwise
-    smia2 = SMILESAtom(mass=13, stereo=:clockwise)
+    smia2 = SMILESAtom(isotope=13, stereo=:clockwise)
     @test smia == smia2
     @test hash(smia) == hash(smia2)
 

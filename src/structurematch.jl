@@ -34,7 +34,7 @@ function vmatchgen(mol1::SimpleMolGraph, mol2::T) where T <: QueryMolGraph
         :symbol => atom_symbol(mol1),
         :isaromatic => is_aromatic(mol1),
         :charge => atom_charge(mol1),
-        :mass => [atom_mass(props(mol1, i)) for i in vertices(mol1)],
+        :isotope => [isotope(props(mol1, i)) for i in vertices(mol1)],
         :connectivity => connectivity(mol1),
         :degree => degree(mol1),
         :valence => valence(mol1),

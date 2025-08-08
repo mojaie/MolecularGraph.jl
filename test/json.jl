@@ -39,7 +39,7 @@ end
 @testset "json.smarts" begin
     atoms = [
         QueryAtom([(1, 2), (1, 3)], [qor(), qeq(:symbol, "N"), qeq(:symbol, "O")]),
-        QueryAtom([(1, 2), (1, 3)], [qand(), qeq(:symbol, "C"), qeq(:mass, "14")]),
+        QueryAtom([(1, 2), (1, 3)], [qand(), qeq(:symbol, "C"), qeq(:isotope, "14")]),
         QueryAtom([(1, 2)], [qnot(), qtrue(:isaromatic)])
     ]
     bonds = [

@@ -13,7 +13,7 @@
     og = SDFAtom(;symbol=:Og)
     @test standard_weight_unc(og) === (NaN, NaN)
     @test exact_mass_unc(og) === (NaN, NaN)
-    og294 = SDFAtom(;symbol=:Og, mass=294)
+    og294 = SDFAtom(;symbol=:Og, isotope=294)
     @test monoiso_mass_unc(og294) === (NaN, NaN)
     @test exact_mass_unc(og294) === (294.21392, 0.00071)
 

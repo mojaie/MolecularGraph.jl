@@ -110,7 +110,7 @@ function removable_hydrogens(mol::SimpleMolGraph{T}) where T
         atom_symbol(props(mol, i)) === :H || continue
         atom_charge(props(mol, i)) == 0 || continue
         multiplicity(props(mol, i)) == 1 || continue
-        isnothing(atom_mass(props(mol, i))) || continue
+        isotope(props(mol, i)) == 0 || continue
         degree(mol.graph, i) == 1 || continue
         nbr = only(neighbors(mol, i))
         atom_symbol(props(mol, nbr)) in organic_heavy || continue
