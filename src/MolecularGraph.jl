@@ -101,7 +101,7 @@ export
     smallest_ring, ring_count, is_in_ring, is_edge_in_ring,
     default_atom_charge!, default_bond_order!,
     lone_pair, lone_pair!, apparent_valence, apparent_valence!, valence, valence!,
-    explicit_hydrogens, implicit_hydrogens, heavy_atoms,
+    explicit_hydrogens, implicit_hydrogens,
     total_hydrogens, connectivity,
     is_hydrogen_donor, hydrogen_donor_count,
     is_hydrogen_acceptor, hydrogen_acceptor_count,

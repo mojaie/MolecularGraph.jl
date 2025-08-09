@@ -4,6 +4,11 @@
 #
 
 
+const SPn_ATOMS = (:B, :C, :N, :O, :Si, :P, :S)
+# TODO: :P, :Se, :Te?
+const SP2_CONJUGATING_HETEROATOMS = (:O, :N, :S)
+
+
 """
     hybridization(mol::SimpleMolGraph) -> Vector{Int}
 
@@ -20,8 +25,10 @@ function hybridization(
     arr = fill(:none, length(lone_pair_arr))
     hybmap = Dict(4 => :sp3, 3 => :sp2, 2 => :sp)
     for i in 1:length(arr)
+        symbol_arr[i] in SPn_ATOMS || continue
         cnt = connectivity_arr[i] + lone_pair_arr[i]
-        arr[i] = get(hybmap, cnt, :none)
+        haskey(hybmap, cnt)  || continue
+        arr[i] = hybmap[cnt]
     end
     # Hybridization of heteroatoms next to conjugated system
     for i in 1:length(arr)

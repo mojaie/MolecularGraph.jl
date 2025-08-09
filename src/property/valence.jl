@@ -13,10 +13,6 @@ const LONEPAIR_COUNT = Dict(
 const HYDROGEN_ACCEPTOR_ATOMS = (:N, :O, :F)
 const HYDROGEN_DONOR_ATOMS = (:N, :O)
 
-# for pi electron count, hybridization and aromaticity calculation
-# TODO: :P, :Se, :Te?
-const SP2_CONJUGATING_HETEROATOMS = (:O, :N, :S)
-
 
 # Primary properties
 
@@ -208,17 +204,6 @@ but it can be infered from the intrinsic valence of typical organic atoms.
 """
 function implicit_hydrogens(mol::SimpleMolGraph)
     return valence(mol) - apparent_valence(mol)
-end
-
-
-"""
-    heavy_atoms(mol::SimpleMolGraph) -> Vector{Int}
-
-Return a vector of size ``n`` representing the number of non-hydrogen atoms
-connected to 1 to ``n``th atoms of the given molecule.
-"""
-function heavy_atoms(mol::SimpleMolGraph)
-    return degree(mol) - explicit_hydrogens(mol)
 end
 
 

@@ -89,7 +89,6 @@ end
     @test implicit_hydrogens(etmacl) == [0, 0, 0, 0, 2, 0, 0]
     @test explicit_hydrogens(etmacl) == [0, 3, 0, 0, 0, 0, 0]
     @test total_hydrogens(etmacl) == [0, 3, 0, 0, 2, 0, 0]
-    @test heavy_atoms(etmacl) == [1, 1, 1, 1, 2, 2, 1]
     @test connectivity(etmacl) == [1, 4, 1, 1, 4, 2, 1]
 end
 
