@@ -365,5 +365,9 @@ Return predicted logP value calculated by using Wildman and Crippen method.
    Parameters by Atomic Contributions. Journal of Chemical Information and
    Modeling, 39(5), 868–873. https://doi.org/10.1021/ci990307l
 """
-wclogp(mol::SimpleMolGraph) = reduce(+, wclogpcontrib(mol); init=0)
+wclogp(mol::SimpleMolGraph) = wclogp(mol, vproptype(mol), eproptype(mol))
 wclogp(mol::SimpleMolGraph, digits) = round(wclogp(mol), digits=digits)
+
+wclogp(
+    mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond}
+) = sum(wclogpcontrib(mol))

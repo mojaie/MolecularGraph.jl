@@ -100,7 +100,11 @@ function printv2data(io::IO, mol::SimpleMolGraph)
 end
 
 
-function printv2mol(io::IO, mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
+printv2mol(io::IO, mol::SimpleMolGraph
+    ) = printv2mol(io::IO, mol::SimpleMolGraph, vproptype(mol), eproptype(mol))
+
+function printv2mol(
+        io::IO, mol::SimpleMolGraph, V::Type{<:StandardAtom}, E::Type{<:StandardBond})
     # stereospecific hydrogens for aesthetics of fused rings
     # may be better to stash coords of stereo hydrogens and give back to SDFile
     if has_prop(mol, :stereocenter) && !isempty(get_prop(mol, :stereocenter))

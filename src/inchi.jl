@@ -104,14 +104,20 @@ function report_output(output, verbose::Bool)
     end
 end
 
+
 """
+    inchi(mol::SimpleMolGraph; options::String = "", verbose::Bool = false) -> Union{String,Nothing}
     inchi(molblock::String; options::String = "", verbose::Bool = false) -> Union{String,Nothing}
-    inchi(mol::MolGraph; options::String = "", verbose::Bool = false) -> Union{String,Nothing}
 
 Generate InChI string from molblock string or molecule.
 
 Options, e.g. "SNon" for 'no stereo information' are specified in https://github.com/mojaie/libinchi/blob/master/INCHIBASE/src/inchiapi.h
 """
+inchi(mol::SimpleMolGraph; kwargs...) = inchi(mol, vproptype(mol), eproptype(mol); kwargs...)
+inchi(
+    mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond}; kwargs...
+) = inchi(printv2mol(mol); kwargs...)
+
 function inchi(molblock::String; options::String = "", verbose::Bool = false)
     # support the correct options format depending on OS
     # add a timeout of 60s per molecule
@@ -131,7 +137,6 @@ function inchi(molblock::String; options::String = "", verbose::Bool = false)
     return res
 end
 
-inchi(mol::SimpleMolGraph; options::String = "", verbose = false) = inchi(printv2mol(mol); options, verbose)
 
 
 """

@@ -19,6 +19,15 @@ The hybridization value in inorganic atoms and non-typical organic atoms will be
 (e.g. s, sp3d and sp3d2 orbitals). Note that this is a simplified geometry descriptor
 for substructure matching and does not reflect actual molecular orbital hybridization.
 """
+hybridization(mol::SimpleMolGraph) = hybridization(
+    mol.graph, atom_symbol(mol), valence(mol), connectivity(mol), lone_pair(mol))
+
+function hybridization(mol::ReactiveMolGraph)
+    dispatch_update!(mol)
+    return hybridization(
+        mol.graph, atom_symbol(mol), valence(mol), connectivity(mol), lone_pair(mol))
+end
+
 function hybridization(
         g::SimpleGraph, symbol_arr::Vector{Symbol}, valence_arr::Vector{Int},
         connectivity_arr::Vector{Int}, lone_pair_arr::Vector{Int})
@@ -43,12 +52,6 @@ function hybridization(
     return arr
 end
 
-function hybridization(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return hybridization(
-        mol.graph, atom_symbol(mol), valence(mol), connectivity(mol), lone_pair(mol))
-end
-
 
 """
     pi_electron(mol::SimpleMolGraph) -> Vector{Int}
@@ -60,6 +63,14 @@ The number of ``\\pi`` electrons is calculated as `valence` - `connectivity`.
 Typically, each atom connected to double bonds adds one pi electron for each, and each
 atom connected to a triple bond adds two pi electrons.
 """
+pi_electron(mol::SimpleMolGraph) = pi_electron(
+    valence(mol), connectivity(mol), lone_pair(mol), hybridization(mol))
+
+function pi_electron(mol::ReactiveMolGraph)
+    dispatch_update!(mol)
+    return pi_electron(valence(mol), connectivity(mol), lone_pair(mol), hybridization(mol))
+end
+
 function pi_electron(
         valence_arr::Vector{Int}, connectivity_arr::Vector{Int},
         lone_pair_arr::Vector{Int}, hyb_arr::Vector{Symbol})
@@ -75,11 +86,6 @@ function pi_electron(
     return arr
 end
 
-function pi_electron(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return pi_electron(valence(mol), connectivity(mol), lone_pair(mol), hybridization(mol))
-end
-
 
 """
     is_ring_aromatic(mol::SimpleMolGraph) -> Vector{Bool}
@@ -90,6 +96,33 @@ of a given molecule are aromatic or not.
 This is a binary descriptor based on a chemoinformatic algorithm and may not reflect
 actual molecular orbitals. Atypical aromaticities such as Moebius aromaticity are not considered.
 """
+is_ring_aromatic(mol::SimpleMolGraph) = is_ring_aromatic(
+    mol.graph, sssr(mol), edge_which_ring(mol),
+    atom_symbol(mol), bond_order(mol),
+    hybridization(mol), pi_electron(mol)
+)
+
+function is_ring_aromatic(mol::ReactiveMolGraph)
+    dispatch_update!(mol)
+    if has_descriptor(mol, :is_ring_aromatic)
+        return get_descriptor(mol, :is_ring_aromatic)
+    end
+    return is_ring_aromatic(
+        mol.graph, sssr(mol), edge_which_ring(mol),
+        atom_symbol(mol), bond_order(mol),
+        hybridization(mol), pi_electron(mol)
+    )
+end
+
+is_ring_aromatic!(mol::SimpleMolGraph) = setproperty!(
+    mol.gprops.descriptors, :is_ring_aromatic,
+    is_ring_aromatic(
+        mol.graph, sssr(mol), edge_which_ring(mol),
+        atom_symbol(mol), bond_order(mol),
+        hybridization(mol), pi_electron(mol)
+    )
+)
+
 function is_ring_aromatic(
         g::SimpleGraph, sssr_::Vector{Vector{Int}}, which_ring_arr::Vector{Vector{Int}},
         symbol_arr::Vector{Symbol}, order_arr::Vector{Int}, hyb_arr::Vector{Symbol},
@@ -214,27 +247,6 @@ function is_ring_aromatic(
     return res
 end
 
-function is_ring_aromatic(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    if has_descriptor(mol, :is_ring_aromatic)
-        return get_descriptor(mol, :is_ring_aromatic)
-    end
-    return is_ring_aromatic(
-        mol.graph, sssr(mol), edge_which_ring(mol),
-        atom_symbol(mol), bond_order(mol),
-        hybridization(mol), pi_electron(mol)
-    )
-end
-
-is_ring_aromatic!(mol::SimpleMolGraph) = setproperty!(
-    mol.gprops.descriptors, :is_ring_aromatic,
-    is_ring_aromatic(
-        mol.graph, sssr(mol), edge_which_ring(mol),
-        atom_symbol(mol), bond_order(mol),
-        hybridization(mol), pi_electron(mol)
-    )
-)
-
 
 """
     is_aromatic(mol::SimpleMolGraph) -> Vector{Bool}
@@ -244,6 +256,8 @@ of the given molecule belong to an aromatic ring or not.
 
 See [`is_ring_aromatic`](@ref).
 """
+is_aromatic(mol::SimpleMolGraph) = is_aromatic(mol.graph, sssr(mol), is_ring_aromatic(mol))
+
 function is_aromatic(
         g::SimpleGraph, sssr_::Vector{Vector{Int}}, is_ring_arom::Vector{Bool})
     arr = falses(nv(g))
@@ -254,11 +268,6 @@ function is_aromatic(
 end
 
 
-function is_aromatic(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return is_aromatic(mol.graph, sssr(mol), is_ring_aromatic(mol))
-end
-
 
 """
     is_edge_aromatic(mol::SimpleMolGraph) -> Vector{Bool}
@@ -268,6 +277,8 @@ of the given molecule belong to an aromatic ring or not.
 
 See [`is_ring_aromatic`](@ref).
 """
+is_edge_aromatic(mol::SimpleMolGraph) = is_edge_aromatic(mol.graph, sssr(mol), is_ring_aromatic(mol))
+
 function is_edge_aromatic(
         g::SimpleGraph, sssr_::Vector{Vector{Int}}, is_ring_arom::Vector{Bool})
     arr = falses(ne(g))
@@ -279,9 +290,4 @@ function is_edge_aromatic(
         arr[er[u_edge(g, ring[1], ring[end])]] = true
     end
     return arr
-end
-
-function is_edge_aromatic(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return is_edge_aromatic(mol.graph, sssr(mol), is_ring_aromatic(mol))
 end

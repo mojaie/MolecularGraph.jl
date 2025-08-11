@@ -163,11 +163,14 @@ end
 
 
 """
-    add_hydrogens!(mol::ReactiveMolGraph) -> Nothing
+    add_hydrogens!(mol::SimpleMolGraph) -> Nothing
 
 Return the molecule with all hydrogen nodes explicitly attached.
 """
-function add_hydrogens!(mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
+add_hydrogens!(mol::SimpleMolGraph) = add_hydrogens!(mol, vproptype(mol), eproptype(mol))
+
+function add_hydrogens!(
+        mol::SimpleMolGraph, V::Type{<:StandardAtom}, E::Type{<:StandardBond})
     implicit_hs = implicit_hydrogens(mol)
     for i in vertices(mol)
         for j in 1:implicit_hs[i]

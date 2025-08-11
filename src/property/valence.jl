@@ -22,7 +22,9 @@ const HYDROGEN_DONOR_ATOMS = (:N, :O)
 Return a vector of size ``n`` representing atom symbols of 1 to ``n``th atoms of
 the given molecule.
 """
-function atom_symbol(mol::SimpleMolGraph)
+atom_symbol(mol::SimpleMolGraph) = Symbol[atom_symbol(props(mol, i)) for i in vertices(mol)]
+
+function atom_symbol(mol::ReactiveMolGraph)
     dispatch_update!(mol)
     return Symbol[atom_symbol(props(mol, i)) for i in vertices(mol)]
 end
@@ -34,7 +36,9 @@ end
 Return a vector of size ``n`` representing atom numbers of 1 to ``n``th atoms of
 the given molecule.
 """
-function atom_number(mol::SimpleMolGraph)
+atom_number(mol::SimpleMolGraph) = Int[atom_number(props(mol, i)) for i in vertices(mol)]
+
+function atom_number(mol::ReactiveMolGraph)
     dispatch_update!(mol)
     return Int[atom_number(props(mol, i)) for i in vertices(mol)]
 end
@@ -46,7 +50,9 @@ end
 Return a vector of size ``n`` representing atom charges of 1 to ``n``th atoms of
 the given molecule.
 """
-function atom_charge(mol::SimpleMolGraph)
+atom_charge(mol::SimpleMolGraph) = Int[atom_charge(props(mol, i)) for i in vertices(mol)]
+
+function atom_charge(mol::ReactiveMolGraph)
     dispatch_update!(mol)
     if has_descriptor(mol, :atom_charge)
         return get_descriptor(mol, :atom_charge)
@@ -54,7 +60,7 @@ function atom_charge(mol::SimpleMolGraph)
     return Int[atom_charge(props(mol, i)) for i in vertices(mol)]
 end
 
-default_atom_charge!(mol::SimpleMolGraph) = setproperty!(
+default_atom_charge!(mol::ReactiveMolGraph) = setproperty!(
     mol.gprops.descriptors, :atom_charge,
     Int[atom_charge(props(mol, i)) for i in vertices(mol)]
 )
@@ -66,7 +72,9 @@ default_atom_charge!(mol::SimpleMolGraph) = setproperty!(
 Return a vector of size ``n`` representing atom multiplicities of 1 to ``n``th atoms of
 the given molecule (1: non-radical, 2: radical, 3: biradical).
 """
-function multiplicity(mol::SimpleMolGraph)
+multiplicity(mol::SimpleMolGraph) = Int[multiplicity(props(mol, i)) for i in vertices(mol)]
+
+function multiplicity(mol::ReactiveMolGraph)
     dispatch_update!(mol)
     return Int[multiplicity(props(mol, i)) for i in vertices(mol)]
 end
@@ -78,7 +86,9 @@ end
 Return a vector of size ``n`` representing bond order of 1 to ``n``th bonds of
 the given molecule.
 """
-function bond_order(mol::SimpleMolGraph)
+bond_order(mol::SimpleMolGraph) = Int[bond_order(props(mol, e)) for e in edges(mol)]
+
+function bond_order(mol::ReactiveMolGraph)
     dispatch_update!(mol)
     if has_descriptor(mol, :bond_order)
         return get_descriptor(mol, :bond_order)
@@ -86,7 +96,7 @@ function bond_order(mol::SimpleMolGraph)
     return Int[bond_order(props(mol, e)) for e in edges(mol)]
 end
 
-default_bond_order!(mol::SimpleMolGraph) = setproperty!(
+default_bond_order!(mol::ReactiveMolGraph) = setproperty!(
     mol.gprops.descriptors, :bond_order,
     Int[bond_order(props(mol, e)) for e in edges(mol)]
 )
@@ -105,6 +115,21 @@ default_bond_order!(mol::SimpleMolGraph) = setproperty!(
 Return a vector of size ``n`` representing the number of total bond order
 incident to 1 to ``n``th atoms of the given molecule.
 """
+apparent_valence(mol::SimpleMolGraph) = apparent_valence(mol.graph, bond_order(mol))
+
+function apparent_valence(mol::ReactiveMolGraph)
+    dispatch_update!(mol)
+    if has_descriptor(mol, :apparent_valence)
+        return get_descriptor(mol, :apparent_valence)
+    end
+    return apparent_valence(mol.graph, bond_order(mol))
+end
+
+apparent_valence!(mol::ReactiveMolGraph) = setproperty!(
+    mol.gprops.descriptors, :apparent_valence,
+    apparent_valence(mol.graph, bond_order(mol))
+)
+
 function apparent_valence(g::SimpleGraph, order_arr::Vector{Int})
     arr = fill(zero(Int), nv(g))
     er = Dict(e => i for (i, e) in enumerate(edges(g)))
@@ -114,19 +139,6 @@ function apparent_valence(g::SimpleGraph, order_arr::Vector{Int})
     end
     return arr
 end
-
-function apparent_valence(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    if has_descriptor(mol, :apparent_valence)
-        return get_descriptor(mol, :apparent_valence)
-    end
-    return apparent_valence(mol.graph, bond_order(mol))
-end
-
-apparent_valence!(mol::SimpleMolGraph) = setproperty!(
-    mol.gprops.descriptors, :apparent_valence,
-    apparent_valence(mol.graph, bond_order(mol))
-)
 
 
 """
@@ -139,6 +151,22 @@ The number of implicit hydrogens would be calculated based on the valence.
 The valence of a hypervalent atom or a non-organic atom is the same as
 its `apparent_valence`. This property corresponds to SMARTS `v` query.
 """
+valence(mol::SimpleMolGraph
+    ) = valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
+
+function valence(mol::ReactiveMolGraph)
+    dispatch_update!(mol)
+    if has_descriptor(mol, :valence)
+        return get_descriptor(mol, :valence)
+    end
+    return valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
+end
+
+valence!(mol::ReactiveMolGraph) = setproperty!(
+    mol.gprops.descriptors, :valence,
+    valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
+)
+
 function valence(
         symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
         apparent_valence_arr::Vector{Int})
@@ -154,19 +182,6 @@ function valence(
     return arr
 end
 
-function valence(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    if has_descriptor(mol, :valence)
-        return get_descriptor(mol, :valence)
-    end
-    return valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
-end
-
-valence!(mol::SimpleMolGraph) = setproperty!(
-    mol.gprops.descriptors, :valence,
-    valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
-)
-
 
 """
     explicit_hydrogens(mol::SimpleMolGraph) -> Vector{Int}
@@ -176,6 +191,13 @@ connected to 1 to ``n``th atoms of the given molecule.
 
 "Explicit" means hydrogens are explicitly represented as graph nodes.
 """
+explicit_hydrogens(mol::SimpleMolGraph) = explicit_hydrogens(mol.graph, atom_symbol(mol))
+
+function explicit_hydrogens(mol::ReactiveMolGraph)
+    dispatch_update!(mol)
+    return explicit_hydrogens(mol.graph, atom_symbol(mol))
+end
+
 function explicit_hydrogens(g::SimpleGraph, symbol_arr::Vector{Symbol})
     arr = fill(zero(Int), nv(g))
     for i in vertices(g)
@@ -185,11 +207,6 @@ function explicit_hydrogens(g::SimpleGraph, symbol_arr::Vector{Symbol})
         end
     end
     return arr
-end
-
-function explicit_hydrogens(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return explicit_hydrogens(mol.graph, atom_symbol(mol))
 end
 
 
@@ -239,6 +256,22 @@ end
 Return a vector of size ``n`` representing the number of lone pairs of
 1 to ``n``th atoms of the given molecule.
 """
+lone_pair(mol::SimpleMolGraph
+    ) = lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
+
+function lone_pair(mol::ReactiveMolGraph)
+    dispatch_update!(mol)
+    if has_descriptor(mol, :lone_pair)
+        return get_descriptor(mol, :lone_pair)
+    end
+    return lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
+end
+
+lone_pair!(mol::ReactiveMolGraph) = setproperty!(
+    mol.gprops.descriptors, :lone_pair,
+    lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
+)
+
 function lone_pair(
         symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, connectivity_arr::Vector{Int})
     arr = fill(zero(Int), length(symbol_arr))
@@ -254,19 +287,6 @@ function lone_pair(
     return arr
 end
 
-function lone_pair(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    if has_descriptor(mol, :lone_pair)
-        return get_descriptor(mol, :lone_pair)
-    end
-    return lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
-end
-
-lone_pair!(mol::SimpleMolGraph) = setproperty!(
-    mol.gprops.descriptors, :lone_pair,
-    lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
-)
-
 
 
 # Hydrogen bond donor/acceptor
@@ -274,21 +294,15 @@ lone_pair!(mol::SimpleMolGraph) = setproperty!(
 """
     is_hydrogen_acceptor(mol::SimpleMolGraph) -> Vector{Bool}
     is_hydrogen_acceptor(
-        symbols::Vector{Symbol}, lone_pairs::Vector{Int}) -> Vector{Bool}
-    is_hydrogen_acceptor(
         atom_symbol::Symbol, lone_pair_count::Int) -> Bool
 
 Return whether the atom is a hydrogen bond acceptor (N, O and F).
 """
-function is_hydrogen_acceptor(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return is_hydrogen_acceptor(atom_symbol(mol), lone_pair(mol))
-end
+is_hydrogen_acceptor(mol::SimpleMolGraph
+    ) = is_hydrogen_acceptor.(atom_symbol(mol), lone_pair(mol))
 
 is_hydrogen_acceptor(symbol::Symbol, lone_pairs::Int
     ) = symbol in HYDROGEN_ACCEPTOR_ATOMS && lone_pairs > 0
-is_hydrogen_acceptor(symbol_arr::Vector{Symbol}, lone_pair_arr::Vector{Int}
-    ) = is_hydrogen_acceptor.(symbol_arr, lone_pair_arr)
 
 
 """
@@ -296,13 +310,15 @@ is_hydrogen_acceptor(symbol_arr::Vector{Symbol}, lone_pair_arr::Vector{Int}
 
 Return the total number of hydrogen bond acceptors (N, O and F).
 """
-function hydrogen_acceptor_count(mol::ReactiveMolGraph{T,V,E}
-        ) where {T,V<:StandardAtom,E<:StandardBond}
-    return sum(is_hydrogen_acceptor(mol))
-end
+hydrogen_acceptor_count(mol::SimpleMolGraph
+    ) = hydrogen_acceptor_count(mol, vproptype(mol), eproptype(mol))
 
-function hydrogen_acceptor_count(mol::ReactiveMolGraph{T,V,E}
-        ) where {T,V<:AbstractAtom,E<:AbstractBond}
+hydrogen_acceptor_count(
+    mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond}
+) = sum(is_hydrogen_acceptor(mol))
+
+function hydrogen_acceptor_count(
+        mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
     cnt = sum(is_hydrogen_acceptor(mol))
     vcnt = sum(hydrogen_acceptor_count(props(mol, i)) for i in vertices(mol))
     return cnt + vcnt
@@ -317,21 +333,15 @@ hydrogen_acceptor_count(atom::AbstractAtom
 """
     is_hydrogen_donor(mol::SimpleMolGraph) -> Vector{Bool}
     is_hydrogen_donor(
-        symbols::Vector{Symbol}, total_hydrogens::Vector{Int}) -> Vector{Bool}
-    is_hydrogen_donor(
         atom_symbol::Symbol, hydrogen_count::Int) -> Bool
 
 Return whether the atom is a hydrogen bond donor (O and N attached to hydrogens).
 """
-function is_hydrogen_donor(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return is_hydrogen_donor(atom_symbol(mol), total_hydrogens(mol))
-end
+is_hydrogen_donor(mol::SimpleMolGraph
+    ) = is_hydrogen_donor.(atom_symbol(mol), total_hydrogens(mol))
 
 is_hydrogen_donor(symbol::Symbol, total_hydrogens::Int
     ) = symbol in HYDROGEN_DONOR_ATOMS && total_hydrogens > 0
-is_hydrogen_donor(symbol_arr::Vector{Symbol}, total_hydrogens_arr::Vector{Int}
-    ) = is_hydrogen_donor.(symbol_arr, total_hydrogens_arr)
 
 
 """
@@ -339,13 +349,15 @@ is_hydrogen_donor(symbol_arr::Vector{Symbol}, total_hydrogens_arr::Vector{Int}
 
 Return the total number of hydrogen bond donors (O and N attached to hydrogens).
 """
-function hydrogen_donor_count(mol::ReactiveMolGraph{T,V,E}
-        ) where {T,V<:StandardAtom,E<:StandardBond}
-    return sum(is_hydrogen_donor(mol))
-end
+hydrogen_donor_count(mol::SimpleMolGraph
+    ) = hydrogen_donor_count(mol, vproptype(mol), eproptype(mol))
 
-function hydrogen_donor_count(mol::ReactiveMolGraph{T,V,E}
-        ) where {T,V<:AbstractAtom,E<:AbstractBond}
+hydrogen_donor_count(
+    mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond}
+) = sum(is_hydrogen_donor(mol))
+
+function hydrogen_donor_count(
+        mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
     cnt = sum(is_hydrogen_donor(mol))
     vcnt = sum(hydrogen_donor_count(props(mol, i)) for i in vertices(mol))
     return cnt + vcnt
@@ -366,24 +378,20 @@ hydrogen_donor_count(atom::AbstractAtom
 Return a vector of size ``n`` representing whether 1 to ``n``th bonds
 of the given molecule are rotatable or not.
 """
-function is_rotatable(
-        srcdeg_arr::Vector{Int}, dstdeg_arr::Vector{Int},
-        edge_in_ring_arr::BitVector, order_arr::Vector{Int})
-    return (.~edge_in_ring_arr .& (order_arr .== 1)
-        .& (srcdeg_arr .!= 1) .& (dstdeg_arr .!= 1))
+is_rotatable(mol::SimpleMolGraph) = is_rotatable(mol, vproptype(mol), eproptype(mol))
+
+function is_rotatable(mol::ReactiveMolGraph)
+    dispatch_update!(mol)
+    return is_rotatable(mol, vproptype(mol), eproptype(mol))
 end
 
-function is_rotatable(mol::ReactiveMolGraph{T,V,E}
-        ) where {T,V<:StandardAtom,E<:StandardBond}
-    dispatch_update!(mol)
+function is_rotatable(mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond})
     srcdeg = [degree(mol, e.src) for e in edges(mol)]
     dstdeg = [degree(mol, e.dst) for e in edges(mol)]
     return is_rotatable(srcdeg, dstdeg, is_edge_in_ring(mol), bond_order(mol))
 end
 
-function is_rotatable(mol::ReactiveMolGraph{T,V,E}
-        ) where {T,V<:AbstractAtom,E<:AbstractBond}
-    dispatch_update!(mol)
+function is_rotatable(mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
     srcdeg = Vector{Int}(undef, ne(mol))
     dstdeg = Vector{Int}(undef, ne(mol))
     for (i, e) in enumerate(edges(mol))
@@ -402,19 +410,29 @@ function is_rotatable(mol::ReactiveMolGraph{T,V,E}
     return is_rotatable(srcdeg, dstdeg, is_edge_in_ring(mol), bond_order(mol))
 end
 
+is_rotatable(
+    srcdeg::Int, dstdeg::Int, edge_in_ring::Bool, order::Int
+) = ~edge_in_ring & (order == 1) & (srcdeg != 1) & (dstdeg != 1)
+
+is_rotatable(
+    srcdeg_arr::Vector{Int}, dstdeg_arr::Vector{Int},
+    edge_in_ring_arr::BitVector, order_arr::Vector{Int}
+) = is_rotatable.(srcdeg_arr, dstdeg_arr, edge_in_ring_arr, order_arr)
+
 
 """
     rotatable_count(mol::SimpleMolGraph) -> Int
 
 Return the total number of rotatable bonds.
 """
-function rotatable_count(mol::ReactiveMolGraph{T,V,E}
-        ) where {T,V<:StandardAtom,E<:StandardBond}
-    return sum(is_rotatable(mol))
-end
+rotatable_count(mol::SimpleMolGraph) = rotatable_count(mol, vproptype(mol), eproptype(mol))
 
-function rotatable_count(mol::ReactiveMolGraph{T,V,E}
-        ) where {T,V<:AbstractAtom,E<:AbstractBond}
+rotatable_count(
+    mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond}
+) = sum(is_rotatable(mol))
+
+function rotatable_count(
+        mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
     cnt = sum(is_rotatable(mol))
     vcnt = sum(rotatable_count(props(mol, i)) for i in vertices(mol))
     return cnt + vcnt
@@ -429,6 +447,20 @@ rotatable_count(atom::AbstractAtom
 
 # Composition
 
+"""
+    atom_counter(mol::SimpleMolGraph) -> Dict{Symbol,Int}
+    atom_counter(
+        symbol_arr::Vector{Symbol}, implh_arr::Vector{Int}) -> Dict{Symbol,Int}
+    atom_counter(atom::AbstractAtom) -> Dict{Symbol,Int}
+
+Count the number of atoms and return symbol => count dict.
+"""
+atom_counter(mol::SimpleMolGraph) = atom_counter(mol, vproptype(mol), eproptype(mol))
+
+atom_counter(
+    mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond}
+) = atom_counter(atom_symbol(mol), implicit_hydrogens(mol))
+
 function _inc!(counter::Dict{Symbol,Int}, sym::Symbol, cnt=1)
     if !haskey(counter, sym)
         counter[sym] = 0
@@ -436,31 +468,7 @@ function _inc!(counter::Dict{Symbol,Int}, sym::Symbol, cnt=1)
     counter[sym] += cnt
 end
 
-
-"""
-    atom_counter(
-        symbol_arr::Vector{Symbol}, implh_arr::Vector{Int}) -> Dict{Symbol,Int}
-    atom_counter(mol::ReactiveMolGraph) -> Dict{Symbol,Int}
-
-Count the number of atoms and return symbol => count dict.
-"""
-function atom_counter(symbol_arr::Vector{Symbol}, implh_arr::Vector{Int})
-    counter = Dict{Symbol,Int}()
-    for sym in symbol_arr
-        haskey(ATOMSYMBOLMAP, sym) || continue
-        _inc!(counter, sym)
-    end
-    _inc!(counter, :H, sum(implh_arr))
-    return counter
-end
-
-function atom_counter(mol::ReactiveMolGraph{T,V,E}) where {T,V<:StandardAtom,E<:StandardBond}
-    dispatch_update!(mol)
-    return atom_counter(atom_symbol(mol), implicit_hydrogens(mol))
-end
-
-function atom_counter(mol::ReactiveMolGraph{T,V,E}) where {T,V<:AbstractAtom,E<:AbstractBond}
-    dispatch_update!(mol)
+function atom_counter(mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
     counter = atom_counter(atom_symbol(mol), implicit_hydrogens(mol))
     # count groups
     for i in vertices(mol)
@@ -482,6 +490,23 @@ function atom_counter(mol::ReactiveMolGraph{T,V,E}) where {T,V<:AbstractAtom,E<:
     return counter
 end
 
+function atom_counter(symbol_arr::Vector{Symbol}, implh_arr::Vector{Int})
+    counter = Dict{Symbol,Int}()
+    for sym in symbol_arr
+        haskey(ATOMSYMBOLMAP, sym) || continue
+        _inc!(counter, sym)
+    end
+    _inc!(counter, :H, sum(implh_arr))
+    return counter
+end
+
+atom_counter(atom::AbstractAtom) = atom_counter(
+    atom, 
+    Val(has_mol(typeof(atom))),
+    Val(has_formula(typeof(atom))),
+    Val(has_hydrogens(typeof(atom))),
+    Val(has_label(typeof(atom)))
+)
 atom_counter(atom, ::Val{true}, ::Val, ::Val, ::Val) = atom_counter(atom.mol)
 atom_counter(atom, ::Val{false}, ::Val{true}, ::Val, ::Val) = atom.formula
 atom_counter(atom, ::Val{false}, ::Val{false}, ::Val{true}, ::Val
@@ -490,13 +515,6 @@ atom_counter(atom, ::Val{false}, ::Val{false}, ::Val{false}, ::Val{true}
     ) = Dict(atom_symbol(atom) => 1)
 atom_counter(atom, ::Val{false}, ::Val{false}, ::Val{false}, ::Val{false}
     ) = Dict{Symbol,Int}()
-atom_counter(atom::AbstractAtom) = atom_counter(
-    atom, 
-    Val(has_mol(typeof(atom))),
-    Val(has_formula(typeof(atom))),
-    Val(has_hydrogens(typeof(atom))),
-    Val(has_label(typeof(atom)))
-)
 
 
 
@@ -528,11 +546,28 @@ end
 
 
 """
+    atom_markup(mol::SimpleMolGraph) -> Vector{Vector{Tuple{Symbol,String}}}
     atom_markup(
-        counter::Dict{Symbol,Int}; charge=0) -> Vector{Vector{Tuple{Symbol,String}}}
+        symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, implh_arr::Vector{Int}
+    ) -> Vector{Vector{Tuple{Symbol,String}}}
+    atom_markup(atom::AbstractAtom) -> Vector{Vector{Tuple{Symbol,String}}}
 
 Return atom labels with style annotations which is used for drawing 2D structure and writing formula
 """
+atom_markup(mol::SimpleMolGraph) = atom_markup(mol, vproptype(mol), eproptype(mol))
+
+function atom_markup(mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
+    markup = atom_markup(atom_symbol(mol), atom_charge(mol), implicit_hydrogens(mol))
+    for i in vertices(mol)
+        markup[i] = something(atom_markup(props(mol, i)), markup[i])
+    end
+    return markup
+end
+
+atom_markup(
+    mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond}
+) = atom_markup(atom_symbol(mol), atom_charge(mol), implicit_hydrogens(mol))
+
 function atom_markup(sym::Symbol, charge::Int, implicith::Int)
     contents = [[(:default, string(sym))]]
     if implicith == 1
@@ -549,32 +584,18 @@ end
 atom_markup(symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, implh_arr::Vector{Int}
     ) = atom_markup.(symbol_arr, charge_arr, implh_arr)
 
-function atom_markup(mol::ReactiveMolGraph{T,V,E}) where {T,V<:StandardAtom,E<:StandardBond}
-    dispatch_update!(mol)
-    return atom_markup(atom_symbol(mol), atom_charge(mol), implicit_hydrogens(mol))
-end
-
-function atom_markup(mol::ReactiveMolGraph{T,V,E}) where {T,V<:AbstractAtom,E<:AbstractBond}
-    dispatch_update!(mol)
-    markup = atom_markup(atom_symbol(mol), atom_charge(mol), implicit_hydrogens(mol))
-    for i in vertices(mol)
-        markup[i] = something(atom_markup(props(mol, i)), markup[i])
-    end
-    return markup
-end
-
-atom_markup(atom, ::Val{true}, ::Val{false}, ::Val{true}
-    ) = isempty(atom.label) ? markup_formula(atom.formula, charge=atom.charge) : atom.label
-atom_markup(atom, ::Val{false}, ::Val{true}, ::Val{false}
-    ) = [[(:default, string(atom_symbol(atom.center))), (:sub, string(atom.hydrogens))]]
-atom_markup(atom, ::Val{false}, ::Val{false}, ::Val{true}) = atom.label
-atom_markup(atom, ::Val{false}, ::Val{false}, ::Val{false}) = nothing
 atom_markup(atom::AbstractAtom) = atom_markup(
     atom,
     Val(has_formula(typeof(atom))),
     Val(has_hydrogens(typeof(atom))),
     Val(has_label(typeof(atom)))
 )
+atom_markup(atom, ::Val{true}, ::Val{false}, ::Val{true}
+    ) = isempty(atom.label) ? markup_formula(atom.formula, charge=atom.charge) : atom.label
+atom_markup(atom, ::Val{false}, ::Val{true}, ::Val{false}
+    ) = [[(:default, string(atom_symbol(atom.center))), (:sub, string(atom.hydrogens))]]
+atom_markup(atom, ::Val{false}, ::Val{false}, ::Val{true}) = atom.label
+atom_markup(atom, ::Val{false}, ::Val{false}, ::Val{false}) = nothing
 
 
 

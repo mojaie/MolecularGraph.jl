@@ -253,7 +253,7 @@ eproptype(mol::T) where T<:SimpleMolGraph = eproptype(T)
 """
     u_edge(::Type{T}, src, dst) where T <: Integer -> Edge{T}
     u_edge(g::SimpleGraph{T}, src, dst) where T -> Edge{T}
-    u_edge(mol::AbstractMolGraph{T}, src, dst) where T -> Edge{T}
+    u_edge(mol::SimpleMolGraph{T}, src, dst) where T -> Edge{T}
 
 A workaround for UndirectedEdge that are not yet implemented in SimpleGraph
 """
@@ -261,8 +261,8 @@ u_edge(::Type{T}, src::T, dst::T) where T<:Integer = src < dst ? Edge{T}(src, ds
 u_edge(g::SimpleGraph{T}, src::T, dst::T) where T<:Integer = u_edge(T, src, dst)
 u_edge(g::SimpleGraph, e::Edge) = u_edge(g, src(e), dst(e))
 u_edge(e::Edge{T}) where T<:Integer = u_edge(T, src(e), dst(e))
-u_edge(mol::AbstractMolGraph{T}, src::T, dst::T) where T<:Integer = u_edge(T, src, dst)
-u_edge(mol::AbstractMolGraph, e::Edge) = u_edge(mol, src(e), dst(e))
+u_edge(mol::SimpleMolGraph{T}, src::T, dst::T) where T<:Integer = u_edge(T, src, dst)
+u_edge(mol::SimpleMolGraph, e::Edge) = u_edge(mol.graph, e)
 
 
 
@@ -277,8 +277,8 @@ edge_neighbors(g::SimpleGraph, u::Integer, v::Integer) = (
     filter(n -> n != u, neighbors(g, v))
 )
 edge_neighbors(g::SimpleGraph, e::Edge) = edge_neighbors(g, src(e), dst(e))
-edge_neighbors(mol::AbstractMolGraph, u, v) = edge_neighbors(mol.graph, u, v)
-edge_neighbors(mol::AbstractMolGraph, e) = edge_neighbors(mol.graph, e)
+edge_neighbors(mol::SimpleMolGraph, u, v) = edge_neighbors(mol.graph, u, v)
+edge_neighbors(mol::SimpleMolGraph, e) = edge_neighbors(mol.graph, e)
 
 
 # if specific index order is required.

@@ -139,7 +139,7 @@ end
 
     nacl = smilestomol("[Na+][Cl-]")
     @test pi_electron(nacl) == [0, 0]
-    @test hybridization(nacl) == [:none, :sp3]
+    @test hybridization(nacl) == [:none, :none]
 end
 
 @testset "rotatable" begin

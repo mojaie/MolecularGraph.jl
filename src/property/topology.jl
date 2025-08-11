@@ -9,7 +9,9 @@ of 1 to ``n``th atoms of the given molecule.
 
 This property corresponds to SMARTS `D` query.
 """
-function Graphs.degree(mol::SimpleMolGraph)
+Graphs.degree(mol::SimpleMolGraph) = degree(mol.graph)
+
+function Graphs.degree(mol::ReactiveMolGraph)
     dispatch_update!(mol)
     return degree(mol.graph)
 end
@@ -22,7 +24,9 @@ Return vectors of ring nodes representing small set of smallest rings (SSSR).
 
 See [`mincyclebasis`](@ref).
 """
-function sssr(mol::SimpleMolGraph)
+sssr(mol::SimpleMolGraph) = mincyclebasis(mol.graph)
+
+function sssr(mol::ReactiveMolGraph)
     dispatch_update!(mol)
     if has_descriptor(mol, :sssr)
         return get_descriptor(mol, :sssr)
@@ -30,7 +34,7 @@ function sssr(mol::SimpleMolGraph)
     return mincyclebasis(mol.graph)
 end
 
-function sssr!(mol::SimpleMolGraph)
+function sssr!(mol::ReactiveMolGraph)
     mol.state.has_new_edges || return  # skip if new edges
     set_descriptor!(mol, :sssr, mincyclebasis(mol.graph))
     return
@@ -64,7 +68,6 @@ SSSR membership is represented as a vector of SSSR indices assigned to each ring
 This means nodes that have the same SSSR index belong to the same SSSR.
 """
 function which_ring(mol::SimpleMolGraph)
-    dispatch_update!(mol)
     arr = [Int[] for _ in vertices(mol)]
     for (i, cyc) in enumerate(sssr(mol))
         for n in cyc
@@ -85,7 +88,6 @@ SSSR membership is represented as a set of SSSR indices assigned to each rings.
 This means bonds that have the same SSSR index belong to the same SSSR.
 """
 function edge_which_ring(mol::SimpleMolGraph)
-    dispatch_update!(mol)
     arr = [Int[] for _ in 1:ne(mol)]
     for (i, cyc) in enumerate(sssr(mol))
         for j in 1:(length(cyc) - 1)
@@ -111,10 +113,7 @@ function fused_rings(g::SimpleGraph)
     return  [vmap[c] for c in connected_components(subg)]
 end
 
-function fused_rings(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return fused_rings(mol.graph)
-end
+fused_rings(mol::SimpleMolGraph) = fused_rings(mol.graph)
 
 
 """
@@ -127,7 +126,6 @@ Fused ring membership is represented as a set of fused ring indices assigned to 
 This means atoms that have the same fused ring index belong to the same fused ring.
 """
 function which_fused_ring(mol::SimpleMolGraph)
-    dispatch_update!(mol)
     arr = [Int[] for _ in vertices(mol)]
     for (i, conn) in enumerate(fused_rings(mol))
         for n in conn
@@ -148,7 +146,6 @@ If the node is not in a ring, the value would be 0.
 This property corresponds to SMARTS `r` query.
 """
 function smallest_ring(mol::SimpleMolGraph)
-    dispatch_update!(mol)
     sssr_ = sssr(mol)
     whichring_ = which_ring(mol)
     arr = zeros(Int, nv(mol))
@@ -169,10 +166,7 @@ that 1 to ``n``th atoms of the given molecule belong to.
 
 This property corresponds to SMARTS `R` query.
 """
-function ring_count(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return length.(which_ring(mol))
-end
+ring_count(mol::SimpleMolGraph) = length.(which_ring(mol))
 
 
 """
@@ -181,10 +175,7 @@ end
 Return a vector of size ``n`` representing whether 1 to ``n``th atoms of
 the given molecule belong to a ring or not.
 """
-function is_in_ring(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return .!isempty.(which_ring(mol))
-end
+is_in_ring(mol::SimpleMolGraph) = .!isempty.(which_ring(mol))
 
 
 """
@@ -193,10 +184,7 @@ end
 Return a vector of size ``n`` representing whether 1 to ``n``th bonds of
 the given molecule belong to a ring or not.
 """
-function is_edge_in_ring(mol::SimpleMolGraph)
-    dispatch_update!(mol)
-    return .!isempty.(edge_which_ring(mol))
-end
+is_edge_in_ring(mol::SimpleMolGraph) = .!isempty.(edge_which_ring(mol))
 
 
 
