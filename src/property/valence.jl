@@ -81,6 +81,20 @@ end
 
 
 """
+    isotope(mol::MolGraph) -> Vector{Int}
+
+Return a vector of size ``n`` representing isotope numbers (or 0 if not specified) of 1 to ``n``th atoms of
+the given molecule.
+"""
+isotope(mol::SimpleMolGraph) = Int[isotope(props(mol, i)) for i in vertices(mol)]
+
+function isotope(mol::ReactiveMolGraph)
+    dispatch_update!(mol)
+    return Int[isotope(props(mol, i)) for i in vertices(mol)]
+end
+
+
+"""
     bond_order(mol::MolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing bond order of 1 to ``n``th bonds of
@@ -101,7 +115,6 @@ default_bond_order!(mol::ReactiveMolGraph) = setproperty!(
     Int[bond_order(props(mol, e)) for e in edges(mol)]
 )
 
-# mass -> src/mass.jl
 # coords -> src/coords.jl
 
 
@@ -543,6 +556,22 @@ function chargesign(charge::Int)
     return num > 1 ? string(num, sign) : sign
 end
 
+function sanitize_html(s::AbstractString)
+    s = replace(s, "&" => "&amp;")
+    s = replace(s, "<" => "&lt;")
+    s = replace(s, ">" => "&gt;")
+    s = replace(s, "\"" => "&quot;")
+    s = replace(s, "'" => "&#39;")
+    return s
+end
+
+function sanitize_markup(markup::Vector{Vector{Tuple{Symbol,String}}})
+    san = Vector{Tuple{Symbol,String}}[]
+    for gp in markup
+        push!(san, [(sym, sanitize_html(unsafe_str)) for (sym, unsafe_str) in gp])
+    end
+    return san
+end
 
 
 """

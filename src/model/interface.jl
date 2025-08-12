@@ -121,7 +121,6 @@ The base class of vertex properties (atom).
 """
 abstract type AbstractAtom <: AbstractElement end
 
-has_isotope(::Type{T}) where T <: AbstractAtom = false
 has_isaromatic(::Type{T}) where T <: AbstractAtom = false
 has_mol(::Type{T}) where T <: AbstractAtom = false
 has_formula(::Type{T}) where T <: AbstractAtom = false

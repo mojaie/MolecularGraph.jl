@@ -163,8 +163,6 @@ SDFAtom(d::Dict{String,Any}
 SDFAtom(d::Dict{Symbol,Any}
     ) = SDFAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
-has_isotope(::Type{SDFAtom}) = true
-
 atom_symbol(a::SDFAtom) = a.symbol
 atom_number(a::SDFAtom) = atom_number(a.symbol)
 atom_charge(a::SDFAtom) = a.charge
@@ -231,7 +229,6 @@ SMILESAtom(d::Dict{String,Any}
 SMILESAtom(d::Dict{Symbol,Any}
     ) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
-has_isotope(::Type{SMILESAtom}) = true
 has_isaromatic(::Type{SMILESAtom}) = true
 
 atom_symbol(a::SMILESAtom) = a.symbol
@@ -302,8 +299,6 @@ CommonChemAtom(d::Dict{String,Any}
     ) = CommonChemAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
 CommonChemAtom(d::Dict{Symbol,Any}
     ) = CommonChemAtom(; NamedTuple((k, v) for (k, v) in d)...)
-
-has_isotope(::Type{CommonChemAtom}) = true
 
 atom_symbol(a::CommonChemAtom) = atom_symbol(a.z)
 atom_number(a::CommonChemAtom) = a.z

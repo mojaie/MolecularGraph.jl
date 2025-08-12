@@ -121,7 +121,7 @@ function to_dict(fmt::Val{:rdkit}, mol::SimpleMolGraph)
     implh = implicit_hydrogens(mol)
     chg = atom_charge(mol)
     mul = multiplicity(mol)
-    iso = [isotope(props(mol, i)) for i in vertices(mol)]
+    iso = isotope(mol)
     for i in vertices(mol)
         rcd = Dict{String,Any}()
         atomnum[i] == 6 || (rcd["z"] = atomnum[i])

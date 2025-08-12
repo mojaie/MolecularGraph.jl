@@ -16,10 +16,8 @@ end
     @test string(atom_symbol(mol)[6]) == "O"  # qeq(:symbol, "O")
     @test string(~is_aromatic(mol)[2]) == "true"  # qtrue(:isaromatic)
     @test string(atom_charge(mol)[1]) == "1"  # qeq(:charge, "1" )
-    @test string([isotope(props(mol, i)) for i in vertices(mol)][2]
-        ) == "14"  # qeq(:isotope => "14")
-    @test string([isotope(props(mol, i)) for i in vertices(mol)][4]
-        ) == "0"  # qeq(:isotope => "0")
+    @test string(isotope(mol)[2]) == "14"  # qeq(:isotope => "14")
+    @test string(isotope(mol)[4]) == "0"  # qeq(:isotope => "0")
     @test string(connectivity(mol)[2]) == "4"  # qeq(:connectivity, "4")
     @test string(degree(mol)[2]) == "4"  # qeq(:degree, "4")
     @test string(valence(mol)[6]) == "2"  # qeq(:valence, "2")

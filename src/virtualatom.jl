@@ -7,25 +7,6 @@
 const GeneralMolGraph = MolGraph{Int,AbstractAtom,AbstractBond}
 
 
-function sanitize_html(s::AbstractString)
-    s = replace(s, "&" => "&amp;")
-    s = replace(s, "<" => "&lt;")
-    s = replace(s, ">" => "&gt;")
-    s = replace(s, "\"" => "&quot;")
-    s = replace(s, "'" => "&#39;")
-    return s
-end
-
-function sanitize_markup(markup::Vector{Vector{Tuple{Symbol,String}}})
-    san = Vector{Tuple{Symbol,String}}[]
-    for gp in markup
-        push!(san, [(sym, sanitize_html(unsafe_str)) for (sym, unsafe_str) in gp])
-    end
-    return san
-end
-
-
-
 struct VirtualAtom <: AbstractAtom
     label::Vector{Vector{Tuple{Symbol,String}}}
 
@@ -42,6 +23,7 @@ atom_number(atom::VirtualAtom) = -1
 atom_symbol(atom::VirtualAtom) = Symbol(write_formula(atom.label))
 atom_charge(atom::VirtualAtom) = 0
 multiplicity(atom::VirtualAtom) = 1
+isotope(atom::VirtualAtom) = 0
 
 
 struct HydrogenatedAtom{T<:StandardAtom} <: AbstractAtom
@@ -54,7 +36,6 @@ HydrogenatedAtom(atom::T, hs::Int; coords=nothing
     ) where T <: AbstractAtom = HydrogenatedAtom{T}(atom, hs, coords)
 
 has_hydrogens(::Type{T}) where T <: HydrogenatedAtom = true
-has_isotope(::Type{T}) where T <: HydrogenatedAtom = true
 has_isaromatic(::Type{T}) where T <: HydrogenatedAtom = true
 
 atom_number(atom::HydrogenatedAtom) = atom_number(atom.center)
@@ -86,6 +67,7 @@ atom_number(group::FormulaGroup) = -1
 atom_symbol(group::FormulaGroup) = Symbol(write_formula(atom_markup(group)))
 atom_charge(group::FormulaGroup) = group.charge
 multiplicity(group::FormulaGroup) = 1
+isotope(group::FormulaGroup) = 0
 
 
 
@@ -109,7 +91,8 @@ has_label(::Type{<:StructGroup}) = true
 atom_number(group::StructGroup) = -1
 atom_symbol(group::StructGroup) = Symbol(write_formula(group.label))
 atom_charge(group::StructGroup) = sum(atom_charge(group.mol))
-multiplicity(group::StructGroup) = sum(multiplicity(group.mol))
+multiplicity(group::StructGroup) = 1
+isotope(group::StructGroup) = 0
 
 
 
