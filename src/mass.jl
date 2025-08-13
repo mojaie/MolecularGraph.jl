@@ -11,13 +11,24 @@ function atom_mass_unc(atom::StandardAtom, massfunc::F) where F
     return massfunc(atom_symbol(atom), isotope(atom))
 end
 
-atom_mass_unc(atom::AbstractAtom, f::F
-    ) where F = atom_mass_unc(atom, f, Val(has_mol(typeof(atom))))
+atom_mass_unc(atom::AbstractAtom, massfunc::F
+    ) where F = atom_mass_unc(atom, massfunc, Val(has_mol(typeof(atom))))
 # does not consider isotopes
 atom_mass_unc(atom, f::F, ::Val{false}) where F = molecular_mass_unc(atom_counter(atom), f)
 # consider isotopes
-atom_mass_unc(atom, f::F, ::Val{true}) where F = molecular_mass_unc(atom.mol, f)
-
+function atom_mass_unc(atom, massfunc::F, ::Val{true}) where F
+    mass, unc = molecular_mass_unc(atom.mol, massfunc)
+    sym = atom_symbol(atom.mol)
+    iso = isotope(atom.mol)
+    hm, hu = massfunc(:H)
+    imp_hs = implicit_hydrogens(atom.mol)
+    for (_, v) in atom.term  # remove terminal atoms
+        ams, aunc = massfunc(sym[v], iso[v])
+        mass -= ams + hm * imp_hs[v]
+        unc -= aunc + hu * imp_hs[v]
+    end
+    return (mass, unc)
+end
 
 function molecular_mass_unc(mol::SimpleMolGraph, massfunc::F) where F
     mass = 0.0
@@ -29,20 +40,6 @@ function molecular_mass_unc(mol::SimpleMolGraph, massfunc::F) where F
         mass += m + hm * imp_hs[i]
         unc += u + hu * imp_hs[i]
     end
-    # virtual bond correction
-    corr = 0
-    for e in edges(mol)
-        p = props(mol, e)
-        has_submap(typeof(p)) || continue
-        if p.src > 0
-            corr += 1
-        end
-        if p.dst > 0
-            corr += 1
-        end
-    end
-    mass -= hm * corr
-    unc -= hu * corr
     return (mass, unc)
 end
 

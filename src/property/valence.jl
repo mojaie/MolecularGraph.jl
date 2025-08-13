@@ -384,6 +384,8 @@ hydrogen_donor_count(atom::AbstractAtom
 
 
 # Rotatable bonds
+# TODO: options
+# consider conjugation - e.g. amide and esters
 
 """
     is_rotatable(mol::SimpleMolGraph) -> Vector{Bool}
@@ -405,19 +407,28 @@ function is_rotatable(mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:Stan
 end
 
 function is_rotatable(mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
-    srcdeg = Vector{Int}(undef, ne(mol))
-    dstdeg = Vector{Int}(undef, ne(mol))
-    for (i, e) in enumerate(edges(mol))
-        p = props(mol, e)
-        if has_submap(typeof(p)) && p.src > 0
-            srcdeg[i] = degree(props(mol, e.src).mol, p.src) + 1
+    srcdeg = Int[]
+    dstdeg = Int[]
+    for e in edges(mol)
+        ep = props(mol, e)
+        if has_submap(typeof(ep))
+            src = props(mol, e.src)
+            if has_mol(typeof(src))
+                snbr = only(neighbors(src.mol, ep.src[2]))
+                push!(srcdeg, degree(src.mol, snbr))
+            else
+                push!(srcdeg, degree(mol, e.src))
+            end
+            dst = props(mol, e.dst)
+            if has_mol(typeof(dst))
+                dnbr = only(neighbors(dst.mol, ep.dst[2]))
+                push!(dstdeg, degree(dst.mol, dnbr))
+            else
+                push!(dstdeg, degree(mol, e.dst))
+            end
         else
-            srcdeg[i] = degree(mol, e.src)
-        end
-        if has_submap(typeof(p)) && p.dst > 0
-            dstdeg[i] = degree(props(mol, e.dst).mol, p.dst) + 1
-        else
-            dstdeg[i] = degree(mol, e.dst)
+            push!(srcdeg, degree(mol, e.src))
+            push!(dstdeg, degree(mol, e.dst))
         end
     end
     return is_rotatable(srcdeg, dstdeg, is_edge_in_ring(mol), bond_order(mol))
@@ -451,12 +462,10 @@ function rotatable_count(
     return cnt + vcnt
 end
 
-rotatable_count(atom, ::Val{true}) = rotatable_count(atom.mol)
-rotatable_count(atom, ::Val{false}) = 0
 rotatable_count(atom::AbstractAtom
     ) = rotatable_count(atom, Val(has_mol(typeof(atom))))
-
-
+rotatable_count(atom, ::Val{false}) = 0
+rotatable_count(atom, ::Val{true}) = rotatable_count(atom.mol)
 
 # Composition
 
@@ -489,17 +498,6 @@ function atom_counter(mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:Abst
             _inc!(counter, sym, cnt)
         end
     end
-    # virtual bond correction
-    for e in edges(mol)
-        p = props(mol, e)
-        has_submap(typeof(p)) || continue
-        if p.src > 0
-            counter[:H] -= 1
-        end
-        if p.dst > 0
-            counter[:H] -= 1
-        end
-    end
     return counter
 end
 
@@ -520,7 +518,6 @@ atom_counter(atom::AbstractAtom) = atom_counter(
     Val(has_hydrogens(typeof(atom))),
     Val(has_label(typeof(atom)))
 )
-atom_counter(atom, ::Val{true}, ::Val, ::Val, ::Val) = atom_counter(atom.mol)
 atom_counter(atom, ::Val{false}, ::Val{true}, ::Val, ::Val) = atom.formula
 atom_counter(atom, ::Val{false}, ::Val{false}, ::Val{true}, ::Val
     ) = Dict(atom_symbol(atom.center) => 1, :H => atom.hydrogens)
@@ -529,6 +526,16 @@ atom_counter(atom, ::Val{false}, ::Val{false}, ::Val{false}, ::Val{true}
 atom_counter(atom, ::Val{false}, ::Val{false}, ::Val{false}, ::Val{false}
     ) = Dict{Symbol,Int}()
 
+function atom_counter(atom, ::Val{true}, ::Val, ::Val, ::Val)
+    cnt = atom_counter(atom.mol)
+    sym = atom_symbol(atom.mol)
+    implh = implicit_hydrogens(atom.mol)
+    for (_, v) in atom.term  # remove terminal atoms
+        cnt[sym[v]] -= 1
+        cnt[:H] -= implh[v]
+    end
+    return cnt
+end
 
 
 """

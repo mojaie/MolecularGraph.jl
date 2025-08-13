@@ -74,11 +74,12 @@ isotope(group::FormulaGroup) = 0
 struct StructGroup{T<:Integer,V<:StandardAtom,E<:StandardBond} <: AbstractAtom
     mol::MolGraph{T,V,E}
     label::Vector{Vector{Tuple{Symbol,String}}}
+    term::Dict{Int,T}  # terminal No. => vertex in StructGroup
 
     function StructGroup{T,V,E}(
-                mol::MolGraph{T,V,E},
-                label::Vector{Vector{Tuple{Symbol,String}}}) where {T,V,E}
-        new(mol, sanitize_markup(label))
+            mol::MolGraph{T,V,E},
+            label::Vector{Vector{Tuple{Symbol,String}}}) where {T,V,E}
+        new(mol, sanitize_markup(label), Dict{Int,T}())
     end
 end
 
@@ -96,43 +97,58 @@ isotope(group::StructGroup) = 0
 
 
 
-struct StructGroupBond{T<:Integer,E<:StandardBond} <: AbstractBond
-    bond::E
-    src::T  # -1 if source vertex is not StructGroup
-    dst::T
+struct StructGroupBond{T<:StandardBond} <: AbstractBond
+    bond::T
+    src::Pair{Int,Int}  # term label (-1 if source is not StructGroup) => term vertex in StructGroup
+    dst::Pair{Int,Int}
 end
 
-StructGroupBond(bond::E; src::T=-1, dst::T=-1
-    ) where {T,E} = StructGroupBond{T,E}(bond, src, dst)
+StructGroupBond(bond::T; src::Pair{Int,Int}=-1=>-1, dst::Pair{Int,Int}=-1=>-1
+    ) where T = StructGroupBond{T}(bond, src, dst)
 
 has_submap(::Type{<:StructGroupBond}) = true
 
 bond_order(bond::StructGroupBond) = bond_order(bond.bond)
 
+function Graphs.add_edge!(mol::SimpleMolGraph, u::Integer, v::Integer, prop::StructGroupBond)
+    e = u_edge(mol, u, v)
+    add_u_edge!(mol, e, prop)
+    src = props(mol, e.src)
+    if has_mol(typeof(src))
+        prop.src[1] > 0 || error("src vertex should be specified")
+        src.term[prop.src[1]] = prop.src[2]
+    end
+    dst = props(mol, e.dst)
+    if has_mol(typeof(dst))
+        prop.dst[1] > 0 || error("dst vertex should be specified")
+        dst.term[prop.dst[1]] = prop.dst[2]
+    end
+end
+
 
 # TODO: functional groups (Ph, Bz, Ts ...)
 # TODO: sugar
 methyl_group() = HydrogenatedAtom(SMILESAtom(:C), 3, "Me")
-ethyl_group() = StructGroup(smilestomol("CC"), "Et")
-tbutyl_group() = StructGroup(smilestomol("C(C)(C)C"), "tBu")
+ethyl_group() = StructGroup(smilestomol("[H]CC"), "Et")  # term => 1
+tbutyl_group() = StructGroup(smilestomol("[H]C(C)(C)C"), "tBu")  # term => 1
 
-gly() = StructGroup(smilestomol("NCC=O"), "Gly")
-ala() = StructGroup(smilestomol("N[C@H](C=O)C"), "Ala")
-ser() = StructGroup(smilestomol("N[C@H](C=O)CO"), "Ser")
-cys() = StructGroup(smilestomol("N[C@H](C=O)CS"), "Cys")
-met() = StructGroup(smilestomol("N[C@H](C=O)CCSC"), "Met")
-lys() = StructGroup(smilestomol("N[C@H](C=O)CCCCN"), "Lys")
-val() = StructGroup(smilestomol("N[C@H](C=O)C(C)C"), "Val")
-thr() = StructGroup(smilestomol("N[C@H](C=O)C(O)C"), "Thr")
-ile() = StructGroup(smilestomol("N[C@H](C=O)C(C)CC"), "Ile")
-leu() = StructGroup(smilestomol("N[C@H](C=O)CC(C)C"), "Leu")
-pro() = StructGroup(smilestomol("N[C@H](C=O)C1NCCC1"), "Pro")
-asn() = StructGroup(smilestomol("N[C@H](C=O)CC(=O)N"), "Asn")
-asp() = StructGroup(smilestomol("N[C@H](C=O)CC(=O)O"), "Asp")
-gln() = StructGroup(smilestomol("N[C@H](C=O)CCC(=O)N"), "Gln")
-glu() = StructGroup(smilestomol("N[C@H](C=O)CCC(=O)O"), "Glu")
-phe() = StructGroup(smilestomol("N[C@H](C=O)Cc1ccccc1"), "Phe")
-arg() = StructGroup(smilestomol("N[C@H](C=O)CCCNC(=N)N"), "Arg")
-his() = StructGroup(smilestomol("N[C@H](C=O)Cc1nc[nH]c1"), "His")
-tyr() = StructGroup(smilestomol("N[C@H](C=O)Cc1ccc(O)cc1"), "Tyr")
-trp() = StructGroup(smilestomol("N[C@H](C=O)Cc1cnc2ccccc12"), "Trp")
+gly() = StructGroup(smilestomol("[H]NC(C=O)O"), "Gly")  # Cterm => 1, Nterm => 6
+ala() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)C"), "Ala")  # Cterm => 1, Nterm => 7
+ser() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)CO"), "Ser")
+cys() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)CS"), "Cys")
+met() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)CCSC"), "Met")
+lys() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)CCCCN"), "Lys")
+val() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)C(C)C"), "Val")
+thr() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)C(O)C"), "Thr")
+ile() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)C(C)CC"), "Ile")
+leu() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)CC(C)C"), "Leu")
+pro() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)C1NCCC1"), "Pro")
+asn() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)CC(=O)N"), "Asn")
+asp() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)CC(=O)O"), "Asp")
+gln() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)CCC(=O)N"), "Gln")
+glu() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)CCC(=O)O"), "Glu")
+phe() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)Cc1ccccc1"), "Phe")
+arg() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)CCCNC(=N)N"), "Arg")
+his() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)Cc1nc[nH]c1"), "His")
+tyr() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)Cc1ccc(O)cc1"), "Tyr")
+trp() = StructGroup(smilestomol("[H]N[C@H](C(=O)O)Cc1cnc2ccccc12"), "Trp")

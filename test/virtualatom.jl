@@ -35,13 +35,11 @@ end
     mol = smilestomol(GeneralMolGraph, "N[C@H](C(=O)O)CCC(=O)")
     add_vertex!(mol, MolecularGraph.cys())
     add_vertex!(mol, MolecularGraph.gly())
-    add_vertex!(mol, SMILESAtom(:O))
-    add_edge!(mol, 9, 11, StructGroupBond(SMILESBond(1), src=-1, dst=1))
-    add_edge!(mol, 11, 12, StructGroupBond(SMILESBond(1), src=4, dst=1))
-    add_edge!(mol, 12, 13, StructGroupBond(SMILESBond(1), src=4, dst=-1))
+    add_edge!(mol, 9, 11, StructGroupBond(SMILESBond(1), dst=1=>1))
+    add_edge!(mol, 11, 12, StructGroupBond(SMILESBond(1), src=2=>7, dst=1=>1))
     @test molecular_formula(mol) == "C10H17N3O6S"
     @test isapprox(standard_weight(mol), 307.33, atol=1e-2)
-    @test rotatable_count(mol) == 9
+    @test rotatable_count(mol) == 11
     # collapse(mol, MolecularGraph.cys())
     # expand(mol, MolecularGraph.cys())
     # expand(mol)
