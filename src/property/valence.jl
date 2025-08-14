@@ -593,7 +593,7 @@ Return atom labels with style annotations which is used for drawing 2D structure
 atom_markup(mol::SimpleMolGraph) = atom_markup(mol, vproptype(mol), eproptype(mol))
 
 function atom_markup(mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
-    markup = atom_markup(atom_symbol(mol), atom_charge(mol), implicit_hydrogens(mol))
+    markup = atom_markup(atom_symbol(mol), isotope(mol), implicit_hydrogens(mol))
     for i in vertices(mol)
         markup[i] = something(atom_markup(props(mol, i)), markup[i])
     end
@@ -602,23 +602,24 @@ end
 
 atom_markup(
     mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond}
-) = atom_markup(atom_symbol(mol), atom_charge(mol), implicit_hydrogens(mol))
+) = atom_markup(atom_symbol(mol), isotope(mol), implicit_hydrogens(mol))
 
-function atom_markup(sym::Symbol, charge::Int, implicith::Int)
+function atom_markup(sym::Symbol, isotope::Int, implicith::Int)
     contents = [[(:default, string(sym))]]
+    if isotope > 0
+        pushfirst!(contents[1], (:sup, string(isotope)))
+    end
     if implicith == 1
         push!(contents, [(:default, "H")])
     elseif implicith > 1
         push!(contents, [(:default, "H"), (:sub, string(implicith))])
     end
-    if charge != 0
-        push!(contents, [(:sup, chargesign(charge))])
-    end
     return contents
 end
 
-atom_markup(symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, implh_arr::Vector{Int}
-    ) = atom_markup.(symbol_arr, charge_arr, implh_arr)
+atom_markup(
+    symbol_arr::Vector{Symbol}, isotope_arr::Vector{Int}, implh_arr::Vector{Int}
+) = atom_markup.(symbol_arr, isotope_arr, implh_arr)
 
 atom_markup(atom::AbstractAtom) = atom_markup(
     atom,
@@ -627,7 +628,7 @@ atom_markup(atom::AbstractAtom) = atom_markup(
     Val(has_label(typeof(atom)))
 )
 atom_markup(atom, ::Val{true}, ::Val{false}, ::Val{true}
-    ) = isempty(atom.label) ? markup_formula(atom.formula, charge=atom.charge) : atom.label
+    ) = isempty(atom.label) ? markup_formula(atom.formula) : atom.label
 atom_markup(atom, ::Val{false}, ::Val{true}, ::Val{false}
     ) = [[(:default, string(atom_symbol(atom.center))), (:sub, string(atom.hydrogens))]]
 atom_markup(atom, ::Val{false}, ::Val{false}, ::Val{true}) = atom.label
@@ -641,7 +642,7 @@ atom_markup(atom, ::Val{false}, ::Val{false}, ::Val{false}) = nothing
 
 Generate markup formula array
 """
-function markup_formula(counter_::Dict{Symbol,Int}; charge=0)
+function markup_formula(counter_::Dict{Symbol,Int})
     contents = Vector{Tuple{Symbol,String}}[]
     counter = copy(counter_)
     if haskey(counter, :C)
@@ -662,15 +663,12 @@ function markup_formula(counter_::Dict{Symbol,Int}; charge=0)
         cnt > 1 && push!(elems, (:sub, string(cnt)))
         push!(contents, elems)
     end
-    if charge != 0
-        push!(contents, [(:sup, chargesign(charge))])
-    end
     return contents
 end
 
 
 write_formula(markup::Vector{Vector{Tuple{Symbol,String}}}) = join(e[2] for e in vcat(markup...))
-write_formula(counter::Dict{Symbol,Int}; kwargs...) = write_formula(markup_formula(counter; kwargs...))
+write_formula(counter::Dict{Symbol,Int}) = write_formula(markup_formula(counter))
 
 
 """

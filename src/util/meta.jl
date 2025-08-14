@@ -8,3 +8,7 @@ const VERSION = begin
     readuntil(io, "version = \"")
     VersionNumber(readuntil(io, "\""))
 end
+
+
+# for test
+testfile(file::String) = joinpath(dirname(@__FILE__), "..", "..", "assets", "test", file)

@@ -27,7 +27,7 @@ end
         Dict(:H => 7, :C => 2, :N => 1), 1, Vector{Tuple{Symbol, String}}[]))
     @test valence(mol)[6] == 1
     @test atom_markup(mol.vprops[6]) == [
-        [(:default, "C"), (:sub, "2")], [(:default, "H"), (:sub, "7")], [(:default, "N")], [(:sup, "+")]]
+        [(:default, "C"), (:sub, "2")], [(:default, "H"), (:sub, "7")], [(:default, "N")]]
     @test molecular_formula(mol) == "C24H28ClFIN4NaO5PS"
 end
 

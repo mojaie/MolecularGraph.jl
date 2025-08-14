@@ -29,6 +29,8 @@ mutable struct SvgCanvas <: Canvas
     bgelements::Vector{String}
     elements::Vector{String}
     coords::Vector{Point2d}
+    optpos::Vector{Point2d}
+    optdeg::Vector{Float64}
 
     function SvgCanvas(bgcolor::RGB, bgopacity::Float64)
         canvas = new()
@@ -62,6 +64,8 @@ mutable struct SvgCanvas <: Canvas
         canvas.viewboxH = 1.0
         canvas.bgelements = []
         canvas.elements = []
+        canvas.optpos = []
+        canvas.optdeg = []
 
         return canvas
     end

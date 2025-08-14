@@ -28,7 +28,8 @@
     end
 
     @testset "atom_markup" begin
-        @test atom_markup(:C, 0, 3) == [[(:default, "C")], [(:default, "H"), (:sub, "3")]]
-        @test atom_markup(:N, 1, 4) == [[(:default, "N")], [(:default, "H"), (:sub, "4")], [(:sup, "+")]]
+        @test atom_markup(:Br, 0, 0) == [[(:default, "Br")]]
+        @test atom_markup(:N, 0, 4) == [[(:default, "N")], [(:default, "H"), (:sub, "4")]]
+        @test atom_markup(:C, 13, 0) == [[(:sup, "13"), (:default, "C")]]
     end
 end

@@ -264,6 +264,43 @@ setbond!(
 ) = BOND_DRAWER[order][notation](canvas, u, v, ucolor, vcolor, uvis, vvis)
 
 
+function optpos(center::Point2d, coords::Vector{Point2d})
+    if length(coords) == 0
+        return (Point2d(NaN, NaN), 0.0)
+    elseif length(coords) == 1
+        return (normalize(coords[1] - center) * -1, 0.0)
+    elseif length(coords) == 2
+        return (normalize(normalize(coords[1] - center) + normalize(coords[2] - center)) * -1, 0.0)
+    else
+        angs = [atan(reverse(coords[n] - center)...) for n in 1:length(coords)]
+        sp = sortperm(angs, rev=true)
+        diffs = Float64[]
+        for k in 1:(length(coords) - 1)
+            push!(diffs, angs[sp[k]] - angs[sp[k + 1]])
+        end
+        push!(diffs, angs[sp[end]] - angs[sp[1]] + 2 * pi)
+        dmax, mi = findmax(diffs)
+        a, b = mi == length(coords) ? (mi, 1) : (mi, mi + 1)
+        mid = normalize(normalize(coords[a] - center) + normalize(coords[b] - center))
+        return (dmax < pi ? mid : mid * -1, dmax)
+    end
+end
+
+
+function setoptpos!(canvas::Canvas, mol::SimpleMolGraph)
+    oppos = Vector{Point2d}(undef, length(canvas.coords))
+    opdeg = Vector{Float64}(undef, length(canvas.coords))
+    for i in vertices(mol)
+        oppos[i], opdeg[i] = optpos(canvas.coords[i], [canvas.coords[n] for n in neighbors(mol, i)])
+    end
+    empty!(canvas.optpos)
+    empty!(canvas.optdeg)
+    append!(canvas.optpos, oppos)
+    append!(canvas.optdeg, opdeg)
+    return
+end
+
+
 """
     draw2d!(canvas::Canvas, mol::UndirectedGraph; kwargs...)
 
@@ -278,55 +315,44 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     crds = coords2d(mol)
     # Canvas settings
     initcanvas!(canvas, crds, boundary(mol, crds))
+    setoptpos!(canvas, mol)
     # Properties
-    implicith_ = implicit_hydrogens(mol)
+    charge_ = atom_charge(mol)
     bondorder_ = bond_order(mol)
     atomcolor_ = atom_color(mol; kwargs...)
     isatomvisible_ = is_atom_visible(mol; kwargs...)
     bondstyle_ = bond_style(mol.graph, bondorder_, draw2d_bond_style(mol), crds, sssr(mol))
     atommarkup_ = atom_markup(mol)
-
     # Draw bonds
     for (i, e) in enumerate(edges(mol))
-        s, d = Tuple(e)
         setbond!(
-            canvas, bondorder_[i], bondstyle_[i], s, d,
-            atomcolor_[s], atomcolor_[d],
-            isatomvisible_[s], isatomvisible_[d]
+            canvas, bondorder_[i], bondstyle_[i], e.src, e.dst,
+            atomcolor_[e.src], atomcolor_[e.dst],
+            isatomvisible_[e.src], isatomvisible_[e.dst]
         )
     end
-
     # Draw atoms
     for i in vertices(mol)
         isatomvisible_[i] || continue
-        pos = canvas.coords[i]
-        # Determine text direction
-        if implicith_[i] > 0
-            cosnbrs = []
-            hrzn = pos + Point2d(1, 0)
-            for nbr in neighbors(mol, i)
-                posnbr = canvas.coords[nbr]
-                dist = norm(posnbr - pos)
-                if dist > 0
-                    dp = dot(hrzn - pos, posnbr - pos)
-                    push!(cosnbrs, dp / dist)
-                end
-            end
-            if isempty(cosnbrs) || minimum(cosnbrs) > 0
-                # [atom]< or isolated node(ex. H2O, HCl)
-                alabel = atom_label(vcat(reverse(atommarkup_[i])...), canvas.fonttagmap)
-                drawtext!(canvas, pos, alabel, atomcolor_[i], :left)
-                continue
-            elseif maximum(cosnbrs) < 0
-                # >[atom]
-                alabel = atom_label(vcat(atommarkup_[i]...), canvas.fonttagmap)
-                drawtext!(canvas, pos, alabel, atomcolor_[i], :right)
-                continue
-            end
+        opos = canvas.optpos[i]
+        odeg = canvas.optdeg[i]
+        amk = atommarkup_[i]
+        if isnan(opos[1])  # isolated node(ex. H2O, HCl)
+            d = :right
+        elseif (degree(mol, i) > 2 && odeg < pi) || (degree(mol, i) == 2 && abs(opos[2]) > 0.87)  # -[atom]-
+            d = :center
+        elseif opos[1] < 0  # [atom]<
+            d = :left
+            amk = reverse(amk)
+        else # >[atom]
+            d = :right
         end
-        # -[atom]- or no hydrogens
-        alabel = atom_label(vcat(atommarkup_[i]...), canvas.fonttagmap)
-        drawtext!(canvas, pos, alabel, atomcolor_[i], :center)
+        amk = vcat(amk...)
+        if charge_[i] != 0
+            push!(amk, (:sup, chargesign(charge_[i])))
+        end
+        alabel = atom_label(vcat(amk...), canvas.fonttagmap)
+        drawtext!(canvas, canvas.coords[i], alabel, atomcolor_[i], d)
     end
     return
 end

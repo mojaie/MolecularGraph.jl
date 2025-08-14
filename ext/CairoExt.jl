@@ -60,6 +60,8 @@ mutable struct CairoCanvas <: Canvas
     surface::Cairo.CairoSurface
     context::Cairo.CairoContext
     coords::Vector{Point2d}
+    optpos::Vector{Point2d}
+    optdeg::Vector{Float64}
 
     function CairoCanvas(width::Int, height::Int, bgcolor::RGB, bgopacity::Float64)
         canvas = new()
@@ -92,6 +94,8 @@ mutable struct CairoCanvas <: Canvas
         canvas.cairoscalef = 1
         canvas.surface = Cairo.CairoARGBSurface(width, height)
         canvas.context = Cairo.CairoContext(canvas.surface)
+        canvas.optpos = []
+        canvas.optdeg = []
 
         return canvas
     end
