@@ -178,10 +178,10 @@ function MolecularGraph.drawtext!(canvas::CairoCanvas, pos, text, color, align)
     Cairo.set_font_face(canvas.context, join([canvas.fontfamily, canvas.fontweight, fs], " "))
     Cairo.set_source(canvas.context, color)
     cext = Cairo.text_extents(canvas.context, "C")
-    exof = Point2d(0.5, -2.0)  # TODO: extra offset
-    xoffset = cext[3] * xoff  # extent of character "C": xb, yb, w, h, xa, ya
-    yoffset = cext[4] / 2
-    pos_ = pos + Point2d(xoffset, yoffset) + exof
+    # empirical offset factor (0.85, 0.35)
+    xoffset = cext[3] * 0.85 * xoff  # extent of character "C": xb, yb, w, h, xa, ya
+    yoffset = cext[4] * 0.35
+    pos_ = pos + Point2d(xoffset, yoffset)
     Cairo.text(
         canvas.context, pos_[1], pos_[2],
         text, halign=halign, valign="center", markup=true

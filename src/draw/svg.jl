@@ -203,8 +203,8 @@ const SVG_ATOM_TEXT_XOFFSET = Dict(:left => 1, :center => 0, :right => -1)
 function drawtext!(canvas::SvgCanvas, pos, text, color, align)
     anchor = SVG_ATOM_TEXT_ANCHOR[align]
     xoffset = SVG_ATOM_TEXT_XOFFSET[align]
-    exof = Point2d(0.5, -2.0)  # TODO: extra offset
-    xy = svgcoords(pos + Point2d(xoffset, 1) * canvas.fontsize / 2 + exof)
+    # empirical offset factor (0.4, 0.35)
+    xy = svgcoords(pos + Point2d(canvas.fontsize * 0.4 * xoffset, canvas.fontsize * 0.35))
     elem = """<text $(xy) font-size="$(canvas.fontsize)" fill="$(svgcolor(color))"$(anchor)>$(text)</text>"""
     push!(canvas.elements, elem)
     return
