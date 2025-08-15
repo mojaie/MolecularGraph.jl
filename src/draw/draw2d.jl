@@ -122,37 +122,6 @@ function bond_style(g, bondorder, defaultbondstyle, coords_, sssr_)
 end
 
 
-
-"""
-    boundary(mol::SimpleMolGraph, coords::AbstractArray{Float64}
-        ) -> (top, left, width, height, unit)
-
-Get boundaries and an appropriate bond length unit for the molecule drawing
-canvas.
-"""
-function boundary(mol::SimpleMolGraph, coords::Vector{Point2d})
-    (left, right) = extrema([p[1] for p in coords])
-    (bottom, top) = extrema([p[2] for p in coords])
-    width = right - left
-    height = top - bottom
-    dists = []
-    # Size unit
-    for e in edges(mol)
-        d = norm(coords[dst(e)] - coords[src(e)])
-        if d > 0.0001  # Remove overlapped
-            push!(dists, d)
-        end
-    end
-    if isempty(dists)
-        long = max(width, height)
-        unit = long > 0.0001 ? long / sqrt(nv(mol)) : 1
-    else
-        unit = Statistics.median(dists) # Median bond length
-    end
-    return (top, left, width, height, unit)
-end
-
-
 function trimbond_(uvis, vvis)
     uvis && vvis && return trim_uv
     uvis && return trim_u
@@ -264,6 +233,69 @@ setbond!(
 ) = BOND_DRAWER[order][notation](canvas, u, v, ucolor, vcolor, uvis, vvis)
 
 
+
+"""
+    normalize_coords(
+        g::SimpleGraph, coords::Vector{Point2d},
+        label_length::Vector{Float64}, label_direction::Vector{Symbol},
+        fontsizef::Float64, scalef::Float64, paddingXf::Float64, paddingYf::Float64)
+    ) -> (coords, width, height)
+
+Get boundaries and an appropriate bond length unit for the molecule drawing
+canvas.
+"""
+function normalize_coords(
+        g::SimpleGraph, coords::Vector{Point2d},
+        label_length::Vector{Int}, label_direction::Vector{Symbol},
+        atomvisible::BitVector,
+        fontsizef::Float64, scalef::Float64, paddingX::Float64, paddingY::Float64)
+    # scalef: bond length in pixel
+    # paddingX, paddingY: drawing area padding in pixel
+    # fontsizef: estimated font width in pixel
+    (left, right) = extrema([p[1] for p in coords])
+    (bottom, top) = extrema([p[2] for p in coords])
+    width = right - left
+    height = top - bottom
+    dists = []
+    # Size unit
+    for e in edges(g)
+        d = norm(coords[dst(e)] - coords[src(e)])
+        if d > 0.0001  # Remove overlapped
+            push!(dists, d)
+        end
+    end
+    if isempty(dists)
+        long = max(width, height)
+        unit = long > 0.0001 ? long / sqrt(nv(g)) : 1
+    else
+        unit = Statistics.median(dists) # Median bond length
+    end
+    # extra offset for long text vertices
+    sf = scalef / unit
+    exleft = 0.0  # extra left offset
+    exright = 0.0  # extra right offset
+    for i in vertices(g)
+        atomvisible[i] || continue
+        label_length[i] > 1 || continue
+        hf = label_direction[i] === :center ? 0.5 : 1
+        xoff = label_length[i] * fontsizef * hf / sf
+        if label_direction[i] !== :right && abs(left - coords[i][1]) < xoff
+            exleft = max(exleft, xoff)
+        end
+        if label_direction[i] !== :left && abs(right - coords[i][1]) < xoff
+            exright = max(exright, xoff)
+        end
+    end
+    # transform
+    conv = p -> (p - Point2d(left - exleft, top)) * Point2d(1, -1) * sf + Point2d(paddingX, paddingY)
+    new_coords = conv.(coords)
+    width = (width + exleft + exright) * sf + paddingX * 2
+    height = height * sf + paddingY * 2
+    return (new_coords, width, height)
+end
+
+
+
 function optpos(center::Point2d, coords::Vector{Point2d})
     if length(coords) == 0
         return (Point2d(NaN, NaN), 0.0)
@@ -287,19 +319,48 @@ function optpos(center::Point2d, coords::Vector{Point2d})
 end
 
 
-function setoptpos!(canvas::Canvas, mol::SimpleMolGraph)
-    oppos = Vector{Point2d}(undef, length(canvas.coords))
-    opdeg = Vector{Float64}(undef, length(canvas.coords))
-    for i in vertices(mol)
-        oppos[i], opdeg[i] = optpos(canvas.coords[i], [canvas.coords[n] for n in neighbors(mol, i)])
+function optpos(g::SimpleGraph, coords::Vector{Point2d})
+    oppos = Vector{Point2d}(undef, length(coords))
+    opdeg = Vector{Float64}(undef, length(coords))
+    for i in vertices(g)
+        oppos[i], opdeg[i] = optpos(coords[i], [coords[n] for n in neighbors(g, i)])
     end
-    empty!(canvas.optpos)
-    empty!(canvas.optdeg)
-    append!(canvas.optpos, oppos)
-    append!(canvas.optdeg, opdeg)
-    return
+    return oppos, opdeg
 end
 
+function label_direction(
+        g::SimpleGraph, opos::Vector{Point2d}, odeg::Vector{Float64})
+    arr = Vector{Symbol}(undef, length(odeg))
+    for i in vertices(g)
+        if isnan(opos[i][1])  # isolated node(ex. H2O, HCl)
+            arr[i] = :right
+        elseif (degree(g, i) > 2 && odeg[i] < pi) || (degree(g, i) == 2 && abs(opos[i][2]) > 0.87)  # -[atom]-
+            arr[i] = :center
+        elseif opos[i][1] < 0  # [atom]<
+            arr[i] = :left
+        else # >[atom]
+            arr[i] = :right
+        end
+    end
+    return arr
+end
+
+function atom_markup_parse(
+        atommarkup::Vector{Vector{Vector{Tuple{Symbol,String}}}},
+        labeldir::Vector{Symbol}, chg::Vector{Int})
+    arr = Vector{Vector{Tuple{Symbol,String}}}(undef, length(chg))
+    for i in 1:length(chg)
+        if labeldir[i] === :left
+            arr[i] = vcat(reverse(atommarkup[i])...)
+        else
+            arr[i] = vcat(atommarkup[i]...)
+        end
+        if chg[i] != 0
+            push!(arr[i], (:sup, chargesign(chg[i])))
+        end
+    end
+    return arr
+end
 
 """
     draw2d!(canvas::Canvas, mol::UndirectedGraph; kwargs...)
@@ -314,15 +375,19 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     end
     crds = coords2d(mol)
     # Canvas settings
-    initcanvas!(canvas, crds, boundary(mol, crds))
-    setoptpos!(canvas, mol)
+    oppos, opdeg = optpos(mol.graph, crds)
+    labeldir = label_direction(mol.graph, oppos, opdeg)
+    atommarkup = atom_markup_parse(atom_markup(mol), labeldir, atom_charge(mol))
+    charcnt = [length(join(e[2] for e in amk)) for amk in atommarkup]
+    isatomvisible_ = is_atom_visible(mol; kwargs...)
+    ncrds, width, height = normalize_coords(
+        mol.graph, crds, charcnt, labeldir, isatomvisible_,
+        canvas.fontsize * 0.5, canvas.scaleunit, canvas.paddingX, canvas.paddingY)
+    initcanvas!(canvas, ncrds, width, height)
     # Properties
-    charge_ = atom_charge(mol)
     bondorder_ = bond_order(mol)
     atomcolor_ = atom_color(mol; kwargs...)
-    isatomvisible_ = is_atom_visible(mol; kwargs...)
     bondstyle_ = bond_style(mol.graph, bondorder_, draw2d_bond_style(mol), crds, sssr(mol))
-    atommarkup_ = atom_markup(mol)
     # Draw bonds
     for (i, e) in enumerate(edges(mol))
         setbond!(
@@ -334,25 +399,8 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
     # Draw atoms
     for i in vertices(mol)
         isatomvisible_[i] || continue
-        opos = canvas.optpos[i]
-        odeg = canvas.optdeg[i]
-        amk = atommarkup_[i]
-        if isnan(opos[1])  # isolated node(ex. H2O, HCl)
-            d = :right
-        elseif (degree(mol, i) > 2 && odeg < pi) || (degree(mol, i) == 2 && abs(opos[2]) > 0.87)  # -[atom]-
-            d = :center
-        elseif opos[1] < 0  # [atom]<
-            d = :left
-            amk = reverse(amk)
-        else # >[atom]
-            d = :right
-        end
-        amk = vcat(amk...)
-        if charge_[i] != 0
-            push!(amk, (:sup, chargesign(charge_[i])))
-        end
-        alabel = atom_label(vcat(amk...), canvas.fonttagmap)
-        drawtext!(canvas, canvas.coords[i], alabel, atomcolor_[i], d)
+        alabel = atom_label(atommarkup[i], canvas.fonttagmap)
+        drawtext!(canvas, canvas.coords[i], alabel, atomcolor_[i], labeldir[i])
     end
     return
 end

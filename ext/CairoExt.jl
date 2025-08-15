@@ -46,8 +46,8 @@ mutable struct CairoCanvas <: Canvas
     linehlwidth::Float64
     annotsizef::Float64
     hlsizef::Float64
-    paddingXf::Float64
-    paddingYf::Float64
+    paddingX::Float64
+    paddingY::Float64
 
     fontweight::String
     fontfamily::String
@@ -76,8 +76,8 @@ mutable struct CairoCanvas <: Canvas
         canvas.linehlwidth = 9.0
         canvas.annotsizef = 0.7
         canvas.hlsizef = 0.8
-        canvas.paddingXf = 1.0
-        canvas.paddingYf = 1.0
+        canvas.paddingX = 30.0
+        canvas.paddingY = 30.0
 
         # Appearance
         canvas.fontweight = "Normal"
@@ -148,15 +148,11 @@ end
 Move and adjust the size of the molecule for drawing.
 """
 function MolecularGraph.initcanvas!(
-        canvas::CairoCanvas, coords::Vector{Point2d}, boundary::Tuple)
-    (top, left, width, height, unit) = boundary
-    sf = canvas.scaleunit / unit
-    pd = [canvas.paddingXf canvas.paddingYf] * canvas.scaleunit
-    conv = p -> (p - Point2d(left, top)) * Point2d(1, -1) * sf + Point2d(pd...)
-    canvas.coords = conv.(coords)
+        canvas::CairoCanvas, coords::Vector{Point2d}, width::Float64, height::Float64)
+    canvas.coords = coords
     canvasW = canvas.surface.width
     canvasH = canvas.surface.height
-    x_scale, y_scale = [canvasW canvasH] ./ (([width height] * sf) .+ (pd * 2))
+    x_scale, y_scale = [canvasW canvasH] ./ [width height]
     min_scale = min(x_scale, y_scale)  # keep aspect ratio
     xoff = x_scale > y_scale ? (1 - y_scale / x_scale) / 2 * canvasW : 0  # x centering
     yoff = y_scale > x_scale ? (1 - x_scale / y_scale) / 2 * canvasH : 0  # y centering

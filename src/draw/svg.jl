@@ -14,8 +14,8 @@ mutable struct SvgCanvas <: Canvas
     linehlwidth::Float64
     annotsizef::Float64
     hlsizef::Float64
-    paddingXf::Float64
-    paddingYf::Float64
+    paddingX::Float64
+    paddingY::Float64
 
     fontweight::String
     fontfamily::String
@@ -45,8 +45,8 @@ mutable struct SvgCanvas <: Canvas
         canvas.linehlwidth = 9.0
         canvas.annotsizef = 0.7
         canvas.hlsizef = 1.2
-        canvas.paddingXf = 1.0
-        canvas.paddingYf = 1.0
+        canvas.paddingX = 30.0
+        canvas.paddingY = 30.0
 
         # Appearance
         canvas.fontweight = "normal"
@@ -182,15 +182,10 @@ Base.show(io::IO, m::MIME"text/html", mols::Vector{QueryMolGraph}
 
 
 function initcanvas!(
-        canvas::SvgCanvas, coords::Vector{Point2d}, boundary::Tuple)
-    (top, left, width, height, unit) = boundary
-    sf = canvas.scaleunit / unit
-    pd = [canvas.paddingXf canvas.paddingYf] * canvas.scaleunit
-    conv = p -> (p - Point2d(left, top)) * Point2d(1, -1) * sf + Point2d(pd...)
-    canvas.coords = conv.(coords)
-    viewbox = ([width height] * sf) .+ (pd * 2)
-    canvas.viewboxW = viewbox[1]
-    canvas.viewboxH = viewbox[2]
+        canvas::SvgCanvas, coords::Vector{Point2d}, width::Float64, height::Float64)
+    canvas.coords = coords
+    canvas.viewboxW = width
+    canvas.viewboxH = height
     return
 end
 
