@@ -25,6 +25,7 @@ implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
 function kekulize(mol::SimpleMolGraph{T}) where T
     # "raw" bond orders
     bondorder = [bond_order(props(mol, e)) for e in edges(mol)]
+    ernk = edge_rank(mol)
     # lone pair in p-orbital, pyrrole-like aromatic atom
     pyrrole_like = T[]
     for ring in fused_rings(mol.graph)
@@ -47,7 +48,7 @@ function kekulize(mol::SimpleMolGraph{T}) where T
                 end
                 push!(arom_vs, i)  # including [cH0], b
             elseif deg == 3
-                hasdouble = any(bondorder[edge_rank(mol, i, nbr)] == 2 for nbr in neighbors(mol, i))
+                hasdouble = any(bondorder[edge_rank(ernk, i, nbr)] == 2 for nbr in neighbors(mol, i))
                 if sym === :C
                     hasdouble && continue  # c=O
                     push!(arom_vs, i)
@@ -78,7 +79,7 @@ function kekulize(mol::SimpleMolGraph{T}) where T
         matching = max_matching(subg)
         is_perfect_matching(subg, matching) || error("Kekulization failed: invalid aromatic ring")
         for e in matching
-            bondorder[edge_rank(mol, vmap[src(e)], vmap[dst(e)])] = 2
+            bondorder[edge_rank(ernk, vmap[src(e)], vmap[dst(e)])] = 2
         end
     end
     return bondorder, pyrrole_like
@@ -265,6 +266,7 @@ function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
     isaromatic_ = is_aromatic(mol)
     carr = copy(charge_)
     oarr = copy(bond_order(mol))
+    ernk = edge_rank(mol)
     for o in findall(charge_ .== -1)
         atomsymbol_[o] === negative || continue
         @assert connectivity_[o] == 1
@@ -274,7 +276,7 @@ function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
         isaromatic_[nbr] && continue
         carr[o] = 0
         carr[nbr] = 0
-        oarr[edge_rank(mol, o, nbr)] = 2
+        oarr[edge_rank(ernk, o, nbr)] = 2
     end
     return carr, oarr
 end
@@ -301,16 +303,17 @@ function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
     connectivity_ = connectivity(mol)
     carr = copy(charge_)
     oarr = copy(bondorder_)
+    ernk = edge_rank(mol)
     for o in findall(connectivity_ .== 1)
         atomsymbol_[o] === negative || continue
         charge_[o] == 0 || continue
         nbr = neighbors(mol, o)[1]
         atomsymbol_[nbr] in positive || continue
         charge_[nbr] == 0 || continue
-        bondorder_[edge_rank(mol, o, nbr)] == 2 || continue
+        bondorder_[edge_rank(ernk, o, nbr)] == 2 || continue
         carr[o] = -1
         carr[nbr] = 1
-        oarr[edge_rank(mol, o, nbr)] = 1
+        oarr[edge_rank(ernk, o, nbr)] = 1
     end
     return carr, oarr
 end
@@ -350,12 +353,13 @@ Standardize the molecule so that all 1,3-dipole groups are represented as triple
 function to_triple_bond(mol::SimpleMolGraph)
     carr = copy(atom_charge(mol))
     oarr = copy(bond_order(mol))
+    ernk = edge_rank(mol)
     for (first, center, third) in find_dipoles(mol)
         bond_order(props(mol, first, center)) == 2 || continue
         carr[first] = 0
         carr[third] = -1
-        oarr[edge_rank(mol, first, center)] = 3
-        oarr[edge_rank(mol, center, third)] = 1
+        oarr[edge_rank(ernk, first, center)] = 3
+        oarr[edge_rank(ernk, center, third)] = 1
     end
     return carr, oarr
 end
@@ -377,12 +381,13 @@ Standardize the molecule so that all 1,3-dipole groups are represented as allene
 function to_allene_like(mol::SimpleMolGraph)
     carr = copy(atom_charge(mol))
     oarr = copy(bond_order(mol))
+    ernk = edge_rank(mol)
     for (first, center, third) in find_dipoles(mol)
         bond_order(props(mol, first, center)) == 1 || continue
         carr[first] = 0
         carr[third] = -1
-        oarr[edge_rank(mol, first, center)] = 2
-        oarr[edge_rank(mol, center, third)] = 2
+        oarr[edge_rank(ernk, first, center)] = 2
+        oarr[edge_rank(ernk, center, third)] = 2
     end
     return carr, oarr
 end

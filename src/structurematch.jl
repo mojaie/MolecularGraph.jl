@@ -101,11 +101,12 @@ function ematchgen(mol1::SimpleMolGraph, mol2::QueryMolGraph)
         :isaromatic => is_edge_aromatic(mol1)
     )
     matches = Dict{Edge{Int},Dict{Edge{Int},Bool}}()  # cache matches
+    ernk1 = edge_rank(mol1)
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
         qtree = props(mol2, e2)
         qprop = union(QueryNode[], values(querypropmap(qtree))...)
-        arr = [string(descriptors[p.key][edge_rank(mol1, e1)]) == p.value for p in qprop]
+        arr = [string(descriptors[p.key][ernk1[e1]]) == p.value for p in qprop]
         res = generate_queryfunc(qtree, qprop)(arr)
         haskey(matches, e1) || (matches[e1] = Dict{Edge{Int},Bool}())
         matches[e1][e2] = res

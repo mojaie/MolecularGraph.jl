@@ -79,13 +79,14 @@ Return a vector of size ``n`` representing [`sssr`](@ref) membership of
 SSSR membership is represented as a set of SSSR indices assigned to each rings.
 This means bonds that have the same SSSR index belong to the same SSSR.
 """
-function edge_which_ring(mol::SimpleMolGraph)
+function edge_which_ring(mol::SimpleMolGraph{T}) where T
     arr = [Int[] for _ in 1:ne(mol)]
+    ernk = edge_rank(mol)
     for (i, cyc) in enumerate(sssr(mol))
         for j in 1:(length(cyc) - 1)
-            push!(arr[edge_rank(mol, cyc[j], cyc[j + 1])], i)
+            push!(arr[edge_rank(ernk, cyc[j], cyc[j + 1])], i)
         end
-        push!(arr[edge_rank(mol, cyc[1], cyc[end])], i)
+        push!(arr[edge_rank(ernk, cyc[1], cyc[end])], i)
     end
     return arr
 end

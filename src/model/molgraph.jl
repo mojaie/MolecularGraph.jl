@@ -39,22 +39,20 @@ mutable struct MolState{T,F1,F2} <: AbstractState
     has_new_edges::Bool  # as a SSSR recalculation flag
     on_init::F1
     on_update::F2
-    edge_rank::Dict{Edge{T},Int}
 end
 
 
 function MolState{T}(
         ; initialized=false, has_updates=true, has_new_edges=true,
-        on_init=default_on_init!, on_update=default_on_update!,
-        edge_rank=Dict{Edge{T},Int}()) where T <: Integer
+        on_init=default_on_init!, on_update=default_on_update!) where T <: Integer
     return MolState{T,typeof(on_init),typeof(on_update)}(
-        initialized, has_updates, has_new_edges, on_init, on_update, edge_rank)
+        initialized, has_updates, has_new_edges, on_init, on_update)
 end
 
 
 Base.copy(state::T) where T <: MolState = T(
     state.initialized, state.has_updates, state.has_new_edges,
-    state.on_init, state.on_update, copy(state.edge_rank)
+    state.on_init, state.on_update
 )
 
 
@@ -63,41 +61,6 @@ Base.copy(state::T) where T <: MolState = T(
 function get_descriptor(mol::ReactiveMolGraph, field::Symbol)
     dispatch_update!(mol)
     return getproperty(mol.gprops.descriptors, field)
-end
-
-
-"""
-    edge_rank(mol::SimpleMolGraph, e::Edge) -> Integer
-    edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) -> Integer
-
-Return stored edge rank mapping `Dict{Edge, Int}(e => i for (i, e) in edges(mol))`
-"""
-function edge_rank(mol::ReactiveMolGraph, e::Edge)
-    dispatch_update!(mol)
-    return mol.state.edge_rank[e]
-end
-
-edge_rank(mol::ReactiveMolGraph, u::Integer, v::Integer) = edge_rank(mol, u_edge(mol, u, v))
-
-
-"""
-    update_edge_rank!(mol::ReactiveMolGraph) -> Nothing
-
-Update stored edge_rank mapping.
-
-The edge rank mapping `Dict{Edge, Int}(e => i for (i, e) in edges(mol))` is stored
-in `state.edge_rank` to provide indexed access to edge-related properties in descriptor arrays.  
-Because operations that add or remove vertices or edges invalidate this mapping,
-such methods call `notify_updates!` to set the `:has_updates` flag.  
-The mapping is then reconstructed by calling `update_edge_rank!`, which is triggered
-automatically the next time descriptor functions are invoked.
-"""
-function update_edge_rank!(mol::ReactiveMolGraph)
-    empty!(mol.state.edge_rank)
-    for (i, e) in enumerate(edges(mol.graph))
-        mol.state.edge_rank[e] = i
-    end
-    return
 end
 
 
@@ -112,7 +75,6 @@ to recalculate descriptors. If there are no changes, just return the stored desc
 """
 function dispatch_update!(mol::ReactiveMolGraph)
     mol.state.has_updates || return
-    update_edge_rank!(mol)  # necessary
     mol.state.has_updates = false  # call before update to avoid infinite roop
     mol.state.on_update(mol)
     mol.state.has_new_edges = false

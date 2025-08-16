@@ -36,6 +36,7 @@ function wclogptype(mol::SimpleMolGraph)
     hybridization_ = hybridization(mol)
     isaromatic_ = is_aromatic(mol)
     isaromaticbond_ = is_edge_aromatic(mol)
+    ernk = edge_rank(mol)
 
     for i in vertices(mol)
         # Carbons
@@ -74,11 +75,11 @@ function wclogptype(mol::SimpleMolGraph)
             substbond = -1
             aromcnt = 0
             for nbr in neighbors(mol, i)
-                if isaromaticbond_[edge_rank(mol, i, nbr)]
+                if isaromaticbond_[edge_rank(ernk, i, nbr)]
                     aromcnt += 1
                 else
                     subst = nbr
-                    substbond = edge_rank(mol, i,nbr)
+                    substbond = edge_rank(ernk, i,nbr)
                 end
             end
             if aromcnt == 3
@@ -98,7 +99,7 @@ function wclogptype(mol::SimpleMolGraph)
             arom = 0
             het = 0
             for nbr in neighbors(mol, i)
-                if bondorder_[edge_rank(mol, i, nbr)] == 2 && atomsymbol_[nbr] !== :C
+                if bondorder_[edge_rank(ernk, i, nbr)] == 2 && atomsymbol_[nbr] !== :C
                     het += 1
                 elseif isaromatic_[nbr]
                     arom += 1
@@ -113,7 +114,7 @@ function wclogptype(mol::SimpleMolGraph)
             end
         elseif atomsymbol_[i] === :C && hybridization_[i] === :sp
             # Aliphatic sp hybrid (C6-7)
-            bonds = [edge_rank(mol, i, nbr) for nbr in neighbors(mol, i)]
+            bonds = [edge_rank(ernk, i, nbr) for nbr in neighbors(mol, i)]
             if any(bondorder_[bonds] .== 3)
                 atomtypes[i] = :C7 # Alkyne, Nitrile
             else

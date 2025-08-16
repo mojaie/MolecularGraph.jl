@@ -3,6 +3,12 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+edge_rank(g::SimpleGraph) = Dict(e => i for (i, e) in enumerate(edges(g)))
+edge_rank(ernk::Dict{Edge{T},Int}, src::T, dst::T) where T = ernk[u_edge(T, src, dst)]
+
+
+
 """
     induced_subgraph_edges(g::SimpleGraph, node_list::AbstractVector)
 
@@ -58,7 +64,7 @@ Generate line graph, reverse mapping lg(v) -> g(e) and shared nodes mapping lg(e
 """
 function line_graph(g::SimpleGraph{T}) where T
     l = SimpleGraph{T}(ne(g))
-    edge_rank = Dict(e => i for (i, e) in enumerate(edges(g)))
+    ernk = edge_rank(g)
     revmap = Dict(i => e for (i, e) in enumerate(edges(g)))
     sharednode = Dict{Edge{T},T}()
     for i in vertices(g)
@@ -66,8 +72,8 @@ function line_graph(g::SimpleGraph{T}) where T
         nbrs = neighbors(g, i)
         for (m, n) in combinations(length(nbrs))
             e = u_edge(T,
-                edge_rank[u_edge(T, i, nbrs[m])],
-                edge_rank[u_edge(T, i, nbrs[n])]
+                edge_rank(ernk, i, nbrs[m]),
+                edge_rank(ernk, i, nbrs[n])
             )
             add_edge!(l, e)
             sharednode[e] = i

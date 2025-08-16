@@ -57,7 +57,6 @@ function MolGraph{T,SDFAtom,SDFBond}(@nospecialize(data::Dict)
     )
     mol = MolGraph(
         reactive_molgraph(Val(:default), T, SDFAtom, SDFBond, data, gps, config)...)
-    update_edge_rank!(mol)  # but edge_rank should be resumed
     return mol
 end
 
@@ -75,7 +74,6 @@ function MolGraph{T,SMILESAtom,SMILESBond}(@nospecialize(data::Dict)
     )
     mol = MolGraph(
         reactive_molgraph(Val(:default), T, SMILESAtom, SMILESBond, data, gps, config)...)
-    update_edge_rank!(mol)  # but edge_rank should be resumed
     return mol
 end
 
@@ -93,7 +91,6 @@ function QueryMolGraph{T,QueryAtom,QueryBond}(@nospecialize(data::Dict)
     )
     mol = QueryMolGraph(
         reactive_molgraph(Val(:default), T, QueryAtom, QueryBond, data, gps, config)...)
-    update_edge_rank!(mol)  # but edge_rank should be resumed
     return mol
 end
 

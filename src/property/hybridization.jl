@@ -122,7 +122,7 @@ function is_ring_aromatic(
     vs_declined = falses(nv(g))  # vertices belong to `not_aromatic`
     rings_suspended = Vector{Int}[]  # depends on adjacent rings
     huckel_arr = copy(pi_arr)  # Huckel rule electron count
-    er = Dict(e => i for (i, e) in enumerate(edges(g)))  # edge rank
+    ernk = edge_rank(g)  # edge rank
     for (i, ring) in enumerate(sssr_)
         ring_sus = Int[]
         suspended = false
@@ -136,7 +136,7 @@ function is_ring_aromatic(
             outnbrs = setdiff(neighbors(g, r), ring)
             length(outnbrs) == 1 || continue
             outnbr = only(outnbrs)
-            e = er[u_edge(g, r, outnbr)]
+            e = edge_rank(ernk, r, outnbr)
             order_arr[e] == 2 || continue
             # Process outgoing double bonds
             if length(which_ring_arr[e]) != 0
@@ -184,8 +184,8 @@ function is_ring_aromatic(
         while !isempty(stack)
             n = popfirst!(stack)  # BFS
             for e in induced_subgraph_edges(g, sssr_[n])
-                order_arr[er[e]] == 1 || continue
-                rings = which_ring_arr[er[e]]
+                order_arr[ernk[e]] == 1 || continue
+                rings = which_ring_arr[ernk[e]]
                 length(rings) == 2 || continue
                 nr = only(setdiff(rings, n))
                 nr in visited && continue
@@ -199,14 +199,14 @@ function is_ring_aromatic(
                 uv, vv = edge_neighbors(g, e)
                 ud = []
                 for u in uv
-                    ur = er[u_edge(g, e.src, u)]
+                    ur = edge_rank(ernk, e.src, u)
                     if order_arr[ur] == 2
                         push!(ud, ur)
                     end
                 end
                 vd = []
                 for v in vv
-                    vr = er[u_edge(g, e.dst, v)]
+                    vr = edge_rank(ernk, e.dst, v)
                     if order_arr[vr] == 2
                         push!(vd, vr)
                     end
@@ -270,12 +270,12 @@ is_edge_aromatic(mol::SimpleMolGraph) = is_edge_aromatic(mol.graph, sssr(mol), i
 function is_edge_aromatic(
         g::SimpleGraph, sssr_::Vector{Vector{Int}}, is_ring_arom::Vector{Bool})
     arr = falses(ne(g))
-    er = Dict(e => i for (i, e) in enumerate(edges(g)))
+    ernk = edge_rank(g)
     for ring in sssr_[findall(is_ring_arom)]
         for i in 1:(length(ring) - 1)
-            arr[er[u_edge(g, ring[i], ring[i + 1])]] = true
+            arr[edge_rank(ernk, ring[i], ring[i + 1])] = true
         end
-        arr[er[u_edge(g, ring[1], ring[end])]] = true
+        arr[edge_rank(ernk, ring[1], ring[end])] = true
     end
     return arr
 end

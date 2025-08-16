@@ -116,10 +116,10 @@ apparent_valence!(mol::ReactiveMolGraph) = setproperty!(
 
 function apparent_valence(g::SimpleGraph, order_arr::Vector{Int})
     arr = fill(zero(Int), nv(g))
-    er = Dict(e => i for (i, e) in enumerate(edges(g)))
+    ernk = edge_rank(g)
     for e in edges(g)
-        arr[src(e)] += order_arr[er[e]]
-        arr[dst(e)] += order_arr[er[e]]
+        arr[src(e)] += order_arr[ernk[e]]
+        arr[dst(e)] += order_arr[ernk[e]]
     end
     return arr
 end

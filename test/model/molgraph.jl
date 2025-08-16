@@ -34,7 +34,7 @@
     @test !has_edge(methane, Edge(2 => 4))
 
     # custom graph methods
-    @test edge_rank(ethane, 2, 7) == 6
+    @test edge_rank(edge_rank(ethane), 2, 7) == 6
     @test u_edge(methane, 2, 1) == u_edge(methane, 1, 2)
     @test u_edge(methane, 4, 1) == u_edge(methane, Edge(1 => 4))
     @test u_edge(methane, 3, 1) == u_edge(eltype(edgetype(methane)), 1, 3)

@@ -65,7 +65,7 @@ function remap!(
     newedges = sort([u_edge(T, revv[src(e)], revv[dst(e)]) for e in edges
             if src(e) in vmap && dst(e) in vmap])
     olderank = Dict(e => i for (i, e) in enumerate(edges))
-    emap = Dict(i => olderank[u_edge(T, vmap[src(e)], vmap[dst(e)])] for (i, e) in enumerate(newedges))
+    emap = Dict(i => edge_rank(olderank, vmap[src(e)], vmap[dst(e)]) for (i, e) in enumerate(newedges))
     inv = Dict{Symbol,Symbol}(:up => :revup, :revup => :up, :down => :revdown, :revdown => :down)
     for (i, styles) in enumerate(desc.draw2d_bond_style)
         cont = Vector{Symbol}(undef, length(emap))
@@ -220,7 +220,7 @@ function coordgen(
     minmol = @ccall libcoordgen.getSketcherMinimizer()::Ptr{Cvoid}
     atoms = Ptr{Cvoid}[]
     bonds = Ptr{Cvoid}[]
-    er = Dict(e => i for (i, e) in enumerate(edges(g)))
+    ernk = edge_rank(g)
 
     # Atoms
     for a in atomnum
@@ -250,7 +250,7 @@ function coordgen(
     # Stereobond
     for (e, stereo) in stereobonds
         @ccall libcoordgen.setStereoBond(
-            bonds[er[e]]::Ptr{Cvoid}, atoms[stereo[1]]::Ptr{Cvoid},
+            bonds[ernk[e]]::Ptr{Cvoid}, atoms[stereo[1]]::Ptr{Cvoid},
             atoms[stereo[2]]::Ptr{Cvoid}, stereo[3]::Cint
         )::Cvoid
     end

@@ -31,6 +31,30 @@ Graphs.outneighbors(g::AbstractMolGraph, v::Integer) = outneighbors(g.graph, v)
 
 
 """
+    vproptype(::Type{AbstractMolGraph}) -> Type
+    vproptype(mol::AbstractMolGraph) -> Type
+
+Return the type of vertex properties
+"""
+vproptype(::Type{T}) where T<:AbstractMolGraph = error("$(T) has no vertex property field")
+vproptype(mol::T) where T<:AbstractMolGraph = vproptype(T)
+
+
+"""
+    eproptype(::Type{AbstractMolGraph}) -> Type
+    eproptype(mol::AbstractMolGraph) -> Type
+
+Return the type of edge properties
+"""
+eproptype(::Type{T}) where T<:AbstractMolGraph = error("$(T) has no edge property field")
+eproptype(mol::T) where T<:AbstractMolGraph = eproptype(T)
+
+
+edge_rank(mol::AbstractMolGraph) = edge_rank(mol.graph)
+
+
+
+"""
     AbstractReaction
 
 The base class of reactions
@@ -227,26 +251,6 @@ Graphs.induced_subgraph(mol::T, elist::AbstractVector{U}
 function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph)
     print(io, "{$(nv(g)), $(ne(g))} simple molecular graph $(typeof(g))")
 end
-
-
-"""
-    vproptype(::Type{SimpleMolGraph}) -> Type
-    vproptype(mol::SimpleMolGraph) -> Type
-
-Return the type of vertex properties
-"""
-vproptype(::Type{T}) where T<:SimpleMolGraph = vproptype(T)
-vproptype(mol::T) where T<:SimpleMolGraph = vproptype(T)
-
-
-"""
-    eproptype(::Type{SimpleMolGraph}) -> Type
-    eproptype(mol::SimpleMolGraph) -> Type
-
-Return the type of edge properties
-"""
-eproptype(::Type{T}) where T<:SimpleMolGraph = eproptype(T)
-eproptype(mol::T) where T<:SimpleMolGraph = eproptype(T)
 
 
 """

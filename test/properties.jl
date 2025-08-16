@@ -26,7 +26,7 @@ end
     @test ring_count(biphenyl)[12] == 1
     @test is_in_ring(biphenyl)[6]
     @test is_in_ring(biphenyl)[7]
-    @test !is_edge_in_ring(biphenyl)[edge_rank(biphenyl, 6, 7)]
+    @test !is_edge_in_ring(biphenyl)[edge_rank(edge_rank(biphenyl), 6, 7)]
     rem_vertex!(biphenyl, 5)
     # TODO: better cycle equivalence check
     @test sum(only(sssr(biphenyl))) == 50  # remapped, [7, 8, 9, 10, 11, 5]

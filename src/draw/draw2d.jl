@@ -74,7 +74,7 @@ function is_atom_visible(
         iso::Vector{Int}, bo::Vector{Int}; show_carbon=:simple, kwargs...)
     arr = trues(nv(g))
     show_carbon === :all && return arr
-    er = Dict(e => i for (i, e) in enumerate(edges(g)))
+    ernk = edge_rank(g)
     for i in vertices(g)
         sym[i] === :C || continue
         chg[i] == 0 || continue
@@ -84,8 +84,8 @@ function is_atom_visible(
         degree(g, i) == 1 && show_carbon === :terminal && continue
         if degree(g, i) == 2
             nbrs = neighbors(g, i)
-            u = er[u_edge(g, i, nbrs[1])]
-            v = er[u_edge(g, i, nbrs[2])]
+            u = edge_rank(ernk, i, nbrs[1])
+            v = edge_rank(ernk, i, nbrs[2])
             if (bo[u] == 2 && bo[v] == 2)
                 continue # allene-like
             end
@@ -143,7 +143,7 @@ function double_bond_style(
         g::SimpleGraph, bondorder_::Vector{Int}, coords::Vector{Point2d},
         sssr_::Vector{Vector{Int}})
     arr = Vector{Symbol}(undef, ne(g))
-    er = Dict(e => i for (i, e) in enumerate(edges(g)))
+    ernk = edge_rank(g)
     for (i, e) in enumerate(edges(g))
         if bondorder_[i] != 2
             arr[i] = :none
@@ -155,11 +155,11 @@ function double_bond_style(
             continue
         end
         sdbs = map(snbrs) do snbr
-            se = er[u_edge(g, src(e), snbr)]
+            se = edge_rank(ernk, src(e), snbr)
             bondorder_[se] == 2
         end
         ddbs = map(dnbrs) do dnbr
-            de = er[u_edge(g, dst(e), dnbr)]
+            de = edge_rank(ernk, dst(e), dnbr)
             bondorder_[de] == 2
         end
         if any(sdbs) || any(ddbs)
@@ -175,7 +175,7 @@ function double_bond_style(
         ordered = cw ? ring : reverse(ring)
         rr = vcat(ordered, ordered)
         for i in 1:length(ordered)
-            e = er[u_edge(g, rr[i], rr[i + 1])]
+            e = edge_rank(ernk, rr[i], rr[i + 1])
             bondorder_[e] == 2 || continue
             arr[e] = rr[i] < rr[i + 1] ? :clockwise : :anticlockwise
         end

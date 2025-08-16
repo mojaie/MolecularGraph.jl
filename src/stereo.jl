@@ -159,19 +159,20 @@ function stereocenter_from_sdf2d(
         g::SimpleGraph{T}, v_symbol::Vector{Symbol}, e_order::Vector{Int},
         e_notation::Vector{Int}, e_isordered::Vector{Bool}, v_coords2d::Vector{Point2d}) where T
     centers = Dict{T,Tuple{T,T,T,Bool}}()
-    edgerank = Dict(e => i for (i, e) in enumerate(edges(g)))
+    ernk = edge_rank(g)
     comments = String[]
     for i in vertices(g)
         degree(g, i) in (3, 4) || continue
         nbrs = ordered_neighbors(g, i)
         drs = Symbol[]  # lookingFrom, atom1, atom2, (atom3)
         for nbr in nbrs
-            e_order[edgerank[u_edge(g, i, nbr)]] == 1 || break
-            if e_isordered[edgerank[u_edge(g, i, nbr)]] == (i < nbr)  # only outgoing wedges are considered
-                if e_notation[edgerank[u_edge(g, i, nbr)]] == 1
+            nbe = edge_rank(ernk, i, nbr)
+            e_order[nbe] == 1 || break
+            if e_isordered[nbe] == (i < nbr)  # only outgoing wedges are considered
+                if e_notation[nbe] == 1
                     push!(drs, :up)
                     continue
-                elseif e_notation[edgerank[u_edge(g, i, nbr)]] == 6
+                elseif e_notation[nbe] == 6
                     push!(drs, :down)
                     continue
                 end
@@ -364,7 +365,7 @@ function stereobond_from_smiles(
         g::SimpleGraph{T}, e_order::Vector{Int}, e_direction::Vector{Symbol}) where T
     stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
     comments = String[]
-    edgerank = Dict(e => i for (i, e) in enumerate(edges(g)))
+    ernk = edge_rank(g)
     for (i, e) in enumerate(edges(g))
         e_order[i] == 2 || continue
         degree(g, src(e)) in (2, 3) || continue
@@ -378,13 +379,13 @@ function stereobond_from_smiles(
         e.g.  C(\\F)=C/F -> trans
         """
         for sn in snbrs
-            sd = e_direction[edgerank[u_edge(g, sn, src(e))]]
+            sd = e_direction[edge_rank(ernk, sn, src(e))]
             sd === :unspecified && continue
             sd = sn < src(e) ? sd : (sd === :up ? :down : :up)
             push!(sds, (sn, sd))
         end
         for dn in dnbrs
-            dd = e_direction[edgerank[u_edge(g, dn, dst(e))]]
+            dd = e_direction[edge_rank(ernk, dn, dst(e))]
             dd === :unspecified && continue
             dd = dst(e) < dn ? dd : (dd === :up ? :down : :up)
             push!(dds, (dn, dd))
