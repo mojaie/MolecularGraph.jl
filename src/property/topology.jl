@@ -11,11 +11,6 @@ This property corresponds to SMARTS `D` query.
 """
 Graphs.degree(mol::SimpleMolGraph) = degree(mol.graph)
 
-function Graphs.degree(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
-    return degree(mol.graph)
-end
-
 
 """
     sssr(mol::SimpleMolGraph{T}) -> Vector{Vector{T}}
@@ -24,10 +19,7 @@ Return vectors of ring nodes representing small set of smallest rings (SSSR).
 
 See [`mincyclebasis`](@ref).
 """
-sssr(mol::SimpleMolGraph) = mincyclebasis(mol.graph)
-
-function sssr(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
+function sssr(mol::SimpleMolGraph)
     if has_descriptor(mol, :sssr)
         return get_descriptor(mol, :sssr)
     end

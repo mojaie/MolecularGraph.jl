@@ -3,6 +3,58 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+
+function optpos(g::SimpleGraph, coords::Vector{Point2d})
+    oppos = Vector{Point2d}(undef, length(coords))
+    opdeg = Vector{Float64}(undef, length(coords))
+    for i in vertices(g)
+        oppos[i], opdeg[i] = optpos(coords[i], [coords[n] for n in neighbors(g, i)])
+    end
+    return oppos, opdeg
+end
+
+
+function optpos(center::Point2d, coords::Vector{Point2d})
+    if length(coords) == 0
+        return (Point2d(NaN, NaN), 0.0)
+    elseif length(coords) == 1
+        return (normalize(coords[1] - center) * -1, 0.0)
+    elseif length(coords) == 2
+        return (normalize(normalize(coords[1] - center) + normalize(coords[2] - center)) * -1, 0.0)
+    else
+        angs = [atan(reverse(coords[n] - center)...) for n in 1:length(coords)]
+        sp = sortperm(angs, rev=true)
+        diffs = Float64[]
+        for k in 1:(length(coords) - 1)
+            push!(diffs, angs[sp[k]] - angs[sp[k + 1]])
+        end
+        push!(diffs, angs[sp[end]] - angs[sp[1]] + 2 * pi)
+        dmax, mi = findmax(diffs)
+        a, b = mi == length(coords) ? (mi, 1) : (mi, mi + 1)
+        mid = normalize(normalize(coords[a] - center) + normalize(coords[b] - center))
+        return (dmax < pi ? mid : mid * -1, dmax)
+    end
+end
+
+
+function label_direction(
+        g::SimpleGraph, opos::Vector{Point2d}, odeg::Vector{Float64})
+    arr = Vector{Symbol}(undef, length(odeg))
+    for i in vertices(g)
+        if isnan(opos[i][1])  # isolated node(ex. H2O, HCl)
+            arr[i] = :right
+        elseif (degree(g, i) > 2 && odeg[i] < pi) || (degree(g, i) == 2 && abs(opos[i][2]) > 0.87)  # -[atom]-
+            arr[i] = :center
+        elseif opos[i][1] < 0  # [atom]<
+            arr[i] = :left
+        else # >[atom]
+            arr[i] = :right
+        end
+    end
+    return arr
+end
+
+
 """
     is_atom_visible(mol::SimpleMolGraph; show_carbon=:simple, kwargs...) -> Vector{Bool}
 
@@ -10,7 +62,16 @@ Return whether the atom is visible in the 2D drawing.
 `show_carbon`: `simple` - does not show carbon labels, `terminal` - show only terminal carbonlabels,
 `all` - show all carbon labels.
 """
-function is_atom_visible(g, sym, chg, mul, iso, bo; show_carbon=:simple, kwargs...)
+is_atom_visible(
+    mol::SimpleMolGraph; show_carbon=:simple, kwargs...
+) = is_atom_visible(
+    mol.graph, atom_symbol(mol), atom_charge(mol), multiplicity(mol),
+    isotope(mol), bond_order(mol); kwargs...
+)
+
+function is_atom_visible(
+        g::SimpleGraph, sym::Vector{Symbol}, chg::Vector{Int}, mul::Vector{Int},
+        iso::Vector{Int}, bo::Vector{Int}; show_carbon=:simple, kwargs...)
     arr = trues(nv(g))
     show_carbon === :all && return arr
     er = Dict(e => i for (i, e) in enumerate(edges(g)))
@@ -34,10 +95,22 @@ function is_atom_visible(g, sym, chg, mul, iso, bo; show_carbon=:simple, kwargs.
     return arr
 end
 
-function is_atom_visible(mol::SimpleMolGraph; show_carbon=:simple, kwargs...)
-    dispatch_update!(mol)
-    return is_atom_visible(mol.graph, atom_symbol(mol), atom_charge(mol), multiplicity(mol),
-        isotope(mol), bond_order(mol); kwargs...)
+
+function atom_markup_ordered(
+        atommarkup::Vector{Vector{Vector{Tuple{Symbol,String}}}},
+        labeldir::Vector{Symbol}, chg::Vector{Int})
+    arr = Vector{Vector{Tuple{Symbol,String}}}(undef, length(chg))
+    for i in 1:length(chg)
+        if labeldir[i] === :left
+            arr[i] = vcat(reverse(atommarkup[i])...)
+        else
+            arr[i] = vcat(atommarkup[i]...)
+        end
+        if chg[i] != 0
+            push!(arr[i], (:sup, chargesign(chg[i])))
+        end
+    end
+    return arr
 end
 
 
@@ -66,7 +139,9 @@ function atom_label(
 end
 
 
-function double_bond_style(g, bondorder_, coords, sssr_)
+function double_bond_style(
+        g::SimpleGraph, bondorder_::Vector{Int}, coords::Vector{Point2d},
+        sssr_::Vector{Vector{Int}})
     arr = Vector{Symbol}(undef, ne(g))
     er = Dict(e => i for (i, e) in enumerate(edges(g)))
     for (i, e) in enumerate(edges(g))
@@ -109,7 +184,9 @@ function double_bond_style(g, bondorder_, coords, sssr_)
 end
 
 
-function bond_style(g, bondorder, defaultbondstyle, coords_, sssr_)
+function bond_style(
+        g::SimpleGraph, bondorder::Vector{Int}, defaultbondstyle::Vector{Symbol},
+        coords_::Vector{Point2d}, sssr_::Vector{Vector{Int}})
     doublebondstyle = double_bond_style(g, bondorder, coords_, sssr_)
     arr = copy(defaultbondstyle)
     for i in 1:length(bondorder)
@@ -296,99 +373,28 @@ end
 
 
 
-function optpos(center::Point2d, coords::Vector{Point2d})
-    if length(coords) == 0
-        return (Point2d(NaN, NaN), 0.0)
-    elseif length(coords) == 1
-        return (normalize(coords[1] - center) * -1, 0.0)
-    elseif length(coords) == 2
-        return (normalize(normalize(coords[1] - center) + normalize(coords[2] - center)) * -1, 0.0)
-    else
-        angs = [atan(reverse(coords[n] - center)...) for n in 1:length(coords)]
-        sp = sortperm(angs, rev=true)
-        diffs = Float64[]
-        for k in 1:(length(coords) - 1)
-            push!(diffs, angs[sp[k]] - angs[sp[k + 1]])
-        end
-        push!(diffs, angs[sp[end]] - angs[sp[1]] + 2 * pi)
-        dmax, mi = findmax(diffs)
-        a, b = mi == length(coords) ? (mi, 1) : (mi, mi + 1)
-        mid = normalize(normalize(coords[a] - center) + normalize(coords[b] - center))
-        return (dmax < pi ? mid : mid * -1, dmax)
-    end
-end
-
-
-function optpos(g::SimpleGraph, coords::Vector{Point2d})
-    oppos = Vector{Point2d}(undef, length(coords))
-    opdeg = Vector{Float64}(undef, length(coords))
-    for i in vertices(g)
-        oppos[i], opdeg[i] = optpos(coords[i], [coords[n] for n in neighbors(g, i)])
-    end
-    return oppos, opdeg
-end
-
-function label_direction(
-        g::SimpleGraph, opos::Vector{Point2d}, odeg::Vector{Float64})
-    arr = Vector{Symbol}(undef, length(odeg))
-    for i in vertices(g)
-        if isnan(opos[i][1])  # isolated node(ex. H2O, HCl)
-            arr[i] = :right
-        elseif (degree(g, i) > 2 && odeg[i] < pi) || (degree(g, i) == 2 && abs(opos[i][2]) > 0.87)  # -[atom]-
-            arr[i] = :center
-        elseif opos[i][1] < 0  # [atom]<
-            arr[i] = :left
-        else # >[atom]
-            arr[i] = :right
-        end
-    end
-    return arr
-end
-
-function atom_markup_parse(
-        atommarkup::Vector{Vector{Vector{Tuple{Symbol,String}}}},
-        labeldir::Vector{Symbol}, chg::Vector{Int})
-    arr = Vector{Vector{Tuple{Symbol,String}}}(undef, length(chg))
-    for i in 1:length(chg)
-        if labeldir[i] === :left
-            arr[i] = vcat(reverse(atommarkup[i])...)
-        else
-            arr[i] = vcat(atommarkup[i]...)
-        end
-        if chg[i] != 0
-            push!(arr[i], (:sup, chargesign(chg[i])))
-        end
-    end
-    return arr
-end
-
 """
     draw2d!(canvas::Canvas, mol::UndirectedGraph; kwargs...)
 
 Draw molecular image to the canvas.
 """
 function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
-    dispatch_update!(mol)
-    # 2D coordinates required
-    if !has_coords2d(mol)
-        coordgen!(mol)
-    end
+    # Calculate text direction, normalize coordinates and determine canvas size
+    has_coords2d(mol) || coordgen!(mol)
     crds = coords2d(mol)
-    # Canvas settings
     oppos, opdeg = optpos(mol.graph, crds)
     labeldir = label_direction(mol.graph, oppos, opdeg)
-    atommarkup = atom_markup_parse(atom_markup(mol), labeldir, atom_charge(mol))
+    atommarkup = atom_markup_ordered(atom_markup(mol), labeldir, atom_charge(mol))
     charcnt = [length(join(e[2] for e in amk)) for amk in atommarkup]
     isatomvisible_ = is_atom_visible(mol; kwargs...)
     ncrds, width, height = normalize_coords(
         mol.graph, crds, charcnt, labeldir, isatomvisible_,
         canvas.fontsize * 0.5, canvas.scaleunit, canvas.paddingX, canvas.paddingY)
     initcanvas!(canvas, ncrds, width, height)
-    # Properties
+    # Draw bonds first, and then draw atoms
     bondorder_ = bond_order(mol)
     atomcolor_ = atom_color(mol; kwargs...)
     bondstyle_ = bond_style(mol.graph, bondorder_, draw2d_bond_style(mol), crds, sssr(mol))
-    # Draw bonds
     for (i, e) in enumerate(edges(mol))
         setbond!(
             canvas, bondorder_[i], bondstyle_[i], e.src, e.dst,
@@ -396,7 +402,6 @@ function draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
             isatomvisible_[e.src], isatomvisible_[e.dst]
         )
     end
-    # Draw atoms
     for i in vertices(mol)
         isatomvisible_[i] || continue
         alabel = atom_label(atommarkup[i], canvas.fonttagmap)

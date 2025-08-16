@@ -60,6 +60,12 @@ Base.copy(state::T) where T <: MolState = T(
 
 # Property update mechanisms
 
+function get_descriptor(mol::ReactiveMolGraph, field::Symbol)
+    dispatch_update!(mol)
+    return getproperty(mol.gprops.descriptors, field)
+end
+
+
 """
     edge_rank(mol::SimpleMolGraph, e::Edge) -> Integer
     edge_rank(mol::SimpleMolGraph, u::Integer, v::Integer) -> Integer

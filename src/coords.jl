@@ -122,7 +122,6 @@ end
 
 
 function coords2d(mol::SimpleMolGraph, i::Integer)
-    dispatch_update!(mol)
     if !has_descriptor(mol, :coords2d)
         error("2D coordinates not available in this molecule type.")
     end
@@ -145,7 +144,6 @@ end
 
 
 function coords3d(mol::SimpleMolGraph, i::Integer)
-    dispatch_update!(mol)
     if !has_descriptor(mol, :coords3d)
         error("3D coordinates not available in this molecule type.")
     end
@@ -167,10 +165,8 @@ function has_coords3d(mol::SimpleMolGraph)
 end
 
 
-function draw2d_bond_style(mol::SimpleMolGraph, i::Integer)
-    dispatch_update!(mol)
-    return get_descriptor(mol, :draw2d_bond_style)[i]
-end
+draw2d_bond_style(mol::SimpleMolGraph, i::Integer
+    ) = get_descriptor(mol, :draw2d_bond_style)[i]
 draw2d_bond_style(mol::SimpleMolGraph) = draw2d_bond_style(mol, 1)
 
 
@@ -203,14 +199,6 @@ coordgen(mol::SimpleMolGraph) = coordgen(
     mol.graph, atom_number(mol), bond_order(mol),
     mol.gprops.stereocenter, mol.gprops.stereobond
 )
-
-function coordgen(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
-    return coordgen(
-        mol.graph, atom_number(mol), bond_order(mol),
-        mol.gprops.stereocenter, mol.gprops.stereobond
-    )
-end
 
 function coordgen!(mol::ReactiveMolGraph)
     # Initialize

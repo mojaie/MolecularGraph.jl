@@ -22,12 +22,6 @@ for substructure matching and does not reflect actual molecular orbital hybridiz
 hybridization(mol::SimpleMolGraph) = hybridization(
     mol.graph, atom_symbol(mol), valence(mol), connectivity(mol), lone_pair(mol))
 
-function hybridization(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
-    return hybridization(
-        mol.graph, atom_symbol(mol), valence(mol), connectivity(mol), lone_pair(mol))
-end
-
 function hybridization(
         g::SimpleGraph, symbol_arr::Vector{Symbol}, valence_arr::Vector{Int},
         connectivity_arr::Vector{Int}, lone_pair_arr::Vector{Int})
@@ -66,11 +60,6 @@ atom connected to a triple bond adds two pi electrons.
 pi_electron(mol::SimpleMolGraph) = pi_electron(
     valence(mol), connectivity(mol), lone_pair(mol), hybridization(mol))
 
-function pi_electron(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
-    return pi_electron(valence(mol), connectivity(mol), lone_pair(mol), hybridization(mol))
-end
-
 function pi_electron(
         valence_arr::Vector{Int}, connectivity_arr::Vector{Int},
         lone_pair_arr::Vector{Int}, hyb_arr::Vector{Symbol})
@@ -103,7 +92,6 @@ is_ring_aromatic(mol::SimpleMolGraph) = is_ring_aromatic(
 )
 
 function is_ring_aromatic(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
     if has_descriptor(mol, :is_ring_aromatic)
         return get_descriptor(mol, :is_ring_aromatic)
     end

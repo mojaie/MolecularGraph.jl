@@ -24,11 +24,6 @@ the given molecule.
 """
 atom_symbol(mol::SimpleMolGraph) = Symbol[atom_symbol(props(mol, i)) for i in vertices(mol)]
 
-function atom_symbol(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
-    return Symbol[atom_symbol(props(mol, i)) for i in vertices(mol)]
-end
-
 
 """
     atom_number(mol::MolGraph) -> Vector{Int}
@@ -38,11 +33,6 @@ the given molecule.
 """
 atom_number(mol::SimpleMolGraph) = Int[atom_number(props(mol, i)) for i in vertices(mol)]
 
-function atom_number(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
-    return Int[atom_number(props(mol, i)) for i in vertices(mol)]
-end
-
 
 """
     atom_charge(mol::MolGraph) -> Vector{Int}
@@ -50,10 +40,7 @@ end
 Return a vector of size ``n`` representing atom charges of 1 to ``n``th atoms of
 the given molecule.
 """
-atom_charge(mol::SimpleMolGraph) = Int[atom_charge(props(mol, i)) for i in vertices(mol)]
-
-function atom_charge(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
+function atom_charge(mol::SimpleMolGraph)
     if has_descriptor(mol, :atom_charge)
         return get_descriptor(mol, :atom_charge)
     end
@@ -74,11 +61,6 @@ the given molecule (1: non-radical, 2: radical, 3: biradical).
 """
 multiplicity(mol::SimpleMolGraph) = Int[multiplicity(props(mol, i)) for i in vertices(mol)]
 
-function multiplicity(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
-    return Int[multiplicity(props(mol, i)) for i in vertices(mol)]
-end
-
 
 """
     isotope(mol::MolGraph) -> Vector{Int}
@@ -88,11 +70,6 @@ the given molecule.
 """
 isotope(mol::SimpleMolGraph) = Int[isotope(props(mol, i)) for i in vertices(mol)]
 
-function isotope(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
-    return Int[isotope(props(mol, i)) for i in vertices(mol)]
-end
-
 
 """
     bond_order(mol::MolGraph) -> Vector{Int}
@@ -100,10 +77,7 @@ end
 Return a vector of size ``n`` representing bond order of 1 to ``n``th bonds of
 the given molecule.
 """
-bond_order(mol::SimpleMolGraph) = Int[bond_order(props(mol, e)) for e in edges(mol)]
-
-function bond_order(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
+function bond_order(mol::SimpleMolGraph)
     if has_descriptor(mol, :bond_order)
         return get_descriptor(mol, :bond_order)
     end
@@ -128,10 +102,7 @@ default_bond_order!(mol::ReactiveMolGraph) = setproperty!(
 Return a vector of size ``n`` representing the number of total bond order
 incident to 1 to ``n``th atoms of the given molecule.
 """
-apparent_valence(mol::SimpleMolGraph) = apparent_valence(mol.graph, bond_order(mol))
-
-function apparent_valence(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
+function apparent_valence(mol::SimpleMolGraph)
     if has_descriptor(mol, :apparent_valence)
         return get_descriptor(mol, :apparent_valence)
     end
@@ -164,11 +135,7 @@ The number of implicit hydrogens would be calculated based on the valence.
 The valence of a hypervalent atom or a non-organic atom is the same as
 its `apparent_valence`. This property corresponds to SMARTS `v` query.
 """
-valence(mol::SimpleMolGraph
-    ) = valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
-
-function valence(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
+function valence(mol::SimpleMolGraph)
     if has_descriptor(mol, :valence)
         return get_descriptor(mol, :valence)
     end
@@ -205,11 +172,6 @@ connected to 1 to ``n``th atoms of the given molecule.
 "Explicit" means hydrogens are explicitly represented as graph nodes.
 """
 explicit_hydrogens(mol::SimpleMolGraph) = explicit_hydrogens(mol.graph, atom_symbol(mol))
-
-function explicit_hydrogens(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
-    return explicit_hydrogens(mol.graph, atom_symbol(mol))
-end
 
 function explicit_hydrogens(g::SimpleGraph, symbol_arr::Vector{Symbol})
     arr = fill(zero(Int), nv(g))
@@ -264,16 +226,12 @@ end
 
 
 """
-    lone_pair(mol::MolGraph) -> Vector{Int}
+    lone_pair(mol::SimpleMolGraph) -> Vector{Int}
 
 Return a vector of size ``n`` representing the number of lone pairs of
 1 to ``n``th atoms of the given molecule.
 """
-lone_pair(mol::SimpleMolGraph
-    ) = lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
-
-function lone_pair(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
+function lone_pair(mol::SimpleMolGraph)
     if has_descriptor(mol, :lone_pair)
         return get_descriptor(mol, :lone_pair)
     end
@@ -394,11 +352,6 @@ Return a vector of size ``n`` representing whether 1 to ``n``th bonds
 of the given molecule are rotatable or not.
 """
 is_rotatable(mol::SimpleMolGraph) = is_rotatable(mol, vproptype(mol), eproptype(mol))
-
-function is_rotatable(mol::ReactiveMolGraph)
-    dispatch_update!(mol)
-    return is_rotatable(mol, vproptype(mol), eproptype(mol))
-end
 
 function is_rotatable(mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond})
     srcdeg = [degree(mol, e.src) for e in edges(mol)]
