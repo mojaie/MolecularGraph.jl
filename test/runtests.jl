@@ -56,9 +56,6 @@ using OrderedCollections: OrderedDict
 using Test
 
 
-include("virtualatom.jl")
-
-
 include("./util/geometry.jl")
 include("./util/iterator.jl")
 include("./util/math.jl")
@@ -76,6 +73,7 @@ include("./model/atom.jl")
 include("./model/bond.jl")
 include("./model/molgraph.jl")
 include("./model/query.jl")
+include("virtualatom.jl")
 
 include("./smarts/base.jl")
 include("./smarts/logicaloperator.jl")

@@ -228,6 +228,25 @@ vproptype(qtree::T) where T<:QueryTree = vproptype(T)
 
 
 """
+    props(mol::AbstractMolGraph, v::Integer) -> AbstractElement
+    props(mol::AbstractMolGraph, e::Edge) -> AbstractElement
+    props(mol::AbstractMolGraph, u::Integer, v::Integer) -> AbstractElement
+
+    get_prop(mol::AbstractMolGraph, v::Integer, prop::Symbol)
+    get_prop(mol::AbstractMolGraph, e::Edge, prop::Symbol)
+    get_prop(mol::AbstractMolGraph, u::Integer, v::Integer, prop::Symbol)
+
+Return properties (vertex or edge attributes).
+"""
+props(mol::AbstractMolGraph, v::Integer) = mol.vprops[v]
+props(mol::AbstractMolGraph, e::Edge) = mol.eprops[e]
+
+get_prop(mol::AbstractMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
+get_prop(mol::AbstractMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
+
+
+
+"""
     SimpleMolGraph{T<:Integer} <: AbstractMolGraph{T}
 
 The base class of molecular graph models based on SimpleGraph
@@ -237,16 +256,16 @@ abstract type SimpleMolGraph{T<:Integer} <: AbstractMolGraph{T} end
 
 # SimpleMolGraph interface
 
-Graphs.add_edge!(mol::SimpleMolGraph, u::Integer, v::Integer, prop
+Graphs.add_edge!(mol::SimpleMolGraph, u::Integer, v::Integer, prop::AbstractElement
     ) = add_u_edge!(mol, u_edge(mol, u, v), prop)
-Graphs.add_edge!(mol::SimpleMolGraph, e::Edge, prop
+Graphs.add_edge!(mol::SimpleMolGraph, e::Edge, prop::AbstractElement
     ) = add_edge!(mol, src(e), dst(e), prop)
 Graphs.rem_edge!(mol::SimpleMolGraph, u::Integer, v::Integer) = rem_u_edge!(mol, u_edge(mol, u, v))
 Graphs.rem_edge!(mol::SimpleMolGraph, e::Edge) = rem_edge!(mol, src(e), dst(e))
-Graphs.induced_subgraph(mol::T, vlist::AbstractVector{U}
-    ) where {T<:SimpleMolGraph, U<:Integer} = _induced_subgraph(mol, vlist)
-Graphs.induced_subgraph(mol::T, elist::AbstractVector{U}
-    ) where {T<:SimpleMolGraph, U<:Edge} = _induced_subgraph(mol, elist)
+Graphs.induced_subgraph(mol::SimpleMolGraph, vlist::AbstractVector{T}
+    ) where {T<:Integer} = _induced_subgraph(mol, vlist)
+Graphs.induced_subgraph(mol::SimpleMolGraph, elist::AbstractVector{T}
+    ) where {T<:Edge} = _induced_subgraph(mol, elist)
 
 function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph)
     print(io, "{$(nv(g)), $(ne(g))} simple molecular graph $(typeof(g))")
@@ -290,6 +309,9 @@ edge_neighbors(mol::SimpleMolGraph, e) = edge_neighbors(mol.graph, e)
 ordered_neighbors = neighbors
 ordered_edge_neighbors = edge_neighbors
 
+
+props(mol::SimpleMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
+get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
 
 
 # Reactions

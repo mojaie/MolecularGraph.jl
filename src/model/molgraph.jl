@@ -65,6 +65,34 @@ end
 
 
 """
+    remap!(container::SimpleMolProperty{T}, vmap::DVector{T}, edges::Vector{Edge{T}}) where T <: Integer
+
+Remap vertices according to the given vmap (new_v = old_v -> vmap[old_v]).
+"""
+function remap!(container::SimpleMolProperty{T}, vmap::Vector{T},
+        edges::Vector{Edge{T}}) where T <: Integer
+    # vmap[old] -> new
+    for sym in fieldnames(typeof(container))
+        remap!(Val(sym), container, vmap, edges)
+    end
+    return
+end
+
+function remap!(::Val, container::SimpleMolProperty{T}, vmap::Vector{T},
+        edges::Vector{Edge{T}}) where T <: Integer
+    return
+end
+
+function remap!(::Val{:descriptors}, gprop::SimpleMolProperty{T},
+        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    for sym in fieldnames(typeof(gprop.descriptors))
+        remap!(Val(sym), gprop.descriptors, vmap, edges)
+    end
+    return
+end
+
+
+"""
     dispatch_update!(mol::ReactiveMolGraph) -> Nothing
 
 Dispatch property auto-update mechanisms.
@@ -183,26 +211,6 @@ end
 
 
 # Property accessors
-
-"""
-    props(mol::ReactiveMolGraph, v::Integer) -> AbstractElement
-    props(mol::ReactiveMolGraph, e::Edge) -> AbstractElement
-    props(mol::ReactiveMolGraph, u::Integer, v::Integer) -> AbstractElement
-
-    get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol)
-    get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol)
-    get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol)
-
-Return properties (vertex or edge attributes).
-"""
-props(mol::ReactiveMolGraph, v::Integer) = mol.vprops[v]
-props(mol::ReactiveMolGraph, e::Edge) = mol.eprops[e]
-props(mol::ReactiveMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
-
-get_prop(mol::ReactiveMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
-get_prop(mol::ReactiveMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
-get_prop(mol::ReactiveMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
-
 
 """
     set_prop!(mol::ReactiveMolGraph, v::Integer, value::AbstractAtom) -> Nothing

@@ -6,25 +6,6 @@
 
 # Common interfaces of AbstractProperty
 
-"""
-    remap!(container::SimpleMolProperty{T}, vmap::DVector{T}, edges::Vector{Edge{T}}) where T <: Integer
-
-Remap vertices according to the given vmap (new_v = old_v -> vmap[old_v]).
-"""
-function remap!(container::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
-    # vmap[old] -> new
-    for sym in fieldnames(typeof(container))
-        remap!(Val(sym), container, vmap, edges)
-    end
-    return
-end
-
-function remap!(::Val, container::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
-    return
-end
-
 
 """
     reconstruct(::Type{T}, data::Dict{String,Any}) where T <: AbstractProperty
@@ -121,14 +102,6 @@ Base.copy(desc::T) where T <: MolDescriptor = T(
 
 to_dict(::Val{:descriptors}, ::Val{:default}, gprop::AbstractProperty
     ) = to_dict(Val(:default), gprop.descriptors)
-
-function remap!(::Val{:descriptors}, gprop::SimpleMolProperty{T},
-        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
-    for sym in fieldnames(typeof(gprop.descriptors))
-        remap!(Val(sym), gprop.descriptors, vmap, edges)
-    end
-    return
-end
 
 
 # Properties
