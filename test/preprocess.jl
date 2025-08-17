@@ -24,7 +24,7 @@
 
     pyrrole = smilestomol("[nH]1cccc1")
     @test sum(bond_order(pyrrole)) == 8
-    @test get_prop(pyrrole, :pyrrole_like) == [1]
+    @test pyrrole[:pyrrole_like] == [1]
     pyrrole2 = smilestomol("n1cccc1")  # hydrogen on n can be inferred
     @test sum(bond_order(pyrrole2)) == 7
 
@@ -45,7 +45,7 @@
     sildenafil = smilestomol("O=S(=O)(N1CCN(C)CC1)c4cc(c2[nH]c(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")
     @test sum(bond_order(sildenafil).== 2) == 9
     remove_hydrogens!(sildenafil)
-    @test get_prop(sildenafil, :pyrrole_like) == [15]
+    @test sildenafil[:pyrrole_like] == [15]
     @test_throws ErrorException smilestomol(
         "O=S(=O)(N1CCN(C)CC1)c4cc(c2nc(=O)c3n(C)nc(CCC)c3n2)c(OCC)cc4")  # wrong sildenafil
 
@@ -59,9 +59,9 @@
 
     sumatriptan = smilestomol("CNS(=O)(=O)Cc1ccc2[nH]cc(CCN(C)C)c2c1")
     remove_hydrogens!(sumatriptan)
-    @test get_prop(sumatriptan, :pyrrole_like) == [11]
+    @test sumatriptan[:pyrrole_like] == [11]
     rem_vertices!(sumatriptan, [1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19])
-    @test get_prop(sumatriptan, :pyrrole_like) == [5]  # remapped
+    @test sumatriptan[:pyrrole_like] == [5]  # remapped
 end
 
 @testset "remove_hydrogens" begin

@@ -9,7 +9,7 @@ of 1 to ``n``th atoms of the given molecule.
 
 This property corresponds to SMARTS `D` query.
 """
-Graphs.degree(mol::SimpleMolGraph) = degree(mol.graph)
+Graphs.degree
 
 
 """

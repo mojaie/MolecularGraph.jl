@@ -103,7 +103,7 @@ end
 
 function stereo_hydrogen(mol::SimpleMolGraph, v::Integer)
     nbrs = neighbors(mol, v)
-    hpos = findfirst(x -> atom_symbol(props(mol, x)) === :H, nbrs)
+    hpos = findfirst(x -> atom_symbol(mol[x]) === :H, nbrs)
     isnothing(hpos) && return  # 4° center or already removed
     return nbrs[hpos]
 end
@@ -121,7 +121,7 @@ to safely remove hydrogen nodes while preserving stereocenter information.
 function safe_stereo_hydrogen!(mol::SimpleMolGraph{T}, center::T) where T
     h = stereo_hydrogen(mol, center)
     isnothing(h) && return # 4° center or already removed
-    stereo = get_prop(mol, :stereocenter)[center]
+    stereo = mol[:stereocenter][center]
     spos = findfirst(==(h), stereo[1:3])
     isnothing(spos) && return h  # hydrogen at the lowest priority can be removed safely
     nonh = setdiff(ordered_neighbors(mol, center), h)
@@ -238,10 +238,10 @@ end
 
 stereocenter_from_sdf2d(mol::SimpleMolGraph) = stereocenter_from_sdf2d(
     mol.graph,
-    Symbol[get_prop(mol, i, :symbol) for i in vertices(mol)],
-    Int[get_prop(mol, e, :order) for e in edges(mol)],
-    Int[get_prop(mol, e, :notation) for e in edges(mol)],
-    Bool[get_prop(mol, e, :isordered) for e in edges(mol)],
+    Symbol[mol[i].symbol for i in vertices(mol)],
+    Int[mol[e].order for e in edges(mol)],
+    Int[mol[e].notation for e in edges(mol)],
+    Bool[mol[e].isordered for e in edges(mol)],
     get_descriptor(mol, :coords2d)[1]
 )
 
@@ -284,8 +284,8 @@ function stereocenter_from_smiles(
 end
 
 stereocenter_from_smiles(mol::SimpleMolGraph) = stereocenter_from_smiles(
-    mol.graph, get_prop(mol, :smarts_lexical_succ),
-    Symbol[get_prop(mol, i, :stereo) for i in vertices(mol)]
+    mol.graph, mol[:smarts_lexical_succ],
+    Symbol[mol[i].stereo for i in vertices(mol)]
 )
 
 """
@@ -339,8 +339,8 @@ end
 
 stereobond_from_sdf2d(mol::SimpleMolGraph) = stereobond_from_sdf2d(
     mol.graph,
-    Int[get_prop(mol, e, :order) for e in edges(mol)],
-    Int[get_prop(mol, e, :notation) for e in edges(mol)],
+    Int[mol[e].order for e in edges(mol)],
+    Int[mol[e].notation for e in edges(mol)],
     mol.gprops.descriptors.coords2d[1]
 )
 
@@ -405,8 +405,8 @@ end
 
 stereobond_from_smiles(mol::SimpleMolGraph) = stereobond_from_smiles(
     mol.graph,
-    Int[get_prop(mol, e, :order) for e in edges(mol)],
-    Symbol[get_prop(mol, e, :direction) for e in edges(mol)]
+    Int[mol[e].order for e in edges(mol)],
+    Symbol[mol[e].direction for e in edges(mol)]
 )
 
 """

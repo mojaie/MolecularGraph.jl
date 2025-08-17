@@ -49,17 +49,17 @@ end
     sdf = joinpath(assetdir, "sdfile_test.sdf")
     mols = collect(sdfilereader(sdf))
     @test length(mols) == 3
-    @test get_prop(mols[2], "PubChem CID") == "68827"
+    @test mols[2]["PubChem CID"] == "68827"
 
     sdf = joinpath(assetdir, "sdfile_error.sdf")
     mols = collect(sdfilereader(sdf))
     @test nv(mols[2]) == 0
-    @test get_prop(mols[2], "Name") == "Artemisinin"
+    @test mols[2]["Name"] == "Artemisinin"
 
     sdf = joinpath(assetdir, "marvin_dative.sdf")
     mols = collect(sdfilereader(sdf))
     @test nv(mols[1]) == 0
-    @test get_prop(mols[1], "Name") == "Auranofin"
+    @test mols[1]["Name"] == "Auranofin"
 
     aspirin_v3 = joinpath(assetdir, "aspirin_v3.mol")
     mol = sdftomol(aspirin_v3)
@@ -84,14 +84,14 @@ end
     # attributes
     aspirin_3d = joinpath(assetdir, "aspirin_3d.sdf")
     mol = sdftomol(aspirin_3d)
-    pcharges = split(get_prop(mol, "PUBCHEM_MMFF94_PARTIAL_CHARGES"), "\n")
+    pcharges = split(mol["PUBCHEM_MMFF94_PARTIAL_CHARGES"], "\n")
     @test length(pcharges) == parse(Int, pcharges[1]) + 1
     for i = 2:length(pcharges)
         node, charge = split(pcharges[i])
         @test 1 <= parse(Int, node) <= nv(mol)
         @test isa(parse(Float32, charge), Float32)
     end
-    coord_type = split(get_prop(mol, "PUBCHEM_COORDINATE_TYPE"))
+    coord_type = split(mol["PUBCHEM_COORDINATE_TYPE"])
     @test coord_type == ["2", "5", "10"]  # ensure the last attribute is read
 
 end

@@ -87,20 +87,20 @@ end
 
 function coords_from_sdf!(mol::SimpleMolGraph)
     # Initializer. should be called before stereochem initializers.
-    zrange = nv(mol) == 0 ? (0, 0) : extrema(get_prop(mol, i, :coords)[3] for i in vertices(mol))
+    zrange = nv(mol) == 0 ? (0, 0) : extrema(mol[i].coords[3] for i in vertices(mol))
     # Embed 3D coords to 2D
     push!(
         mol.gprops.descriptors.coords2d,
-        [Point2d(get_prop(mol, i, :coords)[1:2]...) for i in vertices(mol)])
+        [Point2d(mol[i].coords[1:2]...) for i in vertices(mol)])
     if zrange[2] - zrange[1] > 0.001  # 3D coords available
         push!(
             mol.gprops.descriptors.coords3d,
-            [Point3d(get_prop(mol, i, :coords)[1:3]...) for i in vertices(mol)])
+            [Point3d(mol[i].coords[1:3]...) for i in vertices(mol)])
     end
     # Bond style in 2D notation (wedges)
-    bondorder = [get_prop(mol, e, :order) for e in edges(mol)]
-    bondnotation = [get_prop(mol, e, :notation) for e in edges(mol)]
-    isordered = [get_prop(mol, e, :isordered) for e in edges(mol)]
+    bondorder = [mol[e].order for e in edges(mol)]
+    bondnotation = [mol[e].notation for e in edges(mol)]
+    isordered = [mol[e].isordered for e in edges(mol)]
     arr = Vector{Symbol}(undef, length(bondorder))
     for i in 1:length(bondorder)
         if bondnotation[i] == 3
@@ -176,7 +176,7 @@ function update_coords!(mol::SimpleMolGraph)
     empty!(mol.gprops.descriptors.coords3d)
     empty!(mol.gprops.descriptors.draw2d_bond_style)
     if hasfield(vproptype(mol), :coords)
-        if !any(isnothing(get_prop(mol, i, :coords)) for i in vertices(mol))
+        if !any(isnothing(mol[i].coords) for i in vertices(mol))
             coords_from_sdf!(mol)
         end
     else
@@ -207,7 +207,7 @@ function coordgen!(mol::ReactiveMolGraph)
     # TODO: unspecified stereochem in SMILES
     coords, styles = coordgen(
         mol.graph, atom_number(mol), bond_order(mol),
-        get_prop(mol, :stereocenter), get_prop(mol, :stereobond)
+        mol[:stereocenter], mol[:stereobond]
     )
     push!(mol.gprops.descriptors.coords2d, coords)
     push!(mol.gprops.descriptors.draw2d_bond_style, styles)

@@ -49,8 +49,8 @@
     @test eproptype(nullmol) === SDFBond
     @test eproptype(nullsdf) === SDFBond
     @test eproptype(nullsmiles) === SMILESBond
-    @test get_prop(methane, 1, :symbol) === :C
-    @test get_prop(methane, 1, 2, :order) === 1
+    @test methane[1].symbol === :C
+    @test methane[1, 2].order === 1
     @test copy(methane) == methane
 end
 
@@ -64,13 +64,13 @@ end
     @test add_vertex!(mol, SDFAtom(;symbol=:O))  # CCC.O
     @test mol.state.has_updates
     mol.state.has_updates = false
-    @test get_prop(mol, 4, :symbol) === :O
+    @test mol[4].symbol === :O
 
     @test add_edge!(mol, Edge(3, 4), SDFBond())  # CCCO
     @test mol.state.has_updates
     mol.state.has_updates = false
     @test degree(mol.graph, 3) == 2
-    @test get_prop(mol, Edge(3, 4), :order) == 1
+    @test mol[Edge(3, 4)].order == 1
 
     add_edge!(mol, Edge(1, 4), SDFBond())  # C1CCO1
     @test mol.state.has_updates
@@ -143,11 +143,9 @@ end
     bonds = [SDFBond(),SDFBond()]
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprops=gprop)
     # getter/setter
-    @test get_prop(mol, "exp_pka") == "9.24"
-    set_prop!(mol, "new_id", "CP00001")
-    @test get_prop(mol, "new_id") == "CP00001"
-    @test !has_prop(mol, "unknown")
-    # comvenient methods
+    @test mol["exp_pka"] == "9.24"
+    mol["new_id"] = "CP00001"
+    @test mol["new_id"] == "CP00001"
     @test mol["valid"] == "true"
     mol["deleterious"] = "false"
     @test mol["deleterious"] == "false"

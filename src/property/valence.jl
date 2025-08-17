@@ -22,7 +22,7 @@ const HYDROGEN_DONOR_ATOMS = (:N, :O)
 Return a vector of size ``n`` representing atom symbols of 1 to ``n``th atoms of
 the given molecule.
 """
-atom_symbol(mol::SimpleMolGraph) = Symbol[atom_symbol(props(mol, i)) for i in vertices(mol)]
+atom_symbol(mol::SimpleMolGraph) = Symbol[atom_symbol(mol[i]) for i in vertices(mol)]
 
 
 """
@@ -31,7 +31,7 @@ atom_symbol(mol::SimpleMolGraph) = Symbol[atom_symbol(props(mol, i)) for i in ve
 Return a vector of size ``n`` representing atom numbers of 1 to ``n``th atoms of
 the given molecule.
 """
-atom_number(mol::SimpleMolGraph) = Int[atom_number(props(mol, i)) for i in vertices(mol)]
+atom_number(mol::SimpleMolGraph) = Int[atom_number(mol[i]) for i in vertices(mol)]
 
 
 """
@@ -44,12 +44,12 @@ function atom_charge(mol::SimpleMolGraph)
     if has_descriptor(mol, :atom_charge)
         return get_descriptor(mol, :atom_charge)
     end
-    return Int[atom_charge(props(mol, i)) for i in vertices(mol)]
+    return Int[atom_charge(mol[i]) for i in vertices(mol)]
 end
 
 default_atom_charge!(mol::ReactiveMolGraph) = setproperty!(
     mol.gprops.descriptors, :atom_charge,
-    Int[atom_charge(props(mol, i)) for i in vertices(mol)]
+    Int[atom_charge(mol[i]) for i in vertices(mol)]
 )
 
 
@@ -59,7 +59,7 @@ default_atom_charge!(mol::ReactiveMolGraph) = setproperty!(
 Return a vector of size ``n`` representing atom multiplicities of 1 to ``n``th atoms of
 the given molecule (1: non-radical, 2: radical, 3: biradical).
 """
-multiplicity(mol::SimpleMolGraph) = Int[multiplicity(props(mol, i)) for i in vertices(mol)]
+multiplicity(mol::SimpleMolGraph) = Int[multiplicity(mol[i]) for i in vertices(mol)]
 
 
 """
@@ -68,7 +68,7 @@ multiplicity(mol::SimpleMolGraph) = Int[multiplicity(props(mol, i)) for i in ver
 Return a vector of size ``n`` representing isotope numbers (or 0 if not specified) of 1 to ``n``th atoms of
 the given molecule.
 """
-isotope(mol::SimpleMolGraph) = Int[isotope(props(mol, i)) for i in vertices(mol)]
+isotope(mol::SimpleMolGraph) = Int[isotope(mol[i]) for i in vertices(mol)]
 
 
 """
@@ -81,12 +81,12 @@ function bond_order(mol::SimpleMolGraph)
     if has_descriptor(mol, :bond_order)
         return get_descriptor(mol, :bond_order)
     end
-    return Int[bond_order(props(mol, e)) for e in edges(mol)]
+    return Int[bond_order(mol[e]) for e in edges(mol)]
 end
 
 default_bond_order!(mol::ReactiveMolGraph) = setproperty!(
     mol.gprops.descriptors, :bond_order,
-    Int[bond_order(props(mol, e)) for e in edges(mol)]
+    Int[bond_order(mol[e]) for e in edges(mol)]
 )
 
 # coords -> src/coords.jl
@@ -291,7 +291,7 @@ hydrogen_acceptor_count(
 function hydrogen_acceptor_count(
         mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
     cnt = sum(is_hydrogen_acceptor(mol))
-    vcnt = sum(hydrogen_acceptor_count(props(mol, i)) for i in vertices(mol))
+    vcnt = sum(hydrogen_acceptor_count(mol[i]) for i in vertices(mol))
     return cnt + vcnt
 end
 
@@ -330,7 +330,7 @@ hydrogen_donor_count(
 function hydrogen_donor_count(
         mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
     cnt = sum(is_hydrogen_donor(mol))
-    vcnt = sum(hydrogen_donor_count(props(mol, i)) for i in vertices(mol))
+    vcnt = sum(hydrogen_donor_count(mol[i]) for i in vertices(mol))
     return cnt + vcnt
 end
 
@@ -363,16 +363,16 @@ function is_rotatable(mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:Abst
     srcdeg = Int[]
     dstdeg = Int[]
     for e in edges(mol)
-        ep = props(mol, e)
+        ep = mol[e]
         if has_submap(typeof(ep))
-            src = props(mol, e.src)
+            src = mol[e.src]
             if has_mol(typeof(src))
                 snbr = only(neighbors(src.mol, ep.src[2]))
                 push!(srcdeg, degree(src.mol, snbr))
             else
                 push!(srcdeg, degree(mol, e.src))
             end
-            dst = props(mol, e.dst)
+            dst = mol[e.dst]
             if has_mol(typeof(dst))
                 dnbr = only(neighbors(dst.mol, ep.dst[2]))
                 push!(dstdeg, degree(dst.mol, dnbr))
@@ -411,7 +411,7 @@ rotatable_count(
 function rotatable_count(
         mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
     cnt = sum(is_rotatable(mol))
-    vcnt = sum(rotatable_count(props(mol, i)) for i in vertices(mol))
+    vcnt = sum(rotatable_count(mol[i]) for i in vertices(mol))
     return cnt + vcnt
 end
 
@@ -447,7 +447,7 @@ function atom_counter(mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:Abst
     counter = atom_counter(atom_symbol(mol), implicit_hydrogens(mol))
     # count groups
     for i in vertices(mol)
-        for (sym, cnt) in atom_counter(props(mol, i))
+        for (sym, cnt) in atom_counter(mol[i])
             _inc!(counter, sym, cnt)
         end
     end
@@ -548,7 +548,7 @@ atom_markup(mol::SimpleMolGraph) = atom_markup(mol, vproptype(mol), eproptype(mo
 function atom_markup(mol::SimpleMolGraph, ::Type{<:AbstractAtom}, ::Type{<:AbstractBond})
     markup = atom_markup(atom_symbol(mol), isotope(mol), implicit_hydrogens(mol))
     for i in vertices(mol)
-        markup[i] = something(atom_markup(props(mol, i)), markup[i])
+        markup[i] = something(atom_markup(mol[i]), markup[i])
     end
     return markup
 end

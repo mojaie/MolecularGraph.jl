@@ -228,22 +228,20 @@ vproptype(qtree::T) where T<:QueryTree = vproptype(T)
 
 
 """
-    props(mol::AbstractMolGraph, v::Integer) -> AbstractElement
-    props(mol::AbstractMolGraph, e::Edge) -> AbstractElement
-    props(mol::AbstractMolGraph, u::Integer, v::Integer) -> AbstractElement
-
-    get_prop(mol::AbstractMolGraph, v::Integer, prop::Symbol)
-    get_prop(mol::AbstractMolGraph, e::Edge, prop::Symbol)
-    get_prop(mol::AbstractMolGraph, u::Integer, v::Integer, prop::Symbol)
+    Base.getindex(mol::AbstractMolGraph, v::Integer) -> AbstractElement
+    Base.getindex(mol::AbstractMolGraph, e::Edge) -> AbstractElement
+    Base.getindex(mol::AbstractMolGraph, u::Integer, v::Integer) -> AbstractElement
 
 Return properties (vertex or edge attributes).
 """
-props(mol::AbstractMolGraph, v::Integer) = mol.vprops[v]
-props(mol::AbstractMolGraph, e::Edge) = mol.eprops[e]
+Base.getindex(mol::AbstractMolGraph, v::Integer) = mol.vprops[v]
+Base.getindex(mol::AbstractMolGraph, e::Edge) = mol.eprops[e]
 
-get_prop(mol::AbstractMolGraph, v::Integer, prop::Symbol) = props(mol, v)[prop]
-get_prop(mol::AbstractMolGraph, e::Edge, prop::Symbol) = props(mol, e)[prop]
-
+# old accessors (deprecated)
+props(mol::AbstractMolGraph, v::Integer) = mol[v]
+props(mol::AbstractMolGraph, e::Edge) = mol[e]
+get_prop(mol::AbstractMolGraph, v::Integer, prop::Symbol) = mol[v][prop]
+get_prop(mol::AbstractMolGraph, e::Edge, prop::Symbol) = mol[e][prop]
 
 
 """
@@ -310,8 +308,11 @@ ordered_neighbors = neighbors
 ordered_edge_neighbors = edge_neighbors
 
 
-props(mol::SimpleMolGraph, u::Integer, v::Integer) = props(mol, u_edge(mol, u, v))
-get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = props(mol, u, v)[prop]
+Base.getindex(mol::SimpleMolGraph{T}, u::T, v::T) where T = mol.eprops[u_edge(T, u, v)]
+
+# old accessors (deprecated)
+props(mol::SimpleMolGraph, u::Integer, v::Integer) = mol[u, v]
+get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = mol[u, v][prop]
 
 
 # Reactions

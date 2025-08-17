@@ -57,9 +57,9 @@ function printv2properties(io::IO, mol::SimpleMolGraph)
     radicals = Tuple{Int,Int}[]
     masses = Tuple{Int,Float64}[]
     for i in vertices(mol)
-        atom_charge(props(mol, i)) == 0 || push!(charges, (i, atom_charge(props(mol, i))))
-        multiplicity(props(mol, i)) == 1 || push!(radicals, (i, multiplicity(props(mol, i))))
-        isotope(props(mol, i)) == 0 || push!(masses, (i, isotope(props(mol, i))))
+        atom_charge(mol[i]) == 0 || push!(charges, (i, atom_charge(mol[i])))
+        multiplicity(mol[i]) == 1 || push!(radicals, (i, multiplicity(mol[i])))
+        isotope(mol[i]) == 0 || push!(masses, (i, isotope(mol[i])))
     end
     if !isempty(charges)
         head = @sprintf "M  CHG%3d" length(charges)
@@ -107,7 +107,7 @@ function printv2mol(
         io::IO, mol::SimpleMolGraph, V::Type{<:StandardAtom}, E::Type{<:StandardBond})
     # stereospecific hydrogens for aesthetics of fused rings
     # may be better to stash coords of stereo hydrogens and give back to SDFile
-    if has_prop(mol, :stereocenter) && !isempty(get_prop(mol, :stereocenter))
+    if has_prop(mol, :stereocenter) && !isempty(mol[:stereocenter])
         ringcount = ring_count(mol)
         imph = implicit_hydrogens(mol)
         mol_ = copy(mol)

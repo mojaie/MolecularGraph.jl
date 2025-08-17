@@ -36,7 +36,7 @@ function molecular_mass_unc(mol::SimpleMolGraph, massfunc::F) where F
     hm, hu = massfunc(:H)
     imp_hs = implicit_hydrogens(mol)
     for i in vertices(mol)
-        m, u = atom_mass_unc(props(mol, i), massfunc)
+        m, u = atom_mass_unc(mol[i], massfunc)
         mass += m + hm * imp_hs[i]
         unc += u + hu * imp_hs[i]
     end

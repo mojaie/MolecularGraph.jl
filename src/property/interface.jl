@@ -55,16 +55,17 @@ to_dict(::Val{:metadata}, ::Val{:default}, gprop::AbstractProperty
 
 # Metadata specific shorthands (e.g. mol["compound_id"] = "CP000001")
 
-function set_prop!(mol::SimpleMolGraph, prop::String, value::String)
-    # Metadata update would not affect graph state
-    mol.gprops.metadata[prop] = value
+Base.getindex(mol::SimpleMolGraph, key::String) = mol.gprops.metadata[key]
+
+function Base.setindex!(mol::SimpleMolGraph, value::String, key::String)
+    # skip dispatch (Metadata update would not affect graph state)
+    mol.gprops.metadata[key] = value
 end
 
-get_prop(mol::SimpleMolGraph, prop::String) = mol.gprops.metadata[prop]
-has_prop(mol::SimpleMolGraph, prop::String) = haskey(mol.gprops.metadata, prop)
-
-Base.getindex(mol::SimpleMolGraph, key::String) = get_prop(mol, key)
-Base.setindex!(mol::SimpleMolGraph, value::String, key::String) = set_prop!(mol, key, value)
+# old accessors (deprecated)
+get_prop(mol::SimpleMolGraph, key::String) = mol[key]
+has_prop(mol::SimpleMolGraph, key::String) = haskey(mol.gprops.metadata, key)
+set_prop!(mol::SimpleMolGraph, key::String, value::String) = setindex!(mol, value, key)
 
 
 # Descriptors
@@ -138,7 +139,10 @@ reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, @nospecialize(data)
 
 # Property accessors
 
-get_prop(mol::SimpleMolGraph, prop::Symbol) = getproperty(mol.gprops, prop)
+Base.getindex(mol::AbstractMolGraph, gprop::Symbol) = getproperty(mol.gprops, gprop)
+
+# old accessors (deprecated)
+get_prop(mol::SimpleMolGraph, prop::Symbol) = mol[prop]
 has_prop(mol::SimpleMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
 # set_prop! is not available because MolProperty types should be immutable.
 

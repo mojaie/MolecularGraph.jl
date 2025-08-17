@@ -24,7 +24,7 @@ implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
 """
 function kekulize(mol::SimpleMolGraph{T}) where T
     # "raw" bond orders
-    bondorder = [bond_order(props(mol, e)) for e in edges(mol)]
+    bondorder = [bond_order(mol[e]) for e in edges(mol)]
     ernk = edge_rank(mol)
     # lone pair in p-orbital, pyrrole-like aromatic atom
     pyrrole_like = T[]
@@ -32,7 +32,7 @@ function kekulize(mol::SimpleMolGraph{T}) where T
         arom_vs = T[]
         canbepyl = T[]  # can be pyrrole-like aromatic atom
         for i in ring
-            atmp = props(mol, i)
+            atmp = mol[i]
             has_isaromatic(typeof(atmp)) && isaromatic(atmp) || continue  # not nothing or false
             if i in mol.gprops.pyrrole_like
                 push!(pyrrole_like, i) # explicit pyrrole-like
@@ -57,7 +57,7 @@ function kekulize(mol::SimpleMolGraph{T}) where T
                         # explicit pyrrole-like [nH]
                         if has_hydrogens(typeof(atmp)) && atmp.hydrogens == 1
                             push!(pyrrole_like, i)
-                        elseif any(atom_symbol(props(mol, nbr)) === :H for nbr in neighbors(mol, i))
+                        elseif any(atom_symbol(mol[nbr]) === :H for nbr in neighbors(mol, i))
                             push!(pyrrole_like, i)
                         end
                         continue  # including [nH0X3]
@@ -108,15 +108,15 @@ function removable_hydrogens(mol::SimpleMolGraph{T}) where T
         :B, :C, :N, :O, :F, :Si, :P, :S, :Cl, :As, :Se, :Br, :I
     ])
     for i in vertices(mol)
-        atom_symbol(props(mol, i)) === :H || continue
-        atom_charge(props(mol, i)) == 0 || continue
-        multiplicity(props(mol, i)) == 1 || continue
-        isotope(props(mol, i)) == 0 || continue
-        degree(mol.graph, i) == 1 || continue
+        atom_symbol(mol[i]) === :H || continue
+        atom_charge(mol[i]) == 0 || continue
+        multiplicity(mol[i]) == 1 || continue
+        isotope(mol[i]) == 0 || continue
+        degree(mol, i) == 1 || continue
         nbr = only(neighbors(mol, i))
-        atom_symbol(props(mol, nbr)) in organic_heavy || continue
-        bond_order(props(mol, i, nbr)) == 1 || continue
-        haskey(get_prop(mol, :stereocenter), nbr) && continue
+        atom_symbol(mol[nbr]) in organic_heavy || continue
+        bond_order(mol[i, nbr]) == 1 || continue
+        haskey(mol[:stereocenter], nbr) && continue
         push!(hs, i)
     end
     return hs
@@ -131,7 +131,7 @@ Return a vector of all hydrogen nodes.
 function all_hydrogens(mol::SimpleMolGraph{T}) where T
     hs = T[]
     for i in vertices(mol)
-        atom_symbol(props(mol, i)) === :H || continue
+        atom_symbol(mol[i]) === :H || continue
         push!(hs, i)
     end
     return hs
@@ -355,7 +355,7 @@ function to_triple_bond(mol::SimpleMolGraph)
     oarr = copy(bond_order(mol))
     ernk = edge_rank(mol)
     for (first, center, third) in find_dipoles(mol)
-        bond_order(props(mol, first, center)) == 2 || continue
+        bond_order(mol[first, center]) == 2 || continue
         carr[first] = 0
         carr[third] = -1
         oarr[edge_rank(ernk, first, center)] = 3
@@ -383,7 +383,7 @@ function to_allene_like(mol::SimpleMolGraph)
     oarr = copy(bond_order(mol))
     ernk = edge_rank(mol)
     for (first, center, third) in find_dipoles(mol)
-        bond_order(props(mol, first, center)) == 1 || continue
+        bond_order(mol[first, center]) == 1 || continue
         carr[first] = 0
         carr[third] = -1
         oarr[edge_rank(ernk, first, center)] = 2

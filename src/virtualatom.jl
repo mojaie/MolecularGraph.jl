@@ -113,12 +113,12 @@ bond_order(bond::StructGroupBond) = bond_order(bond.bond)
 function Graphs.add_edge!(mol::SimpleMolGraph, u::Integer, v::Integer, prop::StructGroupBond)
     e = u_edge(mol, u, v)
     add_u_edge!(mol, e, prop)
-    src = props(mol, e.src)
+    src = mol[e.src]
     if has_mol(typeof(src))
         prop.src[1] > 0 || error("src vertex should be specified")
         src.term[prop.src[1]] = prop.src[2]
     end
-    dst = props(mol, e.dst)
+    dst = mol[e.dst]
     if has_mol(typeof(dst))
         prop.dst[1] > 0 || error("dst vertex should be specified")
         dst.term[prop.dst[1]] = prop.dst[2]
