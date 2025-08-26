@@ -12,13 +12,12 @@ const SMILES_BONDS = Dict{}(
     '\\' => (direction=:down,)
 )
 
-const SMARTS_NON_AROMATIC_BONDS = Dict('-' => "1", '=' => "2", '#' => "3")
-
-const SMARTS_OTHER_BONDS = Dict(
-    '@' => qtrue(:is_in_ring),
-    ':' => qtrue(:isaromatic),
-    '/' => qeq(:direction, "up"),
-    '\\' => qeq(:direction, "down")
+const SMARTS_BOND_ORDER = Dict(
+    '-' => "1",
+    '/' => "1",
+    '\\' => "1",
+    '=' => "2",
+    '#' => "3"
 )
 
 
@@ -44,30 +43,23 @@ BondSymbol <- [-=#@:/\\] / '/?' / '\\?'
 """
 function bondsymbol!(
         state::SMARTSParser, qtree::QueryTree{T,V}) where {T<:Integer,V<:QueryNode}
-    sym1 = read(state)
-    sym2 = lookahead(state, 1)
-    if sym1 == '/' && sym2 == '?'
-        forward!(state, 2)
-        node = add_qnode!(qtree, qnot())
-        add_qnode!(qtree, node, qeq(:stereo, "down"))
-        return node
-    elseif sym1 == '\\' && sym2 == '?'
-        forward!(state, 2)
-        node = add_qnode!(qtree, qnot())
-        add_qnode!(qtree, node, qeq(:stereo, "up"))
-        return node
-    elseif sym1 in keys(SMARTS_NON_AROMATIC_BONDS)
+    sym = read(state)
+    sym in "-=#@:/\\" || return zero(T)  # end token found (or implicit bond), no position move
+    forward!(state)
+    sym == ':' && return add_qnode!(qtree, qtrue(:isaromatic))
+    sym == '@' && return add_qnode!(qtree, qtrue(:is_in_ring))
+    node = add_qnode!(qtree, qand())
+    add_qnode!(qtree, node, qeq(:order, SMARTS_BOND_ORDER[sym]))
+    c = add_qnode!(qtree, node, qnot())
+    add_qnode!(qtree, c, qtrue(:isaromatic))
+    sym in "/\\" || return node
+    if read(state) == '?'
         forward!(state)
-        node = add_qnode!(qtree, qand())
-        add_qnode!(qtree, node, qeq(:order, SMARTS_NON_AROMATIC_BONDS[sym1]))
-        c = add_qnode!(qtree, node, qnot())
-        add_qnode!(qtree, c, qtrue(:isaromatic))
-        return node
-    elseif sym1 in keys(SMARTS_OTHER_BONDS)
-        forward!(state)
-        return add_qnode!(qtree, SMARTS_OTHER_BONDS[sym1])
+        add_qnode!(qtree, node, qeq(:direction, sym == '/' ? "upuns" : "downuns"))
+    else
+        add_qnode!(qtree, node, qeq(:direction, sym == '/' ? "up" : "down"))
     end
-    return zero(T)  # end token found (or implicit bond), no position move
+    return node
 end
 
 
@@ -87,6 +79,7 @@ end
 SMARTS default bond (single and non-aromatic, or aromatic)
 """
 function defaultbond(state::SMARTSParser{T,V,E}) where {T,V,E}
+    # aromatic=true OR (order=1 AND aromatic=false)
     return E(
         [(1, 2), (2, 3), (2, 4), (4, 5), (1, 6)],
         [qor(), qand(), qeq(:order, "1"), qnot(), qtrue(:isaromatic), qtrue(:isaromatic)]

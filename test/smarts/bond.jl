@@ -19,7 +19,9 @@
     qtree = QueryBond()
     stereo = bondsymbol!(state, qtree)
     @test explicit1 == 1
-    @test qtree == QueryBond([(1, 2)], [qnot(), qeq(:stereo, "up")])
+    @test qtree == QueryBond(
+        [(1, 2), (1, 3), (3, 4), (1, 5)],
+        [qand(), qeq(:order, "1"), qnot(), qtrue(:isaromatic), qeq(:direction, "downuns")])
     @test state.pos == 3
 end
 

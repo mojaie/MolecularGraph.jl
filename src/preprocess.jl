@@ -154,13 +154,7 @@ remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(
 
 Remove all hydrogen vertices using `Graphs.rem_vertices!` and return vmap array.
 """
-function remove_all_hydrogens!(mol::SimpleMolGraph)
-    for center in keys(mol.gprops.stereocenter)
-        safe_stereo_hydrogen!(mol, center)
-    end
-    vmap = rem_vertices!(mol, all_hydrogens(mol))
-    return vmap
-end
+remove_all_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, all_hydrogens(mol))
 
 
 """

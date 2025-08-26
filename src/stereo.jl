@@ -108,6 +108,13 @@ function stereo_hydrogen(mol::SimpleMolGraph, v::Integer)
     return nbrs[hpos]
 end
 
+function stereo_hydrogen(mol::QueryMolGraph, v::Integer)
+    nbrs = neighbors(mol, v)
+    hpos = findfirst(x -> mol[x].vprops[1] == qeq(:symbol, "H"), nbrs)
+    isnothing(hpos) && return  # 4° center or already removed
+    return nbrs[hpos]
+end
+
 
 """
     safe_stereo_hydrogen!(mol::SimpleMolGraph, v::Integer) -> Bool
@@ -278,7 +285,7 @@ function stereocenter_from_smiles(
         # sort vertices by SMARTS lexicographic order
         nbrs = neighbors(g, i)
         first = only(setdiff(nbrs, succ[i]))
-        centers[i] = (first, succ[i][1], succ[i][2], v_stereo[i] === :clockwise)
+        centers[i] = (first, succ[i][1], succ[i][2], v_stereo[i] in (:clockwise, :clockwiseuns))
     end
     return centers
 end
@@ -287,6 +294,21 @@ stereocenter_from_smiles(mol::SimpleMolGraph) = stereocenter_from_smiles(
     mol.graph, mol[:smarts_lexical_succ],
     Symbol[mol[i].stereo for i in vertices(mol)]
 )
+
+function stereocenter_from_smiles(mol::QueryMolGraph)
+    v_stereo = fill(:unspecified, nv(mol))
+    for i in vertices(mol)
+        for p in values(mol[i].vprops)
+            if p.key == :stereo
+                if v_stereo[i] !== :unspecified
+                    error("$(i): stereochem logical operation is not supported")
+                end
+                v_stereo[i] = Symbol(p.value)
+            end
+        end
+    end
+    return stereocenter_from_smiles(mol.graph, mol[:smarts_lexical_succ], v_stereo)
+end
 
 """
     stereocenter_from_smiles!(mol::MolGraph) -> Nothing
@@ -356,48 +378,51 @@ function stereobond_from_sdf2d!(mol::SimpleMolGraph)
 end
 
 
+
+function adj_direction!(
+        v::T, issrc::Bool, enbrs::Vector{T}, dir::Vector{Symbol}, ernk::Dict{Edge{T},Int},
+        comments::Vector{String}) where T
+    directions = Tuple{T,Symbol}[] # (nbr, :up/:down) of bonds connected to the src(e) or dst(e)
+    """
+    Follows OpenSMILES specification http://opensmiles.org/opensmiles.html#chirality
+        -> "up-ness" or "down-ness" of each single bond is relative to the carbon atom
+    e.g.  C(\\F)=C/F -> trans
+    """
+    for n in enbrs
+        d = dir[edge_rank(ernk, n, v)]
+        d === :unspecified && continue
+        pred = issrc ? n < v : v < n
+        conv = Dict(:up => :down, :upuns => :down, :down => :up, :downuns => :up)
+        push!(directions, (n, pred ? d : conv[d]))
+    end
+    # Conflicting cis/trans will be ignored (adopts OpenSMILES specs)
+    if length(directions) == 2 && directions[1][2] == directions[2][2]
+        @debug "$(v): conflicting up and down bonds $(directions)"
+        push!(comments, "$(v): conflicting up and down bonds")
+        empty!(directions)
+    end
+    return directions
+end
+
 """
     stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T -> Dict{Edge{T},Tuple{T,T,Bool}}
 
 Return cis-trans diastereomerism information obtained from SMILES.
 """
 function stereobond_from_smiles(
-        g::SimpleGraph{T}, e_order::Vector{Int}, e_direction::Vector{Symbol}) where T
+        g::SimpleGraph{T}, isdouble::BitVector, e_direction::Vector{Symbol}) where T
     stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
     comments = String[]
     ernk = edge_rank(g)
     for (i, e) in enumerate(edges(g))
-        e_order[i] == 2 || continue
+        isdouble[i] || continue
         degree(g, src(e)) in (2, 3) || continue
         degree(g, dst(e)) in (2, 3) || continue
         snbrs, dnbrs = ordered_edge_neighbors(g, e)
-        sds = []  # (nbr, :up/:down) of bonds connected to src(e)
-        dds = []  # (nbr, :up/:down) of bonds connected to dst(e)
-        """
-        Follows OpenSMILES specification http://opensmiles.org/opensmiles.html#chirality
-          -> "up-ness" or "down-ness" of each single bond is relative to the carbon atom
-        e.g.  C(\\F)=C/F -> trans
-        """
-        for sn in snbrs
-            sd = e_direction[edge_rank(ernk, sn, src(e))]
-            sd === :unspecified && continue
-            sd = sn < src(e) ? sd : (sd === :up ? :down : :up)
-            push!(sds, (sn, sd))
-        end
-        for dn in dnbrs
-            dd = e_direction[edge_rank(ernk, dn, dst(e))]
-            dd === :unspecified && continue
-            dd = dst(e) < dn ? dd : (dd === :up ? :down : :up)
-            push!(dds, (dn, dd))
-        end
-        (isempty(sds) || isempty(dds)) && continue  # no :up or :down bonds
-        # Conflicting cis/trans will be ignored (adopts OpenSMILES specs)
-        if (length(sds) == 2 && sds[1][2] == sds[2][2]) || (
-                length(dds) == 2 && dds[1][2] == dds[2][2])
-            @debug "$(e): conflicting up and down bonds $(sds) $(dds)"
-            push!(comments, "$(e): conflicting up and down bonds")
-            continue
-        end
+        sds = adj_direction!(src(e), true, snbrs, e_direction, ernk, comments)
+        isempty(sds) && continue
+        dds = adj_direction!(dst(e), false, dnbrs, e_direction, ernk, comments)
+        isempty(dds) && continue
         stereobonds[e] = (sds[1][1], dds[1][1], sds[1][2] !== dds[1][2])
     end
     return stereobonds, comments
@@ -405,9 +430,25 @@ end
 
 stereobond_from_smiles(mol::SimpleMolGraph) = stereobond_from_smiles(
     mol.graph,
-    Int[mol[e].order for e in edges(mol)],
+    BitVector(mol[e].order == 2 for e in edges(mol)),
     Symbol[mol[e].direction for e in edges(mol)]
 )
+
+function stereobond_from_smiles(mol::QueryMolGraph)
+    e_direction = fill(:unspecified, ne(mol))
+    for (i, e) in enumerate(edges(mol))
+        for p in values(mol[e].vprops)
+            if p.key === :direction
+                if e_direction[i] !== :unspecified
+                    error("$(e): stereochem logical operation is not supported")
+                end
+                e_direction[i] = Symbol(p.value)
+            end
+        end
+    end
+    return stereobond_from_smiles(mol.graph, trues(ne(mol)), e_direction)
+end
+
 
 """
     stereobond_from_smiles!(mol::MolGraph) -> Nothing

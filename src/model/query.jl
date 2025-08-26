@@ -323,8 +323,12 @@ function generate_queryfunc(qtree::QueryTree, props::Vector{QueryNode})
         succs = outneighbors(qtree.graph, v)
         if isempty(succs)
             if p.operator === :eq
-                idx = findfirst(x -> x == p, props)
-                func[v] = arr -> arr[idx]
+                if p.key in (:stereo, :direction)
+                    func[v] = arr -> true  # ignore stereo
+                else
+                    idx = findfirst(x -> x == p, props)
+                    func[v] = arr -> arr[idx]
+                end
             elseif p.operator === :any
                 func[v] = arr -> true
             else

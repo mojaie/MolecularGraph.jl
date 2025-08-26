@@ -76,7 +76,9 @@ function smiles_on_update!(mol::SimpleMolGraph)
     is_ring_aromatic!(mol)
 end
 
-function smarts_on_init!(mol::SimpleMolGraph)
+function smarts_on_init!(mol::QueryMolGraph)
+    stereocenter_from_smiles!(mol)
+    stereobond_from_smiles!(mol)
     preprocess!(mol)
 end
 

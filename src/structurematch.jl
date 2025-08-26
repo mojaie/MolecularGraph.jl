@@ -48,12 +48,12 @@ function vmatchgen(mol1::SimpleMolGraph, mol2::T) where T <: QueryMolGraph
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
         qtree = mol2[v2]
         qprop = union(QueryNode[], values(querypropmap(qtree))...)
-        arr = falses(length(qprop))
+        arr = trues(length(qprop))  # ignore incompatible descriptors (e.g. :stereo)
         for (i, p) in enumerate(qprop)
             if p.key == :recursive
                 haskey(recursive, p.value) || (recursive[p.value] = smartstomol(p.value))
                 arr[i] = has_substruct_match(mol1, recursive[p.value], mandatory=Dict(v1 => 1))
-            else
+            elseif p.key in keys(descriptors)
                 arr[i] = string(descriptors[p.key][v1]) == p.value
             end
         end
@@ -106,7 +106,12 @@ function ematchgen(mol1::SimpleMolGraph, mol2::QueryMolGraph)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
         qtree = mol2[e2]
         qprop = union(QueryNode[], values(querypropmap(qtree))...)
-        arr = [string(descriptors[p.key][ernk1[e1]]) == p.value for p in qprop]
+        arr = trues(length(qprop))  # ignore incompatible descriptors (e.g. :stereo)
+        for (i, p) in enumerate(qprop)
+            if p.key in keys(descriptors)
+                arr[i] = string(descriptors[p.key][ernk1[e1]]) == p.value
+            end
+        end
         res = generate_queryfunc(qtree, qprop)(arr)
         haskey(matches, e1) || (matches[e1] = Dict{Edge{Int},Bool}())
         matches[e1][e2] = res
@@ -149,6 +154,113 @@ function topology_prefilter(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
 end
 
 
+function node_stereo_match(
+        revmap::Dict{T,T}, # mol2 => mol1
+        mol1::SimpleMolGraph{T}, mol2::SimpleMolGraph{T}) where T
+    for (i, conf) in mol2[:stereocenter]
+        f, s, t, dr = conf
+        revmap[i] in keys(mol1[:stereocenter]) || return false
+        isc = isclockwise(mol1[:stereocenter][revmap[i]], revmap[f], revmap[s], revmap[t])
+        isc === dr || return false
+    end
+    for (e, conf) in mol2[:stereobond]
+        f2, s2, iscis2 = conf
+        e1 = u_edge(T, revmap[e.src], revmap[e.dst])
+        e1 in keys(mol1[:stereobond]) || return false
+        f1, s1, iscis1 = mol1[:stereobond][e1]
+        fmatch = f1 in [revmap[f2], revmap[s2]]
+        smatch = s1 in [revmap[f2], revmap[s2]]
+        (fmatch === smatch) === (iscis1 === iscis2) || return false
+    end
+    return true
+end
+
+function node_stereo_match(
+        revmap::Dict{T,T}, # mol2 => mol1
+        mol1::SimpleMolGraph{T}, mol2::QueryMolGraph{T,V,E}) where {T,V,E}
+    for (i, conf) in mol2[:stereocenter]
+        f, s, t, dr = conf
+        if !haskey(mol1[:stereocenter], revmap[i])
+            for prop in values(mol2[i].vprops)
+                prop.key === :stereo || continue
+                if prop.value in ("clockwiseuns", "anticlockwiseuns")
+                    return true  # allow unspecified
+                end
+                break
+            end
+            return false
+        end
+        isc = isclockwise(mol1[:stereocenter][revmap[i]], revmap[f], revmap[s], revmap[t])
+        isc === dr || return false
+    end
+    for (e, conf) in mol2[:stereobond]
+        s2, d2, iscis2 = conf
+        if !haskey(mol1[:stereobond], u_edge(T, revmap[e.src], revmap[e.dst]))
+            srcp = values(mol2[u_edge(T, e.src, s2)].vprops)
+            dstp = values(mol2[u_edge(T, e.dst, d2)].vprops)
+            for prop in vcat(collect(srcp), collect(dstp))
+                prop.key === :direction || continue
+                if prop.value in ("upuns", "downuns")
+                    return true  # allow unspecified
+                end
+                break
+            end
+            return false
+        end
+        f1, s1, iscis1 = mol1[:stereobond][e1]
+        fmatch = f1 in [revmap[s2], revmap[d2]]
+        smatch = s1 in [revmap[s2], revmap[d2]]
+        (fmatch === smatch) === (iscis1 === iscis2) || return false
+    end
+    return true
+end
+
+function node_stereo_match(
+        revmap::Dict{T,T}, # mol2 => mol1
+        mol1::QueryMolGraph{T,V,E}, mol2::QueryMolGraph{T,V,E}) where {T,V,E}
+    for (i, conf) in mol2[:stereocenter]
+        f, s, t, dr = conf
+        haskey(mol1[:stereocenter], revmap[i]) || return false
+        # "or unspecified" is more general than clockwise/anticlockwise
+        for prop in values(mol2[i].vprops)
+            prop.key === :stereo || continue
+            prop.value in ("clockwise", "anticlockwise") || continue
+            for p1 in values(mol1[revmap[i]].vprops)
+                p1.key === :stereo || continue
+                p1.value in ("clockwiseuns", "anticlockwiseuns") && return false
+                break
+            end
+            break
+        end
+        isc = isclockwise(mol1[:stereocenter][revmap[i]], revmap[f], revmap[s], revmap[t])
+        isc === dr || return false
+    end
+    for (e, conf) in mol2[:stereobond]
+        s2, d2, iscis2 = conf
+        haskey(mol1[:stereobond], u_edge(T, revmap[e.src], revmap[e.dst])) || return false
+        # "or unspecified" is more general than up/down
+        srcp = values(mol2[u_edge(T, e.src, s2)].vprops)
+        dstp = values(mol2[u_edge(T, e.dst, d2)].vprops)
+        for prop in vcat(collect(srcp), collect(dstp))
+            prop.key === :direction || continue
+            prop.value in ("up", "down") || continue
+            srcp1 = values(mol1[u_edge(T, revmap[e.src], revmap[s2])].vprops)
+            dstp1 = values(mol1[u_edge(T, revmap[e.dst], revmap[d2])].vprops)
+            for p1 in vcat(collect(srcp1), collect(dstp1))
+                p1.key === :direction || continue
+                p1.value in ("upuns", "downuns") && return false
+                break
+            end
+            break
+        end
+        f1, s1, iscis1 = mol1[:stereobond][e1]
+        fmatch = f1 in [revmap[s2], revmap[d2]]
+        smatch = s1 in [revmap[s2], revmap[d2]]
+        (fmatch === smatch) === (iscis1 === iscis2) || return false
+    end
+    return true
+end
+
 """
     exact_matches(mol1, mol2; kwargs...) -> Iterator
 
@@ -156,13 +268,20 @@ Return a lazy iterator that generate node mappings between `mol` and `query` if 
 See [`substruct_matches`](@ref) for available options.
 """
 function exact_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
-        vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
+        vmatchgen=vmatchgen, ematchgen=ematchgen, stereo=false, kwargs...)
     # Note: InChI is better if you don't need mapping
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
     exact_topology_prefilter(mol1, mol2) || return ()
-    return isomorphisms(
+    mappings = isomorphisms(
         mol1.graph, mol2.graph,
         vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); kwargs...)
+    if stereo
+        return Iterators.filter(mappings) do mapping
+            return node_stereo_match(Dict(v => i for (i, v) in mapping), mol1, mol2)
+        end
+    else
+        return mappings
+    end
 end
 
 
@@ -190,12 +309,19 @@ Return a lazy iterator that generate node mappings between `mol` and `query` if 
 
 """
 function substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
-        vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
+        vmatchgen=vmatchgen, ematchgen=ematchgen, stereo=false, kwargs...)
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
     topology_prefilter(mol1, mol2) || return ()
-    return subgraph_monomorphisms(
+    mappings = subgraph_monomorphisms(
         mol1.graph, mol2.graph,
         vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); kwargs...)
+    if stereo
+        return Iterators.filter(mappings) do mapping
+            return node_stereo_match(Dict(v => i for (i, v) in mapping), mol1, mol2)
+        end
+    else
+        return mappings
+    end
 end
 
 
@@ -216,12 +342,19 @@ Return a lazy iterator that generate node mappings between `mol` and `query` if 
 See [`substruct_matches`](@ref) for available options.
 """
 function node_substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
-        vmatchgen=vmatchgen, ematchgen=ematchgen, kwargs...)
+        vmatchgen=vmatchgen, ematchgen=ematchgen, stereo=false, kwargs...)
     (nv(mol1) == 0 || nv(mol2) == 0) && return ()
     topology_prefilter(mol1, mol2) || return ()
-    return nodesubgraph_isomorphisms(
+    mappings = nodesubgraph_isomorphisms(
         mol1.graph, mol2.graph,
         vmatch=vmatchgen(mol1, mol2), ematch=ematchgen(mol1, mol2); kwargs...)
+    if stereo
+        return Iterators.filter(mappings) do mapping
+            return node_stereo_match(Dict(v => i for (i, v) in mapping), mol1, mol2)
+        end
+    else
+        return mappings
+    end
 end
 
 

@@ -98,7 +98,7 @@ end
     qtree = QueryAtom()
     stereo2 = atomprop!(state, qtree)
     @test stereo2 == 1
-    @test qtree == QueryAtom([(1, 2)], [qnot(), qeq(:stereo, "anticlockwise")])
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:stereo, "clockwiseuns")])
     @test state.pos == 4
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("\$([CH2]=*)")

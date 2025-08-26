@@ -216,9 +216,7 @@ function atompropcond!(state::SMARTSParser, qtree::QueryTree)
         end
         if read(state) == '?'
             forward!(state)
-            node = add_qnode!(qtree, qnot())
-            add_qnode!(qtree, node, qeq(:stereo, cw ? "anticlockwise" : "clockwise"))
-            return node
+            return add_qnode!(qtree, qeq(:stereo, cw ? "clockwiseuns" : "anticlockwiseuns"))
         else
             return add_qnode!(qtree, qeq(:stereo, cw ? "clockwise" : "anticlockwise"))
         end
