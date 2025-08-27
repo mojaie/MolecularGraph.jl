@@ -1,6 +1,6 @@
 name = "MolecularGraph"
 uuid = "6c89ec66-9cd8-5372-9f91-fabc50dd27fd"
-version = "0.20.2"
+version = "0.21.0"
 authors = ["Seiji Matsuoka <ms0ae8ti1sj2ui@gmail.com"]
 
 [deps]

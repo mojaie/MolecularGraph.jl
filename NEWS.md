@@ -1,5 +1,14 @@
 # NEWS
 
+## v0.21.0
+
+- Added `VirtualAtom` as an experimental feature. This enables treating atom placeholders (R-groups) and molecular fragments (e.g., amino acid residues) as atom vertices.
+- Enhanced `has_exact_match` and `has_substruct_match` to support stereospecific queries with the option `stereo=true` (#133).
+- Updated molecule property accessors (#130). `get_props` and `set_props!` are now deprecated; use `Base.getindex` and `Base.setindex!` instead.
+- Fixed `on_init` and `on_update` callbacks for automatic property recalculation to allow adding custom preprocessing methods (e.g., `remove_all_hydrogen!`, `extract_largest_component!`, `protonate_acids!`).
+- Fixed SMILES parser to correctly recognize the order of atom properties (#124).
+- Improved text placement in 2D drawings.
+
 ## v0.20.2
 
 - Reverted some undesirable changes in v0.20
