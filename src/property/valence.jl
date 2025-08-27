@@ -40,17 +40,11 @@ atom_number(mol::SimpleMolGraph) = Int[atom_number(mol[i]) for i in vertices(mol
 Return a vector of size ``n`` representing atom charges of 1 to ``n``th atoms of
 the given molecule.
 """
-function atom_charge(mol::SimpleMolGraph)
-    if has_descriptor(mol, :atom_charge)
-        return get_descriptor(mol, :atom_charge)
-    end
-    return Int[atom_charge(mol[i]) for i in vertices(mol)]
-end
+atom_charge(mol::SimpleMolGraph) = Int[atom_charge(mol[i]) for i in vertices(mol)]
+atom_charge(mol::ReactiveMolGraph) = mol[:descriptors].atom_charge
 
-default_atom_charge!(mol::ReactiveMolGraph) = setproperty!(
-    mol.gprops.descriptors, :atom_charge,
-    Int[atom_charge(mol[i]) for i in vertices(mol)]
-)
+default_atom_charge!(mol::SimpleMolGraph) = set_descriptor!(
+    mol, :atom_charge, Int[atom_charge(mol[i]) for i in vertices(mol)])
 
 
 """
@@ -77,17 +71,12 @@ isotope(mol::SimpleMolGraph) = Int[isotope(mol[i]) for i in vertices(mol)]
 Return a vector of size ``n`` representing bond order of 1 to ``n``th bonds of
 the given molecule.
 """
-function bond_order(mol::SimpleMolGraph)
-    if has_descriptor(mol, :bond_order)
-        return get_descriptor(mol, :bond_order)
-    end
-    return Int[bond_order(mol[e]) for e in edges(mol)]
-end
+bond_order(mol::SimpleMolGraph) = Int[bond_order(mol[e]) for e in edges(mol)]
+bond_order(mol::ReactiveMolGraph) = mol[:descriptors].bond_order
 
-default_bond_order!(mol::ReactiveMolGraph) = setproperty!(
-    mol.gprops.descriptors, :bond_order,
-    Int[bond_order(mol[e]) for e in edges(mol)]
-)
+default_bond_order!(mol::SimpleMolGraph) = set_descriptor!(
+    mol, :bond_order, Int[bond_order(mol[e]) for e in edges(mol)])
+
 
 # coords -> src/coords.jl
 
@@ -109,11 +98,6 @@ function apparent_valence(mol::SimpleMolGraph)
     return apparent_valence(mol.graph, bond_order(mol))
 end
 
-apparent_valence!(mol::ReactiveMolGraph) = setproperty!(
-    mol.gprops.descriptors, :apparent_valence,
-    apparent_valence(mol.graph, bond_order(mol))
-)
-
 function apparent_valence(g::SimpleGraph, order_arr::Vector{Int})
     arr = fill(zero(Int), nv(g))
     ernk = edge_rank(g)
@@ -123,6 +107,9 @@ function apparent_valence(g::SimpleGraph, order_arr::Vector{Int})
     end
     return arr
 end
+
+apparent_valence!(mol::SimpleMolGraph) = set_descriptor!(
+    mol, :apparent_valence, apparent_valence(mol.graph, bond_order(mol)))
 
 
 """
@@ -142,11 +129,6 @@ function valence(mol::SimpleMolGraph)
     return valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
 end
 
-valence!(mol::ReactiveMolGraph) = setproperty!(
-    mol.gprops.descriptors, :valence,
-    valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
-)
-
 function valence(
         symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
         apparent_valence_arr::Vector{Int})
@@ -161,6 +143,9 @@ function valence(
     end
     return arr
 end
+
+valence!(mol::SimpleMolGraph) = set_descriptor!(
+    mol, :valence, valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol)))
 
 
 """
@@ -238,11 +223,6 @@ function lone_pair(mol::SimpleMolGraph)
     return lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
 end
 
-lone_pair!(mol::ReactiveMolGraph) = setproperty!(
-    mol.gprops.descriptors, :lone_pair,
-    lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
-)
-
 function lone_pair(
         symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, connectivity_arr::Vector{Int})
     arr = fill(zero(Int), length(symbol_arr))
@@ -257,6 +237,10 @@ function lone_pair(
     end
     return arr
 end
+
+lone_pair!(mol::SimpleMolGraph) = set_descriptor!(
+    mol, :lone_pair, lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol)))
+
 
 
 

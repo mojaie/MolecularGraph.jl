@@ -150,9 +150,8 @@ has_prop(mol::SimpleMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
 # Do not expose
 
 get_descriptor(mol::SimpleMolGraph, field::Symbol
-    ) = getproperty(mol.gprops.descriptors, field)
-has_descriptor(mol::SimpleMolGraph, field::Symbol
-    ) = hasproperty(mol.gprops.descriptors, field)
+    ) = getproperty(mol[:descriptors], field)
 set_descriptor!(mol::SimpleMolGraph, field::Symbol, value
-    ) = setproperty!(mol.gprops.descriptors, field, value)
-
+    ) = setproperty!(mol[:descriptors], field, value)
+has_descriptor(mol::SimpleMolGraph, field::Symbol
+    ) = hasproperty(mol[:descriptors], field)

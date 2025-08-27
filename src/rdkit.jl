@@ -129,8 +129,8 @@ function to_dict(fmt::Val{:rdkit}, mol::SimpleMolGraph)
         chg[i] == 0 || (rcd["chg"] = chg[i])
         mul[i] == 1 || (rcd["nRad"] = mul[i] - 1)
         iso[i] == 0 || (rcd["isotope"] = iso[i])
-        if haskey(mol.gprops.stereocenter, i)
-            center = mol.gprops.stereocenter[i]
+        if haskey(mol[:stereocenter], i)
+            center = mol[:stereocenter][i]
             nbrs = ordered_neighbors(mol, i)
             rcd["stereo"] = isclockwise(center, nbrs[1:3]...) ? "cw" : "ccw"
         end
@@ -142,8 +142,8 @@ function to_dict(fmt::Val{:rdkit}, mol::SimpleMolGraph)
             "atoms" => [src(e) - 1, dst(e) - 1]
         )
         bondorder[i] == 1 || (rcd["bo"] = bondorder[i])
-        if haskey(mol.gprops.stereobond, e)
-            v1, v2, is_cis = mol.gprops.stereobond[e]
+        if haskey(mol[:stereobond], e)
+            v1, v2, is_cis = mol[:stereobond][e]
             rcd["stereoAtoms"] = [v1 - 1, v2 - 1]
             rcd["stereo"] = is_cis ? "cis" : "trans"
         end
@@ -151,7 +151,7 @@ function to_dict(fmt::Val{:rdkit}, mol::SimpleMolGraph)
     end
     data["molecules"][1]["conformers"] = []
     # Wedges cannot be preserved. Use coordgen to generate 2D coords manually
-    for cds in mol.gprops.descriptors.coords3d
+    for cds in mol[:descriptors].coords3d
         push!(
             data["molecules"][1]["conformers"],
             Dict("dim" => 3, "coords" => to_dict(Val(:coords3d), Val(:default), mol.gprops)))

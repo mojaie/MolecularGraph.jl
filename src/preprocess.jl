@@ -87,7 +87,7 @@ end
 
 function kekulize!(mol::SimpleMolGraph)
     bondorder, pyrrole_like = kekulize(mol)
-    mol.gprops.descriptors.bond_order = bondorder
+    set_descriptor!(mol, :bond_order, bondorder)
     empty!(mol.gprops.pyrrole_like)
     append!(mol.gprops.pyrrole_like, pyrrole_like)
     return
@@ -204,47 +204,51 @@ extract_largest_component!(mol::SimpleMolGraph
 
 Protonate oxo(thio) anion groups of the molecule.
 """
-function protonate_acids(mol::SimpleMolGraph)
-    atomsymbol_ = atom_symbol(mol)
-    charge_ = atom_charge(mol)
-    connectivity_ = connectivity(mol)
-    arr = copy(charge_)
-    for o in findall(charge_ .== -1)
-        atomsymbol_[o] in (:O, :S) || continue
-        @assert connectivity_[o] == 1
-        nbr = neighbors(mol, o)[1]
-        charge_[nbr] == 1 && continue  # polarized double bond
-        arr[o] = 0
+protonate_acids(mol::SimpleMolGraph
+    ) = protonate_acids(mol.graph, atom_symbol(mol), atom_charge(mol))
+
+function protonate_acids(
+        g::SimpleGraph, symbol_arr::Vector{Symbol}, charge_arr::Vector{Int})
+    new_charge = copy(charge_arr)
+    for o in findall(charge_arr .== -1)
+        symbol_arr[o] in (:O, :S) || continue
+        degree(g, o) == 1 || continue  # atypical valence
+        charge_arr[only(neighbors(g, o))] == 1 && continue  # polarized double bond
+        new_charge[o] = 0
     end
-    return arr
+    return new_charge
 end
 
 function protonate_acids!(mol::SimpleMolGraph)
-    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
-    set_descriptor!(mol, :atom_charge, protonate_acids(mol))
-    return
+    set_descriptor!(
+        mol, :atom_charge,
+        protonate_acids(mol.graph, atom_symbol(mol), atom_charge(mol))
+    )
 end
+
 
 """
     deprotonate_oniums(mol::SimpleMolGraph) -> Vector{Int}
 
 Deprotonate onium groups of the molecule.
 """
-function deprotonate_oniums(mol::SimpleMolGraph)
-    hydrogens_ = total_hydrogens(mol)
-    charge_ = atom_charge(mol)
-    arr = copy(charge_)
-    for o in findall(charge_ .== 1)
-        hydrogens_[o] > 0 || continue
-        arr[o] = 0
+deprotonate_oniums(mol::SimpleMolGraph
+    ) = deprotonate_oniums(atom_charge(mol), total_hydrogens(mol))
+
+function deprotonate_oniums(charge_arr::Vector{Int}, h_arr::Vector{Int})
+    new_charge = copy(charge_arr)
+    for o in findall(charge_arr .== 1)
+        h_arr[o] > 0 || continue
+        new_charge[o] = 0
     end
-    return arr
+    return new_charge
 end
 
 function deprotonate_oniums!(mol::SimpleMolGraph)
-    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
-    set_descriptor!(mol, :atom_charge, deprotonate_oniums(mol))
-    return
+    set_descriptor!(
+        mol, :atom_charge,
+        deprotonate_oniums(atom_charge(mol), total_hydrogens(mol))
+    )
 end
 
 
@@ -253,21 +257,24 @@ end
 
 Depolarize dipole double bonds of the molecule.
 """
-function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
-    atomsymbol_ = atom_symbol(mol)
-    charge_ = atom_charge(mol)
-    connectivity_ = connectivity(mol)
-    isaromatic_ = is_aromatic(mol)
-    carr = copy(charge_)
-    oarr = copy(bond_order(mol))
-    ernk = edge_rank(mol)
-    for o in findall(charge_ .== -1)
-        atomsymbol_[o] === negative || continue
-        @assert connectivity_[o] == 1
-        nbr = neighbors(mol, o)[1]
-        atomsymbol_[nbr] in positive || continue
-        charge_[nbr] == 1 || continue
-        isaromatic_[nbr] && continue
+depolarize(mol::SimpleMolGraph; kwargs...) = depolarize(
+    mol.graph, atom_symbol(mol), atom_charge(mol),
+    is_aromatic(mol), bond_order(mol); kwargs...
+)
+
+function depolarize(
+        g::SimpleGraph, symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
+        is_arom_arr::BitVector, order_arr::Vector{Int}; negative=[:O], positive=[:C, :P])
+    carr = copy(charge_arr)
+    oarr = copy(order_arr)
+    ernk = edge_rank(g)
+    for o in findall(charge_arr .== -1)
+        symbol_arr[o] in negative || continue
+        degree(g, o) == 1 || continue  # atypical valence
+        nbr = only(neighbors(g, o))
+        symbol_arr[nbr] in positive || continue
+        charge_arr[nbr] == 1 || continue
+        is_arom_arr[nbr] && continue
         carr[o] = 0
         carr[nbr] = 0
         oarr[edge_rank(ernk, o, nbr)] = 2
@@ -275,13 +282,12 @@ function depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
     return carr, oarr
 end
 
-function depolarize!(mol::SimpleMolGraph)
-    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
-    has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
-    carr, oarr = depolarize(mol)
+function depolarize!(mol::SimpleMolGraph; kwargs...)
+    carr, oarr = depolarize(
+        mol.graph, atom_symbol(mol), atom_charge(mol),
+        is_aromatic(mol), bond_order(mol); kwargs...)
     set_descriptor!(mol, :atom_charge, carr)
     set_descriptor!(mol, :bond_order, oarr)
-    return
 end
 
 
@@ -290,21 +296,22 @@ end
 
 Polarize dipole double bonds of the molecule.
 """
-function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
-    atomsymbol_ = atom_symbol(mol)
-    charge_ = atom_charge(mol)
-    bondorder_ = bond_order(mol)
-    connectivity_ = connectivity(mol)
-    carr = copy(charge_)
-    oarr = copy(bondorder_)
-    ernk = edge_rank(mol)
-    for o in findall(connectivity_ .== 1)
-        atomsymbol_[o] === negative || continue
-        charge_[o] == 0 || continue
-        nbr = neighbors(mol, o)[1]
-        atomsymbol_[nbr] in positive || continue
-        charge_[nbr] == 0 || continue
-        bondorder_[edge_rank(ernk, o, nbr)] == 2 || continue
+polarize(mol::SimpleMolGraph; kwargs...) = polarize(
+    mol.graph, atom_symbol(mol), atom_charge(mol), bond_order(mol); kwargs...
+)
+function polarize(
+        g::SimpleGraph, symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
+        order_arr::Vector{Int}; negative=[:O], positive=[:N, :S])
+    carr = copy(charge_arr)
+    oarr = copy(order_arr)
+    ernk = edge_rank(g)
+    for o in findall(degree(g) .== 1)
+        symbol_arr[o] in negative || continue
+        charge_arr[o] == 0 || continue
+        nbr = only(neighbors(g, o))
+        symbol_arr[nbr] in positive || continue
+        charge_arr[nbr] == 0 || continue
+        order_arr[edge_rank(ernk, o, nbr)] == 2 || continue
         carr[o] = -1
         carr[nbr] = 1
         oarr[edge_rank(ernk, o, nbr)] = 1
@@ -312,25 +319,22 @@ function polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
     return carr, oarr
 end
 
-function polarize!(mol::SimpleMolGraph)
-    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
-    has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
-    carr, oarr = polarize(mol)
+function polarize!(mol::SimpleMolGraph; kwargs...)
+    carr, oarr = polarize(
+        mol.graph, atom_symbol(mol), atom_charge(mol), bond_order(mol); kwargs...)
     set_descriptor!(mol, :atom_charge, carr)
     set_descriptor!(mol, :bond_order, oarr)
-    return
 end
 
 
-function find_dipoles(mol::SimpleMolGraph)
-    charge_ = atom_charge(mol)
-    pie_ = apparent_valence(mol) - degree(mol)
+function find_dipoles(g::SimpleGraph, charge_arr::Vector{Int}, appval_arr::Vector{Int})
+    pie_arr = appval_arr - degree(g)
     triads = Tuple{Int,Int,Int}[]
-    for c in findall((pie_ .== 2) .* (charge_ .== 1))
+    for c in findall((pie_arr .== 2) .* (charge_arr .== 1))
         negs = Int[]
         notnegs = Int[]
-        for nbr in neighbors(mol, c)
-            push!(charge_[nbr] == -1 ? negs : notnegs, nbr)
+        for nbr in neighbors(g, c)
+            push!(charge_arr[nbr] == -1 ? negs : notnegs, nbr)
         end
         (length(negs) == 1 && length(notnegs) == 1) || continue
         push!(triads, (negs[1], c, notnegs[1]))
@@ -344,12 +348,16 @@ end
 
 Standardize the molecule so that all 1,3-dipole groups are represented as triple bond and single bond (e.g. Diazo group C=[N+]=[N-] -> [C-][N+]#N).
 """
-function to_triple_bond(mol::SimpleMolGraph)
-    carr = copy(atom_charge(mol))
-    oarr = copy(bond_order(mol))
-    ernk = edge_rank(mol)
-    for (first, center, third) in find_dipoles(mol)
-        bond_order(mol[first, center]) == 2 || continue
+to_triple_bond(mol::SimpleMolGraph) = to_triple_bond(
+    mol.graph, atom_charge(mol), apparent_valence(mol), bond_order(mol))
+
+function to_triple_bond(
+        g::SimpleGraph, charge_arr::Vector{Int}, appval_arr::Vector{Int}, order_arr::Vector{Int})
+    carr = copy(charge_arr)
+    oarr = copy(order_arr)
+    ernk = edge_rank(g)
+    for (first, center, third) in find_dipoles(g, charge_arr, appval_arr)
+        order_arr[edge_rank(ernk, first, center)] == 2 || continue
         carr[first] = 0
         carr[third] = -1
         oarr[edge_rank(ernk, first, center)] = 3
@@ -359,25 +367,28 @@ function to_triple_bond(mol::SimpleMolGraph)
 end
 
 function to_triple_bond!(mol::SimpleMolGraph)
-    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
-    has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
-    carr, oarr = to_triple_bond(mol)
+    carr, oarr = to_triple_bond(
+        mol.graph, atom_charge(mol), apparent_valence(mol), bond_order(mol))
     set_descriptor!(mol, :atom_charge, carr)
     set_descriptor!(mol, :bond_order, oarr)
-    return
 end
+
 
 """
     to_allene_like(mol::SimpleMolGraph) -> Nothing
 
 Standardize the molecule so that all 1,3-dipole groups are represented as allene-like structure (e.g. Diazo group [C-][N+]#N -> C=[N+]=[N-]).
 """
-function to_allene_like(mol::SimpleMolGraph)
-    carr = copy(atom_charge(mol))
-    oarr = copy(bond_order(mol))
-    ernk = edge_rank(mol)
-    for (first, center, third) in find_dipoles(mol)
-        bond_order(mol[first, center]) == 1 || continue
+to_allene_like(mol::SimpleMolGraph) = to_allene_like(
+    mol.graph, atom_charge(mol), apparent_valence(mol), bond_order(mol))
+
+function to_allene_like(
+        g::SimpleGraph, charge_arr::Vector{Int}, appval_arr::Vector{Int}, order_arr::Vector{Int})
+    carr = copy(charge_arr)
+    oarr = copy(order_arr)
+    ernk = edge_rank(g)
+    for (first, center, third) in find_dipoles(g, charge_arr, appval_arr)
+        order_arr[edge_rank(ernk, first, center)] == 1 || continue
         carr[first] = 0
         carr[third] = -1
         oarr[edge_rank(ernk, first, center)] = 2
@@ -387,10 +398,8 @@ function to_allene_like(mol::SimpleMolGraph)
 end
 
 function to_allene_like!(mol::SimpleMolGraph)
-    has_descriptor(mol, :atom_charge) || error("Descriptor :atom_charge not available")
-    has_descriptor(mol, :bond_order) || error("Descriptor :bond_order not available")
-    carr, oarr = to_allene_like(mol)
+    carr, oarr = to_allene_like(
+        mol.graph, atom_charge(mol), apparent_valence(mol), bond_order(mol))
     set_descriptor!(mol, :atom_charge, carr)
     set_descriptor!(mol, :bond_order, oarr)
-    return
 end

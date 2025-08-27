@@ -37,21 +37,22 @@ mutable struct MolState{T,F1,F2} <: AbstractState
     initialized::Bool
     has_updates::Bool
     has_new_edges::Bool  # as a SSSR recalculation flag
+    force_calculate::Bool  # ignore cached descriptors (temporary set when running auto-preprocess)
     on_init::F1
     on_update::F2
 end
 
 
 function MolState{T}(
-        ; initialized=false, has_updates=true, has_new_edges=true,
+        ; initialized=false, has_updates=true, has_new_edges=true, force_calculate=false,
         on_init=default_on_init!, on_update=default_on_update!) where T <: Integer
     return MolState{T,typeof(on_init),typeof(on_update)}(
-        initialized, has_updates, has_new_edges, on_init, on_update)
+        initialized, has_updates, has_new_edges, force_calculate, on_init, on_update)
 end
 
 
 Base.copy(state::T) where T <: MolState = T(
-    state.initialized, state.has_updates, state.has_new_edges,
+    state.initialized, state.has_updates, state.has_new_edges, state.force_calculate,
     state.on_init, state.on_update
 )
 
@@ -60,7 +61,12 @@ Base.copy(state::T) where T <: MolState = T(
 
 function get_descriptor(mol::ReactiveMolGraph, field::Symbol)
     dispatch_update!(mol)
-    return getproperty(mol.gprops.descriptors, field)
+    return getproperty(mol[:descriptors], field)
+end
+
+function has_descriptor(mol::ReactiveMolGraph, field::Symbol)
+    mol.state.force_calculate && return false
+    return hasproperty(mol[:descriptors], field)
 end
 
 
@@ -103,8 +109,10 @@ to recalculate descriptors. If there are no changes, just return the stored desc
 """
 function dispatch_update!(mol::ReactiveMolGraph)
     mol.state.has_updates || return
-    mol.state.has_updates = false  # call before update to avoid infinite roop
+    mol.state.force_calculate = true # to avoid infinite roop
     mol.state.on_update(mol)
+    mol.state.force_calculate = false
+    mol.state.has_updates = false  
     mol.state.has_new_edges = false
     return
 end
@@ -151,7 +159,7 @@ Custom `on_init` function is called inside this method.
 function initialize!(mol::ReactiveMolGraph)
     mol.state.initialized || mol.state.on_init(mol)
     mol.state.initialized = true
-    dispatch_update!(mol)  # just checking on-update callback errors
+    dispatch_update!(mol)  # check on-update callback errors
     return
 end
 
@@ -275,7 +283,6 @@ end
 
 
 function Graphs.rem_vertex!(mol::ReactiveMolGraph, v::Integer)
-    dispatch_update!(mol)
     nv_ = nv(mol)
     old_edges = collect(edges(mol))
     rem_vertex!(mol.graph, v) || return false
@@ -301,7 +308,6 @@ end
 
 function Graphs.rem_vertices!(mol::ReactiveMolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
     # TODO: if many vertices should be removed, induced_subgraph may be more efficient.
-    dispatch_update!(mol)
     old_edges = collect(edges(mol))
     vmap = rem_vertices!(mol.graph, vs)
     # remap vertex properties
@@ -330,7 +336,6 @@ end
 
 function _induced_subgraph(mol::T, vlist_or_elist) where {T<:ReactiveMolGraph}
     # In many cases, induced_subgraph(mol.graph, vlist_or_elist) is sufficient
-    dispatch_update!(mol)
     subg, vmap = induced_subgraph(mol.graph, vlist_or_elist)
     vps = Dict{eltype(T),vproptype(T)}()
     for v in vertices(subg)

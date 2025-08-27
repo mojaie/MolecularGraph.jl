@@ -86,7 +86,7 @@ Set stereocenter information to graph properties.
 function set_stereocenter!(
         mol::SimpleMolGraph{T}, center::T,
         looking_from::T, v1::T, v2::T, is_clockwise::Bool) where T
-    mol.gprops.stereocenter[center] = (looking_from, v1, v2, is_clockwise)
+    mol[:stereocenter][center] = (looking_from, v1, v2, is_clockwise)
 end
 
 
@@ -97,7 +97,7 @@ Set stereocenter information to graph properties.
 """
 function set_stereobond!(
         mol::SimpleMolGraph{T}, bond::Edge{T}, v1::T, v2::T, is_cis::Bool) where T
-    mol.gprops.stereobond[bond] = (v1, v2, is_cis)
+    mol[:stereobond][bond] = (v1, v2, is_cis)
 end
 
 
@@ -259,9 +259,9 @@ Set stereocenter information obtained from 2D SDFile.
 """
 function stereocenter_from_sdf2d!(mol::SimpleMolGraph)
     centers, comments = stereocenter_from_sdf2d(mol)
-    empty!(mol.gprops.stereocenter)
-    merge!(mol.gprops.stereocenter, centers)
-    for c in keys(mol.gprops.stereocenter)
+    empty!(mol[:stereocenter])
+    merge!(mol[:stereocenter], centers)
+    for c in keys(mol[:stereocenter])
         safe_stereo_hydrogen!(mol, c)
     end
     if length(comments) > 0
@@ -317,9 +317,9 @@ Set stereocenter information obtained from SMILES.
 """
 function stereocenter_from_smiles!(mol::SimpleMolGraph)
     centers = stereocenter_from_smiles(mol)
-    empty!(mol.gprops.stereocenter)
-    merge!(mol.gprops.stereocenter, centers)
-    for c in keys(mol.gprops.stereocenter)
+    empty!(mol[:stereocenter])
+    merge!(mol[:stereocenter], centers)
+    for c in keys(mol[:stereocenter])
         safe_stereo_hydrogen!(mol, c)
     end
     return
@@ -363,7 +363,7 @@ stereobond_from_sdf2d(mol::SimpleMolGraph) = stereobond_from_sdf2d(
     mol.graph,
     Int[mol[e].order for e in edges(mol)],
     Int[mol[e].notation for e in edges(mol)],
-    mol.gprops.descriptors.coords2d[1]
+    mol[:descriptors].coords2d[1]
 )
 
 """
@@ -372,8 +372,8 @@ stereobond_from_sdf2d(mol::SimpleMolGraph) = stereobond_from_sdf2d(
 Set cis-trans diastereomerism information obtained from 2D SDFile.
 """
 function stereobond_from_sdf2d!(mol::SimpleMolGraph)
-    empty!(mol.gprops.stereobond)
-    merge!(mol.gprops.stereobond, stereobond_from_sdf2d(mol))
+    empty!(mol[:stereobond])
+    merge!(mol[:stereobond], stereobond_from_sdf2d(mol))
     return
 end
 
@@ -457,8 +457,8 @@ Set cis-trans diastereomerism information obtained from SMILES.
 """
 function stereobond_from_smiles!(mol::SimpleMolGraph)
     bonds, comments = stereobond_from_smiles(mol)
-    empty!(mol.gprops.stereobond)
-    merge!(mol.gprops.stereobond, bonds)
+    empty!(mol[:stereobond])
+    merge!(mol[:stereobond], bonds)
     if length(comments) > 0
         mol.gprops.logs["stereobond_ignored"] = join(comments, "; ")
     end

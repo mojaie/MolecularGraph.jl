@@ -90,11 +90,11 @@ function coords_from_sdf!(mol::SimpleMolGraph)
     zrange = nv(mol) == 0 ? (0, 0) : extrema(mol[i].coords[3] for i in vertices(mol))
     # Embed 3D coords to 2D
     push!(
-        mol.gprops.descriptors.coords2d,
+        mol[:descriptors].coords2d,
         [Point2d(mol[i].coords[1:2]...) for i in vertices(mol)])
     if zrange[2] - zrange[1] > 0.001  # 3D coords available
         push!(
-            mol.gprops.descriptors.coords3d,
+            mol[:descriptors].coords3d,
             [Point3d(mol[i].coords[1:3]...) for i in vertices(mol)])
     end
     # Bond style in 2D notation (wedges)
@@ -117,7 +117,7 @@ function coords_from_sdf!(mol::SimpleMolGraph)
             arr[i] = :none
         end
     end
-    push!(mol.gprops.descriptors.draw2d_bond_style, arr)
+    push!(mol[:descriptors].draw2d_bond_style, arr)
 end
 
 
@@ -172,9 +172,9 @@ draw2d_bond_style(mol::SimpleMolGraph) = draw2d_bond_style(mol, 1)
 
 function update_coords!(mol::SimpleMolGraph)
     # TODO: just remap nodes if still all existing vertices have coords.
-    empty!(mol.gprops.descriptors.coords2d)
-    empty!(mol.gprops.descriptors.coords3d)
-    empty!(mol.gprops.descriptors.draw2d_bond_style)
+    empty!(mol[:descriptors].coords2d)
+    empty!(mol[:descriptors].coords3d)
+    empty!(mol[:descriptors].draw2d_bond_style)
     if hasfield(vproptype(mol), :coords)
         if !any(isnothing(mol[i].coords) for i in vertices(mol))
             coords_from_sdf!(mol)
@@ -197,21 +197,8 @@ where n is atom count, which stores 2D coordinates (x, y) of each atoms.
 """
 coordgen(mol::SimpleMolGraph) = coordgen(
     mol.graph, atom_number(mol), bond_order(mol),
-    mol.gprops.stereocenter, mol.gprops.stereobond
+    mol[:stereocenter], mol[:stereobond]
 )
-
-function coordgen!(mol::ReactiveMolGraph)
-    # Initialize
-    empty!(mol.gprops.descriptors.coords2d)
-    empty!(mol.gprops.descriptors.draw2d_bond_style)
-    # TODO: unspecified stereochem in SMILES
-    coords, styles = coordgen(
-        mol.graph, atom_number(mol), bond_order(mol),
-        mol[:stereocenter], mol[:stereobond]
-    )
-    push!(mol.gprops.descriptors.coords2d, coords)
-    push!(mol.gprops.descriptors.draw2d_bond_style, styles)
-end
 
 function coordgen(
         g::SimpleGraph{T}, atomnum::Vector{Int}, bondorder_::Vector{Int},
@@ -283,4 +270,17 @@ function coordgen(
     end
     # TODO: keep wave bond in SDFile
     return coords, styles
+end
+
+function coordgen!(mol::SimpleMolGraph)
+    # Initialize
+    empty!(mol[:descriptors].coords2d)
+    empty!(mol[:descriptors].draw2d_bond_style)
+    # TODO: unspecified stereochem in SMILES
+    coords, styles = coordgen(
+        mol.graph, atom_number(mol), bond_order(mol),
+        mol[:stereocenter], mol[:stereobond]
+    )
+    push!(mol[:descriptors].coords2d, coords)
+    push!(mol[:descriptors].draw2d_bond_style, styles)
 end

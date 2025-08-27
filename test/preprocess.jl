@@ -92,7 +92,7 @@ end
     mol = smilestomol("CC[C@@H](C)[C@@H]1[C@@H](CC[C@@]2(O1)C[C@@H]3C[C@H](O2)CC=C([C@H]([C@H](C=CC=C4CO[C@H]5[C@@]4([C@@H](C=C([C@H]5O)C)C(=O)O3)O)C)O[C@H]6C[C@@H]([C@H]([C@@H](O6)C)O[C@H]7C[C@@H]([C@H]([C@@H](O7)C)O)OC)OC)C)C")
     remove_all_hydrogens!(mol)
     @test nv(mol) == 62
-    @test length(mol.gprops.stereocenter) == 20
+    @test length(mol[:stereocenter]) == 20
 end
 
 @testset "add_hydrogens" begin

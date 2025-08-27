@@ -85,13 +85,7 @@ of a given molecule are aromatic or not.
 This is a binary descriptor based on a chemoinformatic algorithm and may not reflect
 actual molecular orbitals. Atypical aromaticities such as Moebius aromaticity are not considered.
 """
-is_ring_aromatic(mol::SimpleMolGraph) = is_ring_aromatic(
-    mol.graph, sssr(mol), edge_which_ring(mol),
-    atom_symbol(mol), bond_order(mol),
-    hybridization(mol), pi_electron(mol)
-)
-
-function is_ring_aromatic(mol::ReactiveMolGraph)
+function is_ring_aromatic(mol::SimpleMolGraph)
     if has_descriptor(mol, :is_ring_aromatic)
         return get_descriptor(mol, :is_ring_aromatic)
     end
@@ -101,15 +95,6 @@ function is_ring_aromatic(mol::ReactiveMolGraph)
         hybridization(mol), pi_electron(mol)
     )
 end
-
-is_ring_aromatic!(mol::SimpleMolGraph) = setproperty!(
-    mol.gprops.descriptors, :is_ring_aromatic,
-    is_ring_aromatic(
-        mol.graph, sssr(mol), edge_which_ring(mol),
-        atom_symbol(mol), bond_order(mol),
-        hybridization(mol), pi_electron(mol)
-    )
-)
 
 function is_ring_aromatic(
         g::SimpleGraph, sssr_::Vector{Vector{Int}}, which_ring_arr::Vector{Vector{Int}},
@@ -234,6 +219,15 @@ function is_ring_aromatic(
     end
     return res
 end
+
+is_ring_aromatic!(mol::SimpleMolGraph) = set_descriptor!(
+    mol, :is_ring_aromatic,
+    is_ring_aromatic(
+        mol.graph, sssr(mol), edge_which_ring(mol),
+        atom_symbol(mol), bond_order(mol),
+        hybridization(mol), pi_electron(mol)
+    )
+)
 
 
 """
