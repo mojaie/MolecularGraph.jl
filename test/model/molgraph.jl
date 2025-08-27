@@ -60,6 +60,21 @@ end
     bonds = [SDFBond(),SDFBond()]
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds)  # CCC
     @test !mol.state.has_updates  # dispatch_update! called after initialization
+
+    # property update
+    mol[1] = SDFAtom(;symbol=:N)
+    @test mol[1].symbol === :N
+    @test mol.state.has_updates
+    mol.state.has_updates = false
+    mol[2, 1] = SDFBond(;order=2)
+    @test mol[1, 2].order == 2
+    @test mol.state.has_updates
+    mol.state.has_updates = false
+    mol[Edge(2, 3)] = SDFBond(;order=2)
+    @test mol[Edge(2, 3)].order == 2
+    @test mol.state.has_updates
+    mol.state.has_updates = false
+
     # edit graph properties
     @test add_vertex!(mol, SDFAtom(;symbol=:O))  # CCC.O
     @test mol.state.has_updates
@@ -93,10 +108,10 @@ end
     @test issetequal(keys(mol.eprops), Edge.([(1, 2), (2, 3)]))
     @test rem_vertex!(mol, 2)  # C.C
 
-    struct IntAtom <: MolecularGraph.AbstractAtom
+    struct IntAtom <: AbstractAtom
         value::Int
     end
-    struct IntBond <: MolecularGraph.AbstractBond
+    struct IntBond <: AbstractBond
         value::Int
     end
     # Vertex re-ordering when vertices/edges are removed

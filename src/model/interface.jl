@@ -237,6 +237,17 @@ Return properties (vertex or edge attributes).
 Base.getindex(mol::AbstractMolGraph, v::Integer) = mol.vprops[v]
 Base.getindex(mol::AbstractMolGraph, e::Edge) = mol.eprops[e]
 
+"""
+    Base.setindex!(mol::AbstractMolGraph, v::Integer) -> AbstractElement
+    Base.setindex!(mol::AbstractMolGraph, e::Edge) -> AbstractElement
+    Base.setindex!(mol::AbstractMolGraph, u::Integer, v::Integer) -> AbstractElement
+
+Return properties (vertex or edge attributes).
+"""
+
+Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, v::Integer) = setindex!(mol.vprops, prop, v)
+Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, e::Edge) = setindex!(mol.eprops, prop, e)
+
 # old accessors (deprecated)
 props(mol::AbstractMolGraph, v::Integer) = mol[v]
 props(mol::AbstractMolGraph, e::Edge) = mol[e]
@@ -309,6 +320,8 @@ ordered_edge_neighbors = edge_neighbors
 
 
 Base.getindex(mol::SimpleMolGraph{T}, u::T, v::T) where T = mol.eprops[u_edge(T, u, v)]
+Base.setindex!(mol::SimpleMolGraph{T}, prop::AbstractElement, u::T, v::T
+    ) where T = setindex!(mol.eprops, prop, u_edge(T, u, v))
 
 # old accessors (deprecated)
 props(mol::SimpleMolGraph, u::Integer, v::Integer) = mol[u, v]

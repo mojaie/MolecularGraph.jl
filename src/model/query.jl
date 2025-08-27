@@ -382,10 +382,10 @@ function specialize_nonaromatic!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
             cnt -= 1  # carbon allows one non-aromatic
         end
         if Symbol(qonly.value) in aromsyms && cnt > 0
-            set_prop!(qmol, i, V(
+            qmol[i] = V(
                 [(1, 2), (1, 3), (3, 4)],
                 [qand(), qonly, qnot(), qtrue(:isaromatic)]
-            ))
+            )
         end
     end
     return
@@ -447,7 +447,7 @@ function remove_hydrogens!(qmol::QueryMolGraph{T,V,E}) where {T,V,E}
             c = add_qnode!(qtree, node, qnot())
             add_qnode!(qtree, c, qeq(:total_hydrogens, string(i)))
         end
-        set_prop!(qmol, n, qtree)
+        qmol[n] = qtree
     end
     rem_vertices!(qmol, hnodes)
     return

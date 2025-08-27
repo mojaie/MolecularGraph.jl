@@ -220,12 +220,23 @@ end
 
 # Property accessors
 
-"""
-    set_prop!(mol::ReactiveMolGraph, v::Integer, value::AbstractAtom) -> Nothing
-    set_prop!(mol::ReactiveMolGraph, e::Edge, value::AbstractBond) -> Nothing
+function Base.setindex!(mol::ReactiveMolGraph, prop::AbstractElement, v::Integer)
+    setindex!(mol.vprops, prop, v)
+    notify_updates!(mol)
+end
 
-Set properties (vertex or edge attributes).
-"""
+function Base.setindex!(mol::ReactiveMolGraph, prop::AbstractElement, e::Edge)
+    setindex!(mol.eprops, prop, e)
+    notify_updates!(mol)
+end
+
+function Base.setindex!(mol::ReactiveMolGraph{T,V,E}, prop::AbstractElement, u::T, v::T) where {T,V,E}
+    setindex!(mol.eprops, prop, u_edge(T, u, v))
+    notify_updates!(mol)
+end
+
+
+# old accessors (deprecated)
 function set_prop!(mol::ReactiveMolGraph, v::Integer, value::AbstractElement)
     mol.vprops[v] = value
     notify_updates!(mol)
