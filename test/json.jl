@@ -1,5 +1,5 @@
 
-# @testset "json" begin
+@testset "json" begin
 
 @testset "json.sdfile" begin
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
@@ -24,6 +24,12 @@
     @test mol == mol2
     @test mol !== mol2
     mol = sdftomol(joinpath(assetdir, "aspirin_v3.mol"))
+    mol2 = MolGraph(to_json(mol))
+    @test mol == mol2
+    @test mol !== mol2
+
+    # isolated vertices
+    mol = sdftomol(joinpath(assetdir, "hydrate.mol"))
     mol2 = MolGraph(to_json(mol))
     @test mol == mol2
     @test mol !== mol2
@@ -77,6 +83,12 @@ end
     sildenafil2 = MolGraph(to_json(sildenafil))
     @test sildenafil == sildenafil2
     @test sildenafil !== sildenafil2
+
+    # isolated vertices
+    hydrate = smilestomol("[Cu+2].[O-]S(=O)(=O)[O-].O.O.O.O.O")
+    hydrate2 = MolGraph(to_json(hydrate))
+    @test hydrate == hydrate2
+    @test hydrate !== hydrate2
 end
 
 @testset "json.rdkit" begin
@@ -89,6 +101,11 @@ end
     rmol2 = MolGraph(to_rdkdict(mol2))
     @test is_ring_aromatic(mol2) == is_ring_aromatic(rmol2)
     # @test smiles(mol2) == smiles(rmol2)
+
+    # isolated vertices
+    hydrate = smilestomol("[Cu+2].[O-]S(=O)(=O)[O-].O.O.O.O.O")
+    hydrate2 = MolGraph(to_rdkdict(hydrate))
+    @test atom_counter(hydrate) == atom_counter(hydrate2)
 end
 
-# end # json
+end # json

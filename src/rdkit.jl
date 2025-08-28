@@ -53,6 +53,10 @@ function reactive_molgraph(
             gps.stereocenter[i] = (nbrs[1:3]..., isclockwise[a["stereo"]])
         end
     end
+    # expand fadjlist for vprops of isolated nodes
+    for _ in nv(g):(length(vps) - 1)
+        push!(g.fadjlist, T[])
+    end
     if haskey(data, "conformers")
         for cds in data["conformers"]
             # Wedges cannot be preserved. Use coordgen to generate 2D coords manually

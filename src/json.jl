@@ -38,6 +38,10 @@ function reactive_molgraph(
         config::MolState) where {T,V,E}
     g = SimpleGraph(Edge{T}[Edge{T}(e...) for e in data["graph"]])
     vps = Dict{T,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
+    # expand fadjlist for vprops of isolated nodes
+    for _ in nv(g):(length(vps) - 1)
+        push!(g.fadjlist, T[])
+    end
     eps = Dict{Edge{T},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
     return (g, vps, eps, gps, config)
 end
