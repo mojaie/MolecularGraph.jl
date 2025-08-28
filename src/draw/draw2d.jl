@@ -329,8 +329,8 @@ function normalize_coords(
     # scalef: bond length in pixel
     # paddingX, paddingY: drawing area padding in pixel
     # fontsizef: estimated font width in pixel
-    (left, right) = extrema([p[1] for p in coords])
-    (bottom, top) = extrema([p[2] for p in coords])
+    (left, right) = extrema([p[1] for p in coords], init=(0, 0))
+    (bottom, top) = extrema([p[2] for p in coords], init=(0, 0))
     width = right - left
     height = top - bottom
     dists = []
