@@ -1,5 +1,11 @@
 # NEWS
 
+## v0.21.1
+
+- Implement `Base.setindex!` molecule property accessor which was actually not implemented in v0.21.0.
+- Fixed regression in 2D molecule drawing.
+- Fixed a bug in serialization of molecules.
+
 ## v0.21.0
 
 - Added `VirtualAtom` as an experimental feature. This enables treating atom placeholders (R-groups) and molecular fragments (e.g., amino acid residues) as atom vertices.

@@ -13,5 +13,4 @@ MolecularGraph = "6c89ec66-9cd8-5372-9f91-fabc50dd27fd"
 PackageCompiler = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
 
 [compat]
-Graphs = "1.13.0"
-MolecularGraph = "0.20.1"
+Graphs = "1.13"
