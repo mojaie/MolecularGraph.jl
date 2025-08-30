@@ -48,7 +48,8 @@ using MolecularGraph:
     QueryTruthTable, querymatch,
     resolve_disjoint_not!, resolve_recursive!, generate_truthtable,
     draw2d_bond_style,
-    atom_color, is_atom_visible, atom_markup, double_bond_style
+    atom_color, is_atom_visible, atom_markup, double_bond_style,
+    normalize_coords
 
 using MolecularGraph: smiles
 

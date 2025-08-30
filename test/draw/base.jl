@@ -32,4 +32,21 @@
         @test atom_markup(:N, 0, 4) == [[(:default, "N")], [(:default, "H"), (:sub, "4")]]
         @test atom_markup(:C, 13, 0) == [[(:sup, "13"), (:default, "C")]]
     end
+
+    @testset "coords" begin
+        coords = [Point2d(x...) for x in [
+            [3.6902, -1.0041],
+            [3.6891, -1.8315],
+            [4.4039, -2.2444],
+            [5.1203, -1.831]
+        ]]
+        g = SimpleGraph([Edge(1, 2), Edge(2,3), Edge(3,4)])
+        coords2 = normalize_coords(
+            g, coords, zeros(Int, 4), fill(:right, 4), falses(4), 1.0, 1.0, 0.0, 0.0
+        )
+        @test all(isapprox.(extrema([p[1] for p in coords2[1]]), (0.0, 1.73034012866)))
+        @test all(isapprox.(extrema([p[2] for p in coords2[1]]), (0.0, 1.49953945052)))
+        @test isapprox.(coords2[2], 1.73034012866)
+        @test isapprox.(coords2[3], 1.49953945052)
+    end
 end
