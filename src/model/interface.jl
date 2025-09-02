@@ -16,9 +16,8 @@ abstract type AbstractMolGraph{T<:Integer} <: Graphs.AbstractGraph{T} end
 Base.eltype(g::AbstractMolGraph) = eltype(g.graph)
 # https://github.com/JuliaGraphs/Graphs.jl/pull/144
 Base.eltype(::Type{<:AbstractMolGraph{T}}) where T = T
-Base.zero(::Type{G}) where G <: AbstractMolGraph = G()
+Base.zero(::Type{T}) where T <: AbstractMolGraph = T()
 Graphs.edgetype(g::AbstractMolGraph) = edgetype(g.graph)
-Graphs.edgetype(::Type{<:AbstractMolGraph{T}}) where T = Edge{T}
 Graphs.nv(g::AbstractMolGraph) = nv(g.graph)
 Graphs.ne(g::AbstractMolGraph) = ne(g.graph)
 Graphs.vertices(g::AbstractMolGraph) = vertices(g.graph)
@@ -235,7 +234,6 @@ vproptype(qtree::T) where T<:QueryTree = vproptype(T)
 Return properties (vertex or edge attributes).
 """
 Base.getindex(mol::AbstractMolGraph, v::Integer) = mol.vprops[v]
-Base.getindex(mol::AbstractMolGraph, e::Edge) = mol.eprops[e]
 
 """
     Base.setindex!(mol::AbstractMolGraph, v::Integer) -> AbstractElement
@@ -246,7 +244,7 @@ Return properties (vertex or edge attributes).
 """
 
 Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, v::Integer) = setindex!(mol.vprops, prop, v)
-Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, e::Edge) = setindex!(mol.eprops, prop, e)
+
 
 # old accessors (deprecated)
 props(mol::AbstractMolGraph, v::Integer) = mol[v]
@@ -262,8 +260,7 @@ The base class of molecular graph models based on SimpleGraph
 """
 abstract type SimpleMolGraph{T<:Integer} <: AbstractMolGraph{T} end
 
-
-# SimpleMolGraph interface
+Graphs.edgetype(::Type{<:SimpleMolGraph{T}}) where T = Edge{T}
 
 Graphs.add_edge!(mol::SimpleMolGraph, u::Integer, v::Integer, prop::AbstractElement
     ) = add_u_edge!(mol, u_edge(mol, u, v), prop)
@@ -279,6 +276,9 @@ Graphs.induced_subgraph(mol::SimpleMolGraph, elist::AbstractVector{T}
 function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph)
     print(io, "{$(nv(g)), $(ne(g))} simple molecular graph $(typeof(g))")
 end
+
+Base.getindex(mol::AbstractMolGraph, e::Edge) = mol.eprops[e]
+Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, e::Edge) = setindex!(mol.eprops, prop, e)
 
 
 """
