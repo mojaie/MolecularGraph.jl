@@ -10,31 +10,32 @@ makedocs(
     sitename="MolecularGraph.jl",
     pages = [
         "Home" => "index.md",
-        "Getting started" => "getting_started.md"
+        "Getting started" => "gettingstarted.md"
         "Basics" => [
             "Concepts" => "basics/concepts.md",
-            "Graphs interfaces" => "basics/interfaces.md",
             "Properties and descriptors" => "basics/properties.md",
-            "Extensions" => "basics/extensions.md",
+            "Drawing" => "basics/drawing.md"
+        ],
+        "Advanced topics" => [
+            "Interfaces" => "basics/interfaces.md",
+            "Editing molecules" => "basics/editmol.md",
+            "Customize atom properties" => "basics/propinterface.md"
         ],
         "API References" => [
-            "Molecular graph models" => "moleculargraph/model.md",
-            "I/O" => "moleculargraph/io.md",
-            "Structure drawing" => "moleculargraph/draw.md",
-            "Coordinates" => "moleculargraph/coordinates.md",
-            "Properties and descriptors" => "moleculargraph/properties.md",
-            "Structure match" => "moleculargraph/structurematch.md",
-            "Molecular queries" => "moleculargraph/query.md",
-            "InChI" => "moleculargraph/inchi.md",
-            "Graph algorithims" => "moleculargraph/graph.md",
-            "Preprocessing" => "moleculargraph/preprocess.md",
-            "Molecular mass/weight" => "moleculargraph/mass.md",
-            "Stereochemistry" => "moleculargraph/stereo.md"
+            "Molecular graph models" => "api/model.md",
+            "I/O" => "api/io.md",
+            "Structure drawing" => "api/draw.md",
+            "Coordinates" => "api/coordinates.md",
+            "Properties and descriptors" => "api/properties.md",
+            "Structure match" => "api/structurematch.md",
+            "Molecular queries" => "api/query.md",
+            "InChI" => "api/inchi.md",
+            "Graph algorithims" => "api/graph.md",
+            "Preprocessing" => "api/preprocess.md",
+            "Molecular mass/weight" => "api/mass.md",
+            "Stereochemistry" => "api/stereo.md"
         ],
-        "Implementation notes" => [
-            "Concept of molecular graph models" => "notes/concept.md",
-            "Miscellaneous" => "notes/misc.md"
-        ]
+        "Miscellaneous" => "misc.md"
     ],
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true"
