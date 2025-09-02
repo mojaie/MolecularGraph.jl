@@ -265,7 +265,7 @@ function stereocenter_from_sdf2d!(mol::SimpleMolGraph)
         safe_stereo_hydrogen!(mol, c)
     end
     if length(comments) > 0
-        mol.gprops.logs["stereocenter_ignored"] = join(comments, "; ")
+        mol[:logs]["warning_stereocenter_ignored"] = join(comments, "; ")
     end
     return
 end
@@ -460,7 +460,7 @@ function stereobond_from_smiles!(mol::SimpleMolGraph)
     empty!(mol[:stereobond])
     merge!(mol[:stereobond], bonds)
     if length(comments) > 0
-        mol.gprops.logs["stereobond_ignored"] = join(comments, "; ")
+        mol[:logs]["warning_stereobond_ignored"] = join(comments, "; ")
     end
 end
 
