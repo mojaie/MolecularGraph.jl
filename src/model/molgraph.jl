@@ -28,6 +28,15 @@ Base.copy(mol::T) where T <: ReactiveMolGraph = T(
     copy(mol.graph), copy(mol.vprops), copy(mol.eprops), copy(mol.gprops), copy(mol.state))
 
 
+
+"""
+    AbstractState
+
+The base class of molecular model states.
+"""
+abstract type AbstractState end
+
+
 """
     MolState{T,F1,F2} <: AbstractState
 

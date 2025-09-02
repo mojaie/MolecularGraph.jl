@@ -87,35 +87,6 @@ Base.eltype(::Type{<:SimpleMolProperty{T}}) where T = T
 
 
 """
-    AbstractState
-
-The base class of molecular model states.
-"""
-abstract type AbstractState end
-
-
-"""
-    AbstractQueryNode
-
-The base class of query node.
-"""
-abstract type AbstractQueryNode end
-
-Base.getindex(elem::AbstractQueryNode, prop::Symbol) = getproperty(elem, prop)
-
-Base.:(==)(x::T, y::T) where T <: AbstractQueryNode = all(
-    [getfield(x, f) == getfield(y, f) for f in fieldnames(T)])
-
-function Base.hash(elem::T, h::UInt) where T <: AbstractQueryNode
-    for name in fieldnames(T)
-        val = getfield(elem, name)
-        h = hash(val, h)
-    end
-    return h
-end
-
-
-"""
     AbstractElement
 
 The base class of vertex properties (atom) and edge properties (bond).
@@ -134,96 +105,6 @@ function Base.hash(elem::T, h::UInt) where T <: AbstractElement
     end
     return h
 end
-
-
-
-"""
-    AbstractAtom <: AbstractElement
-
-The base class of vertex properties (atom).
-"""
-abstract type AbstractAtom <: AbstractElement end
-
-has_isaromatic(::Type{T}) where T <: AbstractAtom = false
-has_mol(::Type{T}) where T <: AbstractAtom = false
-has_formula(::Type{T}) where T <: AbstractAtom = false
-has_hydrogens(::Type{T}) where T <: AbstractAtom = false
-has_label(::Type{T}) where T <: AbstractAtom = false
-
-"""
-    atom_number(atom::AbstractAtom) -> Int
-
-Return an atomic number of the given atom or the atomic symbol.
-"""
-atom_number(atom::AbstractAtom) = error("atom_number is not implemented for this atom type")
-
-
-"""
-    atom_symbol(atom::AbstractAtom) -> Symbol
-
-Return an atomic symbol of the given atom or the atomic number.
-"""
-atom_symbol(atom::AbstractAtom) = error("atom_symbol is not implemented for this atom type")
-
-
-"""
-    atom_charge(atom::AbstractAtom) -> Int
-
-Return atomic charge of the given atom.
-"""
-atom_charge(atom::AbstractAtom) = error("atom_charge is not implemented for this atom type")
-
-
-"""
-    multiplicity(atom::AbstractAtom) -> Int
-
-Return multiplicity (num of radicals + 1) of the given atom.
-
-This is experimental feature - free radical chemistry is still not introduced to this library.
-This does nothing for now, but for example, you can set multiplicity=2 to molecular oxygens manually.
-"""
-multiplicity(atom::AbstractAtom) = error("multiplicity is not implemented for this atom type")
-
-
-
-abstract type StandardAtom <: AbstractAtom end
-
-
-
-"""
-    AbstractBond <: AbstractElement
-
-The base class of edge properties (bond).
-"""
-abstract type AbstractBond <: AbstractElement end
-
-has_submap(::Type{T}) where T <: AbstractBond = false
-
-
-"""
-    bond_order(bond::AbstractBond) -> Int
-
-Return bond order of the given bond.
-"""
-bond_order(bond::AbstractBond) = error("bond_order is not implemented for this bond type")
-
-
-abstract type StandardBond <: AbstractBond end
-
-
-
-"""
-    QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement
-
-The base class of molecular query trees.
-"""
-abstract type QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement end
-
-Base.eltype(::Type{<:QueryTree{T,U}}) where {T,U} = T
-Base.eltype(qtree::T) where T<:QueryTree = eltype(T)
-vproptype(::Type{<:QueryTree{T,U}}) where {T,U} = U
-vproptype(qtree::T) where T<:QueryTree = vproptype(T)
-
 
 
 """
@@ -245,12 +126,9 @@ Return properties (vertex or edge attributes).
 
 Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, v::Integer) = setindex!(mol.vprops, prop, v)
 
-
 # old accessors (deprecated)
 props(mol::AbstractMolGraph, v::Integer) = mol[v]
-props(mol::AbstractMolGraph, e::Edge) = mol[e]
 get_prop(mol::AbstractMolGraph, v::Integer, prop::Symbol) = mol[v][prop]
-get_prop(mol::AbstractMolGraph, e::Edge, prop::Symbol) = mol[e][prop]
 
 
 """
@@ -277,8 +155,17 @@ function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph)
     print(io, "{$(nv(g)), $(ne(g))} simple molecular graph $(typeof(g))")
 end
 
-Base.getindex(mol::AbstractMolGraph, e::Edge) = mol.eprops[e]
-Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, e::Edge) = setindex!(mol.eprops, prop, e)
+Base.getindex(mol::SimpleMolGraph, e::Edge) = mol.eprops[e]
+Base.getindex(mol::SimpleMolGraph{T}, u::T, v::T) where T = mol.eprops[u_edge(T, u, v)]
+Base.setindex!(mol::SimpleMolGraph, prop::AbstractElement, e::Edge) = setindex!(mol.eprops, prop, e)
+Base.setindex!(mol::SimpleMolGraph{T}, prop::AbstractElement, u::T, v::T
+    ) where T = setindex!(mol.eprops, prop, u_edge(T, u, v))
+
+# old accessors (deprecated)
+props(mol::SimpleMolGraph, u::Integer, v::Integer) = mol[u, v]
+props(mol::SimpleMolGraph, e::Edge) = mol[e]
+get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = mol[u, v][prop]
+get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = mol[e][prop]
 
 
 """
@@ -294,7 +181,6 @@ u_edge(g::SimpleGraph, e::Edge) = u_edge(g, src(e), dst(e))
 u_edge(e::Edge{T}) where T<:Integer = u_edge(T, src(e), dst(e))
 u_edge(mol::SimpleMolGraph{T}, src::T, dst::T) where T<:Integer = u_edge(T, src, dst)
 u_edge(mol::SimpleMolGraph, e::Edge) = u_edge(mol.graph, e)
-
 
 
 """
@@ -318,14 +204,6 @@ edge_neighbors(mol::SimpleMolGraph, e) = edge_neighbors(mol.graph, e)
 ordered_neighbors = neighbors
 ordered_edge_neighbors = edge_neighbors
 
-
-Base.getindex(mol::SimpleMolGraph{T}, u::T, v::T) where T = mol.eprops[u_edge(T, u, v)]
-Base.setindex!(mol::SimpleMolGraph{T}, prop::AbstractElement, u::T, v::T
-    ) where T = setindex!(mol.eprops, prop, u_edge(T, u, v))
-
-# old accessors (deprecated)
-props(mol::SimpleMolGraph, u::Integer, v::Integer) = mol[u, v]
-get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = mol[u, v][prop]
 
 
 # Reactions

@@ -5,6 +5,27 @@
 
 
 """
+    AbstractQueryNode
+
+The base class of query node.
+"""
+abstract type AbstractQueryNode end
+
+Base.getindex(elem::AbstractQueryNode, prop::Symbol) = getproperty(elem, prop)
+
+Base.:(==)(x::T, y::T) where T <: AbstractQueryNode = all(
+    [getfield(x, f) == getfield(y, f) for f in fieldnames(T)])
+
+function Base.hash(elem::T, h::UInt) where T <: AbstractQueryNode
+    for name in fieldnames(T)
+        val = getfield(elem, name)
+        h = hash(val, h)
+    end
+    return h
+end
+
+
+"""
     QueryNode
 
 Query components
@@ -74,6 +95,19 @@ function querytree(::Type{T}, ::Type{U}, data::Dict{String,Any}) where {T,U}
     props = U.(data["vprops"])
     return querytree(edges, props)
 end
+
+
+"""
+    QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement
+
+The base class of molecular query trees.
+"""
+abstract type QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement end
+
+Base.eltype(::Type{<:QueryTree{T,U}}) where {T,U} = T
+Base.eltype(qtree::T) where T<:QueryTree = eltype(T)
+vproptype(::Type{<:QueryTree{T,U}}) where {T,U} = U
+vproptype(qtree::T) where T<:QueryTree = vproptype(T)
 
 
 function to_dict(fmt::Val{:default}, qtree::QueryTree)
