@@ -10,7 +10,14 @@ makedocs(
     sitename="MolecularGraph.jl",
     pages = [
         "Home" => "index.md",
-        "MolecularGraph" => [
+        "Getting started" => "getting_started.md"
+        "Basics" => [
+            "Concepts" => "basics/concepts.md",
+            "Graphs interfaces" => "basics/interfaces.md",
+            "Properties and descriptors" => "basics/properties.md",
+            "Extensions" => "basics/extensions.md",
+        ],
+        "API References" => [
             "Molecular graph models" => "moleculargraph/model.md",
             "I/O" => "moleculargraph/io.md",
             "Structure drawing" => "moleculargraph/draw.md",
