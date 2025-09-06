@@ -155,7 +155,7 @@ function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: Simp
             # n3d = parse(Int, count_line[8])  # 3D constraint, not implemented
             # chiral = parse(Int, count_line[9])  # chiralflag, not implemented
         else
-            error("Unsupported format: not V2000 or V3000 file")
+            error("unsupported sdfile format - unknown ctab version")
         end
     end
 
@@ -200,7 +200,7 @@ end
 
 function parse_rxn(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: AbstractReaction
     line1 = readline(io)  # $RXN
-    startswith(line1, "\$RXN") || error("\$RXN token not found")
+    startswith(line1, "\$RXN") || error("rdfile parse error - \$RXN token not found")
     ver = line1 == "\$RXN V3000" ? :v3 : :v2
     line2 = readline(io)  # name line, not implemented
     line3 = readline(io)  # format properties, not implemented
@@ -289,7 +289,7 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractMolGr
         if e isa ErrorException  # Compatibility error
             reader.unsupported === :log && @info "$(e.msg) (#$(state) in sdfilereader)"
             nul = T()
-            nul[:logs]["error_sdfile"] = e.msg
+            nul[:logs]["error_sdfilereader"] = e.msg
             nul
         else
             throw(e)
@@ -329,8 +329,8 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractReact
             throw(e)
         end
     end
-    rxn === nothing && error("Invalid token: $(fmt_line)")
-    rxn.rprops.metadata = parse_rdf_options(reader.io)
+    rxn === nothing && error("rdfile parse error - invalid token $(fmt_line)")
+    merge!(rxn.rprops.metadata, parse_rdf_options(reader.io))
     return (rxn, state + 1)
 end
 

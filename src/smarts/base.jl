@@ -155,7 +155,7 @@ function lookahead(state::AbstractSMARTSParser, pos::Int)
         if isascii(c)
             return state.input[newpos]
         else
-            error("invalid charactor $(c)")
+            error("smiles parser error - invalid character $(c)")
         end
     end
 end
@@ -169,9 +169,9 @@ function forward!(state::AbstractSMARTSParser, num::Int)
     if state.pos > length(state.input)
         state.done = true
     elseif state.done
-        error("charactors in the buffer were used up")
+        error("smiles parser error - characters in the buffer were used up")
     elseif state.pos < 1
-        error("no more backtracking!")
+        error("smiles parser error - no more backtracking!")
     end
 end
 

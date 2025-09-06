@@ -196,8 +196,8 @@ function stereocenter_from_sdf2d(
         ods = drs[sortorder]  # direction symbols of neighbors in angular order
         if length(nbrs) == 3
             if upcnt == 1 && dwcnt == 1 || upcnt + dwcnt == 3
-                @debug "$(i): a reference plane cannot be defined $(ons) $(ods)"
-                push!(comments, "$(i): a reference plane cannot be defined")
+                @debug "ignored stereocenter #$(i) (too many wedges)"
+                push!(comments, "ignored stereocenter #$(i) (too many wedges)")
             elseif upcnt == 2 || dwcnt == 2
                 centers[i] = (ons[1], ons[2], ons[3], upcnt == 0)
             else
@@ -206,8 +206,8 @@ function stereocenter_from_sdf2d(
             continue
         end
         if upcnt == 4 || dwcnt == 4
-            @debug "$(i): a reference plane cannot be defined $(ons) $(ods)"
-            push!(comments, "$(i): a reference plane cannot be defined")
+            @debug "ignored stereocenter #$(i) (too many wedges)"
+            push!(comments, "ignored stereocenter #$(i) (too many wedges)")
         elseif upcnt == 3
             centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up && ods[3] === :up)
         elseif dwcnt == 3
@@ -216,21 +216,21 @@ function stereocenter_from_sdf2d(
             if (ods[1] === :up && ods[3] === :up) || (ods[2] === :up && ods[4] === :up)
                 centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up)
             else
-                @debug "$(i): adjacent wedges lie on the same side of the reference plane $(ons) $(ods)"
-                push!(comments, "$(i): adjacent wedges lie on the same side of the reference plane")
+                @debug "ignored stereocenter #$(i) (adjacent up wedges)"
+                push!(comments, "ignored stereocenter #$(i) (adjacent up wedges)")
             end
         elseif dwcnt == 2
             if (ods[1] === :down && ods[3] === :down) || (ods[2] === :down && ods[4] === :down)
                 centers[i] = (ons[1], ons[2], ons[3], ods[1] !== :down)
             else
-                @debug "$(i): adjacent wedges lie on the same side of the reference plane $(ons) $(ods)"
-                push!(comments, "$(i): adjacent wedges lie on the same side of the reference plane")
+                @debug "ignored stereocenter #$(i) (adjacent down wedges)"
+                push!(comments, "ignored stereocenter #$(i) (adjacent down wedges)")
             end
         elseif upcnt == 1 && dwcnt == 1
             if ((ods[1] === :unspecified && ods[3] === :unspecified)
                     || (ods[2] === :unspecified && ods[4] === :unspecified))
-                @debug "$(i): non-adjacent wedges lie on the opposite side of the reference plane $(ons) $(ods)"
-                push!(comments, "$(i): non-adjacent wedges lie on the opposite side of the reference plane")
+                @debug "ignored stereocenter #$(i) (up and down wedges facing each other)"
+                push!(comments, "ignored stereocenter #$(i) (up and down wedges facing each other)")
             else
                 centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
             end
@@ -265,7 +265,7 @@ function stereocenter_from_sdf2d!(mol::SimpleMolGraph)
         safe_stereo_hydrogen!(mol, c)
     end
     if length(comments) > 0
-        mol[:logs]["warning_stereocenter_ignored"] = join(comments, "; ")
+        mol[:logs]["warning_stereocenter"] = join(comments, "; ")
     end
     return
 end
@@ -397,8 +397,9 @@ function adj_direction!(
     end
     # Conflicting cis/trans will be ignored (adopts OpenSMILES specs)
     if length(directions) == 2 && directions[1][2] == directions[2][2]
-        @debug "$(v): conflicting up and down bonds $(directions)"
-        push!(comments, "$(v): conflicting up and down bonds")
+        v1, v2 = (directions[1][1], directions[2][1])
+        @debug "ignored stereobond #$(v)-$(v1), #$(v)-$(v2) (conflicting up and down bonds)"
+        push!(comments, "ignored stereobond #$(v)-$(v1), #$(v)-$(v2) (conflicting up and down bonds)")
         empty!(directions)
     end
     return directions
@@ -460,7 +461,7 @@ function stereobond_from_smiles!(mol::SimpleMolGraph)
     empty!(mol[:stereobond])
     merge!(mol[:stereobond], bonds)
     if length(comments) > 0
-        mol[:logs]["warning_stereobond_ignored"] = join(comments, "; ")
+        mol[:logs]["warning_stereobond"] = join(comments, "; ")
     end
 end
 

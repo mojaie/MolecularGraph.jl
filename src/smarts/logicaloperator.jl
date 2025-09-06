@@ -21,7 +21,7 @@ function lgoperator!(
             break
         end
     end
-    isempty(vs) && error("($(string(downstream))) invalid operator '$(string(token))'")
+    isempty(vs) && error("smarts parser error - #$(state.pos) invalid operator '$(string(token))'")
     length(vs) == 1 && return vs[1]
     node = add_qnode!(qtree, op)
     for i in vs
@@ -79,7 +79,7 @@ function lgnot!(state::SMARTSParser, qtree::QueryTree, downstream::F) where F
     if read(state) == '!'
         forward!(state)
         v = downstream(state, qtree)
-        v == 0 && error("(lgnot!) invalid NOT(!) operation")
+        v == 0 && error("smarts parser error - #$(state.pos) invalid NOT(!) operation")
         node = add_qnode!(qtree, qnot())
         add_qedge!(qtree, node, v)
         return node

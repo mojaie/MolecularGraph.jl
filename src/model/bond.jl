@@ -30,7 +30,7 @@ struct SDFBond <: StandardBond
             order::Int,
             notation::Int=0,
             isordered::Bool=true)
-        order > 3 && error("Unsupported bond order type: $(order)")
+        order > 3 && error("sdfile parse error - unsupported bond order $(order)")
         new(order, notation, isordered)
     end
 end

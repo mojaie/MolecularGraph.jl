@@ -207,7 +207,7 @@ end
     ]
     wrong1 = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!)
     @test isempty(wrong1[:stereocenter])
-    @test haskey(wrong1[:logs], "warning_stereocenter_ignored")
+    @test haskey(wrong1[:logs], "warning_stereocenter")
     # serialization check
     @test nv(MolGraph(to_json(wrong1))) == 5
 
@@ -219,7 +219,7 @@ end
     ]
     wrong2 = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!)
     @test isempty(wrong2[:stereocenter])
-    @test haskey(wrong2[:logs], "warning_stereocenter_ignored")
+    @test haskey(wrong2[:logs], "warning_stereocenter")
 
     bonds = [
         SDFBond(;notation=1),
@@ -229,7 +229,7 @@ end
     ]
     wrong3 = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!)
     @test isempty(wrong3[:stereocenter])
-    @test haskey(wrong3[:logs], "warning_stereocenter_ignored")
+    @test haskey(wrong3[:logs], "warning_stereocenter")
 
     bonds = [
         SDFBond(;notation=6),
@@ -239,7 +239,7 @@ end
     ]
     wrong4 = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!)
     @test isempty(wrong4[:stereocenter])
-    @test haskey(wrong4[:logs], "warning_stereocenter_ignored")
+    @test haskey(wrong4[:logs], "warning_stereocenter")
 
     bonds = [
         SDFBond(;notation=1),
@@ -249,7 +249,7 @@ end
     ]
     wrong5 = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!)
     @test isempty(wrong5[:stereocenter])
-    @test haskey(wrong5[:logs], "warning_stereocenter_ignored")
+    @test haskey(wrong5[:logs], "warning_stereocenter")
 
     # degree=3
     atoms = [
@@ -266,7 +266,7 @@ end
     edges = Edge.([(1,2), (1,3), (1,4)])
     implh_uns = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!)
     @test isempty(implh_uns[:stereocenter])
-    @test !haskey(implh_uns[:logs], "warning_stereocenter_ignored")
+    @test !haskey(implh_uns[:logs], "warning_stereocenter")
 
     bonds = [
         SDFBond(;notation=1),
@@ -299,7 +299,7 @@ end
     ]
     implh_wrong = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!)
     @test isempty(implh_wrong[:stereocenter])
-    @test haskey(implh_wrong[:logs], "warning_stereocenter_ignored")
+    @test haskey(implh_wrong[:logs], "warning_stereocenter")
 
     bonds = [
         SDFBond(;notation=1),
@@ -308,7 +308,7 @@ end
     ]
     implh_wrong2 = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!)
     @test isempty(implh_wrong2[:stereocenter])
-    @test haskey(implh_wrong2[:logs], "warning_stereocenter_ignored")
+    @test haskey(implh_wrong2[:logs], "warning_stereocenter")
 
     bonds = [
         SDFBond(;notation=6),
@@ -317,7 +317,7 @@ end
     ]
     implh_wrong3 = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!)
     @test isempty(implh_wrong3[:stereocenter])
-    @test haskey(implh_wrong3[:logs], "warning_stereocenter_ignored")
+    @test haskey(implh_wrong3[:logs], "warning_stereocenter")
 
     bonds = [
         SDFBond(;notation=6),
@@ -326,7 +326,7 @@ end
     ]
     implh_wrong4 = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!)
     @test isempty(implh_wrong4[:stereocenter])
-    @test haskey(implh_wrong4[:logs], "warning_stereocenter_ignored")
+    @test haskey(implh_wrong4[:logs], "warning_stereocenter")
 
     # transformed
     atoms = [
@@ -393,7 +393,7 @@ end
 
     conflict = smilestomol("C/C=C(/C)/C")
     @test isempty(conflict[:stereobond])
-    @test haskey(conflict[:logs], "warning_stereobond_ignored")
+    @test haskey(conflict[:logs], "warning_stereobond")
     # serialization check
     @test nv(MolGraph(to_json(conflict))) == 5
 
