@@ -37,22 +37,22 @@ mutable struct MolState{T,F1,F2} <: AbstractState
     initialized::Bool
     has_updates::Bool
     has_new_edges::Bool  # as a SSSR recalculation flag
-    force_calculate::Bool  # ignore cached descriptors (temporary set when running auto-preprocess)
+    disable_update::Bool  # ignore dispatch_update! (temporary set when running auto-preprocess)
     on_init::F1
     on_update::F2
 end
 
 
 function MolState{T}(
-        ; initialized=false, has_updates=true, has_new_edges=true, force_calculate=false,
+        ; initialized=false, has_updates=true, has_new_edges=true, disable_update=false,
         on_init=default_on_init!, on_update=default_on_update!) where T <: Integer
     return MolState{T,typeof(on_init),typeof(on_update)}(
-        initialized, has_updates, has_new_edges, force_calculate, on_init, on_update)
+        initialized, has_updates, has_new_edges, disable_update, on_init, on_update)
 end
 
 
 Base.copy(state::T) where T <: MolState = T(
-    state.initialized, state.has_updates, state.has_new_edges, state.force_calculate,
+    state.initialized, state.has_updates, state.has_new_edges, state.disable_update,
     state.on_init, state.on_update
 )
 
@@ -60,13 +60,8 @@ Base.copy(state::T) where T <: MolState = T(
 # Property update mechanisms
 
 function get_descriptor(mol::ReactiveMolGraph, field::Symbol)
-    dispatch_update!(mol)
+    mol.state.disable_update || dispatch_update!(mol)
     return getproperty(mol[:descriptors], field)
-end
-
-function has_descriptor(mol::ReactiveMolGraph, field::Symbol)
-    mol.state.force_calculate && return false
-    return hasproperty(mol[:descriptors], field)
 end
 
 
@@ -109,9 +104,9 @@ to recalculate descriptors. If there are no changes, just return the stored desc
 """
 function dispatch_update!(mol::ReactiveMolGraph)
     mol.state.has_updates || return
-    mol.state.force_calculate = true # to avoid infinite roop
+    mol.state.disable_update = true # to avoid infinite roop
     mol.state.on_update(mol)
-    mol.state.force_calculate = false
+    mol.state.disable_update = false
     mol.state.has_updates = false  
     mol.state.has_new_edges = false
     return
