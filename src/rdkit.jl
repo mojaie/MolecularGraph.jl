@@ -158,7 +158,7 @@ function to_dict(fmt::Val{:rdkit}, mol::SimpleMolGraph)
     for cds in mol[:descriptors].coords3d
         push!(
             data["molecules"][1]["conformers"],
-            Dict("dim" => 3, "coords" => to_dict(Val(:coords3d), Val(:default), mol.gprops)))
+            Dict("dim" => 3, "coords" => to_dict(Val(:coords3d), Val(:default), mol[:descriptors])))
     end
     return data
 end

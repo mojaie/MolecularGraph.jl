@@ -256,4 +256,20 @@ end
     @test hydrogen_donor_count(fluoro) == 1
 end
 
+@testset "update" begin
+    pr = smilestomol("CCC")
+    add_vertex!(pr, SMILESAtom(:O))
+    add_edge!(pr, 3, 4, SMILESBond(2))
+    @test sum(bond_order(pr)) == 4
+    add_vertex!(pr, SMILESAtom(:N, 1))
+    add_edge!(pr, 1, 5, SMILESBond())
+    @test sum(atom_charge(pr)) == 1
+    rem_vertex!(pr, 4)
+    @test sum(bond_order(pr)) == 3
+    pr[4] = SMILESAtom(:N)
+    @test lone_pair(pr)[4] == 1
+    rem_vertices!(pr, [2, 3])
+    @test sum(valence(pr)) == 7
+end
+
 end # properties
