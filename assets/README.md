@@ -40,5 +40,6 @@ If ChEMBL is incorporated into other works, we ask that the ChEMBL IDs are prese
 ## Sources of structure data files for testing
 
 - PubChem https://pubchem.ncbi.nlm.nih.gov/
+- DrugBank https://go.drugbank.com/
 - Rhea https://www.rhea-db.org/
 - Marvin JS https://chemaxon.com/

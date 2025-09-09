@@ -100,14 +100,16 @@ function printv2data(io::IO, mol::SimpleMolGraph)
 end
 
 
-printv2mol(io::IO, mol::SimpleMolGraph
-    ) = printv2mol(io::IO, mol::SimpleMolGraph, vproptype(mol), eproptype(mol))
+printv2mol(io::IO, mol::SimpleMolGraph; kwargs...
+    ) = printv2mol(io::IO, mol::SimpleMolGraph, vproptype(mol), eproptype(mol); kwargs...)
 
 function printv2mol(
-        io::IO, mol::SimpleMolGraph, V::Type{<:StandardAtom}, E::Type{<:StandardBond})
+        io::IO, mol::SimpleMolGraph, V::Type{<:StandardAtom}, E::Type{<:StandardBond}
+        ; givebackhydrogen=true)
     # stereospecific hydrogens for aesthetics of fused rings
-    # may be better to stash coords of stereo hydrogens and give back to SDFile
-    if has_prop(mol, :stereocenter) && !isempty(mol[:stereocenter])
+    # TODO: this may add unnecessary hydrogens and unexpectedly call coordgen!
+    # TODO: HydrogenatedAtom should be implemented to keep hydrogen coordinates
+    if givebackhydrogen && has_prop(mol, :stereocenter) && !isempty(mol[:stereocenter])
         ringcount = ring_count(mol)
         imph = implicit_hydrogens(mol)
         mol_ = copy(mol)
@@ -146,17 +148,17 @@ function printv2mol(
 end
 
 
-function printv2mol(mol::SimpleMolGraph)
+function printv2mol(mol::SimpleMolGraph; kwargs...)
     buf = IOBuffer(write=true)
-    printv2mol(buf, mol)
+    printv2mol(buf, mol; kwargs...)
     res = String(take!(buf))
     close(buf)
     return res
 end
 
 
-function printv2sdf(io::IO, mol::SimpleMolGraph)
-    printv2mol(io, mol)
+function printv2sdf(io::IO, mol::SimpleMolGraph; kwargs...)
+    printv2mol(io, mol; kwargs...)
     printv2data(io, mol)
     println(io, raw"$$$$")
 end
