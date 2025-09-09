@@ -124,6 +124,21 @@ Return an atomic symbol of the given atom or the atomic number.
 atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
 
 
+"""
+    find_isotope(atomsymbol::Symbol, num::Int) -> Union{Isotope, Nothing}
+
+Return the isotope record (or nothing if there is no such isotope).
+"""
+function find_isotope(z::Int, num::Int)
+    i = findfirst(x -> x["Number"] == num, ATOMTABLE[z]["Isotopes"])
+    return isnothing(i) ? i : ATOMTABLE[z]["Isotopes"][i]
+end
+
+function find_isotope(atomsymbol::Symbol, num::Int)
+    i = findfirst(x -> x["Number"] == num, ATOMTABLE[atom_number(atomsymbol)]["Isotopes"])
+    return isnothing(i) ? i : ATOMTABLE[atom_number(atomsymbol)]["Isotopes"][i]
+end
+
 
 """
     SDFAtom
@@ -144,6 +159,9 @@ struct SDFAtom <: StandardAtom
             isotope::Int=0,
             coords::Union{Vector,Nothing}=nothing)
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
+        if isotope != 0
+            isnothing(find_isotope(Symbol(symbol), isotope)) && error("sdfile parse error - unsupported isotope $(isotope)$(symbol)")
+        end
         new(Symbol(symbol), charge, multiplicity, isotope, coords)
     end
 end
@@ -209,6 +227,10 @@ struct SMILESAtom <: StandardAtom
             isotope::Int=0,
             isaromatic::Bool=false,
             stereo::Union{String,Symbol}=:unspecified)
+        haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("smiles parse error - unsupported atom symbol $(symbol)")
+        if isotope != 0
+            isnothing(find_isotope(Symbol(symbol), isotope)) && error("smiles parse error - unsupported isotope $(isotope)$(symbol)")
+        end
         new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo))
     end
 end
@@ -280,6 +302,9 @@ struct CommonChemAtom <: StandardAtom
             nRad::Int=0,
             stereo::Union{AbstractString,Symbol}=:unspecified)
         z <= length(ATOMTABLE) || error("commonchem parse error - unsupported atom number $(z)")
+        if isotope != 0
+            isnothing(find_isotope(z, isotope)) && error("commonchem parse error - unsupported isotope $(isotope) for atom number $(z)")
+        end
         new(z, chg, impHs, isotope, nRad, Symbol(stereo))
     end
 end
