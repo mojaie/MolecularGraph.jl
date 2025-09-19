@@ -63,7 +63,7 @@ function ctab_bond_v3(
     ss = split(line)
     d["order"], u, v = parse.(T, ss[4:6])
     props = Dict(sympair.(ss[7:end])...)
-    d["notation"] = get(props, :CFG, 0)  # TODO: not compatible with v2
+    # d["notation"] = get(props, :CFG, 0)  # TODO: not compatible with v2
     d["isordered"] = u < v
     u, v = d["isordered"] ? (u, v) : (v, u)
     return (u_edge(T, u, v), E(d))
@@ -194,7 +194,12 @@ function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: Simp
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")
         readline(io)
     end
-    return T(edges, vprops, eprops; NamedTuple((k, v) for (k, v) in config)...)
+    mol = T(edges, vprops, eprops; NamedTuple((k, v) for (k, v) in config)...)
+    # TODO: catch compatibility warnings
+    if ver === :v3
+        mol[:logs]["warning_sdfilereader"] = "SDFile V3000 stereochemistry is not supported"
+    end
+    return mol
 end
 
 

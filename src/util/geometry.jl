@@ -10,7 +10,8 @@ trim_u(s::Line, k) = Line(Point2d(s[1] + normalize(s[2] - s[1]) * k), Point2d(s[
 trim_v(s::Line, k) = Line(Point2d(s[1]), Point2d(s[2] + normalize(s[2] - s[1]) * -k))
 trim_uv(s::Line, k) = Line(Point2d(s[1] + normalize(s[2] - s[1]) * k), Point2d(s[2] + normalize(s[2] - s[1]) * -k))
 
-interiorangle(u, v) = acos(dot(u, v) / (norm(u) * norm(v)))
+# TODO: check cases abs(dot(u, v) / (norm(u) * norm(v))) > 1
+interiorangle(u, v) = acos(max(-1, min(1, dot(u, v) / (norm(u) * norm(v)))))
 
 
 """
