@@ -332,11 +332,11 @@ end
 Return cis-trans diastereomerism information obtained from 2D SDFile.
 """
 function stereobond_from_sdf2d(
-        g::SimpleGraph{T}, e_order::Vector{Int}, e_notation::Vector{Int},
+        g::SimpleGraph{T}, sssr::Vector{Vector{T}}, e_order::Vector{Int}, e_notation::Vector{Int},
         v_coords2d::Vector{Point2d}) where T
     stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
     smallcycles = Edge{T}[]
-    for cyc in edgemincyclebasis(g)
+    for cyc in edgemincyclebasis(g, sssr)
         length(cyc) < 8 && push!(smallcycles, cyc...)
     end
     for (i, e) in enumerate(edges(g))
@@ -361,6 +361,7 @@ end
 
 stereobond_from_sdf2d(mol::SimpleMolGraph) = stereobond_from_sdf2d(
     mol.graph,
+    sssr(mol),
     Int[mol[e].order for e in edges(mol)],
     Int[mol[e].notation for e in edges(mol)],
     mol[:descriptors].coords2d[1]
