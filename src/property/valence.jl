@@ -122,6 +122,17 @@ apparent_valence!(mol::SimpleMolGraph) = set_descriptor!(
     mol, :apparent_valence, apparent_valence(mol.graph, bond_order(mol)))
 
 
+function formal_valence(symbol_arr::Vector{Symbol}, charge_arr::Vector{Int})
+    arr = fill(zero(Int), length(symbol_arr))
+    for i in 1:length(symbol_arr)
+        if haskey(LONEPAIR_COUNT, symbol_arr[i])
+            arr[i] = 4 - abs(LONEPAIR_COUNT[symbol_arr[i]] - charge_arr[i])
+        end
+    end
+    return arr
+end
+
+
 """
     valence(mol::SimpleMolGraph) -> Vector{Int}
 
@@ -142,20 +153,22 @@ end
 function valence(
         symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
         apparent_valence_arr::Vector{Int})
-    arr = fill(zero(Int), length(symbol_arr))
-    for i in 1:length(symbol_arr)
-        if haskey(LONEPAIR_COUNT, symbol_arr[i])
-            val = 4 - abs(LONEPAIR_COUNT[symbol_arr[i]] - charge_arr[i])
-            arr[i] = max(val, apparent_valence_arr[i])
-        else
-            arr[i] = apparent_valence_arr[i]
-        end
-    end
-    return arr
+    return max.(formal_valence(symbol_arr, charge_arr), apparent_valence_arr)
 end
 
 valence!(mol::SimpleMolGraph) = set_descriptor!(
     mol, :valence, valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol)))
+
+
+function check_valence!(mol::SimpleMolGraph)
+    av = apparent_valence(mol)
+    fv = formal_valence(atom_symbol(mol), atom_charge(mol))
+    comments = String[]
+    for i in vertices(mol)[av .> fv]
+         push!(comments, "unusual valence at #$(i) (actual $(av[i]), expected $(fv[i]))")
+    end
+    mol[:logs]["warning_valence"] = join(comments, "; ")
+end
 
 
 """

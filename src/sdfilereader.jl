@@ -99,6 +99,7 @@ end
 
 
 function sdf_on_init!(mol::SimpleMolGraph)
+    check_valence!(mol)
     coords_from_sdf!(mol)
     stereocenter_from_sdf2d!(mol)
     stereobond_from_sdf2d!(mol)
