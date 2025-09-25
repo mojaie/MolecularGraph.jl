@@ -240,157 +240,123 @@ function inchitosdf(inchi::String; options::String = "", verbose::Bool = false)
     return res
 end
 
-function inchi_atom_symbol(a::inchi_Atom)
-    # extract main atom symbol
-    s = String(reinterpret(UInt8, collect(Iterators.takewhile(!=(0x00), a.elname))))
-    return s
+# decode parity byte (connected in low 3 bits, disconnected in bits 3..5)
+# returns the parity value to use (0..4)
+decode_parity(p::Integer) = begin
+    p_raw  = UInt8(p)                    # make sure unsigned before bit ops
+    p_conn = Int(p_raw & 0x07)           # low 3 bits
+    p_disc = Int((p_raw >> 3) & 0x07)    # next 3 bits
+    p_conn != 0 ? p_conn : p_disc        # prefer connected parity if present
 end
 
-function bonds_from_atoms(atoms::Vector{inchi_Atom})
-    bonds = Set{Tuple{Int,Int,Int}}()
-    for (i, a) in enumerate(atoms)
-        for k in 1:a.num_bonds
-            j = a.neighbor[k] + 1        # C -> Julia 1-based
-            btype = a.bond_type[k]
-            if j > 0  # skip invalid neighbor
-                push!(bonds, (min(i,j), max(i,j), btype))
-            end
-        end
-    end
-    return collect(bonds)
-end
-
-function expand_inchi_atoms(atoms::Vector{inchi_Atom})
-    expanded_atoms = Vector{String}()
-    bonds = Vector{Tuple{Int,Int,Int}}()
-
-    for (i, a) in enumerate(atoms)
-        # Add main atom
-        push!(expanded_atoms, inchi_atom_symbol(a))
-
-        # Keep track of next atom index
-        parent_idx = length(expanded_atoms)
-
-        # Add implicit H/D/T as explicit atoms
-        for iso_index in 1:NUM_H_ISOTOPES
-            n = a.num_iso_H[iso_index+1]
-            iso_symbol = ["H", "D", "T"][iso_index]
-            for _ in 1:n
-                child_idx = length(expanded_atoms) + 1
-                push!(expanded_atoms, iso_symbol)
-                push!(bonds, (parent_idx, child_idx, 1))  # single bond to parent
-            end
-        end
-    end
-
-    # Add original bonds between heavy atoms
-    heavy_bonds = bonds_from_atoms(atoms)
-    append!(bonds, heavy_bonds)
-
-    return expanded_atoms, bonds
-end
-
-function expand_inchi_atoms(atoms::Vector{inchi_Atom})
-    expanded_atoms = Vector{String}()
-    bonds = Vector{Tuple{Int,Int,Int}}()
-
-    for (i, a) in enumerate(atoms)
-        # Add main atom
-        push!(expanded_atoms, inchi_atom_symbol(a))
-
-        # Keep track of next atom index
-        parent_idx = length(expanded_atoms)
-
-        # Add implicit H/D/T as explicit atoms
-        for iso_index in 1:NUM_H_ISOTOPES
-            n = a.num_iso_H[iso_index+1]
-            iso_symbol = ["H", "D", "T"][iso_index]
-            for _ in 1:n
-                child_idx = length(expanded_atoms) + 1
-                push!(expanded_atoms, iso_symbol)
-                push!(bonds, (parent_idx, child_idx, 1))  # single bond to parent
-            end
-        end
-    end
-
-    # Add original bonds between heavy atoms
-    heavy_bonds = bonds_from_atoms(atoms)
-    append!(bonds, heavy_bonds)
-
-    return expanded_atoms, bonds
-end
-
-function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx, orig_to_expanded::Vector{Int64}) where T <: MolGraph
+function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx) where T <: MolGraph
     ET = edgetype(T)
-    stereocenters = Dict{eltype(T), Tuple{Int64,Int64,Int64,Bool}}()
-    stereobonds   = Dict{ET, Tuple{Int64,Int64,Bool}}()
+    
+    stereocenters = Dict{Int64, Tuple{Int64,Int64,Int64,Bool}}()   # center => (looking_from,v1,v2,is_clockwise)
+    stereobonds   = Dict{Edge{Int64}, Tuple{Int64,Int64,Bool}}()   # edge => (a1,a2,is_cis)
 
-    if structure.stereo0D != C_NULL && Int(structure.num_stereo0D) > 0
-        stereos = unsafe_wrap(Vector{inchi_Stereo0D}, structure.stereo0D, Int(structure.num_stereo0D))
+    atoms = unsafe_wrap(Vector{inchi_Atom}, structure.atom, structure.num_atoms)
+    stereos = unsafe_wrap(Vector{inchi_Stereo0D}, structure.stereo0D, structure.num_stereo0D)
+    n_heavy = length(atoms)  # number of heavy atoms (without isotopic H/D/T)
 
-        # helper: map original 0-based atom idx -> expanded 1-based index (Int64)
-        map_orig = orig_idx -> begin
-            if orig_idx == NO_ATOM
-                return nothing
+    for s in stereos
+        p_use = decode_parity(s.parity)
+        p_use == INCHI_PARITY_NONE || p_use == INCHI_PARITY_UNKNOWN && continue  # nothing to set
+        p_use == INCHI_PARITY_UNDEFINED && continue  # explicit undefined -> skip
+
+        # neighbors are in original indexing (0-based in C), convert -> expanded (1-based in Julia)
+        # nbrs_orig = Int.(s.neighbor)    # e.g. [-1, 0, 5, 7] etc.
+
+        nbrs = s.neighbor .+ 1  # now in expanded indexing (1-based, or NO_ATOM)
+
+        if s.type == INCHI_StereoType_Tetrahedral
+            # central_atom is 0-based original index (or NO_ATOM)
+            # center_orig = Int(s.central_atom)
+            s.central_atom == NO_ATOM && continue  # sanity
+            center = s.central_atom + 1
+
+            # InChI neighbors order corresponds to W,X,Y,Z (see InChI comments).
+            # You need to pick which neighbor is "looking_from" and which two define v1,v2
+            # MolecularGraph expects the tuple (looking_from, v1, v2, is_clockwise).
+            # The canonical choice used by many wrappers: use neighbour[1] as 'looking_from',
+            # and neighbour[2], neighbour[3] as v1,v2 (adjust if your earlier code used different mapping).
+            w,x,y,z = nbrs   # these are already expanded indices (or NO_ATOM)
+            # pick the variant that suits your earlier convention:
+            looking_from = w
+            v1 = x
+            v2 = y
+
+            is_clockwise = (p_use == INCHI_PARITY_EVEN)   # 'e' == clockwise per docs
+            stereocenters[center] = (looking_from, v1, v2, is_clockwise)
+        elseif s.type == INCHI_StereoType_DoubleBond
+            map_orig = idx -> begin
+                idx == NO_ATOM && return nothing
+                oi = idx + 1
+                return 0 < oi <= n_heavy ? oi : nothing
             end
-            oi = Int(orig_idx) + 1
-            if oi < 1 || oi > length(orig_to_expanded)
-                return nothing
+            
+            # s = inchi_Stereo0D
+            # neighbors[1..4] = substituents around the double bond
+            nbrs = map_orig.(s.neighbor)
+            any(nbrs .=== nothing) && continue  # skip disconnected or missing substituents
+
+            # the double bond is between the middle two atoms
+            # by InChI convention, neighbor[1,2] on one end, neighbor[3,4] on the other
+            # determine the actual bond by looking up the shared bond in the graph
+            bond_candidates = [u_edge(g, nbrs[i], nbrs[j]) for i in 1:2, j in 3:4]
+            # pick the one that actually exists in your bond list
+            edges = collect(g.eprops)  # materialize iterator
+            bond_key_index = findfirst(e -> e[1] in bond_candidates, edges)
+            bond_key_index === nothing && continue
+            bond_key = edges[bond_key_index][1]
+            # assign stereobond orientation using parity
+            p_use = decode_parity(s.parity)
+
+            is_trans = if p_use == INCHI_PARITY_ODD
+                true      # InChI uses ODD -> trans
+            elseif p_use == INCHI_PARITY_EVEN
+                false     # EVEN -> cis
+            else
+                continue   # unknown
             end
-            return Int64(orig_to_expanded[oi])
-        end
+            # store stereobond
+            stereobonds[bond_key] = (nbrs[1], nbrs[3], is_trans)
+        elseif s.type == INCHI_StereoType_Allene
+            @info "Allene stereo, not yet tested"
+            # Tried testing with `mol = smilestomol("C[C@]=C=C(C)F")`,
+            # but the InChI generated from it does not contain stereo information.
+            # Allene (axial) handling
+            # InChI gives neighbors as W,X,Y,Z where W/X are substituents on one end
+            # and Y/Z on the other. central_atom is the central cumulated C.
+            # We need to pick a viewing atom and two reference atoms to encode axial chirality.
+            center = map_orig(s.central_atom)
+            center === nothing && continue
 
-        for s in stereos
-            stype = Int(s.type)
-            # parity may be packed: lower 3 bits = connected parity, bits 3..5 = disconnected parity
-            p_raw = Int(UInt8(s.parity))
-            p_conn = p_raw & 0x7
-            p_disc = (p_raw >> 3) & 0x7
-            parity_used = (p_conn != 0 ? p_conn : p_disc)
+            nbrs = map_orig.(s.neighbor)  # [W, X, Y, Z] possibly some are nothing
+            # For an allene to be chiral, both ends must have two substituents (i.e. W/X and Y/Z present)
+            any(nbrs .=== nothing) && continue
 
-            if stype == INCHI_StereoType_Tetrahedral || stype == INCHI_StereoType_Allene
-                if s.central_atom == NO_ATOM
-                    continue
-                end
-                center = map_orig(s.central_atom)
-                if center === nothing
-                    continue
-                end
-                # neighbors W,X,Y,Z -> we use W as looking_from, X/Y as v1/v2
-                nbrs = (map_orig(s.neighbor[1]), map_orig(s.neighbor[2]),
-                        map_orig(s.neighbor[3]), map_orig(s.neighbor[4]))
-                # need at least W,X,Y present
-                if any(x -> x === nothing, (nbrs[1], nbrs[2], nbrs[3]))
-                    continue
-                end
-                looking_from = nbrs[1]::Int64
-                v1 = nbrs[2]::Int64
-                v2 = nbrs[3]::Int64
-                # InChI docs: EVEN => clockwise when seen from W
-                is_clockwise = (parity_used == INCHI_PARITY_EVEN)
+            # Strategy: choose looking_from = W (one substituent on end1),
+            # v1 = X (other on end1) and v2 = Y (one substituent on end2).
+            # This produces a (looking_from, v1, v2) tuple analogous to tetrahedral use.
+            # The boolean is_clockwise is derived same as tetrahedral: EVEN => clockwise when seen from W.
+            looking_from, v1, v2 = nbrs[1:3]  # W, X, Y
 
-                stereocenters[center] = (looking_from, v1, v2, is_clockwise)
+            is_clockwise = (p_use == INCHI_PARITY_EVEN)
 
-            elseif stype == INCHI_StereoType_DoubleBond
-                # neighbor order A1,A2,A3,A4 ; stereo about bond between A2-A3
-                nbrs = (map_orig(s.neighbor[1]), map_orig(s.neighbor[2]),
-                        map_orig(s.neighbor[3]), map_orig(s.neighbor[4]))
-                if nbrs[2] === nothing || nbrs[3] === nothing
-                    continue
-                end
-                nbrs = s.neighbor
-                a1, a2, a3, a4 = Int.(nbrs)
+            # store into same stereocenters dict so coordgen!/rendering code can use it
+            stereocenters[center] = (looking_from, v1, v2, is_clockwise)
 
-                # canonical edge key:
-                bkey = a2 < a3 ? ET(a2, a3) : ET(a3, a2)
-                is_cis = (parity_used == INCHI_PARITY_ODD)  # odd => cis, even => trans
-                stereobonds[bkey] = (a1 === nothing ? Int64(-1) : a1::Int64,
-                                    a4 === nothing ? Int64(-1) : a4::Int64,
-                                    is_cis)
-            end
+            # NOTE: some implementers prefer using one substituent from each end (e.g. W and Y)
+            # as v1/v2 — if you find handedness reversed for test allenes, try:
+            #    v1 = nbrs[2]; v2 = nbrs[4]   # or v1=nbrs[1], v2=nbrs[4], etc.
+            # and re-run the round-trip comparison to see which mapping matches InChI canonicalization.
+        else
+            # this should not happen
         end
     end
 
+    # merge into mol.gprops the same way you already did:
     merge!(g.gprops.stereocenter, stereocenters)
     merge!(g.gprops.stereobond, stereobonds)
     return g
@@ -403,8 +369,7 @@ Generate molecule from inchi string, `options` are specified in https://github.c
 """
 function inchitomol(::Type{T}, inchi::AbstractString;
     options::String = "",
-    config::Union{Nothing,Dict{Symbol,Any}} = nothing,
-    stereo::Bool = true
+    config::Union{Nothing,Dict{Symbol,Any}} = nothing
 ) where T <: MolGraph
     inchi isa String || (inchi = "$inchi")
 
@@ -429,28 +394,26 @@ function inchitomol(::Type{T}, inchi::AbstractString;
         config
     end
     
-    atoms = unsafe_wrap(Vector{inchi_Atom}, structure.atom, structure.num_atoms)
-
     # determine the MolecularGraph atom/bond types and constructors
     V = vproptype(T) === AbstractAtom ? SDFAtom : vproptype(T)
     E = eproptype(T) === AbstractBond ? SDFBond : eproptype(T)
     ET = edgetype(T)
 
-    expanded_syms = String[]
-    orig_to_expanded = Vector{Int}(undef, length(atoms))
+    atoms = unsafe_wrap(Vector{inchi_Atom}, structure.atom, structure.num_atoms)
 
     # heavy atoms
-    for (i, a) in enumerate(atoms)
-        push!(expanded_syms,
-              String(reinterpret(UInt8, collect(Iterators.takewhile(!=(0x00), a.elname)))))
-        orig_to_expanded[i] = length(expanded_syms)
-    end
+    expanded_syms = String[
+        String(reinterpret(UInt8, collect(Iterators.takewhile(!=(0x00), a.elname))))
+    for a in atoms]
 
     # isotopic H/D/T
     for (i, a) in enumerate(atoms)
-        parent_idx = orig_to_expanded[i]
+        parent_idx = i
+        # a.num_iso_H is a NTuple{4,S_CHAR}, where index 1 = non-specified, 2 = H, 3 = D, 4 = T
+        # let's add symbols only for explicit isotopes [1H], [D] and [T]
+        # as NUM_H_ISOTOPES = 3, we only need to check indices 2, 3, and 4
         for iso_index in 1:NUM_H_ISOTOPES
-            n = Int(a.num_iso_H[iso_index+1])
+            n = a.num_iso_H[iso_index + 1]
             iso_sym = ["H", "D", "T"][iso_index]
             for _ in 1:n
                 push!(expanded_syms, iso_sym)
@@ -458,14 +421,14 @@ function inchitomol(::Type{T}, inchi::AbstractString;
         end
     end
 
-    # build bonds
+    # build bonds to isotopic H/D/T
     bonds = Tuple{Int,Int,Int}[]
     first_isotope_index = length(atoms) + 1
     next_iso_idx = first_isotope_index
     for (i, a) in enumerate(atoms)
-        parent_idx = orig_to_expanded[i]
+        parent_idx = i
         for iso_index in 1:NUM_H_ISOTOPES
-            n = Int(a.num_iso_H[iso_index+1])
+            n = a.num_iso_H[iso_index + 1]
             for _ in 1:n
                 push!(bonds, (parent_idx, next_iso_idx, 1))
                 next_iso_idx += 1
@@ -473,15 +436,15 @@ function inchitomol(::Type{T}, inchi::AbstractString;
         end
     end
 
+    # heavy atom bonds
     for (i, a) in enumerate(atoms)
-        for k in 1:Int(a.num_bonds)
-            nb0 = Int(a.neighbor[k])
-            if nb0 < 0
-                continue
-            end
+        for k in 1:a.num_bonds
+            nb0 = a.neighbor[k]
+            nb0 == NO_ATOM && continue
+            
             j = nb0 + 1
             if j > i
-                push!(bonds, (orig_to_expanded[i], orig_to_expanded[j], Int(a.bond_type[k])))
+                push!(bonds, (i, j, Int(a.bond_type[k])))
             end
         end
     end
@@ -501,7 +464,7 @@ function inchitomol(::Type{T}, inchi::AbstractString;
                 "multiplicity" => (Int(a.radical) == 0 ? 1 : Int(a.radical)),
                 "isotope" => Int(a.isotopic_mass),
             )
-            T === SDFMolGraph && push!(d, "coords" => [Float64(a.x), Float64(a.y), Float64(a.z)])
+            :coords in fieldnames(V) && push!(d, "coords" => [Float64(a.x), Float64(a.y), Float64(a.z)])
             push!(vprops, V(d))
         else
             symbol = expanded_syms[idx]
@@ -511,7 +474,7 @@ function inchitomol(::Type{T}, inchi::AbstractString;
                 "multiplicity" => 1,
                 "isotope" => 0
             )
-            T === SDFMolGraph && push!(d, "coords" => [0.0, 0.0, 0.0])
+            :coords in fieldnames(V) && push!(d, "coords" => [0.0, 0.0, 0.0])
             push!(vprops, V(d))
         end
     end
@@ -525,12 +488,15 @@ function inchitomol(::Type{T}, inchi::AbstractString;
 
     g = T(edges, vprops, eprops; NamedTuple((k, v) for (k, v) in config)...)
 
-    stereo && process_inchi_stereo!(g, structure, orig_to_expanded)
+    process_inchi_stereo!(g, structure)
     
+    @ccall libinchi.FreeStructFromINCHIEx(structure::Ref{inchi_OutputStructEx})::Cvoid
+
     coordgen!(g)
+    remove_hydrogens!(g)
     return g
 end
 
-function inchitomol(inchi::String; options::String = "", stereo::Bool = true)
-    inchitomol(SDFMolGraph, inchi; options, stereo)
+function inchitomol(inchi::String; options::String = "")
+    inchitomol(SDFMolGraph, inchi; options)
 end
