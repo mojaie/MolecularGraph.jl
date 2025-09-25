@@ -258,47 +258,26 @@ function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx) where T <:
     atoms = unsafe_wrap(Vector{inchi_Atom}, structure.atom, structure.num_atoms)
     stereos = unsafe_wrap(Vector{inchi_Stereo0D}, structure.stereo0D, structure.num_stereo0D)
     n_heavy = length(atoms)  # number of heavy atoms (without isotopic H/D/T)
+    is_heavy(idx) = 0 < idx <= n_heavy # for 1-based indices
 
     for s in stereos
-        p_use = decode_parity(s.parity)
-        p_use == INCHI_PARITY_NONE || p_use == INCHI_PARITY_UNKNOWN && continue  # nothing to set
-        p_use == INCHI_PARITY_UNDEFINED && continue  # explicit undefined -> skip
+        parity = decode_parity(s.parity)
+        parity == INCHI_PARITY_NONE || parity == INCHI_PARITY_UNKNOWN && continue  # nothing to set
+        parity == INCHI_PARITY_UNDEFINED && continue  # explicit undefined -> skip
 
-        # neighbors are in original indexing (0-based in C), convert -> expanded (1-based in Julia)
-        # nbrs_orig = Int.(s.neighbor)    # e.g. [-1, 0, 5, 7] etc.
-
-        nbrs = s.neighbor .+ 1  # now in expanded indexing (1-based, or NO_ATOM)
+        # convert to 1-based indexing
+        nbrs = s.neighbor .+ 1 
+        center = s.central_atom + 1
 
         if s.type == INCHI_StereoType_Tetrahedral
-            # central_atom is 0-based original index (or NO_ATOM)
-            # center_orig = Int(s.central_atom)
-            s.central_atom == NO_ATOM && continue  # sanity
-            center = s.central_atom + 1
+            center == 0 && continue  # sanity check
 
             # InChI neighbors order corresponds to W,X,Y,Z (see InChI comments).
-            # You need to pick which neighbor is "looking_from" and which two define v1,v2
-            # MolecularGraph expects the tuple (looking_from, v1, v2, is_clockwise).
-            # The canonical choice used by many wrappers: use neighbour[1] as 'looking_from',
-            # and neighbour[2], neighbour[3] as v1,v2 (adjust if your earlier code used different mapping).
-            w,x,y,z = nbrs   # these are already expanded indices (or NO_ATOM)
-            # pick the variant that suits your earlier convention:
-            looking_from = w
-            v1 = x
-            v2 = y
-
-            is_clockwise = (p_use == INCHI_PARITY_EVEN)   # 'e' == clockwise per docs
-            stereocenters[center] = (looking_from, v1, v2, is_clockwise)
+            w, x, y, z = nbrs   # these are already expanded indices (or NO_ATOM)
+            is_clockwise = (parity == INCHI_PARITY_EVEN)   # 'e' == clockwise per docs
+            stereocenters[center] = (w, x, y, is_clockwise)
         elseif s.type == INCHI_StereoType_DoubleBond
-            map_orig = idx -> begin
-                idx == NO_ATOM && return nothing
-                oi = idx + 1
-                return 0 < oi <= n_heavy ? oi : nothing
-            end
-            
-            # s = inchi_Stereo0D
-            # neighbors[1..4] = substituents around the double bond
-            nbrs = map_orig.(s.neighbor)
-            any(nbrs .=== nothing) && continue  # skip disconnected or missing substituents
+            all(is_heavy.(nbrs)) || continue  # skip disconnected or missing substituents
 
             # the double bond is between the middle two atoms
             # by InChI convention, neighbor[1,2] on one end, neighbor[3,4] on the other
@@ -309,16 +288,17 @@ function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx) where T <:
             bond_key_index = findfirst(e -> e[1] in bond_candidates, edges)
             bond_key_index === nothing && continue
             bond_key = edges[bond_key_index][1]
-            # assign stereobond orientation using parity
-            p_use = decode_parity(s.parity)
 
-            is_trans = if p_use == INCHI_PARITY_ODD
+            is_trans = if parity == INCHI_PARITY_ODD
                 true      # InChI uses ODD -> trans
-            elseif p_use == INCHI_PARITY_EVEN
+            elseif parity == INCHI_PARITY_EVEN
                 false     # EVEN -> cis
             else
+                # we currently don't get here, because we filtered out NONE/UNKNOWN/UNDEFINED above
+                # once we can handle undetermined stereo, we need to implement that logic here
                 continue   # unknown
             end
+            
             # store stereobond
             stereobonds[bond_key] = (nbrs[1], nbrs[3], is_trans)
         elseif s.type == INCHI_StereoType_Allene
@@ -329,30 +309,18 @@ function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx) where T <:
             # InChI gives neighbors as W,X,Y,Z where W/X are substituents on one end
             # and Y/Z on the other. central_atom is the central cumulated C.
             # We need to pick a viewing atom and two reference atoms to encode axial chirality.
-            center = map_orig(s.central_atom)
-            center === nothing && continue
+            center == 0 && continue
 
-            nbrs = map_orig.(s.neighbor)  # [W, X, Y, Z] possibly some are nothing
             # For an allene to be chiral, both ends must have two substituents (i.e. W/X and Y/Z present)
-            any(nbrs .=== nothing) && continue
+            all(is_heavy.(nbrs)) || continue
+            w, x, y, z = nbrs
 
-            # Strategy: choose looking_from = W (one substituent on end1),
-            # v1 = X (other on end1) and v2 = Y (one substituent on end2).
-            # This produces a (looking_from, v1, v2) tuple analogous to tetrahedral use.
-            # The boolean is_clockwise is derived same as tetrahedral: EVEN => clockwise when seen from W.
-            looking_from, v1, v2 = nbrs[1:3]  # W, X, Y
-
-            is_clockwise = (p_use == INCHI_PARITY_EVEN)
+            is_clockwise = (parity == INCHI_PARITY_EVEN)
 
             # store into same stereocenters dict so coordgen!/rendering code can use it
-            stereocenters[center] = (looking_from, v1, v2, is_clockwise)
-
-            # NOTE: some implementers prefer using one substituent from each end (e.g. W and Y)
-            # as v1/v2 — if you find handedness reversed for test allenes, try:
-            #    v1 = nbrs[2]; v2 = nbrs[4]   # or v1=nbrs[1], v2=nbrs[4], etc.
-            # and re-run the round-trip comparison to see which mapping matches InChI canonicalization.
+            stereocenters[center] = (w, x, y, is_clockwise)
         else
-            # this should not happen
+            @warn "Unknown stereo type $(s.type), skipping"
         end
     end
 
@@ -407,8 +375,7 @@ function inchitomol(::Type{T}, inchi::AbstractString;
     for a in atoms]
 
     # isotopic H/D/T
-    for (i, a) in enumerate(atoms)
-        parent_idx = i
+    for a in atoms
         # a.num_iso_H is a NTuple{4,S_CHAR}, where index 1 = non-specified, 2 = H, 3 = D, 4 = T
         # let's add symbols only for explicit isotopes [1H], [D] and [T]
         # as NUM_H_ISOTOPES = 3, we only need to check indices 2, 3, and 4
@@ -425,8 +392,7 @@ function inchitomol(::Type{T}, inchi::AbstractString;
     bonds = Tuple{Int,Int,Int}[]
     first_isotope_index = length(atoms) + 1
     next_iso_idx = first_isotope_index
-    for (i, a) in enumerate(atoms)
-        parent_idx = i
+    for (parent_idx, a) in enumerate(atoms)
         for iso_index in 1:NUM_H_ISOTOPES
             n = a.num_iso_H[iso_index + 1]
             for _ in 1:n
@@ -439,13 +405,8 @@ function inchitomol(::Type{T}, inchi::AbstractString;
     # heavy atom bonds
     for (i, a) in enumerate(atoms)
         for k in 1:a.num_bonds
-            nb0 = a.neighbor[k]
-            nb0 == NO_ATOM && continue
-            
-            j = nb0 + 1
-            if j > i
-                push!(bonds, (i, j, Int(a.bond_type[k])))
-            end
+            j = a.neighbor[k] + 1
+            j > i && push!(bonds, (i, j, Int(a.bond_type[k])))
         end
     end
 
@@ -481,9 +442,8 @@ function inchitomol(::Type{T}, inchi::AbstractString;
 
     for (i, j, order) in bonds
         ekey = i < j ? ET(i, j) : ET(j, i)
-        ed = Dict{String, Any}("order" => order)
         push!(edges, ekey)
-        push!(eprops, E(ed))
+        push!(eprops, E(; order))
     end
 
     g = T(edges, vprops, eprops; NamedTuple((k, v) for (k, v) in config)...)
