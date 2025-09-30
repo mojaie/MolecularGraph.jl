@@ -199,45 +199,15 @@ end
 inchikey(mol::SimpleMolGraph) = inchikey(inchi(mol))
 
 """
-    inchitosdf(inchi::String; options::String = "") -> Union{String,Nothing}
+    inchitosdf(inchi::AbstractString; options::String = "", config::Union{Nothing,Dict{Symbol,Any}})
 
-Generate sdf string from inchi string, `options` are specified in https://github.com/mojaie/libinchi/blob/master/INCHI_BASE/src/inchi_api.h
+Generate sdf string from inchi string.
+This new version goes via parsing to a MolGraph and exporting as sdf.
+Parsing `options` are specified in https://github.com/mojaie/libinchi/blob/master/INCHI_BASE/src/inchi_api.h
+Coordinates are generated via coordgen (Schrödinger coordgenlibs).
 """
-function inchitosdf(inchi::String; options::String = "", verbose::Bool = false)
-    # support the correct options format depending on OS
-    opts = opt_array(options)
-    # add a timeout of 60s per molecule
-    any(occursin.(r"^Wm?\d+$", opts)) || push!(opts, "W60")
-    # switch output to sdf format
-    "OutputSDF" ∈ opts || push!(opts, "OutputSDF")
-    options = opt_string(opts)
-
-    structure = inchi_OutputStructEx()
-    inchi_input = inchi_InputINCHI(Base.unsafe_convert(Cstring, inchi), Base.unsafe_convert(Cstring, options))
-    @ccall libinchi.GetStructFromINCHIEx(
-        inchi_input::Ref{inchi_InputINCHI}, structure::Ref{inchi_OutputStructEx})::Int32
-
-    input = inchi_InputEx(
-        structure.atom,
-        structure.stereo0D,
-        Base.unsafe_convert(Cstring, options),
-        structure.num_atoms,
-        structure.num_stereo0D,
-        structure.polymer,
-        structure.v3000
-    )
-    output = inchi_Output()
-    @ccall libinchi.GetINCHIEx(
-        input::Ref{inchi_InputEx}, output::Ref{inchi_Output})::Cint
-    report_output(output, verbose)
-
-    res = output.szInChI == C_NULL ? nothing : unsafe_string(output.szInChI)
-
-    # Free buffers allocated by GetStructFromINCHIEx and GetINCHI
-    @ccall libinchi.FreeStructFromINCHIEx(structure::Ref{inchi_OutputStructEx})::Cvoid
-    @ccall libinchi.FreeINCHI(output::Ref{inchi_Output})::Cvoid
-
-    return res
+function inchitosdf(inchi::AbstractString; options::String = "", config::Union{Nothing,Dict{Symbol,Any}} = nothing)
+    printv2mol(inchitomol(inchi; options, config))
 end
 
 # decode parity byte (connected in low 3 bits, disconnected in bits 3..5)
@@ -331,9 +301,10 @@ function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx) where T <:
 end
 
 """
-    function inchitomol(inchi::String; options = "", verbose = false)
+    function inchitomol(inchi::String; options = "", config::Union{Nothing,Dict{Symbol,Any}} = nothing)
 
 Generate molecule from inchi string, `options` are specified in https://github.com/mojaie/libinchi/blob/master/INCHI_BASE/src/inchi_api.h
+`config` is for internal or advanced use only. Maybe removed in a future release.
 """
 function inchitomol(::Type{T}, inchi::AbstractString;
     options::String = "",
@@ -457,6 +428,6 @@ function inchitomol(::Type{T}, inchi::AbstractString;
     return g
 end
 
-function inchitomol(inchi::String; options::String = "")
-    inchitomol(SDFMolGraph, inchi; options)
+function inchitomol(inchi::String; options::String = "", config::Union{Nothing,Dict{Symbol,Any}} = nothing)
+    inchitomol(SDFMolGraph, inchi; options, config)
 end
