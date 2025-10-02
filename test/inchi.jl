@@ -13,8 +13,19 @@
     mol_from_inchi = inchitomol(inchi1)
     inchi1_no_stereo = inchi(txt, options = "SNon")
     inchi3 = inchi(mol_from_inchi)
-    # lbinchi version 1.05 doesn't support chiral sdf output, therefore test without stereo information
-    # as soon as version 1.06 is in place, the lines below need to be adapted
+    inchi3_no_stereo = inchi(mol_from_inchi, options = "SNon")
+    # reconstruction from InChI now includes stereo information, but coordinates are
+    # generated via coordgen!, which leads to different stereo perception in some cases,
+    # e.g. definite parity instead of undefined
     @test_broken inchi3 == inchi1
-    @test inchi3 == inchi1_no_stereo
+    # without stereo, the test passes
+    @test inchi3_no_stereo == inchi1_no_stereo
+    # however, another round-trip via inchitomol should retain the stereo information
+    mol2_from_inchi = inchitomol(inchi3)
+    inchi4 = inchi(mol2_from_inchi)
+    @test inchi3 == inchi4
+    @test has_exact_match(mol_from_inchi, mol2_from_inchi)
+    # Moreover, applying coordgen! to the original molecule also yields the same InChI
+    coordgen!(mol)
+    @test inchi(mol) == inchi3
 end
