@@ -90,12 +90,14 @@ function mincyclebasis(g::SimpleGraph{T}) where T
 end
 
 
-function edgemincyclebasis(g::SimpleGraph{T}) where T
+function edgemincyclebasis(g::SimpleGraph{T}, vcycles::Vector{Vector{T}}) where T
     cycles = Vector{Edge{T}}[]
-    for p in mincyclebasis(g)
+    for p in vcycles
         minedges = [u_edge(T, p[i], p[i + 1]) for i in 1:(length(p) - 1)]
         push!(minedges, u_edge(T, p[1], p[end]))
         push!(cycles, minedges)
     end
     return cycles
 end
+
+edgemincyclebasis(g) = edgemincyclebasis(g, mincyclebasis(g))
