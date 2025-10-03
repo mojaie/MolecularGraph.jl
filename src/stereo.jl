@@ -59,7 +59,8 @@ function remap!(
     newmap = Dict{Edge{T},Tuple{T,T,Bool}}()
     for (k, v) in gprop.stereobond
         isempty(setdiff([src(k), dst(k), v[1:2]...], keys(revv))) || continue
-        newmap[u_edge(T, revv[src(k)], revv[dst(k)])] = (revv[v[1]], revv[v[2]], v[3])
+        n1, n2 = revv[src(k)] < revv[dst(k)] ? (1, 2) : (2, 1)
+        newmap[u_edge(T, revv[src(k)], revv[dst(k)])] = (revv[v[n1]], revv[v[n2]], v[3])
     end
     empty!(gprop.stereobond)
     merge!(gprop.stereobond, newmap)

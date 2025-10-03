@@ -106,6 +106,17 @@ end
     hydrate = smilestomol("[Cu+2].[O-]S(=O)(=O)[O-].O.O.O.O.O")
     hydrate2 = MolGraph(to_rdkdict(hydrate))
     @test atom_counter(hydrate) == atom_counter(hydrate2)
+
+    # 3D conformer
+    asp = sdftomol(joinpath(assetdir, "aspirin_3d.sdf"))
+    d = to_rdkdict(asp)
+    @test length(d["molecules"][1]["conformers"][1]["coords"]) == 21
+
+    # stereobond remapping
+    nata = sdftomol(joinpath(assetdir, "nata.mol"))
+    remove_all_hydrogens!(nata)
+    d = to_rdkdict(nata)
+    @test d["molecules"][1]["bonds"][32]["stereoAtoms"] == [24, 36]
 end
 
 end # json

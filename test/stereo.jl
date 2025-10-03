@@ -36,7 +36,7 @@ end
         Edge.([(1, 2), (2, 3)])  # Not used
     )
     @test length(prop.stereobond) == 1
-    @test prop.stereobond[Edge(5 => 7)] == (8, 2, false)
+    @test prop.stereobond[Edge(5 => 7)] == (2, 8, false)  # 5(10) -> 2(11), 7 -> 8
     dump = to_dict(Val(:stereobond), Val(:default), prop)
     @test reconstruct(
         Val(:stereobond), MolProperty{Int}, dump) == prop.stereobond
@@ -423,7 +423,7 @@ end
     @test subg[:stereobond][Edge(7 => 8)] == (6, 9, true)
     rem_vertices!(linoleic_acid, collect(4:12))
     # revmap 1 => 1, 2 => 2, 3 => 3, 20 => 4, 19 => 5, 18 => 6, ...
-    @test linoleic_acid[:stereobond][Edge(9 => 10)] == (11, 8, true)
+    @test linoleic_acid[:stereobond][Edge(9 => 10)] == (8, 11, true)
 
     # global_logger(default_logger)
 end
