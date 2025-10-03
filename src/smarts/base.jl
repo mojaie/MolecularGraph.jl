@@ -59,6 +59,7 @@ SMARTSParser{T,V,E}(smarts) where {T,V,E} = SMARTSParser{T,V,E}(
 
 
 function smiles_on_init!(mol::SimpleMolGraph)
+    check_valence!(mol)
     stereocenter_from_smiles!(mol)
     stereobond_from_smiles!(mol)
 end
