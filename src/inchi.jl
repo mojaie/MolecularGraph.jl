@@ -155,7 +155,7 @@ Options, e.g. "SNon" for 'no stereo information' are specified in https://github
 inchi(mol::SimpleMolGraph; kwargs...) = inchi(mol, vproptype(mol), eproptype(mol); kwargs...)
 inchi(
     mol::SimpleMolGraph, ::Type{<:StandardAtom}, ::Type{<:StandardBond}; kwargs...
-) = inchi(printv2mol(mol); kwargs...)
+) = inchi(printv2mol(mol; givebackhydrogen=false); kwargs...)
 
 function inchi(molblock::String; options::String = "", verbose::Bool = false)
     # support the correct options format depending on OS
