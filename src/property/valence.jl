@@ -45,7 +45,7 @@ function atom_charge(mol::ReactiveMolGraph)
     if has_descriptor(mol, :atom_charge)
         return get_descriptor(mol, :atom_charge)
     end
-    return getproperty(mol[:descriptors], :atom_charge)
+    return Int[atom_charge(mol[i]) for i in vertices(mol)]
 end
 
 default_atom_charge!(mol::SimpleMolGraph) = set_descriptor!(
@@ -81,7 +81,7 @@ function bond_order(mol::ReactiveMolGraph)
     if has_descriptor(mol, :bond_order)
         return get_descriptor(mol, :bond_order)
     end
-    return getproperty(mol[:descriptors], :bond_order)
+    return Int[bond_order(mol[e]) for e in edges(mol)]
 end
 
 default_bond_order!(mol::SimpleMolGraph) = set_descriptor!(
