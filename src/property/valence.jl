@@ -41,7 +41,12 @@ Return a vector of size ``n`` representing atom charges of 1 to ``n``th atoms of
 the given molecule.
 """
 atom_charge(mol::SimpleMolGraph) = Int[atom_charge(mol[i]) for i in vertices(mol)]
-atom_charge(mol::ReactiveMolGraph) = mol[:descriptors].atom_charge
+function atom_charge(mol::ReactiveMolGraph)
+    if has_descriptor(mol, :atom_charge)
+        return get_descriptor(mol, :atom_charge)
+    end
+    return getproperty(mol[:descriptors], :atom_charge)
+end
 
 default_atom_charge!(mol::SimpleMolGraph) = set_descriptor!(
     mol, :atom_charge, Int[atom_charge(mol[i]) for i in vertices(mol)])
@@ -72,7 +77,12 @@ Return a vector of size ``n`` representing bond order of 1 to ``n``th bonds of
 the given molecule.
 """
 bond_order(mol::SimpleMolGraph) = Int[bond_order(mol[e]) for e in edges(mol)]
-bond_order(mol::ReactiveMolGraph) = mol[:descriptors].bond_order
+function bond_order(mol::ReactiveMolGraph)
+    if has_descriptor(mol, :bond_order)
+        return get_descriptor(mol, :bond_order)
+    end
+    return getproperty(mol[:descriptors], :bond_order)
+end
 
 default_bond_order!(mol::SimpleMolGraph) = set_descriptor!(
     mol, :bond_order, Int[bond_order(mol[e]) for e in edges(mol)])
