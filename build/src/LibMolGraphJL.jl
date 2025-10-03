@@ -25,7 +25,7 @@ Base.@ccallable function smilestomol(smiles::Cstring, options::Cstring)::Cstring
         end
         unsafe_convert(Cstring, JSON.json(to_dict(mol)))
     catch e
-        mol = MolecularGraph.smilestomol("")
+        mol = SMILESMolGraph()
         mol[:logs]["error_smiles"] = e.msg
         unsafe_convert(Cstring, JSON.json(to_dict(mol)))
     end
@@ -37,7 +37,7 @@ Base.@ccallable function smartstomol(smarts::Cstring)::Cstring
         mol = MolecularGraph.smartstomol(unsafe_string(smarts))
         unsafe_convert(Cstring, JSON.json(to_dict(mol)))
     catch e
-        mol = SMILESMolGraph()
+        mol = SMARTSMolGraph()
         mol[:logs]["error_smarts"] = e.msg
         unsafe_convert(Cstring, JSON.json(to_dict(mol)))
     end
@@ -108,7 +108,7 @@ end
 Base.@ccallable function molblock(mol::Cstring)::Cstring
     try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
-        unsafe_convert(Cstring, printv2mol(molobj))
+        unsafe_convert(Cstring, printv2mol(molobj; givebackhydrogen=false))
     catch
         Base.invokelatest(Base.display_error, Base.catch_stack())
     end
@@ -119,7 +119,7 @@ Base.@ccallable function sdfmolblock(mol::Cstring)::Cstring
     try
         molobj = MolGraph(JSON.parse(unsafe_string(mol)))
         buf = IOBuffer(write=true)
-        printv2sdf(buf, molobj)
+        printv2sdf(buf, molobj; givebackhydrogen=false)
         res = String(take!(buf))
         close(buf)
         unsafe_convert(Cstring, res)
