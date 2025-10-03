@@ -252,6 +252,7 @@ function coordgen(
         py = @ccall libcoordgen.getAtomY(atoms[i]::Ptr{Cvoid})::Cfloat
         coords[i] = Point2d(px, py)
     end
+    coords = coords * 0.0165  # scale to practical coords scale (bond length = 0.825)
     styles = Vector{Symbol}(undef, ne(g))
     for (i, e) in enumerate(edges(g))
         hasstereo = @ccall libcoordgen.hasStereochemistryDisplay(
