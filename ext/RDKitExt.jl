@@ -22,10 +22,13 @@ using RDKitMinimalLib:
 
 
 function uint8vec_to_bitarray(uvec::Vector{UInt8})
+    # Note: fp_as_bytes functions are LSB-first
     bits = BitVector(undef, 8 * length(uvec))
     for (i, byte) in enumerate(uvec)
         for j in 1:8
-            bits[8*(i-1) + j] = (byte >> (8 - j)) & 0x01
+            # bits[8*(i-1) + j] = (byte >> (8 - j)) & 0x01
+            # bit reversal
+            bits[8*(i-1) + (9 - j)] = (byte >> (8 - j)) & 0x01
         end
     end
     return bits
