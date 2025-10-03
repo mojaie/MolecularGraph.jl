@@ -143,7 +143,7 @@ struct SDFAtom <: StandardAtom
             multiplicity::Int=1,
             isotope::Int=0,
             coords::Union{Vector,Nothing}=nothing)
-        haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("Unsupported atom symbol: $(symbol)")
+        haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
         new(Symbol(symbol), charge, multiplicity, isotope, coords)
     end
 end
@@ -154,7 +154,7 @@ function SDFAtom(;
         multiplicity::Int=1,
         isotope::Int=0,
         coords::Union{Vector,Nothing}=nothing)
-    haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("Unsupported atom symbol: $(symbol)")
+    haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
     return SDFAtom(Symbol(symbol), charge, multiplicity, isotope, coords)
 end
 
@@ -279,7 +279,7 @@ struct CommonChemAtom <: StandardAtom
             isotope::Int=0,
             nRad::Int=0,
             stereo::Union{AbstractString,Symbol}=:unspecified)
-        z <= length(ATOMTABLE) || error("Unsupported atom number: $(z)")
+        z <= length(ATOMTABLE) || error("commonchem parse error - unsupported atom number $(z)")
         new(z, chg, impHs, isotope, nRad, Symbol(stereo))
     end
 end
@@ -291,7 +291,7 @@ function CommonChemAtom(;
         isotope::Int=0,
         nRad::Int=0,
         stereo::Union{AbstractString,Symbol}=:unspecified)
-    z <= length(ATOMTABLE) || error("Unsupported atom number: $(z)")
+    z <= length(ATOMTABLE) || error("commonchem parse error - unsupported atom number $(z)")
     return CommonChemAtom(z, chg, impHs, isotope, nRad, Symbol(stereo))
 end
 

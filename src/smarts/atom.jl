@@ -43,7 +43,7 @@ function atomsymbol!(state::SMILESParser{T,V,E}) where {T,V,E}
         # end token found, no position move
         return V[]
     end
-    error("unexpected token: '$(sym1)' at $(state.pos)")
+    error("smiles parser error - #$(state.pos) unexpected token '$(sym1)'")
 end
 
 
@@ -86,7 +86,7 @@ function atomsymbol!(state::SMARTSParser, qtree::QueryTree{T,V}) where {T,V}
         # end token found, no position move
         return zero(T)
     end
-    error("unexpected token: '$(sym1)' at $(state.pos)")
+    error("smarts parser error - #$(state.pos) unexpected token '$(sym1)'")
 end
 
 
@@ -95,7 +95,7 @@ function atompropsymbol!(
     if sym in cond
         return (symbol=sym, isaromatic=slow)
     end
-    slow && error("aromatic $(sym) is not supported")
+    slow && error("smiles parser error - #$(state.pos) aromatic '$(sym)' not supported")
     return (symbol=sym,)
 end
 
@@ -114,7 +114,7 @@ function atompropsymbol!(
         end
         return node
     end
-    slow && error("aromatic $(sym) is not supported")
+    slow && error("smarts parser error - #$(state.pos) aromatic '$(sym)' not supported")
     return add_qnode!(qtree, qeq(:symbol, string(sym)))
 end
 
@@ -338,7 +338,7 @@ function atomprop!(state::SMILESParser{T,V,E}) where {T,V,E}
     if !isnothing(v)
         push!(vs, v)
     end
-    hasiso && isnothing(v) && error("(atomprop!) atom symbol not specified")
+    hasiso && isnothing(v) && error("smiles parser error - #$(state.pos) missing atom symbol")
     v = atompropcond!(state)
     while !isnothing(v)
         if haskey(v, :total_hydrogens)
@@ -348,7 +348,7 @@ function atomprop!(state::SMILESParser{T,V,E}) where {T,V,E}
         end
         v = atompropcond!(state)
     end
-    isempty(vs) && hcnt == 0 && error("(atomprop!) empty atomprop")
+    isempty(vs) && hcnt == 0 && error("smiles parser error - #$(state.pos) missing atom prop")
     # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
     merged = isempty(vs) ? NamedTuple() : merge(vs...)
     if !haskey(merged, :symbol)  # special case: [H2]
@@ -376,13 +376,13 @@ function atomprop!(state::SMARTSParser, qtree::QueryTree)
     if v != 0
         push!(vs, v)
     end
-    hasiso && v == 0 && error("(atomprop!) atom symbol not specified")
+    hasiso && v == 0 && error("smarts parser error - #$(state.pos) missing atom symbol")
     v = atompropcond!(state, qtree)
     while v != 0
         push!(vs, v)
         v = atompropcond!(state, qtree)
     end
-    isempty(vs) && error("(atomprop!) empty atomprop")
+    isempty(vs) && error("smarts parser error - #$(state.pos) missing atom prop")
     length(vs) == 1 && return vs[1]
     node = add_qnode!(qtree, qand())
     for i in vs
@@ -402,7 +402,7 @@ function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
     if sym1 == '['
         forward!(state)
         props = atomprop!(state)
-        read(state) == ']' || error("(atom)! unexpected token: $(read(state))")
+        read(state) == ']' || error("smiles parser error - #$(state.pos) unexpected token '$(read(state))'")
         forward!(state)
     else
         props = atomsymbol!(state)
@@ -422,8 +422,8 @@ function atom!(state::SMARTSParser{T,V,E}) where {T,V,E}
     if sym1 == '['
         forward!(state)
         v = lglowand!(state, qtree)
-        v == 0 && error("(atom!) empty atomprop")
-        read(state) == ']' || error("(atom!) unexpected token: $(read(state))")
+        v == 0 && error("smarts parser error - #$(state.pos) missing atom prop")
+        read(state) == ']' || error("smarts parser error - #$(state.pos) unexpected token '$(read(state))'")
         forward!(state)
     else
         v = atomsymbol!(state, qtree)
