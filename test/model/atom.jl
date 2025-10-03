@@ -13,6 +13,7 @@
     sdfa2 = SDFAtom(;symbol=:Fe, charge=2, coords=[1.0, 2.0, 0.0])
     @test sdfa == sdfa2
     @test hash(sdfa) == hash(sdfa2)
+    @test_throws ErrorException SDFAtom(;symbol=:Ga, isotope=270)
 
     smia = SMILESAtom(isotope=13, stereo=:clockwise)
     @test smia[:symbol] === :C
@@ -24,6 +25,7 @@
     smia2 = SMILESAtom(isotope=13, stereo=:clockwise)
     @test smia == smia2
     @test hash(smia) == hash(smia2)
+    @test_throws ErrorException SMILESAtom(;symbol=:Ga, isotope=270)
 
 end
 

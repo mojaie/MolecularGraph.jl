@@ -116,12 +116,10 @@ If `number` is not given or `Atom.mass` is not specified, monoisotopic mass will
 """
 function exact_mass_unc(atomsymbol::Symbol, number::Int=0)
     number == 0 && return monoiso_mass_unc(atomsymbol)
-    pred = rcd -> rcd["Number"] == number
-    iso = ATOMTABLE[atom_number(atomsymbol)]["Isotopes"]
-    k = findfirst(pred.(iso))
-    k == 0 && error("No isotope data for $(number)$(atomsymbol)")
-    mass = iso[k]["Mass"]
-    unc = iso[k]["MassUncertainty"]
+    iso = find_isotope(atomsymbol, number)
+    isnothing(iso) && error("No isotope data for $(number)$(atomsymbol)")
+    mass = iso["Mass"]
+    unc = iso["MassUncertainty"]
     return (mass, unc)
 end
 
