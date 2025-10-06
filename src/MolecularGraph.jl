@@ -5,6 +5,7 @@
 
 module MolecularGraph
 
+import JSON
 using OrderedCollections
 using Printf: @sprintf
 import YAML
@@ -141,7 +142,6 @@ export
 # I/O
 
 import Dates
-import JSON
 
 include("json.jl")
 include("sdfilereader.jl")

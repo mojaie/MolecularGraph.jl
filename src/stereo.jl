@@ -41,7 +41,7 @@ function remap!(
     return
 end
 
-function reconstruct(::Val{:stereocenter}, ::Type{T}, @nospecialize(data)
+function reconstruct(::Val{:stereocenter}, ::Type{T}, data::JSON.Object{String,Any}
         ) where T <: SimpleMolProperty
     U = eltype(T)
     return Dict{U,Tuple{U,U,U,Bool}}(parse(U, i) => tuple(val...) for (i, val) in data)
@@ -67,7 +67,7 @@ function remap!(
     return
 end
 
-function reconstruct(::Val{:stereobond}, ::Type{T}, @nospecialize(data)
+function reconstruct(::Val{:stereobond}, ::Type{T}, data::JSON.Object{String,Any}
         ) where T <: SimpleMolProperty
     U = eltype(T)
     return Dict{Edge{U},Tuple{U,U,Bool}}(
@@ -75,7 +75,7 @@ function reconstruct(::Val{:stereobond}, ::Type{T}, @nospecialize(data)
 end
 
 function to_dict(::Val{:stereobond}, ::Val{:default}, gprop::AbstractProperty)
-    return [[src(e), dst(e), collect(val)] for (e, val) in gprop.stereobond]
+    return JSON.Object{String,Any}([[src(e), dst(e), collect(val)] for (e, val) in gprop.stereobond])
 end
 
 

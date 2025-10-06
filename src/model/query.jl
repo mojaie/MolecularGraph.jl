@@ -145,7 +145,7 @@ Base.copy(prop::T) where T <: QueryMolProperty = T(
 )
 
 
-reconstruct(::Val{:descriptors}, ::Type{QueryMolProperty{T}}, @nospecialize(data)
+reconstruct(::Val{:descriptors}, ::Type{QueryMolProperty{T}}, data::JSON.Object{String,Any}
     ) where T = reconstruct(QueryMolDescriptor{T}, data)
 
 

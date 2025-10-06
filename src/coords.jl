@@ -5,7 +5,7 @@
 
 # TODO: just remap nodes if still all existing vertices have coords.
 
-reconstruct(::Val{:coords2d}, ::Type{T}, @nospecialize(data)
+reconstruct(::Val{:coords2d}, ::Type{T}, data::JSON.Object{String,Any}
     ) where T <: AbstractProperty = [[Point2d(cd...) for cd in cds] for cds in data]
 to_dict(
     ::Val{:coords2d}, ::Val{:default}, gprop::AbstractProperty
@@ -28,7 +28,7 @@ function remap!(
     return
 end
 
-reconstruct(::Val{:coords3d}, ::Type{T}, @nospecialize(data)
+reconstruct(::Val{:coords3d}, ::Type{T}, data::JSON.Object{String,Any}
     ) where T <: AbstractProperty = [[Point3d(cd...) for cd in cds] for cds in data]
 to_dict(
     ::Val{:coords3d}, ::Val{:default}, gprop::AbstractProperty
@@ -51,7 +51,7 @@ function remap!(
     return
 end
 
-reconstruct(::Val{:draw2d_bond_style}, ::Type{T}, @nospecialize(data)
+reconstruct(::Val{:draw2d_bond_style}, ::Type{T}, data::JSON.Object{String,Any}
     ) where T <: AbstractProperty = [[Symbol(s) for s in sty] for sty in data]
 to_dict(
     ::Val{:draw2d_bond_style}, ::Val{:default}, gprop::AbstractProperty

@@ -23,7 +23,7 @@ end
 
 function reactive_molgraph(
         ::Val{:rdkit}, ::Type{T}, ::Type{V}, ::Type{E},
-        @nospecialize(data::Dict), config::MolState) where {T,V,E}
+        data::JSON.Object{String,Any}, config::MolState) where {T,V,E}
     gps = MolProperty{T}()
     # edges
     es = Edge{T}[]
@@ -68,7 +68,7 @@ function reactive_molgraph(
 end
 
 
-function MolGraph{T,CommonChemAtom,CommonChemBond}(@nospecialize(data::Dict)
+function MolGraph{T,CommonChemAtom,CommonChemBond}(data::JSON.Object{String,Any}
         ; on_init=rdk_on_init!, on_update=rdk_on_update!, kwargs...) where T
     if data["commonchem"]["version"] != 10
         error("CommonChem version other than 10 is not supported")

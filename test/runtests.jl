@@ -8,6 +8,7 @@ module MolecularGraphTest
 using Colors: RGB
 using GeometryBasics: Point, Point2d, Line
 using Graphs
+using JSON
 using LinearAlgebra: cross
 using Logging
 using MolecularGraph

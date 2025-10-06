@@ -12,12 +12,12 @@
 
 Reconstruct properties from a dict, typically form a serialized form of the data (e.g. JSON)
 """
-function reconstruct(::Type{T}, data::Dict{String,Any}) where T <: AbstractProperty
+function reconstruct(::Type{T}, data::JSON.Object{String,Any}) where T <: AbstractProperty
     return T(; NamedTuple(
         (sym, reconstruct(Val(sym), T, data[string(sym)])) for sym in fieldnames(T))...)
 end
 
-reconstruct(::Val{V}, ::Type{T}, @nospecialize(data)) where {V,T<:AbstractProperty} = data
+reconstruct(::Val{V}, ::Type{T}, data::JSON.Object{String,Any}) where {V,T<:AbstractProperty} = data
 
 
 """
@@ -46,7 +46,7 @@ end
 
 # Metadata
 
-reconstruct(::Val{:metadata}, ::Type{T}, @nospecialize(data)
+reconstruct(::Val{:metadata}, ::Type{T}, data::JSON.Object{String,Any}
     ) where T <: AbstractProperty = OrderedDict(d[1] => d[2] for d in data)
 
 to_dict(::Val{:metadata}, ::Val{:default}, gprop::AbstractProperty
@@ -132,8 +132,11 @@ Base.copy(prop::T) where T <: MolProperty = T(
     copy(prop.metadata), copy(prop.logs)
 )
 
-
-reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, @nospecialize(data)
+reconstruct(::Val{:pyrrole_like}, ::Type{MolProperty{T}}, data::Vector{Any}) where T = T.(data)
+reconstruct(::Val{:smarts_input}, ::Type{MolProperty{T}}, data::String) where T = data
+reconstruct(::Val{:smarts_lexical_succ}, ::Type{MolProperty{T}}, data::Vector{Any}
+    ) where T = [T.(d) for d in data]
+reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, data::JSON.Object{String,Any}
     ) where T = reconstruct(MolDescriptor{T}, data)
 
 
