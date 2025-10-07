@@ -17,6 +17,68 @@ const STEREOCENTER_STATE = Dict(
     (4, 2, 1) => true, (4, 2, 3) => false,
     (4, 3, 1) => false, (4, 3, 2) => true
 )
+using StructUtils
+export
+    VertexKey,
+    Stereocenter, StereocenterMap,
+    Stereobond, StereobondMap
+
+
+struct VertexKey{T<:Integer}
+    key::T
+end
+
+Base.:(==)(x::VertexKey, y::VertexKey) = x.key == y.key
+Base.hash(x::VertexKey, h::UInt) = hash(x.key, h)
+StructUtils.lowerkey(::JSON.JSONStyle, x::VertexKey{T}) where T = string(x.key)
+StructUtils.liftkey(::Type{VertexKey{T}}, x::String) where T = VertexKey(parse(T, x))
+
+struct EdgeKey{T<:Integer}
+    key::Edge{T}
+end
+
+Base.:(==)(x::EdgeKey, y::EdgeKey) = x.key == y.key
+Base.hash(x::EdgeKey, h::UInt) = hash(x.key, h)
+StructUtils.lowerkey(::JSON.JSONStyle, x::EdgeKey{T}) where T = "$(x.key.src)_$(x.key.dst)"
+StructUtils.liftkey(::Type{EdgeKey{T}}, x::String) where T = EdgeKey(parse(T, s) for s in split(x, '_'))
+
+
+struct Stereocenter{T<:Integer}
+    lookingFrom::T
+    first::T
+    second::T
+    isclockwise::Bool
+end
+
+JSON.lower(c::Stereocenter) = [c.lookingFrom, c.first, c.second, c.isclockwise]
+stereoneighbors(c::Stereocenter) = [c.lookingFrom, c.first, c.second]
+isclockwise(c::Stereocenter) = c.isclockwise
+
+
+struct StereocenterMap{K<:Integer}
+    mapping::Dict{VertexKey{K},Stereocenter{K}}
+end
+
+Base.iterate(x::StereocenterMap, i...) = iterate(x.mapping, i...)
+Base.length(x::StereocenterMap) = length(x.mapping)
+
+
+struct Stereobond{T<:Integer}
+    first::T
+    second::T
+    is_cis::Bool
+end
+
+JSON.lower(b::Stereobond) = [b.first, b.second, b.is_cis]
+
+
+struct StereobondMap{K<:Integer}
+    mapping::Dict{EdgeKey{K},Stereobond{K}}
+end
+
+Base.iterate(x::StereobondMap, i...) = iterate(x.mapping, i...)
+Base.length(x::StereobondMap) = length(x.mapping)
+
 
 
 function isclockwise(stereo::Tuple{T,T,T,Bool}, f::T, s::T, t::T) where T <: Integer
