@@ -34,7 +34,7 @@ function reactive_molgraph(
         push!(es, edge)
         if haskey(b, "stereo") && b["stereo"] in keys(iscis)
             u, v = b["stereoAtoms"]
-            gps.stereobond[edge] = (u + 1, v + 1, iscis[b["stereo"]])
+            gps.stereobond[edge] = Stereobond{T}(u + 1, v + 1, iscis[b["stereo"]])
         end
         delete!(b, "atoms")
         delete!(b, "stereo")
@@ -50,7 +50,7 @@ function reactive_molgraph(
         if haskey(a, "stereo") && a["stereo"] in keys(isclockwise)
             nbrs = ordered_neighbors(g, i)
             # TODO: ambiguity in implicit H
-            gps.stereocenter[i] = (nbrs[1:3]..., isclockwise[a["stereo"]])
+            gps.stereocenter[i] = Stereocenter{T}(nbrs[1:3]..., isclockwise[a["stereo"]])
         end
     end
     # expand fadjlist for vprops of isolated nodes

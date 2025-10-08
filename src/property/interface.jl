@@ -7,43 +7,6 @@
 # Common interfaces of AbstractProperty
 
 
-"""
-    reconstruct(::Type{T}, data::Dict{String,Any}) where T <: AbstractProperty
-
-Reconstruct properties from a dict, typically form a serialized form of the data (e.g. JSON)
-"""
-function reconstruct(::Type{T}, data::JSON.Object{String,Any}) where T <: AbstractProperty
-    return T(; NamedTuple(
-        (sym, reconstruct(Val(sym), T, data[string(sym)])) for sym in fieldnames(T))...)
-end
-
-reconstruct(::Val{V}, ::Type{T}, data::JSON.Object{String,Any}) where {V,T<:AbstractProperty} = data
-
-
-"""
-    to_dict(::Type{T}, data::Dict{String,Any}) where T <: AbstractProperty
-
-Dump properties to a dict for serialization.
-"""
-function to_dict(::Val{F}, container::AbstractProperty) where F
-    data = Dict{String,Any}()
-    for sym in fieldnames(typeof(container))
-        data[string(sym)] = to_dict(Val(sym), Val(F), container)
-    end
-    return data
-end
-
-to_dict(::Val{V}, ::Val{F}, container::AbstractProperty) where {V,F} = getproperty(container, V)
-
-
-function Base.:(==)(g::T, h::T) where T <: AbstractProperty
-    for sym in fieldnames(typeof(g))
-        getproperty(g, sym) == getproperty(h, sym) || return false
-    end
-    return true
-end
-
-
 # Metadata
 
 reconstruct(::Val{:metadata}, ::Type{T}, data::JSON.Object{String,Any}
@@ -113,8 +76,8 @@ to_dict(::Val{:descriptors}, ::Val{:default}, gprop::AbstractProperty
 Container of graph-level molecule properties compatible with `ReactiveMolGraph`.
 """
 @kwdef struct MolProperty{T} <: SimpleMolProperty{T}
-    stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
-    stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
+    stereocenter::StereocenterMap{T} = StereocenterMap{T}()
+    stereobond::StereobondMap{T} = StereobondMap{T}()
     pyrrole_like::Vector{T} = T[]  # pyrrole H position for SMILES kekulization
     smarts_input::String = ""
     smarts_lexical_succ::Vector{Vector{T}} = Vector{T}[]  # lexical index used for stereochem
@@ -140,21 +103,4 @@ reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, data::JSON.Object{Strin
     ) where T = reconstruct(MolDescriptor{T}, data)
 
 
-# Property accessors
 
-Base.getindex(mol::AbstractMolGraph, gprop::Symbol) = getproperty(mol.gprops, gprop)
-
-# old accessors (deprecated)
-get_prop(mol::SimpleMolGraph, prop::Symbol) = mol[prop]
-has_prop(mol::SimpleMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
-# set_prop! is not available because MolProperty types should be immutable.
-
-# Internally called by descriptor methods (e.g. `is_ring_aromatic(mol)`)
-# Do not expose
-
-get_descriptor(mol::SimpleMolGraph, field::Symbol
-    ) = getproperty(mol[:descriptors], field)
-set_descriptor!(mol::SimpleMolGraph, field::Symbol, value
-    ) = setproperty!(mol[:descriptors], field, value)
-has_descriptor(mol::SimpleMolGraph, field::Symbol
-    ) = hasproperty(mol[:descriptors], field)

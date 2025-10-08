@@ -125,8 +125,8 @@ Base.copy(desc::T) where T <: QueryMolDescriptor = T(
 
 
 @kwdef struct QueryMolProperty{T} <: SimpleMolProperty{T}
-    stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
-    stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
+    stereocenter::StereocenterMap{T} = StereocenterMap{T}()
+    stereobond::StereobondMap{T} = StereobondMap{T}()
     smarts_input::String = ""
     smarts_lexical_succ::Vector{Vector{T}} = Vector{T}[]  # lexical index used for stereochem
     smarts_connectivity::Vector{Vector{T}} = Vector{T}[]  # SMARTS connectivity query

@@ -3,29 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-"""
-    ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T}
-
-The base class of molecule model which have auto-update mechanism of properties.
-
-Typically `ReactiveMolGraph` should have the following properties:
-- `graph`: molecular graph topology in `Graphs.SimpleGraph`.
-- `vprops`: `Vector` of atom properties (e.g. SDFAtom, SMILESAtom)
-- `eprops`: `Vector` of bond properties (e.g. SDFBond, SMILESBond)
-- `gprops`: graph-level properties and stored descriptors (e.g. stereocenter)
-- `states`: update flags and callback functions for `reactive` property update
-
-"""
-abstract type ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T} end
-
-Base.:(==)(g::ReactiveMolGraph, h::ReactiveMolGraph
-    ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops
-
-vproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = V
-eproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = E
-
-Base.copy(mol::T) where T <: ReactiveMolGraph = T(
-    copy(mol.graph), copy(mol.vprops), copy(mol.eprops), copy(mol.gprops), copy(mol.state))
 
 
 """

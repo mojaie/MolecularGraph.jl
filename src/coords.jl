@@ -202,8 +202,7 @@ coordgen(mol::SimpleMolGraph) = coordgen(
 
 function coordgen(
         g::SimpleGraph{T}, atomnum::Vector{Int}, bondorder_::Vector{Int},
-        stereocenters::Dict{T,Tuple{T,T,T,Bool}},
-        stereobonds::Dict{Edge{T},Tuple{T,T,Bool}}) where T
+        stereocenters::StereocenterMap{T}, stereobonds::StereobondMap{T}) where T
     minmol = @ccall libcoordgen.getSketcherMinimizer()::Ptr{Cvoid}
     atoms = Ptr{Cvoid}[]
     bonds = Ptr{Cvoid}[]
@@ -228,17 +227,17 @@ function coordgen(
     @ccall libcoordgen.assignBondsAndNeighbors(minmol::Ptr{Cvoid})::Cvoid
 
     # Stereocenter
-    for (n, stereo) in stereocenters
+    for (n, c) in stereocenters
         @ccall libcoordgen.setStereoCenter(
-            atoms[n]::Ptr{Cvoid}, atoms[stereo[1]]::Ptr{Cvoid},
-            atoms[stereo[2]]::Ptr{Cvoid}, atoms[stereo[3]]::Ptr{Cvoid}, stereo[4]::Cint)::Cvoid
+            atoms[n]::Ptr{Cvoid}, atoms[c.first]::Ptr{Cvoid},
+            atoms[c.second]::Ptr{Cvoid}, atoms[c.third]::Ptr{Cvoid}, c.isclockwise::Cint)::Cvoid
     end
 
     # Stereobond
-    for (e, stereo) in stereobonds
+    for (e, b) in stereobonds
         @ccall libcoordgen.setStereoBond(
-            bonds[ernk[e]]::Ptr{Cvoid}, atoms[stereo[1]]::Ptr{Cvoid},
-            atoms[stereo[2]]::Ptr{Cvoid}, stereo[3]::Cint
+            bonds[ernk[e]]::Ptr{Cvoid}, atoms[b.first]::Ptr{Cvoid},
+            atoms[b.second]::Ptr{Cvoid}, b.is_cis::Cint
         )::Cvoid
     end
 

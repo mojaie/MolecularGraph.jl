@@ -8,6 +8,7 @@ module MolecularGraph
 import JSON
 using OrderedCollections
 using Printf: @sprintf
+using StructUtils
 import YAML
 
 
@@ -30,7 +31,6 @@ include("./util/math.jl")
 using Graphs
 
 include("./model/interface.jl")
-include("./property/interface.jl")
 include("./draw/interface.jl")
 
 export
@@ -46,6 +46,8 @@ using DelimitedFiles: readdlm
 
 include("./model/atom.jl")
 include("./model/bond.jl")
+include("stereo.jl")
+include("./property/interface.jl")
 include("./model/molgraph.jl")
 include("./model/query.jl")
 
@@ -59,6 +61,11 @@ include("./graph/planarity.jl")
 include("./graph/isomorphism_edge.jl")
 include("./graph/isomorphism_vf2.jl")
 include("./graph/isomorphism_clique.jl")
+
+export
+    VertexKey, EdgeKey,
+    Stereocenter, StereocenterMap,
+    Stereobond, StereobondMap
 
 export
     ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
@@ -91,10 +98,10 @@ export
 
 # Basic molecular properties
 
-include("property/topology.jl")
-include("property/valence.jl")
-include("property/hybridization.jl")
-include("property/wclogp.jl")
+include("./property/topology.jl")
+include("./property/valence.jl")
+include("./property/hybridization.jl")
+include("./property/wclogp.jl")
 
 export
     sssr, sssr!,
@@ -118,7 +125,6 @@ export
 using coordgenlibs_jll: libcoordgen
 
 include("coords.jl")
-include("stereo.jl")
 include("preprocess.jl")
 include("virtualatom.jl")
 
