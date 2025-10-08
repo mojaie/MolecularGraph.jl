@@ -50,10 +50,16 @@ function Base.iterate(x::StereocenterMap, state...)
     return isnothing(r) ? nothing : (first(r[1]).key => last(r[1]), r[2])
 end
 
-Base.length(x::StereocenterMap) = length(x.mapping)
-Base.setindex!(x::StereocenterMap{T}, v, k...) where T = setindex!(x.mapping, v, VertexKey{T}.(k)...)
 Base.eltype(::StereocenterMap{T}) where T = Pair{T,Stereocenter{T}}
+Base.:(==)(x::StereocenterMap, y::StereocenterMap) = x.mapping == y.mapping
+Base.length(x::StereocenterMap) = length(x.mapping)
 Base.copy(x::T) where T <: StereocenterMap = T(copy(x.mapping))
+Base.keys(x::StereocenterMap{T}) where T = getproperty.(keys(x.mapping), :key)
+Base.getindex(x::StereocenterMap{T}, k...) where T = getindex(x.mapping, VertexKey{T}.(k)...)
+Base.setindex!(x::StereocenterMap{T}, v, k...) where T = setindex!(x.mapping, v, VertexKey{T}.(k)...)
+Base.empty!(x::StereocenterMap) = empty!(x.mapping)
+Base.merge!(x::T, y::T) where T <: StereocenterMap = merge!(x.mapping, y.mapping)
+
 
 function remap(
         stereomap::StereocenterMap{T}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
@@ -93,10 +99,15 @@ function Base.iterate(x::StereobondMap, state...)
     return isnothing(r) ? nothing : (first(r[1]).key => last(r[1]), r[2])
 end
 
-Base.length(x::StereobondMap) = length(x.mapping)
-Base.setindex!(x::StereobondMap{T}, v, k...) where T = setindex!(x.mapping, v, EdgeKey{T}.(k)...)
+Base.:(==)(x::StereobondMap, y::StereobondMap) = x.mapping == y.mapping
 Base.eltype(::StereobondMap{T}) where T = Pair{T,Stereobond{T}}
+Base.length(x::StereobondMap) = length(x.mapping)
 Base.copy(x::T) where T <: StereobondMap = T(copy(x.mapping))
+Base.keys(x::StereobondMap{T}) where T = getproperty.(keys(x.mapping), :key)
+Base.getindex(x::StereobondMap{T}, k...) where T = getindex(x.mapping, EdgeKey{T}.(k)...)
+Base.setindex!(x::StereobondMap{T}, v, k...) where T = setindex!(x.mapping, v, EdgeKey{T}.(k)...)
+Base.empty!(x::StereobondMap) = empty!(x.mapping)
+Base.merge!(x::T, y::T) where T <: StereobondMap = merge!(x.mapping, y.mapping)
 
 function remap(
         stereomap::StereobondMap{T}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
