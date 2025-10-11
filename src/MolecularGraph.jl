@@ -129,6 +129,7 @@ include("preprocess.jl")
 include("virtualatom.jl")
 
 export
+    Coords2d, Coords3d,
     GeneralMolGraph,
     VirtualAtom, HydrogenatedAtom, FormulaGroup, StructGroup,
     StructGroupBond,

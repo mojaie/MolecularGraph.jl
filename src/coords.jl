@@ -3,71 +3,94 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-# TODO: just remap nodes if still all existing vertices have coords.
+struct Coords2d
+    coords::Vector{Point2d}
+end
 
-reconstruct(::Val{:coords2d}, ::Type{T}, data::JSON.Object{String,Any}
-    ) where T <: AbstractProperty = [[Point2d(cd...) for cd in cds] for cds in data]
-to_dict(
-    ::Val{:coords2d}, ::Val{:default}, gprop::AbstractProperty
-) = [[collect(cd) for cd in cds] for cds in gprop.coords2d]
+Coords2d() = Coords2d([])
+Base.iterate(x::Coords2d, state...) = iterate(x.coords, state...)
+Base.eltype(::Coords2d) = Point2d
+Base.length(x::Coords2d) = length(x.coords)
+Base.copy(x::Coords2d) = Coords2d(copy(x.coords))
+Base.getindex(x::Coords2d, k...) = getindex(x.coords, k...)
+Base.setindex!(x::Coords2d, v, k...) = setindex!(x.coords, v, k...)
+Base.empty!(x::Coords2d) = empty!(x.coords)
 
-function remap!(
-        ::Val{:coords2d}, desc::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords2d}) = false
+JSON.lower(x::Coords2d) = [[p...] for p in x.coords]
+JSON.lift(::Type{Coords2d}, x) = Coords2d([Point2d(p...) for p in x])
+
+function remap(
+        coords::Vector{Coords2d}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
     revv = Dict(v => i for (i, v) in enumerate(vmap))
-    container = Vector{Vector{Point2d}}(undef, length(desc.coords2d))
-    for (i, oldcds) in enumerate(desc.coords2d)
-        newcds = Vector{Point2d}(undef, length(revv))
+    container = Vector{Coords2d}(undef, length(coords))
+    for (i, oldcds) in enumerate(coords)
+        newcds = Coords2d(undef, length(revv))
         for (oldp, newp) in revv
             newcds[newp] = oldcds[oldp]
         end
         container[i] = newcds
     end
-    empty!(desc.coords2d)
-    append!(desc.coords2d, container)
+    return container
+end
+
+function remap!(::Val{:coords2d}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
+    empty!(gprop.coords2d)
+    append!(gprop.coords2d, remap(gprop.coords2d, args...))
     return
 end
 
-reconstruct(::Val{:coords3d}, ::Type{T}, data::JSON.Object{String,Any}
-    ) where T <: AbstractProperty = [[Point3d(cd...) for cd in cds] for cds in data]
-to_dict(
-    ::Val{:coords3d}, ::Val{:default}, gprop::AbstractProperty
-) = [[collect(cd) for cd in cds] for cds in gprop.coords3d]
 
-function remap!(
-        ::Val{:coords3d}, desc::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
+
+struct Coords3d
+    coords::Vector{Point3d}
+end
+
+Coords3d() = Coords3d([])
+Base.iterate(x::Coords3d, state...) = iterate(x.coords, state...)
+Base.eltype(::Coords3d) = Point3d
+Base.length(x::Coords3d) = length(x.coords)
+Base.copy(x::Coords3d) = Coords3d(copy(x.coords))
+Base.getindex(x::Coords3d, k...) = getindex(x.coords, k...)
+Base.setindex!(x::Coords3d, v, k...) = setindex!(x.coords, v, k...)
+Base.empty!(x::Coords3d) = empty!(x.coords)
+
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords3d}) = false
+JSON.lower(x::Coords3d) = [[p...] for p in x.coords]
+JSON.lift(::Type{Coords3d}, x) = Coords3d([Point3d(p...) for p in x])
+
+function remap(
+        coords::Vector{Coords3d}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
     revv = Dict(v => i for (i, v) in enumerate(vmap))
-    container = Vector{Vector{Point3d}}(undef, length(desc.coords3d))
-    for (i, oldcds) in enumerate(desc.coords3d)
-        newcds = Vector{Point3d}(undef, length(revv))
+    container = Vector{Coords3d}(undef, length(coords))
+    for (i, oldcds) in enumerate(coords)
+        newcds = Coords3d(undef, length(revv))
         for (oldp, newp) in revv
             newcds[newp] = oldcds[oldp]
         end
         container[i] = newcds
     end
-    empty!(desc.coords3d)
-    append!(desc.coords3d, container)
+    return container
+end
+
+function remap!(::Val{:coords3d}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
+    empty!(gprop.coords3d)
+    append!(gprop.coords3d, remap(gprop.coords3d, args...))
     return
 end
 
-reconstruct(::Val{:draw2d_bond_style}, ::Type{T}, data::JSON.Object{String,Any}
-    ) where T <: AbstractProperty = [[Symbol(s) for s in sty] for sty in data]
-to_dict(
-    ::Val{:draw2d_bond_style}, ::Val{:default}, gprop::AbstractProperty
-) = [[string(s) for s in sty] for sty in gprop.draw2d_bond_style]
 
-function remap!(
-        ::Val{:draw2d_bond_style}, desc::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
-    container = Vector{Vector{Symbol}}(undef, length(desc.draw2d_bond_style))
+
+function remap(
+        style::Vector{Vector{Symbol}}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    container = Vector{Vector{Symbol}}(undef, length(style))
     revv = Dict(v => i for (i, v) in enumerate(vmap))
     newedges = sort([u_edge(T, revv[src(e)], revv[dst(e)]) for e in edges
             if src(e) in vmap && dst(e) in vmap])
     olderank = Dict(e => i for (i, e) in enumerate(edges))
     emap = Dict(i => edge_rank(olderank, vmap[src(e)], vmap[dst(e)]) for (i, e) in enumerate(newedges))
     inv = Dict{Symbol,Symbol}(:up => :revup, :revup => :up, :down => :revdown, :revdown => :down)
-    for (i, styles) in enumerate(desc.draw2d_bond_style)
+    for (i, styles) in enumerate(style)
         cont = Vector{Symbol}(undef, length(emap))
         for (j, e) in enumerate(newedges)
             dr = styles[emap[j]]
@@ -79,10 +102,15 @@ function remap!(
         end
         container[i] = cont
     end
-    empty!(desc.draw2d_bond_style)
-    append!(desc.draw2d_bond_style, container)
+    return container
+end
+
+function remap!(::Val{:draw2d_bond_style}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
+    empty!(gprop.draw2d_bond_style)
+    append!(gprop.draw2d_bond_style, remap(gprop.draw2d_bond_style, args...))
     return
 end
+
 
 
 function coords_from_sdf!(mol::SimpleMolGraph)

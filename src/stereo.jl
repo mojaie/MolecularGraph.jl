@@ -54,7 +54,8 @@ Base.eltype(::StereocenterMap{T}) where T = Pair{T,Stereocenter{T}}
 Base.:(==)(x::StereocenterMap, y::StereocenterMap) = x.mapping == y.mapping
 Base.length(x::StereocenterMap) = length(x.mapping)
 Base.copy(x::T) where T <: StereocenterMap = T(copy(x.mapping))
-Base.keys(x::StereocenterMap{T}) where T = getproperty.(keys(x.mapping), :key)
+Base.keys(x::StereocenterMap) = getproperty.(keys(x.mapping), :key)
+Base.haskey(x::StereocenterMap, k) = haskey(x.mapping, k)
 Base.getindex(x::StereocenterMap{T}, k...) where T = getindex(x.mapping, VertexKey{T}.(k)...)
 Base.setindex!(x::StereocenterMap{T}, v, k...) where T = setindex!(x.mapping, v, VertexKey{T}.(k)...)
 Base.empty!(x::StereocenterMap) = empty!(x.mapping)
@@ -72,9 +73,9 @@ function remap(
     return newmap
 end
 
-function remap!(gprop::SimpleMolProperty{T}, stereomap::StereocenterMap{T}, args...) where T <: Integer
+function remap!(::Val{:stereocenter}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
     empty!(gprop.stereocenter)
-    merge!(gprop.stereocenter, remap(stereomap, args...))
+    merge!(gprop.stereocenter, remap(gprop.stereocenter, args...))
     return
 end
 
@@ -103,7 +104,8 @@ Base.:(==)(x::StereobondMap, y::StereobondMap) = x.mapping == y.mapping
 Base.eltype(::StereobondMap{T}) where T = Pair{T,Stereobond{T}}
 Base.length(x::StereobondMap) = length(x.mapping)
 Base.copy(x::T) where T <: StereobondMap = T(copy(x.mapping))
-Base.keys(x::StereobondMap{T}) where T = getproperty.(keys(x.mapping), :key)
+Base.keys(x::StereobondMap) = getproperty.(keys(x.mapping), :key)
+Base.haskey(x::StereobondMap, k) = haskey(x.mapping, k)
 Base.getindex(x::StereobondMap{T}, k...) where T = getindex(x.mapping, EdgeKey{T}.(k)...)
 Base.setindex!(x::StereobondMap{T}, v, k...) where T = setindex!(x.mapping, v, EdgeKey{T}.(k)...)
 Base.empty!(x::StereobondMap) = empty!(x.mapping)
@@ -121,9 +123,9 @@ function remap(
     return newmap
 end
 
-function remap!(gprop::SimpleMolProperty{T}, stereomap::StereobondMap{T}, args...) where T <: Integer
+function remap!(::Val{:stereobond}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
     empty!(gprop.stereobond)
-    merge!(gprop.stereobond, remap(stereomap, args...))
+    merge!(gprop.stereobond, remap(gprop.stereobond, args...))
     return
 end
 

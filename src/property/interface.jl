@@ -38,27 +38,44 @@ set_prop!(mol::SimpleMolGraph, key::String, value::String) = setindex!(mol, valu
 
 Container of calculated secondary properties (descriptor) compatible with `ReactiveMolGraph`.
 """
-@kwdef mutable struct MolDescriptor{T} <: SimpleMolProperty{T}
-    # cached relatively expensive descriptors
-    sssr::Vector{Vector{T}} = Vector{T}[]
-    lone_pair::Vector{Int} = Int[]
-    apparent_valence::Vector{Int} = Int[]
-    valence::Vector{Int} = Int[]
-    is_ring_aromatic::Vector{Bool} = Bool[]
+mutable struct MolDescriptor{T} <: SimpleMolProperty{T}
     # standardized atom charges and bond orders
-    atom_charge::Vector{Int} = Int[]
-    bond_order::Vector{Int} = Int[]
+    atom_charge::Vector{Int}
+    bond_order::Vector{Int}
+    # cached descriptors that are expensive or frequently used
+    sssr::Vector{Vector{T}}
+    lone_pair::Vector{Int}
+    apparent_valence::Vector{Int}
+    valence::Vector{Int}
+    is_ring_aromatic::Vector{Bool}
     # coordinates
-    coords2d::Vector{Vector{Point2d}} = Vector{Point2d}[]
-    coords3d::Vector{Vector{Point3d}} = Vector{Point3d}[]
-    # wedge notation in drawing
-    draw2d_bond_style::Vector{Vector{Symbol}} = Vector{Symbol}[]
+    coords2d::Vector{Vector{Point2d}}
+    coords3d::Vector{Vector{Point3d}}
+    draw2d_bond_style::Vector{Vector{Symbol}}  # wedge notation in drawing
+end
+
+function MolDescriptor{T}(;
+        atom_charge::Vector{Int}=Int[],
+        bond_order::Vector{Int}=Int[],
+        sssr::Vector{Vector{T}}=Vector{T}[],
+        lone_pair::Vector{Int}=Int[],
+        apparent_valence::Vector{Int}=Int[],
+        valence::Vector{Int}=Int[],
+        is_ring_aromatic::Vector{Bool}=Bool[],
+        coords2d::Vector{Vector{Point2d}}=Vector{Point2d}[],
+        coords3d::Vector{Vector{Point3d}}=Vector{Point3d}[],
+        draw2d_bond_style::Vector{Vector{Symbol}}=Vector{Symbol}[]) where T <: Integer
+    return MolDescriptor{T}(
+        atom_charge, bond_order, sssr, lone_pair, apparent_valence,
+        valence, is_ring_aromatic, coords2d, coords3d, draw2d_bond_style
+    )
 end
 
 Base.copy(desc::T) where T <: MolDescriptor = T(
-    copy_vec_of_vec(desc.sssr), copy(desc.lone_pair), copy(desc.apparent_valence),
-    copy(desc.valence), copy(desc.is_ring_aromatic), copy(desc.atom_charge),
-    copy(desc.bond_order), copy_vec_of_vec(desc.coords2d), copy_vec_of_vec(desc.coords3d),
+    copy(desc.atom_charge), copy(desc.bond_order), copy_vec_of_vec(desc.sssr),
+    copy(desc.lone_pair), copy(desc.apparent_valence),
+    copy(desc.valence), copy(desc.is_ring_aromatic),
+    copy_vec_of_vec(desc.coords2d), copy_vec_of_vec(desc.coords3d),
     copy_vec_of_vec(desc.draw2d_bond_style)
 )
 
@@ -75,17 +92,30 @@ to_dict(::Val{:descriptors}, ::Val{:default}, gprop::AbstractProperty
 
 Container of graph-level molecule properties compatible with `ReactiveMolGraph`.
 """
-@kwdef struct MolProperty{T} <: SimpleMolProperty{T}
-    stereocenter::StereocenterMap{T} = StereocenterMap{T}()
-    stereobond::StereobondMap{T} = StereobondMap{T}()
-    pyrrole_like::Vector{T} = T[]  # pyrrole H position for SMILES kekulization
-    smarts_input::String = ""
-    smarts_lexical_succ::Vector{Vector{T}} = Vector{T}[]  # lexical index used for stereochem
-    descriptors::MolDescriptor{T} = MolDescriptor{T}()
-    # Graph-level metadata properties (e.g. SDFile option fields)
-    metadata::OrderedDict{String,String} = OrderedDict{String,String}()
-    # Parse errors
-    logs::Dict{String,String} = Dict{String,String}()
+struct MolProperty{T} <: SimpleMolProperty{T}
+    stereocenter::StereocenterMap{T}
+    stereobond::StereobondMap{T}
+    pyrrole_like::Vector{T}  # pyrrole H position for SMILES kekulization
+    smarts_input::String  # TODO: should be metadata
+    smarts_lexical_succ::Vector{Vector{T}}  # lexical index used for stereochem
+    descriptors::MolDescriptor{T}
+    metadata::OrderedDict{String,String}  # e.g. SDFile option fields
+    logs::Dict{String,String}  # Parse errors
+end
+
+function MolProperty{T}(;
+        stereocenter::StereocenterMap{T}=StereocenterMap{T}(),
+        stereobond::StereobondMap{T}=StereobondMap{T}(),
+        pyrrole_like::Vector{T}=T[],
+        smarts_input::String="",
+        smarts_lexical_succ::Vector{Vector{T}}=Vector{T}[],
+        descriptors::MolDescriptor{T}=MolDescriptor{T}(),
+        metadata::OrderedDict{String,String}=OrderedDict{String,String}(),
+        logs::Dict{String,String}=Dict{String,String}()) where T <: Integer
+    return MolProperty{T}(
+        stereocenter, stereobond, pyrrole_like, smarts_input, smarts_lexical_succ,
+        descriptors, metadata, logs
+    )
 end
 
 
