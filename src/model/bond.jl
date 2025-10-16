@@ -42,26 +42,22 @@ function SDFBond(;
     return SDFBond(order, notation, isordered)
 end
 
-SDFBond(d::Dict{String,Any}
-    ) = SDFBond(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
-SDFBond(d::Dict{Symbol,Any}
-    ) = SDFBond(; NamedTuple((k, v) for (k, v) in d)...)
+SDFBond(d::Dict{Symbol,Any}) = SDFBond(; NamedTuple((k, v) for (k, v) in d)...)
 
 bond_order(b::SDFBond) = b.order
 
-function to_dict(::Val{:default}, b::SDFBond)
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{SDFBond}) = false
+
+function JSON.lower(x::SDFBond)
     rcd = Dict{String,Any}()
-    b.order == 1 || setindex!(rcd, b.order, "order")
-    b.notation == 0 || setindex!(rcd, b.notation, "notation")
-    b.isordered === true || setindex!(rcd, b.isordered, "isordered")
+    x.order == 1 || setindex!(rcd, x.order, "order")
+    x.notation == 0 || setindex!(rcd, x.notation, "notation")
+    x.isordered === true || setindex!(rcd, x.isordered, "isordered")
     return rcd
 end
 
-function to_dict(::Val{:rdkit}, b::SDFBond)
-    rcd = Dict{String,Any}()
-    b.order == 1 || setindex!(rcd, b.order, "bo")
-    return rcd
-end
+JSON.lift(::Type{SDFBond}, x) = SDFBond(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+
 
 
 """
@@ -89,26 +85,22 @@ function SMILESBond(;
     return SMILESBond(order, isaromatic, Symbol(direction))
 end
 
-SMILESBond(d::Dict{String,Any}
-    ) = SMILESBond(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
-SMILESBond(d::Dict{Symbol,Any}
-    ) = SMILESBond(; NamedTuple((k, v) for (k, v) in d)...)
+SMILESBond(d::Dict{Symbol,Any}) = SMILESBond(; NamedTuple((k, v) for (k, v) in d)...)
 
 bond_order(b::SMILESBond) = b.order
 
-function to_dict(::Val{:default}, b::SMILESBond)
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{SMILESBond}) = false
+
+function JSON.lower(x::SMILESBond)
     rcd = Dict{String,Any}()
-    b.order == 1 || setindex!(rcd, b.order, "order")
-    b.isaromatic === false || setindex!(rcd, b.isaromatic, "isaromatic")
-    b.direction === :unspecified || setindex!(rcd, b.direction, "direction")
+    x.order == 1 || setindex!(rcd, x.order, "order")
+    x.isaromatic === false || setindex!(rcd, x.isaromatic, "isaromatic")
+    x.direction === :unspecified || setindex!(rcd, x.direction, "direction")
     return rcd
 end
 
-function to_dict(::Val{:rdkit}, b::SMILESBond)
-    rcd = Dict{String,Any}()
-    b.order == 1 || setindex!(rcd, b.order, "bo")
-    return rcd
-end
+JSON.lift(::Type{SMILESBond}, x) = SMILESBond(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+
 
 
 """
@@ -134,15 +126,18 @@ function CommonChemBond(;
     CommonChemBond(something(bo, type))
 end
 
-CommonChemBond(d::Dict{String,Any}
-    ) = CommonChemBond(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
-CommonChemBond(d::Dict{Symbol,Any}
-    ) = CommonChemBond(; NamedTuple((k, v) for (k, v) in d)...)
+CommonChemBond(d::Dict{Symbol,Any}) = CommonChemBond(; NamedTuple((k, v) for (k, v) in d)...)
+CommonChemBond(x::SDFBond) = CommonChemBond(x.order)
+CommonChemBond(x::SMILESBond) = CommonChemBond(x.order)
 
 bond_order(b::CommonChemBond) = b.type
 
-function to_dict(::Val, b::CommonChemBond)
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{CommonChemBond}) = false
+
+function JSON.lower(x::CommonChemBond)
     rcd = Dict{String,Any}()
-    b.type == 1 || setindex!(rcd, b.type, "bo")
+    x.type == 1 || setindex!(rcd, x.type, "bo")
     return rcd
 end
+
+JSON.lift(::Type{CommonChemBond}, x) = CommonChemBond(; NamedTuple((Symbol(k), v) for (k, v) in x)...)

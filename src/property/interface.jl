@@ -187,18 +187,55 @@ end
 
 
 
+struct Draw2dBondStyle
+    styles::Vector{Symbol}
+end
+
+Draw2dBondStyle() = Draw2dBondStyle([])
+Base.iterate(x::Draw2dBondStyle, state...) = iterate(x.styles, state...)
+Base.eltype(::Draw2dBondStyle) = Symbol
+Base.length(x::Draw2dBondStyle) = length(x.styles)
+Base.copy(x::Draw2dBondStyle) = Draw2dBondStyle(copy(x.styles))
+Base.getindex(x::Draw2dBondStyle, k...) = getindex(x.styles, k...)
+Base.setindex!(x::Draw2dBondStyle, v, k...) = setindex!(x.styles, v, k...)
+Base.empty!(x::Draw2dBondStyle) = empty!(x.styles)
+
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{Draw2dBondStyle}) = false
+JSON.lower(x::Draw2dBondStyle) = string.(x.styles)
+JSON.lift(::Type{Draw2dBondStyle}, x) = Draw2dBondStyle(Symbol.(x))
+
+function remap(
+        style::Vector{Draw2dBondStyle}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    container = Vector{Draw2dBondStyle}(undef, length(style))
+    revv = Dict(v => i for (i, v) in enumerate(vmap))
+    newedges = sort([u_edge(T, revv[src(e)], revv[dst(e)]) for e in edges
+            if src(e) in vmap && dst(e) in vmap])
+    olderank = Dict(e => i for (i, e) in enumerate(edges))
+    emap = Dict(i => edge_rank(olderank, vmap[src(e)], vmap[dst(e)]) for (i, e) in enumerate(newedges))
+    inv = Dict{Symbol,Symbol}(:up => :revup, :revup => :up, :down => :revdown, :revdown => :down)
+    for (i, styles) in enumerate(style)
+        cont = Draw2dBondStyle(undef, length(emap))
+        for (j, e) in enumerate(newedges)
+            dr = styles[emap[j]]
+            if dr in [:up, :revup, :down, :revdown] && (src(e) < dst(e)) !== (vmap[src(e)] < vmap[dst(e)])
+                cont[j] = inv[dr]
+            else
+                cont[j] = dr
+            end
+        end
+        container[i] = cont
+    end
+    return container
+end
+
+function remap!(::Val{:draw2d_bond_style}, gprop::SimpleMolProperty, args...)
+    append!(gprop.draw2d_bond_style, remap(gprop.draw2d_bond_style, args...))
+    return
+end
+
+
 
 # Common interfaces of AbstractProperty
-
-
-# Metadata
-
-reconstruct(::Val{:metadata}, ::Type{T}, data::JSON.Object{String,Any}
-    ) where T <: AbstractProperty = OrderedDict(d[1] => d[2] for d in data)
-
-to_dict(::Val{:metadata}, ::Val{:default}, gprop::AbstractProperty
-    ) = Any[collect(d) for d in gprop.metadata]
-
 
 # Metadata specific shorthands (e.g. mol["compound_id"] = "CP000001")
 
@@ -235,7 +272,7 @@ mutable struct MolDescriptor{T} <: SimpleMolProperty{T}
     # coordinates
     coords2d::Vector{Coords2d}
     coords3d::Vector{Coords3d}
-    draw2d_bond_style::Vector{Vector{Symbol}}  # wedge notation in drawing
+    draw2d_bond_style::Vector{Draw2dBondStyle}  # wedge notation in drawing
 end
 
 function MolDescriptor{T}(;
@@ -248,7 +285,7 @@ function MolDescriptor{T}(;
         is_ring_aromatic::Vector{Bool}=Bool[],
         coords2d::Vector{Coords2d}=Coords2d[],
         coords3d::Vector{Coords3d}=Coords3d[],
-        draw2d_bond_style::Vector{Vector{Symbol}}=Vector{Symbol}[]) where T <: Integer
+        draw2d_bond_style::Vector{Draw2dBondStyle}=Draw2dBondStyle[]) where T <: Integer
     return MolDescriptor{T}(
         atom_charge, bond_order, sssr, lone_pair, apparent_valence,
         valence, is_ring_aromatic, coords2d, coords3d, draw2d_bond_style
@@ -260,13 +297,9 @@ Base.copy(desc::T) where T <: MolDescriptor = T(
     copy(desc.lone_pair), copy(desc.apparent_valence),
     copy(desc.valence), copy(desc.is_ring_aromatic),
     [copy(c) for c in desc.coords2d], [copy(c) for c in desc.coords3d],
-    copy_vec_of_vec(desc.draw2d_bond_style)
+    [copy(c) for c in desc.draw2d_bond_style]
 )
 
-# `reconstruct` should be interfaced indivisually
-
-to_dict(::Val{:descriptors}, ::Val{:default}, gprop::AbstractProperty
-    ) = to_dict(Val(:default), gprop.descriptors)
 
 
 # Properties
@@ -308,13 +341,3 @@ Base.copy(prop::T) where T <: MolProperty = T(
     prop.smarts_input, copy_vec_of_vec(prop.smarts_lexical_succ), copy(prop.descriptors),
     copy(prop.metadata), copy(prop.logs)
 )
-
-reconstruct(::Val{:pyrrole_like}, ::Type{MolProperty{T}}, data::Vector{Any}) where T = T.(data)
-reconstruct(::Val{:smarts_input}, ::Type{MolProperty{T}}, data::String) where T = data
-reconstruct(::Val{:smarts_lexical_succ}, ::Type{MolProperty{T}}, data::Vector{Any}
-    ) where T = [T.(d) for d in data]
-reconstruct(::Val{:descriptors}, ::Type{MolProperty{T}}, data::JSON.Object{String,Any}
-    ) where T = reconstruct(MolDescriptor{T}, data)
-
-
-

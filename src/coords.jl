@@ -6,38 +6,6 @@
 # Note: just to avoid type piracy like JSON.lower(x::Point2d)
 
 
-function remap(
-        style::Vector{Vector{Symbol}}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
-    container = Vector{Vector{Symbol}}(undef, length(style))
-    revv = Dict(v => i for (i, v) in enumerate(vmap))
-    newedges = sort([u_edge(T, revv[src(e)], revv[dst(e)]) for e in edges
-            if src(e) in vmap && dst(e) in vmap])
-    olderank = Dict(e => i for (i, e) in enumerate(edges))
-    emap = Dict(i => edge_rank(olderank, vmap[src(e)], vmap[dst(e)]) for (i, e) in enumerate(newedges))
-    inv = Dict{Symbol,Symbol}(:up => :revup, :revup => :up, :down => :revdown, :revdown => :down)
-    for (i, styles) in enumerate(style)
-        cont = Vector{Symbol}(undef, length(emap))
-        for (j, e) in enumerate(newedges)
-            dr = styles[emap[j]]
-            if dr in [:up, :revup, :down, :revdown] && (src(e) < dst(e)) !== (vmap[src(e)] < vmap[dst(e)])
-                cont[j] = inv[dr]
-            else
-                cont[j] = dr
-            end
-        end
-        container[i] = cont
-    end
-    return container
-end
-
-function remap!(::Val{:draw2d_bond_style}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
-    empty!(gprop.draw2d_bond_style)
-    append!(gprop.draw2d_bond_style, remap(gprop.draw2d_bond_style, args...))
-    return
-end
-
-
-
 function coords_from_sdf!(mol::SimpleMolGraph)
     # Initializer. should be called before stereochem initializers.
     zrange = nv(mol) == 0 ? (0, 0) : extrema(mol[i].coords[3] for i in vertices(mol))
@@ -70,7 +38,7 @@ function coords_from_sdf!(mol::SimpleMolGraph)
             arr[i] = :none
         end
     end
-    push!(mol[:descriptors].draw2d_bond_style, arr)
+    push!(mol[:descriptors].draw2d_bond_style, Draw2dBondStyle(arr))
 end
 
 
@@ -222,7 +190,7 @@ function coordgen(
         end
     end
     # TODO: keep wave bond in SDFile
-    return coords, styles
+    return Coords2d(coords), Draw2dBondStyle(styles)
 end
 
 function coordgen!(mol::SimpleMolGraph)
@@ -234,6 +202,6 @@ function coordgen!(mol::SimpleMolGraph)
         mol.graph, atom_number(mol), bond_order(mol),
         mol[:stereocenter], mol[:stereobond]
     )
-    push!(mol[:descriptors].coords2d, Coords2d(coords))
+    push!(mol[:descriptors].coords2d, coords)
     push!(mol[:descriptors].draw2d_bond_style, styles)
 end

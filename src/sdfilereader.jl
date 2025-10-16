@@ -17,56 +17,53 @@ end
 
 
 function ctab_atom_v2(::Type{T}, line::AbstractString) where T <: AbstractElement
-    d = Dict{String,Any}()
     xpos = parse(Float64, line[1:10])
     ypos = parse(Float64, line[11:20])
     zpos = parse(Float64, line[21:30])
-    d["coords"] = Float64[xpos, ypos, zpos]
-    d["symbol"] = rstrip(line[32:34])
+    crds = Float64[xpos, ypos, zpos]
+    sym = rstrip(line[32:34])
     # atom.mass_diff = parse(Int, line[35:36])
-    d["isotope"] = 0  # will be ignored, use ISO property instead
+    iso = 0  # will be ignored, use ISO property instead
     old_sdf_charge = parse(Int, line[37:39])
-    d["charge"] = SDF_CHARGE_TABLE[old_sdf_charge]
-    d["multiplicity"] = old_sdf_charge == 4 ? 2 : 1
+    chg = SDF_CHARGE_TABLE[old_sdf_charge]
+    mul = old_sdf_charge == 4 ? 2 : 1
     # atom.stereo_flag = parse(Int, line[40:42])
     # valence = parse(Int, line[46:48])
-    return T(d)
+    return T(sym, chg, mul, iso, crds)
 end
 
 function ctab_atom_v3(::Type{T}, line::AbstractString) where T <: AbstractElement
-    d = Dict{String,Any}()
     ss = split(line)
-    d["coords"] = parse.(Float64, ss[5:7])
-    d["symbol"] = ss[4]
+    crds = parse.(Float64, ss[5:7])
+    sym = ss[4]
     props = Dict(sympair.(ss[9:end])...)
-    d["charge"] = get(props, :CHG, 0)
-    d["isotope"] = get(props, :MASS, 0)
-    d["multiplicity"] = get(props, :RAD, 1)
-    return T(d)
+    chg = get(props, :CHG, 0)
+    iso = get(props, :MASS, 0)
+    mul = get(props, :RAD, 1)
+    return T(sym, chg, mul, iso, crds)
 end
 
 function ctab_bond_v2(
         ::Type{T}, ::Type{E}, line::AbstractString) where {T<:Integer,E<:AbstractElement}
-    d = Dict{String,Any}()
     u = parse(T, line[1:3])
     v = parse(T, line[4:6])
-    d["order"] = parse(Int, line[7:9])
-    d["notation"] = parse(Int, line[10:12])
-    d["isordered"] = u < v
-    u, v = d["isordered"] ? (u, v) : (v, u)
-    return (u_edge(T, u, v), E(d))
+    ord = parse(Int, line[7:9])
+    notation = parse(Int, line[10:12])
+    isordered = u < v
+    u, v = isordered ? (u, v) : (v, u)
+    return (u_edge(T, u, v), E(ord, notation, isordered))
 end
 
 function ctab_bond_v3(
         ::Type{T}, ::Type{E}, line::AbstractString) where {T<:Integer,E<:AbstractElement}
     d = Dict{String,Any}()
     ss = split(line)
-    d["order"], u, v = parse.(T, ss[4:6])
+    ord, u, v = parse.(T, ss[4:6])
     props = Dict(sympair.(ss[7:end])...)
     # d["notation"] = get(props, :CFG, 0)  # TODO: not compatible with v2
-    d["isordered"] = u < v
-    u, v = d["isordered"] ? (u, v) : (v, u)
-    return (u_edge(T, u, v), E(d))
+    isordered = u < v
+    u, v = isordered ? (u, v) : (v, u)
+    return (u_edge(T, u, v), E(;order=ord, isordered=isordered))
 end
 
 function ctab_props_v2(io::IO)
@@ -182,14 +179,13 @@ function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: Simp
     # Properties
     if ver === :v2
         for (i, ps) in ctab_props_v2(io)
-            d = Dict{String,Any}()
-            d["symbol"] = vprops[i][:symbol]
-            d["coords"] = vprops[i][:coords]
+            sym = vprops[i][:symbol]
+            crds = vprops[i][:coords]
             # If prop block exists, any annotations in atom blocks will be overwritten
-            d["charge"] = get(ps, :CHG, 0)
-            d["multiplicity"] = get(ps, :RAD, 1)
-            d["isotope"] = get(ps, :ISO, 0)
-            vprops[i] = V(d)
+            chg = get(ps, :CHG, 0)
+            mul = get(ps, :RAD, 1)
+            iso = get(ps, :ISO, 0)
+            vprops[i] = V(sym, chg, mul, iso, crds)
         end
     elseif ver === :v3
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")

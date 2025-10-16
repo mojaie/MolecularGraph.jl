@@ -15,7 +15,7 @@ const BOND_STYLE_TO_SDF = Dict(
 
 
 function printv2atoms(
-        io::IO, g::SimpleGraph, atomsymbol::Vector{Symbol}, coords::Vector{Point2d})
+        io::IO, g::SimpleGraph, atomsymbol::Vector{Symbol}, coords::Coords2d)
     for i in vertices(g)
         x, y = coords[i][1:2]
         z = 0.0  # TODO: keep 3D
@@ -26,7 +26,7 @@ end
 
 
 function printv2atoms(
-        io::IO, g::SimpleGraph, atomsymbol::Vector{Symbol}, coords::Vector{Point3d})
+        io::IO, g::SimpleGraph, atomsymbol::Vector{Symbol}, coords::Coords3d)
     for i in vertices(g)
         x, y, z = coords[i][1:3]
         xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atomsymbol[i])
@@ -36,7 +36,7 @@ end
 
 
 function printv2bonds(
-        io::IO, g::SimpleGraph, bondorder::Vector{Int}, styles::Vector{Symbol})  # 2D
+        io::IO, g::SimpleGraph, bondorder::Vector{Int}, styles::Draw2dBondStyle)  # 2D
     for (i, e) in enumerate(edges(g))
         u, v = styles[i] in (:revup, :revdown) ? (dst(e), src(e)) : (src(e), dst(e))
         uv = @sprintf "%3d%3d%3d%3d  0  0  0" u v bondorder[i] BOND_STYLE_TO_SDF[styles[i]]

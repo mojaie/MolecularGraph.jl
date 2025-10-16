@@ -153,7 +153,7 @@ end
     data = JSON.Object{String,Any}(
         "id1" => "hoge", "id2" => "fuga", "valid" => "true", "exp_pka" => "9.24", "stock_mg" => "25"
     )
-    merge!(gprop.metadata, reconstruct(Val(:metadata), MolProperty{Int}, data))
+    merge!(gprop.metadata, data)
     atoms = [SDFAtom(),SDFAtom(),SDFAtom()]
     bonds = [SDFBond(),SDFBond()]
     mol = MolGraph(Edge.([(1, 2), (2, 3)]), atoms, bonds, gprops=gprop)
