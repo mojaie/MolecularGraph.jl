@@ -115,12 +115,12 @@ QueryBond(data::Dict{String,Any}) = QueryBond(querytree(Int, QueryNode, data)...
 
 
 @kwdef mutable struct QueryMolDescriptor{T} <: SimpleMolProperty{T}
-    coords2d::Vector{Vector{Point2d}} = Vector{Point2d}[]
-    coords3d::Vector{Vector{Point3d}} = Vector{Point3d}[]
+    coords2d::Vector{Coords2d} = Coords2d[]
+    coords3d::Vector{Coords3d} = Coords3d[]
 end
 
 Base.copy(desc::T) where T <: QueryMolDescriptor = T(
-    copy_vec_of_vec(desc.coords2d), copy_vec_of_vec(desc.coords3d)
+    [copy(c) for c in desc.coords2d], [copy(c) for c in desc.coords3d]
 )
 
 

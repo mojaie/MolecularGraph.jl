@@ -61,7 +61,6 @@ Base.setindex!(x::StereocenterMap{T}, v, k...) where T = setindex!(x.mapping, v,
 Base.empty!(x::StereocenterMap) = empty!(x.mapping)
 Base.merge!(x::T, y::T) where T <: StereocenterMap = merge!(x.mapping, y.mapping)
 
-
 function remap(
         stereomap::StereocenterMap{T}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
     revv = Dict(v => i for (i, v) in enumerate(vmap))

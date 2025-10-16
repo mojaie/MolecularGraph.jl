@@ -43,10 +43,13 @@ export
 # Graph models and algorithms
 
 using DelimitedFiles: readdlm
+using coordgenlibs_jll: libcoordgen
 
 include("./model/atom.jl")
 include("./model/bond.jl")
+
 include("stereo.jl")
+include("coords.jl")
 include("./property/interface.jl")
 include("./model/molgraph.jl")
 include("./model/query.jl")
@@ -65,7 +68,8 @@ include("./graph/isomorphism_clique.jl")
 export
     VertexKey, EdgeKey,
     Stereocenter, StereocenterMap,
-    Stereobond, StereobondMap
+    Stereobond, StereobondMap,
+    Coords2d, Coords3d
 
 export
     ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
@@ -122,14 +126,10 @@ export
 
 # Preprocessing and molecule manipulation
 
-using coordgenlibs_jll: libcoordgen
-
-include("coords.jl")
 include("preprocess.jl")
 include("virtualatom.jl")
 
 export
-    Coords2d, Coords3d,
     GeneralMolGraph,
     VirtualAtom, HydrogenatedAtom, FormulaGroup, StructGroup,
     StructGroupBond,

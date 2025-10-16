@@ -47,27 +47,25 @@ end
 
 Remap vertices according to the given vmap (new_v = old_v -> vmap[old_v]).
 """
-function remap!(container::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
+function remap!(gprop::SimpleMolProperty, args...)
     # vmap[old] -> new
-    for sym in fieldnames(typeof(container))
-        remap!(Val(sym), container, vmap, edges)
+    for sym in fieldnames(typeof(gprop))
+        remap!(Val(sym), gprop, args...)
     end
     return
 end
 
-function remap!(::Val, container::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
+function remap!(::Val, gprop::SimpleMolProperty, args...)
     return
 end
 
-function remap!(::Val{:descriptors}, gprop::SimpleMolProperty{T},
-        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+function remap!(::Val{:descriptors}, gprop::SimpleMolProperty, args...)
     for sym in fieldnames(typeof(gprop.descriptors))
-        remap!(Val(sym), gprop.descriptors, vmap, edges)
+        remap!(Val(sym), gprop.descriptors, args...)
     end
     return
 end
+
 
 
 """

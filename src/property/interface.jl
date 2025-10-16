@@ -49,8 +49,8 @@ mutable struct MolDescriptor{T} <: SimpleMolProperty{T}
     valence::Vector{Int}
     is_ring_aromatic::Vector{Bool}
     # coordinates
-    coords2d::Vector{Vector{Point2d}}
-    coords3d::Vector{Vector{Point3d}}
+    coords2d::Vector{Coords2d}
+    coords3d::Vector{Coords3d}
     draw2d_bond_style::Vector{Vector{Symbol}}  # wedge notation in drawing
 end
 
@@ -62,8 +62,8 @@ function MolDescriptor{T}(;
         apparent_valence::Vector{Int}=Int[],
         valence::Vector{Int}=Int[],
         is_ring_aromatic::Vector{Bool}=Bool[],
-        coords2d::Vector{Vector{Point2d}}=Vector{Point2d}[],
-        coords3d::Vector{Vector{Point3d}}=Vector{Point3d}[],
+        coords2d::Vector{Coords2d}=Coords2d[],
+        coords3d::Vector{Coords3d}=Coords3d[],
         draw2d_bond_style::Vector{Vector{Symbol}}=Vector{Symbol}[]) where T <: Integer
     return MolDescriptor{T}(
         atom_charge, bond_order, sssr, lone_pair, apparent_valence,
@@ -75,7 +75,7 @@ Base.copy(desc::T) where T <: MolDescriptor = T(
     copy(desc.atom_charge), copy(desc.bond_order), copy_vec_of_vec(desc.sssr),
     copy(desc.lone_pair), copy(desc.apparent_valence),
     copy(desc.valence), copy(desc.is_ring_aromatic),
-    copy_vec_of_vec(desc.coords2d), copy_vec_of_vec(desc.coords3d),
+    [copy(c) for c in desc.coords2d], [copy(c) for c in desc.coords3d],
     copy_vec_of_vec(desc.draw2d_bond_style)
 )
 
