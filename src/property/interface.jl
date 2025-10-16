@@ -4,6 +4,190 @@
 #
 
 
+
+struct Stereocenter{T<:Integer}
+    lookingFrom::T
+    first::T
+    second::T
+    isclockwise::Bool
+end
+
+JSON.lower(c::Stereocenter) = [c.lookingFrom, c.first, c.second, c.isclockwise]
+
+
+
+struct StereocenterMap{T<:Integer}
+    mapping::Dict{VertexKey{T},Stereocenter{T}}
+end
+
+StereocenterMap{T}() where T = StereocenterMap{T}(Dict{VertexKey{T},Stereocenter{T}}())
+
+function Base.iterate(x::StereocenterMap, state...)
+    r = iterate(x.mapping, state...)
+    return isnothing(r) ? nothing : (first(r[1]).key => last(r[1]), r[2])
+end
+
+Base.eltype(::StereocenterMap{T}) where T = Pair{T,Stereocenter{T}}
+Base.:(==)(x::StereocenterMap, y::StereocenterMap) = x.mapping == y.mapping
+Base.length(x::StereocenterMap) = length(x.mapping)
+Base.copy(x::T) where T <: StereocenterMap = T(copy(x.mapping))
+Base.keys(x::StereocenterMap) = getproperty.(keys(x.mapping), :key)
+Base.haskey(x::StereocenterMap, k) = haskey(x.mapping, k)
+Base.getindex(x::StereocenterMap{T}, k...) where T = getindex(x.mapping, VertexKey{T}.(k)...)
+Base.setindex!(x::StereocenterMap{T}, v, k...) where T = setindex!(x.mapping, v, VertexKey{T}.(k)...)
+Base.empty!(x::StereocenterMap) = empty!(x.mapping)
+Base.merge!(x::T, y::T) where T <: StereocenterMap = merge!(x.mapping, y.mapping)
+
+function remap(
+        stereomap::StereocenterMap{T}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    revv = Dict(v => i for (i, v) in enumerate(vmap))
+    newmap = StereocenterMap{T}()
+    for (k, v) in stereomap
+        isempty(setdiff([k, stereoneighbors(c)...], keys(revv))) || continue
+        newmap[revv[k]] = Stereocenter{T}(revv[v.first], revv[v.second], revv[v.third], v.isclockwise)
+    end
+    return newmap
+end
+
+function remap!(::Val{:stereocenter}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
+    empty!(gprop.stereocenter)
+    merge!(gprop.stereocenter, remap(gprop.stereocenter, args...))
+    return
+end
+
+
+
+struct Stereobond{T<:Integer}
+    first::T
+    second::T
+    is_cis::Bool
+end
+
+JSON.lower(b::Stereobond) = [b.first, b.second, b.is_cis]
+
+
+
+struct StereobondMap{T<:Integer}
+    mapping::Dict{EdgeKey{T},Stereobond{T}}
+end
+
+StereobondMap{T}() where T = StereobondMap{T}(Dict{EdgeKey{T},Stereobond{T}}())
+
+function Base.iterate(x::StereobondMap, state...)
+    r = iterate(x.mapping, state...)
+    return isnothing(r) ? nothing : (first(r[1]).key => last(r[1]), r[2])
+end
+
+Base.:(==)(x::StereobondMap, y::StereobondMap) = x.mapping == y.mapping
+Base.eltype(::StereobondMap{T}) where T = Pair{T,Stereobond{T}}
+Base.length(x::StereobondMap) = length(x.mapping)
+Base.copy(x::T) where T <: StereobondMap = T(copy(x.mapping))
+Base.keys(x::StereobondMap) = getproperty.(keys(x.mapping), :key)
+Base.haskey(x::StereobondMap, k) = haskey(x.mapping, k)
+Base.getindex(x::StereobondMap{T}, k...) where T = getindex(x.mapping, EdgeKey{T}.(k)...)
+Base.setindex!(x::StereobondMap{T}, v, k...) where T = setindex!(x.mapping, v, EdgeKey{T}.(k)...)
+Base.empty!(x::StereobondMap) = empty!(x.mapping)
+Base.merge!(x::T, y::T) where T <: StereobondMap = merge!(x.mapping, y.mapping)
+
+function remap(
+        stereomap::StereobondMap{T}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    revv = Dict(v => i for (i, v) in enumerate(vmap))
+    newmap = StereobondMap{T}()
+    for (k, v) in stereomap
+        isempty(setdiff([src(k), dst(k), v.first, v.second], keys(revv))) || continue
+        n1, n2 = revv[src(k)] < revv[dst(k)] ? (v.first, v.second) : (v.second, v.first)
+        newmap[u_edge(T, revv[src(k)], revv[dst(k)])] = Stereobond(revv[n1], revv[n2], v.is_cis)
+    end
+    return newmap
+end
+
+function remap!(::Val{:stereobond}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
+    empty!(gprop.stereobond)
+    merge!(gprop.stereobond, remap(gprop.stereobond, args...))
+    return
+end
+
+
+
+struct Coords2d
+    coords::Vector{Point2d}
+end
+
+Coords2d() = Coords2d([])
+Base.iterate(x::Coords2d, state...) = iterate(x.coords, state...)
+Base.eltype(::Coords2d) = Point2d
+Base.length(x::Coords2d) = length(x.coords)
+Base.copy(x::Coords2d) = Coords2d(copy(x.coords))
+Base.getindex(x::Coords2d, k...) = getindex(x.coords, k...)
+Base.setindex!(x::Coords2d, v, k...) = setindex!(x.coords, v, k...)
+Base.empty!(x::Coords2d) = empty!(x.coords)
+
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords2d}) = false
+JSON.lower(x::Coords2d) = [[p...] for p in x.coords]
+JSON.lift(::Type{Coords2d}, x) = Coords2d([Point2d(p...) for p in x])
+
+function remap(
+        coords::Vector{Coords2d}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    revv = Dict(v => i for (i, v) in enumerate(vmap))
+    container = Vector{Coords2d}(undef, length(coords))
+    for (i, oldcds) in enumerate(coords)
+        newcds = Coords2d(undef, length(revv))
+        for (oldp, newp) in revv
+            newcds[newp] = oldcds[oldp]
+        end
+        container[i] = newcds
+    end
+    return container
+end
+
+function remap!(::Val{:coords2d}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
+    empty!(gprop.coords2d)
+    append!(gprop.coords2d, remap(gprop.coords2d, args...))
+    return
+end
+
+
+
+struct Coords3d
+    coords::Vector{Point3d}
+end
+
+Coords3d() = Coords3d([])
+Base.iterate(x::Coords3d, state...) = iterate(x.coords, state...)
+Base.eltype(::Coords3d) = Point3d
+Base.length(x::Coords3d) = length(x.coords)
+Base.copy(x::Coords3d) = Coords3d(copy(x.coords))
+Base.getindex(x::Coords3d, k...) = getindex(x.coords, k...)
+Base.setindex!(x::Coords3d, v, k...) = setindex!(x.coords, v, k...)
+Base.empty!(x::Coords3d) = empty!(x.coords)
+
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords3d}) = false
+JSON.lower(x::Coords3d) = [[p...] for p in x.coords]
+JSON.lift(::Type{Coords3d}, x) = Coords3d([Point3d(p...) for p in x])
+
+function remap(
+        coords::Vector{Coords3d}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    revv = Dict(v => i for (i, v) in enumerate(vmap))
+    container = Vector{Coords3d}(undef, length(coords))
+    for (i, oldcds) in enumerate(coords)
+        newcds = Coords3d(undef, length(revv))
+        for (oldp, newp) in revv
+            newcds[newp] = oldcds[oldp]
+        end
+        container[i] = newcds
+    end
+    return container
+end
+
+function remap!(::Val{:coords3d}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
+    empty!(gprop.coords3d)
+    append!(gprop.coords3d, remap(gprop.coords3d, args...))
+    return
+end
+
+
+
+
 # Common interfaces of AbstractProperty
 
 

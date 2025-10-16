@@ -5,83 +5,6 @@
 
 # Note: just to avoid type piracy like JSON.lower(x::Point2d)
 
-struct Coords2d
-    coords::Vector{Point2d}
-end
-
-Coords2d() = Coords2d([])
-Base.iterate(x::Coords2d, state...) = iterate(x.coords, state...)
-Base.eltype(::Coords2d) = Point2d
-Base.length(x::Coords2d) = length(x.coords)
-Base.copy(x::Coords2d) = Coords2d(copy(x.coords))
-Base.getindex(x::Coords2d, k...) = getindex(x.coords, k...)
-Base.setindex!(x::Coords2d, v, k...) = setindex!(x.coords, v, k...)
-Base.empty!(x::Coords2d) = empty!(x.coords)
-
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords2d}) = false
-JSON.lower(x::Coords2d) = [[p...] for p in x.coords]
-JSON.lift(::Type{Coords2d}, x) = Coords2d([Point2d(p...) for p in x])
-
-function remap(
-        coords::Vector{Coords2d}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
-    revv = Dict(v => i for (i, v) in enumerate(vmap))
-    container = Vector{Coords2d}(undef, length(coords))
-    for (i, oldcds) in enumerate(coords)
-        newcds = Coords2d(undef, length(revv))
-        for (oldp, newp) in revv
-            newcds[newp] = oldcds[oldp]
-        end
-        container[i] = newcds
-    end
-    return container
-end
-
-function remap!(::Val{:coords2d}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
-    empty!(gprop.coords2d)
-    append!(gprop.coords2d, remap(gprop.coords2d, args...))
-    return
-end
-
-
-
-struct Coords3d
-    coords::Vector{Point3d}
-end
-
-Coords3d() = Coords3d([])
-Base.iterate(x::Coords3d, state...) = iterate(x.coords, state...)
-Base.eltype(::Coords3d) = Point3d
-Base.length(x::Coords3d) = length(x.coords)
-Base.copy(x::Coords3d) = Coords3d(copy(x.coords))
-Base.getindex(x::Coords3d, k...) = getindex(x.coords, k...)
-Base.setindex!(x::Coords3d, v, k...) = setindex!(x.coords, v, k...)
-Base.empty!(x::Coords3d) = empty!(x.coords)
-
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords3d}) = false
-JSON.lower(x::Coords3d) = [[p...] for p in x.coords]
-JSON.lift(::Type{Coords3d}, x) = Coords3d([Point3d(p...) for p in x])
-
-function remap(
-        coords::Vector{Coords3d}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
-    revv = Dict(v => i for (i, v) in enumerate(vmap))
-    container = Vector{Coords3d}(undef, length(coords))
-    for (i, oldcds) in enumerate(coords)
-        newcds = Coords3d(undef, length(revv))
-        for (oldp, newp) in revv
-            newcds[newp] = oldcds[oldp]
-        end
-        container[i] = newcds
-    end
-    return container
-end
-
-function remap!(::Val{:coords3d}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
-    empty!(gprop.coords3d)
-    append!(gprop.coords3d, remap(gprop.coords3d, args...))
-    return
-end
-
-
 
 function remap(
         style::Vector{Vector{Symbol}}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
@@ -121,11 +44,11 @@ function coords_from_sdf!(mol::SimpleMolGraph)
     # Embed 3D coords to 2D
     push!(
         mol[:descriptors].coords2d,
-        Coords2d(Point2d(mol[i].coords[1:2]...) for i in vertices(mol)))
+        Coords2d([Point2d(mol[i].coords[1:2]...) for i in vertices(mol)]))
     if zrange[2] - zrange[1] > 0.001  # 3D coords available
         push!(
             mol[:descriptors].coords3d,
-            Coords3d(Point3d(mol[i].coords[1:3]...) for i in vertices(mol)))
+            Coords3d([Point3d(mol[i].coords[1:3]...) for i in vertices(mol)]))
     end
     # Bond style in 2D notation (wedges)
     bondorder = [mol[e].order for e in edges(mol)]

@@ -31,26 +31,25 @@ include("./util/math.jl")
 using Graphs
 
 include("./model/interface.jl")
+include("./property/interface.jl")
 include("./draw/interface.jl")
 
 export
+    VertexKey, EdgeKey,
     AbstractAtom, AbstractBond, Reaction, QueryTree,
     vproptype, eproptype,
     props, get_prop, has_prop, set_prop!,
-    u_edge, ordered_neighbors, edge_neighbors, ordered_edge_neighbors
+    u_edge, ordered_neighbors, edge_neighbors, ordered_edge_neighbors,
+    Stereocenter, StereocenterMap, Stereobond, StereobondMap,
+    Coords2d, Coords3d
 
 
 # Graph models and algorithms
 
 using DelimitedFiles: readdlm
-using coordgenlibs_jll: libcoordgen
 
 include("./model/atom.jl")
 include("./model/bond.jl")
-
-include("stereo.jl")
-include("coords.jl")
-include("./property/interface.jl")
 include("./model/molgraph.jl")
 include("./model/query.jl")
 
@@ -64,12 +63,6 @@ include("./graph/planarity.jl")
 include("./graph/isomorphism_edge.jl")
 include("./graph/isomorphism_vf2.jl")
 include("./graph/isomorphism_clique.jl")
-
-export
-    VertexKey, EdgeKey,
-    Stereocenter, StereocenterMap,
-    Stereobond, StereobondMap,
-    Coords2d, Coords3d
 
 export
     ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
@@ -174,7 +167,10 @@ export
 # Descriptors
 
 using libinchi_jll: libinchi
+using coordgenlibs_jll: libcoordgen
 
+include("stereo.jl")
+include("coords.jl")
 include("mass.jl")
 include("rdkit.jl")
 include("inchi.jl")

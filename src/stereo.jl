@@ -19,113 +19,15 @@ const STEREOCENTER_STATE = Dict(
 )
 
 
-
-struct Stereocenter{T<:Integer}
-    lookingFrom::T
-    first::T
-    second::T
-    isclockwise::Bool
-end
-
-JSON.lower(c::Stereocenter) = [c.lookingFrom, c.first, c.second, c.isclockwise]
 stereoneighbors(c::Stereocenter) = [c.lookingFrom, c.first, c.second]
 isclockwise(c::Stereocenter) = c.isclockwise
+
 
 function isclockwise(c::Stereocenter{T}, f::T, s::T, t::T) where T <: Integer
     fp = something(findfirst(==(f), stereoneighbors(c)), 4)
     sp = something(findfirst(==(s), stereoneighbors(c)), 4)
     tp = something(findfirst(==(t), stereoneighbors(c)), 4)
     return isclockwise(c) === STEREOCENTER_STATE[(fp, sp, tp)]
-end
-
-
-struct StereocenterMap{T<:Integer}
-    mapping::Dict{VertexKey{T},Stereocenter{T}}
-end
-
-StereocenterMap{T}() where T = StereocenterMap{T}(Dict{VertexKey{T},Stereocenter{T}}())
-
-function Base.iterate(x::StereocenterMap, state...)
-    r = iterate(x.mapping, state...)
-    return isnothing(r) ? nothing : (first(r[1]).key => last(r[1]), r[2])
-end
-
-Base.eltype(::StereocenterMap{T}) where T = Pair{T,Stereocenter{T}}
-Base.:(==)(x::StereocenterMap, y::StereocenterMap) = x.mapping == y.mapping
-Base.length(x::StereocenterMap) = length(x.mapping)
-Base.copy(x::T) where T <: StereocenterMap = T(copy(x.mapping))
-Base.keys(x::StereocenterMap) = getproperty.(keys(x.mapping), :key)
-Base.haskey(x::StereocenterMap, k) = haskey(x.mapping, k)
-Base.getindex(x::StereocenterMap{T}, k...) where T = getindex(x.mapping, VertexKey{T}.(k)...)
-Base.setindex!(x::StereocenterMap{T}, v, k...) where T = setindex!(x.mapping, v, VertexKey{T}.(k)...)
-Base.empty!(x::StereocenterMap) = empty!(x.mapping)
-Base.merge!(x::T, y::T) where T <: StereocenterMap = merge!(x.mapping, y.mapping)
-
-function remap(
-        stereomap::StereocenterMap{T}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
-    revv = Dict(v => i for (i, v) in enumerate(vmap))
-    newmap = StereocenterMap{T}()
-    for (k, v) in stereomap
-        isempty(setdiff([k, stereoneighbors(c)...], keys(revv))) || continue
-        newmap[revv[k]] = Stereocenter{T}(revv[v.first], revv[v.second], revv[v.third], v.isclockwise)
-    end
-    return newmap
-end
-
-function remap!(::Val{:stereocenter}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
-    empty!(gprop.stereocenter)
-    merge!(gprop.stereocenter, remap(gprop.stereocenter, args...))
-    return
-end
-
-
-struct Stereobond{T<:Integer}
-    first::T
-    second::T
-    is_cis::Bool
-end
-
-JSON.lower(b::Stereobond) = [b.first, b.second, b.is_cis]
-
-
-struct StereobondMap{T<:Integer}
-    mapping::Dict{EdgeKey{T},Stereobond{T}}
-end
-
-StereobondMap{T}() where T = StereobondMap{T}(Dict{EdgeKey{T},Stereobond{T}}())
-
-function Base.iterate(x::StereobondMap, state...)
-    r = iterate(x.mapping, state...)
-    return isnothing(r) ? nothing : (first(r[1]).key => last(r[1]), r[2])
-end
-
-Base.:(==)(x::StereobondMap, y::StereobondMap) = x.mapping == y.mapping
-Base.eltype(::StereobondMap{T}) where T = Pair{T,Stereobond{T}}
-Base.length(x::StereobondMap) = length(x.mapping)
-Base.copy(x::T) where T <: StereobondMap = T(copy(x.mapping))
-Base.keys(x::StereobondMap) = getproperty.(keys(x.mapping), :key)
-Base.haskey(x::StereobondMap, k) = haskey(x.mapping, k)
-Base.getindex(x::StereobondMap{T}, k...) where T = getindex(x.mapping, EdgeKey{T}.(k)...)
-Base.setindex!(x::StereobondMap{T}, v, k...) where T = setindex!(x.mapping, v, EdgeKey{T}.(k)...)
-Base.empty!(x::StereobondMap) = empty!(x.mapping)
-Base.merge!(x::T, y::T) where T <: StereobondMap = merge!(x.mapping, y.mapping)
-
-function remap(
-        stereomap::StereobondMap{T}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
-    revv = Dict(v => i for (i, v) in enumerate(vmap))
-    newmap = StereobondMap{T}()
-    for (k, v) in stereomap
-        isempty(setdiff([src(k), dst(k), v.first, v.second], keys(revv))) || continue
-        n1, n2 = revv[src(k)] < revv[dst(k)] ? (v.first, v.second) : (v.second, v.first)
-        newmap[u_edge(T, revv[src(k)], revv[dst(k)])] = Stereobond(revv[n1], revv[n2], v.is_cis)
-    end
-    return newmap
-end
-
-function remap!(::Val{:stereobond}, gprop::SimpleMolProperty{T}, args...) where T <: Integer
-    empty!(gprop.stereobond)
-    merge!(gprop.stereobond, remap(gprop.stereobond, args...))
-    return
 end
 
 
@@ -199,7 +101,7 @@ end
 
 
 function anglesort(
-        coords::Vector{Point2d}, center::T, ref::T,
+        coords::Coords2d, center::T, ref::T,
         vertices::Vector{T}) where T <: Integer
     # return vertices order by clockwise direction
     c = coords[center]
@@ -217,7 +119,7 @@ Return stereocenter information obtained from 2D SDFile.
 """
 function stereocenter_from_sdf2d(
         g::SimpleGraph{T}, v_symbol::Vector{Symbol}, e_order::Vector{Int},
-        e_notation::Vector{Int}, e_isordered::Vector{Bool}, v_coords2d::Vector{Point2d}) where T
+        e_notation::Vector{Int}, e_isordered::Vector{Bool}, v_coords2d::Coords2d) where T
     centers = StereocenterMap{T}()
     ernk = edge_rank(g)
     comments = String[]
@@ -386,7 +288,7 @@ Return cis-trans diastereomerism information obtained from 2D SDFile.
 """
 function stereobond_from_sdf2d(
         g::SimpleGraph{T}, sssr::Vector{Vector{T}}, e_order::Vector{Int}, e_notation::Vector{Int},
-        v_coords2d::Vector{Point2d}) where T
+        v_coords2d::Coords2d) where T
     stereobonds = StereobondMap{T}()
     smallcycles = Edge{T}[]
     for cyc in edgemincyclebasis(g, sssr)
