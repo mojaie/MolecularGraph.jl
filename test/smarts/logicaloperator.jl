@@ -19,7 +19,7 @@
 
     struct QueryTest{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
         graph::SimpleDiGraph{T}
-        vprops::Dict{T,U}
+        vprops::Dict{VertexKey{T},U}
     end
 
     MolecularGraph.lgnot!(state::SMARTSParser, qtree::QueryTest

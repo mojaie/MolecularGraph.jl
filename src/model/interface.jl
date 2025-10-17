@@ -285,6 +285,19 @@ get_prop(mol::AbstractMolGraph, v::Integer, prop::Symbol) = mol[v][prop]
 get_prop(mol::AbstractMolGraph, e::Edge, prop::Symbol) = mol[e][prop]
 
 
+vpropiter(mol::AbstractMolGraph) = Iterators.map(mol.vprops) do r
+    first(r).key, last(r)
+end
+
+vpropiter(x::AbstractElement) = Iterators.map(x.vprops) do r
+    first(r).key, last(r)
+end
+
+epropiter(mol::AbstractMolGraph) = Iterators.map(mol.eprops) do r
+    first(r).key, last(r)
+end
+
+
 """
     SimpleMolGraph{T<:Integer} <: AbstractMolGraph{T}
 

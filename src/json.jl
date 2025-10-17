@@ -43,7 +43,7 @@ function StructUtils.lift(::Type{MolGraph{T,SMILESAtom,SMILESBond}}, x) where T
 end
 
 StructUtils.lift(::Type{QueryMolGraph{T,QueryAtom,QueryBond}}, x
-    ) where T = MolGraph{T,QueryAtom,QueryBond}(reactive_molgraph(T, QueryAtom, QueryBond, x)...)
+    ) where T = QueryMolGraph{T,QueryAtom,QueryBond}(reactive_molgraph(T, QueryAtom, QueryBond, x)...)
 
 
 function MolGraph{T,V,E}(json::AbstractString; on_init=nothing, on_update=nothing) where {T,V,E}
