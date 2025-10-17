@@ -22,7 +22,7 @@ using MolecularGraph:
 
 using MolecularGraph:
     ordered_neighbors, u_edge, edge_rank,
-    MolProperty, MolDescriptor, remap!, reconstruct, sdf_on_init!,
+    MolProperty, MolDescriptor, remap!, sdf_on_init!,
     set_descriptor!,
     atomsymbol!, atomprop!, atom!,
     bondsymbol!, bond!,

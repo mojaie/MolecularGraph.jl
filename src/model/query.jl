@@ -145,10 +145,6 @@ Base.copy(prop::T) where T <: QueryMolProperty = T(
 )
 
 
-reconstruct(::Val{:descriptors}, ::Type{QueryMolProperty{T}}, data::JSON.Object{String,Any}
-    ) where T = reconstruct(QueryMolDescriptor{T}, data)
-
-
 """
     QueryMolGraph{T,V,E} <: ReactiveMolGraph{T,V,E}
 
@@ -156,8 +152,8 @@ Basic molecular graph type.
 """
 struct QueryMolGraph{T<:Integer,V<:QueryTree,E<:QueryTree} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
-    vprops::Dict{T,V}
-    eprops::Dict{Edge{T},E}
+    vprops::Dict{VertexKey{T},V}
+    eprops::Dict{EdgeKey{T},E}
     gprops::QueryMolProperty{T}
     state::MolState{T}
 end

@@ -10,19 +10,19 @@
 
 The state container for `ReactiveMolGraph`.
 """
-mutable struct MolState{T,F1,F2} <: AbstractState
+mutable struct MolState{T} <: AbstractState
     initialized::Bool
     has_updates::Bool
     has_new_edges::Bool  # as a SSSR recalculation flag
     disable_update::Bool  # ignore dispatch_update! (temporary set when running auto-preprocess)
-    on_init::F1
-    on_update::F2
+    on_init::Function
+    on_update::Function
 end
 
 function MolState{T}(
         ; initialized=false, has_updates=true, has_new_edges=true, disable_update=false,
         on_init=default_on_init!, on_update=default_on_update!) where T <: Integer
-    return MolState{T,typeof(on_init),typeof(on_update)}(
+    return MolState{T}(
         initialized, has_updates, has_new_edges, disable_update, on_init, on_update)
 end
 
@@ -335,8 +335,9 @@ end
 
 
 function reactive_molgraph(
-        g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E};
-        gprops=MolProperty{T}(), kwargs...) where {T,V,E}
+        g::SimpleGraph{T}, vprops::Dict{VertexKey{T},V},
+        eprops::Dict{EdgeKey{T},E}, gprops::SimpleMolProperty{T}
+        ; kwargs...) where {T,V,E}
     if nv(g) > length(vprops)
         error("Mismatch in the number of nodes and node properties")
     elseif ne(g) != length(eprops)
@@ -350,16 +351,24 @@ function reactive_molgraph(
     return (g, vprops, eprops, gprops, config)
 end
 
+reactive_molgraph(
+    g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E}
+    ; gprops=MolProperty{T}(), kwargs...
+) where {T,V,E} = reactive_molgraph(
+    g, convert(Dict{VertexKey{T},V}, vprops),
+    convert(Dict{EdgeKey{T},E}, eprops), gprops; kwargs...
+)
+
 # from edge and property list (sdftomol, smilestomol interface)
 
 function reactive_molgraph(
         edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}
-        ; kwargs...) where {T,V,E}
+        ; gprops=MolProperty{T}(), kwargs...) where {T,V,E}
     g = SimpleGraph(edge_list)
-    vps = Dict{T,V}(i => v for (i, v) in enumerate(vprop_list))
+    vps = Dict{VertexKey{T},V}(VertexKey(i) => v for (i, v) in enumerate(vprop_list))
     # eprop_list in edge_list order
-    eps = Dict{Edge{T},E}(e => eprop_list[i] for (i, e) in enumerate(edge_list))
-    return reactive_molgraph(g, vps, eps; kwargs...)
+    eps = Dict{EdgeKey{T},E}(EdgeKey(e) => eprop_list[i] for (i, e) in enumerate(edge_list))
+    return reactive_molgraph(g, vps, eps, gprops; kwargs...)
 end
 
 

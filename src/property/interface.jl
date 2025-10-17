@@ -114,6 +114,7 @@ struct Coords2d
 end
 
 Coords2d() = Coords2d([])
+Base.:(==)(x::Coords2d, y::Coords2d) = x.coords == y.coords
 Base.iterate(x::Coords2d, state...) = iterate(x.coords, state...)
 Base.eltype(::Coords2d) = Point2d
 Base.length(x::Coords2d) = length(x.coords)
@@ -153,6 +154,7 @@ struct Coords3d
 end
 
 Coords3d() = Coords3d([])
+Base.:(==)(x::Coords3d, y::Coords3d) = x.coords == y.coords
 Base.iterate(x::Coords3d, state...) = iterate(x.coords, state...)
 Base.eltype(::Coords3d) = Point3d
 Base.length(x::Coords3d) = length(x.coords)
@@ -192,6 +194,7 @@ struct Draw2dBondStyle
 end
 
 Draw2dBondStyle() = Draw2dBondStyle([])
+Base.:(==)(x::Draw2dBondStyle, y::Draw2dBondStyle) = x.styles == y.styles
 Base.iterate(x::Draw2dBondStyle, state...) = iterate(x.styles, state...)
 Base.eltype(::Draw2dBondStyle) = Symbol
 Base.length(x::Draw2dBondStyle) = length(x.styles)

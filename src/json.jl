@@ -3,8 +3,8 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-function JSON.lower(x::ReactiveMolGraph{T,V,E}) where {T,V,E}
-    dispatch_update!(x)
+function StructUtils.lower(x::ReactiveMolGraph{T,V,E}) where {T,V,E}
+    dispatch_update!(x)  # update descriptors before serialization
     return Dict{String,Any}(
         "vproptype" => string(nameof(V)),
         "eproptype" => string(nameof(E)),
@@ -16,105 +16,72 @@ function JSON.lower(x::ReactiveMolGraph{T,V,E}) where {T,V,E}
     )
 end
 
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{MolGraph{T,V,E}}) where {T,V,E} = false
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{QueryMolGraph{T,V,E}}) where {T,V,E} = false
 
-function MolGraph{T,V,E}(json::AbstractString
-        ; on_init=sdf_on_init!, on_update=sdf_on_update!) where T<:Integer
-    mol = JSON.parse(data, MolGraph{T,V,E})
-    mol.config.on_init = on_init
-    mol.config.on_update = on_update
-    mol.config.initialized = true,  # Skip initialization
-    mol.config.has_updates = false  # Do not update ready-to-use descriptors!
+reactive_molgraph(T, V, E, x::JSON.Object{String,Any}) = reactive_molgraph(
+    StructUtils.make(SimpleGraph{T}, x["graph"]),
+    StructUtils.make(Dict{VertexKey{T},V}, x["vprops"]),
+    StructUtils.make(Dict{EdgeKey{T},E}, x["eprops"]),
+    StructUtils.make(MolProperty{T}, x["gprops"])
+    ;initialized=true,  # Skip initialization
+    has_updates=false  # Do not update ready-to-use descriptors!
+)
+
+function StructUtils.lift(::Type{MolGraph{T,SDFAtom,SDFBond}}, x) where T
+    mol = MolGraph{T,SDFAtom,SDFBond}(reactive_molgraph(T, SDFAtom, SDFBond, x)...)
+    mol.state.on_init = sdf_on_init!
+    mol.state.on_update = sdf_on_update!
     return mol
 end
 
-
-
-
-function MolGraph{T,SMILESAtom,SMILESBond}(data::JSON.Object{String,Any}
-        ; on_init=smiles_on_init!, on_update=smiles_on_update!) where T<:Integer
-    if data["vproptype"] != "SMILESAtom" || data["eproptype"] != "SMILESBond"
-        error("Incompatible element property types")
-    end
-    gps = reconstruct(MolProperty{T}, data["gprops"])
-    config=MolState{T}(;
-        on_init=on_init,
-        on_update=on_update,
-        initialized = true,  # Skip initialization
-        has_updates = false  # Do not update ready-to-use descriptors!
-    )
-    mol = MolGraph(
-        reactive_molgraph(Val(:default), T, SMILESAtom, SMILESBond, data, gps, config)...)
+function StructUtils.lift(::Type{MolGraph{T,SMILESAtom,SMILESBond}}, x) where T
+    mol = MolGraph{T,SMILESAtom,SMILESBond}(reactive_molgraph(T, SMILESAtom, SMILESBond, x)...)
+    mol.state.on_init = smiles_on_init!
+    mol.state.on_update = smiles_on_update!
     return mol
 end
 
-function QueryMolGraph{T,QueryAtom,QueryBond}(data::JSON.Object{String,Any}
-        ; on_init=default_on_init!, on_update=default_on_update!) where T<:Integer
-    if data["vproptype"] != "QueryAtom" || data["eproptype"] != "QueryBond"
-        error("Incompatible element property types")
-    end
-    gps = reconstruct(QueryMolProperty{T}, data["gprops"])
-    config=MolState{T}(
-        on_init=on_init,
-        on_update=on_update,
-        initialized = true,  # Skip initialization
-        has_updates = false  # Do not update ready-to-use descriptors!
-    )
-    mol = QueryMolGraph(
-        reactive_molgraph(Val(:default), T, QueryAtom, QueryBond, data, gps, config)...)
+StructUtils.lift(::Type{QueryMolGraph{T,QueryAtom,QueryBond}}, x
+    ) where T = MolGraph{T,QueryAtom,QueryBond}(reactive_molgraph(T, QueryAtom, QueryBond, x)...)
+
+
+function MolGraph{T,V,E}(json::AbstractString; on_init=nothing, on_update=nothing) where {T,V,E}
+    mol = JSON.parse(json, MolGraph{T,V,E})
+    isnothing(on_init) || setproperty!(mol.config, :on_init, on_init)
+    isnothing(on_update) || setproperty!(mol.update, :on_update, on_update)
+    return mol
+end
+
+function QueryMolGraph{T,V,E}(json::AbstractString; on_init=nothing, on_update=nothing) where {T,V,E}
+    mol = JSON.parse(json, QueryMolGraph{T,V,E})
+    isnothing(on_init) || setproperty!(mol.config, :on_init, on_init)
+    isnothing(on_update) || setproperty!(mol.update, :on_update, on_update)
     return mol
 end
 
 
 # JSON auto detect
 
-function mol_from_dict(data::JSON.Object{String,Any}; kwargs...)
+function mol_from_json(json::AbstractString
+        ; on_init::Union{F,Nothing}=nothing, on_update::Union{F,Nothing}=nothing) where F
+    data = JSON.parse(json)
+    mol = nothing
     if haskey(data, "commonchem")
-        return MolGraph{Int,CommonChemAtom,CommonChemBond}(data; kwargs...)
-    end
-    if !haskey(data, "vproptype") || !haskey(data, "eproptype")
+        mol = StructUtils.make(MolGraph{Int,CommonChemAtom,CommonChemBond}, data)
+    elseif !haskey(data, "vproptype") || !haskey(data, "eproptype")
         error("Invalid JSON format")
-    end
-    if data["vproptype"] == "SDFAtom" && data["eproptype"] == "SDFBond"
-        return MolGraph{Int,SDFAtom,SDFBond}(data; kwargs...)
+    elseif data["vproptype"] == "SDFAtom" && data["eproptype"] == "SDFBond"
+        mol = StructUtils.make(MolGraph{Int,SDFAtom,SDFBond}, data)
     elseif data["vproptype"] == "SMILESAtom" && data["eproptype"] == "SMILESBond"
-        return MolGraph{Int,SMILESAtom,SMILESBond}(data; kwargs...)
+        mol = StructUtils.make(MolGraph{Int,SMILESAtom,SMILESBond}, data)
     elseif data["vproptype"] == "QueryAtom" && data["eproptype"] == "QueryBond"
-        return QueryMolGraph{Int,QueryAtom,QueryBond}(data; kwargs...)
+        mol = StructUtils.make(QueryMolGraph{Int,QueryAtom,QueryBond}, data)
+    end
+    if !isnothing(mol)
+        isnothing(on_init) || setproperty!(mol.config, :on_init, on_init)
+        isnothing(on_update) || setproperty!(mol.update, :on_update, on_update)
+        return mol
     end
     error("Invalid JSON format")
 end
-
-
-function MolGraph(data::JSON.Object{String,Any}; kwargs...)
-    if haskey(data, "commonchem")
-        return MolGraph{Int,CommonChemAtom,CommonChemBond}(data; kwargs...)
-    end
-    if !haskey(data, "vproptype") || !haskey(data, "eproptype")
-        error("Invalid JSON format")
-    end
-    if data["vproptype"] == "SDFAtom" && data["eproptype"] == "SDFBond"
-        return MolGraph{Int,SDFAtom,SDFBond}(data; kwargs...)
-    elseif data["vproptype"] == "SMILESAtom" && data["eproptype"] == "SMILESBond"
-        return MolGraph{Int,SMILESAtom,SMILESBond}(data; kwargs...)
-    end
-    error("Invalid JSON format")
-end
-
-function QueryMolGraph(data::JSON.Object{String,Any}; kwargs...)
-    if !haskey(data, "vproptype") || !haskey(data, "eproptype")
-        error("Invalid JSON format")
-    end
-    if data["vproptype"] == "QueryAtom" && data["eproptype"] == "QueryBond"
-        return QueryMolGraph{Int,QueryAtom,QueryBond}(data; kwargs...)
-    end
-    error("Invalid JSON format")
-end
-
-
-MolGraph(json::String; kwargs...) = MolGraph(JSON.parse(json); kwargs...)
-QueryMolGraph(json::String; kwargs...) = QueryMolGraph(JSON.parse(json); kwargs...)
-
-MolGraph{T,V,E}(json::String; kwargs...
-    ) where {T,V,E} = MolGraph{T,V,E}(JSON.parse(json); kwargs...)
-QueryMolGraph{T,V,E}(json::String; kwargs...
-    ) where {T,V,E} = QueryMolGraph{T,V,E}(JSON.parse(json); kwargs...)
