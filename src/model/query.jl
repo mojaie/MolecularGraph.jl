@@ -71,12 +71,6 @@ function querytree(edges::Vector{Tuple{T,T}}, props::Vector{U}) where {T,U}
     return g, vprops
 end
 
-function querytree(::Type{T}, ::Type{U}, data::Dict{String,Any}) where {T,U}
-    edges = NTuple{2,T}[(e...,) for e in data["edges"]]
-    props = U.(data["vprops"])
-    return querytree(edges, props)
-end
-
 
 struct QueryAtom{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
     graph::SimpleDiGraph{T}
@@ -99,12 +93,6 @@ QueryAtom(edges::Vector, props::Vector) = QueryAtom(querytree(edges, props)...)
 QueryBond(edges::Vector, props::Vector) = QueryBond(querytree(edges, props)...)
 QueryAtom() = QueryAtom(Tuple{Int,Int}[], QueryNode[])
 QueryBond() = QueryBond(Tuple{Int,Int}[], QueryNode[])
-QueryAtom{T,U}(data::Dict{String,Any}
-    ) where {T<:Integer,U<:QueryNode} = QueryAtom{T,U}(querytree(T, U, data)...)
-QueryBond{T,U}(data::Dict{String,Any}
-    ) where {T<:Integer,U<:QueryNode} = QueryBond{T,U}(querytree(T, U, data)...)
-QueryAtom(data::Dict{String,Any}) = QueryAtom(querytree(Int, QueryNode, data)...)
-QueryBond(data::Dict{String,Any}) = QueryBond(querytree(Int, QueryNode, data)...)
 
 
 

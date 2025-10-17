@@ -19,31 +19,31 @@ end
 StructUtils.structlike(::StructUtils.StructStyle, ::Type{MolGraph{T,V,E}}) where {T,V,E} = false
 StructUtils.structlike(::StructUtils.StructStyle, ::Type{QueryMolGraph{T,V,E}}) where {T,V,E} = false
 
-reactive_molgraph(T, V, E, x::JSON.Object{String,Any}) = reactive_molgraph(
+reactive_molgraph(T, V, E, G, x::JSON.Object{String,Any}) = reactive_molgraph(
     StructUtils.make(SimpleGraph{T}, x["graph"]),
     StructUtils.make(Dict{VertexKey{T},V}, x["vprops"]),
     StructUtils.make(Dict{EdgeKey{T},E}, x["eprops"]),
-    StructUtils.make(MolProperty{T}, x["gprops"])
+    StructUtils.make(G, x["gprops"])
     ;initialized=true,  # Skip initialization
     has_updates=false  # Do not update ready-to-use descriptors!
 )
 
 function StructUtils.lift(::Type{MolGraph{T,SDFAtom,SDFBond}}, x) where T
-    mol = MolGraph{T,SDFAtom,SDFBond}(reactive_molgraph(T, SDFAtom, SDFBond, x)...)
+    mol = MolGraph{T,SDFAtom,SDFBond}(reactive_molgraph(T, SDFAtom, SDFBond, MolProperty{T}, x)...)
     mol.state.on_init = sdf_on_init!
     mol.state.on_update = sdf_on_update!
     return mol
 end
 
 function StructUtils.lift(::Type{MolGraph{T,SMILESAtom,SMILESBond}}, x) where T
-    mol = MolGraph{T,SMILESAtom,SMILESBond}(reactive_molgraph(T, SMILESAtom, SMILESBond, x)...)
+    mol = MolGraph{T,SMILESAtom,SMILESBond}(reactive_molgraph(T, SMILESAtom, SMILESBond, MolProperty{T}, x)...)
     mol.state.on_init = smiles_on_init!
     mol.state.on_update = smiles_on_update!
     return mol
 end
 
-StructUtils.lift(::Type{QueryMolGraph{T,QueryAtom,QueryBond}}, x
-    ) where T = QueryMolGraph{T,QueryAtom,QueryBond}(reactive_molgraph(T, QueryAtom, QueryBond, x)...)
+StructUtils.lift(::Type{QueryMolGraph{T,V,E}}, x
+    ) where {T,V,E} = QueryMolGraph{T,V,E}(reactive_molgraph(T, V, E, QueryMolProperty{T}, x)...)
 
 
 function MolGraph{T,V,E}(json::AbstractString; on_init=nothing, on_update=nothing) where {T,V,E}
@@ -76,7 +76,7 @@ function mol_from_json(json::AbstractString
     elseif data["vproptype"] == "SMILESAtom" && data["eproptype"] == "SMILESBond"
         mol = StructUtils.make(MolGraph{Int,SMILESAtom,SMILESBond}, data)
     elseif data["vproptype"] == "QueryAtom" && data["eproptype"] == "QueryBond"
-        mol = StructUtils.make(QueryMolGraph{Int,QueryAtom,QueryBond}, data)
+        mol = StructUtils.make(QueryMolGraph{Int,QueryAtom{Int,QueryNode},QueryBond{Int,QueryNode}}, data)
     end
     if !isnothing(mol)
         isnothing(on_init) || setproperty!(mol.config, :on_init, on_init)
