@@ -3,66 +3,32 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-"""
-    to_dict(fmt::Val{:default}, mol::MolGraph) -> Dict{String,Any}
-
-Convert molecule object into JSON compatible dictionary.
-"""
-function to_dict(fmt::Val{:default}, mol::ReactiveMolGraph{T,V,E}) where {T,V,E}
-    dispatch_update!(mol)
+function JSON.lower(x::ReactiveMolGraph{T,V,E}) where {T,V,E}
+    dispatch_update!(x)
     return Dict{String,Any}(
         "vproptype" => string(nameof(V)),
         "eproptype" => string(nameof(E)),
-        "graph" => [[src(e), dst(e)] for e in edges(mol)],
-        "vprops" => [to_dict(fmt, mol[i]) for i in vertices(mol)],
-        "eprops" => [to_dict(fmt, mol[e]) for e in edges(mol)],
-        "gprops" => to_dict(fmt, mol.gprops)
+        "graph" => x.graph,
+        "vprops" => x.vprops,
+        "eprops" => x.eprops,
+        "gprops" => x.gprops,
+        "state" => Dict{String,Any}()
     )
 end
 
-to_dict(mol::AbstractMolGraph) = to_dict(Val{:default}(), mol)
 
-"""
-    to_json(fmt::Val, mol::AbstractMolGraph) -> String
-    to_json(mol::AbstractMolGraph) -> String
-
-Convert molecule object into JSON String.
-"""
-to_json(fmt::Val, mol::AbstractMolGraph) = JSON.json(to_dict(fmt, mol))
-to_json(mol::AbstractMolGraph) = to_json(Val{:default}(), mol)
-
-
-function reactive_molgraph(
-        ::Val{:default}, ::Type{T}, ::Type{V}, ::Type{E},
-        data::JSON.Object{String,Any}, gps::AbstractProperty,
-        config::MolState) where {T,V,E}
-    g = SimpleGraph(Edge{T}[Edge{T}(e...) for e in data["graph"]])
-    vps = Dict{T,V}(i => V(vp) for (i, vp) in enumerate(data["vprops"]))
-    # expand fadjlist for vprops of isolated nodes
-    for _ in nv(g):(length(vps) - 1)
-        push!(g.fadjlist, T[])
-    end
-    eps = Dict{Edge{T},E}(e => E(ep) for (e, ep) in zip(edges(g), data["eprops"]))
-    return (g, vps, eps, gps, config)
-end
-
-
-function MolGraph{T,SDFAtom,SDFBond}(data::JSON.Object{String,Any}
+function MolGraph{T,V,E}(json::AbstractString
         ; on_init=sdf_on_init!, on_update=sdf_on_update!) where T<:Integer
-    if data["vproptype"] != "SDFAtom" || data["eproptype"] != "SDFBond"
-        error("Incompatible element property types")
-    end
-    gps = reconstruct(MolProperty{T}, data["gprops"])
-    config=MolState{T}(;
-        on_init=on_init,
-        on_update=on_update,
-        initialized = true,  # Skip initialization
-        has_updates = false  # Do not update ready-to-use descriptors!
-    )
-    mol = MolGraph(
-        reactive_molgraph(Val(:default), T, SDFAtom, SDFBond, data, gps, config)...)
+    mol = JSON.parse(data, MolGraph{T,V,E})
+    mol.config.on_init = on_init
+    mol.config.on_update = on_update
+    mol.config.initialized = true,  # Skip initialization
+    mol.config.has_updates = false  # Do not update ready-to-use descriptors!
     return mol
 end
+
+
+
 
 function MolGraph{T,SMILESAtom,SMILESBond}(data::JSON.Object{String,Any}
         ; on_init=smiles_on_init!, on_update=smiles_on_update!) where T<:Integer

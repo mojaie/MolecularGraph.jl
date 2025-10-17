@@ -19,7 +19,6 @@ mutable struct MolState{T,F1,F2} <: AbstractState
     on_update::F2
 end
 
-
 function MolState{T}(
         ; initialized=false, has_updates=true, has_new_edges=true, disable_update=false,
         on_init=default_on_init!, on_update=default_on_update!) where T <: Integer
@@ -27,11 +26,14 @@ function MolState{T}(
         initialized, has_updates, has_new_edges, disable_update, on_init, on_update)
 end
 
-
 Base.copy(state::T) where T <: MolState = T(
     state.initialized, state.has_updates, state.has_new_edges, state.disable_update,
     state.on_init, state.on_update
 )
+
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{MolState{T}}) where T = false
+JSON.lower(x::MolState) = Dict{String,Any}()
+JSON.lift(::Type{MolState{T}}, x) where T = MolState{T}()
 
 
 # Property update mechanisms
@@ -373,8 +375,8 @@ Atom and Bond properties of `MolGraph` are specific to the type of morecular rea
 """
 struct MolGraph{T<:Integer,V<:AbstractAtom,E<:AbstractBond} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
-    vprops::Dict{T,V}
-    eprops::Dict{Edge{T},E}
+    vprops::Dict{VertexKey{T},V}
+    eprops::Dict{EdgeKey{T},E}
     gprops::MolProperty{T}
     state::MolState{T}
 end

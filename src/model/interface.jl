@@ -70,7 +70,10 @@ struct VertexKey{T<:Integer}
 end
 
 Base.:(==)(x::VertexKey, y::VertexKey) = x.key == y.key
+Base.:(==)(x::VertexKey{T}, y::T) where T = x.key == y  # required for getindex
+Base.:(==)(x::T, y::VertexKey{T}) where T = x == y.key  # required for getindex
 Base.hash(x::VertexKey, h::UInt) = hash(x.key, h)
+Base.convert(::Type{VertexKey{T}}, x::T) where T = VertexKey(x)
 StructUtils.lowerkey(::JSON.JSONStyle, x::VertexKey{T}) where T = string(x.key)
 StructUtils.liftkey(::Type{VertexKey{T}}, x::String) where T = VertexKey(parse(T, x))
 
@@ -80,9 +83,12 @@ struct EdgeKey{T<:Integer}
 end
 
 Base.:(==)(x::EdgeKey, y::EdgeKey) = x.key == y.key
+Base.:(==)(x::EdgeKey{T}, y::Edge{T}) where T = x.key == y  # required for getindex
+Base.:(==)(x::Edge{T}, y::EdgeKey{T}) where T = x == y.key  # required for getindex
 Base.hash(x::EdgeKey, h::UInt) = hash(x.key, h)
+Base.convert(::Type{EdgeKey{T}}, x::Edge{T}) where T = EdgeKey(x)
 StructUtils.lowerkey(::JSON.JSONStyle, x::EdgeKey{T}) where T = "$(x.key.src)_$(x.key.dst)"
-StructUtils.liftkey(::Type{EdgeKey{T}}, x::String) where T = EdgeKey(parse(T, s) for s in split(x, '_'))
+StructUtils.liftkey(::Type{EdgeKey{T}}, x::String) where T = EdgeKey(Edge([parse(T, s) for s in split(x, '_')]...))
 
 
 """
