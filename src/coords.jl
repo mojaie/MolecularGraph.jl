@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-# Note: just to avoid type piracy like JSON.lower(x::Point2d)
+# Note: just to avoid type piracy like StructUtils.lower(x::Point2d)
 
 
 function coords_from_sdf!(mol::SimpleMolGraph)

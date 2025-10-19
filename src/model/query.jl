@@ -69,7 +69,7 @@ end
 
 StructUtils.structlike(::StructUtils.StructStyle, ::Type{QueryNode}) = false
 
-function JSON.lower(x::QueryNode)
+function StructUtils.lower(x::QueryNode)
     rcd = Dict{String,Any}()
     x.operator === :eq || setindex!(rcd, string(x.operator), "operator")
     x.key === :none || setindex!(rcd, string(x.key), "key")
@@ -77,8 +77,21 @@ function JSON.lower(x::QueryNode)
     return rcd
 end
 
-JSON.lift(::Type{QueryNode}, x) = QueryNode(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+StructUtils.lift(::Type{QueryNode}, x) = QueryNode(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
 
+
+
+"""
+    QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement
+
+The base class of molecular query trees.
+"""
+abstract type QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement end
+
+Base.eltype(::Type{<:QueryTree{T,U}}) where {T,U} = T
+Base.eltype(qtree::T) where T<:QueryTree = eltype(T)
+vproptype(::Type{<:QueryTree{T,U}}) where {T,U} = U
+vproptype(qtree::T) where T<:QueryTree = vproptype(T)
 
 
 function querytree(edges::Vector{Tuple{T,T}}, props::Vector{U}) where {T,U}

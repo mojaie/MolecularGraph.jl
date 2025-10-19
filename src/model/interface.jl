@@ -207,16 +207,8 @@ function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph)
 end
 
 Base.getindex(mol::SimpleMolGraph, e::Edge) = mol.eprops[e]
-Base.getindex(mol::SimpleMolGraph{T}, u::T, v::T) where T = mol.eprops[u_edge(T, u, v)]
 Base.setindex!(mol::SimpleMolGraph, prop::AbstractElement, e::Edge) = setindex!(mol.eprops, prop, e)
-Base.setindex!(mol::SimpleMolGraph{T}, prop::AbstractElement, u::T, v::T
-    ) where T = setindex!(mol.eprops, prop, u_edge(T, u, v))
 
-# old accessors (deprecated)
-props(mol::SimpleMolGraph, u::Integer, v::Integer) = mol[u, v]
-props(mol::SimpleMolGraph, e::Edge) = mol[e]
-get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = mol[u, v][prop]
-get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = mol[e][prop]
 
 
 """
@@ -262,10 +254,15 @@ Base.setindex!(mol::SimpleMolGraph{T}, prop::AbstractElement, u::T, v::T
 
 # old accessors (deprecated)
 props(mol::SimpleMolGraph, u::Integer, v::Integer) = mol[u, v]
+props(mol::SimpleMolGraph, e::Edge) = mol[e]
 get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = mol[u, v][prop]
+get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = mol[e][prop]
 get_prop(mol::SimpleMolGraph, prop::Symbol) = mol[prop]
 has_prop(mol::SimpleMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
 # set_prop! is not available because MolProperty types should be immutable.
+
+# old accessors (deprecated)
+
 
 # Internally called by descriptor methods (e.g. `is_ring_aromatic(mol)`)
 # Do not expose

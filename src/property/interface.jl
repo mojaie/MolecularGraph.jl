@@ -15,7 +15,7 @@ end
 Base.Tuple(x::Stereocenter) = (x.lookingFrom, x.first, x.second, x.isclockwise)
 Base.iterate(x::Stereocenter, state...) = iterate(Tuple(x), state...)
 Base.:(==)(x::Stereocenter, y) = Tuple(x) == Tuple(y)
-JSON.lower(x::Stereocenter) = collect(Tuple(x))
+StructUtils.lower(x::Stereocenter) = collect(Tuple(x))
 
 
 struct StereocenterMap{T<:Integer}
@@ -69,7 +69,7 @@ end
 Base.Tuple(x::Stereobond) = (x.first, x.second, x.is_cis)
 Base.iterate(x::Stereobond, state...) = iterate(Tuple(x), state...)
 Base.:(==)(x::Stereobond, y) = Tuple(x) == Tuple(y)
-JSON.lower(x::Stereobond) = collect(Tuple(x))
+StructUtils.lower(x::Stereobond) = collect(Tuple(x))
 
 
 struct StereobondMap{T<:Integer}
@@ -132,8 +132,8 @@ Base.setindex!(x::Coords2d, v, k...) = setindex!(x.coords, v, k...)
 Base.empty!(x::Coords2d) = empty!(x.coords)
 
 StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords2d}) = false
-JSON.lower(x::Coords2d) = [[p...] for p in x.coords]
-JSON.lift(::Type{Coords2d}, x) = Coords2d([Point2d(p...) for p in x])
+StructUtils.lower(x::Coords2d) = [[p...] for p in x.coords]
+StructUtils.lift(::Type{Coords2d}, x) = Coords2d([Point2d(p...) for p in x])
 
 function remap(
         coords::Vector{Coords2d}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
@@ -175,8 +175,8 @@ Base.setindex!(x::Coords3d, v, k...) = setindex!(x.coords, v, k...)
 Base.empty!(x::Coords3d) = empty!(x.coords)
 
 StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords3d}) = false
-JSON.lower(x::Coords3d) = [[p...] for p in x.coords]
-JSON.lift(::Type{Coords3d}, x) = Coords3d([Point3d(p...) for p in x])
+StructUtils.lower(x::Coords3d) = [[p...] for p in x.coords]
+StructUtils.lift(::Type{Coords3d}, x) = Coords3d([Point3d(p...) for p in x])
 
 function remap(
         coords::Vector{Coords3d}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
@@ -218,8 +218,8 @@ Base.setindex!(x::Draw2dBondStyle, v, k...) = setindex!(x.styles, v, k...)
 Base.empty!(x::Draw2dBondStyle) = empty!(x.styles)
 
 StructUtils.structlike(::StructUtils.StructStyle, ::Type{Draw2dBondStyle}) = false
-JSON.lower(x::Draw2dBondStyle) = string.(x.styles)
-JSON.lift(::Type{Draw2dBondStyle}, x) = Draw2dBondStyle(Symbol.(x))
+StructUtils.lower(x::Draw2dBondStyle) = string.(x.styles)
+StructUtils.lift(::Type{Draw2dBondStyle}, x) = Draw2dBondStyle(Symbol.(x))
 
 function remap(
         style::Vector{Draw2dBondStyle}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
