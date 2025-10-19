@@ -19,64 +19,17 @@ const STEREOCENTER_STATE = Dict(
 )
 
 
-function isclockwise(stereo::Tuple{T,T,T,Bool}, f::T, s::T, t::T) where T <: Integer
-    fp = something(findfirst(==(f), stereo[1:3]), 4)
-    sp = something(findfirst(==(s), stereo[1:3]), 4)
-    tp = something(findfirst(==(t), stereo[1:3]), 4)
-    return stereo[4] === STEREOCENTER_STATE[(fp, sp, tp)]
+stereoneighbors(c::Stereocenter) = [c.lookingFrom, c.first, c.second]
+isclockwise(c::Stereocenter) = c.isclockwise
+
+
+function isclockwise(c::Stereocenter{T}, f::T, s::T, t::T) where T <: Integer
+    fp = something(findfirst(==(f), stereoneighbors(c)), 4)
+    sp = something(findfirst(==(s), stereoneighbors(c)), 4)
+    tp = something(findfirst(==(t), stereoneighbors(c)), 4)
+    return isclockwise(c) === STEREOCENTER_STATE[(fp, sp, tp)]
 end
 
-
-function remap!(
-        ::Val{:stereocenter}, gprop::SimpleMolProperty{T},
-        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
-    revv = Dict(v => i for (i, v) in enumerate(vmap))
-    newmap = Dict{T,Tuple{T,T,T,Bool}}()
-    for (k, v) in gprop.stereocenter
-        isempty(setdiff([k, v[1:3]...], keys(revv))) || continue
-        newmap[revv[k]] = (revv[v[1]], revv[v[2]], revv[v[3]], v[4])
-    end
-    empty!(gprop.stereocenter)
-    merge!(gprop.stereocenter, newmap)
-    return
-end
-
-function reconstruct(::Val{:stereocenter}, ::Type{T}, @nospecialize(data)
-        ) where T <: SimpleMolProperty
-    U = eltype(T)
-    return Dict{U,Tuple{U,U,U,Bool}}(parse(U, i) => tuple(val...) for (i, val) in data)
-end
-
-function to_dict(::Val{:stereocenter}, ::Val{:default}, gprop::AbstractProperty)
-    return Dict{String,Any}(string(i) => collect(val) for (i, val) in gprop.stereocenter)
-end
-
-
-function remap!(
-        ::Val{:stereobond}, gprop::SimpleMolProperty{T},
-        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
-    revv = Dict(v => i for (i, v) in enumerate(vmap))
-    newmap = Dict{Edge{T},Tuple{T,T,Bool}}()
-    for (k, v) in gprop.stereobond
-        isempty(setdiff([src(k), dst(k), v[1:2]...], keys(revv))) || continue
-        n1, n2 = revv[src(k)] < revv[dst(k)] ? (1, 2) : (2, 1)
-        newmap[u_edge(T, revv[src(k)], revv[dst(k)])] = (revv[v[n1]], revv[v[n2]], v[3])
-    end
-    empty!(gprop.stereobond)
-    merge!(gprop.stereobond, newmap)
-    return
-end
-
-function reconstruct(::Val{:stereobond}, ::Type{T}, @nospecialize(data)
-        ) where T <: SimpleMolProperty
-    U = eltype(T)
-    return Dict{Edge{U},Tuple{U,U,Bool}}(
-        Edge{U}(s, d) => tuple(val...) for (s, d, val) in data)
-end
-
-function to_dict(::Val{:stereobond}, ::Val{:default}, gprop::AbstractProperty)
-    return [[src(e), dst(e), collect(val)] for (e, val) in gprop.stereobond]
-end
 
 
 """
@@ -87,7 +40,7 @@ Set stereocenter information to graph properties.
 function set_stereocenter!(
         mol::SimpleMolGraph{T}, center::T,
         looking_from::T, v1::T, v2::T, is_clockwise::Bool) where T
-    mol[:stereocenter][center] = (looking_from, v1, v2, is_clockwise)
+    mol[:stereocenter][center] = Stereocenter{T}(looking_from, v1, v2, is_clockwise)
 end
 
 
@@ -98,7 +51,7 @@ Set stereocenter information to graph properties.
 """
 function set_stereobond!(
         mol::SimpleMolGraph{T}, bond::Edge{T}, v1::T, v2::T, is_cis::Bool) where T
-    mol[:stereobond][bond] = (v1, v2, is_cis)
+    mol[:stereobond][bond] = Stereobond{T}(v1, v2, is_cis)
 end
 
 
@@ -109,7 +62,8 @@ function stereo_hydrogen(mol::SimpleMolGraph, v::Integer)
     return nbrs[hpos]
 end
 
-function stereo_hydrogen(mol::QueryMolGraph, v::Integer)
+function stereo_hydrogen(mol::ReactiveMolGraph{T,V,E}, v::Integer
+        ) where {T,V<:QueryTree,E<:QueryTree}
     nbrs = neighbors(mol, v)
     hpos = findfirst(x -> mol[x].vprops[1] == qeq(:symbol, "H"), nbrs)
     isnothing(hpos) && return  # 4° center or already removed
@@ -130,7 +84,7 @@ function safe_stereo_hydrogen!(mol::SimpleMolGraph{T}, center::T) where T
     h = stereo_hydrogen(mol, center)
     isnothing(h) && return # 4° center or already removed
     stereo = mol[:stereocenter][center]
-    spos = findfirst(==(h), stereo[1:3])
+    spos = findfirst(==(h), stereoneighbors(stereo))
     isnothing(spos) && return h  # hydrogen at the lowest priority can be removed safely
     nonh = setdiff(ordered_neighbors(mol, center), h)
     set_stereocenter!(mol, center, nonh..., isclockwise(stereo, nonh...))
@@ -147,7 +101,7 @@ end
 
 
 function anglesort(
-        coords::Vector{Point2d}, center::T, ref::T,
+        coords::Coords2d, center::T, ref::T,
         vertices::Vector{T}) where T <: Integer
     # return vertices order by clockwise direction
     c = coords[center]
@@ -165,8 +119,8 @@ Return stereocenter information obtained from 2D SDFile.
 """
 function stereocenter_from_sdf2d(
         g::SimpleGraph{T}, v_symbol::Vector{Symbol}, e_order::Vector{Int},
-        e_notation::Vector{Int}, e_isordered::Vector{Bool}, v_coords2d::Vector{Point2d}) where T
-    centers = Dict{T,Tuple{T,T,T,Bool}}()
+        e_notation::Vector{Int}, e_isordered::Vector{Bool}, v_coords2d::Coords2d) where T
+    centers = StereocenterMap{T}()
     ernk = edge_rank(g)
     comments = String[]
     for i in vertices(g)
@@ -200,9 +154,9 @@ function stereocenter_from_sdf2d(
                 @debug "ignored stereocenter #$(i) (too many wedges)"
                 push!(comments, "ignored stereocenter #$(i) (too many wedges)")
             elseif upcnt == 2 || dwcnt == 2
-                centers[i] = (ons[1], ons[2], ons[3], upcnt == 0)
+                centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], upcnt == 0)
             else
-                centers[i] = (ons[1], ons[2], ons[3], dwcnt == 0)
+                centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], dwcnt == 0)
             end
             continue
         end
@@ -210,19 +164,19 @@ function stereocenter_from_sdf2d(
             @debug "ignored stereocenter #$(i) (too many wedges)"
             push!(comments, "ignored stereocenter #$(i) (too many wedges)")
         elseif upcnt == 3
-            centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up && ods[3] === :up)
+            centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], ods[1] === :up && ods[3] === :up)
         elseif dwcnt == 3
-            centers[i] = (ons[1], ons[2], ons[3], ods[2] === :down && ods[4] === :down)
+            centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], ods[2] === :down && ods[4] === :down)
         elseif upcnt == 2
             if (ods[1] === :up && ods[3] === :up) || (ods[2] === :up && ods[4] === :up)
-                centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up)
+                centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], ods[1] === :up)
             else
                 @debug "ignored stereocenter #$(i) (adjacent up wedges)"
                 push!(comments, "ignored stereocenter #$(i) (adjacent up wedges)")
             end
         elseif dwcnt == 2
             if (ods[1] === :down && ods[3] === :down) || (ods[2] === :down && ods[4] === :down)
-                centers[i] = (ons[1], ons[2], ons[3], ods[1] !== :down)
+                centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], ods[1] !== :down)
             else
                 @debug "ignored stereocenter #$(i) (adjacent down wedges)"
                 push!(comments, "ignored stereocenter #$(i) (adjacent down wedges)")
@@ -233,12 +187,12 @@ function stereocenter_from_sdf2d(
                 @debug "ignored stereocenter #$(i) (up and down wedges facing each other)"
                 push!(comments, "ignored stereocenter #$(i) (up and down wedges facing each other)")
             else
-                centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
+                centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
             end
         elseif upcnt == 1
-            centers[i] = (ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
+            centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], ods[1] === :up || ods[3] === :up)
         else  # dwcnt == 1
-            centers[i] = (ons[1], ons[2], ons[3], ods[2] === :down || ods[4] === :down)
+            centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], ods[2] === :down || ods[4] === :down)
         end
     end
     return centers, comments
@@ -279,14 +233,14 @@ Return stereocenter information obtained from SMILES.
 """
 function stereocenter_from_smiles(
         g::SimpleGraph{T}, succ::Vector{Vector{T}}, v_stereo::Vector{Symbol}) where T
-    centers = Dict{T,Tuple{T,T,T,Bool}}()
+    centers = StereocenterMap{T}()
     for i in vertices(g)
         degree(g, i) in (3, 4) || continue
         v_stereo[i] === :unspecified && continue
         # sort vertices by SMARTS lexicographic order
         nbrs = neighbors(g, i)
         first = only(setdiff(nbrs, succ[i]))
-        centers[i] = (first, succ[i][1], succ[i][2], v_stereo[i] in (:clockwise, :clockwiseuns))
+        centers[i] = Stereocenter{T}(first, succ[i][1], succ[i][2], v_stereo[i] in (:clockwise, :clockwiseuns))
     end
     return centers
 end
@@ -296,7 +250,7 @@ stereocenter_from_smiles(mol::SimpleMolGraph) = stereocenter_from_smiles(
     Symbol[mol[i].stereo for i in vertices(mol)]
 )
 
-function stereocenter_from_smiles(mol::QueryMolGraph)
+function stereocenter_from_smiles(mol::ReactiveMolGraph{T,V,E}) where {T,V<:QueryTree,E<:QueryTree}
     v_stereo = fill(:unspecified, nv(mol))
     for i in vertices(mol)
         for p in values(mol[i].vprops)
@@ -334,8 +288,8 @@ Return cis-trans diastereomerism information obtained from 2D SDFile.
 """
 function stereobond_from_sdf2d(
         g::SimpleGraph{T}, sssr::Vector{Vector{T}}, e_order::Vector{Int}, e_notation::Vector{Int},
-        v_coords2d::Vector{Point2d}) where T
-    stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
+        v_coords2d::Coords2d) where T
+    stereobonds = StereobondMap{T}()
     smallcycles = Edge{T}[]
     for cyc in edgemincyclebasis(g, sssr)
         length(cyc) < 8 && push!(smallcycles, cyc...)
@@ -355,7 +309,7 @@ function stereobond_from_sdf2d(
         n2p = cond(n2[1], n2[2])
         n1p * n2p == 0 && continue  # 180° bond angle
         is_cis = n1p * n2p > 0
-        stereobonds[e] = (snbrs[1], dnbrs[1], is_cis)
+        stereobonds[e] = Stereobond{T}(snbrs[1], dnbrs[1], is_cis)
     end
     return stereobonds
 end
@@ -414,7 +368,7 @@ Return cis-trans diastereomerism information obtained from SMILES.
 """
 function stereobond_from_smiles(
         g::SimpleGraph{T}, isdouble::BitVector, e_direction::Vector{Symbol}) where T
-    stereobonds = Dict{Edge{T},Tuple{T,T,Bool}}()
+    stereobonds = StereobondMap{T}()
     comments = String[]
     ernk = edge_rank(g)
     for (i, e) in enumerate(edges(g))
@@ -426,7 +380,7 @@ function stereobond_from_smiles(
         isempty(sds) && continue
         dds = adj_direction!(dst(e), false, dnbrs, e_direction, ernk, comments)
         isempty(dds) && continue
-        stereobonds[e] = (sds[1][1], dds[1][1], sds[1][2] !== dds[1][2])
+        stereobonds[e] = Stereobond{T}(sds[1][1], dds[1][1], sds[1][2] !== dds[1][2])
     end
     return stereobonds, comments
 end
@@ -437,7 +391,7 @@ stereobond_from_smiles(mol::SimpleMolGraph) = stereobond_from_smiles(
     Symbol[mol[e].direction for e in edges(mol)]
 )
 
-function stereobond_from_smiles(mol::QueryMolGraph)
+function stereobond_from_smiles(mol::ReactiveMolGraph{T,V,E}) where {T,V<:QueryTree,E<:QueryTree}
     e_direction = fill(:unspecified, ne(mol))
     for (i, e) in enumerate(edges(mol))
         for p in values(mol[e].vprops)

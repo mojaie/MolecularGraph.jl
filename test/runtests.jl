@@ -8,6 +8,7 @@ module MolecularGraphTest
 using Colors: RGB
 using GeometryBasics: Point, Point2d, Line
 using Graphs
+using JSON
 using LinearAlgebra: cross
 using Logging
 using MolecularGraph
@@ -21,7 +22,7 @@ using MolecularGraph:
 
 using MolecularGraph:
     ordered_neighbors, u_edge, edge_rank,
-    MolProperty, MolDescriptor, remap!, reconstruct, sdf_on_init!,
+    MolProperty, MolDescriptor, remap!, sdf_on_init!,
     set_descriptor!,
     atomsymbol!, atomprop!, atom!,
     bondsymbol!, bond!,
@@ -47,6 +48,7 @@ using MolecularGraph:
     exact_topology_prefilter, topology_prefilter,
     QueryTruthTable, querymatch,
     resolve_disjoint_not!, resolve_recursive!, generate_truthtable,
+    Coords2d, Coords3d, Draw2dBondStyle,
     draw2d_bond_style,
     atom_color, is_atom_visible, atom_markup, double_bond_style,
     normalize_coords

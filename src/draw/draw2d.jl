@@ -4,7 +4,7 @@
 #
 
 
-function optpos(g::SimpleGraph, coords::Vector{Point2d})
+function optpos(g::SimpleGraph, coords::Coords2d)
     oppos = Vector{Point2d}(undef, length(coords))
     opdeg = Vector{Float64}(undef, length(coords))
     for i in vertices(g)
@@ -140,7 +140,7 @@ end
 
 
 function double_bond_style(
-        g::SimpleGraph, bondorder_::Vector{Int}, coords::Vector{Point2d},
+        g::SimpleGraph, bondorder_::Vector{Int}, coords::Coords2d,
         sssr_::Vector{Vector{Int}})
     arr = Vector{Symbol}(undef, ne(g))
     ernk = edge_rank(g)
@@ -185,8 +185,8 @@ end
 
 
 function bond_style(
-        g::SimpleGraph, bondorder::Vector{Int}, defaultbondstyle::Vector{Symbol},
-        coords_::Vector{Point2d}, sssr_::Vector{Vector{Int}})
+        g::SimpleGraph, bondorder::Vector{Int}, defaultbondstyle::Draw2dBondStyle,
+        coords_::Coords2d, sssr_::Vector{Vector{Int}})
     doublebondstyle = double_bond_style(g, bondorder, coords_, sssr_)
     arr = copy(defaultbondstyle)
     for i in 1:length(bondorder)
@@ -322,7 +322,7 @@ Get boundaries and an appropriate bond length unit for the molecule drawing
 canvas.
 """
 function normalize_coords(
-        g::SimpleGraph, coords::Vector{Point2d},
+        g::SimpleGraph, coords::Coords2d,
         label_length::Vector{Int}, label_direction::Vector{Symbol},
         atomvisible::BitVector,
         fontsizef::Float64, scalef::Float64, paddingX::Float64, paddingY::Float64)

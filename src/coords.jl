@@ -3,86 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-# TODO: just remap nodes if still all existing vertices have coords.
-
-reconstruct(::Val{:coords2d}, ::Type{T}, @nospecialize(data)
-    ) where T <: AbstractProperty = [[Point2d(cd...) for cd in cds] for cds in data]
-to_dict(
-    ::Val{:coords2d}, ::Val{:default}, gprop::AbstractProperty
-) = [[collect(cd) for cd in cds] for cds in gprop.coords2d]
-
-function remap!(
-        ::Val{:coords2d}, desc::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
-    revv = Dict(v => i for (i, v) in enumerate(vmap))
-    container = Vector{Vector{Point2d}}(undef, length(desc.coords2d))
-    for (i, oldcds) in enumerate(desc.coords2d)
-        newcds = Vector{Point2d}(undef, length(revv))
-        for (oldp, newp) in revv
-            newcds[newp] = oldcds[oldp]
-        end
-        container[i] = newcds
-    end
-    empty!(desc.coords2d)
-    append!(desc.coords2d, container)
-    return
-end
-
-reconstruct(::Val{:coords3d}, ::Type{T}, @nospecialize(data)
-    ) where T <: AbstractProperty = [[Point3d(cd...) for cd in cds] for cds in data]
-to_dict(
-    ::Val{:coords3d}, ::Val{:default}, gprop::AbstractProperty
-) = [[collect(cd) for cd in cds] for cds in gprop.coords3d]
-
-function remap!(
-        ::Val{:coords3d}, desc::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
-    revv = Dict(v => i for (i, v) in enumerate(vmap))
-    container = Vector{Vector{Point3d}}(undef, length(desc.coords3d))
-    for (i, oldcds) in enumerate(desc.coords3d)
-        newcds = Vector{Point3d}(undef, length(revv))
-        for (oldp, newp) in revv
-            newcds[newp] = oldcds[oldp]
-        end
-        container[i] = newcds
-    end
-    empty!(desc.coords3d)
-    append!(desc.coords3d, container)
-    return
-end
-
-reconstruct(::Val{:draw2d_bond_style}, ::Type{T}, @nospecialize(data)
-    ) where T <: AbstractProperty = [[Symbol(s) for s in sty] for sty in data]
-to_dict(
-    ::Val{:draw2d_bond_style}, ::Val{:default}, gprop::AbstractProperty
-) = [[string(s) for s in sty] for sty in gprop.draw2d_bond_style]
-
-function remap!(
-        ::Val{:draw2d_bond_style}, desc::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
-    container = Vector{Vector{Symbol}}(undef, length(desc.draw2d_bond_style))
-    revv = Dict(v => i for (i, v) in enumerate(vmap))
-    newedges = sort([u_edge(T, revv[src(e)], revv[dst(e)]) for e in edges
-            if src(e) in vmap && dst(e) in vmap])
-    olderank = Dict(e => i for (i, e) in enumerate(edges))
-    emap = Dict(i => edge_rank(olderank, vmap[src(e)], vmap[dst(e)]) for (i, e) in enumerate(newedges))
-    inv = Dict{Symbol,Symbol}(:up => :revup, :revup => :up, :down => :revdown, :revdown => :down)
-    for (i, styles) in enumerate(desc.draw2d_bond_style)
-        cont = Vector{Symbol}(undef, length(emap))
-        for (j, e) in enumerate(newedges)
-            dr = styles[emap[j]]
-            if dr in [:up, :revup, :down, :revdown] && (src(e) < dst(e)) !== (vmap[src(e)] < vmap[dst(e)])
-                cont[j] = inv[dr]
-            else
-                cont[j] = dr
-            end
-        end
-        container[i] = cont
-    end
-    empty!(desc.draw2d_bond_style)
-    append!(desc.draw2d_bond_style, container)
-    return
-end
+# Note: just to avoid type piracy like JSON.lower(x::Point2d)
 
 
 function coords_from_sdf!(mol::SimpleMolGraph)
@@ -91,11 +12,11 @@ function coords_from_sdf!(mol::SimpleMolGraph)
     # Embed 3D coords to 2D
     push!(
         mol[:descriptors].coords2d,
-        [Point2d(mol[i].coords[1:2]...) for i in vertices(mol)])
+        Coords2d([Point2d(mol[i].coords[1:2]...) for i in vertices(mol)]))
     if zrange[2] - zrange[1] > 0.001  # 3D coords available
         push!(
             mol[:descriptors].coords3d,
-            [Point3d(mol[i].coords[1:3]...) for i in vertices(mol)])
+            Coords3d([Point3d(mol[i].coords[1:3]...) for i in vertices(mol)]))
     end
     # Bond style in 2D notation (wedges)
     bondorder = [mol[e].order for e in edges(mol)]
@@ -117,7 +38,7 @@ function coords_from_sdf!(mol::SimpleMolGraph)
             arr[i] = :none
         end
     end
-    push!(mol[:descriptors].draw2d_bond_style, arr)
+    push!(mol[:descriptors].draw2d_bond_style, Draw2dBondStyle(arr))
 end
 
 
@@ -202,8 +123,7 @@ coordgen(mol::SimpleMolGraph) = coordgen(
 
 function coordgen(
         g::SimpleGraph{T}, atomnum::Vector{Int}, bondorder_::Vector{Int},
-        stereocenters::Dict{T,Tuple{T,T,T,Bool}},
-        stereobonds::Dict{Edge{T},Tuple{T,T,Bool}}) where T
+        stereocenters::StereocenterMap{T}, stereobonds::StereobondMap{T}) where T
     minmol = @ccall libcoordgen.getSketcherMinimizer()::Ptr{Cvoid}
     atoms = Ptr{Cvoid}[]
     bonds = Ptr{Cvoid}[]
@@ -228,17 +148,17 @@ function coordgen(
     @ccall libcoordgen.assignBondsAndNeighbors(minmol::Ptr{Cvoid})::Cvoid
 
     # Stereocenter
-    for (n, stereo) in stereocenters
+    for (n, c) in stereocenters
         @ccall libcoordgen.setStereoCenter(
-            atoms[n]::Ptr{Cvoid}, atoms[stereo[1]]::Ptr{Cvoid},
-            atoms[stereo[2]]::Ptr{Cvoid}, atoms[stereo[3]]::Ptr{Cvoid}, stereo[4]::Cint)::Cvoid
+            atoms[n]::Ptr{Cvoid}, atoms[c.lookingFrom]::Ptr{Cvoid},
+            atoms[c.first]::Ptr{Cvoid}, atoms[c.second]::Ptr{Cvoid}, c.isclockwise::Cint)::Cvoid
     end
 
     # Stereobond
-    for (e, stereo) in stereobonds
+    for (e, b) in stereobonds
         @ccall libcoordgen.setStereoBond(
-            bonds[ernk[e]]::Ptr{Cvoid}, atoms[stereo[1]]::Ptr{Cvoid},
-            atoms[stereo[2]]::Ptr{Cvoid}, stereo[3]::Cint
+            bonds[ernk[e]]::Ptr{Cvoid}, atoms[b.first]::Ptr{Cvoid},
+            atoms[b.second]::Ptr{Cvoid}, b.is_cis::Cint
         )::Cvoid
     end
 
@@ -270,7 +190,7 @@ function coordgen(
         end
     end
     # TODO: keep wave bond in SDFile
-    return coords, styles
+    return Coords2d(coords), Draw2dBondStyle(styles)
 end
 
 function coordgen!(mol::SimpleMolGraph)

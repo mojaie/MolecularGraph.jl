@@ -10,9 +10,8 @@
     )
     @test length(desc.sssr) == 1
     @test desc.sssr[1] == [9, 10, 11, 12, 6, 3]
-    dump = to_dict(Val(:sssr), Val(:default), desc)
-    @test reconstruct(
-        Val(:sssr), MolDescriptor{Int}, dump) == desc.sssr
+    dump = JSON.json(desc.sssr)
+    @test JSON.parse(dump, Vector{Vector{Int}}) == desc.sssr
     cp = copy(desc)
     desc.sssr[1][3] == 13
     cp.sssr[1][3] == 11

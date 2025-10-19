@@ -20,14 +20,12 @@ struct QueryNode <: AbstractQueryNode
 end
 
 function QueryNode(;
-        operator::Union{AbstractString,Symbol}=:eq, 
+        operator::Union{AbstractString,Symbol}=:eq,
         key::Union{AbstractString,Symbol}=:none,
         value::AbstractString="")
     return QueryNode(Symbol(operator), Symbol(key), value)
 end
 
-QueryNode(d::Dict{String,Any}
-    ) = QueryNode(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
 QueryNode(d::Dict{Symbol,Any}
     ) = QueryNode(; NamedTuple((k, v) for (k, v) in d)...)
 
@@ -48,18 +46,23 @@ function Base.isless(q::QueryNode, r::QueryNode)
     return q.value < r.value
 end
 
-function to_dict(::Val{:default}, q::QueryNode)
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{QueryNode}) = false
+
+function JSON.lower(x::QueryNode)
     rcd = Dict{String,Any}()
-    q.operator === :eq || setindex!(rcd, string(q.operator), "operator")
-    q.key === :none || setindex!(rcd, string(q.key), "key")
-    q.value == "" || setindex!(rcd, q.value, "value")
+    x.operator === :eq || setindex!(rcd, string(x.operator), "operator")
+    x.key === :none || setindex!(rcd, string(x.key), "key")
+    x.value == "" || setindex!(rcd, x.value, "value")
     return rcd
 end
+
+JSON.lift(::Type{QueryNode}, x) = QueryNode(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+
 
 
 function querytree(edges::Vector{Tuple{T,T}}, props::Vector{U}) where {T,U}
     g = SimpleDiGraph(Edge{T}.(edges))
-    vprops = Dict{T,U}(i => p for (i, p) in enumerate(props))
+    vprops = Dict{VertexKey{T},U}(VertexKey(i) => p for (i, p) in enumerate(props))
     # expand fadjlist and badjlist for vprops of isolated nodes
     for _ in nv(g):(length(vprops) - 1)
         push!(g.fadjlist, T[])
@@ -69,29 +72,14 @@ function querytree(edges::Vector{Tuple{T,T}}, props::Vector{U}) where {T,U}
 end
 
 
-function querytree(::Type{T}, ::Type{U}, data::Dict{String,Any}) where {T,U}
-    edges = NTuple{2,T}[(e...,) for e in data["edges"]]
-    props = U.(data["vprops"])
-    return querytree(edges, props)
-end
-
-
-function to_dict(fmt::Val{:default}, qtree::QueryTree)
-    return Dict{String,Any}(
-        "edges" => [[src(e), dst(e)] for e in edges(qtree.graph)],
-        "vprops" => [to_dict(fmt, qtree.vprops[i]) for i in vertices(qtree.graph)]
-    )
-end
-
-
 struct QueryAtom{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
     graph::SimpleDiGraph{T}
-    vprops::Dict{T,U}
+    vprops::Dict{VertexKey{T},U}
 end
 
 struct QueryBond{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
     graph::SimpleDiGraph{T}
-    vprops::Dict{T,U}
+    vprops::Dict{VertexKey{T},U}
 end
 
 Base.copy(qtree::T) where T <: QueryAtom = T(copy(qtree.graph), copy(qtree.vprops))
@@ -105,48 +93,56 @@ QueryAtom(edges::Vector, props::Vector) = QueryAtom(querytree(edges, props)...)
 QueryBond(edges::Vector, props::Vector) = QueryBond(querytree(edges, props)...)
 QueryAtom() = QueryAtom(Tuple{Int,Int}[], QueryNode[])
 QueryBond() = QueryBond(Tuple{Int,Int}[], QueryNode[])
-QueryAtom{T,U}(data::Dict{String,Any}
-    ) where {T<:Integer,U<:QueryNode} = QueryAtom{T,U}(querytree(T, U, data)...)
-QueryBond{T,U}(data::Dict{String,Any}
-    ) where {T<:Integer,U<:QueryNode} = QueryBond{T,U}(querytree(T, U, data)...)
-QueryAtom(data::Dict{String,Any}) = QueryAtom(querytree(Int, QueryNode, data)...)
-QueryBond(data::Dict{String,Any}) = QueryBond(querytree(Int, QueryNode, data)...)
 
 
 
-@kwdef mutable struct QueryMolDescriptor{T} <: SimpleMolProperty{T}
-    coords2d::Vector{Vector{Point2d}} = Vector{Point2d}[]
-    coords3d::Vector{Vector{Point3d}} = Vector{Point3d}[]
+mutable struct QueryMolDescriptor{T} <: SimpleMolProperty{T}
+    coords2d::Vector{Coords2d}
+    coords3d::Vector{Coords3d}
+end
+
+function QueryMolDescriptor{T}(;
+        coords2d::Vector{Coords2d}=Coords2d[],
+        coords3d::Vector{Coords3d}=Coords3d[]) where T <: Integer
+    return QueryMolDescriptor{T}(coords2d, coords3d)
 end
 
 Base.copy(desc::T) where T <: QueryMolDescriptor = T(
-    copy_vec_of_vec(desc.coords2d), copy_vec_of_vec(desc.coords3d)
+    [copy(c) for c in desc.coords2d], [copy(c) for c in desc.coords3d]
 )
 
 
-@kwdef struct QueryMolProperty{T} <: SimpleMolProperty{T}
-    stereocenter::Dict{T,Tuple{T,T,T,Bool}} = Dict{T,Tuple{T,T,T,Bool}}()
-    stereobond::Dict{Edge{T},Tuple{T,T,Bool}} = Dict{Edge{T},Tuple{T,T,Bool}}()
-    smarts_input::String = ""
-    smarts_lexical_succ::Vector{Vector{T}} = Vector{T}[]  # lexical index used for stereochem
-    smarts_connectivity::Vector{Vector{T}} = Vector{T}[]  # SMARTS connectivity query
-    descriptors::QueryMolDescriptor{T} = QueryMolDescriptor{T}()
-    # Graph-level metadata properties (e.g. SDFile option fields)
-    metadata::OrderedDict{String,String} = OrderedDict{String,String}()
-    # Parse errors
-    logs::Dict{String,String} = Dict{String,String}()
+struct QueryMolProperty{T} <: SimpleMolProperty{T}
+    stereocenter::StereocenterMap{T}
+    stereobond::StereobondMap{T}
+    smarts_input::String
+    smarts_lexical_succ::Vector{Vector{T}}  # lexical index used for stereochem
+    smarts_connectivity::Vector{Vector{T}}  # SMARTS connectivity query
+    descriptors::QueryMolDescriptor{T}
+    metadata::OrderedDict{String,String}  # e.g. SDFile option fields
+    logs::Dict{String,String}  # Parse errors
 end
 
+function QueryMolProperty{T}(;
+        stereocenter::StereocenterMap{T}=StereocenterMap{T}(),
+        stereobond::StereobondMap{T}=StereobondMap{T}(),
+        smarts_input::String="",
+        smarts_lexical_succ::Vector{Vector{T}}=Vector{T}[],
+        smarts_connectivity::Vector{Vector{T}}=Vector{T}[],
+        descriptors::QueryMolDescriptor{T}=QueryMolDescriptor{T}(),
+        metadata::OrderedDict{String,String}=OrderedDict{String,String}(),
+        logs::Dict{String,String}=Dict{String,String}()) where T <: Integer
+    return QueryMolProperty{T}(
+        stereocenter, stereobond, smarts_input, smarts_lexical_succ,
+        smarts_connectivity, descriptors, metadata, logs
+    )
+end
 
 Base.copy(prop::T) where T <: QueryMolProperty = T(
     copy(prop.stereocenter), copy(prop.stereobond), prop.smarts_input,
     copy_vec_of_vec(prop.smarts_lexical_succ), copy_vec_of_vec(prop.smarts_connectivity),
     copy(prop.descriptors), copy(prop.metadata), copy(prop.logs)
 )
-
-
-reconstruct(::Val{:descriptors}, ::Type{QueryMolProperty{T}}, @nospecialize(data)
-    ) where T = reconstruct(QueryMolDescriptor{T}, data)
 
 
 """
@@ -156,8 +152,8 @@ Basic molecular graph type.
 """
 struct QueryMolGraph{T<:Integer,V<:QueryTree,E<:QueryTree} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
-    vprops::Dict{T,V}
-    eprops::Dict{Edge{T},E}
+    vprops::Dict{VertexKey{T},V}
+    eprops::Dict{EdgeKey{T},E}
     gprops::QueryMolProperty{T}
     state::MolState{T}
 end
@@ -401,7 +397,7 @@ This function is intended for generalization of PAINS query in PubChem dataset.
 """
 function resolve_not_hydrogen!(qtree::QueryTree{T,U}) where {T,U}
     toremove = T[]
-    for (i, prop) in qtree.vprops
+    for (i, prop) in vpropiter(qtree)
         prop.operator === :not || continue
         succ = only(outneighbors(qtree.graph, i))
         sprop = qtree.vprops[succ]

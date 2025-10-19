@@ -5,8 +5,10 @@
 
 module MolecularGraph
 
+import JSON
 using OrderedCollections
 using Printf: @sprintf
+using StructUtils
 import YAML
 
 
@@ -33,10 +35,13 @@ include("./property/interface.jl")
 include("./draw/interface.jl")
 
 export
+    VertexKey, EdgeKey,
     AbstractAtom, AbstractBond, Reaction, QueryTree,
     vproptype, eproptype,
     props, get_prop, has_prop, set_prop!,
-    u_edge, ordered_neighbors, edge_neighbors, ordered_edge_neighbors
+    u_edge, ordered_neighbors, edge_neighbors, ordered_edge_neighbors,
+    Stereocenter, StereocenterMap, Stereobond, StereobondMap,
+    Coords2d, Coords3d
 
 
 # Graph models and algorithms
@@ -90,10 +95,10 @@ export
 
 # Basic molecular properties
 
-include("property/topology.jl")
-include("property/valence.jl")
-include("property/hybridization.jl")
-include("property/wclogp.jl")
+include("./property/topology.jl")
+include("./property/valence.jl")
+include("./property/hybridization.jl")
+include("./property/wclogp.jl")
 
 export
     sssr, sssr!,
@@ -114,10 +119,6 @@ export
 
 # Preprocessing and molecule manipulation
 
-using coordgenlibs_jll: libcoordgen
-
-include("coords.jl")
-include("stereo.jl")
 include("preprocess.jl")
 include("virtualatom.jl")
 
@@ -141,7 +142,6 @@ export
 # I/O
 
 import Dates
-import JSON
 
 include("json.jl")
 include("sdfilereader.jl")
@@ -153,7 +153,7 @@ include("./smarts/logicaloperator.jl")
 include("./smarts/molecule.jl")
 
 export
-    to_dict, to_json, mol_from_dict,
+    to_dict, mol_from_json,
     SDFileReader,
     sdf_on_init!, sdf_on_update!,
     sdfilereader, rdfilereader, sdfilescanner,
@@ -167,7 +167,10 @@ export
 # Descriptors
 
 using libinchi_jll: libinchi
+using coordgenlibs_jll: libcoordgen
 
+include("stereo.jl")
+include("coords.jl")
 include("mass.jl")
 include("rdkit.jl")
 include("inchi.jl")

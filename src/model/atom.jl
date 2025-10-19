@@ -140,6 +140,7 @@ function find_isotope(atomsymbol::Symbol, num::Int)
 end
 
 
+
 """
     SDFAtom
 
@@ -176,10 +177,7 @@ function SDFAtom(;
     return SDFAtom(Symbol(symbol), charge, multiplicity, isotope, coords)
 end
 
-SDFAtom(d::Dict{String,Any}
-    ) = SDFAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
-SDFAtom(d::Dict{Symbol,Any}
-    ) = SDFAtom(; NamedTuple((k, v) for (k, v) in d)...)
+SDFAtom(d::Dict{Symbol,Any}) = SDFAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
 atom_symbol(a::SDFAtom) = a.symbol
 atom_number(a::SDFAtom) = atom_number(a.symbol)
@@ -187,24 +185,20 @@ atom_charge(a::SDFAtom) = a.charge
 multiplicity(a::SDFAtom) = a.multiplicity
 isotope(a::SDFAtom) = a.isotope
 
-function to_dict(::Val{:default}, a::SDFAtom)
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{SDFAtom}) = false
+
+function JSON.lower(x::SDFAtom)
     rcd = Dict{String,Any}()
-    a.symbol === :C || setindex!(rcd, string(a.symbol), "symbol")
-    a.charge == 0 || setindex!(rcd, a.charge, "charge")
-    a.multiplicity == 1 || setindex!(rcd, a.multiplicity, "multiplicity")
-    a.isotope == 0 || setindex!(rcd, a.isotope, "isotope")
-    isnothing(a.coords) || setindex!(rcd, a.coords, "coords")
+    x.symbol === :C || setindex!(rcd, string(x.symbol), "symbol")
+    x.charge == 0 || setindex!(rcd, x.charge, "charge")
+    x.multiplicity == 1 || setindex!(rcd, x.multiplicity, "multiplicity")
+    x.isotope == 0 || setindex!(rcd, x.isotope, "isotope")
+    isnothing(x.coords) || setindex!(rcd, x.coords, "coords")
     return rcd
 end
 
-function to_dict(::Val{:rdkit}, a::SDFAtom)
-    rcd = Dict{String,Any}()
-    a.symbol === :C || setindex!(rcd, atom_number(a.symbol), "z")
-    a.charge == 0 || setindex!(rcd, a.charge, "chg")
-    a.multiplicity == 1 || setindex!(rcd, a.multiplicity - 1, "nRad")
-    a.isotope == 0 || setindex!(rcd, a.isotope, "isotope")
-    return rcd
-end
+JSON.lift(::Type{SDFAtom}, x) = SDFAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+
 
 
 """
@@ -246,10 +240,7 @@ function SMILESAtom(;
         Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo))
 end
 
-SMILESAtom(d::Dict{String,Any}
-    ) = SMILESAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
-SMILESAtom(d::Dict{Symbol,Any}
-    ) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
+SMILESAtom(d::Dict{Symbol,Any}) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
 
 has_isaromatic(::Type{SMILESAtom}) = true
 
@@ -260,25 +251,21 @@ multiplicity(a::SMILESAtom) = a.multiplicity
 isotope(a::SMILESAtom) = a.isotope
 isaromatic(a::SMILESAtom) = a.isaromatic
 
-function to_dict(::Val{:default}, a::SMILESAtom)
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{SMILESAtom}) = false
+
+function JSON.lower(x::SMILESAtom)
     rcd = Dict{String,Any}()
-    a.symbol === :C || setindex!(rcd, string(a.symbol), "symbol")
-    a.charge == 0 || setindex!(rcd, a.charge, "charge")
-    a.multiplicity == 1 || setindex!(rcd, a.multiplicity, "multiplicity")
-    a.isotope == 0 || setindex!(rcd, a.isotope, "isotope")
-    a.isaromatic === false || setindex!(rcd, a.isaromatic, "isaromatic")
-    a.stereo === :unspecified || setindex!(rcd, string(a.stereo), "stereo")
+    x.symbol === :C || setindex!(rcd, string(x.symbol), "symbol")
+    x.charge == 0 || setindex!(rcd, x.charge, "charge")
+    x.multiplicity == 1 || setindex!(rcd, x.multiplicity, "multiplicity")
+    x.isotope == 0 || setindex!(rcd, x.isotope, "isotope")
+    x.isaromatic === false || setindex!(rcd, x.isaromatic, "isaromatic")
+    x.stereo === :unspecified || setindex!(rcd, string(x.stereo), "stereo")
     return rcd
 end
 
-function to_dict(::Val{:rdkit}, a::SMILESAtom)
-    rcd = Dict{String,Any}()
-    a.symbol === :C || setindex!(rcd, atom_number(a.symbol), "z")
-    a.charge == 0 || setindex!(rcd, a.charge, "chg")
-    a.multiplicity == 1 || setindex!(rcd, a.multiplicity - 1, "nRad")
-    a.isotope == 0 || setindex!(rcd, a.isotope, "isotope")
-    return rcd
-end
+JSON.lift(::Type{SMILESAtom}, x) = SMILESAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+
 
 
 """
@@ -320,10 +307,12 @@ function CommonChemAtom(;
     return CommonChemAtom(z, chg, impHs, isotope, nRad, Symbol(stereo))
 end
 
-CommonChemAtom(d::Dict{String,Any}
-    ) = CommonChemAtom(; NamedTuple((Symbol(k), v) for (k, v) in d)...)
 CommonChemAtom(d::Dict{Symbol,Any}
     ) = CommonChemAtom(; NamedTuple((k, v) for (k, v) in d)...)
+CommonChemAtom(x::SDFAtom) = CommonChemAtom(
+    atom_number(x.symbol), x.charge, x.multiplicity - 1, x.isotope)
+CommonChemAtom(x::SMILESAtom) = CommonChemAtom(
+    atom_number(x.symbol), x.charge, x.multiplicity - 1, x.isotope)
 
 atom_symbol(a::CommonChemAtom) = atom_symbol(a.z)
 atom_number(a::CommonChemAtom) = a.z
@@ -331,13 +320,17 @@ atom_charge(a::CommonChemAtom) = a.chg
 multiplicity(a::CommonChemAtom) = a.nRad + 1
 isotope(a::CommonChemAtom) = a.isotope
 
-function to_dict(::Val, a::CommonChemAtom)
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{CommonChemAtom}) = false
+
+function JSON.lower(x::CommonChemAtom)
     rcd = Dict{String,Any}()
-    a.z == 6 || setindex!(rcd, a.z, "z")
-    a.chg == 0 || setindex!(rcd, a.chg, "chg")
-    a.impHs == 0 || setindex!(rcd, a.impHs, "impHs")
-    a.isotope == 0 || setindex!(rcd, a.isotope, "isotope")
-    a.nRad == 0 || setindex!(rcd, a.nRad, "nRad")
-    a.stereo === :unspecific || setindex!(rcd, a.stereo, "stereo")
+    x.z == 6 || setindex!(rcd, x.z, "z")
+    x.chg == 0 || setindex!(rcd, x.chg, "chg")
+    x.impHs == 0 || setindex!(rcd, x.impHs, "impHs")
+    x.isotope == 0 || setindex!(rcd, x.isotope, "isotope")
+    x.nRad == 0 || setindex!(rcd, x.nRad, "nRad")
+    x.stereo === :unspecific || setindex!(rcd, x.stereo, "stereo")
     return rcd
 end
+
+JSON.lift(::Type{CommonChemAtom}, x) = SMILESAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)

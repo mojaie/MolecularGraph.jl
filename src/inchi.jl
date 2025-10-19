@@ -222,8 +222,8 @@ end
 function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx) where T <: MolGraph
     ET = edgetype(T)
     
-    stereocenters = Dict{Int64, Tuple{Int64,Int64,Int64,Bool}}()   # center => (looking_from,v1,v2,is_clockwise)
-    stereobonds   = Dict{Edge{Int64}, Tuple{Int64,Int64,Bool}}()   # edge => (a1,a2,is_cis)
+    stereocenters = StereocenterMap{Int64}()   # center => (looking_from,v1,v2,is_clockwise)
+    stereobonds   = StereobondMap{Int64}()   # edge => (a1,a2,is_cis)
 
     atoms = unsafe_wrap(Vector{inchi_Atom}, structure.atom, structure.num_atoms)
     stereos = unsafe_wrap(Vector{inchi_Stereo0D}, structure.stereo0D, structure.num_stereo0D)
@@ -245,7 +245,7 @@ function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx) where T <:
             # InChI neighbors order corresponds to W,X,Y,Z (see InChI comments).
             w, x, y, z = nbrs   # these are already expanded indices (or NO_ATOM)
             is_clockwise = (parity == INCHI_PARITY_EVEN)   # 'e' == clockwise per docs
-            stereocenters[center] = (w, x, y, is_clockwise)
+            stereocenters[center] = Stereocenter{Int64}(w, x, y, is_clockwise)
         elseif s.type == INCHI_StereoType_DoubleBond
             all(is_heavy.(nbrs)) || continue  # skip disconnected or missing substituents
 
@@ -270,7 +270,7 @@ function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx) where T <:
             end
             
             # store stereobond
-            stereobonds[bond_key] = (nbrs[1], nbrs[3], is_trans)
+            stereobonds[EdgeKey(bond_key)] = Stereobond{Int64}(nbrs[1], nbrs[3], is_trans)
         elseif s.type == INCHI_StereoType_Allene
             @info "Allene stereo, not yet tested"
             # Tried testing with `mol = smilestomol("C[C@]=C=C(C)F")`,
@@ -288,7 +288,7 @@ function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx) where T <:
             is_clockwise = (parity == INCHI_PARITY_EVEN)
 
             # store into same stereocenters dict so coordgen!/rendering code can use it
-            stereocenters[center] = (w, x, y, is_clockwise)
+            stereocenters[center] = Stereocenter{Int64}(w, x, y, is_clockwise)
         else
             @warn "Unknown stereo type $(s.type), skipping"
         end
@@ -390,23 +390,23 @@ function inchitomol(::Type{T}, inchi::AbstractString;
         if idx <= length(atoms)
             a = atoms[idx]
             symbol = expanded_syms[idx]
-            d = Dict{String,Any}(
-                "symbol" => symbol,
-                "charge" => Int(a.charge),
-                "multiplicity" => (Int(a.radical) == 0 ? 1 : Int(a.radical)),
-                "isotope" => Int(a.isotopic_mass),
+            d = Dict{Symbol,Any}(
+                :symbol => symbol,
+                :charge => Int(a.charge),
+                :multiplicity => (Int(a.radical) == 0 ? 1 : Int(a.radical)),
+                :isotope => Int(a.isotopic_mass),
             )
-            :coords in fieldnames(V) && push!(d, "coords" => [Float64(a.x), Float64(a.y), Float64(a.z)])
+            :coords in fieldnames(V) && push!(d, :coords => [Float64(a.x), Float64(a.y), Float64(a.z)])
             push!(vprops, V(d))
         else
             symbol = expanded_syms[idx]
-            d = Dict(
-                "symbol" => symbol,
-                "charge" => 0,
-                "multiplicity" => 1,
-                "isotope" => 0
+            d = Dict{Symbol,Any}(
+                :symbol => symbol,
+                :charge => 0,
+                :multiplicity => 1,
+                :isotope => 0
             )
-            :coords in fieldnames(V) && push!(d, "coords" => [0.0, 0.0, 0.0])
+            :coords in fieldnames(V) && push!(d, :coords => [0.0, 0.0, 0.0])
             push!(vprops, V(d))
         end
     end

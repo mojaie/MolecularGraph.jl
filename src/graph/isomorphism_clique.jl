@@ -5,7 +5,7 @@
 
 abstract type ConstraintArrayMCS{T} end
 
-struct ConstraintArrayMCIS{T,D,V,E} <: ConstraintArrayMCS{T}
+struct ConstraintArrayMCIS{T,D,V,E} <: ConstraintArrayMCS{T}  # Serializable
     nv::Int
     pairs::Vector{Tuple{T,T}}
     distances::Vector{D}
@@ -14,51 +14,18 @@ struct ConstraintArrayMCIS{T,D,V,E} <: ConstraintArrayMCS{T}
     eattrs::Vector{E}
 end
 
-ConstraintArrayMCIS{T,D,V,E}(@nospecialize(data::Dict)) where {T,D,V,E} = ConstraintArrayMCIS{T,D,V,E}(
-    data["nv"], [(p...,) for p in data["pairs"]],
-    data["distances"], data["vattrs1"], data["vattrs2"], data["eattrs"])
 
-to_dict(arr::ConstraintArrayMCIS) = Dict{String,Any}(
-    "nv" => arr.nv,
-    "pairs" => arr.pairs,
-    "distances" => arr.distances,
-    "vattrs1" => arr.vattrs1,
-    "vattrs2" => arr.vattrs2,
-    "eattrs" => arr.eattrs
-)
-
-
-struct ConstraintArrayMCES{T,D,V,E} <: ConstraintArrayMCS{T}
+struct ConstraintArrayMCES{T,D,V,E} <: ConstraintArrayMCS{T}  # Serializable
     nv::Int
     pairs::Vector{Tuple{T,T}}
     distances::Vector{D}
     vattrs1::Vector{V}
     vattrs2::Vector{V}
     eattrs::Vector{E}
-    revmap::Dict{T,Edge{T}}
+    revmap::Dict{VertexKey{T},Edge{T}}
     delta_edges::Vector{Tuple{Edge{T},Edge{T},Edge{T}}}
     y_edges::Vector{Tuple{Edge{T},Edge{T},Edge{T}}}
 end
-
-ConstraintArrayMCES{T,D,V,E}(@nospecialize(data::Dict)) where {T,D,V,E} = ConstraintArrayMCES{T,D,V,E}(
-    data["nv"], [(p...,) for p in data["pairs"]],
-    data["distances"], data["vattrs1"], data["vattrs2"], data["eattrs"],
-    Dict(parse(T, i) => Edge{T}(e...) for (i, e) in data["revmap"]),
-    [Tuple(Edge{T}(e...) for e in t) for t in data["delta_edges"]],
-    [Tuple([Edge{T}(e...) for e in t]) for t in data["y_edges"]]
-)
-
-to_dict(arr::ConstraintArrayMCES) = Dict{String,Any}(
-    "nv" => arr.nv,
-    "pairs" => arr.pairs,
-    "distances" => arr.distances,
-    "vattrs1" => arr.vattrs1,
-    "vattrs2" => arr.vattrs2,
-    "eattrs" => arr.eattrs,
-    "revmap" => Dict(i => [src(e), dst(e)] for (i, e) in arr.revmap),
-    "delta_edges" => [[[src(e), dst(e)] for e in t] for t in arr.delta_edges],
-    "y_edges" => [[[src(e), dst(e)] for e in t] for t in arr.y_edges]
-)
 
 
 function connection_constraints(::Type{U}, g::SimpleGraph{T}; kwargs...) where {T,U<:Integer}
@@ -305,100 +272,5 @@ function maximum_common_subgraph(
     else
         return maximum_clique(
             Dict{Edge{T},Edge{T}}, prod, postprocess=mces_postprocess(g, h); kwargs...)
-    end
-end
-
-
-
-
-############################
-# prototype implementation
-############################
-
-
-function modprod_edge_filter(g, h, ematch; kwargs...)
-    return function (g1, g2, h1, h2)
-        has_edge(g, g1, g2) === has_edge(h, h1, h2) || return false
-        !has_edge(g, g1, g2) && return true
-        return ematch(u_edge(g, g1, g2), u_edge(h, h1, h2))
-    end
-end
-
-function tp_constraint_filter(g, h, ematch; diameter=max(nv(g), nv(h)), tolerance=0, kwargs...)
-    gdist = [gdistances(g, i) for i in vertices(g)]  # typemax(int) if not connected
-    hdist = [gdistances(h, i) for i in vertices(h)]
-    return function (g1, g2, h1, h2)
-        has_edge(g, g1, g2) === has_edge(h, h1, h2) || return false
-        if !has_edge(g, g1, g2)
-            gdist[g1][g2] > diameter && return false
-            hdist[h1][h2] > diameter && return false
-            abs(gdist[g1][g2] - hdist[h1][h2]) > tolerance && return false
-            return true
-        end
-        return ematch(u_edge(g, g1, g2), u_edge(h, h1, h2))
-    end
-end
-
-
-function mcis_modular_product(g::SimpleGraph, h::SimpleGraph;
-        vmatch=(gn,hn)->true, ematch=(ge,he)->true, topological=false, kwargs...)
-    modprodfunc = topological ? tp_constraint_filter : modprod_edge_filter
-    return modular_product(g, h,
-        vmatch=vmatch, edgefilter=modprodfunc(g, h, ematch; kwargs...))
-end
-
-
-function maximum_common_subgraph(g::SimpleGraph, h::SimpleGraph; connected=false, kwargs...)
-    prod, eattr = mcis_modular_product(g, h; kwargs...)
-    if connected
-        maxclique, status = maximum_conn_clique(prod, connfunc=connfuncgen(prod, eattr); kwargs...)
-    else
-        maxclique, status = maximum_clique(prod; kwargs...)
-    end
-    # modprod reverse mapping
-    mapping = Dict(div(i - 1, nv(h)) + 1 => mod(i - 1, nv(h)) + 1 for i in maxclique)
-    return mapping, status
-end
-
-
-function mces_modular_product(g::SimpleGraph, h::SimpleGraph;
-        vmatch=(gn,hn)->true, ematch=(ge,he)->true,
-        ggmatch=(n1,n2)->true, hhmatch=(n1,n2)->true, topological=false, kwargs...)
-    # generate line graph
-    lg, grev, gsh = line_graph(g)
-    lh, hrev, hsh = line_graph(h)
-    lvm = lgvmatch(lg, lh, grev, hrev, vmatch, ematch)
-    lem = lgematch(lg, lh, gsh, hsh, vmatch)
-    modprodfunc = topological ? tp_constraint_filter : modprod_edge_filter
-    prod, eattr = modular_product(lg, lh,
-        vmatch=lvm, edgefilter=modprodfunc(lg, lh, lem; kwargs...))
-    gd, gy, hd, hy = (delta_edges(g, ggmatch), y_edges(g, ggmatch), delta_edges(h, hhmatch), y_edges(h, hhmatch))
-    return prod, eattr, grev, hrev, gd, gy, hd, hy
-end
-
-
-function mces_postprocess(grev, hrev, gd, gy, hd, hy, neh)
-    return function (state)
-        length(state.Q) > length(state.maxsofar) || return
-        # modprod reverse mapping
-        lnnodemap = Dict(div(i - 1, neh) + 1 => mod(i - 1, neh) + 1 for i in state.Q)  # lg(v) => lh(v)
-        emap = Dict(grev[m] => hrev[n] for (m, n) in lnnodemap)  # g(e) => h(e)
-        # Δ-Y check
-        delta_y_correction!(emap, gd, gy, hd, hy)
-        if length(emap) > length(state.maxsofar)
-            state.maxsofar = emap
-        end
-    end
-end
-
-
-function maximum_common_edge_subgraph(
-        g::SimpleGraph{T}, h::SimpleGraph{T}; connected=false, kwargs...) where T
-    prod, eattr, grev, hrev, gd, gy, hd, hy = mces_modular_product(g, h; kwargs...)
-    pp = mces_postprocess(grev, hrev, gd, gy, hd, hy, ne(h))
-    if connected
-        return maximum_conn_clique(Dict{Edge{T},Edge{T}}, prod, connfunc=connfuncgen(prod, eattr), postprocess=pp; kwargs...)
-    else
-        return maximum_clique(Dict{Edge{T},Edge{T}}, prod, postprocess=pp; kwargs...)
     end
 end

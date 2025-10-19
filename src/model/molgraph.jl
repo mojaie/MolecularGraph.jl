@@ -3,29 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-"""
-    ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T}
-
-The base class of molecule model which have auto-update mechanism of properties.
-
-Typically `ReactiveMolGraph` should have the following properties:
-- `graph`: molecular graph topology in `Graphs.SimpleGraph`.
-- `vprops`: `Vector` of atom properties (e.g. SDFAtom, SMILESAtom)
-- `eprops`: `Vector` of bond properties (e.g. SDFBond, SMILESBond)
-- `gprops`: graph-level properties and stored descriptors (e.g. stereocenter)
-- `states`: update flags and callback functions for `reactive` property update
-
-"""
-abstract type ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T} end
-
-Base.:(==)(g::ReactiveMolGraph, h::ReactiveMolGraph
-    ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops
-
-vproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = V
-eproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = E
-
-Base.copy(mol::T) where T <: ReactiveMolGraph = T(
-    copy(mol.graph), copy(mol.vprops), copy(mol.eprops), copy(mol.gprops), copy(mol.state))
 
 
 """
@@ -33,28 +10,30 @@ Base.copy(mol::T) where T <: ReactiveMolGraph = T(
 
 The state container for `ReactiveMolGraph`.
 """
-mutable struct MolState{T,F1,F2} <: AbstractState
+mutable struct MolState{T} <: AbstractState
     initialized::Bool
     has_updates::Bool
     has_new_edges::Bool  # as a SSSR recalculation flag
     disable_update::Bool  # ignore dispatch_update! (temporary set when running auto-preprocess)
-    on_init::F1
-    on_update::F2
+    on_init::Function
+    on_update::Function
 end
-
 
 function MolState{T}(
         ; initialized=false, has_updates=true, has_new_edges=true, disable_update=false,
         on_init=default_on_init!, on_update=default_on_update!) where T <: Integer
-    return MolState{T,typeof(on_init),typeof(on_update)}(
+    return MolState{T}(
         initialized, has_updates, has_new_edges, disable_update, on_init, on_update)
 end
-
 
 Base.copy(state::T) where T <: MolState = T(
     state.initialized, state.has_updates, state.has_new_edges, state.disable_update,
     state.on_init, state.on_update
 )
+
+StructUtils.structlike(::StructUtils.StructStyle, ::Type{MolState{T}}) where T = false
+JSON.lower(x::MolState) = Dict{String,Any}()
+JSON.lift(::Type{MolState{T}}, x) where T = MolState{T}()
 
 
 # Property update mechanisms
@@ -70,27 +49,25 @@ end
 
 Remap vertices according to the given vmap (new_v = old_v -> vmap[old_v]).
 """
-function remap!(container::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
+function remap!(gprop::SimpleMolProperty, args...)
     # vmap[old] -> new
-    for sym in fieldnames(typeof(container))
-        remap!(Val(sym), container, vmap, edges)
+    for sym in fieldnames(typeof(gprop))
+        remap!(Val(sym), gprop, args...)
     end
     return
 end
 
-function remap!(::Val, container::SimpleMolProperty{T}, vmap::Vector{T},
-        edges::Vector{Edge{T}}) where T <: Integer
+function remap!(::Val, gprop::SimpleMolProperty, args...)
     return
 end
 
-function remap!(::Val{:descriptors}, gprop::SimpleMolProperty{T},
-        vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
+function remap!(::Val{:descriptors}, gprop::SimpleMolProperty, args...)
     for sym in fieldnames(typeof(gprop.descriptors))
-        remap!(Val(sym), gprop.descriptors, vmap, edges)
+        remap!(Val(sym), gprop.descriptors, args...)
     end
     return
 end
+
 
 
 """
@@ -358,8 +335,9 @@ end
 
 
 function reactive_molgraph(
-        g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E};
-        gprops=MolProperty{T}(), kwargs...) where {T,V,E}
+        g::SimpleGraph{T}, vprops::Dict{VertexKey{T},V},
+        eprops::Dict{EdgeKey{T},E}, gprops::SimpleMolProperty{T}
+        ; kwargs...) where {T,V,E}
     if nv(g) > length(vprops)
         error("Mismatch in the number of nodes and node properties")
     elseif ne(g) != length(eprops)
@@ -373,16 +351,24 @@ function reactive_molgraph(
     return (g, vprops, eprops, gprops, config)
 end
 
+reactive_molgraph(
+    g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E}
+    ; gprops=MolProperty{T}(), kwargs...
+) where {T,V,E} = reactive_molgraph(
+    g, convert(Dict{VertexKey{T},V}, vprops),
+    convert(Dict{EdgeKey{T},E}, eprops), gprops; kwargs...
+)
+
 # from edge and property list (sdftomol, smilestomol interface)
 
 function reactive_molgraph(
         edge_list::Vector{Edge{T}}, vprop_list::Vector{V}, eprop_list::Vector{E}
-        ; kwargs...) where {T,V,E}
+        ; gprops=MolProperty{T}(), kwargs...) where {T,V,E}
     g = SimpleGraph(edge_list)
-    vps = Dict{T,V}(i => v for (i, v) in enumerate(vprop_list))
+    vps = Dict{VertexKey{T},V}(VertexKey(i) => v for (i, v) in enumerate(vprop_list))
     # eprop_list in edge_list order
-    eps = Dict{Edge{T},E}(e => eprop_list[i] for (i, e) in enumerate(edge_list))
-    return reactive_molgraph(g, vps, eps; kwargs...)
+    eps = Dict{EdgeKey{T},E}(EdgeKey(e) => eprop_list[i] for (i, e) in enumerate(edge_list))
+    return reactive_molgraph(g, vps, eps, gprops; kwargs...)
 end
 
 
@@ -398,8 +384,8 @@ Atom and Bond properties of `MolGraph` are specific to the type of morecular rea
 """
 struct MolGraph{T<:Integer,V<:AbstractAtom,E<:AbstractBond} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
-    vprops::Dict{T,V}
-    eprops::Dict{Edge{T},E}
+    vprops::Dict{VertexKey{T},V}
+    eprops::Dict{EdgeKey{T},E}
     gprops::MolProperty{T}
     state::MolState{T}
 end

@@ -62,6 +62,42 @@ The base class of reactions
 abstract type AbstractReaction end
 
 
+
+## Serializable integer keys
+
+struct VertexKey{T<:Integer}
+    key::T
+end
+
+VertexKey(x::VertexKey) = x
+VertexKey{T}(x::VertexKey) where T <: Integer = VertexKey{T}(x.key)
+
+Base.:(==)(x::VertexKey, y::VertexKey) = x.key == y.key
+Base.:(==)(x::VertexKey{T}, y::T) where T = x.key == y  # required for getindex
+Base.:(==)(x::T, y::VertexKey{T}) where T = x == y.key  # required for getindex
+Base.:(+)(x::VertexKey{T}, y::T) where T = VertexKey{T}(x.key + y)
+Base.hash(x::VertexKey, h::UInt) = hash(x.key, h)
+Base.convert(::Type{VertexKey{T}}, x::T) where T = VertexKey{T}(x)
+StructUtils.lowerkey(::JSON.JSONStyle, x::VertexKey{T}) where T = string(x.key)
+StructUtils.liftkey(::Type{VertexKey{T}}, x::String) where T = VertexKey{T}(parse(T, x))
+
+
+struct EdgeKey{T<:Integer}
+    key::Edge{T}
+end
+
+EdgeKey(x::EdgeKey) = x
+EdgeKey{T}(x::EdgeKey) where T <: Integer = EdgeKey{T}(x.key)
+
+Base.:(==)(x::EdgeKey, y::EdgeKey) = x.key == y.key
+Base.:(==)(x::EdgeKey{T}, y::Edge{T}) where T = x.key == y  # required for getindex
+Base.:(==)(x::Edge{T}, y::EdgeKey{T}) where T = x == y.key  # required for getindex
+Base.hash(x::EdgeKey, h::UInt) = hash(x.key, h)
+Base.convert(::Type{EdgeKey{T}}, x::Edge{T}) where T = EdgeKey{T}(x)
+StructUtils.lowerkey(::JSON.JSONStyle, x::EdgeKey{T}) where T = "$(x.key.src)_$(x.key.dst)"
+StructUtils.liftkey(::Type{EdgeKey{T}}, x::String) where T = EdgeKey{T}(Edge([parse(T, s) for s in split(x, '_')]...))
+
+
 """
     AbstractProperty
 
@@ -69,7 +105,7 @@ The base class of graph-level property of the molecular model.
 """
 abstract type AbstractProperty end
 
-function Base.:(==)(g::AbstractProperty, h::AbstractProperty)
+function Base.:(==)(g::T, h::T) where T <: AbstractProperty
     for sym in fieldnames(typeof(g))
         getproperty(g, sym) == getproperty(h, sym) || return false
     end
@@ -236,6 +272,7 @@ Return properties (vertex or edge attributes).
 """
 Base.getindex(mol::AbstractMolGraph, v::Integer) = mol.vprops[v]
 Base.getindex(mol::AbstractMolGraph, e::Edge) = mol.eprops[e]
+Base.getindex(mol::AbstractMolGraph, gprop::Symbol) = getproperty(mol.gprops, gprop)
 
 """
     Base.setindex!(mol::AbstractMolGraph, v::Integer) -> AbstractElement
@@ -253,6 +290,19 @@ props(mol::AbstractMolGraph, v::Integer) = mol[v]
 props(mol::AbstractMolGraph, e::Edge) = mol[e]
 get_prop(mol::AbstractMolGraph, v::Integer, prop::Symbol) = mol[v][prop]
 get_prop(mol::AbstractMolGraph, e::Edge, prop::Symbol) = mol[e][prop]
+
+
+vpropiter(mol::AbstractMolGraph) = Iterators.map(mol.vprops) do r
+    first(r).key, last(r)
+end
+
+vpropiter(x::AbstractElement) = Iterators.map(x.vprops) do r
+    first(r).key, last(r)
+end
+
+epropiter(mol::AbstractMolGraph) = Iterators.map(mol.eprops) do r
+    first(r).key, last(r)
+end
 
 
 """
@@ -326,6 +376,46 @@ Base.setindex!(mol::SimpleMolGraph{T}, prop::AbstractElement, u::T, v::T
 # old accessors (deprecated)
 props(mol::SimpleMolGraph, u::Integer, v::Integer) = mol[u, v]
 get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = mol[u, v][prop]
+get_prop(mol::SimpleMolGraph, prop::Symbol) = mol[prop]
+has_prop(mol::SimpleMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
+# set_prop! is not available because MolProperty types should be immutable.
+
+# Internally called by descriptor methods (e.g. `is_ring_aromatic(mol)`)
+# Do not expose
+
+get_descriptor(mol::SimpleMolGraph, field::Symbol
+    ) = getproperty(mol[:descriptors], field)
+set_descriptor!(mol::SimpleMolGraph, field::Symbol, value
+    ) = setproperty!(mol[:descriptors], field, value)
+has_descriptor(mol::SimpleMolGraph, field::Symbol
+    ) = hasproperty(mol[:descriptors], field)
+
+
+"""
+    ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T}
+
+The base class of molecule model which have auto-update mechanism of properties.
+
+Typically `ReactiveMolGraph` should have the following properties:
+- `graph`: molecular graph topology in `Graphs.SimpleGraph`.
+- `vprops`: `Vector` of atom properties (e.g. SDFAtom, SMILESAtom)
+- `eprops`: `Vector` of bond properties (e.g. SDFBond, SMILESBond)
+- `gprops`: graph-level properties and stored descriptors (e.g. stereocenter)
+- `states`: update flags and callback functions for `reactive` property update
+
+"""
+abstract type ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T} end
+
+Base.:(==)(g::ReactiveMolGraph, h::ReactiveMolGraph
+    ) = g.graph == h.graph && g.vprops == h.vprops && g.eprops == h.eprops && g.gprops == h.gprops
+
+vproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = V
+eproptype(::Type{<:ReactiveMolGraph{T,V,E}}) where {T,V,E} = E
+
+Base.copy(mol::T) where T <: ReactiveMolGraph = T(
+    copy(mol.graph), copy(mol.vprops), copy(mol.eprops), copy(mol.gprops), copy(mol.state))
+
+
 
 
 # Reactions

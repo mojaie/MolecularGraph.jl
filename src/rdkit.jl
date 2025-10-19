@@ -22,35 +22,35 @@ end
 
 
 function reactive_molgraph(
-        ::Val{:rdkit}, ::Type{T}, ::Type{V}, ::Type{E},
-        @nospecialize(data::Dict), config::MolState) where {T,V,E}
-    gps = MolProperty{T}()
+        ::Type{T}, ::Type{V}, ::Type{E}, ::Type{G},
+        data::JSON.Object{String,Any}) where {T,V<:CommonChemAtom,E<:CommonChemBond,G}
+    gps = G()
     # edges
     es = Edge{T}[]
-    eps = Dict{Edge{T},E}()
+    eps = Dict{EdgeKey{T},E}()
     iscis = Dict("cis" => true, "trans" => false)
     for b in data["bonds"]
         edge = u_edge(T, b["atoms"][1] + 1, b["atoms"][2] + 1)
         push!(es, edge)
         if haskey(b, "stereo") && b["stereo"] in keys(iscis)
             u, v = b["stereoAtoms"]
-            gps.stereobond[edge] = (u + 1, v + 1, iscis[b["stereo"]])
+            gps.stereobond[edge] = Stereobond{T}(u + 1, v + 1, iscis[b["stereo"]])
         end
         delete!(b, "atoms")
         delete!(b, "stereo")
         delete!(b, "stereoAtoms")
-        eps[edge] = CommonChemBond(b)
+        eps[edge] = E(b)
     end
     g = SimpleGraph(es)
     # vertices
-    vps = Dict{T,V}()
+    vps = Dict{VertexKey{T},V}()
     isclockwise = Dict("cw" => true, "ccw" => false)
     for (i, a) in enumerate(data["atoms"])
-        vps[i] = CommonChemAtom(a)
+        vps[i] = V(a)
         if haskey(a, "stereo") && a["stereo"] in keys(isclockwise)
             nbrs = ordered_neighbors(g, i)
             # TODO: ambiguity in implicit H
-            gps.stereocenter[i] = (nbrs[1:3]..., isclockwise[a["stereo"]])
+            gps.stereocenter[i] = Stereocenter{T}(nbrs[1:3]..., isclockwise[a["stereo"]])
         end
     end
     # expand fadjlist for vprops of isolated nodes
@@ -64,37 +64,38 @@ function reactive_molgraph(
             push!(gps.descriptors.coords3d, [Point3d(cd...) for cd in cds["coords"]])
         end
     end
-    return (g, vps, eps, gps, config)
+    return reactive_molgraph(g, vps, eps, gps)
 end
 
 
-function MolGraph{T,CommonChemAtom,CommonChemBond}(@nospecialize(data::Dict)
-        ; on_init=rdk_on_init!, on_update=rdk_on_update!, kwargs...) where T
-    if data["commonchem"]["version"] != 10
+function StructUtils.lift(::Type{MolGraph{T,CommonChemAtom,CommonChemBond}}, x) where T
+    if x["commonchem"]["version"] != 10
         error("CommonChem version other than 10 is not supported")
     end
-    if length(data["molecules"]) != 1
+    if length(x["molecules"]) != 1
         error("Only single molecule data is supported")
     end
-    moldata = data["molecules"][1]
+    moldata = x["molecules"][1]
     if moldata["extensions"][1]["name"] != "rdkitRepresentation"
         error("Invalid RDKit CommonChem file format")
     end
     if moldata["extensions"][1]["formatVersion"] != 2
         error("Unsupported RDKit CommonChem version")
     end
-
-    config=MolState{T}(;
-        on_init=on_init,
-        on_update=on_update,
-    )
-    mol = MolGraph(reactive_molgraph(
-        Val(:rdkit), T, CommonChemAtom, CommonChemBond, moldata, config)...)
+    mol = MolGraph{T,CommonChemAtom,CommonChemBond}(
+        reactive_molgraph(T, CommonChemAtom, CommonChemBond, MolProperty{T}, x)...)
+    mol.state.on_init = rdk_on_init!
+    mol.state.on_update = rdk_on_update!
     return mol
 end
 
 
-function to_dict(fmt::Val{:rdkit}, mol::SimpleMolGraph)
+"""
+    to_rdkdict(mol::MolGraph) -> Dict{String,Any}
+
+Convert the molecule object into `Dict` in RDKit compatible CommonChem JSON format.
+"""
+function to_rdkdict(mol::SimpleMolGraph)
     data = Dict{String,Any}(
         "commonchem" => Dict("version" => 10),
         "defaults" => Dict(
@@ -155,21 +156,13 @@ function to_dict(fmt::Val{:rdkit}, mol::SimpleMolGraph)
     end
     data["molecules"][1]["conformers"] = []
     # Wedges cannot be preserved. Use coordgen to generate 2D coords manually
-    for cds in mol[:descriptors].coords3d
+    for crds in mol[:descriptors].coords3d
         push!(
             data["molecules"][1]["conformers"],
-            Dict("dim" => 3, "coords" => to_dict(Val(:coords3d), Val(:default), mol[:descriptors])...))
+            Dict("dim" => 3, "coords" => [[p...] for p in crds]))
     end
     return data
 end
-
-
-"""
-    to_rdkdict(mol::MolGraph) -> Dict{String,Any}
-
-Convert the molecule object into `Dict` in RDKit compatible CommonChem JSON format.
-"""
-to_rdkdict(x) = to_dict(Val{:rdkit}(), x)
 
 
 """
@@ -177,7 +170,7 @@ to_rdkdict(x) = to_dict(Val{:rdkit}(), x)
 
 Convert the molecule object into RDKit compatible CommonChem JSON text.
 """
-to_rdkjson(x) = to_json(Val{:rdkit}(), x)
+to_rdkjson(x) = JSON.json(x)
 
 
 """

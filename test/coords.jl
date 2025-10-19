@@ -6,7 +6,7 @@
 
 @testset "coords.descriptor" begin
     desc = MolDescriptor{Int}()
-    push!(desc.draw2d_bond_style, [:revup, :none, :cis_trans, :none])
+    push!(desc.draw2d_bond_style, Draw2dBondStyle([:revup, :none, :cis_trans, :none]))
     remap!(
         Val(:draw2d_bond_style), desc, [1, 2, 5, 4],
         Edge.([(1, 2), (1, 3), (1, 4), (3, 5)])
@@ -14,15 +14,14 @@
     @test desc.draw2d_bond_style[1] == [:revup, :cis_trans]
 
     desc = MolDescriptor{Int}()
-    push!(desc.draw2d_bond_style, [:none, :none, :none, :unspecified, :up, :down])
+    push!(desc.draw2d_bond_style, Draw2dBondStyle([:none, :none, :none, :unspecified, :up, :down]))
     remap!(
         Val(:draw2d_bond_style), desc, [1, 7, 3, 6, 5],
         Edge.([(1, 2), (2, 3), (3, 4), (3, 5), (3, 6), (5, 7)])
     )
-    @test desc.draw2d_bond_style[1] == [:revdown, :up, :unspecified]
-    dump = to_dict(Val(:draw2d_bond_style), Val(:default), desc)
-    @test reconstruct(
-        Val(:draw2d_bond_style), MolDescriptor{Int}, dump) == desc.draw2d_bond_style
+    @test desc.draw2d_bond_style[1] == Draw2dBondStyle([:revdown, :up, :unspecified])
+    dump = JSON.json(desc.draw2d_bond_style)
+    @test JSON.parse(dump, Vector{Draw2dBondStyle}) == desc.draw2d_bond_style
 end
 
 
