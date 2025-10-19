@@ -7,6 +7,28 @@
 
 
 """
+    AbstractBond <: AbstractElement
+
+The base class of edge properties (bond).
+"""
+abstract type AbstractBond <: AbstractElement end
+
+abstract type StandardBond <: AbstractBond end
+
+
+has_submap(::Type{T}) where T <: AbstractBond = false
+
+
+"""
+    bond_order(bond::AbstractBond) -> Int
+
+Return bond order of the given bond.
+"""
+bond_order(bond::AbstractBond) = error("bond_order is not implemented for this bond type")
+
+
+
+"""
     SDFBond
 
 SDFile (CTAB) bond property type.

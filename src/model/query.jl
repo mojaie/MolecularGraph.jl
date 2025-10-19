@@ -5,6 +5,27 @@
 
 
 """
+    AbstractQueryNode
+
+The base class of query node.
+"""
+abstract type AbstractQueryNode end
+
+Base.getindex(elem::AbstractQueryNode, prop::Symbol) = getproperty(elem, prop)
+
+Base.:(==)(x::T, y::T) where T <: AbstractQueryNode = all(
+    [getfield(x, f) == getfield(y, f) for f in fieldnames(T)])
+
+function Base.hash(elem::T, h::UInt) where T <: AbstractQueryNode
+    for name in fieldnames(T)
+        val = getfield(elem, name)
+        h = hash(val, h)
+    end
+    return h
+end
+
+
+"""
     QueryNode
 
 Query components

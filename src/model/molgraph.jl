@@ -5,6 +5,15 @@
 
 
 
+
+"""
+    AbstractState
+
+The base class of molecular model states.
+"""
+abstract type AbstractState end
+
+
 """
     MolState{T,F1,F2} <: AbstractState
 

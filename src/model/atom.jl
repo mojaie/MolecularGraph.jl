@@ -109,18 +109,39 @@ end
 
 
 """
+    AbstractAtom <: AbstractElement
+
+The base class of vertex properties (atom).
+"""
+abstract type AbstractAtom <: AbstractElement end
+
+abstract type StandardAtom <: AbstractAtom end
+
+
+has_isaromatic(::Type{T}) where T <: AbstractAtom = false
+has_mol(::Type{T}) where T <: AbstractAtom = false
+has_formula(::Type{T}) where T <: AbstractAtom = false
+has_hydrogens(::Type{T}) where T <: AbstractAtom = false
+has_label(::Type{T}) where T <: AbstractAtom = false
+
+
+"""
+    atom_number(atom::AbstractAtom) -> Int
     atom_number(atomsymbol::Symbol) -> Int
 
 Return an atomic number of the given atom or the atomic symbol.
 """
+atom_number(atom::AbstractAtom) = error("atom_number is not implemented for this atom type")
 atom_number(atomsymbol::Symbol) = ATOMSYMBOLMAP[atomsymbol]
 
 
 """
+    atom_symbol(atom::AbstractAtom) -> Symbol
     atom_symbol(n::Int) -> Symbol
 
 Return an atomic symbol of the given atom or the atomic number.
 """
+atom_symbol(atom::AbstractAtom) = error("atom_symbol is not implemented for this atom type")
 atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
 
 
