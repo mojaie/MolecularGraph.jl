@@ -7,7 +7,7 @@ module RDKitExt
 
 using MolecularGraph:
     MolecularGraph, SimpleMolGraph,
-    to_json, rdkitmol, smiles,
+    to_rdkjson, rdkitmol, smiles,
     morgan_fp_vector, rdkit_fp_vector,
     pattern_fp_vector, atom_pair_fp_vector,
     topological_torsion_fp_vector
@@ -41,7 +41,7 @@ end
 Convert the molecule object into a RDKit molecule object that can be used in RDKitMinimalLib.jl
 """
 function MolecularGraph.rdkitmol(mol::SimpleMolGraph)
-    return get_mol(to_json(Val{:rdkit}(), mol))
+    return get_mol(to_rdkjson(mol))
 end
 
 

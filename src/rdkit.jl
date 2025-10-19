@@ -39,14 +39,14 @@ function reactive_molgraph(
         delete!(b, "atoms")
         delete!(b, "stereo")
         delete!(b, "stereoAtoms")
-        eps[edge] = E(b)
+        eps[edge] = StructUtils.make(CommonChemBond, b)
     end
     g = SimpleGraph(es)
     # vertices
     vps = Dict{VertexKey{T},V}()
     isclockwise = Dict("cw" => true, "ccw" => false)
     for (i, a) in enumerate(data["atoms"])
-        vps[i] = V(a)
+        vps[i] = StructUtils.make(CommonChemAtom, a)
         if haskey(a, "stereo") && a["stereo"] in keys(isclockwise)
             nbrs = ordered_neighbors(g, i)
             # TODO: ambiguity in implicit H
@@ -83,7 +83,7 @@ function StructUtils.lift(::Type{MolGraph{T,CommonChemAtom,CommonChemBond}}, x) 
         error("Unsupported RDKit CommonChem version")
     end
     mol = MolGraph{T,CommonChemAtom,CommonChemBond}(
-        reactive_molgraph(T, CommonChemAtom, CommonChemBond, MolProperty{T}, x)...)
+        reactive_molgraph(T, CommonChemAtom, CommonChemBond, MolProperty{T}, moldata)...)
     mol.state.on_init = rdk_on_init!
     mol.state.on_update = rdk_on_update!
     return mol
@@ -170,7 +170,7 @@ end
 
 Convert the molecule object into RDKit compatible CommonChem JSON text.
 """
-to_rdkjson(x) = JSON.json(x)
+to_rdkjson(x) = JSON.json(to_rdkdict(x))
 
 
 """

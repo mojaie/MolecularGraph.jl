@@ -24,6 +24,12 @@
     smol2 = sdftomol(IOBuffer(printv2mol(smol)))
     @test nv(smol2) == 11
     @test isempty(smol2[:metadata])
+
+    sdf = joinpath(dirname(@__FILE__), "..", "assets", "test", "drugbank1-100.sdf")
+    io = IOBuffer()
+    sdfilewriter(io, sdfilereader(sdf), givebackhydrogen=false)
+    seekstart(io)
+    @test sum(nv(mol) for mol in sdfilereader(io)) == sum(nv(mol) for mol in sdfilereader(sdf))
 end
 
 end #sdfilewriter

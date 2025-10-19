@@ -17,3 +17,10 @@ build: clean
 # Does not work for now
 build-trim: clean
 	$(JULIA) --project=. $(JULIAC) --experimental --output-lib $(OUTPUT) --trim=safe --compile-ccallable ./build/src/LibMolGraphJL.jl
+
+# Add Cairo and RDKitMinimalLib to the default env in advance
+dtest:
+	julia --project=. ext/tests_draw.jl
+
+xtest:
+	julia --project=. ext/tests_ext.jl

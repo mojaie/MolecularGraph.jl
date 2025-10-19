@@ -1,5 +1,21 @@
 # NEWS
 
+## v0.22.0
+
+- Breaking changes
+  - Moved to JSON.jl v1.
+    - `StructUtils` has been added as a direct dependency.
+    - Introduced new internal data types for graph-level properties (e.g. `StereocenterMap`, `Coords2d`, etc.).
+    - Removed `to_dict` and `to_json`. Use `JSON.json` and `JSON.parse` instead. `mol_from_json(json::AbstractString)` is a convenient interface to auto-detect JSON format.
+    - Slightly improved (de)serialization performance.
+- Implement generic inchitomol() with stereo support (#138) (by @hhaensel).
+- MolGraph default initializers records unusual valence warning to gprops.log.
+- Improved error handling in compiled package to prevent segfault.
+- Properly scaled coordinates in SDFile output (adapted conventional bond length, 0.825).
+- Added tests
+- Fixed some descriptor functions and improved SDFile reader performance.
+- Fixed some wrong stereochemistry.
+
 ## v0.21.1
 
 - Implement `Base.setindex!` molecule property accessor which was actually not implemented in v0.21.0.

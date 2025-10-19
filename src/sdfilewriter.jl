@@ -170,8 +170,8 @@ end
 
 Write molecule data to the output stream as a SDFile format file.
 """
-function sdfilewriter(io::IO, mols; writer=printv2sdf)
-    cnt = length(writer.((io,), mols))
+function sdfilewriter(io::IO, mols; writer=printv2sdf, kwargs...)
+    cnt = length(writer.((io,), mols; kwargs...))
     @info "$(cnt) records exported."
 end
 

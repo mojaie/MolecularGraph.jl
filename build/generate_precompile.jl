@@ -1,7 +1,7 @@
 
 
-# For testing, execute following command at the project dir.
-# JULIA_DEBUG=generate_precompile julia --project=. -- ./generate_precompile.jl
+# For testing, execute following command at the build dir.
+# cd build;JULIA_DEBUG=generate_precompile julia --project=. -- ./generate_precompile.jl
 
 
 using Base: unsafe_convert
@@ -78,7 +78,7 @@ function run()
     errormol = unsafe_string(sdftomol(
         unsafe_convert(Cstring, errormol_sdf), unsafe_convert(Cstring, op)))
     @debug "standard_weight(errormol)" standard_weight(unsafe_convert(Cstring, errormol))
-    @debug "errormol error msg" MolGraph(errormol)[:logs]["error_sdfile"]
+    @debug "errormol error msg" mol_from_json(errormol)[:logs]["error_sdfile"]
 
     notamide = unsafe_string(smartstomol(
         unsafe_convert(Cstring, raw"[NX3;H2,H1;!$(NC=O)]")))

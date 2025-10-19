@@ -333,4 +333,4 @@ function JSON.lower(x::CommonChemAtom)
     return rcd
 end
 
-JSON.lift(::Type{CommonChemAtom}, x) = SMILESAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+JSON.lift(::Type{CommonChemAtom}, x) = CommonChemAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
