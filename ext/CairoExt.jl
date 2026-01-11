@@ -134,10 +134,12 @@ function MolecularGraph.drawpng(io::IO, mol::SimpleMolGraph, width::Int, height:
     Cairo.set_operator(canvas.context, op)  # avoid blending overlapped highlights
     sethighlight!(canvas, nodes_to_show, parse(RGB, highlightcolor))
     sethighlight!(canvas, bondhighlight, parse(RGB, highlightcolor))
-    Cairo.set_source(canvas.context, Cairo.pop_group(canvas.context))
+    pat = Cairo.pop_group(canvas.context)  # explicitly binds a valiable 'pat'
+    Cairo.set_source(canvas.context, pat)
     Cairo.paint(canvas.context)
     atomindex && drawatomindex!(canvas, is_atom_visible(mol), parse(RGB, indexcolor), parse(RGB, indexbgcolor))
     Cairo.write_to_png(canvas.surface, io)
+    Cairo.finish(canvas.surface)
     return
 end
 
