@@ -1,0 +1,434 @@
+# CDXML Parser for MolecularGraph.jl
+# Based on ChemDraw CDXML format specification
+#
+# This parser reads CDXML (ChemDraw XML) files and converts them to MolecularGraph.jl
+# MolGraph objects. It handles molecules with atoms, bonds, coordinates, charges,
+# stereochemistry, and other chemical properties.
+
+# module CDXMLParser
+
+using LightXML
+# using MolecularGraph
+# using MolecularGraph: StandardAtom, StandardBond, Edge
+# using MolecularGraph.Graphs: SimpleGraph
+
+export CDXMLAtom, CDXMLBond
+export cdxmlreader, cdxmltomol, parse_cdxml_file, parse_cdxml_string
+
+# =============================================================================
+# Atom and Bond types for CDXML
+# =============================================================================
+
+"""CDXMLAtom represents an atom from CDXML with coordinates and properties"""
+struct CDXMLAtom <: StandardAtom
+    symbol::Symbol
+    charge::Int
+    multiplicity::Int
+    isotope::Int
+    isaromatic::Bool
+    coords::Union{Vector, Nothing}
+end
+
+function CDXMLAtom(
+    symbol::Symbol; 
+    charge::Int=0, 
+    multiplicity::Int=1, 
+    isotope::Int=0,
+    isaromatic::Bool = false,
+    coords::Union{Vector, Nothing}=nothing
+)
+    haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
+    CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords)
+end
+
+"""CDXMLBond represents a bond from CDXML with order and stereochemistry"""
+struct CDXMLBond <: StandardBond
+    order::Int
+    isaromatic::Bool
+    stereo::Symbol
+
+    function CDXMLBond(
+            order::Int;
+            isaromatic::Bool=false,
+            stereo::Union{AbstractString,Symbol} = :unspecified
+    )
+        order > 3 && error("sdfile parse error - unsupported bond order $(order)")
+        new(order, isaromatic, stereo)
+    end
+end
+
+# Implement required interface methods
+atom_symbol(atom::CDXMLAtom) = atom.symbol
+atom_charge(atom::CDXMLAtom) = atom.charge
+multiplicity(atom::CDXMLAtom) = atom.multiplicity
+atom_number(atom::CDXMLAtom) = atom_number(atom.symbol)
+isotope(atom::CDXMLAtom) = atom.isotope
+isaromatic(atom::CDXMLAtom) = atom.aromatic
+bond_order(bond::CDXMLBond) = bond.order
+isaromatic(bond::CDXMLBond) = bond.aromatic
+
+function replace_struct(x::T; replacements...) where T
+    values = [haskey(replacements, field) ? replacements[field] : getfield(x, field) for field in fieldnames(T)]
+    T(values...)
+end
+
+# Post-processing function
+function mark_aromatic_atoms!(mol::MolGraph{T,V,E}) where {T, V, E}
+    aromatic_atoms = Set{Int}()
+    
+    for (edge_key, bond) in mol.eprops
+        if bond.isaromatic
+            push!(aromatic_atoms, edge_key.key.src)
+            push!(aromatic_atoms, edge_key.key.dst)
+        end
+    end
+    
+    for atom_idx in aromatic_atoms
+        atom = mol[atom_idx]
+        new_atom = replace_struct(atom, isaromatic = true)
+        mol[atom_idx] = new_atom
+    end
+    
+    return mol
+end
+
+
+# =============================================================================
+# Helper functions
+# =============================================================================
+
+"""Parse element from CDXML Element attribute"""
+function parse_element(elem_str::String)::Symbol
+    # Try parsing as number first
+    elem_num = tryparse(Int, elem_str)
+    elem_num === nothing || return atom_symbol(elem_num)
+
+    # Otherwise treat as symbol string
+    return Symbol(elem_str)
+end
+
+"""Parse coordinates from CDXML p attribute (format: \"x y\" or \"x y z\")"""
+function parse_coords(coords_str::String)::Vector{Float64}
+    parts = split(coords_str)
+    x = parse(Float64, parts[1])
+    y = parse(Float64, parts[2])
+    z = length(parts) > 2 ? parse(Float64, parts[3]) : 0.0
+    return [x, y, z]
+end
+
+"""Parse bond order from CDXML Order attribute"""
+function parse_bond_order(order_str::String)::Tuple{Int, Bool}
+    # CDXML: 1=single, 2=double, 3=triple, 1.5=aromatic, 0.5=half, etc.
+    if order_str == "1.5"
+        return (1, true)  # aromatic - treat as single, aromaticity detected later
+    elseif order_str == "0.5"
+        return 1, false  # half bond
+    else
+        return round(Int, parse(Float64, order_str)), false
+    end
+end
+
+"""Parse bond stereochemistry from CDXML Display attribute"""
+function parse_bond_stereo(display_str::String)::Symbol
+    # Common stereochemistry display types
+    if display_str == "WedgeBegin" || display_str == "WedgedHashBegin"
+        return :up
+    elseif display_str == "Hash" || display_str == "WedgedHashEnd"
+        return :down
+    elseif display_str == "Wavy"
+        return :either
+    elseif display_str == "Bold"
+        return :up
+    else
+        return :unspecified
+    end
+end
+
+# =============================================================================
+# Core parsing functions
+# =============================================================================
+
+"""Parse a single atom (node) from CDXML"""
+function parse_cdxml_atom(node::XMLElement)::Tuple{String,CDXMLAtom}
+    # Get atom ID
+    id = attribute(node, "id")
+    if id === nothing
+        error("CDXML atom node missing 'id' attribute")
+    end
+    
+    # Parse element (defaults to Carbon if not specified)
+    elem = attribute(node, "Element")
+    symbol = elem === nothing ? :C : parse_element(elem)
+    
+    # Parse coordinates
+    coords_str = attribute(node, "p")
+    coords = coords_str === nothing ? nothing : parse_coords(coords_str)
+    
+    # Parse charge
+    charge_str = attribute(node, "Charge")
+    charge = charge_str === nothing ? 0 : parse(Int, charge_str)
+    
+    # Parse isotope
+    isotope_str = attribute(node, "Isotope")
+    isotope = isotope_str === nothing ? 0 : parse(Int, isotope_str)
+    
+    # Parse radical (multiplicity)
+    radical_str = attribute(node, "Radical")
+    # CDXML Radical: 0=singlet, 1=doublet, 2=triplet
+    multiplicity = if radical_str === nothing
+        1
+    else
+        radical = parse(Int, radical_str)
+        radical + 1  # Convert to multiplicity
+    end
+    
+    atom = CDXMLAtom(symbol; charge=charge, multiplicity=multiplicity, 
+                     isotope=isotope, coords=coords)
+    return (id, atom)
+end
+
+"""Parse a single bond from CDXML"""
+function parse_cdxml_bond(node::XMLElement)::Tuple{String,String,String,CDXMLBond}
+    # Get bond ID
+    id = attribute(node, "id")
+    
+    # Get connected atoms
+    begin_atom = attribute(node, "B")
+    end_atom = attribute(node, "E")
+    
+    if begin_atom === nothing || end_atom === nothing
+        error("CDXML bond missing 'B' or 'E' attribute")
+    end
+    
+    # Parse bond order
+    order_str = attribute(node, "Order")
+    order, isaromatic = order_str === nothing ? (1, false) : parse_bond_order(order_str)
+    
+    # Parse stereochemistry
+    display_str = attribute(node, "Display")
+    stereo = display_str === nothing ? :unspecified : parse_bond_stereo(display_str)
+    
+    bond = CDXMLBond(order; stereo, isaromatic)
+    
+    return (id === nothing ? "" : id, begin_atom, end_atom, bond)
+end
+
+"""Parse a fragment (molecule) from CDXML"""
+function parse_cdxml_fragment(frag_node::XMLElement)::MolGraph{Int,CDXMLAtom,CDXMLBond}
+    atom_map = Dict{String,Int}()  # CDXML id -> graph index
+    atoms = CDXMLAtom[]
+    bonds = Tuple{Int,Int,CDXMLBond}[]
+    
+    # Parse all child nodes
+    for child in child_elements(frag_node)
+        tag = name(child)
+        
+        if tag == "n"  # Node (Atom)
+            id, atom = parse_cdxml_atom(child)
+            push!(atoms, atom)
+            atom_map[id] = length(atoms)
+            
+        elseif tag == "b"  # Bond
+            bond_id, begin_id, end_id, bond = parse_cdxml_bond(child)
+            
+            # Look up atom indices
+            if haskey(atom_map, begin_id) && haskey(atom_map, end_id)
+                begin_idx = atom_map[begin_id]
+                end_idx = atom_map[end_id]
+                push!(bonds, (begin_idx, end_idx, bond))
+            else
+                @warn "Bond references unknown atoms: $begin_id -> $end_id"
+            end
+        end
+    end
+
+    # Build MolGraph using correct constructor pattern
+    if isempty(atoms)
+        # Return empty molecule with correct types
+        return MolGraph{Int,CDXMLAtom,CDXMLBond}(
+            Edge{Int}[],
+            CDXMLAtom[],
+            CDXMLBond[],
+            on_update = cdxml_on_update!
+        )
+    end
+    
+    # Create edge list for SimpleGraph
+    edge_list = Edge{Int}[]
+    eprop_list = CDXMLBond[]
+    
+    for (i, j, bond) in bonds
+        push!(edge_list, i < j ? Edge(i, j) : Edge(j, i))
+        push!(eprop_list, bond)
+    end
+
+    # Construct MolGraph from edge_list, vprop_list (atoms), and eprop_list
+    MolGraph{Int,CDXMLAtom,CDXMLBond}(edge_list, atoms, eprop_list, on_update = cdxml_on_update!)
+end
+
+# =============================================================================
+# Public API
+# =============================================================================
+
+"""
+    parse_cdxml_string(cdxml_str::String) -> Vector{MolGraph}
+
+Parse CDXML string and return vector of molecules.
+Each fragment in the CDXML document becomes a separate molecule.
+"""
+function parse_cdxml_string(cdxml_str::String)::Vector{MolGraph{Int,CDXMLAtom,CDXMLBond}}
+    mols = MolGraph{Int,CDXMLAtom,CDXMLBond}[]
+    
+    try
+        doc = parse_string(cdxml_str)
+        root = LightXML.root(doc)
+        
+        # Find all fragments in the document
+        # Fragments can be at various levels: page > fragment, or directly in document
+        function find_fragments(node::XMLElement)
+            fragments = XMLElement[]
+            
+            for child in child_elements(node)
+                tag = name(child)
+                if tag == "fragment"
+                    push!(fragments, child)
+                elseif tag == "page" || tag == "group"
+                    # Recursively search in pages and groups
+                    append!(fragments, find_fragments(child))
+                end
+            end
+            
+            return fragments
+        end
+        
+        fragments = find_fragments(root)
+        
+        # Parse each fragment into a molecule
+        for frag in fragments
+            #try
+                mol = parse_cdxml_fragment(frag)
+                if length(mol.vprops) > 0  # Check if molecule has atoms
+                    push!(mols, mol)
+                end
+            #catch e
+            #    @warn "Failed to parse fragment: $e"
+            #end
+        end
+        
+        free(doc)
+        
+    catch e
+        error("Failed to parse CDXML: $e")
+    end
+    
+    return mols
+end
+
+"""
+    parse_cdxml_file(filename::String) -> Vector{MolGraph}
+
+Read and parse a CDXML file, returning vector of molecules.
+"""
+function parse_cdxml_file(filename::String)::Vector{MolGraph{Int,CDXMLAtom,CDXMLBond}}
+    cdxml_str = read(filename, String)
+    return parse_cdxml_string(cdxml_str)
+end
+
+"""
+    cdxmltomol(input) -> MolGraph
+
+Parse CDXML from file or string and return the first molecule.
+Raises error if no molecules found.
+"""
+function cdxmltomol(input::Union{AbstractString, IO})::MolGraph{Int,CDXMLAtom,CDXMLBond}
+    mols = if input isa IO
+        parse_cdxml_string(read(input, String))
+    else
+        parse_cdxml_file(input)
+    end
+    
+    if isempty(mols)
+        error("No molecules found in CDXML")
+    end
+    
+    length(mols) > 1 && @warn """
+    More than one molecule found, returning only the first one.
+    For obtaining all molecules use `parse_cdxml_string()`.
+    """
+    return mols[1]
+end
+
+"""
+    cdxmlreader(input) -> Iterator
+
+Create an iterator that yields molecules from a CDXML file or string.
+This is similar to sdfilereader for consistency with MolecularGraph.jl API.
+
+# Examples
+```julia
+for mol in cdxmlreader("molecules.cdxml")
+    println("Molecule has ", length(mol.vprops), " atoms")
+end
+```
+"""
+function cdxmlreader(input::Union{AbstractString, IO})
+    if isa(input, IO)
+        parse_cdxml_string(read(input, String))
+    else
+        parse_cdxml_file(input)
+    end
+end
+
+# =============================================================================
+# Utility functions for working with CDXML molecules
+# =============================================================================
+
+"""
+    has_coordinates(mol::MolGraph{Int,CDXMLAtom,CDXMLBond}) -> Bool
+
+Check if molecule has 2D/3D coordinates.
+"""
+function has_coordinates(mol::MolGraph{Int,CDXMLAtom,CDXMLBond})::Bool
+    for (k, atom) in mol.vprops
+        if atom.coords !== nothing
+            return true
+        end
+    end
+    return false
+end
+
+"""
+    get_coordinates(mol::MolGraph{Int,CDXMLAtom,CDXMLBond}) -> Matrix{Float64}
+
+Extract coordinates as Nx3 matrix (N = number of atoms).
+Returns empty matrix if no coordinates available.
+"""
+function get_coordinates(mol::MolGraph{Int,CDXMLAtom,CDXMLBond})::Matrix{Float64}
+    n = length(mol.vprops)
+    coords = zeros(Float64, n, 3)
+    
+    for (i, atom) in mol.vprops
+        if atom.coords !== nothing
+            coords[i.index, 1] = atom.coords[1]
+            coords[i.index, 2] = atom.coords[2]
+            coords[i.index, 3] = atom.coords[3]
+        end
+    end
+    
+    return coords
+end
+
+function cdxml_on_update!(mol::SimpleMolGraph)
+    # Preprocess
+    default_atom_charge!(mol)
+    default_bond_order!(mol)
+    kekulize!(mol)
+    mark_aromatic_atoms!(mol)
+
+    # Cache relatively expensive descriptors
+    sssr!(mol)
+    apparent_valence!(mol)
+    valence!(mol)
+    lone_pair!(mol)
+    is_ring_aromatic!(mol)
+end

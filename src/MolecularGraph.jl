@@ -64,6 +64,7 @@ include("./graph/isomorphism_edge.jl")
 include("./graph/isomorphism_vf2.jl")
 include("./graph/isomorphism_clique.jl")
 
+include("./cdxml.jl")
 export
     ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
     SDFAtom, SMILESAtom, CommonChemAtom,
