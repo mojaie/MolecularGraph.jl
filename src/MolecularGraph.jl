@@ -52,6 +52,7 @@ include("./model/atom.jl")
 include("./model/bond.jl")
 include("./model/molgraph.jl")
 include("./model/query.jl")
+include("./model/cdxml.jl")
 
 include("./graph/operators.jl")
 include("./graph/traversals.jl")
@@ -64,7 +65,6 @@ include("./graph/isomorphism_edge.jl")
 include("./graph/isomorphism_vf2.jl")
 include("./graph/isomorphism_clique.jl")
 
-include("./cdxml.jl")
 export
     ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
     SDFAtom, SMILESAtom, CommonChemAtom,
