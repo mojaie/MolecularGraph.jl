@@ -153,10 +153,10 @@ function parse_bond_stereo(display_str::String)::Int
         1
     elseif display_str ∈ ("Hash", "HashBegin", "WedgedHashBegin", "Dash")
         6
-    elseif display_str == "WedgedHashEnd"
+    elseif display_str == "WedgeHashEnd"
         @info "Found bond type 'WedgeHashEnd', please check carefully whether stereo is correct."
-        # Tip at the end, so we convert to Wedge
-        1 
+        # Tip at the end, the correct location of start and end atom is taken care of by `isordered`
+        6 
     elseif display_str == "Wavy"
         4
     elseif display_str == "CisTransUnknown"
@@ -230,7 +230,6 @@ function parse_cdxml_bond(node::XMLElement)::Tuple{String,String,String,CDXMLBon
     display_str = attribute(node, "Display")
     notation = display_str === nothing ? 0 : parse_bond_stereo(display_str)
     isordered = begin_atom < end_atom
-    # notation = stereo
     bond = CDXMLBond(order; notation, isaromatic, isordered)
     
     return (id === nothing ? "" : id, begin_atom, end_atom, bond)
