@@ -79,9 +79,11 @@ atom_charge(atom::CDXMLAtom) = atom.charge
 multiplicity(atom::CDXMLAtom) = atom.multiplicity
 atom_number(atom::CDXMLAtom) = atom_number(atom.symbol)
 isotope(atom::CDXMLAtom) = atom.isotope
-isaromatic(atom::CDXMLAtom) = atom.aromatic
+isaromatic(atom::CDXMLAtom) = atom.isaromatic
 bond_order(bond::CDXMLBond) = bond.order
-isaromatic(bond::CDXMLBond) = bond.aromatic
+isaromatic(bond::CDXMLBond) = bond.isaromatic
+
+has_isaromatic(::Type{CDXMLAtom}) = true
 
 function replace_struct(x::T; replacements...) where T
     values = [haskey(replacements, field) ? replacements[field] : getfield(x, field) for field in fieldnames(T)]
