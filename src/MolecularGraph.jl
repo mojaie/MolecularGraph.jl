@@ -53,6 +53,7 @@ include("./model/bond.jl")
 include("./model/molgraph.jl")
 include("./model/query.jl")
 include("./model/cdxml.jl")
+export cdxmltomol, cdxmltomols
 
 include("./graph/operators.jl")
 include("./graph/traversals.jl")
@@ -67,11 +68,11 @@ include("./graph/isomorphism_clique.jl")
 
 export
     ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
-    SDFAtom, SMILESAtom, CommonChemAtom,
+    SDFAtom, SMILESAtom, CommonChemAtom, CDXMLAtom,
     atom_number, atom_symbol, atom_charge, multiplicity, isotope,
-    SDFBond, SMILESBond, CommonChemBond,
+    SDFBond, SMILESBond, CommonChemBond, CDXMLBond,
     bond_order,
-    MolGraph, SDFMolGraph, SMILESMolGraph, CommonChemMolGraph,
+    MolGraph, SDFMolGraph, SMILESMolGraph, CommonChemMolGraph, CDXMLMolGraph,
     QueryMolGraph, QueryAtom, QueryBond
 
 export

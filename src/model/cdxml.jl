@@ -5,15 +5,7 @@
 # MolGraph objects. It handles molecules with atoms, bonds, coordinates, charges,
 # stereochemistry, and other chemical properties.
 
-# module CDXMLParser
-
-using LightXML
-# using MolecularGraph
-# using MolecularGraph: StandardAtom, StandardBond, Edge
-# using MolecularGraph.Graphs: SimpleGraph
-
-export CDXMLAtom, CDXMLBond
-export cdxmlreader, cdxmltomol, parse_cdxml_file, parse_cdxml_string
+import EzXML
 
 # =============================================================================
 # Atom and Bond types for CDXML
@@ -72,6 +64,8 @@ struct CDXMLBond <: StandardBond
         new(order, isaromatic, isordered, stereo, notation)
     end
 end
+
+const CDXMLMolGraph = MolGraph{Int,CDXMLAtom,CDXMLBond}
 
 # Implement required interface methods
 atom_symbol(atom::CDXMLAtom) = atom.symbol
@@ -166,12 +160,15 @@ function parse_bond_stereo(display_str::String)::Int
     end
 end
 
+"""Get XML attribute value or `nothing` if missing"""
+attribute(node::EzXML.Node, key::AbstractString) = haskey(node, key) ? node[key] : nothing
+
 # =============================================================================
 # Core parsing functions
 # =============================================================================
 
 """Parse a single atom (node) from CDXML"""
-function parse_cdxml_atom(node::XMLElement)::Tuple{String,CDXMLAtom}
+function parse_cdxml_atom(node::EzXML.Node)::Tuple{String,CDXMLAtom}
     # Get atom ID
     id = attribute(node, "id")
     if id === nothing
@@ -210,7 +207,7 @@ function parse_cdxml_atom(node::XMLElement)::Tuple{String,CDXMLAtom}
 end
 
 """Parse a single bond from CDXML"""
-function parse_cdxml_bond(node::XMLElement)::Tuple{String,String,String,CDXMLBond}
+function parse_cdxml_bond(node::EzXML.Node)::Tuple{String,String,String,CDXMLBond}
     # Get bond ID
     id = attribute(node, "id")
     
@@ -236,14 +233,14 @@ function parse_cdxml_bond(node::XMLElement)::Tuple{String,String,String,CDXMLBon
 end
 
 """Parse a fragment (molecule) from CDXML"""
-function parse_cdxml_fragment(frag_node::XMLElement)::MolGraph{Int,CDXMLAtom,CDXMLBond}
+function parse_cdxml_fragment(frag_node::EzXML.Node)::MolGraph{Int,CDXMLAtom,CDXMLBond}
     atom_map = Dict{String,Int}()  # CDXML id -> graph index
     atoms = CDXMLAtom[]
     bonds = Tuple{Int,Int,CDXMLBond}[]
     
     # Parse all child nodes
-    for child in child_elements(frag_node)
-        tag = name(child)
+    for child in EzXML.eachelement(frag_node)
+        tag = EzXML.nodename(child)
         
         if tag == "n"  # Node (Atom)
             id, atom = parse_cdxml_atom(child)
@@ -297,25 +294,25 @@ end
 # =============================================================================
 
 """
-    parse_cdxml_string(cdxml_str::String) -> Vector{MolGraph}
+    cdxmltomols(cdxml_str::String) -> Vector{MolGraph}
 
 Parse CDXML string and return vector of molecules.
 Each fragment in the CDXML document becomes a separate molecule.
 """
-function parse_cdxml_string(cdxml_str::String)::Vector{MolGraph{Int,CDXMLAtom,CDXMLBond}}
+function cdxmltomols(cdxml_str::IO)::Vector{MolGraph{Int,CDXMLAtom,CDXMLBond}}
     mols = MolGraph{Int,CDXMLAtom,CDXMLBond}[]
     
     try
-        doc = parse_string(cdxml_str)
-        root = LightXML.root(doc)
+        doc = EzXML.parsexml(read(cdxml_str, String))
+        root = EzXML.root(doc)
         
         # Find all fragments in the document
         # Fragments can be at various levels: page > fragment, or directly in document
-        function find_fragments(node::XMLElement)
-            fragments = XMLElement[]
+        function find_fragments(node::EzXML.Node)
+            fragments = EzXML.Node[]
             
-            for child in child_elements(node)
-                tag = name(child)
+            for child in EzXML.eachelement(node)
+                tag = EzXML.nodename(child)
                 if tag == "fragment"
                     push!(fragments, child)
                 elseif tag == "page" || tag == "group"
@@ -341,8 +338,6 @@ function parse_cdxml_string(cdxml_str::String)::Vector{MolGraph{Int,CDXMLAtom,CD
             end
         end
         
-        free(doc)
-        
     catch e
         error("Failed to parse CDXML: $e")
     end
@@ -351,13 +346,14 @@ function parse_cdxml_string(cdxml_str::String)::Vector{MolGraph{Int,CDXMLAtom,CD
 end
 
 """
-    parse_cdxml_file(filename::String) -> Vector{MolGraph}
+    cdxmltomols(filename::String) -> Vector{MolGraph}
 
 Read and parse a CDXML file, returning vector of molecules.
 """
-function parse_cdxml_file(filename::String)::Vector{MolGraph{Int,CDXMLAtom,CDXMLBond}}
-    cdxml_str = read(filename, String)
-    return parse_cdxml_string(cdxml_str)
+function cdxmltomols(filename::String)::Vector{MolGraph{Int,CDXMLAtom,CDXMLBond}}
+    open(filename) do io
+        cdxmltomols(io)
+    end
 end
 
 """
@@ -367,11 +363,7 @@ Parse CDXML from file or string and return the first molecule.
 Raises error if no molecules found.
 """
 function cdxmltomol(input::Union{AbstractString, IO})::MolGraph{Int,CDXMLAtom,CDXMLBond}
-    mols = if input isa IO
-        parse_cdxml_string(read(input, String))
-    else
-        parse_cdxml_file(input)
-    end
+    mols = cdxmltomols(input)
     
     if isempty(mols)
         error("No molecules found in CDXML")
@@ -379,30 +371,9 @@ function cdxmltomol(input::Union{AbstractString, IO})::MolGraph{Int,CDXMLAtom,CD
     
     length(mols) > 1 && @warn """
     More than one molecule found, returning only the first one.
-    For obtaining all molecules use `parse_cdxml_string()`.
+    For obtaining all molecules use `cdxmltomols()`.
     """
     return mols[1]
-end
-
-"""
-    cdxmlreader(input) -> Iterator
-
-Create an iterator that yields molecules from a CDXML file or string.
-This is similar to sdfilereader for consistency with MolecularGraph.jl API.
-
-# Examples
-```julia
-for mol in cdxmlreader("molecules.cdxml")
-    println("Molecule has ", length(mol.vprops), " atoms")
-end
-```
-"""
-function cdxmlreader(input::Union{AbstractString, IO})
-    if isa(input, IO)
-        parse_cdxml_string(read(input, String))
-    else
-        parse_cdxml_file(input)
-    end
 end
 
 function cdxml_on_init!(mol::SimpleMolGraph)
