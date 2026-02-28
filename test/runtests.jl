@@ -87,6 +87,7 @@ include("./smarts/smarts.jl")
 include("sdfilereader.jl")
 include("sdfilewriter.jl")
 include("json.jl")
+include("cdxml.jl")
 
 include("stereo.jl")
 include("preprocess.jl")
