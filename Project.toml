@@ -12,7 +12,6 @@ Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-MakieCore = "20f20a25-4f0e-4fdf-b5d1-57303727442b"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
@@ -23,10 +22,12 @@ libinchi_jll = "172afb32-8f1c-513b-968f-184fcd77af72"
 
 [weakdeps]
 Cairo = "159f3aea-2a34-519c-b102-8c37f9878175"
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 RDKitMinimalLib = "44044271-7623-48dc-8250-42433c44e4b7"
 
 [extensions]
 CairoExt = "Cairo"
+MakieExt = "Makie"
 RDKitExt = "RDKitMinimalLib"
 
 [compat]
@@ -37,7 +38,7 @@ GeometryBasics = "0.5"
 Graphs = "1.12"
 JSON = "1"
 EzXML = "1"
-MakieCore = "0.9,0.10"
+Makie = "0.24"
 OrderedCollections = "1.8"
 RDKitMinimalLib = "1.2"
 Statistics = "1"
@@ -50,7 +51,8 @@ libinchi_jll = "1.5"
 
 [extras]
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Logging"]
+test = ["Test", "Logging", "Makie"]
