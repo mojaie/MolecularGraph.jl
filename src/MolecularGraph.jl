@@ -215,9 +215,6 @@ export query_containment_diagram, find_queries
 # Molecule drawing
 
 using Colors: RGB, RGBA, N0f8, hex, coloralpha
-using MakieCore:
-    @recipe, Theme, meshscatter!, mesh!
-import MakieCore
 import Statistics
 
 
