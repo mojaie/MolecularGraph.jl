@@ -134,11 +134,17 @@ all_maximal_cliques(g::SimpleGraph{T}; kwargs...
 
 
 """
-    maximum_clique(::Type{U}, g::SimpleGraph{T}; kwargs...) where {T,U} -> (U, Symbol)
+    maximum_clique_mg(::Type{U}, g::SimpleGraph{T}; kwargs...) where {T,U} -> (U, Symbol)
 
 Calculate maximum clique.
+
+This is a molecular-mining-oriented variant of `Graphs.maximum_clique`: it accepts
+`timeout` and `targetsize` keyword arguments and reports a status alongside the
+result, both of which are needed in practice for the substructure-matching tasks in
+this package. The `_mg` suffix marks it as intentionally distinct from the like-named
+`Graphs.jl` function (#146).
 """
-function maximum_clique(::Type{U}, g::SimpleGraph{T}; kwargs...) where {T,U}
+function maximum_clique_mg(::Type{U}, g::SimpleGraph{T}; kwargs...) where {T,U}
     state = MaxCliqueState{T,U}(g; kwargs...)
     expand!(state, Set(vertices(g)), Set(vertices(g)))
     if state.status == :ongoing
@@ -146,9 +152,8 @@ function maximum_clique(::Type{U}, g::SimpleGraph{T}; kwargs...) where {T,U}
     end
     return state.maxsofar, state.status
 end
-maximum_clique(g::SimpleGraph{T}; kwargs...
-    ) where T = maximum_clique(Vector{T}, g; kwargs...)
-
+maximum_clique_mg(g::SimpleGraph{T}; kwargs...
+    ) where T = maximum_clique_mg(Vector{T}, g; kwargs...)
 
 
 # Connected cliques (c-cliques)
