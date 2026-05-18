@@ -1,16 +1,16 @@
 name = "MolecularGraph"
 uuid = "6c89ec66-9cd8-5372-9f91-fabc50dd27fd"
 authors = ["Seiji Matsuoka <ms0ae8ti1sj2ui@gmail.com"]
-version = "0.22.0"
+version = "0.23.0"
 
 [deps]
 Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
 GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
-EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MakieCore = "20f20a25-4f0e-4fdf-b5d1-57303727442b"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
@@ -30,13 +30,14 @@ CairoExt = "Cairo"
 RDKitExt = "RDKitMinimalLib"
 
 [compat]
+Aqua = "0.8"
 Cairo = "1.1"
 Colors = "0.13"
 DelimitedFiles = "1"
+EzXML = "1"
 GeometryBasics = "0.5"
 Graphs = "1.12"
 JSON = "1"
-EzXML = "1"
 MakieCore = "0.9,0.10"
 OrderedCollections = "1.8"
 RDKitMinimalLib = "1.2"
@@ -46,11 +47,16 @@ Test = "1"
 YAML = "0.4"
 coordgenlibs_jll = "3.0.2"
 julia = "1.9"
+Dates = "1"
+LinearAlgebra = "1"
+Printf = "1"
+Logging = "1"
 libinchi_jll = "1.5"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Logging"]
+test = ["Test", "Aqua", "Logging"]
