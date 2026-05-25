@@ -116,7 +116,12 @@ end
 
 
 function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: SimpleMolGraph
+    mark(io)
     line1 = readline(io)  # name line, not implemented
+    if startswith(line1, ">")  # empty ctab (is valid?)
+        reset(io)
+        error("unsupported sdfile format - empty ctab block")
+    end
     if startswith(line1, "M  V30")  # v3 no header (rxnfile)
         startswith(line1, "M  V30 BEGIN CTAB") || (readuntil(io, "M  V30 BEGIN CTAB"); readline(io))  # skip END tags
         ctab_only = true
