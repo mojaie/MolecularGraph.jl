@@ -7,7 +7,7 @@ module MolecularGraph
 
 import JSON
 using OrderedCollections
-using Printf: @sprintf
+using Printf: @sprintf, @printf
 using StructUtils
 import YAML
 
