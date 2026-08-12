@@ -460,3 +460,14 @@ function ctab_atom_v3(::Type{CDXMLAtom}, line::AbstractString)
     num_hs = parse(Int, line[43:45]) - 1
     return CDXMLAtom(sym, chg, mul, iso, isaromatic, crds, num_hs)
 end
+
+function ctab_bond_v2(
+        ::Type{T}, ::Type{CDXMLBond}, line::AbstractString) where {T<:Integer}
+    u = parse(T, line[1:3])
+    v = parse(T, line[4:6])
+    ord = parse(Int, line[7:9])
+    notation = parse(Int, line[10:12])
+    isordered = u < v
+    u, v = isordered ? (u, v) : (v, u)
+    return (u_edge(T, u, v), CDXMLBond(ord; notation, isordered))
+end
