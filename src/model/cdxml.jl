@@ -19,6 +19,7 @@ struct CDXMLAtom <: StandardAtom
     isotope::Int
     isaromatic::Bool
     coords::Union{Vector{Float64}, Nothing}  # concrete element type (for `juliac --trim`)
+    num_hs::Int
 
     function CDXMLAtom(
         symbol::Union{AbstractString, Symbol},
@@ -26,11 +27,12 @@ struct CDXMLAtom <: StandardAtom
         multiplicity::Int,
         isotope::Int,
         isaromatic::Bool,
-        coords::Union{Vector, Nothing}
+        coords::Union{Vector, Nothing},
+        num_hs::Int
     )
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol '$symbol'")
         new(Symbol(symbol), charge, multiplicity, isotope, isaromatic,
-            isnothing(coords) ? nothing : Vector{Float64}(coords))
+            isnothing(coords) ? nothing : Vector{Float64}(coords), num_hs)
     end
 end
 
@@ -39,11 +41,12 @@ function CDXMLAtom(
     charge::Int=0, 
     multiplicity::Int=1, 
     isotope::Int=0,
-    isaromatic::Bool = false,
-    coords::Union{Vector, Nothing}=nothing
+    isaromatic::Bool=false,
+    coords::Union{Vector, Nothing}=nothing,
+    num_hs::Int=-1
 )
     haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
-    CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords)
+    CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, num_hs)
 end
 
 """CDXMLBond represents a bond from CDXML with order and stereochemistry"""
@@ -205,9 +208,12 @@ function parse_cdxml_atom(node::EzXML.Node)::Tuple{String,CDXMLAtom}
         radical = parse(Int, radical_str)
         radical + 1  # Convert to multiplicity
     end
+
+    num_hs_str = attribute(node, "NumHydrogens")
+    num_hs = num_hs_str === nothing ? -1 : parse(Int, num_hs_str)
     
     isaromatic = false # will be set later in mark_aromatic_atoms!()
-    atom = CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords)
+    atom = CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, num_hs)
     return (id, atom)
 end
 
@@ -410,4 +416,14 @@ function cdxml_on_update!(mol::SimpleMolGraph)
     valence!(mol)
     lone_pair!(mol)
     is_ring_aromatic!(mol)
+
+    desc = mol[:descriptors]
+    
+    for i in vertices(mol)
+        atom = mol.vprops[i]
+        
+        if atom.num_hs >= 0
+            desc.valence[i] = desc.apparent_valence[i] + atom.num_hs
+        end
+    end
 end
