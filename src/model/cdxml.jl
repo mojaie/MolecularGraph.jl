@@ -62,11 +62,35 @@ struct CDXMLBond <: StandardBond
             isaromatic::Bool=false,
             isordered::Bool=false,
             stereo::Union{AbstractString,Symbol} = :unspecified,
-            notation::Int = 0
+            notation::Int = 0,
+        kwargs...
     )
+        isempty(kwargs) || @warn "keyword(s) `$(join(keys(kwargs), "``, `"))` not supported!"
         order > 3 && error("sdfile parse error - unsupported bond order $(order)")
         new(order, isaromatic, isordered, Symbol(stereo), notation)
     end
+end
+
+# keyword-only constructor for compatibility with other readers
+function CDXMLAtom(;
+    symbol::Union{AbstractString, Symbol},
+    charge::Int=0, 
+    multiplicity::Int=1, 
+    isotope::Int=0,
+    isaromatic::Bool=false,
+    coords::Union{Vector, Nothing}=nothing,
+    num_hs::Int=-1,
+    kwargs...
+)
+    isempty(kwargs) || @warn "keyword(s) `$(join(keys(kwargs), "``, `"))` not supported!"
+    CDXMLAtom(symbol;
+        charge,
+        multiplicity,
+        isotope,
+        isaromatic,
+        coords,
+        num_hs
+    )
 end
 
 """
@@ -170,6 +194,9 @@ end
 
 """Get XML attribute value or `nothing` if missing"""
 attribute(node::EzXML.Node, key::AbstractString) = haskey(node, key) ? node[key] : nothing
+function attribute(node::EzXML.Node, key::AbstractString, default::T)::Union{String, T} where T
+    haskey(node, key) ? node[key] : default
+end
 
 # =============================================================================
 # Core parsing functions
