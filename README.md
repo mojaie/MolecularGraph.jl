@@ -87,6 +87,7 @@ Features
   - 3D structure drawing ([Makie.jl](https://github.com/MakieOrg/Makie.jl))
   - SDFile reader/writer (.sdf, .mol)
   - SMILES/SMARTS reader
+  - ChemDraw CDXML reader
   - SMILES writer ([RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl))
   - Coordinates generation ([coordgenlibs](https://github.com/schrodinger/coordgenlibs))
 
@@ -140,4 +141,4 @@ See [Assets/README.md](https://github.com/mojaie/MolecularGraph.jl/tree/master/a
 Copyright
 -----------------
 
-(C) 2018-2025 Seiji Matsuoka and contributors
+(C) 2018-2026 Seiji Matsuoka and contributors

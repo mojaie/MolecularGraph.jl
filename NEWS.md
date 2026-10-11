@@ -1,5 +1,14 @@
 # NEWS
 
+## v0.23.0
+
+- Breaking changes
+  - The minimum required Julia version will be updated from 1.9 to 1.10.
+  - `maximum_clique` was renamed to `maximum_clique_mg` to avoid name confliction (#146).
+  - Now compatible with Makie 0.24 (#147). Removed `MakieCore` and now `Makie` is available as an extention.
+- `Aqua` was added as a test dependency (#146).
+- CDXML reader (#145)
+
 ## v0.22.0
 
 - Breaking changes
