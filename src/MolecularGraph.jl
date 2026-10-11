@@ -77,7 +77,7 @@ export
 
 export
     maxcardmap, maxcard,
-    all_maximal_cliques, maximum_clique,
+    all_maximal_cliques, maximum_clique_mg,
     all_maximal_conn_cliques, maximum_conn_clique,
     approx_maximum_clique,
     mincyclebasis, edgemincyclebasis, disjoint_union,

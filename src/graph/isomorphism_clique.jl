@@ -247,7 +247,7 @@ function maximum_common_subgraph(
     if connected
         maxclique, status = maximum_conn_clique(prod, connfunc=connfuncgen(prod, g, h); kwargs...)
     else
-        maxclique, status = maximum_clique(prod; kwargs...)
+        maxclique, status = maximum_clique_mg(prod; kwargs...)
     end
     # modprod reverse mapping
     nmap = Dict(div(i - 1, h.nv) + 1 => mod(i - 1, h.nv) + 1 for i in maxclique)
@@ -270,7 +270,7 @@ function maximum_common_subgraph(
             Dict{Edge{T},Edge{T}}, prod, connfunc=connfuncgen(prod, g, h),
             postprocess=mces_postprocess(g, h); kwargs...)
     else
-        return maximum_clique(
+        return maximum_clique_mg(
             Dict{Edge{T},Edge{T}}, prod, postprocess=mces_postprocess(g, h); kwargs...)
     end
 end

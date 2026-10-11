@@ -107,3 +107,19 @@ include("./draw/svg.jl")
 include("./draw/3d.jl")
 
 end
+
+using MolecularGraph
+using Aqua
+using Test
+
+@testset "Aqua" begin
+    Aqua.test_ambiguities(MolecularGraph; broken=true)
+    Aqua.test_unbound_args(MolecularGraph; broken=true)
+    Aqua.test_undefined_exports(MolecularGraph; broken=true)
+    Aqua.test_project_extras(MolecularGraph)
+    Aqua.test_stale_deps(MolecularGraph)
+    Aqua.test_deps_compat(MolecularGraph)
+    Aqua.test_piracies(MolecularGraph)
+    Aqua.test_persistent_tasks(MolecularGraph)
+    Aqua.test_undocumented_names(MolecularGraph; broken=true)
+end
