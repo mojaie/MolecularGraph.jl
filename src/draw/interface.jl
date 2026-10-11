@@ -106,3 +106,40 @@ Generate molecular structure image as a PNG format.
 `width` and `height` specifies the size of the image in px.
 """
 function drawpng end
+
+
+"""
+    spacefilling(mol::MolGraph; radii="van der Waals")
+
+Represent `mol` as a space-filling (Calotte) model in three dimensions. `mol` should have 3d atom
+positions in Angstroms. Requires loading a Makie backend (e.g. GLMakie or CairoMakie).
+"""
+function spacefilling end
+function spacefilling! end
+
+"""
+    ballstick(mol::MolGraph; radii=0.3, bonddiameter=0.1)
+
+Represent `mol` as a ball-and-stick model in three dimensions. `mol` should have 3d atom positions
+in Angstroms. Requires loading a Makie backend (e.g. GLMakie or CairoMakie).
+"""
+function ballstick end
+function ballstick! end
+
+"""
+    stick(mol::MolGraph; size=0.33)
+
+Represent `mol` as a stick model in three dimensions. `mol` should have 3d atom positions in Angstroms.
+Requires loading a Makie backend (e.g. GLMakie or CairoMakie).
+"""
+function stick end
+function stick! end
+
+"""
+    wire(mol::MolGraph; size=0.1)
+
+Represent `mol` as a wire-frame model in three dimensions. `mol` should have 3d atom positions in Angstroms.
+Requires loading a Makie backend (e.g. GLMakie or CairoMakie).
+"""
+function wire end
+function wire! end

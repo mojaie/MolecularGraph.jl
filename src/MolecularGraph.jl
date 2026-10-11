@@ -77,7 +77,7 @@ export
 
 export
     maxcardmap, maxcard,
-    all_maximal_cliques, maximum_clique,
+    all_maximal_cliques, maximum_clique_mg,
     all_maximal_conn_cliques, maximum_conn_clique,
     approx_maximum_clique,
     mincyclebasis, edgemincyclebasis, disjoint_union,
@@ -215,9 +215,6 @@ export query_containment_diagram, find_queries
 # Molecule drawing
 
 using Colors: RGB, RGBA, N0f8, hex, coloralpha
-using MakieCore:
-    @recipe, Theme, meshscatter!, mesh!
-import MakieCore
 import Statistics
 
 
