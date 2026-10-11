@@ -46,8 +46,8 @@ end
     qtree = QueryAtom()
     h4 = atomprop!(state, qtree)
     @test h4 == 1
-    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:total_hydrogens, "4")])
-    @test state.pos == 3  # Next, read '1'
+    @test qtree == QueryAtom(Tuple{Int,Int}[], [qeq(:total_hydrogens, "41")])  # impossible but valid
+    @test state.pos == 4
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("X2")
     qtree = QueryAtom()
@@ -172,6 +172,11 @@ end
     sixmem = atom!(state)
     @test only(sixmem) == QueryAtom(
         [(1, 2), (1, 3)], [qand(), qanytrue(), qeq(:smallest_ring, "6")])
+
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("[*r12]")
+    sixmem = atom!(state)
+    @test only(sixmem) == QueryAtom(
+        [(1, 2), (1, 3)], [qand(), qanytrue(), qeq(:smallest_ring, "12")])
 
     state = SMARTSParser{Int,QueryAtom,QueryBond}("[35*]")
     any35 = atom!(state)

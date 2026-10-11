@@ -193,7 +193,11 @@ function atompropcond!(state::SMARTSParser, qtree::QueryTree)
         forward!(state)
         cond = SMARTS_ATOM_COND_SYMBOL[sym1]
         if isdigit(sym2)
-            num = parse(Int, sym2)
+            start = state.pos
+            while isdigit(lookahead(state, 1))
+                forward!(state)
+            end
+            num = parse(Int, SubString(state.input, start, state.pos))
             forward!(state)
         elseif sym1 in ('r', 'R')
             node = add_qnode!(qtree, qnot())
@@ -235,6 +239,9 @@ function atompropcond!(state::SMARTSParser, qtree::QueryTree)
                 toclose += 1
             end
             forward!(state)
+            if state.done
+                error("smarts parser error - #$(state.pos) unclosed recursive")
+            end
         end
         q = SubString(state.input, start, state.pos - 1)
         forward!(state)
