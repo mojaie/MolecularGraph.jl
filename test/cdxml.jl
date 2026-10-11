@@ -81,7 +81,7 @@ end
     """
 
     mol = cdxmltomol(IOBuffer(cdxml_string))
-    @test [b.notation for (_, b) in mol.eprops] == [1, 6, 0, 0]
+    @test [mol[e].notation for e in edges(mol)] == [1, 6, 0, 0]
     @test bond_order(mol) == fill(1, 4)
     @test atom_symbol(mol) == [:C, :Cl, :Br, :H, :H]
     @test mol[2].coords == [110, 95, 0]
