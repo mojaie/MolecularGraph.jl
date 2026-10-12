@@ -1,95 +1,6 @@
 
 @testset "querycontainment" begin
 
-@testset "truthtable" begin
-    # truthtable generation
-    anytrue = QueryAtom(Tuple{Int,Int}[], [qanytrue()])
-    tt1, tt2 = generate_truthtable(anytrue, anytrue)
-    @test isempty(tt1.props)
-    @test isempty(tt2.props)
-    @test tt1.func([])
-    @test tt2.func([])
-
-    # query match
-    op1 = QueryAtom(
-        [(1, 2), (1, 3), (1, 5), (3, 4), (5, 6), (5, 7)],
-        [qand(), qeq(:symbol, "C"), qnot(), qtrue(:isaromatic), qor(),
-        qeq(:connectivity, "3"), qeq(:connectivity, "4")])
-    propmap = querypropmap(op1)
-    @test issetequal(keys(propmap), [:symbol, :isaromatic, :connectivity])
-    tbl1 = QueryTruthTable(op1)
-    func1 = QueryTruthTable(
-        v -> v[4] & ~v[3] & (v[1] | v[2]),
-        [qeq(:connectivity, "3"), qeq(:connectivity, "4"),
-        qtrue(:isaromatic), qeq(:symbol, "C")]
-    )
-    @test querymatch(tbl1, func1, true)
-
-    # tautology
-    """
-    q \\ r  T other F
-    T      T   F   F
-    other  T   ?   F
-    F      T   T   T
-    """
-    props = [qeq(:symbol, "C")]
-    t = QueryTruthTable(v -> true, props)
-    f = QueryTruthTable(v -> false, props)
-    o = QueryTruthTable(v -> v[1], props)
-    @test issubset(t, t)
-    @test issubset(f, f)
-    @test !issubset(t, o)
-    @test !issubset(t, f)
-    @test issubset(o, t)
-    @test !issubset(o, f)
-    @test issubset(f, t)
-    @test issubset(f, o)
-
-    # containment
-    props = [qeq(:symbol, "C"), qeq(:symbol, "N")]
-    symC = QueryTruthTable(v -> v[1], props)
-    symN = QueryTruthTable(v -> v[2], props)
-    notN = QueryTruthTable(v -> ~v[2], props)
-    props = [qeq(:total_hydrogens, "1"), qeq(:charge, "1")]
-    hc1 = QueryTruthTable(v -> v[1], props)
-    ch1 = QueryTruthTable(v -> v[2], props)
-    @test symC == symC
-    @test symC != symN
-    @test symN != symC
-    @test symN != notN
-    @test notN != symN
-    @test hc1 == hc1
-    @test hc1 != ch1
-    @test ch1 != hc1
-
-    props = [qeq(:charge, "1"), qtrue(:isaromatic), qeq(:symbol, "N")]
-    and1 = QueryTruthTable(v -> v[2] & v[3], props)
-    and2 = QueryTruthTable(v -> v[1] & v[2] & v[3], props)
-    @test issubset(and2, and1)
-    @test !issubset(and1, and2)
-
-    props = [qeq(:charge, "-1"), qeq(:charge, "0"), qeq(:charge, "1")]
-    or1 = QueryTruthTable(v -> v[2] | v[3], props)
-    or2 = QueryTruthTable(v -> v[1] | v[2] | v[3], props)
-    @test issubset(or1, or2)
-    @test !issubset(or2, or1)
-
-    props = [
-        qeq(:charge, "0"), qeq(:charge, "1"), qtrue(:isaromatic),
-        qeq(:smallest_ring, "6"), qeq(:symbol, "N"), qeq(:symbol, "O"), qeq(:symbol, "S")
-    ]
-    nested1 = QueryTruthTable(
-        v -> ~v[3] & (v[5] | v[6]) & (v[1] | v[2]), props)
-    nested2 = QueryTruthTable(
-        v -> ~v[3] & (v[5] | v[6] | v[7]) & (v[1] | v[2] | v[4]), props)
-    nested3 = QueryTruthTable(
-        v -> ~v[3] & v[6] & (v[1] | v[2]), props)
-    @test issubset(nested1, nested2)
-    @test !issubset(nested2, nested1)
-    @test issubset(nested3, nested1)
-    @test !issubset(nested1, nested3)
-end
-
 @testset "resolve_disjoint_not" begin
     oors = QueryAtom(
         [(1, 2), (1, 3)],
@@ -215,6 +126,37 @@ end
     @test !has_exact_match(broad, halo)
     @test has_exact_match(halo, broad)
     @test !has_exact_match(halo, broad2)
+
+    SerCys = smartstomol("NC(C(=O)O)C[O,S]")
+    LSerCys = smartstomol("N[C@H](C(=O)O)C[O,S]")
+    @test has_exact_match(LSerCys, SerCys, stereo=true)
+    @test !has_exact_match(SerCys, LSerCys, stereo=true)
+
+    uns = smartstomol("O=C(O)CCCCCCCC=CCCCCCCCC")
+    elaidic_acid2 = smartstomol("O=C(O)CCCCCCC/?C=C/?CCCCCCCC")
+    elaidic_acid = smartstomol("O=C(O)CCCCCCC/C=C/CCCCCCCC")
+    @test has_exact_match(elaidic_acid, uns, stereo=true)
+    @test !has_exact_match(uns, elaidic_acid, stereo=true)
+
+    LAla1 = smartstomol("N[C@@H](C)C(=O)O")
+    LAla2 = smartstomol("N[C@@?H](C)C(=O)O")
+    SerHyd = smartstomol("N[C@H](C(=O)O)C[OD1]")
+    LSerHyd = smartstomol("N[C@@H](C(=O)O)C[OD1]")
+    SerHyd2 = smartstomol("N[C@?H](C(=O)O)C[OD1]")
+    @test !has_substruct_match(SerHyd2, LAla1, stereo=true)
+    @test has_substruct_match(SerHyd, LAla2, stereo=true)
+    @test !has_substruct_match(LSerHyd, LAla2, stereo=true)
+    @test has_substruct_match(SerHyd2, LAla2, stereo=true)
+
+    hexose = smartstomol("OCC(O1)C(O)C(O)C(O)C1O")
+    glup = smartstomol("OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H](O)C(O)1")
+    galp = smartstomol("C([C@@H]1[C@@H]([C@@H]([C@H](C(O1)O)O)O)O)O")
+    @test has_exact_match(glup, hexose, stereo=true)
+    @test has_exact_match(galp, hexose, stereo=true)
+    @test has_exact_match(galp, glup, stereo=false)
+    @test !has_exact_match(galp, glup, stereo=true)
+    aglupme = smartstomol("OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H](O)[C@@H](OC)1")
+    @test has_substruct_match(aglupme, glup, stereo=true)
 
     hetero = smartstomol("[!#6&!#7&!#8]1[#6][#6][#6][#6][#6]1")
     oxo = smartstomol("[#8]1[#6][#6][#6][#6][#6]1")

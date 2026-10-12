@@ -53,6 +53,7 @@ include("./model/bond.jl")
 include("./model/molgraph.jl")
 include("./model/query.jl")
 include("./model/cdxml.jl")
+
 export cdxmltomol, cdxmltomols
 
 include("./graph/operators.jl")
@@ -170,6 +171,7 @@ export
 
 using libinchi_jll: libinchi
 using coordgenlibs_jll: libcoordgen
+using PicoSAT
 
 include("stereo.jl")
 include("coords.jl")

@@ -7,6 +7,7 @@ Pkg.activate(PROJECT_DIR)
 using YAML
 using Graphs
 using MolecularGraph
+using MolecularGraph: combinations
 
 const INPUT_DIR = joinpath(PROJECT_DIR, "./assets/raw_queries/default")
 const INPUT_SA_DIR = joinpath(PROJECT_DIR, "./assets/raw_queries/ChEMBL")
@@ -33,15 +34,10 @@ function run()
     # Detect query relationships
     isaedges = Set{Edge{Int}}()
     hasedges = Set{Edge{Int}}()
-    skip = [  # has atoms with too complicated queries
-        "str_alert_221", "str_alert_222", "str_alert_247", "str_alert_1003",
-        "str_alert_246", "str_alert_381"
-    ]
-    @info "vprops" length(vprops) - length(skip)
+    @info "vprops" length(vprops)
     for (u, v) in combinations(length(vprops))
         ukey = vprops[u]["key"]
         vkey = vprops[v]["key"]
-        (ukey in skip || vkey in skip) && continue
         if u + 1 == v
             @info "--- $(ukey)"
             u % 50 == 0 && @info "===== $(u) records processed..."
