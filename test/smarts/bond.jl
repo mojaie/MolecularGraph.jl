@@ -44,6 +44,13 @@ end
     anyb = bond!(state)
     @test anyb == QueryBond(Tuple{Int,Int}[], [qanytrue()])
 
+    state = SMARTSParser{Int,QueryAtom,QueryBond}("=@")
+    ringdouble = bond!(state)
+    @test ringdouble == QueryBond(
+        [(1, 2), (2, 3), (2, 4), (4, 5), (1, 6)],
+        [qand(), qand(), qeq(:order, "2"), qnot(),
+        qtrue(:isaromatic), qtrue(:is_in_ring)])
+
     state = SMARTSParser{Int,QueryAtom,QueryBond}("-!@")
     notring = bond!(state)
     @test notring == QueryBond(

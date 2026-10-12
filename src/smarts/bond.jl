@@ -102,7 +102,7 @@ end
 """
     bond!(state::SMARTSParser) -> Union{QueryTree,Nothing}
 
-Bond <- '~' / (BondSymbol / LogicalCond)?
+Bond <- '~' / (BondSymbol / LogicalCond)*
 """
 function bond!(state::SMARTSParser{T,V,E}) where {T,V,E}
     if read(state) == '~'
@@ -110,7 +110,17 @@ function bond!(state::SMARTSParser{T,V,E}) where {T,V,E}
         return E(Tuple{Int,Int}[], [qanytrue()])
     end
     qtree = E()
+    vs = Int[]
     v = lglowand!(state, qtree)
     v == 0 && return
+    while v != 0
+        push!(vs, v)
+        v = lglowand!(state, qtree)
+    end
+    length(vs) == 1 && return qtree
+    node = add_qnode!(qtree, qand())
+    for i in vs
+        add_qedge!(qtree, node, i)
+    end
     return qtree
 end
