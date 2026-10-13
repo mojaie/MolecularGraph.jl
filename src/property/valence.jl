@@ -118,6 +118,11 @@ function apparent_valence(g::SimpleGraph, order_arr::Vector{Int})
     return arr
 end
 
+"""
+    apparent_valence!(mol::SimpleMolGraph)
+
+Calculate [`apparent_valence`](@ref) and store the result in the descriptors of `mol`.
+"""
 apparent_valence!(mol::SimpleMolGraph) = set_descriptor!(
     mol, :apparent_valence, apparent_valence(mol.graph, bond_order(mol)))
 
@@ -156,6 +161,11 @@ function valence(
     return max.(formal_valence(symbol_arr, charge_arr), apparent_valence_arr)
 end
 
+"""
+    valence!(mol::SimpleMolGraph)
+
+Calculate [`valence`](@ref) and store the result in the descriptors of `mol`.
+"""
 valence!(mol::SimpleMolGraph) = set_descriptor!(
     mol, :valence, valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol)))
 
@@ -261,6 +271,11 @@ function lone_pair(
     return arr
 end
 
+"""
+    lone_pair!(mol::SimpleMolGraph)
+
+Calculate [`lone_pair`](@ref) and store the result in the descriptors of `mol`.
+"""
 lone_pair!(mol::SimpleMolGraph) = set_descriptor!(
     mol, :lone_pair, lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol)))
 

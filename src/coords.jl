@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-# Note: just to avoid type piracy like JSON.lower(x::Point2d)
+# Note: just to avoid type piracy like StructUtils.lower(x::Point2d)
 
 
 function coords_from_sdf!(mol::SimpleMolGraph)
@@ -193,6 +193,12 @@ function coordgen(
     return Coords2d(coords), Draw2dBondStyle(styles)
 end
 
+"""
+    coordgen!(mol::SimpleMolGraph)
+
+Generate 2D coordinates by [`coordgen`](@ref) and store them (and the wedge notation styles)
+in the descriptors of `mol`, replacing existing 2D coordinates.
+"""
 function coordgen!(mol::SimpleMolGraph)
     # Initialize
     empty!(mol[:descriptors].coords2d)

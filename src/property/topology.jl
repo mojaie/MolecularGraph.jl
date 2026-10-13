@@ -26,6 +26,11 @@ function sssr(mol::SimpleMolGraph)
     return mincyclebasis(mol.graph)
 end
 
+"""
+    sssr!(mol::SimpleMolGraph)
+
+Calculate [`sssr`](@ref) and store the result in the descriptors of `mol`.
+"""
 function sssr!(mol::SimpleMolGraph)
     mol.state.has_new_edges || return  # skip if new edges
     set_descriptor!(mol, :sssr, mincyclebasis(mol.graph))

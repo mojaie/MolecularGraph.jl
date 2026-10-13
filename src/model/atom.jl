@@ -109,18 +109,39 @@ end
 
 
 """
+    AbstractAtom <: AbstractElement
+
+The base class of vertex properties (atom).
+"""
+abstract type AbstractAtom <: AbstractElement end
+
+abstract type StandardAtom <: AbstractAtom end
+
+
+has_isaromatic(::Type{T}) where T <: AbstractAtom = false
+has_mol(::Type{T}) where T <: AbstractAtom = false
+has_formula(::Type{T}) where T <: AbstractAtom = false
+has_hydrogens(::Type{T}) where T <: AbstractAtom = false
+has_label(::Type{T}) where T <: AbstractAtom = false
+
+
+"""
+    atom_number(atom::AbstractAtom) -> Int
     atom_number(atomsymbol::Symbol) -> Int
 
 Return an atomic number of the given atom or the atomic symbol.
 """
+atom_number(atom::AbstractAtom) = error("atom_number is not implemented for this atom type")
 atom_number(atomsymbol::Symbol) = ATOMSYMBOLMAP[atomsymbol]
 
 
 """
+    atom_symbol(atom::AbstractAtom) -> Symbol
     atom_symbol(n::Int) -> Symbol
 
 Return an atomic symbol of the given atom or the atomic number.
 """
+atom_symbol(atom::AbstractAtom) = error("atom_symbol is not implemented for this atom type")
 atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
 
 
@@ -187,7 +208,7 @@ isotope(a::SDFAtom) = a.isotope
 
 StructUtils.structlike(::StructUtils.StructStyle, ::Type{SDFAtom}) = false
 
-function JSON.lower(x::SDFAtom)
+function StructUtils.lower(x::SDFAtom)
     rcd = Dict{String,Any}()
     x.symbol === :C || setindex!(rcd, string(x.symbol), "symbol")
     x.charge == 0 || setindex!(rcd, x.charge, "charge")
@@ -197,7 +218,7 @@ function JSON.lower(x::SDFAtom)
     return rcd
 end
 
-JSON.lift(::Type{SDFAtom}, x) = SDFAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+StructUtils.lift(::Type{SDFAtom}, x) = SDFAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
 
 
 
@@ -253,7 +274,7 @@ isaromatic(a::SMILESAtom) = a.isaromatic
 
 StructUtils.structlike(::StructUtils.StructStyle, ::Type{SMILESAtom}) = false
 
-function JSON.lower(x::SMILESAtom)
+function StructUtils.lower(x::SMILESAtom)
     rcd = Dict{String,Any}()
     x.symbol === :C || setindex!(rcd, string(x.symbol), "symbol")
     x.charge == 0 || setindex!(rcd, x.charge, "charge")
@@ -264,7 +285,7 @@ function JSON.lower(x::SMILESAtom)
     return rcd
 end
 
-JSON.lift(::Type{SMILESAtom}, x) = SMILESAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+StructUtils.lift(::Type{SMILESAtom}, x) = SMILESAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
 
 
 
@@ -322,7 +343,7 @@ isotope(a::CommonChemAtom) = a.isotope
 
 StructUtils.structlike(::StructUtils.StructStyle, ::Type{CommonChemAtom}) = false
 
-function JSON.lower(x::CommonChemAtom)
+function StructUtils.lower(x::CommonChemAtom)
     rcd = Dict{String,Any}()
     x.z == 6 || setindex!(rcd, x.z, "z")
     x.chg == 0 || setindex!(rcd, x.chg, "chg")
@@ -333,4 +354,4 @@ function JSON.lower(x::CommonChemAtom)
     return rcd
 end
 
-JSON.lift(::Type{CommonChemAtom}, x) = CommonChemAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+StructUtils.lift(::Type{CommonChemAtom}, x) = CommonChemAtom(; NamedTuple((Symbol(k), v) for (k, v) in x)...)

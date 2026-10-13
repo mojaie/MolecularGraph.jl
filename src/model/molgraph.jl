@@ -5,6 +5,15 @@
 
 
 
+
+"""
+    AbstractState
+
+The base class of molecular model states.
+"""
+abstract type AbstractState end
+
+
 """
     MolState{T,F1,F2} <: AbstractState
 
@@ -32,8 +41,8 @@ Base.copy(state::T) where T <: MolState = T(
 )
 
 StructUtils.structlike(::StructUtils.StructStyle, ::Type{MolState{T}}) where T = false
-JSON.lower(x::MolState) = Dict{String,Any}()
-JSON.lift(::Type{MolState{T}}, x) where T = MolState{T}()
+StructUtils.lower(x::MolState) = Dict{String,Any}()
+StructUtils.lift(::Type{MolState{T}}, x) where T = MolState{T}()
 
 
 # Property update mechanisms

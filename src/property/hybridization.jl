@@ -220,6 +220,11 @@ function is_ring_aromatic(
     return res
 end
 
+"""
+    is_ring_aromatic!(mol::SimpleMolGraph)
+
+Calculate [`is_ring_aromatic`](@ref) and store the result in the descriptors of `mol`.
+"""
 is_ring_aromatic!(mol::SimpleMolGraph) = set_descriptor!(
     mol, :is_ring_aromatic,
     is_ring_aromatic(
