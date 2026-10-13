@@ -19,9 +19,12 @@
     dump = printv2mol(mol)
     mol2 = sdftomol(IOBuffer(dump))
     @test length(coords3d(mol2)) == 21
+    @test split(dump, "\n")[2][21:22] == "3D"
 
     smol = smilestomol("CCC1CC(C=O)CCC1N")
-    smol2 = sdftomol(IOBuffer(printv2mol(smol)))
+    sdump = printv2mol(smol)
+    @test split(sdump, "\n")[2][21:22] == "2D"
+    smol2 = sdftomol(IOBuffer(sdump))
     @test nv(smol2) == 11
     @test isempty(smol2[:metadata])
 
