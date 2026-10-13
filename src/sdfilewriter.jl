@@ -124,8 +124,9 @@ function printv2mol(
     # write
     program = "MGjlv$(string(VERSION.major)[end])$(string(VERSION.minor)[end-1:end])"
     datetime = Dates.format(Dates.now(), "mmddyyHHMM")
+    dimension = has_coords3d(mol) ? "3D" : "2D"
     println(io)
-    println(io, "  $(program)$(datetime)2D            ")
+    println(io, "  $(program)$(datetime)$(dimension)            ")
     println(io)
     ncnt = nv(mol)
     ecnt = ne(mol)
