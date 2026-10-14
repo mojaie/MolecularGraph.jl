@@ -40,7 +40,7 @@ Base.copy(state::T) where T <: MolState = T(
     state.on_init, state.on_update
 )
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{MolState{T}}) where T = false
+StructUtils.structlike(::Type{MolState{T}}) where T = false
 StructUtils.lower(x::MolState) = Dict{String,Any}()
 StructUtils.lift(::Type{MolState{T}}, x) where T = MolState{T}()
 

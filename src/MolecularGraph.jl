@@ -83,7 +83,7 @@ export
     approx_maximum_clique,
     mincyclebasis, edgemincyclebasis, disjoint_union,
     ConstraintArrayMCIS, ConstraintArrayMCES,
-    maximum_common_subgraph, maximum_common_edge_subgraph,
+    maximum_common_subgraph,
     mcis_constraints, mces_constraints,
     VF2Matcher,
     isomorphisms, is_isomorphic,
@@ -115,7 +115,7 @@ export
     is_hydrogen_acceptor, hydrogen_acceptor_count,
     is_rotatable, rotatable_count,
     atom_counter, heavy_atom_count, molecular_formula, empirical_formula,
-    pi_electron, pi_delocalized, hybridization, hybridization_delocalized,
+    pi_electron, hybridization,
     is_ring_aromatic, is_ring_aromatic!, is_aromatic, is_edge_aromatic,
     wclogp
 
@@ -207,7 +207,7 @@ export
     edge_substruct_matches, has_edge_substruct_match,
     disconnected_mcis, disconnected_mces,
     connected_mcis, connected_mces,
-    tcmcis, tcmces, tdmcis, tdmces,
+    tdmcis, tdmces,
     emaptonmap,
     tdmcis_constraints, tdmces_constraints
 

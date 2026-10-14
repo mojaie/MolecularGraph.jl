@@ -142,7 +142,7 @@ atom_number(atomsymbol::Symbol) = ATOMSYMBOLMAP[atomsymbol]
 Return an atomic symbol of the given atom or the atomic number.
 """
 atom_symbol(atom::AbstractAtom) = error("atom_symbol is not implemented for this atom type")
-atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
+atom_symbol(n::Int) = Symbol(ATOMTABLE[n].Symbol)
 
 
 """
@@ -151,13 +151,13 @@ atom_symbol(n::Int) = Symbol(ATOMTABLE[n]["Symbol"])
 Return the isotope record (or nothing if there is no such isotope).
 """
 function find_isotope(z::Int, num::Int)
-    i = findfirst(x -> x["Number"] == num, ATOMTABLE[z]["Isotopes"])
-    return isnothing(i) ? i : ATOMTABLE[z]["Isotopes"][i]
+    i = findfirst(x -> x.Number == num, ATOMTABLE[z].Isotopes)
+    return isnothing(i) ? i : ATOMTABLE[z].Isotopes[i]
 end
 
 function find_isotope(atomsymbol::Symbol, num::Int)
-    i = findfirst(x -> x["Number"] == num, ATOMTABLE[atom_number(atomsymbol)]["Isotopes"])
-    return isnothing(i) ? i : ATOMTABLE[atom_number(atomsymbol)]["Isotopes"][i]
+    i = findfirst(x -> x.Number == num, ATOMTABLE[atom_number(atomsymbol)].Isotopes)
+    return isnothing(i) ? i : ATOMTABLE[atom_number(atomsymbol)].Isotopes[i]
 end
 
 
@@ -206,7 +206,7 @@ atom_charge(a::SDFAtom) = a.charge
 multiplicity(a::SDFAtom) = a.multiplicity
 isotope(a::SDFAtom) = a.isotope
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{SDFAtom}) = false
+StructUtils.structlike(::Type{SDFAtom}) = false
 
 function StructUtils.lower(x::SDFAtom)
     rcd = Dict{String,Any}()
@@ -272,7 +272,7 @@ multiplicity(a::SMILESAtom) = a.multiplicity
 isotope(a::SMILESAtom) = a.isotope
 isaromatic(a::SMILESAtom) = a.isaromatic
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{SMILESAtom}) = false
+StructUtils.structlike(::Type{SMILESAtom}) = false
 
 function StructUtils.lower(x::SMILESAtom)
     rcd = Dict{String,Any}()
@@ -341,7 +341,7 @@ atom_charge(a::CommonChemAtom) = a.chg
 multiplicity(a::CommonChemAtom) = a.nRad + 1
 isotope(a::CommonChemAtom) = a.isotope
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{CommonChemAtom}) = false
+StructUtils.structlike(::Type{CommonChemAtom}) = false
 
 function StructUtils.lower(x::CommonChemAtom)
     rcd = Dict{String,Any}()

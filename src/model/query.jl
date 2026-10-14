@@ -67,7 +67,7 @@ function Base.isless(q::QueryNode, r::QueryNode)
     return q.value < r.value
 end
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{QueryNode}) = false
+StructUtils.structlike(::Type{QueryNode}) = false
 
 function StructUtils.lower(x::QueryNode)
     rcd = Dict{String,Any}()

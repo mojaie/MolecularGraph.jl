@@ -285,29 +285,27 @@ function triplebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
     return
 end
 
-const BOND_DRAWER = Dict(
-    1 => Dict(
-        :none => singlebond!,
-        :up => wedged!,
-        :down => dashedwedged!,
-        :revup => reversed_wedged!,
-        :revdown => reversed_dashedwedged!,
-        :unspecified => wavesingle!
-    ),
-    2 => Dict(
-        :none => doublebond!,
-        :clockwise => clockwisedouble!,
-        :anticlockwise => counterdouble!,
-        :cis_trans => crossdouble!
-    ),
-    3 => Dict(
-        :none => triplebond!
-    )
-)
-
-setbond!(
-    canvas::Canvas, order, notation, u, v, ucolor, vcolor, uvis, vvis
-) = BOND_DRAWER[order][notation](canvas, u, v, ucolor, vcolor, uvis, vvis)
+# Static dispatch on bond order and notation (a Dict of functions would require runtime dispatch)
+function setbond!(
+        canvas::Canvas, order, notation, u, v, ucolor, vcolor, uvis, vvis)
+    args = (canvas, u, v, ucolor, vcolor, uvis, vvis)
+    if order == 1
+        notation === :none && return singlebond!(args...)
+        notation === :up && return wedged!(args...)
+        notation === :down && return dashedwedged!(args...)
+        notation === :revup && return reversed_wedged!(args...)
+        notation === :revdown && return reversed_dashedwedged!(args...)
+        notation === :unspecified && return wavesingle!(args...)
+    elseif order == 2
+        notation === :none && return doublebond!(args...)
+        notation === :clockwise && return clockwisedouble!(args...)
+        notation === :anticlockwise && return counterdouble!(args...)
+        notation === :cis_trans && return crossdouble!(args...)
+    elseif order == 3
+        notation === :none && return triplebond!(args...)
+    end
+    throw(KeyError((order, notation)))
+end
 
 
 
@@ -333,7 +331,7 @@ function normalize_coords(
     (bottom, top) = nv(g) == 0 ? (0.0, 0.0) : extrema([p[2] for p in coords])
     width = right - left
     height = top - bottom
-    dists = []
+    dists = Float64[]
     # Size unit
     for e in edges(g)
         d = norm(coords[dst(e)] - coords[src(e)])
@@ -343,7 +341,7 @@ function normalize_coords(
     end
     if isempty(dists)
         long = max(width, height)
-        unit = long > 0.0001 ? long / sqrt(nv(g)) : 1
+        unit = long > 0.0001 ? long / sqrt(nv(g)) : 1.0
     else
         unit = Statistics.median(dists) # Median bond length
     end
@@ -364,7 +362,8 @@ function normalize_coords(
         end
     end
     # transform
-    conv = p -> (p - Point2d(left - exleft, top)) * Point2d(1, -1) * sf + Point2d(paddingX, paddingY)
+    origin = Point2d(left - exleft, top)  # avoid capturing reassigned variables in the closure
+    conv = p -> (p - origin) * Point2d(1, -1) * sf + Point2d(paddingX, paddingY)
     new_coords = conv.(coords)
     width = (width + exleft + exright) * sf + paddingX * 2
     height = height * sf + paddingY * 2

@@ -14,7 +14,7 @@ end
 
 Base.Tuple(x::Stereocenter) = (x.lookingFrom, x.first, x.second, x.isclockwise)
 Base.iterate(x::Stereocenter, state...) = iterate(Tuple(x), state...)
-Base.:(==)(x::Stereocenter, y) = Tuple(x) == Tuple(y)
+Base.:(==)(x::Stereocenter, y::Union{Stereocenter,Tuple}) = Tuple(x) == Tuple(y)
 StructUtils.lower(x::Stereocenter) = collect(Tuple(x))
 
 
@@ -68,7 +68,7 @@ end
 
 Base.Tuple(x::Stereobond) = (x.first, x.second, x.is_cis)
 Base.iterate(x::Stereobond, state...) = iterate(Tuple(x), state...)
-Base.:(==)(x::Stereobond, y) = Tuple(x) == Tuple(y)
+Base.:(==)(x::Stereobond, y::Union{Stereobond,Tuple}) = Tuple(x) == Tuple(y)
 StructUtils.lower(x::Stereobond) = collect(Tuple(x))
 
 
@@ -122,7 +122,7 @@ end
 Coords2d() = Coords2d([])
 Coords2d(len::Int) = Coords2d(Vector(undef, len))
 Base.:(==)(x::Coords2d, y::Coords2d) = x.coords == y.coords
-Base.:(==)(x::Coords2d, y) = x.coords == y
+Base.:(==)(x::Coords2d, y::AbstractVector) = x.coords == y
 Base.iterate(x::Coords2d, state...) = iterate(x.coords, state...)
 Base.eltype(::Coords2d) = Point2d
 Base.length(x::Coords2d) = length(x.coords)
@@ -131,7 +131,7 @@ Base.getindex(x::Coords2d, k...) = getindex(x.coords, k...)
 Base.setindex!(x::Coords2d, v, k...) = setindex!(x.coords, v, k...)
 Base.empty!(x::Coords2d) = empty!(x.coords)
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords2d}) = false
+StructUtils.structlike(::Type{Coords2d}) = false
 StructUtils.lower(x::Coords2d) = [[p...] for p in x.coords]
 StructUtils.lift(::Type{Coords2d}, x) = Coords2d([Point2d(p...) for p in x])
 
@@ -165,7 +165,7 @@ end
 Coords3d() = Coords3d([])
 Coords3d(len::Int) = Coords3d(Vector(undef, len))
 Base.:(==)(x::Coords3d, y::Coords3d) = x.coords == y.coords
-Base.:(==)(x::Coords3d, y) = x.coords == y
+Base.:(==)(x::Coords3d, y::AbstractVector) = x.coords == y
 Base.iterate(x::Coords3d, state...) = iterate(x.coords, state...)
 Base.eltype(::Coords3d) = Point3d
 Base.length(x::Coords3d) = length(x.coords)
@@ -174,7 +174,7 @@ Base.getindex(x::Coords3d, k...) = getindex(x.coords, k...)
 Base.setindex!(x::Coords3d, v, k...) = setindex!(x.coords, v, k...)
 Base.empty!(x::Coords3d) = empty!(x.coords)
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords3d}) = false
+StructUtils.structlike(::Type{Coords3d}) = false
 StructUtils.lower(x::Coords3d) = [[p...] for p in x.coords]
 StructUtils.lift(::Type{Coords3d}, x) = Coords3d([Point3d(p...) for p in x])
 
@@ -208,7 +208,7 @@ end
 Draw2dBondStyle() = Draw2dBondStyle([])
 Draw2dBondStyle(len::Int) = Draw2dBondStyle(Vector(undef, len))
 Base.:(==)(x::Draw2dBondStyle, y::Draw2dBondStyle) = x.styles == y.styles
-Base.:(==)(x::Draw2dBondStyle, y) = x.styles == y
+Base.:(==)(x::Draw2dBondStyle, y::AbstractVector) = x.styles == y
 Base.iterate(x::Draw2dBondStyle, state...) = iterate(x.styles, state...)
 Base.eltype(::Draw2dBondStyle) = Symbol
 Base.length(x::Draw2dBondStyle) = length(x.styles)
@@ -217,7 +217,7 @@ Base.getindex(x::Draw2dBondStyle, k...) = getindex(x.styles, k...)
 Base.setindex!(x::Draw2dBondStyle, v, k...) = setindex!(x.styles, v, k...)
 Base.empty!(x::Draw2dBondStyle) = empty!(x.styles)
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{Draw2dBondStyle}) = false
+StructUtils.structlike(::Type{Draw2dBondStyle}) = false
 StructUtils.lower(x::Draw2dBondStyle) = string.(x.styles)
 StructUtils.lift(::Type{Draw2dBondStyle}, x) = Draw2dBondStyle(Symbol.(x))
 

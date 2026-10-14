@@ -21,7 +21,7 @@ mutable struct SvgCanvas <: Canvas
     fontfamily::String
     fontsize::Float64
     fonttagmap::Dict{Symbol,Tuple{String,String}}
-    bgcolor::RGB
+    bgcolor::RGB{N0f8}
     bgopacity::Float64
 
     viewboxW::Float64

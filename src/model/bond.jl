@@ -68,7 +68,7 @@ SDFBond(d::Dict{Symbol,Any}) = SDFBond(; NamedTuple((k, v) for (k, v) in d)...)
 
 bond_order(b::SDFBond) = b.order
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{SDFBond}) = false
+StructUtils.structlike(::Type{SDFBond}) = false
 
 function StructUtils.lower(x::SDFBond)
     rcd = Dict{String,Any}()
@@ -111,7 +111,7 @@ SMILESBond(d::Dict{Symbol,Any}) = SMILESBond(; NamedTuple((k, v) for (k, v) in d
 
 bond_order(b::SMILESBond) = b.order
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{SMILESBond}) = false
+StructUtils.structlike(::Type{SMILESBond}) = false
 
 function StructUtils.lower(x::SMILESBond)
     rcd = Dict{String,Any}()
@@ -154,7 +154,7 @@ CommonChemBond(x::SMILESBond) = CommonChemBond(x.order)
 
 bond_order(b::CommonChemBond) = b.type
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{CommonChemBond}) = false
+StructUtils.structlike(::Type{CommonChemBond}) = false
 
 function StructUtils.lower(x::CommonChemBond)
     rcd = Dict{String,Any}()

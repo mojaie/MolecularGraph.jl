@@ -45,9 +45,8 @@ using MolecularGraph:
     ctab_atom_v2, ctab_bond_v2
 
 using MolecularGraph:
-    exact_topology_prefilter, topology_prefilter,
-    QueryTruthTable, querymatch,
-    resolve_disjoint_not!, resolve_recursive!, generate_truthtable,
+    exact_topology_prefilter, topology_prefilter, querymatch,
+    resolve_disjoint_not!, resolve_recursive!,
     Coords2d, Coords3d, Draw2dBondStyle,
     draw2d_bond_style,
     atom_color, is_atom_visible, atom_markup, double_bond_style,
@@ -113,9 +112,9 @@ using Aqua
 using Test
 
 @testset "Aqua" begin
-    Aqua.test_ambiguities(MolecularGraph; broken=true)
-    Aqua.test_unbound_args(MolecularGraph; broken=true)
-    Aqua.test_undefined_exports(MolecularGraph; broken=true)
+    Aqua.test_ambiguities(MolecularGraph)
+    Aqua.test_unbound_args(MolecularGraph)
+    Aqua.test_undefined_exports(MolecularGraph)
     Aqua.test_project_extras(MolecularGraph)
     Aqua.test_stale_deps(MolecularGraph)
     Aqua.test_deps_compat(MolecularGraph)

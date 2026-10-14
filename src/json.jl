@@ -16,8 +16,8 @@ function StructUtils.lower(x::ReactiveMolGraph{T,V,E}) where {T,V,E}
     )
 end
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{MolGraph{T,V,E}}) where {T,V,E} = false
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{QueryMolGraph{T,V,E}}) where {T,V,E} = false
+StructUtils.structlike(::Type{MolGraph{T,V,E}}) where {T,V,E} = false
+StructUtils.structlike(::Type{QueryMolGraph{T,V,E}}) where {T,V,E} = false
 
 reactive_molgraph(
     ::Type{T}, ::Type{V}, ::Type{E}, ::Type{G}, x::JSON.Object{String,Any}
@@ -66,7 +66,7 @@ end
 # JSON auto detect
 
 function mol_from_json(json::AbstractString
-        ; on_init::Union{F,Nothing}=nothing, on_update::Union{F,Nothing}=nothing) where F
+        ; on_init=nothing, on_update=nothing)
     data = JSON.parse(json)
     mol = nothing
     if haskey(data, "commonchem")

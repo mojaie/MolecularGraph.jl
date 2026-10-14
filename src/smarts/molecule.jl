@@ -149,7 +149,7 @@ function chain!(state::AbstractSMARTSParser{T,V,E}) where {T,V,E}
                 state.eprops[eidx] = b == db ? rb : b
                 # record lexical order of bonds for stereochemsitry
                 push!(state.succ[u], v)
-                stored = only(findall(x -> x == -num, state.succ[v]))
+                stored = only(findall(==(-num), state.succ[v]))
                 state.succ[v][stored] = u
             else
                 push!(state.edges, Edge{T}(u, u))  # placeholder

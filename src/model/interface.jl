@@ -201,6 +201,10 @@ Graphs.induced_subgraph(mol::SimpleMolGraph, vlist::AbstractVector{T}
     ) where {T<:Integer} = _induced_subgraph(mol, vlist)
 Graphs.induced_subgraph(mol::SimpleMolGraph, elist::AbstractVector{T}
     ) where {T<:Edge} = _induced_subgraph(mol, elist)
+function Graphs.induced_subgraph(mol::SimpleMolGraph, vmask::AbstractVector{Bool})
+    length(vmask) == nv(mol) || throw(BoundsError(mol, vmask))  # same semantics as Graphs.jl
+    return _induced_subgraph(mol, findall(vmask))
+end
 
 function Base.show(io::IO, ::MIME"text/plain", g::SimpleMolGraph)
     print(io, "{$(nv(g)), $(ne(g))} simple molecular graph $(typeof(g))")
