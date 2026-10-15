@@ -83,7 +83,7 @@ function smarts_on_init!(mol::QueryMolGraph)
     preprocess!(mol)
 end
 
-const SMARTSMolGraph = QueryMolGraph{Int,QueryAtom,QueryBond}
+const SMARTSMolGraph = QueryMolGraph{Int,QueryAtom{Int,QueryNode},QueryBond{Int,QueryNode}}
 
 
 """
@@ -140,7 +140,7 @@ function smartstomol(
 end
 
 smartstomol(smarts::AbstractString; kwargs...
-    ) = smartstomol(QueryMolGraph{Int,QueryAtom,QueryBond}, smarts; kwargs...)
+    ) = smartstomol(SMARTSMolGraph, smarts; kwargs...)
 
 
 

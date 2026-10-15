@@ -3,6 +3,18 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# Return `string(descriptors[key][i])`, or `nothing` if `key` is not in `descriptors`.
+# Unrolled at compile time so that each descriptor array keeps its concrete type.
+@generated function descriptor_string(
+        descriptors::NamedTuple{K}, key::Symbol, i::Integer) where K
+    ex = :(nothing)
+    for k in reverse(K)
+        ex = :(key === $(QuoteNode(k)) ? string(descriptors.$k[i]) : $ex)
+    end
+    return ex
+end
+
+
 """
     vmatchgen(mol1::MolGraph, mol2::MolGraph) -> Function
     vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
@@ -30,17 +42,17 @@ function vmatchvecgen(mol::SimpleMolGraph)
 end
 
 function vmatchgen(mol1::SimpleMolGraph, mol2::T) where T <: QueryMolGraph
-    descriptors = Dict(  # precalculated descriptors
-        :symbol => atom_symbol(mol1),
-        :isaromatic => is_aromatic(mol1),
-        :charge => atom_charge(mol1),
-        :isotope => isotope(mol1),
-        :connectivity => connectivity(mol1),
-        :degree => degree(mol1),
-        :valence => valence(mol1),
-        :total_hydrogens => total_hydrogens(mol1),
-        :smallest_ring => smallest_ring(mol1),
-        :ring_count => ring_count(mol1),
+    descriptors = (  # precalculated descriptors
+        symbol = atom_symbol(mol1),
+        isaromatic = is_aromatic(mol1),
+        charge = atom_charge(mol1),
+        isotope = isotope(mol1),
+        connectivity = connectivity(mol1),
+        degree = degree(mol1),
+        valence = valence(mol1),
+        total_hydrogens = total_hydrogens(mol1),
+        smallest_ring = smallest_ring(mol1),
+        ring_count = ring_count(mol1),
     )
     recursive = Dict{String,T}()  # cache recursive mols
     matches = Dict{Int,Dict{Int,Bool}}()  # cache matches
@@ -53,8 +65,9 @@ function vmatchgen(mol1::SimpleMolGraph, mol2::T) where T <: QueryMolGraph
             if p.key == :recursive
                 haskey(recursive, p.value) || (recursive[p.value] = smartstomol(p.value))
                 arr[i] = has_substruct_match(mol1, recursive[p.value], mandatory=Dict(v1 => 1))
-            elseif p.key in keys(descriptors)
-                arr[i] = string(descriptors[p.key][v1]) == p.value
+            else
+                d = descriptor_string(descriptors, p.key, v1)
+                isnothing(d) || (arr[i] = d == p.value)
             end
         end
         res = generate_queryfunc(qtree, qprop)(arr)
@@ -95,10 +108,10 @@ function ematchvecgen(mol::SimpleMolGraph)
 end
 
 function ematchgen(mol1::SimpleMolGraph, mol2::QueryMolGraph)
-    descriptors = Dict(  # precalculated descriptors
-        :order => bond_order(mol1),
-        :is_in_ring => is_edge_in_ring(mol1),
-        :isaromatic => is_edge_aromatic(mol1)
+    descriptors = (  # precalculated descriptors
+        order = bond_order(mol1),
+        is_in_ring = is_edge_in_ring(mol1),
+        isaromatic = is_edge_aromatic(mol1)
     )
     matches = Dict{Edge{Int},Dict{Edge{Int},Bool}}()  # cache matches
     ernk1 = edge_rank(mol1)
@@ -108,9 +121,8 @@ function ematchgen(mol1::SimpleMolGraph, mol2::QueryMolGraph)
         qprop = union(QueryNode[], values(querypropmap(qtree))...)
         arr = trues(length(qprop))  # ignore incompatible descriptors (e.g. :stereo)
         for (i, p) in enumerate(qprop)
-            if p.key in keys(descriptors)
-                arr[i] = string(descriptors[p.key][ernk1[e1]]) == p.value
-            end
+            d = descriptor_string(descriptors, p.key, ernk1[e1])
+            isnothing(d) || (arr[i] = d == p.value)
         end
         res = generate_queryfunc(qtree, qprop)(arr)
         haskey(matches, e1) || (matches[e1] = Dict{Edge{Int},Bool}())
@@ -195,7 +207,8 @@ function node_stereo_match(
     end
     for (e, conf) in mol2[:stereobond]
         s2, d2, iscis2 = conf
-        if !haskey(mol1[:stereobond], u_edge(T, revmap[e.src], revmap[e.dst]))
+        e1 = u_edge(T, revmap[e.src], revmap[e.dst])
+        if !haskey(mol1[:stereobond], e1)
             srcp = values(mol2[u_edge(T, e.src, s2)].vprops)
             dstp = values(mol2[u_edge(T, e.dst, d2)].vprops)
             for prop in vcat(collect(srcp), collect(dstp))

@@ -150,6 +150,9 @@ end
     atompropcond!(state::SMILESParser) -> Union{NamedTuple,Nothing}
 
 AtomProp <- Stereo / CHG / H
+
+Return `(key=k, value=v, stereo=s)` where `k` is one of `:total_hydrogens`, `:charge` and `:stereo`
+(a NamedTuple of a fixed type keeps the return type inferable).
 """
 function atompropcond!(state::SMILESParser)
     sym1 = read(state)
@@ -162,10 +165,10 @@ function atompropcond!(state::SMILESParser)
         else
             num = 1
         end
-        return (total_hydrogens=num,)
+        return (key=:total_hydrogens, value=num, stereo=:unspecified)
     elseif sym1 in keys(SMARTS_CHARGE_SIGN)  # Charge
         chg = atompropcharge!(state, sym1, sym2)
-        return (charge=chg * SMARTS_CHARGE_SIGN[sym1],)
+        return (key=:charge, value=chg * SMARTS_CHARGE_SIGN[sym1], stereo=:unspecified)
     elseif sym1 == '@'
         # Stereo: @ -> anticlockwise, @@ -> clockwise
         forward!(state)
@@ -174,7 +177,7 @@ function atompropcond!(state::SMILESParser)
             forward!(state)
             cw = :clockwise
         end
-        return (stereo=cw,)
+        return (key=:stereo, value=0, stereo=cw)
     end
     return  # can be nothing
 end
@@ -328,41 +331,59 @@ end
 
 
 """
-    atomprop!(state::SMILESParser) -> Union{NamedTuple,Nothing}
+    atomprop!(state::SMILESParser{T,V,E}) -> Vector{V}
 
 AtomProp <- ((Mass? / AtomPropSymConds) / AtomPropConds)+
 """
 function atomprop!(state::SMILESParser{T,V,E}) where {T,V,E}
+    # Properties are accumulated in typed local variables (later ones override earlier ones)
+    # so that the atom constructor can be statically dispatched.
     sym1 = read(state)
-    vs = NamedTuple[]
+    symbol = :H
+    hassymbol = false
+    charge = 0
+    isotope = 0
+    isaromatic = false
+    stereo = :unspecified
+    hasprop = false
     hcnt = 0
     hasiso = isdigit(sym1)
     if hasiso  # Isotope
-        num = atompropnumber!(state)
-        push!(vs, (isotope=num,))
+        isotope = atompropnumber!(state)
+        hasprop = true
     end
     v = atompropsymcond!(state)
     if !isnothing(v)
-        push!(vs, v)
+        symbol = v.symbol
+        hassymbol = true
+        haskey(v, :isaromatic) && (isaromatic = v.isaromatic)
+        hasprop = true
     end
     hasiso && isnothing(v) && error("smiles parser error - #$(state.pos) missing atom symbol")
-    v = atompropcond!(state)
-    while !isnothing(v)
-        if haskey(v, :total_hydrogens)
-            hcnt = v[:total_hydrogens]
-        else
-            push!(vs, v)
+    while true
+        c = atompropcond!(state)
+        isnothing(c) && break
+        if c.key === :total_hydrogens
+            hcnt = c.value
+        elseif c.key === :charge
+            charge = c.value
+            hasprop = true
+        else  # :stereo
+            stereo = c.stereo
+            hasprop = true
         end
-        v = atompropcond!(state)
     end
-    isempty(vs) && hcnt == 0 && error("smiles parser error - #$(state.pos) missing atom prop")
+    !hasprop && hcnt == 0 && error("smiles parser error - #$(state.pos) missing atom prop")
     # explicit hydrogen (e.g. [CH3]) -> hydrogen nodes
-    merged = isempty(vs) ? NamedTuple() : merge(vs...)
-    if !haskey(merged, :symbol)  # special case: [H2]
-        merged = merge(merged, (symbol=:H,))
+    if !hassymbol  # special case: [H2]
         hcnt -= 1
     end
-    return [V(;merged...), (V(;symbol=:H) for _ in 1:hcnt)...]
+    atom = V(; symbol=symbol, charge=charge, isotope=isotope, isaromatic=isaromatic, stereo=stereo)
+    atoms = V[atom]
+    for _ in 1:hcnt
+        push!(atoms, V(;symbol=:H))
+    end
+    return atoms
 end
 
 

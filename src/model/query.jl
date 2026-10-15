@@ -127,6 +127,8 @@ QueryAtom(edges::Vector, props::Vector) = QueryAtom(querytree(edges, props)...)
 QueryBond(edges::Vector, props::Vector) = QueryBond(querytree(edges, props)...)
 QueryAtom() = QueryAtom(Tuple{Int,Int}[], QueryNode[])
 QueryBond() = QueryBond(Tuple{Int,Int}[], QueryNode[])
+QueryAtom{T,U}() where {T<:Integer,U<:QueryNode} = QueryAtom{T,U}(Tuple{T,T}[], U[])
+QueryBond{T,U}() where {T<:Integer,U<:QueryNode} = QueryBond{T,U}(Tuple{T,T}[], U[])
 
 
 
@@ -207,7 +209,7 @@ QueryMolGraph(
 ) where {T,V,E} = QueryMolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
 
 QueryMolGraph{T,V,E}() where {T,V,E} = QueryMolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
-QueryMolGraph() = QueryMolGraph{Int,QueryAtom,QueryBond}()
+QueryMolGraph() = QueryMolGraph{Int,QueryAtom{Int,QueryNode},QueryBond{Int,QueryNode}}()
 
 
 """

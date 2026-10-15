@@ -181,6 +181,10 @@ end
     elaidic_acid = smartstomol("O=C(O)CCCCCCC/C=C/CCCCCCCC")
     @test has_exact_match(uns, elaidic_acid2, stereo=true)
     @test !has_exact_match(uns, elaidic_acid, stereo=true)
+    # SMARTS stereobond query against a molecule that has the stereobond
+    transq = smartstomol("C/C=C/C")
+    @test has_substruct_match(smilestomol("C/C=C/C"), transq, stereo=true)
+    @test !has_substruct_match(smilestomol(raw"C/C=C\C"), transq, stereo=true)
 end
 
 @testset "node matching" begin
