@@ -23,7 +23,7 @@ end
 
 function reactive_molgraph(
         ::Type{T}, ::Type{V}, ::Type{E}, ::Type{G},
-        data::JSON.Object{String,Any}) where {T,V<:CommonChemAtom,E<:CommonChemBond,G}
+        data::JSON.Object{String,Any}; kwargs...) where {T,V<:CommonChemAtom,E<:CommonChemBond,G}
     gps = G()
     # edges
     es = Edge{T}[]
@@ -64,7 +64,7 @@ function reactive_molgraph(
             push!(gps.descriptors.coords3d, [Point3d(cd...) for cd in cds["coords"]])
         end
     end
-    return reactive_molgraph(g, vps, eps, gps)
+    return reactive_molgraph(g, vps, eps, gps; kwargs...)
 end
 
 
@@ -82,11 +82,9 @@ function StructUtils.lift(::Type{MolGraph{T,CommonChemAtom,CommonChemBond}}, x) 
     if moldata["extensions"][1]["formatVersion"] != 2
         error("Unsupported RDKit CommonChem version")
     end
-    mol = MolGraph{T,CommonChemAtom,CommonChemBond}(
-        reactive_molgraph(T, CommonChemAtom, CommonChemBond, MolProperty{T}, moldata)...)
-    mol.state.on_init = rdk_on_init!
-    mol.state.on_update = rdk_on_update!
-    return mol
+    return MolGraph{T,CommonChemAtom,CommonChemBond}(
+        reactive_molgraph(T, CommonChemAtom, CommonChemBond, MolProperty{T}, moldata;
+            on_init=rdk_on_init!, on_update=rdk_on_update!)...)
 end
 
 

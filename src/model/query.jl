@@ -186,13 +186,19 @@ Base.copy(prop::T) where T <: QueryMolProperty = T(
 
 Basic molecular graph type.
 """
-struct QueryMolGraph{T<:Integer,V<:QueryTree,E<:QueryTree} <: ReactiveMolGraph{T,V,E}
+struct QueryMolGraph{T<:Integer,V<:QueryTree,E<:QueryTree,S<:MolState{T}} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
     vprops::Dict{VertexKey{T},V}
     eprops::Dict{EdgeKey{T},E}
     gprops::QueryMolProperty{T}
-    state::MolState{T}
+    state::S
 end
+
+# vprops and eprops are converted to Dict{VertexKey{T},V} and Dict{EdgeKey{T},E}
+QueryMolGraph{T,V,E}(
+    g::SimpleGraph{T}, vprops::AbstractDict, eprops::AbstractDict,
+    gprops::QueryMolProperty{T}, state::S
+) where {T,V,E,S<:MolState{T}} = QueryMolGraph{T,V,E,S}(g, vprops, eprops, gprops, state)
 
 function QueryMolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
     mol = QueryMolGraph{T,V,E}(
@@ -200,6 +206,13 @@ function QueryMolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
     initialize!(mol)
     return mol
 end
+
+# Construct with the callbacks of the given concrete state type by default
+QueryMolGraph{T,V,E,S}(args...; kwargs...) where {T,V,E,S} = QueryMolGraph{T,V,E}(
+    args...; default_callbacks(S)..., kwargs...)::QueryMolGraph{T,V,E,S}
+
+_with_state(mol::QueryMolGraph{T,V,E}, state::MolState{T}) where {T,V,E} = QueryMolGraph{T,V,E}(
+    mol.graph, mol.vprops, mol.eprops, mol.gprops, state)
 
 QueryMolGraph(
     g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E}; kwargs...
@@ -209,6 +222,8 @@ QueryMolGraph(
 ) where {T,V,E} = QueryMolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
 
 QueryMolGraph{T,V,E}() where {T,V,E} = QueryMolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
+QueryMolGraph{T,V,E,S}() where {T,V,E,S} = QueryMolGraph{T,V,E,S}(
+    SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
 QueryMolGraph() = QueryMolGraph{Int,QueryAtom{Int,QueryNode},QueryBond{Int,QueryNode}}()
 
 

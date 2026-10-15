@@ -16,51 +16,38 @@ function StructUtils.lower(x::ReactiveMolGraph{T,V,E}) where {T,V,E}
     )
 end
 
-StructUtils.structlike(::Type{MolGraph{T,V,E}}) where {T,V,E} = false
-StructUtils.structlike(::Type{QueryMolGraph{T,V,E}}) where {T,V,E} = false
+StructUtils.structlike(::Type{<:MolGraph}) = false
+StructUtils.structlike(::Type{<:QueryMolGraph}) = false
 
 reactive_molgraph(
-    ::Type{T}, ::Type{V}, ::Type{E}, ::Type{G}, x::JSON.Object{String,Any}
+    ::Type{T}, ::Type{V}, ::Type{E}, ::Type{G}, x::JSON.Object{String,Any}; kwargs...
 ) where {T,V,E,G} = reactive_molgraph(
     StructUtils.make(SimpleGraph{T}, x["graph"]),
     StructUtils.make(Dict{VertexKey{T},V}, x["vprops"]),
     StructUtils.make(Dict{EdgeKey{T},E}, x["eprops"]),
     StructUtils.make(G, x["gprops"])
     ;initialized=true,  # Skip initialization
-    has_updates=false  # Do not update ready-to-use descriptors!
+    has_updates=false,  # Do not update ready-to-use descriptors!
+    kwargs...
 )
 
-function StructUtils.lift(::Type{MolGraph{T,SDFAtom,SDFBond}}, x) where T
-    mol = MolGraph{T,SDFAtom,SDFBond}(reactive_molgraph(T, SDFAtom, SDFBond, MolProperty{T}, x)...)
-    mol.state.on_init = sdf_on_init!
-    mol.state.on_update = sdf_on_update!
-    return mol
-end
+StructUtils.lift(::Type{MolGraph{T,SDFAtom,SDFBond}}, x) where T = MolGraph{T,SDFAtom,SDFBond}(
+    reactive_molgraph(T, SDFAtom, SDFBond, MolProperty{T}, x;
+        on_init=sdf_on_init!, on_update=sdf_on_update!)...)
 
-function StructUtils.lift(::Type{MolGraph{T,SMILESAtom,SMILESBond}}, x) where T
-    mol = MolGraph{T,SMILESAtom,SMILESBond}(reactive_molgraph(T, SMILESAtom, SMILESBond, MolProperty{T}, x)...)
-    mol.state.on_init = smiles_on_init!
-    mol.state.on_update = smiles_on_update!
-    return mol
-end
+StructUtils.lift(::Type{MolGraph{T,SMILESAtom,SMILESBond}}, x) where T = MolGraph{T,SMILESAtom,SMILESBond}(
+    reactive_molgraph(T, SMILESAtom, SMILESBond, MolProperty{T}, x;
+        on_init=smiles_on_init!, on_update=smiles_on_update!)...)
 
 StructUtils.lift(::Type{QueryMolGraph{T,V,E}}, x
     ) where {T,V,E} = QueryMolGraph{T,V,E}(reactive_molgraph(T, V, E, QueryMolProperty{T}, x)...)
 
 
-function MolGraph{T,V,E}(json::AbstractString; on_init=nothing, on_update=nothing) where {T,V,E}
-    mol = JSON.parse(json, MolGraph{T,V,E})
-    isnothing(on_init) || setproperty!(mol.config, :on_init, on_init)
-    isnothing(on_update) || setproperty!(mol.update, :on_update, on_update)
-    return mol
-end
+MolGraph{T,V,E}(json::AbstractString; on_init=nothing, on_update=nothing) where {T,V,E} = with_callbacks(
+    JSON.parse(json, MolGraph{T,V,E}); on_init=on_init, on_update=on_update)
 
-function QueryMolGraph{T,V,E}(json::AbstractString; on_init=nothing, on_update=nothing) where {T,V,E}
-    mol = JSON.parse(json, QueryMolGraph{T,V,E})
-    isnothing(on_init) || setproperty!(mol.config, :on_init, on_init)
-    isnothing(on_update) || setproperty!(mol.update, :on_update, on_update)
-    return mol
-end
+QueryMolGraph{T,V,E}(json::AbstractString; on_init=nothing, on_update=nothing) where {T,V,E} = with_callbacks(
+    JSON.parse(json, QueryMolGraph{T,V,E}); on_init=on_init, on_update=on_update)
 
 
 # JSON auto detect
@@ -81,9 +68,7 @@ function mol_from_json(json::AbstractString
         mol = StructUtils.make(QueryMolGraph{Int,QueryAtom{Int,QueryNode},QueryBond{Int,QueryNode}}, data)
     end
     if !isnothing(mol)
-        isnothing(on_init) || setproperty!(mol.config, :on_init, on_init)
-        isnothing(on_update) || setproperty!(mol.update, :on_update, on_update)
-        return mol
+        return with_callbacks(mol; on_init=on_init, on_update=on_update)
     end
     error("Invalid JSON format")
 end
