@@ -31,6 +31,51 @@ smartstomol(
 
 
 """
+    generate_queryfunc(tree, props) -> Function
+
+Generate query truthtable function from QueryLiteral tree and the property vector.
+
+The query truthtable function take a Vector{Bool} of length equal to `props` and
+returns output in Bool.
+"""
+function generate_queryfunc(qtree::QueryTree, props::Vector{QueryNode})
+    nv(qtree.graph) == 0 && return arr -> false
+    func = Dict{Int,Function}()
+    revtopo = topological_sort(reverse(qtree.graph))
+    for v in revtopo
+    p = qtree.vprops[v]
+    succs = outneighbors(qtree.graph, v)
+    if isempty(succs)
+        if p.operator === :eq
+                if p.key in (:stereo, :direction)
+                    func[v] = arr -> true  # ignore stereo
+                else
+                    idx = findfirst(x -> x == p, props)
+                    func[v] = arr -> arr[idx]
+                end
+        elseif p.operator === :any
+                func[v] = arr -> true
+            else
+        @assert false p.operator
+    end
+            continue
+        end
+        sfunc = [func[s] for s in succs]
+    if p.operator === :not
+            func[v] = arr -> ~only(sfunc)(arr)
+    elseif p.operator === :and
+            func[v] = arr -> all(f(arr) for f in sfunc)
+    elseif p.operator === :or
+            func[v] = arr -> any(f(arr) for f in sfunc)
+        else
+            @assert false
+        end
+    end
+    return func[revtopo[end]]
+end
+
+
+"""
     generate_truthtable(q, r; recursive_cache=nothing) -> QueryTruthTable
 
 Generate truthtable to compare queries.
@@ -91,6 +136,41 @@ end
 
 
 # test
+
+
+@testset "evaluate" begin
+    # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
+    null = generate_queryfunc(QueryAtom(), QueryNode[])
+    @test !null([])
+    isc = generate_queryfunc(
+        QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")]),
+        [qeq(:symbol, "C")]
+    )
+    @test isc([true])
+    notc = generate_queryfunc(
+        QueryAtom([(1, 2)], [qnot(), qeq(:symbol, "C")]),
+        [qeq(:symbol, "C")]
+    )
+    @test notc([false])
+    af = generate_queryfunc(
+        QueryAtom([(1, 2)], [qnot(), qanytrue()]),
+        QueryNode[]
+    )
+    @test !af([true])
+    @test !af([false])
+
+    qa = generate_queryfunc(
+        QueryAtom(
+            [(1, 2), (1, 3), (3, 4)],
+            [qand(), qeq(:symbol, "N"), qnot(), qtrue(:isaromatic)]),
+        [qeq(:symbol, "N"), qeq(:x, "1"), qtrue(:isaromatic)]
+    )
+    @test !qa([true, true, true])
+    @test !qa([true, false, true])
+    @test !qa([false, false, true])
+    @test qa([true, false, false])
+    # global_logger(default_logger)
+end
 
 @testset "truthtable" begin
     # truthtable generation

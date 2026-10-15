@@ -30,7 +30,7 @@ using MolecularGraph:
     add_qnode!, add_qedge!, set_qnode!, add_qedge!,
     rem_qnode!, rem_qnodes!, rem_qedge!,
     qeq, qtrue, qand, qor, qnot, qanytrue,
-    querypropmap, generate_queryfunc
+    querypropmap
 
 using MolecularGraph:
     default_on_update!,

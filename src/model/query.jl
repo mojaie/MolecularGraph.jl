@@ -339,51 +339,6 @@ end
 
 
 """
-    generate_queryfunc(tree, props) -> Function
-
-Generate query truthtable function from QueryLiteral tree and the property vector.
-
-The query truthtable function take a Vector{Bool} of length equal to `props` and
-returns output in Bool.
-"""
-function generate_queryfunc(qtree::QueryTree, props::Vector{QueryNode})
-    nv(qtree.graph) == 0 && return arr -> false
-    func = Dict{Int,Function}()
-    revtopo = topological_sort(reverse(qtree.graph))
-    for v in revtopo
-        p = qtree.vprops[v]
-        succs = outneighbors(qtree.graph, v)
-        if isempty(succs)
-            if p.operator === :eq
-                if p.key in (:stereo, :direction)
-                    func[v] = arr -> true  # ignore stereo
-                else
-                    idx = findfirst(x -> x == p, props)
-                    func[v] = arr -> arr[idx]
-                end
-            elseif p.operator === :any
-                func[v] = arr -> true
-            else
-                @assert false p.operator
-            end
-            continue
-        end
-        sfunc = [func[s] for s in succs]
-        if p.operator === :not
-            func[v] = arr -> ~only(sfunc)(arr)
-        elseif p.operator === :and
-            func[v] = arr -> all(f(arr) for f in sfunc)
-        elseif p.operator === :or
-            func[v] = arr -> any(f(arr) for f in sfunc)
-        else
-            @assert false
-        end
-    end
-    return func[revtopo[end]]
-end
-
-
-"""
     specialize_nonaromatic!(q::QueryMolGraph) -> Nothing
 
 Convert `[#atomnumber]` queries connected to explicit single bonds to be non-aromatic

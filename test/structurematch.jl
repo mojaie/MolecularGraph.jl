@@ -115,6 +115,12 @@ end
     notamide = smartstomol(raw"[NX3;!$(NC=O)]")
     @test has_substruct_match(triamine, notamide)
     @test !has_substruct_match(acetamide, notamide)
+    # tertiary amide N has the same atom descriptors as triamine N
+    dimethylacetamide = smilestomol("CN(C)C(C)=O")
+    @test !has_substruct_match(dimethylacetamide, notamide)
+    amide = smartstomol(raw"[NX3;$(NC=O)]")
+    @test !has_substruct_match(triamine, amide)
+    @test has_substruct_match(dimethylacetamide, amide)
 
     po1 = smilestomol("COOC")
     npo1 = smilestomol("COCOCOC")

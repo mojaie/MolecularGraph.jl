@@ -93,39 +93,6 @@ end
     )
 end
 
-@testset "evaluate" begin
-    # default_logger = global_logger(ConsoleLogger(stdout, Logging.Debug))
-    null = generate_queryfunc(QueryAtom(), QueryNode[])
-    @test !null([])
-    isc = generate_queryfunc(
-        QueryAtom(Tuple{Int,Int}[], [qeq(:symbol, "C")]),
-        [qeq(:symbol, "C")]
-    )
-    @test isc([true])
-    notc = generate_queryfunc(
-        QueryAtom([(1, 2)], [qnot(), qeq(:symbol, "C")]),
-        [qeq(:symbol, "C")]
-    )
-    @test notc([false])
-    af = generate_queryfunc(
-        QueryAtom([(1, 2)], [qnot(), qanytrue()]),
-        QueryNode[]
-    )
-    @test !af([true])
-    @test !af([false])
-
-    qa = generate_queryfunc(
-        QueryAtom(
-            [(1, 2), (1, 3), (3, 4)],
-            [qand(), qeq(:symbol, "N"), qnot(), qtrue(:isaromatic)]),
-        [qeq(:symbol, "N"), qeq(:x, "1"), qtrue(:isaromatic)]
-    )
-    @test !qa([true, true, true])
-    @test !qa([true, false, true])
-    @test !qa([false, false, true])
-    @test qa([true, false, false])
-    # global_logger(default_logger)
-end
 
 @testset "preprocess" begin
     # [#6]-[#6](-[#7])=[#6] -> [#6]-C(-N)=C
