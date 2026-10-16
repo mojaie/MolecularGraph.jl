@@ -52,7 +52,7 @@ function group!(state::AbstractSMARTSParser{T,V,E}, bond::Union{E,Nothing}) wher
         "smarts parser error - #$(state.pos) branch starts with '('")  # ex. CC((CC)C)C  TODO: is still valid?
     state.node += 1
     push!(state.vprops, popfirst!(a))
-    push!(state.succ, [])
+    push!(state.succ, T[])
     if !isnothing(bond)
         # Connect branch
         push!(state.edges, u_edge(T, state.branch, state.node))
@@ -64,7 +64,7 @@ function group!(state::AbstractSMARTSParser{T,V,E}, bond::Union{E,Nothing}) wher
         # hydrogens
         state.node += 1
         push!(state.vprops, h)
-        push!(state.succ, [])
+        push!(state.succ, T[])
         push!(state.edges, u_edge(T, center, state.node))
         push!(state.eprops, defaultbond(state))
         push!(state.succ[center], state.node)
@@ -142,7 +142,7 @@ function chain!(state::AbstractSMARTSParser{T,V,E}) where {T,V,E}
                 rb = state.eprops[eidx]
                 db = defaultbond(state)
                 if b != db && rb != db && b != rb
-                    error("smarts parser error - #$(state.pos) inconsistent ring $(v)-$(rb) $(u)-$(b)")
+                    error("smarts parser error - #$(state.pos) inconsistent ring bond $(v)-$(u)")
                 end
                 delete!(state.ringlabel, num) # Ring label is reusable
                 state.edges[eidx] = u_edge(T, u, v)
@@ -170,7 +170,7 @@ function chain!(state::AbstractSMARTSParser{T,V,E}) where {T,V,E}
         else
             state.node += 1
             push!(state.vprops, popfirst!(a))
-            push!(state.succ, [])
+            push!(state.succ, T[])
         end
         if isnothing(b)
             chain_conn!(state)
@@ -187,7 +187,7 @@ function chain!(state::AbstractSMARTSParser{T,V,E}) where {T,V,E}
             push!(state.eprops, defaultbond(state))
             push!(state.succ[center], state.node)
             push!(state.vprops, h)
-            push!(state.succ, [])
+            push!(state.succ, T[])
         end
         u = center
     end

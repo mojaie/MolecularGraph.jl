@@ -270,7 +270,8 @@ function node_stereo_match(
     end
     for (e, conf) in mol2[:stereobond]
         s2, d2, iscis2 = conf
-        haskey(mol1[:stereobond], u_edge(T, revmap[e.src], revmap[e.dst])) || return false
+        e1 = u_edge(T, revmap[e.src], revmap[e.dst])
+        haskey(mol1[:stereobond], e1) || return false
         # "or unspecified" is more general than up/down
         srcp = values(mol2[u_edge(T, e.src, s2)].vprops)
         dstp = values(mol2[u_edge(T, e.dst, d2)].vprops)

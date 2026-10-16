@@ -200,7 +200,7 @@ QueryMolGraph{T,V,E}(
     gprops::QueryMolProperty{T}, state::S
 ) where {T,V,E,S<:MolState{T}} = QueryMolGraph{T,V,E,S}(g, vprops, eprops, gprops, state)
 
-function QueryMolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
+function QueryMolGraph{T,V,E}(args::Vararg{Any,N}; kwargs...) where {T,V,E,N}  # N: force specialization
     mol = QueryMolGraph{T,V,E}(
         reactive_molgraph(args...; gprops=QueryMolProperty{T}(), kwargs...)...)
     initialize!(mol)
@@ -208,7 +208,7 @@ function QueryMolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
 end
 
 # Construct with the callbacks of the given concrete state type by default
-QueryMolGraph{T,V,E,S}(args...; kwargs...) where {T,V,E,S} = QueryMolGraph{T,V,E}(
+QueryMolGraph{T,V,E,S}(args::Vararg{Any,N}; kwargs...) where {T,V,E,S,N} = QueryMolGraph{T,V,E}(
     args...; default_callbacks(S)..., kwargs...)::QueryMolGraph{T,V,E,S}
 
 _with_state(mol::QueryMolGraph{T,V,E}, state::MolState{T}) where {T,V,E} = QueryMolGraph{T,V,E}(
@@ -246,7 +246,9 @@ function canonical(qtree::QueryTree)
             o = sortperm(cnn[succs])
             concat = reduce(*, cnn[succs[o]])
             cnn[v] = string(vp.operator, vp.key, vp.value, concat)
-            append!(order[v], order[succs[o]]...)
+            for s in succs[o]
+                append!(order[v], order[s])
+            end
         end
     end
     return cnn[revtopo[end]], order[revtopo[end]]
@@ -263,7 +265,7 @@ end
 
 
 function Base.hash(qtree::QueryTree, h::UInt)
-    nv(qtree.graph) == 0 && return hash([])
+    nv(qtree.graph) == 0 && return hash(UInt[])  # same as hash([])
     hashes = Vector{UInt}(undef, nv(qtree.graph))
     revtopo = topological_sort(reverse(qtree.graph))
     for v in revtopo

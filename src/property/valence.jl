@@ -642,7 +642,8 @@ function markup_formula(counter_::Dict{Symbol,Int})
 end
 
 
-write_formula(markup::Vector{Vector{Tuple{Symbol,String}}}) = join(e[2] for e in vcat(markup...))
+write_formula(markup::Vector{Vector{Tuple{Symbol,String}}}
+    ) = join(e[2] for e in Iterators.flatten(markup))
 write_formula(counter::Dict{Symbol,Int}) = write_formula(markup_formula(counter))
 
 

@@ -45,7 +45,7 @@ function remap(
     revv = Dict(v => i for (i, v) in enumerate(vmap))
     newmap = StereocenterMap{T}()
     for (k, v) in stereomap
-        isempty(setdiff([k, stereoneighbors(v)...], keys(revv))) || continue
+        (haskey(revv, k) && all(n -> haskey(revv, n), stereoneighbors(v))) || continue
         newmap[revv[k]] = Stereocenter{T}(revv[v.lookingFrom], revv[v.first], revv[v.second], v.isclockwise)
     end
     return newmap
@@ -119,8 +119,8 @@ struct Coords2d
     coords::Vector{Point2d}
 end
 
-Coords2d() = Coords2d([])
-Coords2d(len::Int) = Coords2d(Vector(undef, len))
+Coords2d() = Coords2d(Point2d[])
+Coords2d(len::Int) = Coords2d(Vector{Point2d}(undef, len))
 Base.:(==)(x::Coords2d, y::Coords2d) = x.coords == y.coords
 Base.:(==)(x::Coords2d, y::AbstractVector) = x.coords == y
 Base.iterate(x::Coords2d, state...) = iterate(x.coords, state...)
@@ -162,8 +162,8 @@ struct Coords3d
     coords::Vector{Point3d}
 end
 
-Coords3d() = Coords3d([])
-Coords3d(len::Int) = Coords3d(Vector(undef, len))
+Coords3d() = Coords3d(Point3d[])
+Coords3d(len::Int) = Coords3d(Vector{Point3d}(undef, len))
 Base.:(==)(x::Coords3d, y::Coords3d) = x.coords == y.coords
 Base.:(==)(x::Coords3d, y::AbstractVector) = x.coords == y
 Base.iterate(x::Coords3d, state...) = iterate(x.coords, state...)
@@ -205,8 +205,8 @@ struct Draw2dBondStyle
     styles::Vector{Symbol}
 end
 
-Draw2dBondStyle() = Draw2dBondStyle([])
-Draw2dBondStyle(len::Int) = Draw2dBondStyle(Vector(undef, len))
+Draw2dBondStyle() = Draw2dBondStyle(Symbol[])
+Draw2dBondStyle(len::Int) = Draw2dBondStyle(Vector{Symbol}(undef, len))
 Base.:(==)(x::Draw2dBondStyle, y::Draw2dBondStyle) = x.styles == y.styles
 Base.:(==)(x::Draw2dBondStyle, y::AbstractVector) = x.styles == y
 Base.iterate(x::Draw2dBondStyle, state...) = iterate(x.styles, state...)

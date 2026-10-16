@@ -191,6 +191,9 @@ end
     transq = smartstomol("C/C=C/C")
     @test has_substruct_match(smilestomol("C/C=C/C"), transq, stereo=true)
     @test !has_substruct_match(smilestomol(raw"C/C=C\C"), transq, stereo=true)
+    # SMARTS vs SMARTS stereobond
+    @test has_exact_match(transq, smartstomol("C/C=C/C"), stereo=true)
+    @test !has_exact_match(transq, smartstomol(raw"C/C=C\C"), stereo=true)
 end
 
 @testset "node matching" begin

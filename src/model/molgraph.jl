@@ -35,7 +35,8 @@ end
 
 function MolState{T}(
         ; initialized=false, has_updates=true, has_new_edges=true, disable_update=false,
-        on_init=default_on_init!, on_update=default_on_update!) where T <: Integer
+        on_init::F1=default_on_init!, on_update::F2=default_on_update!
+        ) where {T<:Integer,F1,F2}  # F1, F2: force specialization on callbacks
     return MolState{T,typeof(on_init),typeof(on_update)}(
         initialized, has_updates, has_new_edges, disable_update, on_init, on_update)
 end
@@ -174,7 +175,8 @@ Return a molecule that shares the graph and properties with `mol` but has the gi
 
 Callbacks are part of the molecule type, so they cannot be replaced in place.
 """
-function with_callbacks(mol::ReactiveMolGraph{T}; on_init=nothing, on_update=nothing) where T
+function with_callbacks(mol::ReactiveMolGraph{T}; on_init::F1=nothing, on_update::F2=nothing
+        ) where {T,F1,F2}  # F1, F2: force specialization on callbacks
     st = mol.state
     state = MolState{T}(;
         initialized=st.initialized, has_updates=st.has_updates,
@@ -437,14 +439,14 @@ MolGraph{T,V,E}(
     gprops::MolProperty{T}, state::S
 ) where {T,V,E,S<:MolState{T}} = MolGraph{T,V,E,S}(g, vprops, eprops, gprops, state)
 
-function MolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
+function MolGraph{T,V,E}(args::Vararg{Any,N}; kwargs...) where {T,V,E,N}  # N: force specialization
     mol = MolGraph{T,V,E}(reactive_molgraph(args...; kwargs...)...)
     initialize!(mol)
     return mol
 end
 
 # Construct with the callbacks of the given concrete state type by default
-MolGraph{T,V,E,S}(args...; kwargs...) where {T,V,E,S} = MolGraph{T,V,E}(
+MolGraph{T,V,E,S}(args::Vararg{Any,N}; kwargs...) where {T,V,E,S,N} = MolGraph{T,V,E}(
     args...; default_callbacks(S)..., kwargs...)::MolGraph{T,V,E,S}
 
 _with_state(mol::MolGraph{T,V,E}, state::MolState{T}) where {T,V,E} = MolGraph{T,V,E}(

@@ -47,9 +47,9 @@ end
 
 function VF2Matcher{T,U}(
             g::SimpleGraph{T}, h::SimpleGraph{U}, matchtype::Symbol;
-            vmatch=(a, b)->true, ematch=(a, b)->true,
-            mandatory=Dict(), forbidden=Dict(), timeout=nothing
-        ) where {T,U}
+            vmatch::F1=(a, b)->true, ematch::F2=(a, b)->true,
+            mandatory=Dict{T,U}(), forbidden=Dict{T,U}(), timeout=nothing
+        ) where {T,U,F1,F2}  # F1, F2: force specialization on match functions
     expire = (timeout === nothing ?
         nothing : (time_ns() + timeout * 1_000_000_000)::UInt64)
     return VF2Matcher{T,U,typeof(vmatch),typeof(ematch)}(
@@ -167,11 +167,17 @@ function expand!(iter::AbstractVF2Matcher{T,U}, g::T, h::U) where {T,U}
     if !haskey(iter.h_term, h)
         iter.h_term[h] = depth
     end
-    g_nbrset = union([neighbors(iter.g, n) for n in keys(iter.g_core)]...)
+    g_nbrset = Set{T}()
+    for n in keys(iter.g_core)
+        union!(g_nbrset, neighbors(iter.g, n))
+    end
     for n in setdiff(g_nbrset, keys(iter.g_term))
         iter.g_term[n] = depth
     end
-    h_nbrset = union([neighbors(iter.h, n) for n in keys(iter.h_core)]...)
+    h_nbrset = Set{U}()
+    for n in keys(iter.h_core)
+        union!(h_nbrset, neighbors(iter.h, n))
+    end
     for n in setdiff(h_nbrset, keys(iter.h_term))
         iter.h_term[n] = depth
     end

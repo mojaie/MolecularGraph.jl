@@ -87,7 +87,8 @@ function safe_stereo_hydrogen!(mol::SimpleMolGraph{T}, center::T) where T
     spos = findfirst(==(h), stereoneighbors(stereo))
     isnothing(spos) && return h  # hydrogen at the lowest priority can be removed safely
     nonh = setdiff(ordered_neighbors(mol, center), h)
-    set_stereocenter!(mol, center, nonh..., isclockwise(stereo, nonh...))
+    f, s, t = nonh[1], nonh[2], nonh[3]  # three non-hydrogen neighbors
+    set_stereocenter!(mol, center, f, s, t, isclockwise(stereo, f, s, t))
     return h
 end
 

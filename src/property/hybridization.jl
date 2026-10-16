@@ -207,10 +207,13 @@ function is_ring_aromatic(
     end
     for conn in connected_components(ring_conn)
         length(conn) == 1 && continue
-        ns = union([sssr_[n] for n in conn]...)
+        ns = Int[]
+        for n in conn
+            union!(ns, sssr_[n])
+        end
         any(vs_declined[ns]) && continue
         if sum(huckel_arr[ns]) % 4 == 2
-            push!(confirmed_ring, conn...)
+            append!(confirmed_ring, conn)
         end
     end
     res = falses(length(sssr_))

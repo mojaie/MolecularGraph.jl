@@ -131,8 +131,14 @@ abstract type AbstractElement end
 
 Base.getindex(elem::AbstractElement, prop::Symbol) = getproperty(elem, prop)
 
-Base.:(==)(x::T, y::T) where T <: AbstractElement = all(
-    [getfield(x, f) == getfield(y, f) for f in fieldnames(T)])
+# Unrolled at compile time over the fields (all fields are compared, as `all` did)
+@generated function Base.:(==)(x::T, y::T) where T <: AbstractElement
+    ex = :(true)
+    for f in fieldnames(T)
+        ex = :($ex & (getfield(x, $(QuoteNode(f))) == getfield(y, $(QuoteNode(f)))))
+    end
+    return ex
+end
 
 function Base.hash(elem::T, h::UInt) where T <: AbstractElement
     for name in fieldnames(T)

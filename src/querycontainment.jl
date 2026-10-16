@@ -72,9 +72,17 @@ For example, the results of `[\$(C)]` is included in the results of `[\$(CO)]`,
 so `[\$(C)]` can be converted to an equivalent query ``[\$(C);\$(CO)]` to
 generate a truthtable with common properties.
 """
+resolve_recursive!(
+    qtree::QueryTree, propmap::Dict{Symbol,Vector{QueryNode}}
+    ; rec_cache=Dict{String,Dict{String,Bool}}()
+) = resolve_recursive!(qtree, propmap, rec_cache)
+
+# `rec_cache` is positional because a keyword method inside the recursion
+# (querymatch -> resolve_recursive! -> has_substruct_match -> ... -> querymatch)
+# is not compiled by `juliac --trim`.
 function resolve_recursive!(
-        qtree::QueryTree, propmap::Dict{Symbol,Vector{QueryNode}}
-        ; rec_cache=Dict{String,Dict{String,Bool}}())
+        qtree::QueryTree, propmap::Dict{Symbol,Vector{QueryNode}},
+        rec_cache::Dict{String,Dict{String,Bool}})
     for node in topological_sort(reverse(qtree.graph))
         nprop = qtree.vprops[node]
         nprop.key === :recursive || continue
@@ -234,8 +242,8 @@ function querymatch(
     resolve_disjoint_not!(r, qpropmap)
     # resolve recursive (e.g. $(CN) => $(C[NH2]) ---> $(CN) => [$(C[NH2]);$(CN)]
     # this updates props, so need querypropmap recalculation
-    resolve_recursive!(q, rpropmap, rec_cache=recursive_cache)
-    resolve_recursive!(r, qpropmap, rec_cache=recursive_cache)
+    resolve_recursive!(q, rpropmap, recursive_cache)
+    resolve_recursive!(r, qpropmap, recursive_cache)
     varid_map = Dict{QueryNode,Int}()  # Query -> id
     varids_q = Dict{Int,Int}()  # vertex -> id
     nextid = 1
