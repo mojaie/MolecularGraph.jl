@@ -182,14 +182,14 @@ function is_ring_aromatic(
                     continue
                 end
                 uv, vv = edge_neighbors(g, e)
-                ud = []
+                ud = Int[]
                 for u in uv
                     ur = edge_rank(ernk, e.src, u)
                     if order_arr[ur] == 2
                         push!(ud, ur)
                     end
                 end
-                vd = []
+                vd = Int[]
                 for v in vv
                     vr = edge_rank(ernk, e.dst, v)
                     if order_arr[vr] == 2

@@ -78,10 +78,15 @@ Remap vertices according to the given vmap (new_v = old_v -> vmap[old_v]).
 """
 function remap!(gprop::SimpleMolProperty, args...)
     # vmap[old] -> new
-    for sym in fieldnames(typeof(gprop))
-        remap!(Val(sym), gprop, args...)
-    end
+    remap_fields!(gprop, args...)
     return
+end
+
+# Call `remap!(Val(field), container, args...)` for each field of the container.
+# Unrolled at compile time so that the method for each field is statically dispatched.
+@generated function remap_fields!(container, args...)
+    calls = [:(remap!(Val($(QuoteNode(f))), container, args...)) for f in fieldnames(container)]
+    return Expr(:block, calls..., :(return))
 end
 
 function remap!(::Val, gprop::SimpleMolProperty, args...)
@@ -89,9 +94,7 @@ function remap!(::Val, gprop::SimpleMolProperty, args...)
 end
 
 function remap!(::Val{:descriptors}, gprop::SimpleMolProperty, args...)
-    for sym in fieldnames(typeof(gprop.descriptors))
-        remap!(Val(sym), gprop.descriptors, args...)
-    end
+    remap_fields!(gprop.descriptors, args...)
     return
 end
 
