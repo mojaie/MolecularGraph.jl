@@ -38,7 +38,6 @@ export
     VertexKey, EdgeKey,
     AbstractAtom, AbstractBond, Reaction, QueryTree,
     vproptype, eproptype,
-    props, get_prop, has_prop, set_prop!,
     u_edge, ordered_neighbors, edge_neighbors, ordered_edge_neighbors,
     Stereocenter, StereocenterMap, Stereobond, StereobondMap,
     Coords2d, Coords3d

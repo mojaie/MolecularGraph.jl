@@ -155,18 +155,26 @@ Base.getindex(mol::AbstractMolGraph, e::Edge) = mol.eprops[e]
 Base.getindex(mol::AbstractMolGraph, gprop::Symbol) = getproperty(mol.gprops, gprop)
 
 """
+    Base.haskey(mol::AbstractMolGraph, gprop::Symbol) -> Bool
+    Base.haskey(mol::SimpleMolGraph, key::String) -> Bool
+
+Return whether the molecule has the graph-level property `gprop` (e.g. `:stereocenter`),
+or the metadata entry `key` (e.g. `"compound_id"`).
+"""
+Base.haskey(mol::AbstractMolGraph, gprop::Symbol) = hasproperty(mol.gprops, gprop)
+
+"""
     Base.setindex!(mol::AbstractMolGraph, v::Integer) -> AbstractElement
     Base.setindex!(mol::AbstractMolGraph, e::Edge) -> AbstractElement
     Base.setindex!(mol::AbstractMolGraph, u::Integer, v::Integer) -> AbstractElement
 
 Return properties (vertex or edge attributes).
 """
-
 Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, v::Integer) = setindex!(mol.vprops, prop, v)
 
 # old accessors (deprecated)
-props(mol::AbstractMolGraph, v::Integer) = mol[v]
-get_prop(mol::AbstractMolGraph, v::Integer, prop::Symbol) = mol[v][prop]
+@deprecate props(mol::AbstractMolGraph, v::Integer) getindex(mol, v)
+@deprecate get_prop(mol::AbstractMolGraph, v::Integer, prop::Symbol) getindex(getindex(mol, v), prop)
 
 
 vpropiter(mol::AbstractMolGraph) = Iterators.map(mol.vprops) do r
@@ -248,8 +256,8 @@ edge_neighbors(mol::SimpleMolGraph, e) = edge_neighbors(mol.graph, e)
 # if specific index order is required.
 # neighbors in SimpleGraph guarantees output index in lexicographic order now,
 # but it is not formulated in API
-ordered_neighbors = neighbors
-ordered_edge_neighbors = edge_neighbors
+const ordered_neighbors = neighbors
+const ordered_edge_neighbors = edge_neighbors
 
 
 Base.getindex(mol::SimpleMolGraph{T}, u::T, v::T) where T = mol.eprops[u_edge(T, u, v)]
@@ -257,15 +265,13 @@ Base.setindex!(mol::SimpleMolGraph{T}, prop::AbstractElement, u::T, v::T
     ) where T = setindex!(mol.eprops, prop, u_edge(T, u, v))
 
 # old accessors (deprecated)
-props(mol::SimpleMolGraph, u::Integer, v::Integer) = mol[u, v]
-props(mol::SimpleMolGraph, e::Edge) = mol[e]
-get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) = mol[u, v][prop]
-get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) = mol[e][prop]
-get_prop(mol::SimpleMolGraph, prop::Symbol) = mol[prop]
-has_prop(mol::SimpleMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
+@deprecate props(mol::SimpleMolGraph, u::Integer, v::Integer) getindex(mol, u, v)
+@deprecate props(mol::SimpleMolGraph, e::Edge) getindex(mol, e)
+@deprecate get_prop(mol::SimpleMolGraph, u::Integer, v::Integer, prop::Symbol) getindex(getindex(mol, u, v), prop)
+@deprecate get_prop(mol::SimpleMolGraph, e::Edge, prop::Symbol) getindex(getindex(mol, e), prop)
+@deprecate get_prop(mol::SimpleMolGraph, prop::Symbol) getindex(mol, prop)
+@deprecate has_prop(mol::SimpleMolGraph, prop::Symbol) haskey(mol, prop)
 # set_prop! is not available because MolProperty types should be immutable.
-
-# old accessors (deprecated)
 
 
 # Internally called by descriptor methods (e.g. `is_ring_aromatic(mol)`)

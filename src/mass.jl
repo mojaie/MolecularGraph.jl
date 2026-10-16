@@ -291,7 +291,7 @@ gr()
 Plots.GRBackend()
 
 mol = smilestomol("CCO")
-data = simulatemassspec(mol)
+data = simulate_massspec(mol)
 plot(
     data[:, 1], data[:, 2],
     leg=false, xlabel = "Mass", ylabel = "Intensity"
@@ -316,14 +316,10 @@ simulate_massspec(mol::SimpleMolGraph; kwargs...
 
 
 
-# deprecated names
-export
-    monoisotopicmass, nominalmass, exactmass,
-    isotopiccomposition, massspecpeaks, simulatemassspec
-
-monoisotopicmass = monoiso_mass
-nominalmass = nominal_mass
-exactmass = exact_mass
-isotopiccomposition = isotopic_composition
-massspecpeaks = massspec_peaks
-simulatemassspec = simulate_massspec
+# deprecated names (`@deprecate` also exports them)
+@deprecate monoisotopicmass monoiso_mass
+@deprecate nominalmass nominal_mass
+@deprecate exactmass exact_mass
+@deprecate isotopiccomposition isotopic_composition
+@deprecate massspecpeaks massspec_peaks
+@deprecate simulatemassspec simulate_massspec

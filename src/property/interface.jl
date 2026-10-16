@@ -259,6 +259,7 @@ end
 # Metadata specific shorthands (e.g. mol["compound_id"] = "CP000001")
 
 Base.getindex(mol::SimpleMolGraph, key::String) = mol.gprops.metadata[key]
+Base.haskey(mol::SimpleMolGraph, key::String) = haskey(mol.gprops.metadata, key)
 
 function Base.setindex!(mol::SimpleMolGraph, value::String, key::String)
     # skip dispatch (Metadata update would not affect graph state)
@@ -266,9 +267,9 @@ function Base.setindex!(mol::SimpleMolGraph, value::String, key::String)
 end
 
 # old accessors (deprecated)
-get_prop(mol::SimpleMolGraph, key::String) = mol[key]
-has_prop(mol::SimpleMolGraph, key::String) = haskey(mol.gprops.metadata, key)
-set_prop!(mol::SimpleMolGraph, key::String, value::String) = setindex!(mol, value, key)
+@deprecate get_prop(mol::SimpleMolGraph, key::String) getindex(mol, key)
+@deprecate has_prop(mol::SimpleMolGraph, key::String) haskey(mol, key)
+@deprecate set_prop!(mol::SimpleMolGraph, key::String, value::String) setindex!(mol, value, key)
 
 
 # Descriptors

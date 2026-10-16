@@ -254,15 +254,8 @@ end
 
 
 # old accessors (deprecated)
-function set_prop!(mol::ReactiveMolGraph, v::Integer, value::AbstractElement)
-    mol.vprops[v] = value
-    notify_updates!(mol)
-end
-
-function set_prop!(mol::ReactiveMolGraph, e::Edge, value::AbstractElement)
-    mol.eprops[e] = value
-    notify_updates!(mol)
-end
+@deprecate set_prop!(mol::ReactiveMolGraph, v::Integer, value::AbstractElement) setindex!(mol, value, v)
+@deprecate set_prop!(mol::ReactiveMolGraph, e::Edge, value::AbstractElement) setindex!(mol, value, e)
 
 
 """

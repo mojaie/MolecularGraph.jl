@@ -109,7 +109,7 @@ function printv2mol(
     # stereospecific hydrogens for aesthetics of fused rings
     # TODO: this may add unnecessary hydrogens and unexpectedly call coordgen!
     # TODO: HydrogenatedAtom should be implemented to keep hydrogen coordinates
-    if givebackhydrogen && has_prop(mol, :stereocenter) && !isempty(mol[:stereocenter])
+    if givebackhydrogen && haskey(mol, :stereocenter) && !isempty(mol[:stereocenter])
         ringcount = ring_count(mol)
         imph = implicit_hydrogens(mol)
         mol_ = copy(mol)
