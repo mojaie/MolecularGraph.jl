@@ -204,7 +204,7 @@ stereocenter_from_sdf2d(mol::SimpleMolGraph) = stereocenter_from_sdf2d(
     Int[mol[e].order for e in edges(mol)],
     Int[mol[e].notation for e in edges(mol)],
     Bool[mol[e].isordered for e in edges(mol)],
-    get_descriptor(mol, :coords2d)[1]
+    get_descriptor(mol, Val(:coords2d))[1]
 )
 
 """

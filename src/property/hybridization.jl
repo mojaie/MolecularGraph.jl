@@ -86,8 +86,8 @@ This is a binary descriptor based on a chemoinformatic algorithm and may not ref
 actual molecular orbitals. Atypical aromaticities such as Moebius aromaticity are not considered.
 """
 function is_ring_aromatic(mol::SimpleMolGraph)
-    if has_descriptor(mol, :is_ring_aromatic)
-        return get_descriptor(mol, :is_ring_aromatic)
+    if has_descriptor(mol, Val(:is_ring_aromatic))
+        return get_descriptor(mol, Val(:is_ring_aromatic))
     end
     return is_ring_aromatic(
         mol.graph, sssr(mol), edge_which_ring(mol),
@@ -226,7 +226,7 @@ end
 Calculate [`is_ring_aromatic`](@ref) and store the result in the descriptors of `mol`.
 """
 is_ring_aromatic!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, :is_ring_aromatic,
+    mol, Val(:is_ring_aromatic),
     is_ring_aromatic(
         mol.graph, sssr(mol), edge_which_ring(mol),
         atom_symbol(mol), bond_order(mol),

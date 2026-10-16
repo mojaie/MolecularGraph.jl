@@ -43,10 +43,10 @@ end
 
 
 function coords2d(mol::SimpleMolGraph, i::Integer)
-    if !has_descriptor(mol, :coords2d)
+    if !has_descriptor(mol, Val(:coords2d))
         error("2D coordinates not available in this molecule type.")
     end
-    cds = get_descriptor(mol, :coords2d)
+    cds = get_descriptor(mol, Val(:coords2d))
     if length(cds) < i
         error("No available coords found. Run coordgen!(mol) to generate coords")
     elseif nv(mol) != length(cds[i])
@@ -57,18 +57,18 @@ end
 coords2d(mol::SimpleMolGraph) = coords2d(mol, 1)
 
 function has_coords2d(mol::SimpleMolGraph)
-    has_descriptor(mol, :coords2d) || return false
-    isempty(get_descriptor(mol, :coords2d)) && return false
-    length(get_descriptor(mol, :coords2d)[1]) == nv(mol) || return false
+    has_descriptor(mol, Val(:coords2d)) || return false
+    isempty(get_descriptor(mol, Val(:coords2d))) && return false
+    length(get_descriptor(mol, Val(:coords2d))[1]) == nv(mol) || return false
     return true
 end
 
 
 function coords3d(mol::SimpleMolGraph, i::Integer)
-    if !has_descriptor(mol, :coords3d)
+    if !has_descriptor(mol, Val(:coords3d))
         error("3D coordinates not available in this molecule type.")
     end
-    cds = get_descriptor(mol, :coords3d)
+    cds = get_descriptor(mol, Val(:coords3d))
     if length(cds) < i
         error("No available 3D coords found.")
     elseif nv(mol) != length(cds[i])
@@ -79,15 +79,15 @@ end
 coords3d(mol::SimpleMolGraph) = coords3d(mol, 1)
 
 function has_coords3d(mol::SimpleMolGraph)
-    has_descriptor(mol, :coords3d) || return false
-    isempty(get_descriptor(mol, :coords3d)) && return false
-    length(get_descriptor(mol, :coords3d)[1]) == nv(mol) || return false
+    has_descriptor(mol, Val(:coords3d)) || return false
+    isempty(get_descriptor(mol, Val(:coords3d))) && return false
+    length(get_descriptor(mol, Val(:coords3d))[1]) == nv(mol) || return false
     return true
 end
 
 
 draw2d_bond_style(mol::SimpleMolGraph, i::Integer
-    ) = get_descriptor(mol, :draw2d_bond_style)[i]
+    ) = get_descriptor(mol, Val(:draw2d_bond_style))[i]
 draw2d_bond_style(mol::SimpleMolGraph) = draw2d_bond_style(mol, 1)
 
 

@@ -166,9 +166,9 @@ end
 function exact_topology_prefilter(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     nv(mol1) == nv(mol2) || return false
     ne(mol1) == ne(mol2) || return false
-    if has_descriptor(mol1, :sssr) && has_descriptor(mol2, :sssr)
-        r1 = get_descriptor(mol1, :sssr)
-        r2 = get_descriptor(mol2, :sssr)
+    if has_descriptor(mol1, Val(:sssr)) && has_descriptor(mol2, Val(:sssr))
+        r1 = get_descriptor(mol1, Val(:sssr))
+        r2 = get_descriptor(mol2, Val(:sssr))
         length(r1) == length(r2) || return false
     end
     return true
@@ -177,9 +177,9 @@ end
 function topology_prefilter(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     nv(mol1) >= nv(mol2) || return false
     ne(mol1) >= ne(mol2) || return false
-    if has_descriptor(mol1, :sssr) && has_descriptor(mol2, :sssr)
-        r1 = get_descriptor(mol1, :sssr)
-        r2 = get_descriptor(mol2, :sssr)
+    if has_descriptor(mol1, Val(:sssr)) && has_descriptor(mol2, Val(:sssr))
+        r1 = get_descriptor(mol1, Val(:sssr))
+        r2 = get_descriptor(mol2, Val(:sssr))
         length(r1) >= length(r2) ||  return false
     end
     return true

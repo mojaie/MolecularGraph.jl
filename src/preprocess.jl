@@ -92,7 +92,7 @@ In-place version of [`kekulize`](@ref) that stores the bond orders in the descri
 """
 function kekulize!(mol::SimpleMolGraph)
     bondorder, pyrrole_like = kekulize(mol)
-    set_descriptor!(mol, :bond_order, bondorder)
+    set_descriptor!(mol, Val(:bond_order), bondorder)
     empty!(mol.gprops.pyrrole_like)
     append!(mol.gprops.pyrrole_like, pyrrole_like)
     return
@@ -231,7 +231,7 @@ In-place version of [`protonate_acids`](@ref) that stores the atom charges in th
 """
 function protonate_acids!(mol::SimpleMolGraph)
     set_descriptor!(
-        mol, :atom_charge,
+        mol, Val(:atom_charge),
         protonate_acids(mol.graph, atom_symbol(mol), atom_charge(mol))
     )
 end
@@ -261,7 +261,7 @@ In-place version of [`deprotonate_oniums`](@ref) that stores the atom charges in
 """
 function deprotonate_oniums!(mol::SimpleMolGraph)
     set_descriptor!(
-        mol, :atom_charge,
+        mol, Val(:atom_charge),
         deprotonate_oniums(atom_charge(mol), total_hydrogens(mol))
     )
 end
@@ -307,8 +307,8 @@ function depolarize!(mol::SimpleMolGraph; kwargs...)
     carr, oarr = depolarize(
         mol.graph, atom_symbol(mol), atom_charge(mol),
         is_aromatic(mol), bond_order(mol); kwargs...)
-    set_descriptor!(mol, :atom_charge, carr)
-    set_descriptor!(mol, :bond_order, oarr)
+    set_descriptor!(mol, Val(:atom_charge), carr)
+    set_descriptor!(mol, Val(:bond_order), oarr)
 end
 
 
@@ -349,8 +349,8 @@ in the descriptors of `mol`.
 function polarize!(mol::SimpleMolGraph; kwargs...)
     carr, oarr = polarize(
         mol.graph, atom_symbol(mol), atom_charge(mol), bond_order(mol); kwargs...)
-    set_descriptor!(mol, :atom_charge, carr)
-    set_descriptor!(mol, :bond_order, oarr)
+    set_descriptor!(mol, Val(:atom_charge), carr)
+    set_descriptor!(mol, Val(:bond_order), oarr)
 end
 
 
@@ -402,8 +402,8 @@ in the descriptors of `mol`.
 function to_triple_bond!(mol::SimpleMolGraph)
     carr, oarr = to_triple_bond(
         mol.graph, atom_charge(mol), apparent_valence(mol), bond_order(mol))
-    set_descriptor!(mol, :atom_charge, carr)
-    set_descriptor!(mol, :bond_order, oarr)
+    set_descriptor!(mol, Val(:atom_charge), carr)
+    set_descriptor!(mol, Val(:bond_order), oarr)
 end
 
 
@@ -439,6 +439,6 @@ in the descriptors of `mol`.
 function to_allene_like!(mol::SimpleMolGraph)
     carr, oarr = to_allene_like(
         mol.graph, atom_charge(mol), apparent_valence(mol), bond_order(mol))
-    set_descriptor!(mol, :atom_charge, carr)
-    set_descriptor!(mol, :bond_order, oarr)
+    set_descriptor!(mol, Val(:atom_charge), carr)
+    set_descriptor!(mol, Val(:bond_order), oarr)
 end

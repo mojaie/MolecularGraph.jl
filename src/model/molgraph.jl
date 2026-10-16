@@ -65,9 +65,9 @@ StructUtils.lift(::Type{<:MolState{T}}, x) where T = MolState{T}()
 
 # Property update mechanisms
 
-function get_descriptor(mol::ReactiveMolGraph, field::Symbol)
+function get_descriptor(mol::ReactiveMolGraph, ::Val{F}) where F
     mol.state.disable_update || dispatch_update!(mol)
-    return getproperty(mol[:descriptors], field)
+    return getfield(mol.gprops.descriptors, F)
 end
 
 

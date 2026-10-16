@@ -271,12 +271,19 @@ has_prop(mol::SimpleMolGraph, prop::Symbol) = hasproperty(mol.gprops, prop)
 # Internally called by descriptor methods (e.g. `is_ring_aromatic(mol)`)
 # Do not expose
 
-get_descriptor(mol::SimpleMolGraph, field::Symbol
-    ) = getproperty(mol[:descriptors], field)
+# Internally the field is given as `Val(:field)`. Descriptor functions and update callbacks
+# call each other recursively, and constant propagation of a Symbol argument does not work
+# inside the recursion, so the field name should be a type parameter to keep types concrete.
+# The Symbol methods are kept for custom callbacks.
+get_descriptor(mol::SimpleMolGraph, field::Symbol) = get_descriptor(mol, Val(field))
+get_descriptor(mol::SimpleMolGraph, ::Val{F}) where F = getfield(mol.gprops.descriptors, F)
 set_descriptor!(mol::SimpleMolGraph, field::Symbol, value
-    ) = setproperty!(mol[:descriptors], field, value)
-has_descriptor(mol::SimpleMolGraph, field::Symbol
-    ) = hasproperty(mol[:descriptors], field)
+    ) = set_descriptor!(mol, Val(field), value)
+set_descriptor!(mol::SimpleMolGraph, ::Val{F}, value
+    ) where F = setproperty!(mol.gprops.descriptors, F, value)
+has_descriptor(mol::SimpleMolGraph, field::Symbol) = has_descriptor(mol, Val(field))
+has_descriptor(mol::SimpleMolGraph, ::Val{F}
+    ) where F = hasfield(typeof(mol.gprops.descriptors), F)
 
 
 """

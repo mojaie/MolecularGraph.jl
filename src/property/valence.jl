@@ -42,14 +42,14 @@ the given molecule.
 """
 atom_charge(mol::SimpleMolGraph) = Int[atom_charge(mol[i]) for i in vertices(mol)]
 function atom_charge(mol::ReactiveMolGraph)
-    if has_descriptor(mol, :atom_charge)
-        return get_descriptor(mol, :atom_charge)
+    if has_descriptor(mol, Val(:atom_charge))
+        return get_descriptor(mol, Val(:atom_charge))
     end
     return Int[atom_charge(mol[i]) for i in vertices(mol)]
 end
 
 default_atom_charge!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, :atom_charge, Int[atom_charge(mol[i]) for i in vertices(mol)])
+    mol, Val(:atom_charge), Int[atom_charge(mol[i]) for i in vertices(mol)])
 
 
 """
@@ -78,14 +78,14 @@ the given molecule.
 """
 bond_order(mol::SimpleMolGraph) = Int[bond_order(mol[e]) for e in edges(mol)]
 function bond_order(mol::ReactiveMolGraph)
-    if has_descriptor(mol, :bond_order)
-        return get_descriptor(mol, :bond_order)
+    if has_descriptor(mol, Val(:bond_order))
+        return get_descriptor(mol, Val(:bond_order))
     end
     return Int[bond_order(mol[e]) for e in edges(mol)]
 end
 
 default_bond_order!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, :bond_order, Int[bond_order(mol[e]) for e in edges(mol)])
+    mol, Val(:bond_order), Int[bond_order(mol[e]) for e in edges(mol)])
 
 
 # coords -> src/coords.jl
@@ -102,8 +102,8 @@ Return a vector of size ``n`` representing the number of total bond order
 incident to 1 to ``n``th atoms of the given molecule.
 """
 function apparent_valence(mol::SimpleMolGraph)
-    if has_descriptor(mol, :apparent_valence)
-        return get_descriptor(mol, :apparent_valence)
+    if has_descriptor(mol, Val(:apparent_valence))
+        return get_descriptor(mol, Val(:apparent_valence))
     end
     return apparent_valence(mol.graph, bond_order(mol))
 end
@@ -124,7 +124,7 @@ end
 Calculate [`apparent_valence`](@ref) and store the result in the descriptors of `mol`.
 """
 apparent_valence!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, :apparent_valence, apparent_valence(mol.graph, bond_order(mol)))
+    mol, Val(:apparent_valence), apparent_valence(mol.graph, bond_order(mol)))
 
 
 function formal_valence(symbol_arr::Vector{Symbol}, charge_arr::Vector{Int})
@@ -149,8 +149,8 @@ The valence of a hypervalent atom or a non-organic atom is the same as
 its `apparent_valence`. This property corresponds to SMARTS `v` query.
 """
 function valence(mol::SimpleMolGraph)
-    if has_descriptor(mol, :valence)
-        return get_descriptor(mol, :valence)
+    if has_descriptor(mol, Val(:valence))
+        return get_descriptor(mol, Val(:valence))
     end
     return valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
 end
@@ -167,7 +167,7 @@ end
 Calculate [`valence`](@ref) and store the result in the descriptors of `mol`.
 """
 valence!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, :valence, valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol)))
+    mol, Val(:valence), valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol)))
 
 
 function check_valence!(mol::SimpleMolGraph)
@@ -250,8 +250,8 @@ Return a vector of size ``n`` representing the number of lone pairs of
 1 to ``n``th atoms of the given molecule.
 """
 function lone_pair(mol::SimpleMolGraph)
-    if has_descriptor(mol, :lone_pair)
-        return get_descriptor(mol, :lone_pair)
+    if has_descriptor(mol, Val(:lone_pair))
+        return get_descriptor(mol, Val(:lone_pair))
     end
     return lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
 end
@@ -277,7 +277,7 @@ end
 Calculate [`lone_pair`](@ref) and store the result in the descriptors of `mol`.
 """
 lone_pair!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, :lone_pair, lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol)))
+    mol, Val(:lone_pair), lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol)))
 
 
 
