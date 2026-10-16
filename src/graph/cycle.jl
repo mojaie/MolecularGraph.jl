@@ -29,7 +29,7 @@ function cotree_edges(g::SimpleGraph{T}) where T
 end
 
 
-function findmincycle(g::SimpleGraph, S::Set)
+function findmincycle(g::SimpleGraph{T}, S::Set) where T
     subg, vmap = induced_subgraph(g, collect(setdiff(Set(edges(g)), S)))
     rev = Dict(v => i for (i, v) in enumerate(vmap))
     U = disjoint_union(subg, subg)
@@ -39,7 +39,7 @@ function findmincycle(g::SimpleGraph, S::Set)
         add_edge!(U, rev[src(s)], hrev[rev[dst(s)]])
         add_edge!(U, hrev[rev[src(s)]], rev[dst(s)])
     end
-    paths = []
+    paths = Vector{T}[]
     for n in vertices(g)
         n1 = rev[n]
         n2 = hrev[rev[n]]
