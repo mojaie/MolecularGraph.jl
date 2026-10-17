@@ -108,12 +108,15 @@ end
 Generate molecular structure image as a PNG format.
 
 `width` and `height` specifies the size of the image in px.
+
+`bondhighlight` should contain only bonds of the molecule, otherwise `ArgumentError` is thrown.
 """
 function MolecularGraph.drawpng(io::IO, mol::SimpleMolGraph, width::Int, height::Int;
         bgcolor="#FFF", bgopacity=1.0,
         atomhighlight=eltype(mol)[], bondhighlight=Edge{eltype(mol)}[], highlightcolor="#FDD835",
         atomindex=false, indexcolor="#000", indexbgcolor="#F0F0FF",
         kwargs...)
+    MolecularGraph.check_bondhighlight(mol, bondhighlight)
     canvas = CairoCanvas(width, height, parse(RGB, bgcolor), bgopacity)
     # draw background
     Cairo.set_source(

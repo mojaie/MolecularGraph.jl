@@ -217,7 +217,6 @@ export query_containment_diagram, find_queries
 
 import Colors
 using Colors: RGB, RGBA, N0f8, Colorant, hex, coloralpha
-import Statistics
 
 
 include("./draw/color.jl")

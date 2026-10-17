@@ -111,12 +111,15 @@ Generate molecular structure image as a SVG format string.
 
 `width` and `height` specifies the size of the image (width and height
 attribute of svg tag).
+
+`bondhighlight` should contain only bonds of the molecule, otherwise `ArgumentError` is thrown.
 """
 function drawsvg(mol::SimpleMolGraph;
         bgcolor="#FFF", bgopacity=1.0,
         atomhighlight=eltype(mol)[], bondhighlight=Edge{eltype(mol)}[], highlightcolor="#FDD835",
         atomindex=false, indexcolor="#000", indexbgcolor="#F0F0FF",
         kwargs...)
+    check_bondhighlight(mol, bondhighlight)
     canvas = SvgCanvas(parse_rgb(bgcolor), bgopacity)
     draw2d!(canvas, mol; kwargs...)
     # highlight atoms if is_atom_visible=true or no incident edges

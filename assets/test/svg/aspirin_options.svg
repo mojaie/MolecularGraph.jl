@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ version="1.1" baseProfile="tiny"
+ text-rendering="geometricPrecision"
+ preserveAspectRatio="xMidYMid meet"
+ font-weight="normal"
+ font-family="Helvetica"
+ width="100%" height="100%" viewBox="0 0 287.51 243.29">
+<rect x="0" y="0" width="287.51" height="243.29"
+ fill="rgb(240, 240, 240)" opacity="1.0"/>
+ <rect x="164.95" y="87.51" width="17" height="17" rx="8.5" ry="8.5" fill="rgb(253, 216, 53)" />
+ <rect x="110.39" y="179.98" width="17" height="17" rx="8.5" ry="8.5" fill="rgb(253, 216, 53)" />
+<line x1="173.45" y1="96.01" x2="136.14" y2="94.46" stroke="rgb(253, 216, 53)" stroke-width="9.0" stroke-linecap="round"/>
+<line x1="164.46" y1="95.63" x2="150.30" y2="95.04" stroke="rgb(255, 0, 0)" />
+<line x1="150.30" y1="95.04" x2="136.14" y2="94.46" stroke="rgb(0, 0, 0)" />
+<line x1="182.37" y1="94.81" x2="190.30" y2="93.75" stroke="rgb(255, 0, 0)" />
+<line x1="190.30" y1="93.75" x2="198.23" y2="92.68" stroke="rgb(0, 0, 0)" />
+<line x1="123.76" y1="180.91" x2="129.17" y2="172.51" stroke="rgb(255, 0, 0)" />
+<line x1="129.17" y1="172.51" x2="134.57" y2="164.12" stroke="rgb(0, 0, 0)" />
+<line x1="122.93" y1="196.53" x2="125.11" y2="200.88" stroke="rgb(255, 0, 0)" />
+<line x1="125.11" y1="200.88" x2="127.30" y2="205.24" stroke="rgb(0, 0, 0)" />
+<line x1="153.34" y1="168.35" x2="144.33" y2="165.18" stroke="rgb(255, 0, 0)" />
+<line x1="144.33" y1="165.18" x2="135.32" y2="162.00" stroke="rgb(0, 0, 0)" />
+<line x1="151.84" y1="172.60" x2="142.83" y2="169.42" stroke="rgb(255, 0, 0)" />
+<line x1="142.83" y1="169.42" x2="133.82" y2="166.24" stroke="rgb(0, 0, 0)" />
+<line x1="196.36" y1="94.33" x2="196.86" y2="94.54" stroke="rgb(255, 0, 0)" />
+<line x1="196.86" y1="94.54" x2="197.36" y2="94.75" stroke="rgb(0, 0, 0)" />
+<line x1="198.12" y1="90.19" x2="198.62" y2="90.40" stroke="rgb(255, 0, 0)" />
+<line x1="198.62" y1="90.40" x2="199.11" y2="90.61" stroke="rgb(0, 0, 0)" />
+<line x1="136.14" y1="94.46" x2="116.13" y2="127.28" stroke="rgb(0, 0, 0)" /><line x1="136.14" y1="94.46" x2="117.94" y2="59.44" stroke="rgb(0, 0, 0)" /><line x1="130.76" y1="93.87" x2="115.33" y2="64.18" stroke="rgb(0, 0, 0)" /><line x1="116.13" y1="127.28" x2="77.95" y2="125.09" stroke="rgb(0, 0, 0)" /><line x1="113.40" y1="122.62" x2="81.20" y2="120.77" stroke="rgb(0, 0, 0)" /><line x1="116.13" y1="127.28" x2="134.57" y2="164.12" stroke="rgb(0, 0, 0)" /><line x1="117.94" y1="59.44" x2="79.75" y2="57.25" stroke="rgb(0, 0, 0)" /><line x1="117.94" y1="59.44" x2="128.70" y2="41.48" stroke="rgb(0, 0, 0)" /><line x1="77.95" y1="125.09" x2="59.76" y2="90.08" stroke="rgb(0, 0, 0)" /><line x1="77.95" y1="125.09" x2="66.42" y2="142.64" stroke="rgb(0, 0, 0)" /><line x1="79.75" y1="57.25" x2="59.76" y2="90.08" stroke="rgb(0, 0, 0)" /><line x1="82.04" y1="62.16" x2="65.16" y2="89.86" stroke="rgb(0, 0, 0)" /><line x1="79.75" y1="57.25" x2="69.73" y2="37.98" stroke="rgb(0, 0, 0)" /><line x1="59.76" y1="90.08" x2="38.99" y2="88.89" stroke="rgb(0, 0, 0)" /><line x1="198.23" y1="92.68" x2="238.44" y2="94.72" stroke="rgb(0, 0, 0)" /><line x1="238.44" y1="94.72" x2="241.93" y2="80.30" stroke="rgb(0, 0, 0)" /><line x1="238.44" y1="94.72" x2="248.60" y2="93.25" stroke="rgb(0, 0, 0)" /><line x1="238.44" y1="94.72" x2="241.88" y2="113.18" stroke="rgb(0, 0, 0)" /><text x="173.45" y="100.91" font-size="14.0" fill="rgb(255, 0, 0)" text-anchor="middle" >O</text><text x="124.49" y="193.38" font-size="14.0" fill="rgb(255, 0, 0)" text-anchor="end" >O</text><text x="155.47" y="178.37" font-size="14.0" fill="rgb(255, 0, 0)">O</text><text x="194.55" y="93.65" font-size="14.0" fill="rgb(255, 0, 0)" text-anchor="end" >O</text><text x="127.72" y="38.65" font-size="14.0" fill="rgb(0, 0, 0)">H</text><text x="67.08" y="155.07" font-size="14.0" fill="rgb(0, 0, 0)" text-anchor="end" >H</text><text x="71.18" y="34.90" font-size="14.0" fill="rgb(0, 0, 0)" text-anchor="end" >H</text><text x="35.60" y="93.27" font-size="14.0" fill="rgb(0, 0, 0)" text-anchor="end" >H</text><text x="238.45" y="76.45" font-size="14.0" fill="rgb(0, 0, 0)">H</text><text x="251.91" y="96.86" font-size="14.0" fill="rgb(0, 0, 0)">H</text><text x="237.93" y="126.93" font-size="14.0" fill="rgb(0, 0, 0)">H</text><text x="125.73" y="218.19" font-size="14.0" fill="rgb(0, 0, 0)">H</text><g>
+ <rect x="173.45" y="103.01" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="173.45" y="113.01" font-size="10" fill="rgb(0, 0, 0)">1</text>
+</g>
+<g>
+ <rect x="118.89" y="195.48" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="118.89" y="205.48" font-size="10" fill="rgb(0, 0, 0)">2</text>
+</g>
+<g>
+ <rect x="161.07" y="180.47" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="161.07" y="190.47" font-size="10" fill="rgb(0, 0, 0)">3</text>
+</g>
+<g>
+ <rect x="188.95" y="95.75" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="188.95" y="105.75" font-size="10" fill="rgb(0, 0, 0)">4</text>
+</g>
+<g>
+ <rect x="136.14" y="94.46" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="136.14" y="104.46" font-size="10" fill="rgb(0, 0, 0)">5</text>
+</g>
+<g>
+ <rect x="116.13" y="127.28" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="116.13" y="137.28" font-size="10" fill="rgb(0, 0, 0)">6</text>
+</g>
+<g>
+ <rect x="117.94" y="59.44" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="117.94" y="69.44" font-size="10" fill="rgb(0, 0, 0)">7</text>
+</g>
+<g>
+ <rect x="77.95" y="125.09" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="77.95" y="135.09" font-size="10" fill="rgb(0, 0, 0)">8</text>
+</g>
+<g>
+ <rect x="79.75" y="57.25" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="79.75" y="67.25" font-size="10" fill="rgb(0, 0, 0)">9</text>
+</g>
+<g>
+ <rect x="59.76" y="90.08" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="59.76" y="100.08" font-size="10" fill="rgb(0, 0, 0)">10</text>
+</g>
+<g>
+ <rect x="134.57" y="164.12" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="134.57" y="174.12" font-size="10" fill="rgb(0, 0, 0)">11</text>
+</g>
+<g>
+ <rect x="198.23" y="92.68" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="198.23" y="102.68" font-size="10" fill="rgb(0, 0, 0)">12</text>
+</g>
+<g>
+ <rect x="238.44" y="94.72" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="238.44" y="104.72" font-size="10" fill="rgb(0, 0, 0)">13</text>
+</g>
+<g>
+ <rect x="133.32" y="40.75" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="133.32" y="50.75" font-size="10" fill="rgb(0, 0, 0)">14</text>
+</g>
+<g>
+ <rect x="61.48" y="157.17" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="61.48" y="167.17" font-size="10" fill="rgb(0, 0, 0)">15</text>
+</g>
+<g>
+ <rect x="65.58" y="37.00" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="65.58" y="47.00" font-size="10" fill="rgb(0, 0, 0)">16</text>
+</g>
+<g>
+ <rect x="30.00" y="95.37" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="30.00" y="105.37" font-size="10" fill="rgb(0, 0, 0)">17</text>
+</g>
+<g>
+ <rect x="244.05" y="78.55" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="244.05" y="88.55" font-size="10" fill="rgb(0, 0, 0)">18</text>
+</g>
+<g>
+ <rect x="257.51" y="98.96" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="257.51" y="108.96" font-size="10" fill="rgb(0, 0, 0)">19</text>
+</g>
+<g>
+ <rect x="243.53" y="129.03" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="243.53" y="139.03" font-size="10" fill="rgb(0, 0, 0)">20</text>
+</g>
+<g>
+ <rect x="131.33" y="220.29" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="131.33" y="230.29" font-size="10" fill="rgb(0, 0, 0)">21</text>
+</g>
+</svg>

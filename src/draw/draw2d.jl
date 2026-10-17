@@ -422,6 +422,15 @@ function drawatomindex!(canvas::Canvas, isatomvisible, color, bgcolor)
 end
 
 
+# Highlighting a pair of atoms that are not bonded is not supported (provisional spec).
+function check_bondhighlight(mol::SimpleMolGraph, edge_list::Vector{<:Edge})
+    for e in edge_list
+        has_edge(mol, src(e), dst(e)) || throw(ArgumentError(
+            "bondhighlight: no bond between atom $(src(e)) and atom $(dst(e))"))
+    end
+    return
+end
+
 function sethighlight!(canvas::Canvas, edge_list::Vector{<:Edge}, color)
     for e in edge_list
         seg = Line(canvas.coords[src(e)], canvas.coords[dst(e)])

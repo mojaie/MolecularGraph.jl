@@ -50,7 +50,7 @@ using MolecularGraph:
     Coords2d, Coords3d, Draw2dBondStyle,
     draw2d_bond_style,
     atom_color, is_atom_visible, atom_markup, double_bond_style,
-    normalize_coords
+    normalize_coords, parse_rgb, svgcolor, EzXML
 
 using MolecularGraph: smiles
 
