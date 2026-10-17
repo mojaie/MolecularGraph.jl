@@ -555,6 +555,8 @@ gproptype(::Type{<:QueryMolGraph{T}}) where T = QueryMolProperty{T}
 
 json_callbacks(::Type{<:MolGraph{T,SDFAtom,SDFBond}}) where T = (on_init=sdf_on_init!, on_update=sdf_on_update!)
 json_callbacks(::Type{<:MolGraph{T,SMILESAtom,SMILESBond}}) where T = (on_init=smiles_on_init!, on_update=smiles_on_update!)
+# Same callbacks as `smartstomol` so that the molecule has the same type
+json_callbacks(::Type{<:QueryMolGraph}) = (on_init=smarts_on_init!, on_update=default_on_update!)
 json_callbacks(::Type{<:ReactiveMolGraph}) = (on_init=default_on_init!, on_update=default_on_update!)
 
 function read_moljson(::Type{G}, data::JSONNode; kwargs...

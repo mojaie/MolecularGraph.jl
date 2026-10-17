@@ -78,7 +78,7 @@ resolve_recursive!(
 ) = resolve_recursive!(qtree, propmap, rec_cache)
 
 # `rec_cache` is positional because a keyword method inside the recursion
-# (querymatch -> resolve_recursive! -> has_substruct_match -> ... -> querymatch)
+# (querymatch -> resolve_recursive! -> recursive_query_match -> querymatch)
 # is not compiled by `juliac --trim`.
 function resolve_recursive!(
         qtree::QueryTree, propmap::Dict{Symbol,Vector{QueryNode}},
@@ -111,14 +111,123 @@ function resolve_recursive!(
             if haskey(rec_cache[nprop.value], pm.value)
                 match = rec_cache[nprop.value][pm.value]  # use cache
             else
-                match = has_substruct_match(tmol, smartstomol(pm.value);
-                    mandatory=Dict(1 => 1))
+                match = recursive_query_match(tmol, smartstomol(pm.value))
                 rec_cache[nprop.value][pm.value] = match  # set cache
             end
             match && add_qnode!(qtree, qa, pm)
         end
     end
     return
+end
+
+# Bond queries do not have recursive queries.
+resolve_recursive!(::QueryBond, ::Dict{Symbol,Vector{QueryNode}},
+    ::Dict{String,Dict{String,Bool}}) = nothing
+
+
+"""
+    recursive_query_match(mol1::QueryMolGraph, mol2::QueryMolGraph) -> Bool
+
+Return whether `mol2` is a substructure of `mol1` with the first atoms mapped to each other,
+where atom and bond queries of `mol1` are included in those of `mol2`. This is the same as
+`has_substruct_match(mol1, mol2; mandatory=Dict(1 => 1))`, but implemented as a simple
+backtracking for small recursive queries in `resolve_recursive!`.
+
+`VF2Matcher` is not used here because the nested VF2 iteration of different matcher types
+(e.g. molecule-query outside and query-query inside) is limited by the compiler's recursion
+heuristics and not compilable with `juliac --trim`.
+"""
+function recursive_query_match(mol1::QueryMolGraph{T}, mol2::QueryMolGraph{T}) where T
+    n1 = nv(mol1)
+    n2 = nv(mol2)
+    (n1 == 0 || n2 == 0) && return false
+    topology_prefilter(mol1, mol2) || return false
+    # mol2 vertices in BFS order from the first atom (mandatory 1 => 1)
+    order = T[]
+    seen = falses(n2)
+    for s in vertices(mol2.graph)
+        seen[s] && continue
+        seen[s] = true
+        push!(order, s)
+        i = length(order)
+        while i <= length(order)
+            for nbr in neighbors(mol2.graph, order[i])
+                seen[nbr] && continue
+                seen[nbr] = true
+                push!(order, nbr)
+            end
+            i += 1
+        end
+    end
+    vcache = Dict{Tuple{T,T},Bool}()
+    ecache = Dict{Tuple{Edge{T},Edge{T}},Bool}()
+    rec_cache = Dict{String,Dict{String,Bool}}()
+    mapping = zeros(T, n2)  # mol2 vertex -> mol1 vertex
+    used = falses(n1)
+    cand = zeros(T, n2)  # last candidate tried at each depth
+    k = 1
+    while k > 0
+        w = order[k]
+        if mapping[w] != 0
+            used[mapping[w]] = false
+            mapping[w] = zero(T)
+        end
+        lastv = k == 1 ? one(T) : T(n1)
+        v = cand[k] + one(T)
+        while v <= lastv
+            if !used[v] && recursive_query_feasible(
+                    mol1, mol2, v, w, mapping, vcache, ecache, rec_cache)
+                break
+            end
+            v += one(T)
+        end
+        if v > lastv  # backtrack
+            cand[k] = zero(T)
+            k -= 1
+        else
+            cand[k] = v
+            mapping[w] = v
+            used[v] = true
+            k == n2 && return true
+            k += 1
+        end
+    end
+    return false
+end
+
+function recursive_query_feasible(
+        mol1::QueryMolGraph{T}, mol2::QueryMolGraph{T}, v1::T, v2::T, mapping::Vector{T},
+        vcache::Dict{Tuple{T,T},Bool}, ecache::Dict{Tuple{Edge{T},Edge{T}},Bool},
+        rec_cache::Dict{String,Dict{String,Bool}}) where T
+    recursive_query_vmatch!(vcache, mol1, mol2, v1, v2, rec_cache) || return false
+    for nbr in neighbors(mol2.graph, v2)
+        m = mapping[nbr]
+        m == 0 && continue
+        has_edge(mol1.graph, v1, m) || return false
+        recursive_query_ematch!(
+            ecache, mol1, mol2, u_edge(T, v1, m), u_edge(T, v2, nbr)) || return false
+    end
+    return true
+end
+
+# Atom and bond matches are in separate functions so that `querymatch` for atoms and bonds
+# are called from different methods (see `recursive_query_match`).
+function recursive_query_vmatch!(
+        cache::Dict{Tuple{T,T},Bool}, mol1::QueryMolGraph{T}, mol2::QueryMolGraph{T},
+        v1::T, v2::T, rec_cache::Dict{String,Dict{String,Bool}}) where T
+    haskey(cache, (v1, v2)) && return cache[(v1, v2)]
+    res = querymatch(mol1[v1], mol2[v2], false, rec_cache)
+    cache[(v1, v2)] = res
+    return res
+end
+
+function recursive_query_ematch!(
+        cache::Dict{Tuple{Edge{T},Edge{T}},Bool}, mol1::QueryMolGraph{T},
+        mol2::QueryMolGraph{T}, e1::Edge{T}, e2::Edge{T}) where T
+    haskey(cache, (e1, e2)) && return cache[(e1, e2)]
+    res = querymatch(mol1[e1], mol2[e2], false, Dict{String,Dict{String,Bool}}())
+    cache[(e1, e2)] = res
+    return res
 end
 
 
@@ -229,9 +338,15 @@ function to_cnf(
 end
 
 
+querymatch(
+    q::QueryTree, r::QueryTree, exactmatch::Bool
+    ; recursive_cache=Dict{String,Dict{String,Bool}}()
+) = querymatch(q, r, exactmatch, recursive_cache)
+
+# `recursive_cache` is positional for the same reason as `resolve_recursive!`
 function querymatch(
-        q::T, r::U, exactmatch::Bool
-        ; recursive_cache=Dict{String,Dict{String,Bool}}()) where {T<:QueryTree,U<:QueryTree}
+        q::T, r::U, exactmatch::Bool,
+        recursive_cache::Dict{String,Dict{String,Bool}}) where {T<:QueryTree,U<:QueryTree}
     q = copy(q)
     r = copy(r)
     # convert not query (e.g. !C -> [!#6,!A]) smarts/logicaloperator.jl

@@ -198,6 +198,14 @@ end
     @test !has_substruct_match(cys, quart)
 
     halobenzene = smartstomol(raw"c1c([O;D1])c(-[Cl,Br,I])cc(-[Cl,Br,I])c1")
+
+    # recursive_query_match is equivalent to has_substruct_match with mandatory=Dict(1 => 1)
+    rqs = smartstomol.([
+        "C", "CO", "C=O", "CC", "C(=O)O", raw"[CH]=[$(NOC)]", "[CH]=N", "NOC", "NO[Si]",
+        "[nH]C=O", "[nH]C", "c1ccccc1", "C!@N", "[#6]~[#7]", "C1CC1", "[C,N]O", "C(C)(C)C"])
+    @test all(
+        MolecularGraph.recursive_query_match(m1, m2)
+        == has_substruct_match(m1, m2; mandatory=Dict(1 => 1)) for m1 in rqs, m2 in rqs)
     halo = smartstomol(raw"c[F,Cl,Br,I]")
     @test has_substruct_match(halobenzene, halo)
 

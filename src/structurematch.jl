@@ -78,7 +78,7 @@ function vmatchgen(mol1::SimpleMolGraph, mol2::T) where T <: QueryMolGraph
         # add the results as literals (e.g. $(NC=O) or !$(NC=O)).
         for p in unique(get(querypropmap(qtree), :recursive, QueryNode[]))
             haskey(recursive, p.value) || (recursive[p.value] = smartstomol(p.value))
-            if has_substruct_match(mol1, recursive[p.value], mandatory=Dict(v1 => 1))
+            if has_substruct_match_mandatory(mol1, recursive[p.value], Dict(v1 => 1))
                 push!(nodes, p)
                 push!(edges, (1, length(nodes)))
             else
@@ -88,7 +88,7 @@ function vmatchgen(mol1::SimpleMolGraph, mol2::T) where T <: QueryMolGraph
                 push!(edges, (length(nodes) - 1, length(nodes)))
             end
         end
-        res = issubset(QueryAtom(edges, nodes), qtree)
+        res = querymatch(QueryAtom(edges, nodes), qtree, false, Dict{String,Dict{String,Bool}}())
         haskey(matches, v1) || (matches[v1] = Dict{Int,Bool}())
         matches[v1][v2] = res
         return res
@@ -100,7 +100,7 @@ function vmatchgen(mol1::QueryMolGraph, mol2::QueryMolGraph)
     matches = Dict{Int,Dict{Int,Bool}}()  # cache matches
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
-        res = issubset(mol1[v1], mol2[v2]; recursive_cache=recursive)
+        res = querymatch(mol1[v1], mol2[v2], false, recursive)
         haskey(matches, v1) || (matches[v1] = Dict{Int,Bool}())
         matches[v1][v2] = res
         return res
@@ -144,7 +144,7 @@ function ematchgen(mol1::SimpleMolGraph, mol2::QueryMolGraph)
                 qeq(:isaromatic, descriptor_string(descriptors, :isaromatic, ernk1[e1]))
             ]
         )
-        res = issubset(e1q, mol2[e2])
+        res = querymatch(e1q, mol2[e2], false, Dict{String,Dict{String,Bool}}())
         haskey(matches, e1) || (matches[e1] = Dict{Edge{Int},Bool}())
         matches[e1][e2] = res
         return res
@@ -155,7 +155,7 @@ function ematchgen(mol1::QueryMolGraph, mol2::QueryMolGraph)
     matches = Dict{Edge{Int},Dict{Edge{Int},Bool}}()  # cache matches
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
-        res = issubset(mol1[e1], mol2[e2])
+        res = querymatch(mol1[e1], mol2[e2], false, Dict{String,Dict{String,Bool}}())
         haskey(matches, e1) || (matches[e1] = Dict{Edge{Int},Bool}())
         matches[e1][e2] = res
         return res
@@ -367,6 +367,18 @@ See [`substruct_matches`](@ref) for available options.
 """
 has_substruct_match(mol1, mol2; kwargs...
     ) = !isempty(substruct_matches(mol1, mol2; kwargs...))
+
+# `has_substruct_match(mol1, mol2; mandatory=mandatory)` without keyword calls, used inside
+# the recursive query match in `vmatchgen`. Keyword calls in the recursion are not
+# compilable with `juliac --trim`.
+function has_substruct_match_mandatory(
+        mol1::SimpleMolGraph{T}, mol2::SimpleMolGraph{T}, mandatory::Dict{T,T}) where T
+    (nv(mol1) == 0 || nv(mol2) == 0) && return false
+    topology_prefilter(mol1, mol2) || return false
+    matcher = vf2matcher(mol1.graph, mol2.graph, :monomorphic,
+        vmatchgen(mol1, mol2), ematchgen(mol1, mol2), mandatory, Dict{T,T}(), nothing)
+    return !isempty(matcher)
+end
 
 
 """
