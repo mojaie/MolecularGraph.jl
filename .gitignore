@@ -6,5 +6,6 @@ _temp
 
 # Agents
 .agents
+.claude
 AGENTS.md
 CLAUDE.md
