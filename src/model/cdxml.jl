@@ -18,7 +18,7 @@ struct CDXMLAtom <: StandardAtom
     multiplicity::Int
     isotope::Int
     isaromatic::Bool
-    coords::Union{Vector, Nothing}
+    coords::Union{Vector{Float64}, Nothing}  # concrete element type (for `juliac --trim`)
 
     function CDXMLAtom(
         symbol::Union{AbstractString, Symbol},
@@ -28,8 +28,9 @@ struct CDXMLAtom <: StandardAtom
         isaromatic::Bool,
         coords::Union{Vector, Nothing}
     )
-        haskey(ATOMSYMBOLMAP, symbol) || error("sdfile parse error - unsupported atom symbol '$symbol'")
-        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, coords)
+        haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol '$symbol'")
+        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic,
+            isnothing(coords) ? nothing : Vector{Float64}(coords))
     end
 end
 
@@ -61,7 +62,7 @@ struct CDXMLBond <: StandardBond
             notation::Int = 0
     )
         order > 3 && error("sdfile parse error - unsupported bond order $(order)")
-        new(order, isaromatic, isordered, stereo, notation)
+        new(order, isaromatic, isordered, Symbol(stereo), notation)
     end
 end
 
@@ -79,10 +80,8 @@ isaromatic(bond::CDXMLBond) = bond.isaromatic
 
 has_isaromatic(::Type{CDXMLAtom}) = true
 
-function replace_struct(x::T; replacements...) where T
-    values = [haskey(replacements, field) ? replacements[field] : getfield(x, field) for field in fieldnames(T)]
-    T(values...)
-end
+aromatic_atom(a::CDXMLAtom) = CDXMLAtom(
+    a.symbol, a.charge, a.multiplicity, a.isotope, true, a.coords)
 
 # Post-processing function
 function mark_aromatic_atoms!(mol::MolGraph{T,V,E}) where {T, V, E}
@@ -97,7 +96,7 @@ function mark_aromatic_atoms!(mol::MolGraph{T,V,E}) where {T, V, E}
     
     for atom_idx in aromatic_atoms
         atom = mol[atom_idx]
-        new_atom = replace_struct(atom, isaromatic = true)
+        new_atom = aromatic_atom(atom)
         mol[atom_idx] = new_atom
     end
     
@@ -232,8 +231,20 @@ function parse_cdxml_bond(node::EzXML.Node)::Tuple{String,String,String,CDXMLBon
     return (id === nothing ? "" : id, begin_atom, end_atom, bond)
 end
 
+# Concrete molecule type returned by the CDXML reader
+# (`MolGraph{Int,CDXMLAtom,CDXMLBond}` is not concrete. `juliac --trim` needs the concrete type)
+cdxml_moltype() = MolGraph{Int,CDXMLAtom,CDXMLBond,
+    MolState{Int,typeof(cdxml_on_init!),typeof(cdxml_on_update!)}}
+
+# Message of an exception without `show` (not compilable with `juliac --trim`)
+function exception_message(e)
+    e isa ErrorException || return string(nameof(typeof(e)))
+    m = e.msg
+    return m isa String ? m : "error"
+end
+
 """Parse a fragment (molecule) from CDXML"""
-function parse_cdxml_fragment(frag_node::EzXML.Node)::MolGraph{Int,CDXMLAtom,CDXMLBond}
+function parse_cdxml_fragment(frag_node::EzXML.Node)
     atom_map = Dict{String,Int}()  # CDXML id -> graph index
     atoms = CDXMLAtom[]
     bonds = Tuple{Int,Int,CDXMLBond}[]
@@ -270,7 +281,7 @@ function parse_cdxml_fragment(frag_node::EzXML.Node)::MolGraph{Int,CDXMLAtom,CDX
             CDXMLBond[],
             on_init = cdxml_on_init!,
             on_update = cdxml_on_update!
-        )
+        )::cdxml_moltype()
     end
     
     # Create edge list for SimpleGraph
@@ -286,7 +297,22 @@ function parse_cdxml_fragment(frag_node::EzXML.Node)::MolGraph{Int,CDXMLAtom,CDX
     MolGraph{Int,CDXMLAtom,CDXMLBond}(edge_list, atoms, eprop_list;
         on_init = cdxml_on_init!,
         on_update = cdxml_on_update!
-    )
+    )::cdxml_moltype()
+end
+
+# Find all fragments in the document
+# Fragments can be at various levels: page > fragment, or directly in document
+function find_cdxml_fragments!(fragments::Vector{EzXML.Node}, node::EzXML.Node)
+    for child in EzXML.eachelement(node)
+        tag = EzXML.nodename(child)
+        if tag == "fragment"
+            push!(fragments, child)
+        elseif tag == "page" || tag == "group"
+            # Recursively search in pages and groups
+            find_cdxml_fragments!(fragments, child)
+        end
+    end
+    return fragments
 end
 
 # =============================================================================
@@ -299,32 +325,13 @@ end
 Parse CDXML string and return vector of molecules.
 Each fragment in the CDXML document becomes a separate molecule.
 """
-function cdxmltomols(cdxml_str::IO)::Vector{MolGraph{Int,CDXMLAtom,CDXMLBond}}
-    mols = MolGraph{Int,CDXMLAtom,CDXMLBond}[]
+function cdxmltomols(cdxml_str::IO)
+    mols = cdxml_moltype()[]
     
     try
         doc = EzXML.parsexml(read(cdxml_str, String))
         root = EzXML.root(doc)
-        
-        # Find all fragments in the document
-        # Fragments can be at various levels: page > fragment, or directly in document
-        function find_fragments(node::EzXML.Node)
-            fragments = EzXML.Node[]
-            
-            for child in EzXML.eachelement(node)
-                tag = EzXML.nodename(child)
-                if tag == "fragment"
-                    push!(fragments, child)
-                elseif tag == "page" || tag == "group"
-                    # Recursively search in pages and groups
-                    append!(fragments, find_fragments(child))
-                end
-            end
-            
-            return fragments
-        end
-        
-        fragments = find_fragments(root)
+        fragments = find_cdxml_fragments!(EzXML.Node[], root)
         
         # Parse each fragment into a molecule
         for frag in fragments
@@ -334,12 +341,12 @@ function cdxmltomols(cdxml_str::IO)::Vector{MolGraph{Int,CDXMLAtom,CDXMLBond}}
                     push!(mols, mol)
                 end
             catch e
-                @warn "Failed to parse fragment: $e"
+                @warn "Failed to parse fragment: $(exception_message(e))"
             end
         end
         
     catch e
-        error("Failed to parse CDXML: $e")
+        error("Failed to parse CDXML: $(exception_message(e))")
     end
     
     return mols
@@ -350,7 +357,7 @@ end
 
 Read and parse a CDXML file, returning vector of molecules.
 """
-function cdxmltomols(filename::String)::Vector{MolGraph{Int,CDXMLAtom,CDXMLBond}}
+function cdxmltomols(filename::String)
     open(filename) do io
         cdxmltomols(io)
     end
@@ -362,7 +369,7 @@ end
 Parse CDXML from file or string and return the first molecule.
 Raises error if no molecules found.
 """
-function cdxmltomol(input::Union{AbstractString, IO})::MolGraph{Int,CDXMLAtom,CDXMLBond}
+function cdxmltomol(input::Union{AbstractString, IO})
     mols = cdxmltomols(input)
     
     if isempty(mols)
