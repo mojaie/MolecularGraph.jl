@@ -111,12 +111,41 @@ end
     asp = sdftomol(joinpath(assetdir, "aspirin_3d.sdf"))
     d = to_rdkdict(asp)
     @test length(d["molecules"][1]["conformers"][1]["coords"]) == 21
+    asp2 = mol_from_json(to_rdkjson(asp))
+    @test asp2[:descriptors].coords3d[1].coords == asp[:descriptors].coords3d[1].coords
 
     # stereobond remapping
     nata = sdftomol(joinpath(assetdir, "nata.mol"))
     remove_all_hydrogens!(nata)
     d = to_rdkdict(nata)
     @test d["molecules"][1]["bonds"][32]["stereoAtoms"] == [24, 36]
+end
+
+@testset "json.api" begin
+    assetdir = joinpath(dirname(@__FILE__), "..", "assets", "test")
+    mol = smilestomol("C[C@H](N)C(=O)O")
+    json = JSON.json(mol)
+    # callback form: the molecule has a concrete type
+    @test mol_from_json(nv, json) == nv(mol)
+    @test mol_from_json(typeof, json) === typeof(mol_from_json(json))
+    @test mol_from_json(m -> JSON.json(m), json) == json
+    # typed constructors and JSON.parse
+    @test JSON.json(MolGraph{Int,SMILESAtom,SMILESBond}(json)) == json
+    @test JSON.json(JSON.parse(json, MolGraph{Int,SMILESAtom,SMILESBond})) == json
+    sdf = sdftomol(joinpath(assetdir, "demo.mol"))
+    @test JSON.json(JSON.parse(JSON.json(sdf), SDFMolGraph)) == JSON.json(sdf)
+    # the writer has the same output as JSON.jl
+    for (i, s) in enumerate(["a\"b", "back\\slash", "new\nline\ttab\r", "ctl\x01\x1f\x7f", "slash/x", "日本語 😀", ""])
+        mol["key$(i)"] = s
+    end
+    json = JSON.json(mol)
+    @test json == invoke(JSON.json, Tuple{Any}, mol)
+    mol2 = mol_from_json(json)
+    @test collect(mol2.gprops.metadata) == collect(mol.gprops.metadata)
+    @test startswith(JSON.json(mol; pretty=true), "{\n")
+    # invalid JSON
+    @test_throws ArgumentError mol_from_json("{\"vproptype\": 1")
+    @test_throws ErrorException mol_from_json("{}")
 end
 
 end # json

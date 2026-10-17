@@ -21,71 +21,71 @@ function rdk_on_update!(mol::SimpleMolGraph)
 end
 
 
-function reactive_molgraph(
-        ::Type{T}, ::Type{V}, ::Type{E}, ::Type{G},
-        data::JSON.Object{String,Any}; kwargs...) where {T,V<:CommonChemAtom,E<:CommonChemBond,G}
-    gps = G()
+# RDKit CommonChem JSON reading (concretely typed, see json.jl)
+
+"""
+    read_commonchem(::Type{G}, json::AbstractString) where G <: MolGraph -> G
+
+Read a molecule from RDKit CommonChem JSON text.
+"""
+read_commonchem(::Type{G}, json::AbstractString
+    ) where G <: MolGraph = read_commonchem(G, parse_jsonnode(json))
+
+function read_commonchem(::Type{G}, data::JSONNode
+        ) where {T,G<:MolGraph{T,CommonChemAtom,CommonChemBond}}
+    jint(something(jget(data, "commonchem")), "version", 0) == 10 || error(
+        "CommonChem version other than 10 is not supported")
+    molecules = jitems(data, "molecules")
+    length(molecules) == 1 || error("Only single molecule data is supported")
+    moldata = molecules[1]
+    extensions = jitems(moldata, "extensions")
+    (!isempty(extensions) && jstring(extensions[1], "name", "") == "rdkitRepresentation"
+        ) || error("Invalid RDKit CommonChem file format")
+    jint(extensions[1], "formatVersion", 0) == 2 || error("Unsupported RDKit CommonChem version")
+    gps = MolProperty{T}()
     # edges
     es = Edge{T}[]
-    eps = Dict{EdgeKey{T},E}()
-    iscis = Dict("cis" => true, "trans" => false)
-    for b in data["bonds"]
-        edge = u_edge(T, b["atoms"][1] + 1, b["atoms"][2] + 1)
+    eps = Dict{EdgeKey{T},CommonChemBond}()
+    for b in jitems(moldata, "bonds")
+        atoms = jintvec(something(jget(b, "atoms")))
+        edge = u_edge(T, atoms[1] + 1, atoms[2] + 1)
         push!(es, edge)
-        if haskey(b, "stereo") && b["stereo"] in keys(iscis)
-            u, v = b["stereoAtoms"]
-            gps.stereobond[edge] = Stereobond{T}(u + 1, v + 1, iscis[b["stereo"]])
+        stereo = jstring(b, "stereo", "unspecified")
+        if stereo in ("cis", "trans")
+            sa = jintvec(something(jget(b, "stereoAtoms")))
+            gps.stereobond[edge] = Stereobond{T}(sa[1] + 1, sa[2] + 1, stereo == "cis")
         end
-        delete!(b, "atoms")
-        delete!(b, "stereo")
-        delete!(b, "stereoAtoms")
-        eps[edge] = StructUtils.make(CommonChemBond, b)
+        eps[edge] = fromjson(CommonChemBond, b)
     end
     g = SimpleGraph(es)
     # vertices
-    vps = Dict{VertexKey{T},V}()
-    isclockwise = Dict("cw" => true, "ccw" => false)
-    for (i, a) in enumerate(data["atoms"])
-        vps[i] = StructUtils.make(CommonChemAtom, a)
-        if haskey(a, "stereo") && a["stereo"] in keys(isclockwise)
+    vps = Dict{VertexKey{T},CommonChemAtom}()
+    for (i, a) in enumerate(jitems(moldata, "atoms"))
+        vps[i] = fromjson(CommonChemAtom, a)
+        stereo = jstring(a, "stereo", "unspecified")
+        if stereo in ("cw", "ccw")
             nbrs = ordered_neighbors(g, i)
             # TODO: ambiguity in implicit H
-            gps.stereocenter[i] = Stereocenter{T}(nbrs[1:3]..., isclockwise[a["stereo"]])
+            gps.stereocenter[i] = Stereocenter{T}(nbrs[1], nbrs[2], nbrs[3], stereo == "cw")
         end
     end
     # expand fadjlist for vprops of isolated nodes
     for _ in nv(g):(length(vps) - 1)
         push!(g.fadjlist, T[])
     end
-    if haskey(data, "conformers")
-        for cds in data["conformers"]
-            # Wedges cannot be preserved. Use coordgen to generate 2D coords manually
-            cds["dim"] == 3 || continue
-            push!(gps.descriptors.coords3d, [Point3d(cd...) for cd in cds["coords"]])
-        end
+    for cds in jitems(moldata, "conformers")
+        # Wedges cannot be preserved. Use coordgen to generate 2D coords manually
+        jint(cds, "dim", 2) == 3 || continue
+        push!(gps.descriptors.coords3d, Coords3d(
+            [Point3d(jfloat(jarray(p)[1]), jfloat(jarray(p)[2]), jfloat(jarray(p)[3]))
+                for p in jitems(cds, "coords")]))
     end
-    return reactive_molgraph(g, vps, eps, gps; kwargs...)
+    return G(reactive_molgraph(g, vps, eps, gps; on_init=rdk_on_init!, on_update=rdk_on_update!)...)
 end
 
-
-function StructUtils.lift(::Type{MolGraph{T,CommonChemAtom,CommonChemBond}}, x) where T
-    if x["commonchem"]["version"] != 10
-        error("CommonChem version other than 10 is not supported")
-    end
-    if length(x["molecules"]) != 1
-        error("Only single molecule data is supported")
-    end
-    moldata = x["molecules"][1]
-    if moldata["extensions"][1]["name"] != "rdkitRepresentation"
-        error("Invalid RDKit CommonChem file format")
-    end
-    if moldata["extensions"][1]["formatVersion"] != 2
-        error("Unsupported RDKit CommonChem version")
-    end
-    return MolGraph{T,CommonChemAtom,CommonChemBond}(
-        reactive_molgraph(T, CommonChemAtom, CommonChemBond, MolProperty{T}, moldata;
-            on_init=rdk_on_init!, on_update=rdk_on_update!)...)
-end
+# `JSON.parse(json, T)` and `StructUtils.make(T, x)` (not compilable with `juliac --trim`)
+StructUtils.lift(::Type{G}, x) where {G<:MolGraph{<:Integer,CommonChemAtom,CommonChemBond}
+    } = read_commonchem(G, JSON.json(x))
 
 
 """

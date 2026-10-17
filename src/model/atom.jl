@@ -208,8 +208,9 @@ isotope(a::SDFAtom) = a.isotope
 
 StructUtils.structlike(::Type{SDFAtom}) = false
 
+# Concrete value types (instead of Any) so that JSON writing is compilable with `juliac --trim`
 function StructUtils.lower(x::SDFAtom)
-    rcd = Dict{String,Any}()
+    rcd = Dict{String,Union{String,Int,Vector{Float64}}}()
     x.symbol === :C || setindex!(rcd, string(x.symbol), "symbol")
     x.charge == 0 || setindex!(rcd, x.charge, "charge")
     x.multiplicity == 1 || setindex!(rcd, x.multiplicity, "multiplicity")
@@ -275,7 +276,7 @@ isaromatic(a::SMILESAtom) = a.isaromatic
 StructUtils.structlike(::Type{SMILESAtom}) = false
 
 function StructUtils.lower(x::SMILESAtom)
-    rcd = Dict{String,Any}()
+    rcd = Dict{String,Union{String,Int,Bool}}()
     x.symbol === :C || setindex!(rcd, string(x.symbol), "symbol")
     x.charge == 0 || setindex!(rcd, x.charge, "charge")
     x.multiplicity == 1 || setindex!(rcd, x.multiplicity, "multiplicity")
@@ -344,13 +345,13 @@ isotope(a::CommonChemAtom) = a.isotope
 StructUtils.structlike(::Type{CommonChemAtom}) = false
 
 function StructUtils.lower(x::CommonChemAtom)
-    rcd = Dict{String,Any}()
+    rcd = Dict{String,Union{String,Int}}()
     x.z == 6 || setindex!(rcd, x.z, "z")
     x.chg == 0 || setindex!(rcd, x.chg, "chg")
     x.impHs == 0 || setindex!(rcd, x.impHs, "impHs")
     x.isotope == 0 || setindex!(rcd, x.isotope, "isotope")
     x.nRad == 0 || setindex!(rcd, x.nRad, "nRad")
-    x.stereo === :unspecific || setindex!(rcd, x.stereo, "stereo")
+    x.stereo === :unspecific || setindex!(rcd, string(x.stereo), "stereo")
     return rcd
 end
 

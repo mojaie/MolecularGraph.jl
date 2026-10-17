@@ -60,7 +60,7 @@ function default_callbacks(::Type{MolState{T,F1,F2}}) where {T,F1,F2}
 end
 
 StructUtils.structlike(::Type{<:MolState}) = false
-StructUtils.lower(x::MolState) = Dict{String,Any}()
+StructUtils.lower(x::MolState) = Dict{String,Int}()  # state is not serialized
 StructUtils.lift(::Type{<:MolState{T}}, x) where T = MolState{T}()
 
 

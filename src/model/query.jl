@@ -70,7 +70,7 @@ end
 StructUtils.structlike(::Type{QueryNode}) = false
 
 function StructUtils.lower(x::QueryNode)
-    rcd = Dict{String,Any}()
+    rcd = Dict{String,String}()  # concrete value type for `juliac --trim`
     x.operator === :eq || setindex!(rcd, string(x.operator), "operator")
     x.key === :none || setindex!(rcd, string(x.key), "key")
     x.value == "" || setindex!(rcd, x.value, "value")

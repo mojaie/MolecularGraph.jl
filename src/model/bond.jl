@@ -70,8 +70,9 @@ bond_order(b::SDFBond) = b.order
 
 StructUtils.structlike(::Type{SDFBond}) = false
 
+# Concrete value types (instead of Any) so that JSON writing is compilable with `juliac --trim`
 function StructUtils.lower(x::SDFBond)
-    rcd = Dict{String,Any}()
+    rcd = Dict{String,Union{Int,Bool}}()
     x.order == 1 || setindex!(rcd, x.order, "order")
     x.notation == 0 || setindex!(rcd, x.notation, "notation")
     x.isordered === true || setindex!(rcd, x.isordered, "isordered")
@@ -114,10 +115,10 @@ bond_order(b::SMILESBond) = b.order
 StructUtils.structlike(::Type{SMILESBond}) = false
 
 function StructUtils.lower(x::SMILESBond)
-    rcd = Dict{String,Any}()
+    rcd = Dict{String,Union{String,Int,Bool}}()
     x.order == 1 || setindex!(rcd, x.order, "order")
     x.isaromatic === false || setindex!(rcd, x.isaromatic, "isaromatic")
-    x.direction === :unspecified || setindex!(rcd, x.direction, "direction")
+    x.direction === :unspecified || setindex!(rcd, string(x.direction), "direction")
     return rcd
 end
 
@@ -157,7 +158,7 @@ bond_order(b::CommonChemBond) = b.type
 StructUtils.structlike(::Type{CommonChemBond}) = false
 
 function StructUtils.lower(x::CommonChemBond)
-    rcd = Dict{String,Any}()
+    rcd = Dict{String,Int}()
     x.type == 1 || setindex!(rcd, x.type, "bo")
     return rcd
 end

@@ -15,7 +15,7 @@ end
 Base.Tuple(x::Stereocenter) = (x.lookingFrom, x.first, x.second, x.isclockwise)
 Base.iterate(x::Stereocenter, state...) = iterate(Tuple(x), state...)
 Base.:(==)(x::Stereocenter, y::Union{Stereocenter,Tuple}) = Tuple(x) == Tuple(y)
-StructUtils.lower(x::Stereocenter) = collect(Tuple(x))
+StructUtils.lower(x::Stereocenter) = Tuple(x)  # written as a JSON array
 
 
 struct StereocenterMap{T<:Integer}
@@ -69,7 +69,7 @@ end
 Base.Tuple(x::Stereobond) = (x.first, x.second, x.is_cis)
 Base.iterate(x::Stereobond, state...) = iterate(Tuple(x), state...)
 Base.:(==)(x::Stereobond, y::Union{Stereobond,Tuple}) = Tuple(x) == Tuple(y)
-StructUtils.lower(x::Stereobond) = collect(Tuple(x))
+StructUtils.lower(x::Stereobond) = Tuple(x)  # written as a JSON array
 
 
 struct StereobondMap{T<:Integer}
@@ -132,7 +132,7 @@ Base.setindex!(x::Coords2d, v, k...) = setindex!(x.coords, v, k...)
 Base.empty!(x::Coords2d) = empty!(x.coords)
 
 StructUtils.structlike(::Type{Coords2d}) = false
-StructUtils.lower(x::Coords2d) = [[p...] for p in x.coords]
+StructUtils.lower(x::Coords2d) = [Float64[p[1], p[2]] for p in x.coords]
 StructUtils.lift(::Type{Coords2d}, x) = Coords2d([Point2d(p...) for p in x])
 
 function remap(
@@ -175,7 +175,7 @@ Base.setindex!(x::Coords3d, v, k...) = setindex!(x.coords, v, k...)
 Base.empty!(x::Coords3d) = empty!(x.coords)
 
 StructUtils.structlike(::Type{Coords3d}) = false
-StructUtils.lower(x::Coords3d) = [[p...] for p in x.coords]
+StructUtils.lower(x::Coords3d) = [Float64[p[1], p[2], p[3]] for p in x.coords]
 StructUtils.lift(::Type{Coords3d}, x) = Coords3d([Point3d(p...) for p in x])
 
 function remap(
