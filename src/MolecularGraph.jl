@@ -215,7 +215,8 @@ export query_containment_diagram, find_queries
 
 # Molecule drawing
 
-using Colors: RGB, RGBA, N0f8, hex, coloralpha
+import Colors
+using Colors: RGB, RGBA, N0f8, Colorant, hex, coloralpha
 import Statistics
 
 

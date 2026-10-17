@@ -16,6 +16,13 @@ function sympair(s)::Pair{Symbol, Union{String, Int}}
 end
 
 
+function intprop(props::Dict{Symbol,Union{String,Int}}, key::Symbol, default::Int)
+    v = get(props, key, default)
+    v isa Int || error("unsupported sdfile format - non-integer value of $(key)")
+    return v
+end
+
+
 function ctab_atom_v2(::Type{T}, line::AbstractString) where T <: AbstractElement
     xpos = parse(Float64, line[1:10])
     ypos = parse(Float64, line[11:20])
@@ -36,10 +43,10 @@ function ctab_atom_v3(::Type{T}, line::AbstractString) where T <: AbstractElemen
     ss = split(line)
     crds = parse.(Float64, ss[5:7])
     sym = ss[4]
-    props = Dict(sympair.(ss[9:end])...)
-    chg = get(props, :CHG, 0)
-    iso = get(props, :MASS, 0)
-    mul = get(props, :RAD, 1)
+    props = Dict{Symbol,Union{String,Int}}(sympair.(ss[9:end]))
+    chg = intprop(props, :CHG, 0)
+    iso = intprop(props, :MASS, 0)
+    mul = intprop(props, :RAD, 1)
     return T(sym, chg, mul, iso, crds)
 end
 
@@ -59,7 +66,7 @@ function ctab_bond_v3(
     d = Dict{String,Any}()
     ss = split(line)
     ord, u, v = parse.(T, ss[4:6])
-    props = Dict(sympair.(ss[7:end])...)
+    props = Dict{Symbol,Union{String,Int}}(sympair.(ss[7:end]))
     # d["notation"] = get(props, :CFG, 0)  # TODO: not compatible with v2
     isordered = u < v
     u, v = isordered ? (u, v) : (v, u)
@@ -246,7 +253,7 @@ function parse_options(io::IO)
         # Some inappropriate signs are accepted for practical use
         m = match(r">.*?<([\w -.%=/]+)>", line)
         if m !== nothing
-            lines = []
+            lines = String[]
             while true
                 line_ = readline(io)
                 line_ == "" && break
@@ -300,9 +307,11 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractMolGr
     catch e
         reader.unsupported === :error && throw(e)
         if e isa ErrorException  # Compatibility error
-            reader.unsupported === :log && @info "$(e.msg) (#$(state) in sdfilereader)"
+            m = e.msg
+            msg = m isa String ? m : "compatibility error"
+            reader.unsupported === :log && @info "$(msg) (#$(state) in sdfilereader)"
             nul = T()
-            nul[:logs]["error_sdfilereader"] = e.msg
+            nul[:logs]["error_sdfilereader"] = msg
             nul
         else
             throw(e)

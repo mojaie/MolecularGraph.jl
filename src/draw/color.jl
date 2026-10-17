@@ -3,6 +3,34 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+"""
+    parse_rgb(color) -> RGB{N0f8}
+
+Parse a color given as a hex code (e.g. `"#FFF"`, `"#FDD835"`), a CSS color name
+(e.g. `"white"`) or a `Colorant`.
+
+`Colors.parse` is not used because it cannot be compiled with `juliac --trim`.
+"""
+parse_rgb(color::Colorant) = convert(RGB{N0f8}, color)
+
+function parse_rgb(desc::AbstractString)
+    s = strip(desc)
+    hexcode = startswith(s, '#') ? s[2:end] : startswith(s, "0x") ? s[3:end] : s
+    if length(hexcode) in (3, 6) && all(isxdigit, hexcode)
+        d = parse(UInt32, hexcode; base=16)
+        if length(hexcode) == 3
+            r, g, b = ((d >> 8) & 0xF) * 0x11, ((d >> 4) & 0xF) * 0x11, (d & 0xF) * 0x11
+        else
+            r, g, b = (d >> 16) & 0xFF, (d >> 8) & 0xFF, d & 0xFF
+        end
+        return RGB{N0f8}(reinterpret(N0f8, UInt8(r)), reinterpret(N0f8, UInt8(g)), reinterpret(N0f8, UInt8(b)))
+    end
+    c = get(Colors.color_names, lowercase(s), nothing)
+    isnothing(c) && throw(ArgumentError("Unknown color: $(desc)"))
+    return RGB{N0f8}(reinterpret(N0f8, UInt8(c[1])), reinterpret(N0f8, UInt8(c[2])), reinterpret(N0f8, UInt8(c[3])))
+end
+
+
 # Default extended CPK theme for 2D atom symbol drawing
 
 const DEFAULT_ATOM_COLOR = Dict(k => RGB{N0f8}((v ./ 255)...) for (k, v) in Dict(

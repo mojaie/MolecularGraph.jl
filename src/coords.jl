@@ -12,11 +12,12 @@ function coords_from_sdf!(mol::SimpleMolGraph)
     # Embed 3D coords to 2D
     push!(
         mol[:descriptors].coords2d,
-        Coords2d([Point2d(mol[i].coords[1:2]...) for i in vertices(mol)]))
+        Coords2d([Point2d(mol[i].coords[1], mol[i].coords[2]) for i in vertices(mol)]))
     if zrange[2] - zrange[1] > 0.001  # 3D coords available
         push!(
             mol[:descriptors].coords3d,
-            Coords3d([Point3d(mol[i].coords[1:3]...) for i in vertices(mol)]))
+            Coords3d([Point3d(mol[i].coords[1], mol[i].coords[2], mol[i].coords[3])
+                for i in vertices(mol)]))
     end
     # Bond style in 2D notation (wedges)
     bondorder = [mol[e].order for e in edges(mol)]

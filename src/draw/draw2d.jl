@@ -101,11 +101,8 @@ function atom_markup_ordered(
         labeldir::Vector{Symbol}, chg::Vector{Int})
     arr = Vector{Vector{Tuple{Symbol,String}}}(undef, length(chg))
     for i in 1:length(chg)
-        if labeldir[i] === :left
-            arr[i] = vcat(reverse(atommarkup[i])...)
-        else
-            arr[i] = vcat(atommarkup[i]...)
-        end
+        groups = labeldir[i] === :left ? reverse(atommarkup[i]) : atommarkup[i]
+        arr[i] = collect(Tuple{Symbol,String}, Iterators.flatten(groups))
         if chg[i] != 0
             push!(arr[i], (:sup, chargesign(chg[i])))
         end
@@ -207,43 +204,43 @@ function trimbond_(uvis, vvis)
 end
 
 function singlebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond_(uvis, vvis)(Line(canvas.coords[[u, v]]...), canvas.trimoverlap)
+    seg = trimbond_(uvis, vvis)(Line(canvas.coords[u], canvas.coords[v]), canvas.trimoverlap)
     drawline!(canvas, seg, ucolor, vcolor)
     return
 end
 
 function wedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond_(uvis, vvis)(Line(canvas.coords[[u, v]]...), canvas.trimoverlap)
+    seg = trimbond_(uvis, vvis)(Line(canvas.coords[u], canvas.coords[v]), canvas.trimoverlap)
     drawwedge!(canvas, seg, ucolor, vcolor)
     return
 end
 
 function reversed_wedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond_(vvis, uvis)(Line(canvas.coords[[v, u]]...), canvas.trimoverlap)
+    seg = trimbond_(vvis, uvis)(Line(canvas.coords[v], canvas.coords[u]), canvas.trimoverlap)
     drawwedge!(canvas, seg, vcolor, ucolor)
     return
 end
 
 function dashedwedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond_(uvis, vvis)(Line(canvas.coords[[u, v]]...), canvas.trimoverlap)
+    seg = trimbond_(uvis, vvis)(Line(canvas.coords[u], canvas.coords[v]), canvas.trimoverlap)
     drawdashedwedge!(canvas, seg, ucolor, vcolor)
     return
 end
 
 function reversed_dashedwedged!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond_(vvis, uvis)(Line(canvas.coords[[v, u]]...), canvas.trimoverlap)
+    seg = trimbond_(vvis, uvis)(Line(canvas.coords[v], canvas.coords[u]), canvas.trimoverlap)
     drawdashedwedge!(canvas, seg, vcolor, ucolor)
     return
 end
 
 function wavesingle!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond_(uvis, vvis)(Line(canvas.coords[[u, v]]...), canvas.trimoverlap)
+    seg = trimbond_(uvis, vvis)(Line(canvas.coords[u], canvas.coords[v]), canvas.trimoverlap)
     drawwave!(canvas, seg, ucolor, vcolor)
     return
 end
 
 function doublebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond_(uvis, vvis)(Line(canvas.coords[[u, v]]...), canvas.trimoverlap)
+    seg = trimbond_(uvis, vvis)(Line(canvas.coords[u], canvas.coords[v]), canvas.trimoverlap)
     seg1 = translate(seg, pi / 2, canvas.mbwidth / 2)
     seg2 = translate(seg, -pi / 2, canvas.mbwidth / 2)
     drawline!(canvas, seg1, ucolor, vcolor)
@@ -252,7 +249,7 @@ function doublebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
 end
 
 function crossdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond_(uvis, vvis)(Line(canvas.coords[[u, v]]...), canvas.trimoverlap)
+    seg = trimbond_(uvis, vvis)(Line(canvas.coords[u], canvas.coords[v]), canvas.trimoverlap)
     cw = translate(seg, pi / 2, canvas.mbwidth / 2)
     ccw = translate(seg, -pi / 2, canvas.mbwidth / 2)
     drawline!(canvas, Line(cw[1], ccw[2]), ucolor, vcolor)
@@ -261,7 +258,7 @@ function crossdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
 end
 
 function ringdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis, direction)
-    seg = trimbond_(uvis, vvis)(Line(canvas.coords[[u, v]]...), canvas.trimoverlap)
+    seg = trimbond_(uvis, vvis)(Line(canvas.coords[u], canvas.coords[v]), canvas.trimoverlap)
     segin = trimbond_(!uvis, !vvis)(
         translate(seg, direction, canvas.mbwidth), canvas.triminner)
     drawline!(canvas, seg, ucolor, vcolor)
@@ -276,7 +273,7 @@ counterdouble!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis
     ) = ringdouble!(canvas, u, v, ucolor, vcolor, uvis, vvis, -pi / 2)
 
 function triplebond!(canvas::Canvas, u, v, ucolor, vcolor, uvis, vvis)
-    seg = trimbond_(uvis, vvis)(Line(canvas.coords[[u, v]]...), canvas.trimoverlap)
+    seg = trimbond_(uvis, vvis)(Line(canvas.coords[u], canvas.coords[v]), canvas.trimoverlap)
     seg1 = translate(seg, pi / 2, canvas.mbwidth)
     seg2 = translate(seg, -pi / 2, canvas.mbwidth)
     drawline!(canvas, seg, ucolor, vcolor)
@@ -308,6 +305,12 @@ function setbond!(
 end
 
 
+# Median without NaN check (Statistics.median is not compilable with `juliac --trim`)
+function median_(v::Vector{Float64})
+    s = sort(v)
+    n = length(s)
+    return isodd(n) ? s[(n + 1) ÷ 2] : (s[n ÷ 2] + s[n ÷ 2 + 1]) / 2
+end
 
 """
     normalize_coords(
@@ -343,7 +346,7 @@ function normalize_coords(
         long = max(width, height)
         unit = long > 0.0001 ? long / sqrt(nv(g)) : 1.0
     else
-        unit = Statistics.median(dists) # Median bond length
+        unit = median_(dists) # Median bond length
     end
     # extra offset for long text vertices
     sf = scalef / unit
@@ -421,7 +424,7 @@ end
 
 function sethighlight!(canvas::Canvas, edge_list::Vector{<:Edge}, color)
     for e in edge_list
-        seg = Line(canvas.coords[[src(e), dst(e)]]...)
+        seg = Line(canvas.coords[src(e)], canvas.coords[dst(e)])
         drawlinehighlight!(canvas, seg, color)
     end
 end

@@ -3,6 +3,9 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# Parsed once at load time (a format string parsed at runtime is not compilable with `juliac --trim`)
+const SDF_DATEFORMAT = Dates.DateFormat("mmddyyHHMM")
+
 const BOND_STYLE_TO_SDF = Dict(
     :none => 0,
     :up => 1,
@@ -123,7 +126,7 @@ function printv2mol(
     end
     # write
     program = "MGjlv$(string(VERSION.major)[end])$(string(VERSION.minor)[end-1:end])"
-    datetime = Dates.format(Dates.now(), "mmddyyHHMM")
+    datetime = Dates.format(Dates.now(), SDF_DATEFORMAT)
     println(io)
     println(io, "  $(program)$(datetime)2D            ")
     println(io)
