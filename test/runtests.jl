@@ -13,6 +13,11 @@ using LinearAlgebra: cross
 using Logging
 using MolecularGraph
 
+# Load weak dependencies to activate package extensions (CairoExt, MakieExt, RDKitExt)
+import Cairo
+import Makie
+import RDKitMinimalLib
+
 using MolecularGraph:
     combinations, sortstablemax, sortstablemin,
     logfactorial,
@@ -104,6 +109,9 @@ include("querycontainment.jl")
 include("./draw/base.jl")
 include("./draw/svg.jl")
 include("./draw/3d.jl")
+
+include("./ext/rdkit.jl")
+include("./ext/cairo.jl")
 
 end
 

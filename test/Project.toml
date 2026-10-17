@@ -11,3 +11,11 @@ Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 RDKitMinimalLib = "44044271-7623-48dc-8250-42433c44e4b7"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+Aqua = "0.8"
+Cairo = "1.1"
+Logging = "1"
+Makie = "0.24.15"
+RDKitMinimalLib = "1.2"
+Test = "1"

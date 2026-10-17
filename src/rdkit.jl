@@ -93,74 +93,7 @@ end
 
 Convert the molecule object into `Dict` in RDKit compatible CommonChem JSON format.
 """
-function to_rdkdict(mol::SimpleMolGraph)
-    data = Dict{String,Any}(
-        "commonchem" => Dict("version" => 10),
-        "defaults" => Dict(
-            "atom" => Dict(
-                "z" => 6,
-                "impHs" => 0,
-                "chg" => 0,
-                "nRad" => 0,
-                "isotope" => 0,
-                "stereo" => "unspecified"
-            ),
-            "bond" => Dict(
-                "bo" => 1,  # `type`` in CommonChem specification
-                "stereo" => "unspecified"
-            )
-        ),
-        "molecules" => [Dict(
-            "atoms" => [],
-            "bonds" => [],
-            "extensions" => [Dict(
-                "name" => "rdkitRepresentation",
-                "formatVersion" => 2,
-                "toolkitVersion" => "2022.09.5"
-            )]
-        )]
-    )
-    atomnum = atom_number(mol)
-    implh = implicit_hydrogens(mol)
-    chg = atom_charge(mol)
-    mul = multiplicity(mol)
-    iso = isotope(mol)
-    for i in vertices(mol)
-        rcd = Dict{String,Any}()
-        atomnum[i] == 6 || (rcd["z"] = atomnum[i])
-        implh[i] == 0 || (rcd["impHs"] = implh[i])
-        chg[i] == 0 || (rcd["chg"] = chg[i])
-        mul[i] == 1 || (rcd["nRad"] = mul[i] - 1)
-        iso[i] == 0 || (rcd["isotope"] = iso[i])
-        if haskey(mol[:stereocenter], i)
-            center = mol[:stereocenter][i]
-            nbrs = ordered_neighbors(mol, i)
-            rcd["stereo"] = isclockwise(center, nbrs[1:3]...) ? "cw" : "ccw"
-        end
-        push!(data["molecules"][1]["atoms"], rcd)
-    end
-    bondorder = bond_order(mol)
-    for (i, e) in enumerate(edges(mol))
-        rcd = Dict{String,Any}(
-            "atoms" => [src(e) - 1, dst(e) - 1]
-        )
-        bondorder[i] == 1 || (rcd["bo"] = bondorder[i])
-        if haskey(mol[:stereobond], e)
-            v1, v2, is_cis = mol[:stereobond][e]
-            rcd["stereoAtoms"] = [v1 - 1, v2 - 1]
-            rcd["stereo"] = is_cis ? "cis" : "trans"
-        end
-        push!(data["molecules"][1]["bonds"], rcd)
-    end
-    data["molecules"][1]["conformers"] = []
-    # Wedges cannot be preserved. Use coordgen to generate 2D coords manually
-    for crds in mol[:descriptors].coords3d
-        push!(
-            data["molecules"][1]["conformers"],
-            Dict("dim" => 3, "coords" => [[p...] for p in crds]))
-    end
-    return data
-end
+to_rdkdict(mol::SimpleMolGraph) = JSON.parse(to_rdkjson(mol); dicttype=Dict{String,Any})
 
 
 """
@@ -168,7 +101,80 @@ end
 
 Convert the molecule object into RDKit compatible CommonChem JSON text.
 """
-to_rdkjson(x) = JSON.json(to_rdkdict(x))
+function to_rdkjson(mol::SimpleMolGraph)
+    io = IOBuffer()
+    write_rdkjson(io, mol)
+    return String(take!(io))
+end
+
+# The JSON text is written directly with concrete types
+# (serializing `Dict{String,Any}` is not compilable with `juliac --trim`).
+function write_rdkjson(io::IO, mol::SimpleMolGraph)
+    print(io, """{"commonchem":{"version":10},""")
+    print(io, """"defaults":{"atom":{"z":6,"impHs":0,"chg":0,"nRad":0,"isotope":0,"stereo":"unspecified"},""")
+    print(io, """"bond":{"bo":1,"stereo":"unspecified"}},""")  # `bo` is `type` in CommonChem specification
+    print(io, """"molecules":[{"atoms":[""")
+    atomnum = atom_number(mol)
+    implh = implicit_hydrogens(mol)
+    chg = atom_charge(mol)
+    mul = multiplicity(mol)
+    iso = isotope(mol)
+    for i in vertices(mol)
+        i == 1 || print(io, ",")
+        print(io, "{")
+        sep = ""  # separator between members
+        if atomnum[i] != 6
+            print(io, sep, "\"z\":", atomnum[i]); sep = ","
+        end
+        if implh[i] != 0
+            print(io, sep, "\"impHs\":", implh[i]); sep = ","
+        end
+        if chg[i] != 0
+            print(io, sep, "\"chg\":", chg[i]); sep = ","
+        end
+        if mul[i] != 1
+            print(io, sep, "\"nRad\":", mul[i] - 1); sep = ","
+        end
+        if iso[i] != 0
+            print(io, sep, "\"isotope\":", iso[i]); sep = ","
+        end
+        if haskey(mol[:stereocenter], i)
+            center = mol[:stereocenter][i]
+            nbrs = ordered_neighbors(mol, i)
+            cw = isclockwise(center, nbrs[1], nbrs[2], nbrs[3])
+            print(io, sep, "\"stereo\":\"", cw ? "cw" : "ccw", "\"")
+        end
+        print(io, "}")
+    end
+    print(io, "],\"bonds\":[")
+    bondorder = bond_order(mol)
+    for (i, e) in enumerate(edges(mol))
+        i == 1 || print(io, ",")
+        print(io, "{\"atoms\":[", src(e) - 1, ",", dst(e) - 1, "]")
+        bondorder[i] == 1 || print(io, ",\"bo\":", bondorder[i])
+        if haskey(mol[:stereobond], e)
+            v1, v2, is_cis = mol[:stereobond][e]
+            print(io, ",\"stereoAtoms\":[", v1 - 1, ",", v2 - 1, "]")
+            print(io, ",\"stereo\":\"", is_cis ? "cis" : "trans", "\"")
+        end
+        print(io, "}")
+    end
+    print(io, "],")
+    print(io, """"extensions":[{"name":"rdkitRepresentation","formatVersion":2,"toolkitVersion":"2022.09.5"}],""")
+    # Wedges cannot be preserved. Use coordgen to generate 2D coords manually
+    print(io, "\"conformers\":[")
+    for (k, crds) in enumerate(mol[:descriptors].coords3d)
+        k == 1 || print(io, ",")
+        print(io, "{\"dim\":3,\"coords\":[")
+        for (n, p) in enumerate(crds)
+            n == 1 || print(io, ",")
+            print(io, "[", p[1], ",", p[2], ",", p[3], "]")
+        end
+        print(io, "]}")
+    end
+    print(io, "]}]}")
+    return
+end
 
 
 """
