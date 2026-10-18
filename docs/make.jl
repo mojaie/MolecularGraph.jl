@@ -1,8 +1,3 @@
-
-using Pkg
-Pkg.develop(PackageSpec(path=pwd()))
-Pkg.instantiate()
-
 using Documenter, MolecularGraph
 
 
@@ -15,7 +10,12 @@ makedocs(
             "Concepts" => "basics/concepts.md",
             "Core functions" => "basics/core.md",
             "Properties and descriptors" => "basics/properties.md",
-            "Drawing" => "basics/drawing.md"
+            "Drawing molecules" => "basics/drawing.md",
+            "Preprocessing" => "basics/preprocessing.md",
+            "Stereochemistry" => "basics/stereo.md",
+            "Mass and isotopes" => "basics/mass.md",
+            "Substructure and query" => "basics/substructure.md",
+            "Maximum common substructure" => "basics/mcs.md"
         ],
         "Advanced topics" => [
             "Interfaces" => "advanced/interface.md",
@@ -40,7 +40,11 @@ makedocs(
         "Miscellaneous" => "misc.md"
     ],
     format = Documenter.HTML(
-        prettyurls = get(ENV, "CI", nothing) == "true"
+        prettyurls = get(ENV, "CI", nothing) == "true",
+        # tutorial pages embed structure images as inline SVG
+        size_threshold = 500 * 2^10,
+        size_threshold_warn = 250 * 2^10,
+        example_size_threshold = 64 * 2^10
     )
 )
 

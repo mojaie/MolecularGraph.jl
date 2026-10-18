@@ -1,10 +1,19 @@
 
 # Concept of molecular graph models
 
+This page describes the basic concepts of the molecular graph model in MolecularGraph.jl.
 
-### Scope of MolecularGraph.jl
+- Scope of MolecularGraph.jl
+- Considerations in molecular graph implementation
+- Basic operations provided by the Graphs.jl interface
+- MolGraph type and atom/bond properties
+- Molecule metadata (e.g. SDFile option block)
+- Auto-update mechanism of properties
 
-MolecularGraph.jl mainly targets on small organic molecules that we deal with in medicinal chemistry. In particular, MolecularGraph.jl deals with a subset of graphs with the following characteristics:
+
+## Scope of MolecularGraph.jl
+
+MolecularGraph.jl mainly targets small organic molecules that we deal with in medicinal chemistry. In particular, MolecularGraph.jl deals with a subset of graphs with the following characteristics:
 
 - Undirected graph
 - Simple graph, that means no self-loops and multi-edges
@@ -14,22 +23,245 @@ MolecularGraph.jl mainly targets on small organic molecules that we deal with in
 - Vertices, edges and the graph itself have multiple properties (attributes) e.g. atom symbol, bond order and metadata of the molecule
 - Properties have interactions. That means changes in graph topology and vertex/edge properties can affect other vertex/edge properties.
 
-Therefore, following molecules are not supported and may be better to use other appropriate models.
+Therefore, the following molecules are not supported and other appropriate models may be better suited.
 
 - Inorganic molecules
 - Bio/synthetic polymers
 
 
-### Considerations in molecular graph implementation
+## Considerations in molecular graph implementation
 
 According to the characteristics shown above,
 
-- Some of the graph algorithm functions in this library do not support some of general graph structure. For example, self-loops and multi-edges are not considered.
-- Graph algorithm implementations for general graphs are not always optimal for molecular graphs as well. Even well-known implementations such as deposited to Graph.jl may be reimplemented depending on benchmark results.
+- Some of the graph algorithm functions in this library do not support some general graph structures. For example, self-loops and multi-edges are not considered.
+- Graph algorithm implementations for general graphs are not always optimal for molecular graphs. Even well-known implementations such as those in Graphs.jl may be reimplemented depending on benchmark results.
 - The properties of nodes and edges in molecular graphs are very different from the attributes like distances and labels in general graphs. At this time, MolecularGraph.jl does not depend on MetaGraphs.jl or MetaGraphsNext.jl and has its own data structure to deal with propagation and interaction of molecular graph properties.
 
 
-### Auto-update mechanism of properties
+## Basic operations provided by the Graphs.jl interface
+
+The main abstract type of molecular graph models, `SimpleMolGraph`, is a subtype of `Graphs.AbstractGraph` and has a `Graphs.SimpleGraph` inside to store the graph structure of the molecule. The common Graphs.jl interface can be used to access the graph structure.
+
+```@example concepts
+using MolecularGraph, Graphs
+
+mol = smilestomol("CC(=O)OC1=CC=CC=C1C(=O)O")  # aspirin
+```
+
+```@example concepts
+nv(mol)  # number of vertices (atoms)
+```
+
+```@example concepts
+ne(mol)  # number of edges (bonds)
+```
+
+```@example concepts
+vertices(mol)
+```
+
+```@example concepts
+collect(edges(mol))
+```
+
+The drawing functions (e.g. [`drawsvg`](@ref) and [`html_fixed_size`](@ref)) have the `atomindex=true` option to display vertex indices.
+
+```@example concepts
+html_fixed_size(mol, 250, 250, atomindex=true)
+```
+
+```@example concepts
+neighbors(mol, 2)
+```
+
+```@example concepts
+has_edge(mol, 4, 5)
+```
+
+`rem_vertex!(mol, v)` removes the vertex `v` and re-indexes the last vertex as `v`, as `Graphs.rem_vertex!(g, v)` does.
+
+```@example concepts
+mol1 = copy(mol)
+rem_vertex!(mol1, 1)
+html_fixed_size(mol1, 250, 250, atomindex=true)
+```
+
+`rem_vertices!(mol, vs)` removes multiple vertices and returns the vertex map (`vmap[new_index] == old_index`).
+
+```@example concepts
+mol2 = copy(mol)
+vmap = rem_vertices!(mol2, [1, 2, 3])  # remove the acetyl group
+println(vmap)
+html_fixed_size(mol2, 250, 250, atomindex=true)
+```
+
+```@example concepts
+mol3 = copy(mol)
+rem_edge!(mol3, 2, 4)
+html_fixed_size(mol3, 250, 250, atomindex=true)
+```
+
+`add_vertex!(mol, atom)` and `add_edge!(mol, u, v, bond)` add a new vertex (atom) and a new edge (bond), respectively.
+
+- The atom and bond property types correspond to the molecule input format (e.g. SDFile => [`SDFAtom`](@ref) and [`SDFBond`](@ref), SMILES => [`SMILESAtom`](@ref) and [`SMILESBond`](@ref)).
+- Atom and bond attributes can be specified by keyword arguments. The defaults are as follows:
+  - `SDFAtom(; symbol=:C, charge=0, multiplicity=1, isotope=0, coords=nothing)`
+  - `SDFBond(; order=1, notation=0, isordered=true)`
+  - `SMILESAtom(; symbol=:C, charge=0, multiplicity=1, isotope=0, isaromatic=false, stereo=:unspecified)`
+  - `SMILESBond(; order=1, isaromatic=false, direction=:unspecified)`
+- The 2D coordinates can be regenerated by [`coordgen!`](@ref) after the structure has been modified.
+
+```@example concepts
+disconn = copy(mol)
+rem_edge!(disconn, 2, 4)
+add_vertex!(disconn, SMILESAtom(symbol=:Cl))
+add_edge!(disconn, 2, 14, SMILESBond())
+coordgen!(disconn)  # recalculate 2D coordinates for the new vertex
+html_fixed_size(disconn, 250, 250, atomindex=true)
+```
+
+Atom and bond properties can be obtained by indexing: `mol[i]` for the atom `i` and `mol[u, v]` (or `mol[e]` with `e::Edge`) for the bond between `u` and `v`.
+
+```@example concepts
+disconn[14]
+```
+
+```@example concepts
+disconn[2, 3]
+```
+
+Assigning a new atom or bond object by `mol[i] = atom` or `mol[u, v] = bond` replaces the properties of an existing vertex or edge.
+
+```@example concepts
+disconn2 = copy(disconn)
+disconn2[13] = SMILESAtom(symbol=:N)
+html_fixed_size(disconn2, 250, 250, atomindex=true)
+```
+
+The `graph` field of the molecule (i.e. `mol.graph`) can be used to access the graph structure (`SimpleGraph`) directly. The `vprops` and `eprops` fields store vertex and edge properties, but direct access to these fields is not recommended. Please use the indexing accessors shown above to keep consistency between atom/bond properties and the calculated properties (descriptors; see [Properties and descriptors](@ref) for details).
+
+```@example concepts
+connected_components(disconn.graph)  # Graphs.connected_components
+```
+
+```@example concepts
+induced_subgraph(disconn.graph, [1, 2, 3, 14])  # Graphs.induced_subgraph
+```
+
+- Some functions in Graphs.jl work correctly with molecular graph objects as arguments (e.g. `connected_components(mol)`), but this is not guaranteed.
+- Some functions work differently depending on whether the argument is `mol` or `mol.graph`. For example, `induced_subgraph(mol.graph, nodes_or_edges)` returns a `SimpleGraph` object whereas `induced_subgraph(mol, nodes_or_edges)` returns a molecule object (with the vertex map in both cases).
+
+```@example concepts
+subg, vmap = induced_subgraph(disconn, [1, 2, 3, 14])
+subg
+```
+
+
+## MolGraph type and atom/bond properties
+
+The default data type of molecules generated from SMILES, SMARTS or SDFiles is the parametric type [`MolGraph`](@ref)`{T,V,E,S}`.
+
+- `T` comes from `SimpleGraph{T}`, so this is typically `Int64`.
+- `V` is the atom (vertex) property type. By default, this depends on the input data format (e.g. `SMILESAtom`, `SDFAtom`).
+- Similarly, `E` is the bond (edge) property type.
+- `S` is the type of the internal state that holds the callbacks of the property auto-update mechanism (see below).
+- `T`, `V` and `E` can be obtained by `eltype`, [`vproptype`](@ref) and [`eproptype`](@ref), respectively.
+- For convenience, the type aliases `SMILESMolGraph` (`MolGraph{Int,SMILESAtom,SMILESBond}`) and `SDFMolGraph` (`MolGraph{Int,SDFAtom,SDFBond}`) are provided.
+
+```@example concepts
+typeof(mol)
+```
+
+```@example concepts
+eltype(mol)
+```
+
+```@example concepts
+vproptype(mol)
+```
+
+```@example concepts
+eproptype(mol)
+```
+
+Each field of the atom and bond objects can be accessed by `atom[:field]` (equivalent to `getproperty`).
+
+```@example concepts
+mol[5]
+```
+
+`isaromatic` here means explicit aromaticity represented as lowercase letters in SMILES. Actual aromaticity is calculated automatically as a descriptor (see [Properties and descriptors](@ref)).
+
+```@example concepts
+smilestomol("CC(=O)Oc1ccccc1C(=O)O")[5]
+```
+
+```@example concepts
+mol[12][:symbol]
+```
+
+```@example concepts
+mol[2, 3]
+```
+
+```@example concepts
+mol[2, 3][:order]
+```
+
+Generic accessor functions such as [`atom_symbol`](@ref) and [`bond_order`](@ref) work regardless of the concrete atom/bond types.
+
+```@example concepts
+atom_symbol(mol[12]), bond_order(mol[2, 3])
+```
+
+- The default atom/bond types are immutable. This is intended to keep referential transparency and to obtain reproducible results with the automatic property update mechanism described later.
+- If you really need custom atoms and bonds, you can define your own types that inherit `AbstractAtom` and `AbstractBond` (see [Customize atom and bond properties](@ref)).
+
+Let's see a molecule created from an SDFile. The file was downloaded from [PubChem](https://pubchem.ncbi.nlm.nih.gov/compound/6437877) (Cefditoren Pivoxil, CID 6437877).
+
+```@example concepts
+datadir = joinpath(pkgdir(MolecularGraph), "docs", "src", "assets", "data")
+sdfmol = sdftomol(joinpath(datadir, "Cefditoren Pivoxil.mol"))
+remove_hydrogens!(sdfmol)
+html_fixed_size(sdfmol, 350, 350, atomindex=true)
+```
+
+```@example concepts
+typeof(sdfmol)
+```
+
+```@example concepts
+sdfmol[14]
+```
+
+```@example concepts
+sdfmol[15, 40]
+```
+
+
+## Molecule metadata (e.g. SDFile option block)
+
+SDFiles can have metadata records (so-called "options" or data items) which are stored in `mol.gprops.metadata` as `String`s. Dict-like accessors are available for the metadata.
+
+```@example concepts
+haskey(sdfmol, "PUBCHEM_COMPOUND_CID")
+```
+
+```@example concepts
+sdfmol["PUBCHEM_COMPOUND_CID"]
+```
+
+```@example concepts
+sdfmol["valid"] = "1"
+sdfmol["valid"]
+```
+
+```@example concepts
+first(keys(sdfmol[:metadata]), 5)  # all metadata keys (first 5 shown)
+```
+
+
+## Auto-update mechanism of properties
 
 The following are examples of properties often considered and implemented in molecular graph models
 
@@ -46,15 +278,15 @@ The following are examples of properties often considered and implemented in mol
 - graph properties
   - metadata e.g. name, compound ID
 
-What is important is that these properties can have interactions. In other words, many of the vertex/edge properties depend on other properties in the vertex/edge or adjacent vertexes/edges. This also means that removal or addition of vertices/edges or changes in graph topology can affect individual properties.
+What is important is that these properties can have interactions. In other words, many of the vertex/edge properties depend on other properties in the vertex/edge or adjacent vertices/edges. This also means that removal or addition of vertices/edges or changes in graph topology can affect individual properties.
 
-To reduce this kind of side-effects, keep consistency and obtain reproducible results, molecule properties in this library is implemented based on following categories.
+To reduce this kind of side effect, keep consistency and obtain reproducible results, molecule properties in this library are implemented based on the following categories.
 
 - primary property, or simply 'property': Information on atom symbol, charges, bond orders, etc. that define the molecule obtained from SMILES, SDFile or databases.
-- secondary property, or 'descriptor': Properties that depend on primary properties and graph topology. Methods to generate secondary properties are required to be 'pure function'. That means these methods should take only graph object (SimpleGraph) and primary property vector as arguments and should not alter objects outside the method.
+- secondary property, or 'descriptor': Properties that depend on primary properties and graph topology. Methods to generate secondary properties are required to be 'pure functions'. That means these methods should take only the graph object (SimpleGraph) and primary property vectors as arguments and should not alter objects outside the method.
 
-(Note that these terms are not common technical terms. Just for implementation convenience, they are categorized as above.)
+(Note that these terms are not common technical terms. They are categorized as above just for implementation convenience.)
 
-Primary properties are stored in atom/bond property objects (e.g. SMILESAtom). On the other hand, secondary properties are calculated ad-hoc, or called from caches (stored in MolGraph.state field) if it is considered to be expensive and frequently called.
+Primary properties are stored in atom/bond property objects (e.g. `SMILESAtom`). On the other hand, secondary properties are calculated ad hoc, or retrieved from caches (stored in `mol.gprops.descriptors`) if they are considered to be expensive and frequently called.
 
-If primary properties or graph topology were changed (e.g. remove vertices), the molecule object is marked as `:has_updates`, and recalculated with a pre-defined routine (see preprocessing tutorial for details) when the next time the secondary property is called.
+If primary properties or graph topology are changed (e.g. vertices are removed), the molecule object is marked as having updates (the `has_updates` flag in `mol.state`), and the cached descriptors are recalculated with a pre-defined routine when a secondary property is requested the next time (see [Preprocessing](preprocessing.md) for details).

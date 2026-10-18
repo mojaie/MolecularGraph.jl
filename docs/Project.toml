@@ -1,6 +1,7 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 MolecularGraph = "6c89ec66-9cd8-5372-9f91-fabc50dd27fd"
 
 [sources]
-MolecularGraph = {path = "/Users/riken/Workspace/MolecularGraph.jl"}
+MolecularGraph = {path = ".."}

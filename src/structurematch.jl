@@ -496,6 +496,11 @@ function disconnected_mcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...
     return maximum_common_subgraph(mol1, mol2; kwargs...)
 end
 
+"""
+    disconnected_mces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...) -> (Dict, Symbol)
+
+Edge-induced version (MCES) of [`disconnected_mcis`](@ref).
+"""
 function disconnected_mces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     mol1 = mces_constraints(mol1)
     mol2 = mces_constraints(mol2)
@@ -522,6 +527,11 @@ function connected_mcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     return maximum_common_subgraph(mol1, mol2, connected=true; kwargs...)
 end
 
+"""
+    connected_mces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...) -> (Dict, Symbol)
+
+Edge-induced version (MCES) of [`connected_mcis`](@ref).
+"""
 function connected_mces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     mol1 = mces_constraints(mol1)
     mol2 = mces_constraints(mol2)
@@ -557,6 +567,11 @@ function tdmcis(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     return maximum_common_subgraph(mol1, mol2; kwargs...)
 end
 
+"""
+    tdmces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...) -> (Dict, Symbol)
+
+Edge-induced version (MCES) of [`tdmcis`](@ref).
+"""
 function tdmces(mol1::SimpleMolGraph, mol2::SimpleMolGraph; kwargs...)
     mol1 = tdmces_constraints(mol1; kwargs...)
     mol2 = tdmces_constraints(mol2; kwargs...)

@@ -9,57 +9,29 @@
 ## Installation
 
 ```
-(@v1.8) pkg> add MolecularGraph
+pkg> add MolecularGraph
 ```
 
 
 ## Usage
 
-See [Pluto.jl notebook tutorials](https://github.com/mojaie/MolecularGraph.jl_notebook)
+- [Getting Started](@ref): read molecules, draw structures, calculate properties and search substructures
+- Basics
+  - [Concept of molecular graph models](@ref): scope, graph operations, atom and bond properties
+  - [Core functions](@ref)
+  - [Properties and descriptors](@ref): built-in properties and the auto-update mechanism
+  - [Drawing molecules](@ref): 2D structure images (SVG/PNG), 2D coordinates and 3D rendering
+  - [Preprocessing](basics/preprocessing.md): hydrogens, components, charges, resonance structures and custom updaters
+  - [Stereochemistry](basics/stereo.md)
+  - [Mass and isotopes](@ref): molecular weight, exact mass, isotopic composition and mass spectra
+  - [Substructure and query](@ref): substructure match, InChI, SMARTS queries and structural alerts
+  - [Maximum common substructure](@ref): MCIS, MCES and topological constraints (tdMCS)
+- Advanced topics
+  - [MolecularGraph interfaces](@ref)
+  - [Customize atom and bond properties](@ref)
 
-- [Getting started](https://mojaie.github.io/MolecularGraph.jl_notebook/getting_started.jl.html)
-- [Molecular graph basics](https://mojaie.github.io/MolecularGraph.jl_notebook/molecular_graph_basics.jl.html)
-  - Scope of MolecularGraph.jl
-  - Considerations in molecular graph implementation
-  - Basic operations provided by Graphs.jl interface
-  - MolGraph type and atom/bond properties
-- [Properties and descriptors](https://mojaie.github.io/MolecularGraph.jl_notebook/properties_and_descriptors.jl.html)
-  - Built-in molecule properties and descriptors
-    - Lipinski's Rule of five (RO5)
-    - Molecular formula
-    - Atom and bond properties
-    - Graph topology (ring and fused ring)
-  - Auto-update mechanism of properties
-- [Preprocessing](https://mojaie.github.io/MolecularGraph.jl_notebook/preprocessing.jl.html)
-  - Remove hydrogen vertices
-  - Extract molecules of interest
-  - Standardize charges
-  - Dealing with resonance structure
-  - Customize property updater
-- [Mass and isotopes](https://mojaie.github.io/MolecularGraph.jl_notebook/mass_and_isotopes.jl.html)
-  - Molecular weight and exact mass
-  - Uncertainty
-  - Isotopic composition
-  - Simulate mass spectrum
-- [Substructure and query](https://mojaie.github.io/MolecularGraph.jl_notebook/substructure_and_query.jl.html)
-  - Substructure match
-  - InChI and InChIKey
-  - SMARTS query
-  - Structural alerts (e.g. PAINS)
-  - Functional group analysis
-  - Query containment
-- [Maximum common substructure (MCS)](https://mojaie.github.io/MolecularGraph.jl_notebook/maximum_common_substructure.jl.html)
-  - Maximum common induced substructure (MCIS)
-  - Maximum common edge-induced substructure (MCES)
-  - Connected or disconnected MCS
-  - Working with larger molecules
-  - Topological constraint (tdMCS)
-- [Drawing molecule](https://mojaie.github.io/MolecularGraph.jl_notebook/drawing_molecule.jl.html)
-  - Settings of 2D structure images
-    - Change image size
-    - Layout for web and Pluto notebook
-  - Regenerate 2D coordinates
-  - 3D molecule rendering using Makie.jl
+Interactive [Pluto.jl notebook tutorials](https://github.com/mojaie/MolecularGraph.jl_notebook)
+are also available (some of them are based on older versions).
 
 
 ## License
