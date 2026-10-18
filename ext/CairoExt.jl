@@ -138,8 +138,9 @@ function MolecularGraph.drawpng(io::IO, mol::SimpleMolGraph, width::Int, height:
     for e in bondhighlight
         push!(enodes, src(e), dst(e))
     end
-	nodes_to_show = collect(setdiff(
-        atomhighlight, setdiff(enodes, findall(is_atom_visible(mol)))))
+    isvisible = is_atom_visible(mol; kwargs...)  # same `show_carbon` as draw2d!
+    nodes_to_show = collect(setdiff(
+        atomhighlight, setdiff(enodes, findall(isvisible))))
     # set highlights behind the elements.
     op = Cairo.get_operator(canvas.context)  # Cairo.OPERATOR_OVER
     Cairo.set_operator(canvas.context, Cairo.OPERATOR_MULTIPLY)  
@@ -150,7 +151,7 @@ function MolecularGraph.drawpng(io::IO, mol::SimpleMolGraph, width::Int, height:
     pat = Cairo.pop_group(canvas.context)  # explicitly binds a valiable 'pat'
     Cairo.set_source(canvas.context, pat)
     Cairo.paint(canvas.context)
-    atomindex && drawatomindex!(canvas, is_atom_visible(mol), MolecularGraph.parse_rgb(indexcolor), MolecularGraph.parse_rgb(indexbgcolor))
+    atomindex && drawatomindex!(canvas, isvisible, MolecularGraph.parse_rgb(indexcolor), MolecularGraph.parse_rgb(indexbgcolor))
     Cairo.write_to_png(canvas.surface, io)
     Cairo.finish(canvas.surface)
     return

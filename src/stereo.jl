@@ -33,7 +33,7 @@ end
 
 
 """
-    set_stereocenter!(mol::SimpleMolGraph, center, looking_from, v1, v2, is_clockwise)
+    set_stereocenter!(mol::SimpleMolGraph, center, looking_from, v1, v2, is_clockwise) -> Nothing
 
 Set stereocenter information to graph properties.
 """
@@ -41,17 +41,19 @@ function set_stereocenter!(
         mol::SimpleMolGraph{T}, center::T,
         looking_from::T, v1::T, v2::T, is_clockwise::Bool) where T
     mol[:stereocenter][center] = Stereocenter{T}(looking_from, v1, v2, is_clockwise)
+    return
 end
 
 
 """
-    set_stereobond!(mol::SimpleMolGraph, bond::Edge, v1, v2, is_cis::Bool)
+    set_stereobond!(mol::SimpleMolGraph, bond::Edge, v1, v2, is_cis::Bool) -> Nothing
 
 Set stereobond (cis-trans) information to graph properties.
 """
 function set_stereobond!(
         mol::SimpleMolGraph{T}, bond::Edge{T}, v1::T, v2::T, is_cis::Bool) where T
     mol[:stereobond][bond] = Stereobond{T}(v1, v2, is_cis)
+    return
 end
 
 

@@ -128,11 +128,12 @@ function drawsvg(mol::SimpleMolGraph;
     for e in bondhighlight
         push!(enodes, src(e), dst(e))
     end
-	nodes_to_show = collect(setdiff(
-        atomhighlight, setdiff(enodes, findall(is_atom_visible(mol)))))
+    isvisible = is_atom_visible(mol; kwargs...)  # same `show_carbon` as draw2d!
+    nodes_to_show = collect(setdiff(
+        atomhighlight, setdiff(enodes, findall(isvisible))))
     sethighlight!(canvas, nodes_to_show, parse_rgb(highlightcolor))
     sethighlight!(canvas, bondhighlight, parse_rgb(highlightcolor))
-    atomindex && drawatomindex!(canvas, is_atom_visible(mol), parse_rgb(indexcolor), parse_rgb(indexbgcolor))
+    atomindex && drawatomindex!(canvas, isvisible, parse_rgb(indexcolor), parse_rgb(indexbgcolor))
     return tosvg(canvas; kwargs...)
 end
 

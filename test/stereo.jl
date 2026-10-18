@@ -40,6 +40,15 @@ end
     @test JSON.parse(dump, StereobondMap{Int}) == prop.stereobond
 end
 
+@testset "set_stereo" begin
+    mol = smilestomol("N[C@@H](C)C(=O)O")
+    @test isnothing(MolecularGraph.set_stereocenter!(mol, 2, 1, 3, 4, true))
+    @test mol[:stereocenter][2] == Stereocenter(1, 3, 4, true)
+    mol = smilestomol("C/C=C/C")
+    @test isnothing(MolecularGraph.set_stereobond!(mol, Edge(2 => 3), 1, 4, true))
+    @test mol[:stereobond][Edge(2 => 3)] == Stereobond(1, 4, true)
+end
+
 @testset "stereo_hydrogen" begin
     # safe_remove_hydrogen! is already applied
     LAla1 = smilestomol("N[C@@H](C)C(=O)O")

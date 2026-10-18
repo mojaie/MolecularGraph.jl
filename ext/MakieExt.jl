@@ -147,11 +147,11 @@ function MolecularGraph.stick!(args...; size=DEFAULT_STICK_DIAMETER, kwargs...)
 end
 
 function MolecularGraph.wire(args...; size=DEFAULT_WIRE_DIAMETER, kwargs...)
-    moldisplay(args...; bondwidth=size, showatoms=false, multiplebonds=true, kwargs...)
+    moldisplay(args...; bonddiameter=size, showatoms=false, multiplebonds=true, kwargs...)
 end
 
 function MolecularGraph.wire!(args...; size=DEFAULT_WIRE_DIAMETER, kwargs...)
-    moldisplay!(args...; bondwidth=size, showatoms=false, multiplebonds=true, kwargs...)
+    moldisplay!(args...; bonddiameter=size, showatoms=false, multiplebonds=true, kwargs...)
 end
 
 

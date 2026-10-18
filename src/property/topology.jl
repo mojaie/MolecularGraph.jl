@@ -219,7 +219,7 @@ Intended for a MMP derivative.
 """
 function scaffold_fragments(g::SimpleGraph)
     bms = bmscaffold(g)
-    isempty(bms) && return scaffolds  # no scaffold
+    isempty(bms) && return Vector{Int}[], SimpleDiGraph{Int}()  # no scaffold
     queue = [bms]  # BFS
     scaffolds = Vector{Int}[bms]
     dag = SimpleDiGraph{Int}(1)  # fragmentation relationship (parent -> child)

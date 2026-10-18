@@ -311,8 +311,8 @@ function simulate_massspec(
     return hcat(arr, superposed.(arr))
 end
 
-simulate_massspec(mol::SimpleMolGraph; kwargs...
-    ) = simulate_massspec(massspec_peaks(mol; kwargs...); kwargs...)
+simulate_massspec(mol::SimpleMolGraph; threshold=0.001, kwargs...
+    ) = simulate_massspec(massspec_peaks(mol; threshold=threshold); kwargs...)
 
 
 

@@ -49,6 +49,10 @@
         svg = drawsvg(mol; atomindex=true)
         @test count("<g>", svg) == nv(mol)
         @test EzXML.nodename(EzXML.root(EzXML.parsexml(svg))) == "svg"
+        # carbon labels
+        nc = count(==(:C), atom_symbol(mol))
+        @test count("<text", drawsvg(mol; show_carbon=:all)) == count("<text", default) + nc
+        @test count("<g>", drawsvg(mol; show_carbon=:all, atomindex=true)) == nv(mol)
         # fixed size
         svg = drawsvg(mol; viewbox=false)
         @test !occursin("viewBox", svg)

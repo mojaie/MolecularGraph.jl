@@ -40,6 +40,10 @@ end
     @test length(isotopic_composition(:H, 1000; threshold=0.01)) == 2
     @test length(isotopic_composition(smilestomol("CCl"))) == 4
     # display(simulatemassspec(smilestomol("CCl")))
+    # keyword arguments are passed to the corresponding functions
+    spec = simulate_massspec(smilestomol("CCl"))
+    @test size(spec, 2) == 2
+    @test size(simulate_massspec(smilestomol("CCl"); threshold=0.01, rate=0.01), 1) < size(spec, 1)
 end
 
 end  # mass

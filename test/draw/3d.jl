@@ -14,4 +14,5 @@
         @test length(f(ls, mol).plots) > 1  # atoms and bonds
     end
     @test ballstick!(ls, mol; radii=0.5).radii[] == 0.5
+    @test wire!(ls, mol; size=0.3).bonddiameter[] == 0.3
 end

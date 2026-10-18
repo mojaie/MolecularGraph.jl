@@ -271,4 +271,11 @@ end
     @test sum(valence(pr)) == 7
 end
 
+@testset "scaffold_fragments" begin
+    scfs, dag = MolecularGraph.scaffold_fragments(smilestomol("CCO").graph)  # no scaffold
+    @test isempty(scfs) && nv(dag) == 0
+    scfs, dag = MolecularGraph.scaffold_fragments(smilestomol("c1ccccc1Cc1ccncc1").graph)
+    @test length(scfs) == nv(dag) >= 1
+end
+
 end # properties
