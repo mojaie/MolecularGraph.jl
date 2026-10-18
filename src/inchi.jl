@@ -301,7 +301,8 @@ function process_inchi_stereo!(g::T, structure::inchi_OutputStructEx) where T <:
 end
 
 """
-    function inchitomol(inchi::String; options = "", config::Union{Nothing,Dict{Symbol,Any}} = nothing)
+    inchitomol(::Type{T}, inchi::AbstractString; options="", config=nothing) where T<:MolGraph -> T
+    inchitomol(inchi::String; options="", config=nothing) -> SDFMolGraph
 
 Generate molecule from inchi string, `options` are specified in https://github.com/mojaie/libinchi/blob/master/INCHI_BASE/src/inchi_api.h
 `config` is for internal or advanced use only. Maybe removed in a future release.

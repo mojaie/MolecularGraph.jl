@@ -10,7 +10,7 @@ const SP2_CONJUGATING_HETEROATOMS = (:O, :N, :S)
 
 
 """
-    hybridization(mol::SimpleMolGraph) -> Vector{Int}
+    hybridization(mol::SimpleMolGraph) -> Vector{Symbol}
 
 Returns a vector of size ``n`` representing the orbital hybridization symbols
 (`:sp3`, `:sp2`, `:sp` or `:none`) of 1 to ``n``th atoms of the given molecule.
@@ -54,6 +54,8 @@ Returns a vector of size ``n`` representing the number of ``\\pi`` electrons
 of 1 to ``n``th atoms of the given molecule.
 
 The number of ``\\pi`` electrons is calculated as `valence` - `connectivity`.
+If an sp2 atom has no ``\\pi`` bond but has a lone pair (e.g. pyrrole N), the lone pair
+is counted as 2 ``\\pi`` electrons.
 Typically, each atom connected to double bonds adds one pi electron for each, and each
 atom connected to a triple bond adds two pi electrons.
 """

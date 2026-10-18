@@ -53,9 +53,9 @@ end
 
 
 """
-    mincyclebasis(graph::UndirectedGraph) -> Vector{Vector{Int}}
+    mincyclebasis(g::SimpleGraph{T}) -> Vector{Vector{T}}
 
-Returns minimum cycle basis represented as an array of edge sequence that make up a cycle.
+Returns minimum cycle basis represented as an array of node sequences that make up each cycle.
 
 # Reference
 

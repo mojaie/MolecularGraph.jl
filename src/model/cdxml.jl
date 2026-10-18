@@ -320,9 +320,9 @@ end
 # =============================================================================
 
 """
-    cdxmltomols(cdxml_str::String) -> Vector{MolGraph}
+    cdxmltomols(io::IO) -> Vector{MolGraph}
 
-Parse CDXML string and return vector of molecules.
+Parse CDXML from an input stream and return vector of molecules.
 Each fragment in the CDXML document becomes a separate molecule.
 """
 function cdxmltomols(cdxml_str::IO)
@@ -366,7 +366,7 @@ end
 """
     cdxmltomol(input) -> MolGraph
 
-Parse CDXML from file or string and return the first molecule.
+Parse CDXML from a file path or an input stream and return the first molecule.
 Raises error if no molecules found.
 """
 function cdxmltomol(input::Union{AbstractString, IO})

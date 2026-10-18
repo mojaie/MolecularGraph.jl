@@ -14,9 +14,10 @@ end
 
 
 """
-    kekulize(mol::SimpleMolGraph) -> Vector{Int}
+    kekulize(mol::SimpleMolGraph{T}) -> Tuple{Vector{Int},Vector{T}}
 
-Return an array of bond orders with kekulization applied.
+Return a tuple of the bond orders with kekulization applied and the pyrrole-like aromatic
+atoms (e.g. `[nH]`).
 
 Double bonds and single bonds will be assigned to aromatic rings which consist of SMILES
 lowercase atoms (called Kekulization). Kekulization is necessary for the valence and
@@ -88,7 +89,8 @@ end
 """
     kekulize!(mol::SimpleMolGraph)
 
-In-place version of [`kekulize`](@ref) that stores the bond orders in the descriptors of `mol`.
+In-place version of [`kekulize`](@ref) that stores the bond orders in the descriptors of `mol`
+and the pyrrole-like atoms in `mol.gprops.pyrrole_like`.
 """
 function kekulize!(mol::SimpleMolGraph)
     bondorder, pyrrole_like = kekulize(mol)
@@ -129,7 +131,7 @@ end
 
 
 """
-    all_hydrogens(mol::SimpleMolGraph) -> Vector{T}
+    all_hydrogens(mol::SimpleMolGraph{T}) -> Vector{T}
 
 Return a vector of all hydrogen nodes.
 """
@@ -144,20 +146,19 @@ end
 
 
 """
-    remove_hydrogens!(mol::SimpleMolGraph) -> Vector{T<:Integer}
+    remove_hydrogens!(mol::SimpleMolGraph{T}) -> Vector{T}
 
-Remove trivial hydrogen vertices using `Graphs.rem_vertices!` and return vmap array.
+Remove trivial hydrogen vertices using `Graphs.rem_vertices!` and return the vmap array.
 
-'Trivial' means that are not charged, have no unpaired electron, have no specific mass,
-are non-stereospecific and are attached to organic heavy atoms.
+'Trivial' hydrogens are those returned by [`removable_hydrogens`](@ref).
 """
 remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(mol))
 
 
 """
-    remove_all_hydrogens!(mol::SimpleMolGraph) -> Vector{T<:Integer}
+    remove_all_hydrogens!(mol::SimpleMolGraph{T}) -> Vector{T}
 
-Remove all hydrogen vertices using `Graphs.rem_vertices!` and return vmap array.
+Remove all hydrogen vertices using `Graphs.rem_vertices!` and return the vmap array.
 """
 remove_all_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, all_hydrogens(mol))
 
@@ -165,7 +166,7 @@ remove_all_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, all_hydrogens(mo
 """
     add_hydrogens!(mol::SimpleMolGraph) -> Nothing
 
-Return the molecule with all hydrogen nodes explicitly attached.
+Attach all implicit hydrogens to the molecule as explicit hydrogen vertices.
 """
 add_hydrogens!(mol::SimpleMolGraph) = add_hydrogens!(mol, vproptype(mol), eproptype(mol))
 
@@ -184,7 +185,7 @@ end
 
 
 """
-    largest_component_nodes(mol::SimpleMolGraph) -> Vector{Int}
+    largest_component_nodes(mol::SimpleMolGraph{T}) -> Vector{T}
 
 Return a vector of nodes in the largest connected component.
 """
@@ -193,9 +194,10 @@ largest_component_nodes(mol::SimpleMolGraph{T}
 
 
 """
-    extract_largest_component!(mol::SimpleMolGraph) -> Nothing
+    extract_largest_component!(mol::SimpleMolGraph{T}) -> Vector{T}
 
-Return the largest connected component of the molecular graph.
+Remove all vertices except for the largest connected component of the molecular graph,
+and return the vmap array.
 
 This should be useful when you want to remove salt and water molecules from the molecular graph simply. On the other hand, this can remove important components from the mixture so carefully apply this preprocess method.
 """
@@ -268,9 +270,11 @@ end
 
 
 """
-    depolarize(mol::SimpleMolGraph; negative=:O, positive=[:C, :P]) -> Nothing
+    depolarize(mol::SimpleMolGraph; negative=[:O], positive=[:C, :P]
+        ) -> Tuple{Vector{Int},Vector{Int}}
 
-Depolarize dipole double bonds of the molecule.
+Depolarize dipole double bonds of the molecule (e.g. `[C+]-[O-]` -> `C=O`), and return
+a tuple of the atom charges and the bond orders.
 """
 depolarize(mol::SimpleMolGraph; kwargs...) = depolarize(
     mol.graph, atom_symbol(mol), atom_charge(mol),
@@ -298,7 +302,7 @@ function depolarize(
 end
 
 """
-    depolarize!(mol::SimpleMolGraph; negative=:O, positive=[:C, :P])
+    depolarize!(mol::SimpleMolGraph; negative=[:O], positive=[:C, :P])
 
 In-place version of [`depolarize`](@ref) that stores the atom charges and bond orders
 in the descriptors of `mol`.
@@ -313,9 +317,11 @@ end
 
 
 """
-    polarize(mol::SimpleMolGraph; negative=:O, positive=[:N, :S]) -> Nothing
+    polarize(mol::SimpleMolGraph; negative=[:O], positive=[:N, :S]
+        ) -> Tuple{Vector{Int},Vector{Int}}
 
-Polarize dipole double bonds of the molecule.
+Polarize dipole double bonds of the molecule (e.g. `N=O` -> `[N+]-[O-]`), and return
+a tuple of the atom charges and the bond orders.
 """
 polarize(mol::SimpleMolGraph; kwargs...) = polarize(
     mol.graph, atom_symbol(mol), atom_charge(mol), bond_order(mol); kwargs...
@@ -341,7 +347,7 @@ function polarize(
 end
 
 """
-    polarize!(mol::SimpleMolGraph; negative=:O, positive=[:N, :S])
+    polarize!(mol::SimpleMolGraph; negative=[:O], positive=[:N, :S])
 
 In-place version of [`polarize`](@ref) that stores the atom charges and bond orders
 in the descriptors of `mol`.
@@ -371,9 +377,10 @@ end
 
 
 """
-    to_triple_bond(mol::SimpleMolGraph) -> Nothing
+    to_triple_bond(mol::SimpleMolGraph) -> Tuple{Vector{Int},Vector{Int}}
 
-Standardize the molecule so that all 1,3-dipole groups are represented as triple bond and single bond (e.g. Diazo group C=[N+]=[N-] -> [C-][N+]#N).
+Return a tuple of the atom charges and the bond orders where all 1,3-dipole groups are
+represented as triple bond and single bond (e.g. Diazo group C=[N+]=[N-] -> [C-][N+]#N).
 """
 to_triple_bond(mol::SimpleMolGraph) = to_triple_bond(
     mol.graph, atom_charge(mol), apparent_valence(mol), bond_order(mol))
@@ -408,9 +415,10 @@ end
 
 
 """
-    to_allene_like(mol::SimpleMolGraph) -> Nothing
+    to_allene_like(mol::SimpleMolGraph) -> Tuple{Vector{Int},Vector{Int}}
 
-Standardize the molecule so that all 1,3-dipole groups are represented as allene-like structure (e.g. Diazo group [C-][N+]#N -> C=[N+]=[N-]).
+Return a tuple of the atom charges and the bond orders where all 1,3-dipole groups are
+represented as allene-like structure (e.g. Diazo group [C-][N+]#N -> C=[N+]=[N-]).
 """
 to_allene_like(mol::SimpleMolGraph) = to_allene_like(
     mol.graph, atom_charge(mol), apparent_valence(mol), bond_order(mol))

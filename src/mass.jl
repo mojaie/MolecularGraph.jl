@@ -106,13 +106,13 @@ nominal_mass(mol::SimpleMolGraph) = round(Int, monoiso_mass(mol))
 
 
 """
-    exact_mass_unc(atomsymbol::Symbol, [number::Union{Int, Nothing}]) -> Tuple{Float64,Float64}
+    exact_mass_unc(atomsymbol::Symbol, number::Int=0) -> Tuple{Float64,Float64}
     exact_mass_unc(atom) -> Tuple{Float64,Float64}
     exact_mass_unc(mol::MolGraph) -> Tuple{Float64,Float64}
 
 Return a tuple of calculated exact mass and its uncertainty.
 
-If `number` is not given or `Atom.mass` is not specified, monoisotopic mass will be used instead.
+If `number` is not given (`0`) or `Atom.mass` is not specified, monoisotopic mass will be used instead.
 """
 function exact_mass_unc(atomsymbol::Symbol, number::Int=0)
     number == 0 && return monoiso_mass_unc(atomsymbol)
@@ -188,9 +188,9 @@ standard_weight(mol::SimpleMolGraph, digits::Int) = round(standard_weight(mol), 
 
 
 """
-    isotopiccomposition(atomsymbol::Symbol, number::Int; threshold=0.001
+    isotopic_composition(atomsymbol::Symbol, number::Int; threshold=0.001
         ) -> Vector{Tuple{Float64,Float64}}
-    isotopiccomposition(mol::MolGraph; threshold=0.001
+    isotopic_composition(mol::SimpleMolGraph; threshold=0.001
         ) -> Vector{Tuple{Float64,Float64}}
 
 Return isotopic composition of the atoms/molecule as a vector of tuples of mass and composition.
@@ -247,7 +247,7 @@ end
 
 
 """
-    massspec_peaks(mol::MolGraph; threshold=0.001) -> Matrix{Float64}
+    massspec_peaks(mol::SimpleMolGraph; threshold=0.001) -> Vector{Tuple{Float64,Float64}}
 
 Return a vector of tuples of each isotopic masses and their relative intensity in the simulated mass spectrum (base peak intensity = 100).
 
@@ -275,9 +275,9 @@ end
 
 """
     simulate_massspec(peaks::Vector{Tuple{Float64,Float64}};
-        resolution=10000, rate=0.01) -> Matrix{Float64}
-    simulate_massspec(mol::MolGraph;
-        threshold=0.001, resolution=10000, rate=0.01) -> Matrix{Float64}
+        resolution=10000, rate=0.001) -> Matrix{Float64}
+    simulate_massspec(mol::SimpleMolGraph;
+        threshold=0.001, resolution=10000, rate=0.001) -> Matrix{Float64}
 
 Return a matrix of simulate mass spectrum (dim 1: datapoints, dim 2: mass and intensity).
 

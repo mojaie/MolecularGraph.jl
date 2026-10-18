@@ -102,6 +102,14 @@ mutable struct CairoCanvas <: Canvas
 end
 
 
+# Same as `coloralpha(color, opacity)` with RGBA{N0f8} (the opacity is rounded to N0f8),
+# but avoids the range check of ColorTypes which is not compilable with `juliac --trim`.
+function bgcolor_rgba(color::RGB{N0f8}, opacity::Float64)
+    0.0 <= opacity <= 1.0 || throw(ArgumentError("bgopacity should be in the range [0, 1]"))
+    return RGBA{Float64}(
+        Float64(color.r), Float64(color.g), Float64(color.b), round(opacity * 255) / 255)
+end
+
 """
     drawpng(io::IO, mol::SimpleMolGraph, width::Int, height::Int; kwargs...)
 
@@ -111,14 +119,6 @@ Generate molecular structure image as a PNG format.
 
 `bondhighlight` should contain only bonds of the molecule, otherwise `ArgumentError` is thrown.
 """
-# Same as `coloralpha(color, opacity)` with RGBA{N0f8} (the opacity is rounded to N0f8),
-# but avoids the range check of ColorTypes which is not compilable with `juliac --trim`.
-function bgcolor_rgba(color::RGB{N0f8}, opacity::Float64)
-    0.0 <= opacity <= 1.0 || throw(ArgumentError("bgopacity should be in the range [0, 1]"))
-    return RGBA{Float64}(
-        Float64(color.r), Float64(color.g), Float64(color.b), round(opacity * 255) / 255)
-end
-
 function MolecularGraph.drawpng(io::IO, mol::SimpleMolGraph, width::Int, height::Int;
         bgcolor="#FFF", bgopacity=1.0,
         atomhighlight=eltype(mol)[], bondhighlight=Edge{eltype(mol)}[], highlightcolor="#FDD835",
@@ -158,7 +158,7 @@ end
 
     
 """
-    initcanvas!(canvas::Canvas, coords::AbstractArray{Float64}, boundary::Tuple)
+    initcanvas!(canvas::CairoCanvas, coords::Vector{Point2d}, width::Float64, height::Float64)
 
 Move and adjust the size of the molecule for drawing.
 """

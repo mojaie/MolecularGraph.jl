@@ -10,7 +10,7 @@ abstract type Canvas end
 # Custom 2D drawing systems using `draw2d!` should implement following methods (see ./svg.jl and ./cairo.jl)
 
 """
-    initcanvas!(canvas::Canvas, coords::AbstractArray{Float64}, boundary::Tuple)
+    initcanvas!(canvas::Canvas, coords::Vector{Point2d}, width::Float64, height::Float64)
 
 Convert the coordinate system of SDFile to that of the graphics library and set the drawing area.
 """
@@ -19,7 +19,7 @@ function initcanvas! end
 
 """
     drawtext!(
-        canvas::Canvas, coords::Array{Float64,2}, text::String, color::Color, align::Symbol)
+        canvas::Canvas, pos::Point2d, text::String, color::Color, align::Symbol)
 
 Draw characters of an atom and implicit hydrogens in a right-to-left direction.
 """
@@ -28,7 +28,7 @@ function drawtext! end
 
 """
     drawtextannot!(
-        canvas::Canvas, coords::Array{Float64,2}, text::String, color::Color,
+        canvas::Canvas, pos::Point2d, text::String, color::Color,
         bgcolor::Color
     )
 
@@ -38,7 +38,7 @@ function drawtextannot! end
 
 
 """
-    drawtexthighlight!(canvas::Canvas, coords::Array{Float64,2}, color::Color)
+    drawtexthighlight!(canvas::Canvas, pos::Point2d, color::Color)
 
 Add a highlight to the atom of interest.
 """
@@ -124,7 +124,7 @@ In-place version of [`spacefilling`](@ref) that adds the model to an existing Ma
 function spacefilling! end
 
 """
-    ballstick(mol::MolGraph; radii=0.3, bonddiameter=0.1)
+    ballstick(mol::MolGraph; radii=0.4, bonddiameter=0.1)
 
 Represent `mol` as a ball-and-stick model in three dimensions. `mol` should have 3d atom positions
 in Angstroms. Requires loading a Makie backend (e.g. GLMakie or CairoMakie).
@@ -132,7 +132,7 @@ in Angstroms. Requires loading a Makie backend (e.g. GLMakie or CairoMakie).
 function ballstick end
 
 """
-    ballstick!(ax, mol::MolGraph; radii=0.3, bonddiameter=0.1)
+    ballstick!(ax, mol::MolGraph; radii=0.4, bonddiameter=0.1)
 
 In-place version of [`ballstick`](@ref) that adds the model to an existing Makie axis or scene `ax`.
 """

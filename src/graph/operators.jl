@@ -30,9 +30,10 @@ end
 
 
 """
-    modularproduct(g::SimpleGraph{T}, h::SimpleGraph{T};
+    modular_product(g::SimpleGraph{T}, h::SimpleGraph{T};
         vmatch=(g1,h1)->true,
-        edgefilter=(g1,g2,h1,h2)->has_edge(g,g1,g2)==has_edge(g,h1,h2)) where T
+        edgefilter=(g1,g2,h1,h2)->has_edge(g,g1,g2)==has_edge(g,h1,h2)
+    ) where T -> Tuple{SimpleGraph{T},Dict{Edge{T},Bool}}
 
 Return the modular product `m` of graphs `g` and `h`, and a mapping whether
 the edge is connected or not.
@@ -115,7 +116,7 @@ end
 
 
 """
-    disjoint_union(g::T, h::T) where {T<:Graphs.AbstractSimpleGraph} -> Nothing
+    disjoint_union(g::T, h::T) where {T<:Graphs.AbstractSimpleGraph} -> T
 
 Return disjoint union of the graph. see `disjoint_union!`
 """

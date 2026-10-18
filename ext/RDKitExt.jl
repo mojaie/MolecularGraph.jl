@@ -60,7 +60,7 @@ MolecularGraph.smiles(mol, args...) = RDKitMinimalLib.get_smiles(mol, args...)
 
 """
     morgan_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
-    morgan_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
+    morgan_fp_vector(mol::SimpleMolGraph, details=nothing) -> Union{BitArray,Nothing}
 
 Return a Morgan fingerprint bit array
 """
@@ -73,8 +73,8 @@ end
 
 
 """
-    RDKitMinimalLib.get_morgan_fp(mol::SimpleMolGraph, details=nothing) -> String
-    morgan_fp_string(mol::SimpleMolGraph, details=nothing) -> String
+    RDKitMinimalLib.get_morgan_fp(mol::SimpleMolGraph, details=nothing) -> Union{String,Nothing}
+    morgan_fp_string(mol::SimpleMolGraph, details=nothing) -> Union{String,Nothing}
 
 Return a Morgan fingerprint string
 """
@@ -87,7 +87,7 @@ MolecularGraph.morgan_fp_string(args...) = get_morgan_fp(args...)
 
 """
     rdkit_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
-    rdkit_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
+    rdkit_fp_vector(mol::SimpleMolGraph, details=nothing) -> Union{BitArray,Nothing}
 
 Return a RDKit fingerprint bit array
 """
@@ -100,8 +100,8 @@ end
 
 
 """
-    RDKitMinimalLib.get_rdkit_fp(mol::SimpleMolGraph, details=nothing) -> String
-    rdkit_fp_string(mol::SimpleMolGraph, details=nothing) -> String
+    RDKitMinimalLib.get_rdkit_fp(mol::SimpleMolGraph, details=nothing) -> Union{String,Nothing}
+    rdkit_fp_string(mol::SimpleMolGraph, details=nothing) -> Union{String,Nothing}
 
 Return a rdkit fingerprint string
 """
@@ -114,7 +114,7 @@ MolecularGraph.rdkit_fp_string(args...) = get_rdkit_fp(args...)
 
 """
     pattern_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
-    pattern_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
+    pattern_fp_vector(mol::SimpleMolGraph, details=nothing) -> Union{BitArray,Nothing}
 
 Return a pattern fingerprint bit array
 """
@@ -127,8 +127,8 @@ end
 
 
 """
-    RDKitMinimalLib.get_pattern_fp(mol::SimpleMolGraph, details=nothing) -> String
-    pattern_fp_string(mol::SimpleMolGraph, details=nothing) -> String
+    RDKitMinimalLib.get_pattern_fp(mol::SimpleMolGraph, details=nothing) -> Union{String,Nothing}
+    pattern_fp_string(mol::SimpleMolGraph, details=nothing) -> Union{String,Nothing}
 
 Return a pattern fingerprint string
 """
@@ -141,7 +141,7 @@ MolecularGraph.pattern_fp_string(args...) = get_pattern_fp(args...)
 
 """
     atom_pair_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
-    atom_pair_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
+    atom_pair_fp_vector(mol::SimpleMolGraph, details=nothing) -> Union{BitArray,Nothing}
 
 Return a atom pairs fingerprint bit array
 """
@@ -154,8 +154,8 @@ end
 
 
 """
-    RDKitMinimalLib.get_atom_pair_fp(mol::SimpleMolGraph, details=nothing) -> String
-    atom_pair_fp_string(mol::SimpleMolGraph, details=nothing) -> String
+    RDKitMinimalLib.get_atom_pair_fp(mol::SimpleMolGraph, details=nothing) -> Union{String,Nothing}
+    atom_pair_fp_string(mol::SimpleMolGraph, details=nothing) -> Union{String,Nothing}
 
 Return a atom pairs fingerprint string
 """
@@ -171,9 +171,9 @@ MolecularGraph.atom_pair_fp_string(args...) = get_atom_pair_fp(args...)
 
 """
     topological_torsion_fp_vector(mol::RDKitMinimalLib.Mol, details=nothing) -> BitArray
-    topological_torsion_fp_vector(mol::SimpleMolGraph, details=nothing) -> BitArray
+    topological_torsion_fp_vector(mol::SimpleMolGraph, details=nothing) -> Union{BitArray,Nothing}
 
-Return a atom pairs fingerprint bit array
+Return a topological torsion fingerprint bit array
 """
 MolecularGraph.topological_torsion_fp_vector(mol::Mol, args...
     ) = uint8vec_to_bitarray(get_topological_torsion_fp_as_bytes(mol::Mol, args...))
@@ -184,10 +184,10 @@ end
 
 
 """
-    RDKitMinimalLib.get_topological_torsion_fp(mol::SimpleMolGraph, details=nothing) -> String
-    topological_torsion_fp_string(mol::SimpleMolGraph, details=nothing) -> String
+    RDKitMinimalLib.get_topological_torsion_fp(mol::SimpleMolGraph, details=nothing) -> Union{String,Nothing}
+    topological_torsion_fp_string(mol::SimpleMolGraph, details=nothing) -> Union{String,Nothing}
 
-Return a atom pairs fingerprint string
+Return a topological torsion fingerprint string
 """
 function RDKitMinimalLib.get_topological_torsion_fp(mol::SimpleMolGraph, args...)
     rmol = rdkitmol(mol)

@@ -16,7 +16,7 @@ interiorangle(u, v) = acos(max(-1, min(1, dot(u, v) / (norm(u) * norm(v)))))
 
 
 """
-    isclockwise(vertices::AbstractMatrix{Float64}) -> Union{Bool,Nothing}
+    isclockwise(vertices::Vector{Point2d}) -> Union{Bool,Nothing}
 
 Return true/false if given vertices of a polygon in 2D space are placed clockwise/anticlockwise. Return nothing if the polygon is self-intersecting or some vertices are overlapped.  
 """

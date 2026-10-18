@@ -170,11 +170,11 @@ or the metadata entry `key` (e.g. `"compound_id"`).
 Base.haskey(mol::AbstractMolGraph, gprop::Symbol) = hasproperty(mol.gprops, gprop)
 
 """
-    Base.setindex!(mol::AbstractMolGraph, v::Integer) -> AbstractElement
-    Base.setindex!(mol::AbstractMolGraph, e::Edge) -> AbstractElement
-    Base.setindex!(mol::AbstractMolGraph, u::Integer, v::Integer) -> AbstractElement
+    Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, v::Integer)
+    Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, e::Edge)
+    Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, u::Integer, v::Integer)
 
-Return properties (vertex or edge attributes).
+Set the vertex or edge property (atom or bond).
 """
 Base.setindex!(mol::AbstractMolGraph, prop::AbstractElement, v::Integer) = setindex!(mol.vprops, prop, v)
 
@@ -327,10 +327,10 @@ The base class of molecule model which have auto-update mechanism of properties.
 
 Typically `ReactiveMolGraph` should have the following properties:
 - `graph`: molecular graph topology in `Graphs.SimpleGraph`.
-- `vprops`: `Vector` of atom properties (e.g. SDFAtom, SMILESAtom)
-- `eprops`: `Vector` of bond properties (e.g. SDFBond, SMILESBond)
+- `vprops`: `Dict` of atom properties (e.g. SDFAtom, SMILESAtom) keyed by vertex
+- `eprops`: `Dict` of bond properties (e.g. SDFBond, SMILESBond) keyed by edge
 - `gprops`: graph-level properties and stored descriptors (e.g. stereocenter)
-- `states`: update flags and callback functions for `reactive` property update
+- `state`: update flags and callback functions for `reactive` property update
 
 """
 abstract type ReactiveMolGraph{T<:Integer,V<:AbstractElement,E<:AbstractElement} <: SimpleMolGraph{T} end

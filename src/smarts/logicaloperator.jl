@@ -32,48 +32,44 @@ end
 
 
 """
-    lglowand!(state::SmartsParser, qtree::T) where {T<:QueryTree} -> Nothing
+    lglowand!(state::SMARTSParser, qtree::QueryTree) -> Int
 
 LogicalLowAnd <- Or (';' Or)*
 
-The argument `func` is a parser function which has a parser state as an argument,
-process tokens found in the given text, and returns nothing if no valid tokens were found.
+Return the index of the created query node, or 0 if no valid tokens were found.
 """
 lglowand!(state::SMARTSParser, qtree::QueryTree
 ) = lgoperator!(state, qtree, ';', lgor!, qand())
 
 
 """
-    lgor!(state::SmartsParserState) -> Union{Pair,Nothing}
+    lgor!(state::SMARTSParser, qtree::QueryTree) -> Int
 
 Or <- And (',' And)*
 
-The argument `func` is a parser function which has a parser state as an argument,
-process tokens found in the given text, and returns nothing if no valid tokens were found.
+Return the index of the created query node, or 0 if no valid tokens were found.
 """
 lgor!(state::SMARTSParser, qtree::QueryTree
 ) = lgoperator!(state, qtree, ',', lghighand!, qor())
 
 
 """
-    lghighand!(state::SmartsParserState) -> Union{Pair,Nothing}
+    lghighand!(state::SMARTSParser, qtree::QueryTree) -> Int
 
 And <- Not ('&'? Not)*
 
-The argument `func` is a parser function which has a parser state as an argument,
-process tokens found in the given text, and returns nothing if no valid tokens were found.
+Return the index of the created query node, or 0 if no valid tokens were found.
 """
 lghighand!(state::SMARTSParser, qtree::QueryTree
     ) = lgoperator!(state, qtree, '&', lgnot!, qand())
 
 
 """
-    lgnot!(state::SmartsParserState) -> Union{Pair,Nothing}
+    lgnot!(state::SMARTSParser, qtree::QueryTree) -> Int
 
 Not <- '!'? Element
 
-The argument `func` is a parser function which has a parser state as an argument,
-process tokens found in the given text, and returns nothing if no valid tokens were found.
+Return the index of the created query node, or 0 if no valid tokens were found.
 """
 function lgnot!(state::SMARTSParser, qtree::QueryTree, downstream::F) where F
     if read(state) == '!'

@@ -557,13 +557,15 @@ end
 
 
 """
-    atom_markup(mol::SimpleMolGraph) -> Vector{Vector{Tuple{Symbol,String}}}
+    atom_markup(mol::SimpleMolGraph) -> Vector{Vector{Vector{Tuple{Symbol,String}}}}
     atom_markup(
-        symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, implh_arr::Vector{Int}
-    ) -> Vector{Vector{Tuple{Symbol,String}}}
-    atom_markup(atom::AbstractAtom) -> Vector{Vector{Tuple{Symbol,String}}}
+        symbol_arr::Vector{Symbol}, isotope_arr::Vector{Int}, implh_arr::Vector{Int}
+    ) -> Vector{Vector{Vector{Tuple{Symbol,String}}}}
+    atom_markup(atom::AbstractAtom) -> Union{Vector{Vector{Tuple{Symbol,String}}},Nothing}
 
 Return atom labels with style annotations which is used for drawing 2D structure and writing formula
+(one markup for each atom). The single atom form returns `nothing` if the atom type
+does not have its own label.
 """
 atom_markup(mol::SimpleMolGraph) = atom_markup(mol, vproptype(mol), eproptype(mol))
 
@@ -612,8 +614,7 @@ atom_markup(atom, ::Val{false}, ::Val{false}, ::Val{false}) = nothing
 
 
 """
-    markup_formula(
-        counter::Dict{Symbol,Int}; charge=0) -> Vector{Vector{Tuple{Symbol,String}}}
+    markup_formula(counter::Dict{Symbol,Int}) -> Vector{Vector{Tuple{Symbol,String}}}
 
 Generate markup formula array
 """

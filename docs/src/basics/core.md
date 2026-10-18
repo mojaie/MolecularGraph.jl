@@ -33,3 +33,9 @@ CurrentModule = MolecularGraph
 - [`isotope`](@ref)
 
 - [`bond_order`](@ref)
+
+
+## Serialization
+
+- [`JSON.json`](@ref MolecularGraph.JSON.json(::MolecularGraph.JSONMolGraph)): serialize a molecule into JSON text
+- [`mol_from_json`](@ref): read a molecule from JSON text

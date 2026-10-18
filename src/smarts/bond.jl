@@ -96,7 +96,7 @@ end
 
 
 """
-    bond!(state::SMILESParser) -> Union{QueryTree,Nothing}
+    bond!(state::SMILESParser{T,V,E}) -> Union{E,Nothing}
 
 Bond <- BondSymbol?
 """

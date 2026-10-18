@@ -335,11 +335,12 @@ Return a lazy iterator that generate node mappings between `mol` and `query` if 
 
 # options
 
-- `vmatch::Function`: a function for semantic atom attribute matching (default: `MolecularGraph.vmatch`)
-- `ematch::Function`: a function for semantic bond attribute matching (default: `MolecularGraph.ematch`)
-- `mandatory::Dict{Int,Int}`: mandatory node mapping (or edge mapping if matchtype=:edgeinduced)
-- `forbidden::Dict{Int,Int}`: forbidden node mapping (or edge mapping if matchtype=:edgeinduced)
-- `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time reached and return empty iterator (default: 10 seconds).
+- `vmatchgen::Function`: a function `(mol1, mol2) -> vmatch` that generates a function for semantic atom attribute matching (default: [`vmatchgen`](@ref))
+- `ematchgen::Function`: a function `(mol1, mol2) -> ematch` that generates a function for semantic bond attribute matching (default: [`ematchgen`](@ref))
+- `stereo::Bool`: if true, stereochemistry is also matched (default: `false`)
+- `mandatory::Dict{Int,Int}`: mandatory node mapping
+- `forbidden::Dict{Int,Int}`: forbidden node mapping
+- `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time (in seconds) reached and return empty iterator (default: `nothing`, no timeout).
 
 """
 function substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
@@ -417,7 +418,7 @@ has_node_substruct_match(mol1, mol2; kwargs...
 """
     edge_substruct_matches(mol1, mol2; kwargs...) -> Iterator
 
-Return a lazy iterator that generate node mappings between `mol` and `query` if `mol` has `query` as a substructure.
+Return a lazy iterator that generate edge mappings between `mol` and `query` if `mol` has `query` as a substructure.
 See [`substruct_matches`](@ref) for available options.
 """
 function edge_substruct_matches(mol1::SimpleMolGraph, mol2::SimpleMolGraph;
@@ -485,7 +486,7 @@ Compute disconnected maximum common substructure (MCS) of mol1 and mol2.
 ## Keyword arguments
 
 - timeout(Real): abort calculation and return suboptimal results if the execution
-time has reached the given value (default=60, in seconds).
+time has reached the given value (default=10, in seconds).
 - targetsize(Int): abort calculation and return suboptimal result so far if the
 given mcs size achieved.
 """
@@ -511,7 +512,7 @@ Compute connected maximum common substructure (MCS) of mol1 and mol2.
 ## Keyword arguments
 
 - timeout(Real): abort calculation and return suboptimal results if the execution
-time has reached the given value (default=60, in seconds).
+time has reached the given value (default=10, in seconds).
 - targetsize(Int): abort calculation and return suboptimal result so far if the
 given mcs size achieved.
 """
@@ -539,7 +540,7 @@ Compute disconnected MCS of mol1 and mol2 with topological constraint (td-MCS).
 - diameter(Int): distance cutoff for topological constraint.
 - tolerance(Int): distance mismatch tolerance for topological constraint.
 - timeout(Real): abort calculation and return suboptimal results if the execution
-time has reached the given value (default=60, in seconds).
+time has reached the given value (default=10, in seconds).
 - targetsize(Int): abort calculation and return suboptimal result so far if the
 given mcs size achieved.
 
@@ -568,7 +569,7 @@ end
 
 Convert an edge-based mapping, of the form returned by [`edge_substruct_matches`](@ref), into
 a map between nodes. Commonly, `nmap[i]` is a length-1 vector `[j]`, where `i=>j` is the mapping
-from `nodeattr(query, i)` to `nodeattr(mol, j)`. In cases where the mapping is ambiguous,
+from the query node `i` to the mol node `j`. In cases where the mapping is ambiguous,
 `nmap[i]` may be multivalued.
 """
 function emaptonmap(emap, mol::SimpleMolGraph, query::SimpleMolGraph)

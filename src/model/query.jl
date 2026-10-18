@@ -415,9 +415,9 @@ end
 
 
 """
-    resolve_not_hydrogen! -> Nothing
+    resolve_not_hydrogen!(qtree::QueryTree) -> Nothing
 
-Return the molecular query with hydrogen nodes removed.
+Replace `[!#1]` (not hydrogen) query nodes with `[*]` (any) in place.
 
 This function is intended for generalization of PAINS query in PubChem dataset.
 """
@@ -438,7 +438,7 @@ end
 
 
 """
-    remove_hydrogens!(q::MolGraph) -> Nothing
+    remove_hydrogens!(qmol::QueryMolGraph) -> Nothing
 
 Remove hydrogens from the molecular query.
 
@@ -477,9 +477,10 @@ end
 
 
 """
-    preprocess!(qmol::QueryMolGraph, smarts::String)
+    preprocess!(qmol::QueryMolGraph) -> Nothing
 
-The default SMARTS preprocessor called after when SMARTS is parsed.
+The default SMARTS preprocessor called after when SMARTS is parsed
+(applied according to `qmol.gprops.smarts_input`).
 """
 function preprocess!(qmol::QueryMolGraph)
     smarts = qmol.gprops.smarts_input
@@ -497,7 +498,7 @@ end
 # Not used
 
 """
-    optimize_query!(tree::QueryTree{T,V}) where {T<:Integer,V<:QueryNode}) -> Nothing
+    optimize!(tree::QueryTree{T,U}) where {T,U} -> Nothing
 
 Optimize query tree.
 

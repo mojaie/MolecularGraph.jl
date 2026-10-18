@@ -109,13 +109,13 @@ end
 
 
 """
-    coordgen(mol::MolGraph) -> Tuple{Array{Int,1},Array{Int,1}}
+    coordgen(mol::SimpleMolGraph) -> Tuple{Coords2d,Draw2dBondStyle}
 
 Generate 2D coordinates by using Schrodinger's coordgenlibs.
 
-This will returns a tuple of `coords` and `styles` arrays. `coords` is a size(n, 2) matrix
-where n is atom count, which stores 2D coordinates (x, y) of each atoms.
-`styles` is a size e vector of wedge notation of stereobond, where e is bond count.
+This will returns a tuple of `coords` and `styles`. `coords` stores 2D coordinates (x, y)
+of each atom as `Point2d`. `styles` stores the wedge notation of each bond as a Symbol
+(`:none`, `:up`, `:down`, `:revup` or `:revdown`).
 """
 coordgen(mol::SimpleMolGraph) = coordgen(
     mol.graph, atom_number(mol), bond_order(mol),

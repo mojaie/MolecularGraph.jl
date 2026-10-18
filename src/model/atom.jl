@@ -153,6 +153,7 @@ atom_symbol(n::Int) = Symbol(ATOMTABLE[n].Symbol)
 
 
 """
+    find_isotope(z::Int, num::Int) -> Union{Isotope, Nothing}
     find_isotope(atomsymbol::Symbol, num::Int) -> Union{Isotope, Nothing}
 
 Return the isotope record (or nothing if there is no such isotope).

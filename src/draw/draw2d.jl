@@ -314,9 +314,9 @@ end
 
 """
     normalize_coords(
-        g::SimpleGraph, coords::Vector{Point2d},
-        label_length::Vector{Float64}, label_direction::Vector{Symbol},
-        fontsizef::Float64, scalef::Float64, paddingXf::Float64, paddingYf::Float64)
+        g::SimpleGraph, coords::Coords2d,
+        label_length::Vector{Int}, label_direction::Vector{Symbol}, atomvisible::BitVector,
+        fontsizef::Float64, scalef::Float64, paddingX::Float64, paddingY::Float64
     ) -> (coords, width, height)
 
 Get boundaries and an appropriate bond length unit for the molecule drawing
@@ -376,7 +376,7 @@ end
 
 
 """
-    draw2d!(canvas::Canvas, mol::UndirectedGraph; kwargs...)
+    draw2d!(canvas::Canvas, mol::SimpleMolGraph; kwargs...)
 
 Draw molecular image to the canvas.
 """

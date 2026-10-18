@@ -31,8 +31,7 @@ end
     resolve_disjoint_not!(
         tree::QueryTree, propmap::Dict{Symbol,Vector{QueryNode}}) -> Nothing
 
-Resolve relationship between a `:not` query and a `:or` query and returns `QueryTree` that
-the relationship is resolved.
+Resolve relationship between a `:not` query and a `:or` query in place.
 
 For example, the results of `[!#7]` (not nitrogen) is included in the results of `[#8,#16]`
 (oxygen or sulfur), so `[!#7]` can be converted to an equivalent query `[!#7,#8,#16]` to
@@ -60,13 +59,12 @@ end
 
 
 """
-    resolve_recursive(
-        tree::QueryTree, propmap::Dict{Int,Vector{QueryNode}}
+    resolve_recursive!(
+        qtree::QueryTree, propmap::Dict{Symbol,Vector{QueryNode}}
         ;rec_cache=Dict{String,Dict{String,Bool}}()
     ) -> Nothing
 
-Resolve relationship between `:recursive` queries and returns `QueryTree` that the
-relationship is resolved.
+Resolve relationship between `:recursive` queries in place.
 
 For example, the results of `[\$(C)]` is included in the results of `[\$(CO)]`,
 so `[\$(C)]` can be converted to an equivalent query ``[\$(C);\$(CO)]` to
@@ -401,16 +399,11 @@ function querymatch(
 end
 
 
-"""
-    Base.:(==)(q::QueryTruthTable, r::QueryTruthTable; kwargs...) 
-
-Returns whether the two queries are equivalent
-"""
 # Base.:(==)(q::QueryTree, r::QueryTree; kwargs...) = querymatch(q, r, true; kwargs...)
 
 
 """
-    Base.issubset(q::QueryTruthTable, r::QueryTruthTable; kwargs...) 
+    Base.issubset(q::QueryTree, r::QueryTree; kwargs...) -> Bool
 
 Returns whether all the results of query `q` is included in the results of query `r`
 """
@@ -418,8 +411,8 @@ Base.issubset(q::QueryTree, r::QueryTree; kwargs...) = querymatch(q, r, false; k
 
 
 """
-    query_containment_diagram(;sourcefile=DEFAULT_QUERIES
-        ) -> DictDiGraph, vprops, eprops
+    query_containment_diagram(; sources=[], termset=DEFAULT_QUERIES
+        ) -> Tuple{SimpleDiGraph{Int},vprops,eprops}
 
 Generate query containment diagram.
 """
@@ -502,8 +495,8 @@ end
 
 
 """
-    find_queries(mol::MolGraph, query_diagram; subsets=[], filtering=true
-        ) -> DictDiGraph, vprops, eprops
+    find_queries(mol::SimpleMolGraph, query_diagram; sources=[], filtering=true
+        ) -> Tuple{SimpleDiGraph{Int},vprops,eprops}
 
 Find query relationship diagram by the given molecule.
 The filtered diagram represents query relationship that the molecule have.

@@ -267,8 +267,8 @@ end
 
 
 """
-    all_maximal_conn_cliques(::Type{U}, g::SimpleGraph{T}, eattrs::Dict;
-        kwargs...) where {T,U} -> (Vector{U}, Symbol)
+    all_maximal_conn_cliques(::Type{U}, g::SimpleGraph{T};
+        connfunc=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U} -> (Vector{U}, Symbol)
 
 Calculate maximal connected cliques.
 
@@ -290,10 +290,10 @@ all_maximal_conn_cliques(g::SimpleGraph{T}; kwargs...
 
 
 """
-    maximum_conn_clique(::Type{U}, g::SimpleGraph{T}, eattrs::Dict;
-        kwargs...) where {T,U} -> (U, Symbol)
+    maximum_conn_clique(::Type{U}, g::SimpleGraph{T};
+        connfunc=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U} -> (U, Symbol)
 
-Calculate maximal connected cliques.
+Calculate a maximum connected clique.
 """
 function maximum_conn_clique(::Type{U}, g::SimpleGraph{T};
     connfunc::F=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U,F}
@@ -325,9 +325,9 @@ end
 
 
 """
-    approx_maximum_clique(g) -> Vector{Int}
+    approx_maximum_clique(g::SimpleGraph{T}, root=1) -> Vector{T}
 
-Return approximate maximal cliques.
+Return an approximate maximum clique.
 
 Reference:
 - Boppana, R., & Halldórsson, M. M. (1992).

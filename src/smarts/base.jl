@@ -87,7 +87,8 @@ const SMARTSMolGraph = QueryMolGraph{Int,QueryAtom{Int,QueryNode},QueryBond{Int,
 
 
 """
-    smilestomol(smiles::AbstractString) -> MolGraph{SmilesAtom,SmilesBond}
+    smilestomol(smiles::AbstractString; kwargs...) -> MolGraph{Int,SMILESAtom,SMILESBond}
+    smilestomol(::Type{T}, smiles::AbstractString; on_init=smiles_on_init!, on_update=smiles_on_update!) -> T
 
 Parse SMILES string into `MolGraph` object.
 
@@ -120,7 +121,8 @@ smilestomol(smiles::AbstractString; kwargs...
 
 
 """
-    smartstomol(smarts::AbstractString) -> QueryMolGraph{SmartsAtom,SmartsBond}
+    smartstomol(smarts::AbstractString; kwargs...) -> SMARTSMolGraph
+    smartstomol(::Type{G}, smarts::AbstractString; on_init=smarts_on_init!, kwargs...) -> G
 
 Parse SMARTS string into `QueryMolGraph` object.
 """

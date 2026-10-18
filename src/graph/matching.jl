@@ -111,7 +111,7 @@ end
 
 
 """
-    max_matching(G::SimpleGraph; method=:Blossom) -> Set{Int}
+    max_matching(G::SimpleGraph{T}; method=:Blossom) -> Set{Edge{T}}
 
 Compute maximum cardinality matching by Edmonds' blossom algorithm and return the set of matched edges.
 """
@@ -120,7 +120,7 @@ max_matching(g::SimpleGraph{T}; method=:Blossom) where T<:Integer = findmaxmatch
 
 """
     is_perfect_matching(G::SimpleGraph) -> Bool
-    is_perfect_matching(G::SimpleGraph, matching::Set{Int}) -> Bool
+    is_perfect_matching(G::SimpleGraph{T}, matching::Set{Edge{T}}) -> Bool
 
 Return if the given graph has a perfect matching.
 """

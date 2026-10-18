@@ -8,7 +8,7 @@ abstract type AbstractVF2Matcher{T,U} end
 
 
 """
-    VF2Matcher{T,U,G<:SimpleGraph{T},H<:SimpleGraph{U}}
+    VF2Matcher{T,U}(g::SimpleGraph{T}, h::SimpleGraph{U}, matchtype::Symbol; kwargs...)
 
 Lazy iterator that generate all isomorphism mappings between `G` and `H`.
 
@@ -21,9 +21,9 @@ Lazy iterator that generate all isomorphism mappings between `G` and `H`.
 
 - `vmatch::Function`: a function for semantic node attribute matching (default: (a, b) -> true)
 - `ematch::Function`: a function for semantic edge attribute matching (default: (a, b) -> true)
-- `mandatory::Dict{Int,Int}`: mandatory node mapping (if matchtype=:edgeinduced, edge mapping)
-- `forbidden::Dict{Int,Int}`: forbidden node mapping (if matchtype=:edgeinduced, edge mapping)
-- `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time reached and return empty iterator (default: 10 seconds)
+- `mandatory::Dict{T,U}`: mandatory node mapping
+- `forbidden::Dict{T,U}`: forbidden node mapping
+- `timeout::Union{Int,Nothing}`: if specified, abort vf2 calculation when the time (in seconds) reached and return empty iterator (default: `nothing`, no timeout)
 
 """
 mutable struct VF2Matcher{T,U,F1,F2} <: AbstractVF2Matcher{T,U}

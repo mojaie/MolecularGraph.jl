@@ -33,7 +33,7 @@ end
 
 
 """
-    set_stereocenter!(mol::SimpleMolGraph, center, looking_from, v1, v2, is_clockwise) -> Nothing
+    set_stereocenter!(mol::SimpleMolGraph, center, looking_from, v1, v2, is_clockwise)
 
 Set stereocenter information to graph properties.
 """
@@ -45,9 +45,9 @@ end
 
 
 """
-    set_stereocenter!(mol::SimpleMolGraph, bond, v1, v2, is_cis) -> Nothing
+    set_stereobond!(mol::SimpleMolGraph, bond::Edge, v1, v2, is_cis::Bool)
 
-Set stereocenter information to graph properties.
+Set stereobond (cis-trans) information to graph properties.
 """
 function set_stereobond!(
         mol::SimpleMolGraph{T}, bond::Edge{T}, v1::T, v2::T, is_cis::Bool) where T
@@ -72,10 +72,10 @@ end
 
 
 """
-    safe_stereo_hydrogen!(mol::SimpleMolGraph, v::Integer) -> Bool
+    safe_stereo_hydrogen!(mol::SimpleMolGraph{T}, center::T) -> Union{T,Nothing}
 
 Rearrange stereocenter properties to safely remove stereo hydrogen nodes
-and return the hydrogen node index.
+and return the hydrogen node index (or `nothing` if there is no stereo hydrogen).
 
 This function is called inside `rem_vertex!` and `rem_vertices!` functions
 to safely remove hydrogen nodes while preserving stereocenter information.
@@ -114,9 +114,11 @@ end
 
 
 """
-    stereocenter_from_sdf2d(mol::MolGraph{T,V,E}) where {T,V,E} -> Dict{T,Tuple{T,T,T,Bool}}
+    stereocenter_from_sdf2d(
+        g::SimpleGraph{T}, v_symbol::Vector{Symbol}, e_order::Vector{Int}, e_notation::Vector{Int},
+        e_isordered::Vector{Bool}, v_coords2d::Coords2d) where T -> Tuple{StereocenterMap{T},Vector{String}}
 
-Return stereocenter information obtained from 2D SDFile.
+Return stereocenter information obtained from 2D SDFile and log messages.
 """
 function stereocenter_from_sdf2d(
         g::SimpleGraph{T}, v_symbol::Vector{Symbol}, e_order::Vector{Int},
@@ -228,7 +230,8 @@ end
 
 
 """
-    stereocenter_from_smiles(g::SimpleGraph{T}, v_stereo) where T -> Dict{T,Tuple{T,T,T,Bool}}
+    stereocenter_from_smiles(
+        g::SimpleGraph{T}, succ::Vector{Vector{T}}, v_stereo::Vector{Symbol}) where T -> StereocenterMap{T}
 
 Return stereocenter information obtained from SMILES.
 """
@@ -283,7 +286,9 @@ end
 
 
 """
-    stereobond_from_sdf2d(g::SimpleGraph{T}, e_order, e_notation, v_coords2d) where T -> Dict{Edge{T},Tuple{T,T,Bool}}
+    stereobond_from_sdf2d(
+        g::SimpleGraph{T}, sssr::Vector{Vector{T}}, e_order::Vector{Int}, e_notation::Vector{Int},
+        v_coords2d::Coords2d) where T -> StereobondMap{T}
 
 Return cis-trans diastereomerism information obtained from 2D SDFile.
 """
@@ -363,9 +368,11 @@ function adj_direction!(
 end
 
 """
-    stereobond_from_smiles(g::SimpleGraph{T}, e_order, e_direction) where T -> Dict{Edge{T},Tuple{T,T,Bool}}
+    stereobond_from_smiles(
+        g::SimpleGraph{T}, isdouble::BitVector, e_direction::Vector{Symbol}
+    ) where T -> Tuple{StereobondMap{T},Vector{String}}
 
-Return cis-trans diastereomerism information obtained from SMILES.
+Return cis-trans diastereomerism information obtained from SMILES and log messages.
 """
 function stereobond_from_smiles(
         g::SimpleGraph{T}, isdouble::BitVector, e_direction::Vector{Symbol}) where T

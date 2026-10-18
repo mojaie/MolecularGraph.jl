@@ -212,9 +212,10 @@ bmscaffold(mol::SimpleMolGraph) = bmscaffold(mol.graph)
 
 
 """
-    scaffold_fragments(g::SimpleGraph) -> Vector{Int}
+    scaffold_fragments(g::SimpleGraph) -> Tuple{Vector{Vector{Int}},SimpleDiGraph{Int}}
 
-Return scaffold fragments. Intended for a MMP derivative.
+Return scaffold fragments and the fragmentation relationship DAG (parent -> child).
+Intended for a MMP derivative.
 """
 function scaffold_fragments(g::SimpleGraph)
     bms = bmscaffold(g)

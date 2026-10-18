@@ -40,3 +40,14 @@ Pages   = ["model/cdxml.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```
+
+
+## JSON
+
+Molecules can be serialized into JSON text by `JSON.json(mol)` and restored by
+[`mol_from_json`](@ref). `mol_from_json` also reads RDKit CommonChem JSON.
+
+```@docs
+MolecularGraph.JSON.json(::MolecularGraph.JSONMolGraph)
+mol_from_json
+```

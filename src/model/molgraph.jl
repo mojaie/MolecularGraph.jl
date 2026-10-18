@@ -73,7 +73,7 @@ end
 
 
 """
-    remap!(container::SimpleMolProperty{T}, vmap::DVector{T}, edges::Vector{Edge{T}}) where T <: Integer
+    remap!(gprop::SimpleMolProperty{T}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer -> Nothing
 
 Remap vertices according to the given vmap (new_v = old_v -> vmap[old_v]).
 """
@@ -108,7 +108,7 @@ Dispatch property auto-update mechanisms.
 
 This is called by functions that returns calculated properties (descriptors).
 If the vertices or edges has been added or removed, on_update callback is triggered
-to recalculate descriptors. If there are no changes, just return the stored descriptors.
+to recalculate descriptors. If there are no changes, do nothing.
 """
 function dispatch_update!(mol::ReactiveMolGraph)
     mol.state.has_updates || return
@@ -187,7 +187,7 @@ end
 
 
 """
-    remap_gprops(mol::ReactiveMolGraph, vmap::Dict{T,T}) -> MolProperty
+    remap_gprops(mol::ReactiveMolGraph, vmap::Vector{T}, edges::Vector{Edge{T}}) -> MolProperty
 
 Return updated `MolProperty`.
 
@@ -202,7 +202,7 @@ function remap_gprops(mol::ReactiveMolGraph, vmap::Vector{T},
 end
 
 """
-    remap_gprops!(mol::ReactiveMolGraph, vmap::Dict{T,T}) -> Nothing
+    remap_gprops!(mol::ReactiveMolGraph, vmap::Vector{T}, edges::Vector{Edge{T}}) -> Nothing
 
 Update `MolProperty` in place.
 

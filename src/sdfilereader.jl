@@ -358,16 +358,18 @@ end
 
 
 """
-    sdfilereader(file::IO)
-    sdfilereader(path::AbstractString)
+    sdfilereader(file::IO; unsupported=:log)
+    sdfilereader(path::AbstractString; unsupported=:log)
+    sdfilereader(::Type{T}, file::IO; unsupported=:log, config=...) where T <: AbstractMolGraph
+    sdfilereader(::Type{T}, path::AbstractString; kwargs...) where T <: AbstractMolGraph
 
 Read SDFile data from input stream (or a file path as a string) and return a
 lazy iterator that yields molecule objects.
 
-`sdfilereader` does not stop and raise errors when an erroneous or incompatible
-SDFile block is read but produces an error message and yields an empty molecule.
-If this behavior is not desirable, you can use the customized supplier function
-instead of default supplier `nohaltsupplier`
+By default (`unsupported=:log`), `sdfilereader` does not stop and raise errors when an
+erroneous or incompatible SDFile block is read but produces an info message and yields an
+empty molecule. Use `unsupported=:error` to throw the error, or `unsupported=:ignore` to
+suppress the message.
 
 """
 sdfilereader(
