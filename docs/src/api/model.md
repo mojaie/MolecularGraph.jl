@@ -19,6 +19,20 @@ Private = false
 Order   = [:constant, :function, :type]
 ```
 
+## Virtual atoms (experimental)
+
+!!! warning "Experimental"
+    `GeneralMolGraph` and the virtual atom types are experimental. The API and behavior may
+    change without deprecation. See [Customize atom and bond properties](@ref).
+
+```@autodocs
+Modules = [MolecularGraph]
+Pages   = ["virtualatom.jl"]
+Private = false
+Order   = [:constant, :function, :type]
+```
+
+
 ## Interfaces for customized models
 
 Non-exported types and functions to implement or use in customized molecular graph models

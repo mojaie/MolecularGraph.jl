@@ -103,6 +103,15 @@ function printv2data(io::IO, mol::SimpleMolGraph)
 end
 
 
+"""
+    printv2mol(io::IO, mol::SimpleMolGraph; givebackhydrogen=true)
+    printv2mol(mol::SimpleMolGraph; givebackhydrogen=true) -> String
+
+Write the molecule as a molfile (CTAB V2000) block to the output stream, or return it as a string.
+
+If `givebackhydrogen` is true, hydrogens at stereocenters in rings are added for drawing.
+Available for molecules with `StandardAtom` and `StandardBond`.
+"""
 printv2mol(io::IO, mol::SimpleMolGraph; kwargs...
     ) = printv2mol(io::IO, mol::SimpleMolGraph, vproptype(mol), eproptype(mol); kwargs...)
 
@@ -160,6 +169,11 @@ function printv2mol(mol::SimpleMolGraph; kwargs...)
 end
 
 
+"""
+    printv2sdf(io::IO, mol::SimpleMolGraph; givebackhydrogen=true)
+
+Write the molecule as an SDFile record (molfile block, data fields and `\$\$\$\$`) to the output stream.
+"""
 function printv2sdf(io::IO, mol::SimpleMolGraph; kwargs...)
     printv2mol(io, mol; kwargs...)
     printv2data(io, mol)

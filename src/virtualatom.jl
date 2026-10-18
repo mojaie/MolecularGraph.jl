@@ -4,9 +4,28 @@
 #
 
 
+"""
+    GeneralMolGraph
+
+`MolGraph{Int,AbstractAtom,AbstractBond}` that can have different atom and bond types
+(e.g. virtual atoms) in a molecule.
+
+!!! warning "Experimental"
+    This is an experimental feature. The API and behavior may change without deprecation.
+"""
 const GeneralMolGraph = MolGraph{Int,AbstractAtom,AbstractBond}
 
 
+"""
+    VirtualAtom(label::String)
+    VirtualAtom(markup::Vector{Vector{Tuple{Symbol,String}}})
+
+A placeholder atom such as an R group, shown as the label. It has no element
+(`atom_number` is -1).
+
+!!! warning "Experimental"
+    This is an experimental feature. The API and behavior may change without deprecation.
+"""
 struct VirtualAtom <: AbstractAtom
     label::Vector{Vector{Tuple{Symbol,String}}}
 
@@ -26,6 +45,14 @@ multiplicity(atom::VirtualAtom) = 1
 isotope(atom::VirtualAtom) = 0
 
 
+"""
+    HydrogenatedAtom(atom::StandardAtom, hydrogens::Int; coords=nothing)
+
+An atom with the given number of hydrogens as one vertex (e.g. NH, CH3).
+
+!!! warning "Experimental"
+    This is an experimental feature. The API and behavior may change without deprecation.
+"""
 struct HydrogenatedAtom{T<:StandardAtom} <: AbstractAtom
     center::T
     hydrogens::Int
@@ -47,6 +74,14 @@ isaromatic(atom::HydrogenatedAtom) = has_isaromatic(typeof(atom.center)) ? isaro
 
 
 
+"""
+    FormulaGroup(formula::Dict{Symbol,Int}, charge::Int, markup::Vector{Vector{Tuple{Symbol,String}}})
+
+A group given by the molecular formula (e.g. `Dict(:C => 2, :H => 5)`) and the charge.
+
+!!! warning "Experimental"
+    This is an experimental feature. The API and behavior may change without deprecation.
+"""
 struct FormulaGroup <: AbstractAtom
     formula::Dict{Symbol,Int}
     charge::Int
@@ -71,6 +106,16 @@ isotope(group::FormulaGroup) = 0
 
 
 
+"""
+    StructGroup(mol::MolGraph, label::String)
+
+A group given by the structure `mol` with the label (e.g. amino acid residues).
+Bonds to the group should be [`StructGroupBond`](@ref)s, which register the terminal
+vertices of the group in `term`.
+
+!!! warning "Experimental"
+    This is an experimental feature. The API and behavior may change without deprecation.
+"""
 struct StructGroup{T<:Integer,V<:StandardAtom,E<:StandardBond} <: AbstractAtom
     mol::MolGraph{T,V,E}
     label::Vector{Vector{Tuple{Symbol,String}}}
@@ -97,6 +142,16 @@ isotope(group::StructGroup) = 0
 
 
 
+"""
+    StructGroupBond(bond::StandardBond; src=-1=>-1, dst=-1=>-1)
+
+A bond connected to [`StructGroup`](@ref)s. `src` and `dst` are pairs of the terminal number
+and the vertex in the group of the source and destination atoms (`-1=>-1` if the atom is not
+a `StructGroup`).
+
+!!! warning "Experimental"
+    This is an experimental feature. The API and behavior may change without deprecation.
+"""
 struct StructGroupBond{T<:StandardBond} <: AbstractBond
     bond::T
     src::Pair{Int,Int}  # term label (-1 if source is not StructGroup) => term vertex in StructGroup
