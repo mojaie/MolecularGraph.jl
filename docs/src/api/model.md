@@ -33,6 +33,12 @@ MolecularGraph.has_descriptor
 MolecularGraph.set_descriptor!
 MolecularGraph.add_u_edge!
 MolecularGraph.rem_u_edge!
+MolecularGraph.ReactiveMolGraph
+MolecularGraph.initialize!
+MolecularGraph.with_callbacks
+MolecularGraph.default_on_init!
+MolecularGraph.default_on_update!
+MolecularGraph.smarts_on_init!
 MolecularGraph.AbstractState
 MolecularGraph.MolState
 MolecularGraph.dispatch_update!
@@ -41,6 +47,8 @@ MolecularGraph.notify_new_edges!
 MolecularGraph.AbstractProperty
 MolecularGraph.SimpleMolProperty
 MolecularGraph.remap!
+MolecularGraph.remap_gprops
+MolecularGraph.remap_gprops!
 MolecularGraph.MolProperty
 MolecularGraph.MolDescriptor
 MolecularGraph.QueryMolProperty

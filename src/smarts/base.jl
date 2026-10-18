@@ -58,12 +58,23 @@ SMARTSParser{T,V,E}(smarts) where {T,V,E} = SMARTSParser{T,V,E}(
     smarts, 1, false, 0, 1, 1, Dict{Int,Int}(), Vector{T}[], Edge{T}[], V[], E[], Vector{T}[])
 
 
+"""
+    smiles_on_init!(mol::SimpleMolGraph) -> Nothing
+
+Default `on_init` callback of [`smilestomol`](@ref) (valence check and stereochemistry).
+"""
 function smiles_on_init!(mol::SimpleMolGraph)
     check_valence!(mol)
     stereocenter_from_smiles!(mol)
     stereobond_from_smiles!(mol)
 end
 
+"""
+    smiles_on_update!(mol::SimpleMolGraph) -> Nothing
+
+Default `on_update` callback of [`smilestomol`](@ref) (standardization of charges and bond
+orders, kekulization and recalculation of cached descriptors).
+"""
 function smiles_on_update!(mol::SimpleMolGraph)
     # preprocessing
     default_atom_charge!(mol)
@@ -77,6 +88,11 @@ function smiles_on_update!(mol::SimpleMolGraph)
     is_ring_aromatic!(mol)
 end
 
+"""
+    smarts_on_init!(mol::QueryMolGraph) -> Nothing
+
+Default `on_init` callback of [`smartstomol`](@ref) (stereochemistry and query preprocessing).
+"""
 function smarts_on_init!(mol::QueryMolGraph)
     stereocenter_from_smiles!(mol)
     stereobond_from_smiles!(mol)

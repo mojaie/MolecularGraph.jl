@@ -102,6 +102,12 @@ function ctab_props_v2(io::IO)
 end
 
 
+"""
+    sdf_on_init!(mol::SimpleMolGraph) -> Nothing
+
+Default `on_init` callback of SDFile readers (valence check, coordinates and stereochemistry
+from the SDFile). Can be replaced by the `config` keyword of [`sdfilereader`](@ref).
+"""
 function sdf_on_init!(mol::SimpleMolGraph)
     check_valence!(mol)
     coords_from_sdf!(mol)
@@ -109,6 +115,12 @@ function sdf_on_init!(mol::SimpleMolGraph)
     stereobond_from_sdf2d!(mol)
 end
 
+"""
+    sdf_on_update!(mol::SimpleMolGraph) -> Nothing
+
+Default `on_update` callback of SDFile readers (standardization of charges and bond orders,
+and recalculation of cached descriptors such as `sssr` and `valence`).
+"""
 function sdf_on_update!(mol::SimpleMolGraph)
     # Preprocess
     default_atom_charge!(mol)
