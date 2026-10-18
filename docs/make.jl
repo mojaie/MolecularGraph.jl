@@ -13,13 +13,14 @@ makedocs(
         "Getting started" => "gettingstarted.md",
         "Basics" => [
             "Concepts" => "basics/concepts.md",
+            "Core functions" => "basics/core.md",
             "Properties and descriptors" => "basics/properties.md",
             "Drawing" => "basics/drawing.md"
         ],
         "Advanced topics" => [
-            "Interfaces" => "basics/interfaces.md",
-            "Editing molecules" => "basics/editmol.md",
-            "Customize atom properties" => "basics/propinterface.md"
+            "Interfaces" => "advanced/interface.md",
+            "Editing molecules" => "advanced/editmol.md",
+            "Customize atom properties" => "advanced/propinterface.md"
         ],
         "API References" => [
             "Molecular graph models" => "api/model.md",

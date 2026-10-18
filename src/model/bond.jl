@@ -13,6 +13,12 @@ The base class of edge properties (bond).
 """
 abstract type AbstractBond <: AbstractElement end
 
+"""
+    StandardBond <: AbstractBond
+
+The base class of bond types that have standard bond properties (e.g. [`SDFBond`](@ref),
+[`SMILESBond`](@ref)). Built-in property functions are implemented for subtypes of this type.
+"""
 abstract type StandardBond <: AbstractBond end
 
 

@@ -287,12 +287,34 @@ Base.setindex!(mol::SimpleMolGraph{T}, prop::AbstractElement, u::T, v::T
 # call each other recursively, and constant propagation of a Symbol argument does not work
 # inside the recursion, so the field name should be a type parameter to keep types concrete.
 # The Symbol methods are kept for custom callbacks.
+"""
+    get_descriptor(mol::SimpleMolGraph, field::Symbol) -> Any
+    get_descriptor(mol::SimpleMolGraph, ::Val{field}) -> Any
+
+Return the stored descriptor array `field` of the molecule (e.g. `:sssr`, `:valence`).
+For `ReactiveMolGraph`, the descriptors are updated before access if the molecule has been
+modified. The `Val` form keeps the return type concrete.
+"""
 get_descriptor(mol::SimpleMolGraph, field::Symbol) = get_descriptor(mol, Val(field))
 get_descriptor(mol::SimpleMolGraph, ::Val{F}) where F = getfield(mol.gprops.descriptors, F)
+
+"""
+    set_descriptor!(mol::SimpleMolGraph, field::Symbol, value)
+    set_descriptor!(mol::SimpleMolGraph, ::Val{field}, value)
+
+Store the descriptor array `value` as `field` of the molecule (used in update callbacks).
+"""
 set_descriptor!(mol::SimpleMolGraph, field::Symbol, value
     ) = set_descriptor!(mol, Val(field), value)
 set_descriptor!(mol::SimpleMolGraph, ::Val{F}, value
     ) where F = setproperty!(mol.gprops.descriptors, F, value)
+
+"""
+    has_descriptor(mol::SimpleMolGraph, field::Symbol) -> Bool
+    has_descriptor(mol::SimpleMolGraph, ::Val{field}) -> Bool
+
+Return whether the descriptor type of the molecule has the field `field`.
+"""
 has_descriptor(mol::SimpleMolGraph, field::Symbol) = has_descriptor(mol, Val(field))
 has_descriptor(mol::SimpleMolGraph, ::Val{F}
     ) where F = hasfield(typeof(mol.gprops.descriptors), F)

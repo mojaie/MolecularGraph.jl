@@ -1,3 +1,7 @@
+```@meta
+CurrentModule = MolecularGraph
+```
+
 
 # Core functions
 
@@ -21,8 +25,6 @@
 - [`has_descriptor`](@ref)
 - [`set_descriptor!`](@ref)
 
-- [`to_dict`](@ref)
-- [`reconstruct`](@ref)
 
 - [`atom_number`](@ref)
 - [`atom_symbol`](@ref)

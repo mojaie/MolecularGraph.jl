@@ -106,11 +106,23 @@ function querytree(edges::Vector{Tuple{T,T}}, props::Vector{U}) where {T,U}
 end
 
 
+"""
+    QueryAtom{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
+
+Atom query (vertex property of [`QueryMolGraph`](@ref)), a tree of logical operators and
+query properties (e.g. `[C,N;!R]` in SMARTS).
+"""
 struct QueryAtom{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
     graph::SimpleDiGraph{T}
     vprops::Dict{VertexKey{T},U}
 end
 
+"""
+    QueryBond{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
+
+Bond query (edge property of [`QueryMolGraph`](@ref)), a tree of logical operators and
+query properties (e.g. `-,=` in SMARTS).
+"""
 struct QueryBond{T<:Integer,U<:QueryNode} <: QueryTree{T,U}
     graph::SimpleDiGraph{T}
     vprops::Dict{VertexKey{T},U}
@@ -148,6 +160,12 @@ Base.copy(desc::T) where T <: QueryMolDescriptor = T(
 )
 
 
+"""
+    QueryMolProperty{T} <: SimpleMolProperty{T}
+
+Graph-level property of [`QueryMolGraph`](@ref) (stereochemistry, SMARTS input, descriptors,
+metadata and logs).
+"""
 struct QueryMolProperty{T} <: SimpleMolProperty{T}
     stereocenter::StereocenterMap{T}
     stereobond::StereobondMap{T}

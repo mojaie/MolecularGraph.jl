@@ -115,6 +115,13 @@ The base class of vertex properties (atom).
 """
 abstract type AbstractAtom <: AbstractElement end
 
+"""
+    StandardAtom <: AbstractAtom
+
+The base class of atom types that have standard atom properties (e.g. [`SDFAtom`](@ref),
+[`SMILESAtom`](@ref)). Built-in property functions (e.g. valence, mass) are implemented
+for subtypes of this type.
+"""
 abstract type StandardAtom <: AbstractAtom end
 
 

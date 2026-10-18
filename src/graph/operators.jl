@@ -4,6 +4,15 @@
 #
 
 
+"""
+    edge_rank(g::SimpleGraph) -> Dict{Edge,Int}
+    edge_rank(ernk::Dict{Edge{T},Int}, src::T, dst::T) -> Int
+
+Return a dictionary of edges and their indices in `edges(g)` order, or the index of the
+edge between `src` and `dst` in the dictionary.
+
+Edge properties and descriptors of `SimpleMolGraph` are stored in this order.
+"""
 edge_rank(g::SimpleGraph) = Dict(e => i for (i, e) in enumerate(edges(g)))
 edge_rank(ernk::Dict{Edge{T},Int}, src::T, dst::T) where T = ernk[u_edge(T, src, dst)]
 

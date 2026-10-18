@@ -1,9 +1,9 @@
 
 OUTDIR := /opt/julia/libmolgraphjl
-.PHONY: docs, clean, build
+.PHONY: docs clean build
 
 docs:
-	@julia --project=docs/ --color=yes docs/make.jl
+	julia --project=docs --color=yes docs/make.jl
 
 clean:
 	rm -rf $(OUTDIR) && mkdir $(OUTDIR)

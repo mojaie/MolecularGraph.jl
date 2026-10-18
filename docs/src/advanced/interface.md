@@ -1,3 +1,7 @@
+```@meta
+CurrentModule = MolecularGraph
+```
+
 
 # MolecularGraph interfaces
 
@@ -85,10 +89,8 @@ default_on_update!
 
 ### Graph-level property (gprop)
 
-- [`AbstractMolProperty`](@ref)
-  - [`to_dict`](@ref)
+- [`AbstractProperty`](@ref)
   - [`SimpleMolProperty`](@ref)
-    - [`reconstruct`](@ref)
     - [`remap!`](@ref): for property update (ReactiveMolGraph)
     - [`MolProperty`](@ref)
     - [`MolDescriptor`](@ref)
@@ -98,7 +100,6 @@ default_on_update!
 ### Vertex and edge property (vprop and eprop)
 
 - [`AbstractElement`](@ref)
-  - [`to_dict`](@ref)
   - [`AbstractAtom`](@ref)
     - [`atom_number`](@ref)
     - [`atom_symbol`](@ref)
