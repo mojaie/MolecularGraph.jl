@@ -89,8 +89,8 @@ end
 any_path_constraints(g; kwargs...) = any_path_constraints(UInt32, g; kwargs...)
 
 
-function mcis_constraints(pairs, distarr::Vector{T}, g::SimpleGraph{U};
-        vmatchvec=x->0, ematchvec=(x, y)->0, kwargs...) where {T,U}
+function mcis_constraints(pairs::AbstractVector{<:Tuple}, distarr::Vector{T}, g::SimpleGraph{U};
+        vmatchvec::F1=x->0, ematchvec::F2=(x, y)->0, kwargs...) where {T,U,F1,F2}  # F1, F2: force specialization
     vatt1 = Int[]
     vatt2 = Int[]
     eatt = Int[]
@@ -120,7 +120,7 @@ end
 
 
 function mces_constraints(pairs, distarr::Vector{T}, lg, revmap, shared, g::SimpleGraph{U};
-        vmatchvec=x->0, ematchvec=(x, y)->0, kwargs...) where {T,U}
+        vmatchvec::F1=x->0, ematchvec::F2=(x, y)->0, kwargs...) where {T,U,F1,F2}  # F1, F2: force specialization
     vatt1 = Int[]
     vatt2 = Int[]
     eatt = Int[]

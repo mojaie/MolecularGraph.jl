@@ -86,8 +86,8 @@ This is a binary descriptor based on a chemoinformatic algorithm and may not ref
 actual molecular orbitals. Atypical aromaticities such as Moebius aromaticity are not considered.
 """
 function is_ring_aromatic(mol::SimpleMolGraph)
-    if has_descriptor(mol, :is_ring_aromatic)
-        return get_descriptor(mol, :is_ring_aromatic)
+    if has_descriptor(mol, Val(:is_ring_aromatic))
+        return get_descriptor(mol, Val(:is_ring_aromatic))
     end
     return is_ring_aromatic(
         mol.graph, sssr(mol), edge_which_ring(mol),
@@ -182,14 +182,14 @@ function is_ring_aromatic(
                     continue
                 end
                 uv, vv = edge_neighbors(g, e)
-                ud = []
+                ud = Int[]
                 for u in uv
                     ur = edge_rank(ernk, e.src, u)
                     if order_arr[ur] == 2
                         push!(ud, ur)
                     end
                 end
-                vd = []
+                vd = Int[]
                 for v in vv
                     vr = edge_rank(ernk, e.dst, v)
                     if order_arr[vr] == 2
@@ -207,10 +207,13 @@ function is_ring_aromatic(
     end
     for conn in connected_components(ring_conn)
         length(conn) == 1 && continue
-        ns = union([sssr_[n] for n in conn]...)
+        ns = Int[]
+        for n in conn
+            union!(ns, sssr_[n])
+        end
         any(vs_declined[ns]) && continue
         if sum(huckel_arr[ns]) % 4 == 2
-            push!(confirmed_ring, conn...)
+            append!(confirmed_ring, conn)
         end
     end
     res = falses(length(sssr_))
@@ -220,8 +223,13 @@ function is_ring_aromatic(
     return res
 end
 
+"""
+    is_ring_aromatic!(mol::SimpleMolGraph)
+
+Calculate [`is_ring_aromatic`](@ref) and store the result in the descriptors of `mol`.
+"""
 is_ring_aromatic!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, :is_ring_aromatic,
+    mol, Val(:is_ring_aromatic),
     is_ring_aromatic(
         mol.graph, sssr(mol), edge_which_ring(mol),
         atom_symbol(mol), bond_order(mol),

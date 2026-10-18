@@ -20,15 +20,20 @@ Return vectors of ring nodes representing small set of smallest rings (SSSR).
 See [`mincyclebasis`](@ref).
 """
 function sssr(mol::SimpleMolGraph)
-    if has_descriptor(mol, :sssr)
-        return get_descriptor(mol, :sssr)
+    if has_descriptor(mol, Val(:sssr))
+        return get_descriptor(mol, Val(:sssr))
     end
     return mincyclebasis(mol.graph)
 end
 
+"""
+    sssr!(mol::SimpleMolGraph)
+
+Calculate [`sssr`](@ref) and store the result in the descriptors of `mol`.
+"""
 function sssr!(mol::SimpleMolGraph)
     mol.state.has_new_edges || return  # skip if new edges
-    set_descriptor!(mol, :sssr, mincyclebasis(mol.graph))
+    set_descriptor!(mol, Val(:sssr), mincyclebasis(mol.graph))
     return
 end
 

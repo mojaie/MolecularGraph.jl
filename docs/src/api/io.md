@@ -30,3 +30,13 @@ Pages   = ["smarts/base.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```
+
+
+## CDXML reader
+
+```@autodocs
+Modules = [MolecularGraph]
+Pages   = ["model/cdxml.jl"]
+Private = false
+Order   = [:constant, :function, :type]
+```

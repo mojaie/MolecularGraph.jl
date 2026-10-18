@@ -5,25 +5,46 @@
 
 
 
+
+"""
+    AbstractState
+
+The base class of molecular model states.
+"""
+abstract type AbstractState end
+
+
 """
     MolState{T,F1,F2} <: AbstractState
 
 The state container for `ReactiveMolGraph`.
+
+`on_init::F1` and `on_update::F2` are callbacks for descriptor initialization and update.
+Their types are part of the state type so that the callbacks are statically dispatched
+(required for `juliac --trim`). The callbacks are fixed at construction; to replace them,
+create a new molecule by `MolecularGraph.with_callbacks`.
 """
-mutable struct MolState{T} <: AbstractState
+mutable struct MolState{T,F1,F2} <: AbstractState
     initialized::Bool
     has_updates::Bool
     has_new_edges::Bool  # as a SSSR recalculation flag
     disable_update::Bool  # ignore dispatch_update! (temporary set when running auto-preprocess)
-    on_init::Function
-    on_update::Function
+    const on_init::F1
+    const on_update::F2
 end
 
 function MolState{T}(
         ; initialized=false, has_updates=true, has_new_edges=true, disable_update=false,
-        on_init=default_on_init!, on_update=default_on_update!) where T <: Integer
-    return MolState{T}(
+        on_init::F1=default_on_init!, on_update::F2=default_on_update!
+        ) where {T<:Integer,F1,F2}  # F1, F2: force specialization on callbacks
+    return MolState{T,typeof(on_init),typeof(on_update)}(
         initialized, has_updates, has_new_edges, disable_update, on_init, on_update)
+end
+
+function Base.setproperty!(state::MolState, name::Symbol, x)
+    name in (:on_init, :on_update) && error(
+        "callbacks cannot be replaced in place. Use `MolecularGraph.with_callbacks(mol; $(name)=f)`")
+    return setfield!(state, name, convert(fieldtype(typeof(state), name), x))
 end
 
 Base.copy(state::T) where T <: MolState = T(
@@ -31,16 +52,23 @@ Base.copy(state::T) where T <: MolState = T(
     state.on_init, state.on_update
 )
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{MolState{T}}) where T = false
-JSON.lower(x::MolState) = Dict{String,Any}()
-JSON.lift(::Type{MolState{T}}, x) where T = MolState{T}()
+# Default callbacks of a concrete state type (callbacks should be singleton functions)
+function default_callbacks(::Type{MolState{T,F1,F2}}) where {T,F1,F2}
+    (isdefined(F1, :instance) && isdefined(F2, :instance)) || error(
+        "on_init and on_update should be given explicitly for $(MolState{T,F1,F2})")
+    return (on_init=F1.instance, on_update=F2.instance)
+end
+
+StructUtils.structlike(::Type{<:MolState}) = false
+StructUtils.lower(x::MolState) = Dict{String,Int}()  # state is not serialized
+StructUtils.lift(::Type{<:MolState{T}}, x) where T = MolState{T}()
 
 
 # Property update mechanisms
 
-function get_descriptor(mol::ReactiveMolGraph, field::Symbol)
+function get_descriptor(mol::ReactiveMolGraph, ::Val{F}) where F
     mol.state.disable_update || dispatch_update!(mol)
-    return getproperty(mol[:descriptors], field)
+    return getfield(mol.gprops.descriptors, F)
 end
 
 
@@ -51,10 +79,15 @@ Remap vertices according to the given vmap (new_v = old_v -> vmap[old_v]).
 """
 function remap!(gprop::SimpleMolProperty, args...)
     # vmap[old] -> new
-    for sym in fieldnames(typeof(gprop))
-        remap!(Val(sym), gprop, args...)
-    end
+    remap_fields!(gprop, args...)
     return
+end
+
+# Call `remap!(Val(field), container, args...)` for each field of the container.
+# Unrolled at compile time so that the method for each field is statically dispatched.
+@generated function remap_fields!(container, args...)
+    calls = [:(remap!(Val($(QuoteNode(f))), container, args...)) for f in fieldnames(container)]
+    return Expr(:block, calls..., :(return))
 end
 
 function remap!(::Val, gprop::SimpleMolProperty, args...)
@@ -62,9 +95,7 @@ function remap!(::Val, gprop::SimpleMolProperty, args...)
 end
 
 function remap!(::Val{:descriptors}, gprop::SimpleMolProperty, args...)
-    for sym in fieldnames(typeof(gprop.descriptors))
-        remap!(Val(sym), gprop.descriptors, args...)
-    end
+    remap_fields!(gprop.descriptors, args...)
     return
 end
 
@@ -133,6 +164,25 @@ function initialize!(mol::ReactiveMolGraph)
     mol.state.initialized = true
     dispatch_update!(mol)  # check on-update callback errors
     return
+end
+
+
+"""
+    with_callbacks(mol::ReactiveMolGraph; on_init=nothing, on_update=nothing) -> ReactiveMolGraph
+
+Return a molecule that shares the graph and properties with `mol` but has the given callbacks
+(`nothing` keeps the current one). The state flags are copied and `on_init` is not called again.
+
+Callbacks are part of the molecule type, so they cannot be replaced in place.
+"""
+function with_callbacks(mol::ReactiveMolGraph{T}; on_init::F1=nothing, on_update::F2=nothing
+        ) where {T,F1,F2}  # F1, F2: force specialization on callbacks
+    st = mol.state
+    state = MolState{T}(;
+        initialized=st.initialized, has_updates=st.has_updates,
+        has_new_edges=st.has_new_edges, disable_update=st.disable_update,
+        on_init=something(on_init, st.on_init), on_update=something(on_update, st.on_update))
+    return _with_state(mol, state)
 end
 
 
@@ -209,15 +259,8 @@ end
 
 
 # old accessors (deprecated)
-function set_prop!(mol::ReactiveMolGraph, v::Integer, value::AbstractElement)
-    mol.vprops[v] = value
-    notify_updates!(mol)
-end
-
-function set_prop!(mol::ReactiveMolGraph, e::Edge, value::AbstractElement)
-    mol.eprops[e] = value
-    notify_updates!(mol)
-end
+@deprecate set_prop!(mol::ReactiveMolGraph, v::Integer, value::AbstractElement) setindex!(mol, value, v)
+@deprecate set_prop!(mol::ReactiveMolGraph, e::Edge, value::AbstractElement) setindex!(mol, value, e)
 
 
 """
@@ -382,19 +425,32 @@ molecule reader methods such as `smilestomol` or `sdfilereader`.
 Atom and Bond properties of `MolGraph` are specific to the type of morecular reader
 (e.g. sdfilereader generates `MolGraph{Int,SDFAtom,SDFBond}` instances).
 """
-struct MolGraph{T<:Integer,V<:AbstractAtom,E<:AbstractBond} <: ReactiveMolGraph{T,V,E}
+struct MolGraph{T<:Integer,V<:AbstractAtom,E<:AbstractBond,S<:MolState{T}} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
     vprops::Dict{VertexKey{T},V}
     eprops::Dict{EdgeKey{T},E}
     gprops::MolProperty{T}
-    state::MolState{T}
+    state::S
 end
 
-function MolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
+# vprops and eprops are converted to Dict{VertexKey{T},V} and Dict{EdgeKey{T},E}
+MolGraph{T,V,E}(
+    g::SimpleGraph{T}, vprops::AbstractDict, eprops::AbstractDict,
+    gprops::MolProperty{T}, state::S
+) where {T,V,E,S<:MolState{T}} = MolGraph{T,V,E,S}(g, vprops, eprops, gprops, state)
+
+function MolGraph{T,V,E}(args::Vararg{Any,N}; kwargs...) where {T,V,E,N}  # N: force specialization
     mol = MolGraph{T,V,E}(reactive_molgraph(args...; kwargs...)...)
     initialize!(mol)
     return mol
 end
+
+# Construct with the callbacks of the given concrete state type by default
+MolGraph{T,V,E,S}(args::Vararg{Any,N}; kwargs...) where {T,V,E,S,N} = MolGraph{T,V,E}(
+    args...; default_callbacks(S)..., kwargs...)::MolGraph{T,V,E,S}
+
+_with_state(mol::MolGraph{T,V,E}, state::MolState{T}) where {T,V,E} = MolGraph{T,V,E}(
+    mol.graph, mol.vprops, mol.eprops, mol.gprops, state)
 
 MolGraph(
     g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E}; kwargs...
@@ -404,6 +460,7 @@ MolGraph(
 ) where {T,V,E} = MolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
 
 MolGraph{T,V,E}() where {T,V,E} = MolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
+MolGraph{T,V,E,S}() where {T,V,E,S} = MolGraph{T,V,E,S}(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
 MolGraph() = MolGraph{Int,SDFAtom,SDFBond}()
 
 

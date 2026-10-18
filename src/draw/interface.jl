@@ -115,6 +115,12 @@ Represent `mol` as a space-filling (Calotte) model in three dimensions. `mol` sh
 positions in Angstroms. Requires loading a Makie backend (e.g. GLMakie or CairoMakie).
 """
 function spacefilling end
+
+"""
+    spacefilling!(ax, mol::MolGraph; radii="van der Waals")
+
+In-place version of [`spacefilling`](@ref) that adds the model to an existing Makie axis or scene `ax`.
+"""
 function spacefilling! end
 
 """
@@ -124,6 +130,12 @@ Represent `mol` as a ball-and-stick model in three dimensions. `mol` should have
 in Angstroms. Requires loading a Makie backend (e.g. GLMakie or CairoMakie).
 """
 function ballstick end
+
+"""
+    ballstick!(ax, mol::MolGraph; radii=0.3, bonddiameter=0.1)
+
+In-place version of [`ballstick`](@ref) that adds the model to an existing Makie axis or scene `ax`.
+"""
 function ballstick! end
 
 """
@@ -133,6 +145,12 @@ Represent `mol` as a stick model in three dimensions. `mol` should have 3d atom 
 Requires loading a Makie backend (e.g. GLMakie or CairoMakie).
 """
 function stick end
+
+"""
+    stick!(ax, mol::MolGraph; size=0.33)
+
+In-place version of [`stick`](@ref) that adds the model to an existing Makie axis or scene `ax`.
+"""
 function stick! end
 
 """
@@ -142,4 +160,10 @@ Represent `mol` as a wire-frame model in three dimensions. `mol` should have 3d 
 Requires loading a Makie backend (e.g. GLMakie or CairoMakie).
 """
 function wire end
+
+"""
+    wire!(ax, mol::MolGraph; size=0.1)
+
+In-place version of [`wire`](@ref) that adds the model to an existing Makie axis or scene `ax`.
+"""
 function wire! end

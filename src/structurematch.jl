@@ -3,6 +3,18 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# Return `string(descriptors[key][i])`, or `nothing` if `key` is not in `descriptors`.
+# Unrolled at compile time so that each descriptor array keeps its concrete type.
+@generated function descriptor_string(
+        descriptors::NamedTuple{K}, key::Symbol, i::Integer) where K
+    ex = :(nothing)
+    for k in reverse(K)
+        ex = :(key === $(QuoteNode(k)) ? string(descriptors.$k[i]) : $ex)
+    end
+    return ex
+end
+
+
 """
     vmatchgen(mol1::MolGraph, mol2::MolGraph) -> Function
     vmatchgen(mol1::MolGraph{T1,V1,E1}, mol2::MolGraph{T2,V2,E2}
@@ -30,34 +42,53 @@ function vmatchvecgen(mol::SimpleMolGraph)
 end
 
 function vmatchgen(mol1::SimpleMolGraph, mol2::T) where T <: QueryMolGraph
-    descriptors = Dict(  # precalculated descriptors
-        :symbol => atom_symbol(mol1),
-        :isaromatic => is_aromatic(mol1),
-        :charge => atom_charge(mol1),
-        :isotope => isotope(mol1),
-        :connectivity => connectivity(mol1),
-        :degree => degree(mol1),
-        :valence => valence(mol1),
-        :total_hydrogens => total_hydrogens(mol1),
-        :smallest_ring => smallest_ring(mol1),
-        :ring_count => ring_count(mol1),
+    descriptors = (  # precalculated descriptors
+        symbol = atom_symbol(mol1),
+        isaromatic = is_aromatic(mol1),
+        charge = atom_charge(mol1),
+        isotope = isotope(mol1),
+        connectivity = connectivity(mol1),
+        degree = degree(mol1),
+        valence = valence(mol1),
+        total_hydrogens = total_hydrogens(mol1),
+        smallest_ring = smallest_ring(mol1),
+        ring_count = ring_count(mol1),
     )
     recursive = Dict{String,T}()  # cache recursive mols
     matches = Dict{Int,Dict{Int,Bool}}()  # cache matches
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
         qtree = mol2[v2]
-        qprop = union(QueryNode[], values(querypropmap(qtree))...)
-        arr = trues(length(qprop))  # ignore incompatible descriptors (e.g. :stereo)
-        for (i, p) in enumerate(qprop)
-            if p.key == :recursive
-                haskey(recursive, p.value) || (recursive[p.value] = smartstomol(p.value))
-                arr[i] = has_substruct_match(mol1, recursive[p.value], mandatory=Dict(v1 => 1))
-            elseif p.key in keys(descriptors)
-                arr[i] = string(descriptors[p.key][v1]) == p.value
+        nodes = QueryNode[
+            qand(),
+            qeq(:symbol, descriptor_string(descriptors, :symbol, v1)),
+            qeq(:isaromatic, descriptor_string(descriptors, :isaromatic, v1)),
+            qeq(:charge, descriptor_string(descriptors, :charge, v1)),
+            qeq(:isotope, descriptor_string(descriptors, :isotope, v1)),
+            qeq(:connectivity, descriptor_string(descriptors, :connectivity, v1)),
+            qeq(:degree, descriptor_string(descriptors, :degree, v1)),
+            qeq(:valence, descriptor_string(descriptors, :valence, v1)),
+            qeq(:total_hydrogens, descriptor_string(descriptors, :total_hydrogens, v1)),
+            qeq(:smallest_ring, descriptor_string(descriptors, :smallest_ring, v1)),
+            qeq(:ring_count, descriptor_string(descriptors, :ring_count, v1))
+        ]
+        edges = [(1, i) for i in 2:length(nodes)]
+        # Recursive queries depend on the environment of the atom in mol1, which cannot be
+        # inferred from the descriptors above. Evaluate them by substructure match and
+        # add the results as literals (e.g. $(NC=O) or !$(NC=O)).
+        for p in unique(get(querypropmap(qtree), :recursive, QueryNode[]))
+            haskey(recursive, p.value) || (recursive[p.value] = smartstomol(p.value))
+            if has_substruct_match_mandatory(mol1, recursive[p.value], Dict(v1 => 1))
+                push!(nodes, p)
+                push!(edges, (1, length(nodes)))
+            else
+                push!(nodes, qnot())
+                push!(edges, (1, length(nodes)))
+                push!(nodes, p)
+                push!(edges, (length(nodes) - 1, length(nodes)))
             end
         end
-        res = generate_queryfunc(qtree, qprop)(arr)
+        res = querymatch(QueryAtom(edges, nodes), qtree, false, Dict{String,Dict{String,Bool}}())
         haskey(matches, v1) || (matches[v1] = Dict{Int,Bool}())
         matches[v1][v2] = res
         return res
@@ -69,7 +100,7 @@ function vmatchgen(mol1::QueryMolGraph, mol2::QueryMolGraph)
     matches = Dict{Int,Dict{Int,Bool}}()  # cache matches
     return function (v1, v2)
         haskey(matches, v1) && haskey(matches[v1], v2) && return matches[v1][v2]
-        res = issubset(mol1[v1], mol2[v2]; recursive_cache=recursive)
+        res = querymatch(mol1[v1], mol2[v2], false, recursive)
         haskey(matches, v1) || (matches[v1] = Dict{Int,Bool}())
         matches[v1][v2] = res
         return res
@@ -95,24 +126,25 @@ function ematchvecgen(mol::SimpleMolGraph)
 end
 
 function ematchgen(mol1::SimpleMolGraph, mol2::QueryMolGraph)
-    descriptors = Dict(  # precalculated descriptors
-        :order => bond_order(mol1),
-        :is_in_ring => is_edge_in_ring(mol1),
-        :isaromatic => is_edge_aromatic(mol1)
+    descriptors = (  # precalculated descriptors
+        order = bond_order(mol1),
+        is_in_ring = is_edge_in_ring(mol1),
+        isaromatic = is_edge_aromatic(mol1)
     )
     matches = Dict{Edge{Int},Dict{Edge{Int},Bool}}()  # cache matches
     ernk1 = edge_rank(mol1)
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
-        qtree = mol2[e2]
-        qprop = union(QueryNode[], values(querypropmap(qtree))...)
-        arr = trues(length(qprop))  # ignore incompatible descriptors (e.g. :stereo)
-        for (i, p) in enumerate(qprop)
-            if p.key in keys(descriptors)
-                arr[i] = string(descriptors[p.key][ernk1[e1]]) == p.value
-            end
-        end
-        res = generate_queryfunc(qtree, qprop)(arr)
+        e1q = QueryBond(
+            [(1, 2), (1, 3), (1, 4)],
+            [
+                qand(),
+                qeq(:order, descriptor_string(descriptors, :order, ernk1[e1])),
+                qeq(:is_in_ring, descriptor_string(descriptors, :is_in_ring, ernk1[e1])),
+                qeq(:isaromatic, descriptor_string(descriptors, :isaromatic, ernk1[e1]))
+            ]
+        )
+        res = querymatch(e1q, mol2[e2], false, Dict{String,Dict{String,Bool}}())
         haskey(matches, e1) || (matches[e1] = Dict{Edge{Int},Bool}())
         matches[e1][e2] = res
         return res
@@ -123,7 +155,7 @@ function ematchgen(mol1::QueryMolGraph, mol2::QueryMolGraph)
     matches = Dict{Edge{Int},Dict{Edge{Int},Bool}}()  # cache matches
     return function (e1, e2)
         haskey(matches, e1) && haskey(matches[e1], e2) && return matches[e1][e2]
-        res = issubset(mol1[e1], mol2[e2])
+        res = querymatch(mol1[e1], mol2[e2], false, Dict{String,Dict{String,Bool}}())
         haskey(matches, e1) || (matches[e1] = Dict{Edge{Int},Bool}())
         matches[e1][e2] = res
         return res
@@ -134,9 +166,9 @@ end
 function exact_topology_prefilter(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     nv(mol1) == nv(mol2) || return false
     ne(mol1) == ne(mol2) || return false
-    if has_descriptor(mol1, :sssr) && has_descriptor(mol2, :sssr)
-        r1 = get_descriptor(mol1, :sssr)
-        r2 = get_descriptor(mol2, :sssr)
+    if has_descriptor(mol1, Val(:sssr)) && has_descriptor(mol2, Val(:sssr))
+        r1 = get_descriptor(mol1, Val(:sssr))
+        r2 = get_descriptor(mol2, Val(:sssr))
         length(r1) == length(r2) || return false
     end
     return true
@@ -145,9 +177,9 @@ end
 function topology_prefilter(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     nv(mol1) >= nv(mol2) || return false
     ne(mol1) >= ne(mol2) || return false
-    if has_descriptor(mol1, :sssr) && has_descriptor(mol2, :sssr)
-        r1 = get_descriptor(mol1, :sssr)
-        r2 = get_descriptor(mol2, :sssr)
+    if has_descriptor(mol1, Val(:sssr)) && has_descriptor(mol2, Val(:sssr))
+        r1 = get_descriptor(mol1, Val(:sssr))
+        r2 = get_descriptor(mol2, Val(:sssr))
         length(r1) >= length(r2) ||  return false
     end
     return true
@@ -195,7 +227,8 @@ function node_stereo_match(
     end
     for (e, conf) in mol2[:stereobond]
         s2, d2, iscis2 = conf
-        if !haskey(mol1[:stereobond], u_edge(T, revmap[e.src], revmap[e.dst]))
+        e1 = u_edge(T, revmap[e.src], revmap[e.dst])
+        if !haskey(mol1[:stereobond], e1)
             srcp = values(mol2[u_edge(T, e.src, s2)].vprops)
             dstp = values(mol2[u_edge(T, e.dst, d2)].vprops)
             for prop in vcat(collect(srcp), collect(dstp))
@@ -237,7 +270,8 @@ function node_stereo_match(
     end
     for (e, conf) in mol2[:stereobond]
         s2, d2, iscis2 = conf
-        haskey(mol1[:stereobond], u_edge(T, revmap[e.src], revmap[e.dst])) || return false
+        e1 = u_edge(T, revmap[e.src], revmap[e.dst])
+        haskey(mol1[:stereobond], e1) || return false
         # "or unspecified" is more general than up/down
         srcp = values(mol2[u_edge(T, e.src, s2)].vprops)
         dstp = values(mol2[u_edge(T, e.dst, d2)].vprops)
@@ -333,6 +367,18 @@ See [`substruct_matches`](@ref) for available options.
 """
 has_substruct_match(mol1, mol2; kwargs...
     ) = !isempty(substruct_matches(mol1, mol2; kwargs...))
+
+# `has_substruct_match(mol1, mol2; mandatory=mandatory)` without keyword calls, used inside
+# the recursive query match in `vmatchgen`. Keyword calls in the recursion are not
+# compilable with `juliac --trim`.
+function has_substruct_match_mandatory(
+        mol1::SimpleMolGraph{T}, mol2::SimpleMolGraph{T}, mandatory::Dict{T,T}) where T
+    (nv(mol1) == 0 || nv(mol2) == 0) && return false
+    topology_prefilter(mol1, mol2) || return false
+    matcher = vf2matcher(mol1.graph, mol2.graph, :monomorphic,
+        vmatchgen(mol1, mol2), ematchgen(mol1, mol2), mandatory, Dict{T,T}(), nothing)
+    return !isempty(matcher)
+end
 
 
 """

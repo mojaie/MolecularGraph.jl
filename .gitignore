@@ -3,3 +3,9 @@ Manifest.toml
 Manifest-v*.toml
 
 _temp
+
+# Agents
+.agents
+.claude
+AGENTS.md
+CLAUDE.md

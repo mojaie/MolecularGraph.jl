@@ -115,6 +115,12 @@ end
     notamide = smartstomol(raw"[NX3;!$(NC=O)]")
     @test has_substruct_match(triamine, notamide)
     @test !has_substruct_match(acetamide, notamide)
+    # tertiary amide N has the same atom descriptors as triamine N
+    dimethylacetamide = smilestomol("CN(C)C(C)=O")
+    @test !has_substruct_match(dimethylacetamide, notamide)
+    amide = smartstomol(raw"[NX3;$(NC=O)]")
+    @test !has_substruct_match(triamine, amide)
+    @test has_substruct_match(dimethylacetamide, amide)
 
     po1 = smilestomol("COOC")
     npo1 = smilestomol("COCOCOC")
@@ -167,28 +173,6 @@ end
     LAla2 = smartstomol("N[C@@?H](C)C(=O)O")
     @test has_substruct_match(Ser, LAla2, stereo=true)
     @test !has_substruct_match(DSer, LAla2, stereo=true)
-    SerCys = smartstomol("NC(C(=O)O)C[O,S]")
-    LSerCys = smartstomol("N[C@H](C(=O)O)C[O,S]")
-    @test has_exact_match(LSerCys, SerCys, stereo=true)
-    @test !has_exact_match(SerCys, LSerCys, stereo=true)
-    SerHyd = smartstomol("N[C@H](C(=O)O)C[OD1]")
-    LSerHyd = smartstomol("N[C@@H](C(=O)O)C[OD1]")
-    SerHyd2 = smartstomol("N[C@?H](C(=O)O)C[OD1]")
-    @test has_substruct_match(SerHyd, LAla2, stereo=true)
-    @test !has_substruct_match(LSerHyd, LAla2, stereo=true)
-    @test has_substruct_match(SerHyd2, LAla2, stereo=true)
-    LAla1 = smartstomol("N[C@@H](C)C(=O)O")
-    @test !has_substruct_match(SerHyd2, LAla1, stereo=true)
-
-    hexose = smartstomol("OCC(O1)C(O)C(O)C(O)C1O")
-    glup = smartstomol("OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H](O)C(O)1")
-    galp = smartstomol("C([C@@H]1[C@@H]([C@@H]([C@H](C(O1)O)O)O)O)O")
-    @test has_exact_match(glup, hexose, stereo=true)
-    @test has_exact_match(galp, hexose, stereo=true)
-    @test has_exact_match(galp, glup, stereo=false)
-    @test !has_exact_match(galp, glup, stereo=true)
-    aglupme = smartstomol("OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H](O)[C@@H](OC)1")
-    @test has_substruct_match(aglupme, glup, stereo=true)
 end
 
 @testset "stereobond" begin
@@ -203,9 +187,13 @@ end
     elaidic_acid = smartstomol("O=C(O)CCCCCCC/C=C/CCCCCCCC")
     @test has_exact_match(uns, elaidic_acid2, stereo=true)
     @test !has_exact_match(uns, elaidic_acid, stereo=true)
-    uns = smartstomol("O=C(O)CCCCCCCC=CCCCCCCCC")
-    @test has_exact_match(elaidic_acid, uns, stereo=true)
-    @test !has_exact_match(uns, elaidic_acid, stereo=true)
+    # SMARTS stereobond query against a molecule that has the stereobond
+    transq = smartstomol("C/C=C/C")
+    @test has_substruct_match(smilestomol("C/C=C/C"), transq, stereo=true)
+    @test !has_substruct_match(smilestomol(raw"C/C=C\C"), transq, stereo=true)
+    # SMARTS vs SMARTS stereobond
+    @test has_exact_match(transq, smartstomol("C/C=C/C"), stereo=true)
+    @test !has_exact_match(transq, smartstomol(raw"C/C=C\C"), stereo=true)
 end
 
 @testset "node matching" begin

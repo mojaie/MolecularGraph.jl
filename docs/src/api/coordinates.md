@@ -1,9 +1,9 @@
 
-# Molecular properties
+# Coordinates
 
 ```@autodocs
 Modules = [MolecularGraph]
-Pages   = ["properties.jl", "wclogp.jl"]
+Pages   = ["coords.jl"]
 Private = false
 Order   = [:constant, :function, :type]
 ```

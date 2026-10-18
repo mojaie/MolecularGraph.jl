@@ -68,8 +68,8 @@ Monoisotopic mass is the relative atomic mass of the most abundant isotope. Even
 """
 function monoiso_mass_unc(atomsymbol::Symbol, number::Int=0)
     num = atom_number(atomsymbol)
-    mass = ATOMTABLE[num]["Monoisotopic"]
-    unc = ATOMTABLE[num]["MonoisotopicUncertainty"]
+    mass = ATOMTABLE[num].Monoisotopic
+    unc = ATOMTABLE[num].MonoisotopicUncertainty
     return (mass, unc)
 end
 
@@ -118,8 +118,8 @@ function exact_mass_unc(atomsymbol::Symbol, number::Int=0)
     number == 0 && return monoiso_mass_unc(atomsymbol)
     iso = find_isotope(atomsymbol, number)
     isnothing(iso) && error("No isotope data for $(number)$(atomsymbol)")
-    mass = iso["Mass"]
-    unc = iso["MassUncertainty"]
+    mass = iso.Mass
+    unc = iso.MassUncertainty
     return (mass, unc)
 end
 
@@ -155,14 +155,14 @@ If `Atom.mass` is specified, calculated exact mass of the atom will be used inst
 function standard_weight_unc(atomsymbol::Symbol, number::Int=0)
     number == 0 || return exact_mass_unc(atomsymbol, number)
     num = atom_number(atomsymbol)
-    wt = ATOMTABLE[num]["Weight"]
-    unctype = ATOMTABLE[num]["WeightType"]
+    wt = ATOMTABLE[num].Weight
+    unctype = ATOMTABLE[num].WeightType
     if unctype == "Interval"
-        lower = ATOMTABLE[num]["WeightLower"]
-        higher = ATOMTABLE[num]["WeightHigher"]
+        lower = ATOMTABLE[num].WeightLower
+        higher = ATOMTABLE[num].WeightHigher
         unc = max(higher - wt, wt - lower)
     elseif unctype == "Uncertainty"
-        unc = ATOMTABLE[num]["WeightUncertainty"]
+        unc = ATOMTABLE[num].WeightUncertainty
     else
         unc = NaN  # unctype in ("MostStable", "NotAvailable")
     end
@@ -199,9 +199,9 @@ Records that have lower abundance than the given threshold will be filtered out 
 """
 function isotopic_composition(atomsymbol::Symbol, number::Int; threshold=0.001)
     z = atom_number(atomsymbol)
-    isotopes = []
-    for iso in ATOMTABLE[z]["Isotopes"]
-        cmp = iso["Composition"]
+    isotopes = Isotope[]
+    for iso in ATOMTABLE[z].Isotopes
+        cmp = iso.Composition
         cmp === NaN && continue
         push!(isotopes, iso)
     end
@@ -219,8 +219,8 @@ function isotopic_composition(atomsymbol::Symbol, number::Int; threshold=0.001)
         dups = [logfactorial(n) for n in nums]
         comp = exp(reduce(-, dups; init=logfactorial(number)))
         for (i, iso) in enumerate(isotopes)
-            mass += isotopes[i]["Mass"] * nums[i]
-            comp *= isotopes[i]["Composition"] ^ nums[i]
+            mass += isotopes[i].Mass * nums[i]
+            comp *= isotopes[i].Composition ^ nums[i]
         end
         comp > threshold && push!(data, (mass, comp))
     end
@@ -291,7 +291,7 @@ gr()
 Plots.GRBackend()
 
 mol = smilestomol("CCO")
-data = simulatemassspec(mol)
+data = simulate_massspec(mol)
 plot(
     data[:, 1], data[:, 2],
     leg=false, xlabel = "Mass", ylabel = "Intensity"
@@ -316,14 +316,10 @@ simulate_massspec(mol::SimpleMolGraph; kwargs...
 
 
 
-# deprecated names
-export
-    monoisotopicmass, nominalmass, exactmass,
-    isotopiccomposition, massspecpeaks, simulatemassspec
-
-monoisotopicmass = monoiso_mass
-nominalmass = nominal_mass
-exactmass = exact_mass
-isotopiccomposition = isotopic_composition
-massspecpeaks = massspec_peaks
-simulatemassspec = simulate_massspec
+# deprecated names (`@deprecate` also exports them)
+@deprecate monoisotopicmass monoiso_mass
+@deprecate nominalmass nominal_mass
+@deprecate exactmass exact_mass
+@deprecate isotopiccomposition isotopic_composition
+@deprecate massspecpeaks massspec_peaks
+@deprecate simulatemassspec simulate_massspec

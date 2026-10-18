@@ -49,7 +49,8 @@ end
 
 
 function Makie.plot!(md::MolDisplay{<:Tuple{<:SimpleMolGraph}})
-    mols = [md[i][] for i=1:length(md)]
+    # MolDisplay takes a single molecule (`length(md)` is not available for Makie 0.24 compute plots)
+    mols = [md[1][]]
     radii = md.radii[]
     for mol in mols
         crds = coords3d(mol)

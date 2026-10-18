@@ -14,8 +14,8 @@ end
 
 Base.Tuple(x::Stereocenter) = (x.lookingFrom, x.first, x.second, x.isclockwise)
 Base.iterate(x::Stereocenter, state...) = iterate(Tuple(x), state...)
-Base.:(==)(x::Stereocenter, y) = Tuple(x) == Tuple(y)
-JSON.lower(x::Stereocenter) = collect(Tuple(x))
+Base.:(==)(x::Stereocenter, y::Union{Stereocenter,Tuple}) = Tuple(x) == Tuple(y)
+StructUtils.lower(x::Stereocenter) = Tuple(x)  # written as a JSON array
 
 
 struct StereocenterMap{T<:Integer}
@@ -45,7 +45,7 @@ function remap(
     revv = Dict(v => i for (i, v) in enumerate(vmap))
     newmap = StereocenterMap{T}()
     for (k, v) in stereomap
-        isempty(setdiff([k, stereoneighbors(v)...], keys(revv))) || continue
+        (haskey(revv, k) && all(n -> haskey(revv, n), stereoneighbors(v))) || continue
         newmap[revv[k]] = Stereocenter{T}(revv[v.lookingFrom], revv[v.first], revv[v.second], v.isclockwise)
     end
     return newmap
@@ -68,8 +68,8 @@ end
 
 Base.Tuple(x::Stereobond) = (x.first, x.second, x.is_cis)
 Base.iterate(x::Stereobond, state...) = iterate(Tuple(x), state...)
-Base.:(==)(x::Stereobond, y) = Tuple(x) == Tuple(y)
-JSON.lower(x::Stereobond) = collect(Tuple(x))
+Base.:(==)(x::Stereobond, y::Union{Stereobond,Tuple}) = Tuple(x) == Tuple(y)
+StructUtils.lower(x::Stereobond) = Tuple(x)  # written as a JSON array
 
 
 struct StereobondMap{T<:Integer}
@@ -119,10 +119,10 @@ struct Coords2d
     coords::Vector{Point2d}
 end
 
-Coords2d() = Coords2d([])
-Coords2d(len::Int) = Coords2d(Vector(undef, len))
+Coords2d() = Coords2d(Point2d[])
+Coords2d(len::Int) = Coords2d(Vector{Point2d}(undef, len))
 Base.:(==)(x::Coords2d, y::Coords2d) = x.coords == y.coords
-Base.:(==)(x::Coords2d, y) = x.coords == y
+Base.:(==)(x::Coords2d, y::AbstractVector) = x.coords == y
 Base.iterate(x::Coords2d, state...) = iterate(x.coords, state...)
 Base.eltype(::Coords2d) = Point2d
 Base.length(x::Coords2d) = length(x.coords)
@@ -131,9 +131,9 @@ Base.getindex(x::Coords2d, k...) = getindex(x.coords, k...)
 Base.setindex!(x::Coords2d, v, k...) = setindex!(x.coords, v, k...)
 Base.empty!(x::Coords2d) = empty!(x.coords)
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords2d}) = false
-JSON.lower(x::Coords2d) = [[p...] for p in x.coords]
-JSON.lift(::Type{Coords2d}, x) = Coords2d([Point2d(p...) for p in x])
+StructUtils.structlike(::Type{Coords2d}) = false
+StructUtils.lower(x::Coords2d) = [Float64[p[1], p[2]] for p in x.coords]
+StructUtils.lift(::Type{Coords2d}, x) = Coords2d([Point2d(p...) for p in x])
 
 function remap(
         coords::Vector{Coords2d}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
@@ -162,10 +162,10 @@ struct Coords3d
     coords::Vector{Point3d}
 end
 
-Coords3d() = Coords3d([])
-Coords3d(len::Int) = Coords3d(Vector(undef, len))
+Coords3d() = Coords3d(Point3d[])
+Coords3d(len::Int) = Coords3d(Vector{Point3d}(undef, len))
 Base.:(==)(x::Coords3d, y::Coords3d) = x.coords == y.coords
-Base.:(==)(x::Coords3d, y) = x.coords == y
+Base.:(==)(x::Coords3d, y::AbstractVector) = x.coords == y
 Base.iterate(x::Coords3d, state...) = iterate(x.coords, state...)
 Base.eltype(::Coords3d) = Point3d
 Base.length(x::Coords3d) = length(x.coords)
@@ -174,9 +174,9 @@ Base.getindex(x::Coords3d, k...) = getindex(x.coords, k...)
 Base.setindex!(x::Coords3d, v, k...) = setindex!(x.coords, v, k...)
 Base.empty!(x::Coords3d) = empty!(x.coords)
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{Coords3d}) = false
-JSON.lower(x::Coords3d) = [[p...] for p in x.coords]
-JSON.lift(::Type{Coords3d}, x) = Coords3d([Point3d(p...) for p in x])
+StructUtils.structlike(::Type{Coords3d}) = false
+StructUtils.lower(x::Coords3d) = [Float64[p[1], p[2], p[3]] for p in x.coords]
+StructUtils.lift(::Type{Coords3d}, x) = Coords3d([Point3d(p...) for p in x])
 
 function remap(
         coords::Vector{Coords3d}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
@@ -205,10 +205,10 @@ struct Draw2dBondStyle
     styles::Vector{Symbol}
 end
 
-Draw2dBondStyle() = Draw2dBondStyle([])
-Draw2dBondStyle(len::Int) = Draw2dBondStyle(Vector(undef, len))
+Draw2dBondStyle() = Draw2dBondStyle(Symbol[])
+Draw2dBondStyle(len::Int) = Draw2dBondStyle(Vector{Symbol}(undef, len))
 Base.:(==)(x::Draw2dBondStyle, y::Draw2dBondStyle) = x.styles == y.styles
-Base.:(==)(x::Draw2dBondStyle, y) = x.styles == y
+Base.:(==)(x::Draw2dBondStyle, y::AbstractVector) = x.styles == y
 Base.iterate(x::Draw2dBondStyle, state...) = iterate(x.styles, state...)
 Base.eltype(::Draw2dBondStyle) = Symbol
 Base.length(x::Draw2dBondStyle) = length(x.styles)
@@ -217,9 +217,9 @@ Base.getindex(x::Draw2dBondStyle, k...) = getindex(x.styles, k...)
 Base.setindex!(x::Draw2dBondStyle, v, k...) = setindex!(x.styles, v, k...)
 Base.empty!(x::Draw2dBondStyle) = empty!(x.styles)
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{Draw2dBondStyle}) = false
-JSON.lower(x::Draw2dBondStyle) = string.(x.styles)
-JSON.lift(::Type{Draw2dBondStyle}, x) = Draw2dBondStyle(Symbol.(x))
+StructUtils.structlike(::Type{Draw2dBondStyle}) = false
+StructUtils.lower(x::Draw2dBondStyle) = string.(x.styles)
+StructUtils.lift(::Type{Draw2dBondStyle}, x) = Draw2dBondStyle(Symbol.(x))
 
 function remap(
         style::Vector{Draw2dBondStyle}, vmap::Vector{T}, edges::Vector{Edge{T}}) where T <: Integer
@@ -259,6 +259,7 @@ end
 # Metadata specific shorthands (e.g. mol["compound_id"] = "CP000001")
 
 Base.getindex(mol::SimpleMolGraph, key::String) = mol.gprops.metadata[key]
+Base.haskey(mol::SimpleMolGraph, key::String) = haskey(mol.gprops.metadata, key)
 
 function Base.setindex!(mol::SimpleMolGraph, value::String, key::String)
     # skip dispatch (Metadata update would not affect graph state)
@@ -266,9 +267,9 @@ function Base.setindex!(mol::SimpleMolGraph, value::String, key::String)
 end
 
 # old accessors (deprecated)
-get_prop(mol::SimpleMolGraph, key::String) = mol[key]
-has_prop(mol::SimpleMolGraph, key::String) = haskey(mol.gprops.metadata, key)
-set_prop!(mol::SimpleMolGraph, key::String, value::String) = setindex!(mol, value, key)
+@deprecate get_prop(mol::SimpleMolGraph, key::String) getindex(mol, key)
+@deprecate has_prop(mol::SimpleMolGraph, key::String) haskey(mol, key)
+@deprecate set_prop!(mol::SimpleMolGraph, key::String, value::String) setindex!(mol, value, key)
 
 
 # Descriptors

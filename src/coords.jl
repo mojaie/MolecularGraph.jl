@@ -3,7 +3,7 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-# Note: just to avoid type piracy like JSON.lower(x::Point2d)
+# Note: just to avoid type piracy like StructUtils.lower(x::Point2d)
 
 
 function coords_from_sdf!(mol::SimpleMolGraph)
@@ -12,11 +12,12 @@ function coords_from_sdf!(mol::SimpleMolGraph)
     # Embed 3D coords to 2D
     push!(
         mol[:descriptors].coords2d,
-        Coords2d([Point2d(mol[i].coords[1:2]...) for i in vertices(mol)]))
+        Coords2d([Point2d(mol[i].coords[1], mol[i].coords[2]) for i in vertices(mol)]))
     if zrange[2] - zrange[1] > 0.001  # 3D coords available
         push!(
             mol[:descriptors].coords3d,
-            Coords3d([Point3d(mol[i].coords[1:3]...) for i in vertices(mol)]))
+            Coords3d([Point3d(mol[i].coords[1], mol[i].coords[2], mol[i].coords[3])
+                for i in vertices(mol)]))
     end
     # Bond style in 2D notation (wedges)
     bondorder = [mol[e].order for e in edges(mol)]
@@ -43,10 +44,10 @@ end
 
 
 function coords2d(mol::SimpleMolGraph, i::Integer)
-    if !has_descriptor(mol, :coords2d)
+    if !has_descriptor(mol, Val(:coords2d))
         error("2D coordinates not available in this molecule type.")
     end
-    cds = get_descriptor(mol, :coords2d)
+    cds = get_descriptor(mol, Val(:coords2d))
     if length(cds) < i
         error("No available coords found. Run coordgen!(mol) to generate coords")
     elseif nv(mol) != length(cds[i])
@@ -57,18 +58,18 @@ end
 coords2d(mol::SimpleMolGraph) = coords2d(mol, 1)
 
 function has_coords2d(mol::SimpleMolGraph)
-    has_descriptor(mol, :coords2d) || return false
-    isempty(get_descriptor(mol, :coords2d)) && return false
-    length(get_descriptor(mol, :coords2d)[1]) == nv(mol) || return false
+    has_descriptor(mol, Val(:coords2d)) || return false
+    isempty(get_descriptor(mol, Val(:coords2d))) && return false
+    length(get_descriptor(mol, Val(:coords2d))[1]) == nv(mol) || return false
     return true
 end
 
 
 function coords3d(mol::SimpleMolGraph, i::Integer)
-    if !has_descriptor(mol, :coords3d)
+    if !has_descriptor(mol, Val(:coords3d))
         error("3D coordinates not available in this molecule type.")
     end
-    cds = get_descriptor(mol, :coords3d)
+    cds = get_descriptor(mol, Val(:coords3d))
     if length(cds) < i
         error("No available 3D coords found.")
     elseif nv(mol) != length(cds[i])
@@ -79,15 +80,15 @@ end
 coords3d(mol::SimpleMolGraph) = coords3d(mol, 1)
 
 function has_coords3d(mol::SimpleMolGraph)
-    has_descriptor(mol, :coords3d) || return false
-    isempty(get_descriptor(mol, :coords3d)) && return false
-    length(get_descriptor(mol, :coords3d)[1]) == nv(mol) || return false
+    has_descriptor(mol, Val(:coords3d)) || return false
+    isempty(get_descriptor(mol, Val(:coords3d))) && return false
+    length(get_descriptor(mol, Val(:coords3d))[1]) == nv(mol) || return false
     return true
 end
 
 
 draw2d_bond_style(mol::SimpleMolGraph, i::Integer
-    ) = get_descriptor(mol, :draw2d_bond_style)[i]
+    ) = get_descriptor(mol, Val(:draw2d_bond_style))[i]
 draw2d_bond_style(mol::SimpleMolGraph) = draw2d_bond_style(mol, 1)
 
 
@@ -193,6 +194,12 @@ function coordgen(
     return Coords2d(coords), Draw2dBondStyle(styles)
 end
 
+"""
+    coordgen!(mol::SimpleMolGraph)
+
+Generate 2D coordinates by [`coordgen`](@ref) and store them (and the wedge notation styles)
+in the descriptors of `mol`, replacing existing 2D coordinates.
+"""
 function coordgen!(mol::SimpleMolGraph)
     # Initialize
     empty!(mol[:descriptors].coords2d)

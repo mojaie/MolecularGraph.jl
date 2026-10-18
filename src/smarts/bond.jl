@@ -3,14 +3,6 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
-const SMILES_BONDS = Dict{}(
-    '-' => (order=1,),
-    '=' => (order=2,),
-    '#' => (order=3,),
-    ':' => (isaromatic=true,),
-    '/' => (direction=:up,),
-    '\\' => (direction=:down,)
-)
 
 const SMARTS_BOND_ORDER = Dict(
     '-' => "1",
@@ -25,14 +17,30 @@ const SMARTS_BOND_ORDER = Dict(
     bondsymbol!(state::SMILESParser) -> Union{NamedTuple,Nothing}
 
 BondSymbol <- [-=#:/\\]
+
+Return all bond properties as a NamedTuple of a fixed type (unspecified fields are defaults)
+so that the bond constructor can be statically dispatched.
 """
 function bondsymbol!(state::SMILESParser)
     sym1 = read(state)
-    if sym1 in keys(SMILES_BONDS)
-        forward!(state)
-        return SMILES_BONDS[sym1]
+    order, isaromatic, direction = 1, false, :unspecified
+    if sym1 == '-'
+        order = 1
+    elseif sym1 == '='
+        order = 2
+    elseif sym1 == '#'
+        order = 3
+    elseif sym1 == ':'
+        isaromatic = true
+    elseif sym1 == '/'
+        direction = :up
+    elseif sym1 == '\\'
+        direction = :down
+    else
+        return  # end token found (or implicit bond), no position move
     end
-    return  # end token found (or implicit bond), no position move
+    forward!(state)
+    return (order=order, isaromatic=isaromatic, direction=direction)
 end
 
 
@@ -102,7 +110,7 @@ end
 """
     bond!(state::SMARTSParser) -> Union{QueryTree,Nothing}
 
-Bond <- '~' / (BondSymbol / LogicalCond)?
+Bond <- '~' / (BondSymbol / LogicalCond)*
 """
 function bond!(state::SMARTSParser{T,V,E}) where {T,V,E}
     if read(state) == '~'
@@ -110,7 +118,17 @@ function bond!(state::SMARTSParser{T,V,E}) where {T,V,E}
         return E(Tuple{Int,Int}[], [qanytrue()])
     end
     qtree = E()
+    vs = Int[]
     v = lglowand!(state, qtree)
     v == 0 && return
+    while v != 0
+        push!(vs, v)
+        v = lglowand!(state, qtree)
+    end
+    length(vs) == 1 && return qtree
+    node = add_qnode!(qtree, qand())
+    for i in vs
+        add_qedge!(qtree, node, i)
+    end
     return qtree
 end

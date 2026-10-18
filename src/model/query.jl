@@ -5,6 +5,27 @@
 
 
 """
+    AbstractQueryNode
+
+The base class of query node.
+"""
+abstract type AbstractQueryNode end
+
+Base.getindex(elem::AbstractQueryNode, prop::Symbol) = getproperty(elem, prop)
+
+Base.:(==)(x::T, y::T) where T <: AbstractQueryNode = all(
+    [getfield(x, f) == getfield(y, f) for f in fieldnames(T)])
+
+function Base.hash(elem::T, h::UInt) where T <: AbstractQueryNode
+    for name in fieldnames(T)
+        val = getfield(elem, name)
+        h = hash(val, h)
+    end
+    return h
+end
+
+
+"""
     QueryNode
 
 Query components
@@ -46,18 +67,31 @@ function Base.isless(q::QueryNode, r::QueryNode)
     return q.value < r.value
 end
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{QueryNode}) = false
+StructUtils.structlike(::Type{QueryNode}) = false
 
-function JSON.lower(x::QueryNode)
-    rcd = Dict{String,Any}()
+function StructUtils.lower(x::QueryNode)
+    rcd = Dict{String,String}()  # concrete value type for `juliac --trim`
     x.operator === :eq || setindex!(rcd, string(x.operator), "operator")
     x.key === :none || setindex!(rcd, string(x.key), "key")
     x.value == "" || setindex!(rcd, x.value, "value")
     return rcd
 end
 
-JSON.lift(::Type{QueryNode}, x) = QueryNode(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+StructUtils.lift(::Type{QueryNode}, x) = QueryNode(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
 
+
+
+"""
+    QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement
+
+The base class of molecular query trees.
+"""
+abstract type QueryTree{T<:Integer,U<:AbstractQueryNode} <: AbstractElement end
+
+Base.eltype(::Type{<:QueryTree{T,U}}) where {T,U} = T
+Base.eltype(qtree::T) where T<:QueryTree = eltype(T)
+vproptype(::Type{<:QueryTree{T,U}}) where {T,U} = U
+vproptype(qtree::T) where T<:QueryTree = vproptype(T)
 
 
 function querytree(edges::Vector{Tuple{T,T}}, props::Vector{U}) where {T,U}
@@ -93,6 +127,8 @@ QueryAtom(edges::Vector, props::Vector) = QueryAtom(querytree(edges, props)...)
 QueryBond(edges::Vector, props::Vector) = QueryBond(querytree(edges, props)...)
 QueryAtom() = QueryAtom(Tuple{Int,Int}[], QueryNode[])
 QueryBond() = QueryBond(Tuple{Int,Int}[], QueryNode[])
+QueryAtom{T,U}() where {T<:Integer,U<:QueryNode} = QueryAtom{T,U}(Tuple{T,T}[], U[])
+QueryBond{T,U}() where {T<:Integer,U<:QueryNode} = QueryBond{T,U}(Tuple{T,T}[], U[])
 
 
 
@@ -150,20 +186,33 @@ Base.copy(prop::T) where T <: QueryMolProperty = T(
 
 Basic molecular graph type.
 """
-struct QueryMolGraph{T<:Integer,V<:QueryTree,E<:QueryTree} <: ReactiveMolGraph{T,V,E}
+struct QueryMolGraph{T<:Integer,V<:QueryTree,E<:QueryTree,S<:MolState{T}} <: ReactiveMolGraph{T,V,E}
     graph::SimpleGraph{T}
     vprops::Dict{VertexKey{T},V}
     eprops::Dict{EdgeKey{T},E}
     gprops::QueryMolProperty{T}
-    state::MolState{T}
+    state::S
 end
 
-function QueryMolGraph{T,V,E}(args...; kwargs...) where {T,V,E}
+# vprops and eprops are converted to Dict{VertexKey{T},V} and Dict{EdgeKey{T},E}
+QueryMolGraph{T,V,E}(
+    g::SimpleGraph{T}, vprops::AbstractDict, eprops::AbstractDict,
+    gprops::QueryMolProperty{T}, state::S
+) where {T,V,E,S<:MolState{T}} = QueryMolGraph{T,V,E,S}(g, vprops, eprops, gprops, state)
+
+function QueryMolGraph{T,V,E}(args::Vararg{Any,N}; kwargs...) where {T,V,E,N}  # N: force specialization
     mol = QueryMolGraph{T,V,E}(
         reactive_molgraph(args...; gprops=QueryMolProperty{T}(), kwargs...)...)
     initialize!(mol)
     return mol
 end
+
+# Construct with the callbacks of the given concrete state type by default
+QueryMolGraph{T,V,E,S}(args::Vararg{Any,N}; kwargs...) where {T,V,E,S,N} = QueryMolGraph{T,V,E}(
+    args...; default_callbacks(S)..., kwargs...)::QueryMolGraph{T,V,E,S}
+
+_with_state(mol::QueryMolGraph{T,V,E}, state::MolState{T}) where {T,V,E} = QueryMolGraph{T,V,E}(
+    mol.graph, mol.vprops, mol.eprops, mol.gprops, state)
 
 QueryMolGraph(
     g::SimpleGraph{T}, vprops::Dict{T,V}, eprops::Dict{Edge{T},E}; kwargs...
@@ -173,7 +222,9 @@ QueryMolGraph(
 ) where {T,V,E} = QueryMolGraph{T,V,E}(edge_list, vprop_list, eprop_list; kwargs...)
 
 QueryMolGraph{T,V,E}() where {T,V,E} = QueryMolGraph(SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
-QueryMolGraph() = QueryMolGraph{Int,QueryAtom,QueryBond}()
+QueryMolGraph{T,V,E,S}() where {T,V,E,S} = QueryMolGraph{T,V,E,S}(
+    SimpleGraph{T}(), Dict{T,V}(), Dict{Edge{T},E}())
+QueryMolGraph() = QueryMolGraph{Int,QueryAtom{Int,QueryNode},QueryBond{Int,QueryNode}}()
 
 
 """
@@ -195,7 +246,9 @@ function canonical(qtree::QueryTree)
             o = sortperm(cnn[succs])
             concat = reduce(*, cnn[succs[o]])
             cnn[v] = string(vp.operator, vp.key, vp.value, concat)
-            append!(order[v], order[succs[o]]...)
+            for s in succs[o]
+                append!(order[v], order[s])
+            end
         end
     end
     return cnn[revtopo[end]], order[revtopo[end]]
@@ -212,7 +265,7 @@ end
 
 
 function Base.hash(qtree::QueryTree, h::UInt)
-    nv(qtree.graph) == 0 && return hash([])
+    nv(qtree.graph) == 0 && return hash(UInt[])  # same as hash([])
     hashes = Vector{UInt}(undef, nv(qtree.graph))
     revtopo = topological_sort(reverse(qtree.graph))
     for v in revtopo
@@ -299,51 +352,6 @@ function querypropmap(qtree::QueryTree)
         push!(pmap[p.key], p)
     end
     return pmap
-end
-
-
-"""
-    generate_queryfunc(tree, props) -> Function
-
-Generate query truthtable function from QueryLiteral tree and the property vector.
-
-The query truthtable function take a Vector{Bool} of length equal to `props` and
-returns output in Bool.
-"""
-function generate_queryfunc(qtree::QueryTree, props::Vector{QueryNode})
-    nv(qtree.graph) == 0 && return arr -> false
-    func = Dict{Int,Function}()
-    revtopo = topological_sort(reverse(qtree.graph))
-    for v in revtopo
-        p = qtree.vprops[v]
-        succs = outneighbors(qtree.graph, v)
-        if isempty(succs)
-            if p.operator === :eq
-                if p.key in (:stereo, :direction)
-                    func[v] = arr -> true  # ignore stereo
-                else
-                    idx = findfirst(x -> x == p, props)
-                    func[v] = arr -> arr[idx]
-                end
-            elseif p.operator === :any
-                func[v] = arr -> true
-            else
-                @assert false p.operator
-            end
-            continue
-        end
-        sfunc = [func[s] for s in succs]
-        if p.operator === :not
-            func[v] = arr -> ~only(sfunc)(arr)
-        elseif p.operator === :and
-            func[v] = arr -> all(f(arr) for f in sfunc)
-        elseif p.operator === :or
-            func[v] = arr -> any(f(arr) for f in sfunc)
-        else
-            @assert false
-        end
-    end
-    return func[revtopo[end]]
 end
 
 

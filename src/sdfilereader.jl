@@ -16,6 +16,13 @@ function sympair(s)::Pair{Symbol, Union{String, Int}}
 end
 
 
+function intprop(props::Dict{Symbol,Union{String,Int}}, key::Symbol, default::Int)
+    v = get(props, key, default)
+    v isa Int || error("unsupported sdfile format - non-integer value of $(key)")
+    return v
+end
+
+
 function ctab_atom_v2(::Type{T}, line::AbstractString) where T <: AbstractElement
     xpos = parse(Float64, line[1:10])
     ypos = parse(Float64, line[11:20])
@@ -36,10 +43,10 @@ function ctab_atom_v3(::Type{T}, line::AbstractString) where T <: AbstractElemen
     ss = split(line)
     crds = parse.(Float64, ss[5:7])
     sym = ss[4]
-    props = Dict(sympair.(ss[9:end])...)
-    chg = get(props, :CHG, 0)
-    iso = get(props, :MASS, 0)
-    mul = get(props, :RAD, 1)
+    props = Dict{Symbol,Union{String,Int}}(sympair.(ss[9:end]))
+    chg = intprop(props, :CHG, 0)
+    iso = intprop(props, :MASS, 0)
+    mul = intprop(props, :RAD, 1)
     return T(sym, chg, mul, iso, crds)
 end
 
@@ -59,7 +66,7 @@ function ctab_bond_v3(
     d = Dict{String,Any}()
     ss = split(line)
     ord, u, v = parse.(T, ss[4:6])
-    props = Dict(sympair.(ss[7:end])...)
+    props = Dict{Symbol,Union{String,Int}}(sympair.(ss[7:end]))
     # d["notation"] = get(props, :CFG, 0)  # TODO: not compatible with v2
     isordered = u < v
     u, v = isordered ? (u, v) : (v, u)
@@ -115,7 +122,7 @@ function sdf_on_update!(mol::SimpleMolGraph)
 end
 
 
-function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: SimpleMolGraph
+function parse_ctab(::Type{T}, io::IO, config::NamedTuple) where T <: SimpleMolGraph
     mark(io)
     line1 = readline(io)  # name line, not implemented
     if startswith(line1, ">")  # empty ctab (is valid?)
@@ -196,7 +203,7 @@ function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: Simp
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")
         readline(io)
     end
-    mol = T(edges, vprops, eprops; NamedTuple((k, v) for (k, v) in config)...)
+    mol = T(edges, vprops, eprops; config...)
     # TODO: catch compatibility warnings
     if ver === :v3
         mol[:logs]["warning_sdfilereader"] = "SDFile V3000 stereochemistry is not supported"
@@ -205,7 +212,7 @@ function parse_ctab(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: Simp
 end
 
 
-function parse_rxn(::Type{T}, io::IO, config::Dict{Symbol,Any}) where T <: AbstractReaction
+function parse_rxn(::Type{T}, io::IO, config::NamedTuple) where T <: AbstractReaction
     line1 = readline(io)  # $RXN
     startswith(line1, "\$RXN") || error("rdfile parse error - \$RXN token not found")
     ver = line1 == "\$RXN V3000" ? :v3 : :v2
@@ -246,7 +253,7 @@ function parse_options(io::IO)
         # Some inappropriate signs are accepted for practical use
         m = match(r">.*?<([\w -.%=/]+)>", line)
         if m !== nothing
-            lines = []
+            lines = String[]
             while true
                 line_ = readline(io)
                 line_ == "" && break
@@ -278,14 +285,20 @@ function parse_rdf_options(io::IO)
 end
 
 
-struct SDFileReader{T}
-    io::IO
+struct SDFileReader{T,I<:IO,C<:NamedTuple}
+    io::I
     unsupported::Symbol  # :error, :log, :ignore
-    config::Dict{Symbol,Any}
+    config::C  # keyword arguments passed to the molecule constructor
 end
 
-Base.IteratorSize(::Type{SDFileReader{T}}) where T = Base.SizeUnknown()
-Base.IteratorEltype(::Type{SDFileReader{T}}) where T = Base.EltypeUnknown()
+# `config` given as a Dict (for backward compatibility) is converted to a NamedTuple
+SDFileReader{T}(io::IO, unsupported::Symbol, config::AbstractDict) where T = SDFileReader{T}(
+    io, unsupported, NamedTuple((Symbol(k), v) for (k, v) in config))
+SDFileReader{T}(io::I, unsupported::Symbol, config::C
+    ) where {T,I<:IO,C<:NamedTuple} = SDFileReader{T,I,C}(io, unsupported, config)
+
+Base.IteratorSize(::Type{<:SDFileReader}) = Base.SizeUnknown()
+Base.IteratorEltype(::Type{<:SDFileReader}) = Base.EltypeUnknown()
 
 function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractMolGraph
     eof(reader.io) && return nothing
@@ -294,9 +307,11 @@ function Base.iterate(reader::SDFileReader{T}, state=1) where T <: AbstractMolGr
     catch e
         reader.unsupported === :error && throw(e)
         if e isa ErrorException  # Compatibility error
-            reader.unsupported === :log && @info "$(e.msg) (#$(state) in sdfilereader)"
+            m = e.msg
+            msg = m isa String ? m : "compatibility error"
+            reader.unsupported === :log && @info "$(msg) (#$(state) in sdfilereader)"
             nul = T()
-            nul[:logs]["error_sdfilereader"] = e.msg
+            nul[:logs]["error_sdfilereader"] = msg
             nul
         else
             throw(e)
@@ -357,7 +372,7 @@ instead of default supplier `nohaltsupplier`
 """
 sdfilereader(
         ::Type{T}, file::IO; unsupported=:log,
-        config=Dict{Symbol,Any}(:on_init => sdf_on_init!, :on_update => sdf_on_update!), kwargs...
+        config=(on_init=sdf_on_init!, on_update=sdf_on_update!), kwargs...
     ) where T <: AbstractMolGraph = SDFileReader{T}(file, unsupported, config)
 sdfilereader(file::IO; kwargs...) = sdfilereader(SDFMolGraph, file; kwargs...)
 sdfilereader(::Type{T}, path::AbstractString; kwargs...
@@ -366,7 +381,7 @@ sdfilereader(path::AbstractString; kwargs...) = sdfilereader(SDFMolGraph, open(p
 
 rdfilereader(
         ::Type{T}, file::IO; unsupported=:log,
-        config=Dict{Symbol,Any}(:on_init => sdf_on_init!, :on_update => sdf_on_update!), kwargs...
+        config=(on_init=sdf_on_init!, on_update=sdf_on_update!), kwargs...
     ) where T <: AbstractReaction = SDFileReader{T}(file, unsupported, config)
 rdfilereader(file::IO; kwargs...) = rdfilereader(Reaction{SDFMolGraph}, file; kwargs...)
 rdfilereader(::Type{T}, path::AbstractString; kwargs...

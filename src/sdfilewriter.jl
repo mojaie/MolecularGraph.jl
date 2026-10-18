@@ -3,6 +3,9 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# Parsed once at load time (a format string parsed at runtime is not compilable with `juliac --trim`)
+const SDF_DATEFORMAT = Dates.DateFormat("mmddyyHHMM")
+
 const BOND_STYLE_TO_SDF = Dict(
     :none => 0,
     :up => 1,
@@ -109,7 +112,7 @@ function printv2mol(
     # stereospecific hydrogens for aesthetics of fused rings
     # TODO: this may add unnecessary hydrogens and unexpectedly call coordgen!
     # TODO: HydrogenatedAtom should be implemented to keep hydrogen coordinates
-    if givebackhydrogen && has_prop(mol, :stereocenter) && !isempty(mol[:stereocenter])
+    if givebackhydrogen && haskey(mol, :stereocenter) && !isempty(mol[:stereocenter])
         ringcount = ring_count(mol)
         imph = implicit_hydrogens(mol)
         mol_ = copy(mol)
@@ -123,8 +126,9 @@ function printv2mol(
     end
     # write
     program = "MGjlv$(string(VERSION.major)[end])$(string(VERSION.minor)[end-1:end])"
-    datetime = Dates.format(Dates.now(), "mmddyyHHMM")
+    datetime = Dates.format(Dates.now(), SDF_DATEFORMAT)
     dimension = has_coords3d(mol) ? "3D" : "2D"
+
     println(io)
     println(io, "  $(program)$(datetime)$(dimension)            ")
     println(io)

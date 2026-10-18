@@ -36,10 +36,11 @@ mutable struct AllCliquesState{T,U,F} <: CliquesState{T}
     status::Symbol
 end
 
+# P: force specialization on the function argument (for `juliac --trim`)
 AllCliquesState{T,U}(g::SimpleGraph{T};
-    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=cliques_postproc!, kwargs...
-) where {T,U} = AllCliquesState{T,U,typeof(postprocess)}(
-    g, targetsize, get_expire(timeout), postprocess, [], U[], :ongoing)
+    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess::P=cliques_postproc!, kwargs...
+) where {T,U,P} = AllCliquesState{T,U,P}(
+    g, targetsize, get_expire(timeout), postprocess, T[], U[], :ongoing)
 
 
 mutable struct MaxCliqueState{T,U,F} <: CliquesState{T}
@@ -53,9 +54,9 @@ mutable struct MaxCliqueState{T,U,F} <: CliquesState{T}
 end
 
 MaxCliqueState{T,U}(g::SimpleGraph{T};
-    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=max_clique_postproc!, kwargs...
-) where {T,U} = MaxCliqueState{T,U,typeof(postprocess)}(
-    g, targetsize, get_expire(timeout), postprocess, [], U(), :ongoing)
+    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess::P=max_clique_postproc!, kwargs...
+) where {T,U,P} = MaxCliqueState{T,U,P}(
+    g, targetsize, get_expire(timeout), postprocess, T[], U(), :ongoing)
 
 
 function expand!(state::CliquesState{T}, subg::Set{T}, cand::Set{T}) where T
@@ -185,9 +186,9 @@ mutable struct AllConnCliquesState{T,U,F1,F2} <: ConnCliquesState{T}
 end
 
 AllConnCliquesState{T,U,F}(g::SimpleGraph{T}, connfunc::F;
-    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=cliques_postproc!, kwargs...
-) where {T,U,F} = AllConnCliquesState{T,U,F,typeof(postprocess)}(g, targetsize,
-    get_expire(timeout), connfunc, postprocess, [], U[], :ongoing)
+    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess::P=cliques_postproc!, kwargs...
+) where {T,U,F,P} = AllConnCliquesState{T,U,F,P}(g, targetsize,
+    get_expire(timeout), connfunc, postprocess, T[], U[], :ongoing)
 
 
 mutable struct MaxConnCliqueState{T,U,F1,F2} <: ConnCliquesState{T}
@@ -202,8 +203,8 @@ mutable struct MaxConnCliqueState{T,U,F1,F2} <: ConnCliquesState{T}
 end
 
 MaxConnCliqueState{T,U,F}(g::SimpleGraph{T}, connfunc::F;
-    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess=max_clique_postproc!, kwargs...
-) where {T,U,F} = MaxConnCliqueState{T,U,F,typeof(postprocess)}(g, targetsize,
+    timeout=MIN_TIMEOUT, targetsize=nothing, postprocess::P=max_clique_postproc!, kwargs...
+) where {T,U,F,P} = MaxConnCliqueState{T,U,F,P}(g, targetsize,
     get_expire(timeout), connfunc, postprocess, T[], U(), :ongoing)
 
 
@@ -279,8 +280,8 @@ Calculate maximal connected cliques.
 
 """
 function all_maximal_conn_cliques(::Type{U}, g::SimpleGraph{T};
-        connfunc=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U}
-    state = AllConnCliquesState{T,U,typeof(connfunc)}(g, connfunc; kwargs...)
+        connfunc::F=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U,F}
+    state = AllConnCliquesState{T,U,F}(g, connfunc; kwargs...)
     init_conn_cliques!(state)
     return state.cliques, state.status
 end
@@ -295,8 +296,8 @@ all_maximal_conn_cliques(g::SimpleGraph{T}; kwargs...
 Calculate maximal connected cliques.
 """
 function maximum_conn_clique(::Type{U}, g::SimpleGraph{T};
-    connfunc=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U}
-    state = MaxConnCliqueState{T,U,typeof(connfunc)}(g, connfunc; kwargs...)
+    connfunc::F=n->(Set{T}(), Set(neighbors(g, n))), kwargs...) where {T,U,F}
+    state = MaxConnCliqueState{T,U,F}(g, connfunc; kwargs...)
     init_conn_cliques!(state)
     return state.maxsofar, state.status
 end

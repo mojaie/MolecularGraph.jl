@@ -38,7 +38,6 @@ export
     VertexKey, EdgeKey,
     AbstractAtom, AbstractBond, Reaction, QueryTree,
     vproptype, eproptype,
-    props, get_prop, has_prop, set_prop!,
     u_edge, ordered_neighbors, edge_neighbors, ordered_edge_neighbors,
     Stereocenter, StereocenterMap, Stereobond, StereobondMap,
     Coords2d, Coords3d
@@ -53,6 +52,7 @@ include("./model/bond.jl")
 include("./model/molgraph.jl")
 include("./model/query.jl")
 include("./model/cdxml.jl")
+
 export cdxmltomol, cdxmltomols
 
 include("./graph/operators.jl")
@@ -82,7 +82,7 @@ export
     approx_maximum_clique,
     mincyclebasis, edgemincyclebasis, disjoint_union,
     ConstraintArrayMCIS, ConstraintArrayMCES,
-    maximum_common_subgraph, maximum_common_edge_subgraph,
+    maximum_common_subgraph,
     mcis_constraints, mces_constraints,
     VF2Matcher,
     isomorphisms, is_isomorphic,
@@ -114,7 +114,7 @@ export
     is_hydrogen_acceptor, hydrogen_acceptor_count,
     is_rotatable, rotatable_count,
     atom_counter, heavy_atom_count, molecular_formula, empirical_formula,
-    pi_electron, pi_delocalized, hybridization, hybridization_delocalized,
+    pi_electron, hybridization,
     is_ring_aromatic, is_ring_aromatic!, is_aromatic, is_edge_aromatic,
     wclogp
 
@@ -170,6 +170,7 @@ export
 
 using libinchi_jll: libinchi
 using coordgenlibs_jll: libcoordgen
+using PicoSAT
 
 include("stereo.jl")
 include("coords.jl")
@@ -205,7 +206,7 @@ export
     edge_substruct_matches, has_edge_substruct_match,
     disconnected_mcis, disconnected_mces,
     connected_mcis, connected_mces,
-    tcmcis, tcmces, tdmcis, tdmces,
+    tdmcis, tdmces,
     emaptonmap,
     tdmcis_constraints, tdmces_constraints
 
@@ -214,8 +215,8 @@ export query_containment_diagram, find_queries
 
 # Molecule drawing
 
-using Colors: RGB, RGBA, N0f8, hex, coloralpha
-import Statistics
+import Colors
+using Colors: RGB, RGBA, N0f8, Colorant, hex, coloralpha
 
 
 include("./draw/color.jl")

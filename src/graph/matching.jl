@@ -57,23 +57,24 @@ function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T<:Integer
             @debug "      back from recursion"
             @assert length(p_cont) % 2 == 0
             # Lifting
-            p = [gc_vmap[n] for n in p_cont]
+            # (`plift` is not reassigned because it is captured by closures below)
+            plift = T[gc_vmap[n] for n in p_cont]
             if !(bn in p_cont)
-                @debug "      P: $(p) (no blossom in augpath)"
-                return p
+                @debug "      P: $(plift) (no blossom in augpath)"
+                return plift
             end
-            pos = findfirst(x -> x == bn, p_cont)
-            if pos == 1 || pos == length(p)
-                nbrpos = pos == 1 ? 2 : length(p) - 1
-                bdst = bpath[findfirst(x -> has_edge(g, p[nbrpos], x), bpath)]
+            pos = something(findfirst(==(bn), p_cont))
+            if pos == 1 || pos == length(plift)
+                nbrpos = pos == 1 ? 2 : length(plift) - 1
+                bdst = bpath[something(findfirst(x -> has_edge(g, plift[nbrpos], x), bpath))]
                 if bsrc == bdst
-                    p[pos] = bsrc
-                    @debug "      P: $(p) (blossom root is exposed)"
-                    return p
+                    plift[pos] = bsrc
+                    @debug "      P: $(plift) (blossom root is exposed)"
+                    return plift
                 end
             else
-                inlet = bpath[findfirst(x -> has_edge(g, p[pos-1], x), bpath)]
-                outlet = bpath[findfirst(x -> has_edge(g, p[pos+1], x), bpath)]
+                inlet = bpath[something(findfirst(x -> has_edge(g, plift[pos-1], x), bpath))]
+                outlet = bpath[something(findfirst(x -> has_edge(g, plift[pos+1], x), bpath))]
                 bdst = inlet == bsrc ? outlet : inlet
             end
             bpex1 = [bsrc]
@@ -88,9 +89,9 @@ function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T<:Integer
             end
             r = length(bpex1) % 2 == 0 ? bpex2 : bpex1
             baug = pos % 2 == 0 ? reverse(r) : r
-            p = union(p[1:pos-1], baug, p[pos+1:end])
-            @debug "      P: $(p) (lifted)"
-            return p
+            lifted = union(plift[1:pos-1], baug, plift[pos+1:end])
+            @debug "      P: $(lifted) (lifted)"
+            return lifted
         end
     end
     return T[]

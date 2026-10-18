@@ -87,7 +87,8 @@ function safe_stereo_hydrogen!(mol::SimpleMolGraph{T}, center::T) where T
     spos = findfirst(==(h), stereoneighbors(stereo))
     isnothing(spos) && return h  # hydrogen at the lowest priority can be removed safely
     nonh = setdiff(ordered_neighbors(mol, center), h)
-    set_stereocenter!(mol, center, nonh..., isclockwise(stereo, nonh...))
+    f, s, t = nonh[1], nonh[2], nonh[3]  # three non-hydrogen neighbors
+    set_stereocenter!(mol, center, f, s, t, isclockwise(stereo, f, s, t))
     return h
 end
 
@@ -146,7 +147,7 @@ function stereocenter_from_sdf2d(
         upcnt = count(x -> x === :up, drs)
         dwcnt = count(x -> x === :down, drs)
         (upcnt == 0 && dwcnt == 0) && (@debug "$(i): unspecified"; continue)
-        sortorder = [1, map(x -> x + 1, anglesort(v_coords2d, i, nbrs[1], nbrs[2:end]))...]
+        sortorder = pushfirst!(anglesort(v_coords2d, i, nbrs[1], nbrs[2:end]) .+ 1, 1)
         ons = nbrs[sortorder]  # node indices of neighbors in angular order
         ods = drs[sortorder]  # direction symbols of neighbors in angular order
         if length(nbrs) == 3
@@ -204,7 +205,7 @@ stereocenter_from_sdf2d(mol::SimpleMolGraph) = stereocenter_from_sdf2d(
     Int[mol[e].order for e in edges(mol)],
     Int[mol[e].notation for e in edges(mol)],
     Bool[mol[e].isordered for e in edges(mol)],
-    get_descriptor(mol, :coords2d)[1]
+    get_descriptor(mol, Val(:coords2d))[1]
 )
 
 """
@@ -292,7 +293,7 @@ function stereobond_from_sdf2d(
     stereobonds = StereobondMap{T}()
     smallcycles = Edge{T}[]
     for cyc in edgemincyclebasis(g, sssr)
-        length(cyc) < 8 && push!(smallcycles, cyc...)
+        length(cyc) < 8 && append!(smallcycles, cyc)
     end
     for (i, e) in enumerate(edges(g))
         e_order[i] == 2 || continue

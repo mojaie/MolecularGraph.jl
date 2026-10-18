@@ -83,7 +83,7 @@ function smarts_on_init!(mol::QueryMolGraph)
     preprocess!(mol)
 end
 
-const SMARTSMolGraph = QueryMolGraph{Int,QueryAtom,QueryBond}
+const SMARTSMolGraph = QueryMolGraph{Int,QueryAtom{Int,QueryNode},QueryBond{Int,QueryNode}}
 
 
 """
@@ -100,7 +100,8 @@ The syntax of SMILES in this library follows both Daylight SMILES and OpenSMILES
 """
 function smilestomol(
         ::Type{T}, smiles::AbstractString;
-        on_init=smiles_on_init!, on_update=smiles_on_update!, kwargs...) where T <: SimpleMolGraph
+        on_init::F1=smiles_on_init!, on_update::F2=smiles_on_update!, kwargs...
+        ) where {T<:SimpleMolGraph,F1,F2}  # F1, F2: force specialization on callbacks
     V = vproptype(T) === AbstractAtom ? SMILESAtom : vproptype(T)
     E = eproptype(T) === AbstractBond ? SMILESBond : eproptype(T)
     state = SMILESParser{eltype(T),V,E}(smiles)
@@ -124,7 +125,8 @@ smilestomol(smiles::AbstractString; kwargs...
 Parse SMARTS string into `QueryMolGraph` object.
 """
 function smartstomol(
-        ::Type{G}, smarts::AbstractString; on_init=smarts_on_init!, kwargs...) where G <: SimpleMolGraph
+        ::Type{G}, smarts::AbstractString; on_init::F=smarts_on_init!, kwargs...
+        ) where {G<:SimpleMolGraph,F}  # F: force specialization on callbacks
     T = eltype(G)
     V = vproptype(G)
     E = eproptype(G)
@@ -140,7 +142,7 @@ function smartstomol(
 end
 
 smartstomol(smarts::AbstractString; kwargs...
-    ) = smartstomol(QueryMolGraph{Int,QueryAtom,QueryBond}, smarts; kwargs...)
+    ) = smartstomol(SMARTSMolGraph, smarts; kwargs...)
 
 
 

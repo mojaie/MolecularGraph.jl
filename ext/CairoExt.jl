@@ -7,7 +7,7 @@ module CairoExt
 
 
 using Colors:
-    Colors, RGB, coloralpha
+    Colors, RGB, RGBA, N0f8
 
 using GeometryBasics:
     GeometryBasics, Point2d, norm
@@ -53,7 +53,7 @@ mutable struct CairoCanvas <: Canvas
     fontfamily::String
     fontsize::Float64
     fonttagmap::Dict{Symbol,Tuple{String,String}}
-    bgcolor::RGB
+    bgcolor::RGB{N0f8}
     bgopacity::Float64
 
     cairoscalef::Float64
@@ -94,8 +94,8 @@ mutable struct CairoCanvas <: Canvas
         canvas.cairoscalef = 1
         canvas.surface = Cairo.CairoARGBSurface(width, height)
         canvas.context = Cairo.CairoContext(canvas.surface)
-        canvas.optpos = []
-        canvas.optdeg = []
+        canvas.optpos = Point2d[]
+        canvas.optdeg = Float64[]
 
         return canvas
     end
@@ -108,23 +108,36 @@ end
 Generate molecular structure image as a PNG format.
 
 `width` and `height` specifies the size of the image in px.
+
+`bondhighlight` should contain only bonds of the molecule, otherwise `ArgumentError` is thrown.
 """
+# Same as `coloralpha(color, opacity)` with RGBA{N0f8} (the opacity is rounded to N0f8),
+# but avoids the range check of ColorTypes which is not compilable with `juliac --trim`.
+function bgcolor_rgba(color::RGB{N0f8}, opacity::Float64)
+    0.0 <= opacity <= 1.0 || throw(ArgumentError("bgopacity should be in the range [0, 1]"))
+    return RGBA{Float64}(
+        Float64(color.r), Float64(color.g), Float64(color.b), round(opacity * 255) / 255)
+end
+
 function MolecularGraph.drawpng(io::IO, mol::SimpleMolGraph, width::Int, height::Int;
         bgcolor="#FFF", bgopacity=1.0,
         atomhighlight=eltype(mol)[], bondhighlight=Edge{eltype(mol)}[], highlightcolor="#FDD835",
         atomindex=false, indexcolor="#000", indexbgcolor="#F0F0FF",
         kwargs...)
-    canvas = CairoCanvas(width, height, parse(RGB, bgcolor), bgopacity)
+    MolecularGraph.check_bondhighlight(mol, bondhighlight)
+    canvas = CairoCanvas(width, height, MolecularGraph.parse_rgb(bgcolor), bgopacity)
     # draw background
-    Cairo.set_source(
-        canvas.context, coloralpha(canvas.bgcolor, canvas.bgopacity))
+    Cairo.set_source(canvas.context, bgcolor_rgba(canvas.bgcolor, canvas.bgopacity))
     Cairo.rectangle(canvas.context, 0.0, 0.0, canvas.surface.width, canvas.surface.height)  
     Cairo.fill(canvas.context)
     # draw molecule
     draw2d!(canvas, mol; kwargs...)
     # highlight atoms if is_atom_visible=true or no incident edges
     # setdiff(Int[], []) -> Any[], setdiff(Int[], Int[]) -> Int[]  ???
-    enodes = Set{eltype(mol)}(vcat([[src(e), dst(e)] for e in bondhighlight]...))
+    enodes = Set{eltype(mol)}()
+    for e in bondhighlight
+        push!(enodes, src(e), dst(e))
+    end
 	nodes_to_show = collect(setdiff(
         atomhighlight, setdiff(enodes, findall(is_atom_visible(mol)))))
     # set highlights behind the elements.
@@ -132,12 +145,12 @@ function MolecularGraph.drawpng(io::IO, mol::SimpleMolGraph, width::Int, height:
     Cairo.set_operator(canvas.context, Cairo.OPERATOR_MULTIPLY)  
     Cairo.push_group(canvas.context)
     Cairo.set_operator(canvas.context, op)  # avoid blending overlapped highlights
-    sethighlight!(canvas, nodes_to_show, parse(RGB, highlightcolor))
-    sethighlight!(canvas, bondhighlight, parse(RGB, highlightcolor))
+    sethighlight!(canvas, nodes_to_show, MolecularGraph.parse_rgb(highlightcolor))
+    sethighlight!(canvas, bondhighlight, MolecularGraph.parse_rgb(highlightcolor))
     pat = Cairo.pop_group(canvas.context)  # explicitly binds a valiable 'pat'
     Cairo.set_source(canvas.context, pat)
     Cairo.paint(canvas.context)
-    atomindex && drawatomindex!(canvas, is_atom_visible(mol), parse(RGB, indexcolor), parse(RGB, indexbgcolor))
+    atomindex && drawatomindex!(canvas, is_atom_visible(mol), MolecularGraph.parse_rgb(indexcolor), MolecularGraph.parse_rgb(indexbgcolor))
     Cairo.write_to_png(canvas.surface, io)
     Cairo.finish(canvas.surface)
     return
@@ -173,7 +186,7 @@ function MolecularGraph.drawtext!(canvas::CairoCanvas, pos, text, color, align)
     halign = CAIRO_ATOM_TEXT_HALIGN[align]
     xoff = CAIRO_ATOM_TEXT_XOFFSET[align]
     fs = round(canvas.fontsize * canvas.cairoscalef, digits=1)
-    Cairo.set_font_face(canvas.context, join([canvas.fontfamily, canvas.fontweight, fs], " "))
+    Cairo.set_font_face(canvas.context, string(canvas.fontfamily, " ", canvas.fontweight, " ", fs))
     Cairo.set_source(canvas.context, color)
     cext = Cairo.text_extents(canvas.context, "C")
     # empirical offset factor (0.85, 0.35)
@@ -191,7 +204,7 @@ end
 function MolecularGraph.drawtextannot!(canvas::CairoCanvas, pos, text, color, bgcolor)
     font_size = round(canvas.fontsize * canvas.annotsizef * canvas.cairoscalef, digits=1)
     bg_size = round(canvas.fontsize * canvas.annotsizef, digits=1)
-    Cairo.set_font_face(canvas.context, join([canvas.fontfamily, canvas.fontweight, font_size], " "))
+    Cairo.set_font_face(canvas.context, string(canvas.fontfamily, " ", canvas.fontweight, " ", font_size))
     Cairo.set_source(canvas.context, bgcolor)
     Cairo.arc(canvas.context, pos[1] + bg_size, pos[2] + bg_size, bg_size, 0, 2pi)
     Cairo.fill(canvas.context)
@@ -242,7 +255,8 @@ MolecularGraph.drawdashedline!(canvas::CairoCanvas, seg, ucolor, vcolor) = drawl
 function cairo_transform!(ctx, transform_mat)
     # Emulate cairo_transform. Be sure to do save-transform.
     m = Cairo.get_matrix(ctx)
-    tm = [m.xx m.xy m.x0; m.yx m.yy m.y0; 1 1 1] * transform_mat
+    # only the first two rows are used (matrix literals are not compilable with `juliac --trim`)
+    tm = MolecularGraph.affine3(m.xx, m.xy, m.x0, m.yx, m.yy, m.y0) * transform_mat
     newm = Cairo.CairoMatrix(tm[1, 1], tm[2, 1], tm[1, 2], tm[2, 2], tm[1, 3], tm[2, 3])
     Cairo.set_matrix(ctx, newm)
     return

@@ -21,7 +21,7 @@ mutable struct SvgCanvas <: Canvas
     fontfamily::String
     fontsize::Float64
     fonttagmap::Dict{Symbol,Tuple{String,String}}
-    bgcolor::RGB
+    bgcolor::RGB{N0f8}
     bgopacity::Float64
 
     viewboxW::Float64
@@ -62,10 +62,10 @@ mutable struct SvgCanvas <: Canvas
         # Canvas state
         canvas.viewboxW = 1.0
         canvas.viewboxH = 1.0
-        canvas.bgelements = []
-        canvas.elements = []
-        canvas.optpos = []
-        canvas.optdeg = []
+        canvas.bgelements = String[]
+        canvas.elements = String[]
+        canvas.optpos = Point2d[]
+        canvas.optdeg = Float64[]
 
         return canvas
     end
@@ -100,7 +100,7 @@ function tosvg(canvas::SvgCanvas; width="100%", height="100%", viewbox=true, kwa
      fill="$(svgcolor(canvas.bgcolor))" opacity="$(canvas.bgopacity)"/>
     """
     endsvg = "</svg>\n"
-    return join([header, bg, canvas.bgelements..., canvas.elements..., endsvg], "")
+    return string(header, bg, join(canvas.bgelements), join(canvas.elements), endsvg)
 end
 
 
@@ -111,22 +111,28 @@ Generate molecular structure image as a SVG format string.
 
 `width` and `height` specifies the size of the image (width and height
 attribute of svg tag).
+
+`bondhighlight` should contain only bonds of the molecule, otherwise `ArgumentError` is thrown.
 """
 function drawsvg(mol::SimpleMolGraph;
         bgcolor="#FFF", bgopacity=1.0,
         atomhighlight=eltype(mol)[], bondhighlight=Edge{eltype(mol)}[], highlightcolor="#FDD835",
         atomindex=false, indexcolor="#000", indexbgcolor="#F0F0FF",
         kwargs...)
-    canvas = SvgCanvas(parse(RGB, bgcolor), bgopacity)
+    check_bondhighlight(mol, bondhighlight)
+    canvas = SvgCanvas(parse_rgb(bgcolor), bgopacity)
     draw2d!(canvas, mol; kwargs...)
     # highlight atoms if is_atom_visible=true or no incident edges
     # setdiff(Int[], []) -> Any[], setdiff(Int[], Int[]) -> Int[]  ???
-    enodes = Set{eltype(mol)}(vcat([[src(e), dst(e)] for e in bondhighlight]...))
+    enodes = Set{eltype(mol)}()
+    for e in bondhighlight
+        push!(enodes, src(e), dst(e))
+    end
 	nodes_to_show = collect(setdiff(
         atomhighlight, setdiff(enodes, findall(is_atom_visible(mol)))))
-    sethighlight!(canvas, nodes_to_show, parse(RGB, highlightcolor))
-    sethighlight!(canvas, bondhighlight, parse(RGB, highlightcolor))
-    atomindex && drawatomindex!(canvas, is_atom_visible(mol), parse(RGB, indexcolor), parse(RGB, indexbgcolor))
+    sethighlight!(canvas, nodes_to_show, parse_rgb(highlightcolor))
+    sethighlight!(canvas, bondhighlight, parse_rgb(highlightcolor))
+    atomindex && drawatomindex!(canvas, is_atom_visible(mol), parse_rgb(indexcolor), parse_rgb(indexbgcolor))
     return tosvg(canvas; kwargs...)
 end
 
@@ -210,11 +216,12 @@ function drawtextannot!(canvas::SvgCanvas, pos, text, color, bgcolor)
     size = round(Int, canvas.fontsize * canvas.annotsizef)
     bxy = svgcoords(pos)
     txy = svgcoords(pos + Point2d(0, size))
-    elem = """<g>
-     <rect $(bxy) width="$(size)" height="$(size)" rx="$(size/2)" ry="$(size/2)" fill="$(svgcolor(bgcolor))" />
-     <text $(txy) font-size="$(size)" fill="$(svgcolor(color))">$(text)</text>
-    </g>
-    """
+    # split into lines to keep the number of interpolated values small (for `juliac --trim`)
+    wh = """width="$(size)" height="$(size)" """
+    rxy = """rx="$(size/2)" ry="$(size/2)" """
+    rect = string(" <rect ", bxy, " ", wh, rxy, "fill=\"", svgcolor(bgcolor), "\" />\n")
+    txt = """ <text $(txy) font-size="$(size)" fill="$(svgcolor(color))">$(text)</text>\n"""
+    elem = string("<g>\n", rect, txt, "</g>\n")
     push!(canvas.elements, elem)
     return
 end
@@ -222,9 +229,10 @@ end
 function drawtexthighlight!(canvas::SvgCanvas, pos, color)
     size = round(Int, canvas.fontsize * canvas.hlsizef)
     xy = svgcoords(pos - Point2d(size / 2, size / 2))
-    elem = """
-     <rect $(xy) width="$(size)" height="$(size)" rx="$(size/2)" ry="$(size/2)" fill="$(svgcolor(color))" />
-    """
+    # fewer interpolated values per string (for `juliac --trim`)
+    wh = """width="$(size)" height="$(size)" """
+    rxy = """rx="$(size/2)" ry="$(size/2)" """
+    elem = string(" <rect ", xy, " ", wh, rxy, "fill=\"", svgcolor(color), "\" />\n")
     push!(canvas.bgelements, elem)
     return
 end

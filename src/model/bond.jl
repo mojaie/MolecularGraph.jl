@@ -7,6 +7,28 @@
 
 
 """
+    AbstractBond <: AbstractElement
+
+The base class of edge properties (bond).
+"""
+abstract type AbstractBond <: AbstractElement end
+
+abstract type StandardBond <: AbstractBond end
+
+
+has_submap(::Type{T}) where T <: AbstractBond = false
+
+
+"""
+    bond_order(bond::AbstractBond) -> Int
+
+Return bond order of the given bond.
+"""
+bond_order(bond::AbstractBond) = error("bond_order is not implemented for this bond type")
+
+
+
+"""
     SDFBond
 
 SDFile (CTAB) bond property type.
@@ -46,17 +68,18 @@ SDFBond(d::Dict{Symbol,Any}) = SDFBond(; NamedTuple((k, v) for (k, v) in d)...)
 
 bond_order(b::SDFBond) = b.order
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{SDFBond}) = false
+StructUtils.structlike(::Type{SDFBond}) = false
 
-function JSON.lower(x::SDFBond)
-    rcd = Dict{String,Any}()
+# Concrete value types (instead of Any) so that JSON writing is compilable with `juliac --trim`
+function StructUtils.lower(x::SDFBond)
+    rcd = Dict{String,Union{Int,Bool}}()
     x.order == 1 || setindex!(rcd, x.order, "order")
     x.notation == 0 || setindex!(rcd, x.notation, "notation")
     x.isordered === true || setindex!(rcd, x.isordered, "isordered")
     return rcd
 end
 
-JSON.lift(::Type{SDFBond}, x) = SDFBond(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+StructUtils.lift(::Type{SDFBond}, x) = SDFBond(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
 
 
 
@@ -89,17 +112,17 @@ SMILESBond(d::Dict{Symbol,Any}) = SMILESBond(; NamedTuple((k, v) for (k, v) in d
 
 bond_order(b::SMILESBond) = b.order
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{SMILESBond}) = false
+StructUtils.structlike(::Type{SMILESBond}) = false
 
-function JSON.lower(x::SMILESBond)
-    rcd = Dict{String,Any}()
+function StructUtils.lower(x::SMILESBond)
+    rcd = Dict{String,Union{String,Int,Bool}}()
     x.order == 1 || setindex!(rcd, x.order, "order")
     x.isaromatic === false || setindex!(rcd, x.isaromatic, "isaromatic")
-    x.direction === :unspecified || setindex!(rcd, x.direction, "direction")
+    x.direction === :unspecified || setindex!(rcd, string(x.direction), "direction")
     return rcd
 end
 
-JSON.lift(::Type{SMILESBond}, x) = SMILESBond(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+StructUtils.lift(::Type{SMILESBond}, x) = SMILESBond(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
 
 
 
@@ -132,12 +155,12 @@ CommonChemBond(x::SMILESBond) = CommonChemBond(x.order)
 
 bond_order(b::CommonChemBond) = b.type
 
-StructUtils.structlike(::StructUtils.StructStyle, ::Type{CommonChemBond}) = false
+StructUtils.structlike(::Type{CommonChemBond}) = false
 
-function JSON.lower(x::CommonChemBond)
-    rcd = Dict{String,Any}()
+function StructUtils.lower(x::CommonChemBond)
+    rcd = Dict{String,Int}()
     x.type == 1 || setindex!(rcd, x.type, "bo")
     return rcd
 end
 
-JSON.lift(::Type{CommonChemBond}, x) = CommonChemBond(; NamedTuple((Symbol(k), v) for (k, v) in x)...)
+StructUtils.lift(::Type{CommonChemBond}, x) = CommonChemBond(; NamedTuple((Symbol(k), v) for (k, v) in x)...)

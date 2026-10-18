@@ -13,6 +13,11 @@ using LinearAlgebra: cross
 using Logging
 using MolecularGraph
 
+# Load weak dependencies to activate package extensions (CairoExt, MakieExt, RDKitExt)
+import Cairo
+import Makie
+import RDKitMinimalLib
+
 using MolecularGraph:
     combinations, sortstablemax, sortstablemin,
     logfactorial,
@@ -30,7 +35,7 @@ using MolecularGraph:
     add_qnode!, add_qedge!, set_qnode!, add_qedge!,
     rem_qnode!, rem_qnodes!, rem_qedge!,
     qeq, qtrue, qand, qor, qnot, qanytrue,
-    querypropmap, generate_queryfunc
+    querypropmap
 
 using MolecularGraph:
     default_on_update!,
@@ -45,13 +50,12 @@ using MolecularGraph:
     ctab_atom_v2, ctab_bond_v2
 
 using MolecularGraph:
-    exact_topology_prefilter, topology_prefilter,
-    QueryTruthTable, querymatch,
-    resolve_disjoint_not!, resolve_recursive!, generate_truthtable,
+    exact_topology_prefilter, topology_prefilter, querymatch,
+    resolve_disjoint_not!, resolve_recursive!,
     Coords2d, Coords3d, Draw2dBondStyle,
     draw2d_bond_style,
     atom_color, is_atom_visible, atom_markup, double_bond_style,
-    normalize_coords
+    normalize_coords, parse_rgb, svgcolor, EzXML
 
 using MolecularGraph: smiles
 
@@ -106,6 +110,9 @@ include("./draw/base.jl")
 include("./draw/svg.jl")
 include("./draw/3d.jl")
 
+include("./ext/rdkit.jl")
+include("./ext/cairo.jl")
+
 end
 
 using MolecularGraph
@@ -113,9 +120,9 @@ using Aqua
 using Test
 
 @testset "Aqua" begin
-    Aqua.test_ambiguities(MolecularGraph; broken=true)
-    Aqua.test_unbound_args(MolecularGraph; broken=true)
-    Aqua.test_undefined_exports(MolecularGraph; broken=true)
+    Aqua.test_ambiguities(MolecularGraph)
+    Aqua.test_unbound_args(MolecularGraph)
+    Aqua.test_undefined_exports(MolecularGraph)
     Aqua.test_project_extras(MolecularGraph)
     Aqua.test_stale_deps(MolecularGraph)
     Aqua.test_deps_compat(MolecularGraph)

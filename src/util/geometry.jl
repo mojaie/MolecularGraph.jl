@@ -1,7 +1,8 @@
 
 function translate(seg::Line, ang, dist)
-    rotation = [cos(ang) -sin(ang); sin(ang) cos(ang)]
-    move = rotation * normalize(seg[2] - seg[1]) * dist
+    # rotate the unit vector by `ang` (written out instead of a matrix product for `juliac --trim`)
+    u = normalize(seg[2] - seg[1])
+    move = Point2d(cos(ang) * u[1] + (-sin(ang)) * u[2], sin(ang) * u[1] + cos(ang) * u[2]) * dist
     return Line(seg[1] + move, seg[2] + move)
 end
 
@@ -47,10 +48,20 @@ function isclockwise(vertices::Vector{Point2d})
 end
 
 
+# 3x3 affine matrix [a11 a12 a13; a21 a22 a23; 0 0 1]
+# (matrix literals are built by Vararg hvcat, which is not compilable with `juliac --trim`)
+function affine3(a11, a12, a13, a21, a22, a23)
+    m = zeros(Float64, 3, 3)
+    m[1, 1], m[1, 2], m[1, 3] = a11, a12, a13
+    m[2, 1], m[2, 2], m[2, 3] = a21, a22, a23
+    m[3, 3] = 1.0
+    return m
+end
+
 function transformmatrix(scale::Point2d, rotate::Point2d, transl::Point2d)
-    s = [scale[1] 0 0; 0 scale[2] 0; 0 0 1]
-    r = [rotate[1] -rotate[2] 0; rotate[2] rotate[1] 0; 0 0 1]
-    t = [1 0 transl[1]; 0 1 transl[2]; 0 0 1]
+    s = affine3(scale[1], 0.0, 0.0, 0.0, scale[2], 0.0)
+    r = affine3(rotate[1], -rotate[2], 0.0, rotate[2], rotate[1], 0.0)
+    t = affine3(1.0, 0.0, transl[1], 0.0, 1.0, transl[2])
     return t * r * s
 end
 
