@@ -23,7 +23,6 @@ makedocs(
         ],
         "Advanced topics" => [
             "Interfaces" => "advanced/interface.md",
-            "Editing molecules" => "advanced/editmol.md",
             "Customize atom properties" => "advanced/propinterface.md"
         ],
         "API References" => [
