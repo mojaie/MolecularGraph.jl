@@ -251,8 +251,16 @@ function stereocenter_from_smiles(
         v_stereo[i] === :unspecified && continue
         # sort vertices by SMARTS lexicographic order
         nbrs = neighbors(g, i)
-        first = only(setdiff(nbrs, succ[i]))
-        centers[i] = Stereocenter{T}(first, succ[i][1], succ[i][2], v_stereo[i] in (:clockwise, :clockwiseuns))
+        prec = setdiff(nbrs, succ[i])
+        if isempty(prec)
+            # The first atom of the SMILES (or of a disconnected component) has no preceding
+            # atom. The first neighbor in lexical order (the implicit hydrogen if exists) is
+            # the looking-from atom (OpenSMILES).
+            from, v1, v2 = succ[i][1], succ[i][2], succ[i][3]
+        else
+            from, v1, v2 = only(prec), succ[i][1], succ[i][2]
+        end
+        centers[i] = Stereocenter{T}(from, v1, v2, v_stereo[i] in (:clockwise, :clockwiseuns))
     end
     return centers
 end

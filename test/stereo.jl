@@ -98,6 +98,22 @@ end
     @test codeine[:smarts_lexical_succ][19] == [20, 5, 21]
     @test codeine[:stereocenter][5] == (4, 13, 19, false)
     @test codeine[:stereocenter][19] == (5, 18, 21, true)
+
+    # chiral atom without preceding atom (the first neighbor is the looking-from atom)
+    LAla5 = smilestomol("[C@H](N)(C)C(=O)O")  # looking from H
+    @test LAla5[:smarts_lexical_succ][1] == [2, 3, 4, 5]
+    @test LAla5[:stereocenter][1] == (3, 4, 5, true)  # same as N[C@@H](C)C(=O)O
+    @test inchikey(LAla5) == inchikey(smilestomol("N[C@@H](C)C(=O)O"))
+    @test inchikey(LAla5) != inchikey(smilestomol("N[C@H](C)C(=O)O"))
+    @test smilestomol("[C@](F)(Cl)(Br)I")[:stereocenter][1] == (2, 3, 4, false)
+    @test smilestomol("[S@](=O)(C)CC")[:stereocenter][1] == (2, 3, 4, false)  # lone pair
+    discon = smilestomol("C.[C@@H](F)(Cl)Br")  # first atom of a component
+    @test discon[:stereocenter][2] == (4, 5, 6, false)
+    @test inchikey(discon) == inchikey(smilestomol("C.F[C@H](Cl)Br"))
+    ring = smilestomol("[C@@H]1(F)CCCC1Cl")  # H, ring bond, branch
+    @test ring[:smarts_lexical_succ][1] == [2, 7, 3, 4]
+    @test ring[:stereocenter][1] == (3, 4, 7, false)
+    @test inchikey(ring) == inchikey(smilestomol("F[C@@H]1CCCC1Cl"))
 end
 
 
