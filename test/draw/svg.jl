@@ -84,7 +84,8 @@
             svg = drawsvg(sdftomol(joinpath(TEST_DIR, molfile)); kwargs...)
             path = joinpath(EXPECTED_DIR, svgfile)
             UPDATE_SVG && write(path, svg)
-            @test svg == read(path, String)
+            # git on Windows may check out the expected files with CRLF line endings
+            @test svg == replace(read(path, String), "\r\n" => "\n")
         end
     end
 end
