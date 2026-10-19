@@ -386,12 +386,12 @@ function querymatch(
     qcnf, qnext = to_cnf(q, varids_q, nextid)
     rcnf, _ = to_cnf(r, varids_r, qnext; inverse=true)
     qrcnf = [qcnf; rcnf]
-    qrsat = PicoSAT.solve(qrcnf) == :unsatisfiable
+    qrsat = !is_satisfiable(qrcnf)
     if exactmatch
         rcnf, rnext = to_cnf(r, varids_r, nextid)
         qcnf, _ = to_cnf(q, varids_q, rnext; inverse=true)
         rqcnf = [rcnf; qcnf]
-        rqsat = PicoSAT.solve(rqcnf) == :unsatisfiable
+        rqsat = !is_satisfiable(rqcnf)
         return qrsat && rqsat
     else
         return qrsat

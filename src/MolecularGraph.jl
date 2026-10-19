@@ -24,6 +24,7 @@ include("./util/geometry.jl")
 include("./util/meta.jl")
 include("./util/iterator.jl")
 include("./util/math.jl")
+include("./util/sat.jl")
 
 
 # Interfaces
@@ -170,7 +171,6 @@ export
 
 using libinchi_jll: libinchi
 using coordgenlibs_jll: libcoordgen
-using PicoSAT
 
 include("stereo.jl")
 include("coords.jl")

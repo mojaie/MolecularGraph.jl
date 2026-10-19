@@ -25,6 +25,7 @@ const RDKIT_AVAILABLE = !Sys.iswindows()
 end
 
 using MolecularGraph:
+    is_satisfiable,
     combinations, sortstablemax, sortstablemin,
     logfactorial,
     translate, trim_u, trim_v, trim_uv,
@@ -72,6 +73,7 @@ using Test
 include("./util/geometry.jl")
 include("./util/iterator.jl")
 include("./util/math.jl")
+include("./util/sat.jl")
 
 include("./graph/operators.jl")
 include("./graph/cycle.jl")
