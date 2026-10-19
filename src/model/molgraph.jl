@@ -372,8 +372,13 @@ function _induced_subgraph(mol::T, vlist_or_elist) where {T<:ReactiveMolGraph}
         eps[e] = mol.eprops[u_edge(mol, vmap[src(e)], vmap[dst(e)])]
     end
     newgp = remap_gprops(mol, vmap, collect(edges(mol)))
-    notify_updates!(mol)
-    return T(subg, vps, eps, newgp, mol.state), vmap
+    # The subgraph has its own state (sharing the state with `mol` mixes up the update flags)
+    state = copy(mol.state)
+    state.has_updates = true  # descriptors of the subgraph should be recalculated
+    # Rings may be broken in an edge-induced subgraph even if all of their vertices remain,
+    # so SSSR should be recalculated.
+    eltype(vlist_or_elist) <: Edge && (state.has_new_edges = true)
+    return T(subg, vps, eps, newgp, state), vmap
 end
 
 

@@ -148,6 +148,28 @@ end
 end
 
 
+@testset "induced_subgraph" begin
+    # subgraphs have their own state (descriptors are recalculated for each subgraph)
+    mol = smilestomol("CC(=O)OC1=CC=CC=C1C(=O)O.O.CCO")
+    a, _ = induced_subgraph(mol, [14])
+    b, _ = induced_subgraph(mol, [15, 16, 17])
+    @test a.state !== mol.state && b.state !== mol.state
+    @test length(atom_charge(a)) == 1
+    @test length(atom_charge(b)) == 3
+    @test length(bond_order(b)) == 2
+    @test atom_symbol(b) == [:C, :C, :O]
+    @test length(atom_charge(mol)) == 17  # the original molecule is not affected
+    @test count("<text", drawsvg(b)) == 1  # OH
+    # rings broken in an edge-induced subgraph are removed from SSSR
+    benzene = smilestomol("c1ccccc1")
+    chain, _ = induced_subgraph(benzene, collect(edges(benzene))[1:5])
+    @test nv(chain) == 6
+    @test isempty(sssr(chain))
+    @test !any(is_aromatic(chain))
+    ring, _ = induced_subgraph(benzene, collect(1:6))
+    @test length(sssr(ring)) == 1
+end
+
 @testset "metadata" begin
     gprop = MolProperty{Int}()
     data = JSON.Object{String,Any}(
