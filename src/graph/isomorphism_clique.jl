@@ -5,6 +5,15 @@
 
 abstract type ConstraintArrayMCS{T} end
 
+"""
+    ConstraintArrayMCIS{T,D,V,E}
+
+Serializable constraints of a graph for maximum common node-induced subgraph (MCIS) calculation
+by [`maximum_common_subgraph`](@ref).
+
+It has the node pairs, distances (or connections) between the paired nodes, and vertex/edge
+attributes for matching. See [`mcis_constraints`](@ref).
+"""
 struct ConstraintArrayMCIS{T,D,V,E} <: ConstraintArrayMCS{T}  # Serializable
     nv::Int
     pairs::Vector{Tuple{T,T}}
@@ -15,6 +24,15 @@ struct ConstraintArrayMCIS{T,D,V,E} <: ConstraintArrayMCS{T}  # Serializable
 end
 
 
+"""
+    ConstraintArrayMCES{T,D,V,E}
+
+Serializable constraints of a graph for maximum common edge-induced subgraph (MCES)
+calculation by [`maximum_common_subgraph`](@ref).
+
+Constraints are defined on the line graph, and the mapping of line graph vertices to the
+original edges and Δ-Y exchange information are also stored. See [`mces_constraints`](@ref).
+"""
 struct ConstraintArrayMCES{T,D,V,E} <: ConstraintArrayMCS{T}  # Serializable
     nv::Int
     pairs::Vector{Tuple{T,T}}
@@ -89,6 +107,19 @@ end
 any_path_constraints(g; kwargs...) = any_path_constraints(UInt32, g; kwargs...)
 
 
+"""
+    mcis_constraints(pairs, distarr, g::SimpleGraph; vmatchvec=x->0, ematchvec=(x, y)->0) -> ConstraintArrayMCIS
+    mcis_constraints(::Val{:connection}, g::SimpleGraph; kwargs...) -> ConstraintArrayMCIS
+    mcis_constraints(::Val{:shortest}, g::SimpleGraph; diameter, kwargs...) -> ConstraintArrayMCIS
+    mcis_constraints(::Val{:any}, g::SimpleGraph; diameter, kwargs...) -> ConstraintArrayMCIS
+
+Generate [`ConstraintArrayMCIS`](@ref) of the graph for [`maximum_common_subgraph`](@ref).
+
+Node pair constraints are connections (`:connection`), shortest path distances
+(`:shortest`, for topological constraints), or a bit set of all path distances (`:any`).
+`vmatchvec(v)` and `ematchvec(u, v)` return integer attributes of the vertex and the vertex
+pair that should be equal in the matching (see [`vmatchvecgen`](@ref)).
+"""
 function mcis_constraints(pairs::AbstractVector{<:Tuple}, distarr::Vector{T}, g::SimpleGraph{U};
         vmatchvec::F1=x->0, ematchvec::F2=(x, y)->0, kwargs...) where {T,U,F1,F2}  # F1, F2: force specialization
     vatt1 = Int[]
@@ -119,6 +150,17 @@ function mcis_constraints(::Val{:any}, g::SimpleGraph; kwargs...)
 end
 
 
+"""
+    mces_constraints(pairs, distarr, lg, revmap, shared, g::SimpleGraph; vmatchvec=x->0, ematchvec=(x, y)->0) -> ConstraintArrayMCES
+    mces_constraints(::Val{:connection}, g::SimpleGraph; kwargs...) -> ConstraintArrayMCES
+    mces_constraints(::Val{:shortest}, g::SimpleGraph; diameter, kwargs...) -> ConstraintArrayMCES
+    mces_constraints(::Val{:any}, g::SimpleGraph; diameter, kwargs...) -> ConstraintArrayMCES
+
+Generate [`ConstraintArrayMCES`](@ref) of the graph for [`maximum_common_subgraph`](@ref).
+
+Edge-induced version of [`mcis_constraints`](@ref). The constraints are calculated on the
+line graph of `g`.
+"""
 function mces_constraints(pairs, distarr::Vector{T}, lg, revmap, shared, g::SimpleGraph{U};
         vmatchvec::F1=x->0, ematchvec::F2=(x, y)->0, kwargs...) where {T,U,F1,F2}  # F1, F2: force specialization
     vatt1 = Int[]

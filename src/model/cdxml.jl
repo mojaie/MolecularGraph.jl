@@ -66,6 +66,12 @@ struct CDXMLBond <: StandardBond
     end
 end
 
+"""
+    CDXMLMolGraph
+
+Alias of `MolGraph{Int,CDXMLAtom,CDXMLBond}`, the default molecule type of
+[`cdxmltomol`](@ref) and [`cdxmltomols`](@ref).
+"""
 const CDXMLMolGraph = MolGraph{Int,CDXMLAtom,CDXMLBond}
 
 # Implement required interface methods

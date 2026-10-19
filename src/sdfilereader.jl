@@ -297,6 +297,12 @@ function parse_rdf_options(io::IO)
 end
 
 
+"""
+    SDFileReader{T,I<:IO,C<:NamedTuple}
+
+Lazy iterator of molecules (or reactions) read from SDFile (or RDFile/RXN) data,
+returned by [`sdfilereader`](@ref) and [`rdfilereader`](@ref).
+"""
 struct SDFileReader{T,I<:IO,C<:NamedTuple}
     io::I
     unsupported::Symbol  # :error, :log, :ignore
@@ -393,6 +399,17 @@ sdfilereader(::Type{T}, path::AbstractString; kwargs...
     ) where T <: AbstractMolGraph = sdfilereader(T, open(path); kwargs...)
 sdfilereader(path::AbstractString; kwargs...) = sdfilereader(SDFMolGraph, open(path); kwargs...)
 
+"""
+    rdfilereader(file::IO; unsupported=:log)
+    rdfilereader(path::AbstractString; unsupported=:log)
+    rdfilereader(::Type{T}, file::IO; unsupported=:log, config=...) where T <: AbstractReaction
+    rdfilereader(::Type{T}, path::AbstractString; kwargs...) where T <: AbstractReaction
+
+Read RDFile (or RXN file) data from input stream (or a file path as a string) and return
+a lazy iterator that yields reaction objects (default: `Reaction{SDFMolGraph}`).
+
+See [`sdfilereader`](@ref) for the `unsupported` option.
+"""
 rdfilereader(
         ::Type{T}, file::IO; unsupported=:log,
         config=(on_init=sdf_on_init!, on_update=sdf_on_update!), kwargs...

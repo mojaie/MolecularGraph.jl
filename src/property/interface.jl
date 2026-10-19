@@ -5,6 +5,19 @@
 
 
 
+"""
+    Stereocenter{T<:Integer}
+
+Stereocenter (tetrahedral chirality) information.
+
+Fields `lookingFrom`, `first` and `second` are neighbor vertices of the center. Looking from
+the `lookingFrom` vertex toward the center, `first`, `second` and the remaining neighbor
+(or the implicit hydrogen) are arranged clockwise if `isclockwise` is true, otherwise
+counterclockwise (the same convention as SMILES `@@` and `@`). It can be converted to
+a tuple `(lookingFrom, first, second, isclockwise)`.
+
+See also [`set_stereocenter!`](@ref).
+"""
 struct Stereocenter{T<:Integer}
     lookingFrom::T
     first::T
@@ -18,6 +31,13 @@ Base.:(==)(x::Stereocenter, y::Union{Stereocenter,Tuple}) = Tuple(x) == Tuple(y)
 StructUtils.lower(x::Stereocenter) = Tuple(x)  # written as a JSON array
 
 
+"""
+    StereocenterMap{T<:Integer}
+
+Mapping of the center vertex to [`Stereocenter`](@ref) (`mol[:stereocenter]`).
+
+It behaves like a dictionary of `T => Stereocenter{T}`.
+"""
 struct StereocenterMap{T<:Integer}
     mapping::Dict{VertexKey{T},Stereocenter{T}}
 end
@@ -60,6 +80,17 @@ end
 
 
 
+"""
+    Stereobond{T<:Integer}
+
+Stereobond (cis-trans) information of a double bond.
+
+`first` and `second` are the neighbors of the source and the destination vertex of the
+bond, respectively, and `is_cis` indicates whether they are on the same side of the double
+bond. It can be converted to a tuple `(first, second, is_cis)`.
+
+See also [`set_stereobond!`](@ref).
+"""
 struct Stereobond{T<:Integer}
     first::T
     second::T
@@ -72,6 +103,13 @@ Base.:(==)(x::Stereobond, y::Union{Stereobond,Tuple}) = Tuple(x) == Tuple(y)
 StructUtils.lower(x::Stereobond) = Tuple(x)  # written as a JSON array
 
 
+"""
+    StereobondMap{T<:Integer}
+
+Mapping of the double bond (`Edge{T}`) to [`Stereobond`](@ref) (`mol[:stereobond]`).
+
+It behaves like a dictionary of `Edge{T} => Stereobond{T}`.
+"""
 struct StereobondMap{T<:Integer}
     mapping::Dict{EdgeKey{T},Stereobond{T}}
 end
@@ -115,6 +153,13 @@ end
 
 
 
+"""
+    Coords2d
+
+A set of 2D coordinates (`Point2d`) of the atoms. It behaves like a vector of `Point2d`.
+
+See also [`coords2d`](@ref).
+"""
 struct Coords2d
     coords::Vector{Point2d}
 end
@@ -158,6 +203,13 @@ end
 
 
 
+"""
+    Coords3d
+
+A set of 3D coordinates (`Point3d`) of the atoms. It behaves like a vector of `Point3d`.
+
+See also [`coords3d`](@ref).
+"""
 struct Coords3d
     coords::Vector{Point3d}
 end

@@ -64,6 +64,12 @@ abstract type AbstractReaction end
 
 ## Serializable integer keys
 
+"""
+    VertexKey{T<:Integer}
+
+Wrapper of a vertex index used as a dictionary key in graph-level properties
+(e.g. [`StereocenterMap`](@ref)). It is serialized as a string key in JSON.
+"""
 struct VertexKey{T<:Integer}
     key::T
 end
@@ -81,6 +87,12 @@ StructUtils.lowerkey(::JSON.JSONStyle, x::VertexKey{T}) where T = string(x.key)
 StructUtils.liftkey(::Type{VertexKey{T}}, x::String) where T = VertexKey{T}(parse(T, x))
 
 
+"""
+    EdgeKey{T<:Integer}
+
+Wrapper of an edge (`Edge{T}`) used as a dictionary key in graph-level properties
+(e.g. [`StereobondMap`](@ref)). It is serialized as a string key `"src_dst"` in JSON.
+"""
 struct EdgeKey{T<:Integer}
     key::Edge{T}
 end

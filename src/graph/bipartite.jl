@@ -92,6 +92,15 @@ function maxcardmatch!(state::MaxCardMatchState)
 end
 
 
+"""
+    maxcardmap(u, v, adj) -> Dict{Int,Int}
+
+Return a maximum cardinality matching of the bipartite graph as a mapping of the nodes in `u`
+to the nodes in `v`.
+
+`u` and `v` are the node sets and `adj` is the adjacency of the nodes in `u` to the nodes in `v`
+(Hopcroft-Karp algorithm).
+"""
 function maxcardmap(u, v, adj)
     # Maximum cardinality mapping
     state = MaxCardMatchState(u, v, adj)
@@ -105,4 +114,10 @@ function maxcardmap(u, v, adj)
     return mapping
 end
 
+"""
+    maxcard(u, v, adj) -> Int
+
+Return the size of the maximum cardinality matching of the bipartite graph
+(see [`maxcardmap`](@ref)).
+"""
 maxcard(u, v, adj) = length(maxcardmap(u, v, adj))

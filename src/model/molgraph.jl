@@ -471,6 +471,24 @@ MolGraph() = MolGraph{Int,SDFAtom,SDFBond}()
 
 # MolGraph type aliases
 
+"""
+    SDFMolGraph
+
+Alias of `MolGraph{Int,SDFAtom,SDFBond}`, the default molecule type of
+[`sdftomol`](@ref) and [`sdfilereader`](@ref).
+"""
 const SDFMolGraph = MolGraph{Int,SDFAtom,SDFBond}
+"""
+    SMILESMolGraph
+
+Alias of `MolGraph{Int,SMILESAtom,SMILESBond}`, the default molecule type of
+[`smilestomol`](@ref).
+"""
 const SMILESMolGraph = MolGraph{Int,SMILESAtom,SMILESBond}
+"""
+    CommonChemMolGraph
+
+Alias of `MolGraph{Int,CommonChemAtom,CommonChemBond}`, the molecule type for
+the CommonChem JSON format.
+"""
 const CommonChemMolGraph = MolGraph{Int,CommonChemAtom,CommonChemBond}

@@ -20,6 +20,11 @@ end
 abstract type AbstractSMARTSParser{T,V,E} end
 
 
+"""
+    SMILESParser{T<:Integer,V<:AbstractAtom,E<:AbstractBond}
+
+Parser state of a SMILES string used in [`smilestomol`](@ref).
+"""
 mutable struct SMILESParser{T<:Integer,V<:AbstractAtom,E<:AbstractBond} <: AbstractSMARTSParser{T,V,E}
     input::String
     pos::Int
@@ -39,6 +44,11 @@ SMILESParser{T,V,E}(smiles) where {T,V,E} = SMILESParser{T,V,E}(
 
 
 
+"""
+    SMARTSParser{T<:Integer,V<:QueryTree,E<:QueryTree}
+
+Parser state of a SMARTS string used in [`smartstomol`](@ref).
+"""
 mutable struct SMARTSParser{T<:Integer,V<:QueryTree,E<:QueryTree} <: AbstractSMARTSParser{T,V,E}
     input::String
     pos::Int
@@ -99,6 +109,12 @@ function smarts_on_init!(mol::QueryMolGraph)
     preprocess!(mol)
 end
 
+"""
+    SMARTSMolGraph
+
+Alias of `QueryMolGraph{Int,QueryAtom{Int,QueryNode},QueryBond{Int,QueryNode}}`,
+the molecule type of [`smartstomol`](@ref).
+"""
 const SMARTSMolGraph = QueryMolGraph{Int,QueryAtom{Int,QueryNode},QueryBond{Int,QueryNode}}
 
 

@@ -127,6 +127,11 @@ function merge_ds!(ds1::PlanarityTestDS{T}, ds2::PlanarityTestDS{T}, cotree) whe
 end
 
 
+"""
+    planaritytest(g::SimpleGraph) -> Bool
+
+Return whether the graph is planar (left-right planarity test).
+"""
 function planaritytest(g::SimpleGraph{T}) where T<:Integer
     # Do DFS to determine treeedge, cotree, loworder, source
     state = PlanarityTestState(g)
@@ -164,6 +169,14 @@ function planaritytest(g::SimpleGraph{T}) where T<:Integer
 end
 
 
+"""
+    outerplanaritytest(g::SimpleGraph) -> Bool
+
+Return whether the graph is outerplanar.
+
+A graph is outerplanar if the graph with an additional vertex connected to all the other
+vertices is planar (see [`planaritytest`](@ref)).
+"""
 function outerplanaritytest(g::SimpleGraph)
     # Add a node connects all other nodes.
     # If the modified graph is planer, the original graph is outerplaner.

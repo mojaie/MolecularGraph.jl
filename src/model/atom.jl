@@ -34,6 +34,12 @@ end
 
 Base.getindex(a::AtomTable, k::String) = getproperty(a, Symbol(k))
 
+"""
+    ATOMTABLE
+
+Vector of atomic data (atomic weights, monoisotopic masses and isotopes) indexed by
+atomic number (e.g. `ATOMTABLE[6].Weight`).
+"""
 const ATOMTABLE = let
     weightsfile = joinpath(dirname(@__FILE__), "../../assets/const/atomicweights.yaml")
     include_dependency(weightsfile)
@@ -62,12 +68,28 @@ const ATOMTABLE = let
     tbl
 end
 
+"""
+    ATOMSYMBOLMAP
+
+Mapping of atom symbols (`Symbol`) to atomic numbers (e.g. `ATOMSYMBOLMAP[:C] == 6`).
+"""
 const ATOMSYMBOLMAP = let
     symbolfile = joinpath(dirname(@__FILE__), "../../assets/const/symboltonumber.yaml")
     include_dependency(symbolfile)
     YAML.load(open(symbolfile); dicttype=Dict{Symbol,Int})
 end
 
+"""
+    ATOM_COVALENT_RADII
+
+Mapping of atomic numbers to covalent radii (in Å). Elements with multiple values have
+a `Dict{String,Float32}` (`"Csp3"`, `"Csp2"` and `"Csp"` for carbon, low spin `"l.s."` and
+high spin `"h.s."` for some metals). See also [`atom_radius`](@ref).
+
+# Reference
+
+1. Cordero, B. et al. Covalent radii revisited. Dalton Trans. 21, 2832–2838 (2008).
+"""
 const ATOM_COVALENT_RADII = let
     radiifile = joinpath(dirname(@__FILE__), "../../assets/const/covalent_radii.csv")
     include_dependency(radiifile)
@@ -94,6 +116,11 @@ const ATOM_COVALENT_RADII = let
     radii
 end
 
+"""
+    ATOM_VANDERWAALS_RADII
+
+Mapping of atomic numbers to van der Waals radii (in Å). See also [`atom_radius`](@ref).
+"""
 const ATOM_VANDERWAALS_RADII = let
     radiifile = joinpath(dirname(@__FILE__), "../../assets/const/vanderWaals_radii.csv")
     include_dependency(radiifile)

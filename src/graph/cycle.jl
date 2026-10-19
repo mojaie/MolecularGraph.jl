@@ -90,6 +90,14 @@ function mincyclebasis(g::SimpleGraph{T}) where T
 end
 
 
+"""
+    edgemincyclebasis(g::SimpleGraph{T}) -> Vector{Vector{Edge{T}}}
+    edgemincyclebasis(g::SimpleGraph{T}, vcycles::Vector{Vector{T}}) -> Vector{Vector{Edge{T}}}
+
+Return the minimum cycle basis of the graph as vectors of edges.
+
+`vcycles` is the minimum cycle basis as vectors of vertices (default: [`mincyclebasis`](@ref)).
+"""
 function edgemincyclebasis(g::SimpleGraph{T}, vcycles::Vector{Vector{T}}) where T
     cycles = Vector{Edge{T}}[]
     for p in vcycles

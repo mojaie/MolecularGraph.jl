@@ -57,6 +57,12 @@ function set_stereobond!(
 end
 
 
+"""
+    stereo_hydrogen(mol::SimpleMolGraph, v::Integer) -> Union{Int,Nothing}
+
+Return the explicit hydrogen node adjacent to the stereocenter `v`, or `nothing` if there is no
+hydrogen neighbor (e.g. quaternary center or the hydrogen is already removed).
+"""
 function stereo_hydrogen(mol::SimpleMolGraph, v::Integer)
     nbrs = neighbors(mol, v)
     hpos = findfirst(x -> atom_symbol(mol[x]) === :H, nbrs)

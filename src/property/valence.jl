@@ -48,6 +48,12 @@ function atom_charge(mol::ReactiveMolGraph)
     return Int[atom_charge(mol[i]) for i in vertices(mol)]
 end
 
+"""
+    default_atom_charge!(mol::SimpleMolGraph) -> Nothing
+
+Set atom charges of the atom objects to the `atom_charge` descriptor (see [`atom_charge`](@ref)).
+Called before preprocessing that modifies charges (e.g. in [`smiles_on_update!`](@ref)).
+"""
 default_atom_charge!(mol::SimpleMolGraph) = set_descriptor!(
     mol, Val(:atom_charge), Int[atom_charge(mol[i]) for i in vertices(mol)])
 
@@ -84,6 +90,13 @@ function bond_order(mol::ReactiveMolGraph)
     return Int[bond_order(mol[e]) for e in edges(mol)]
 end
 
+"""
+    default_bond_order!(mol::SimpleMolGraph) -> Nothing
+
+Set bond orders of the bond objects to the `bond_order` descriptor (see [`bond_order`](@ref)).
+Called before preprocessing that modifies bond orders (e.g. [`kekulize!`](@ref) in
+[`smiles_on_update!`](@ref)).
+"""
 default_bond_order!(mol::SimpleMolGraph) = set_descriptor!(
     mol, Val(:bond_order), Int[bond_order(mol[e]) for e in edges(mol)])
 

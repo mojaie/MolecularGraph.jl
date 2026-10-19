@@ -32,6 +32,16 @@ function vmatchgen(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     return (v1, v2) -> sym1[v1] == sym2[v2] && geo1[v1] === geo2[v2]
 end
 
+"""
+    vmatchvecgen(mol::SimpleMolGraph) -> Function
+
+Return a default vertex attribute function `f(v) -> Int` for MCS constraints
+(see [`mcis_constraints`](@ref)). Atoms with the same atom symbol and hybridization have
+the same value.
+
+This can be replaced by a custom function to change the atom matching criteria of the MCS
+calculation (e.g. [`tdmcis_constraints`](@ref) keyword `vmatchvecgen`).
+"""
 function vmatchvecgen(mol::SimpleMolGraph)
     sym = atom_symbol(mol)  # atom number 1-118
     geo = hybridization(mol)
@@ -121,6 +131,16 @@ function ematchgen(mol1::SimpleMolGraph, mol2::SimpleMolGraph)
     return (e1, e2) -> true
 end
 
+"""
+    ematchvecgen(mol::SimpleMolGraph) -> Function
+
+Return a default edge attribute function `f(u, v) -> Int` for MCS constraints
+(see [`mcis_constraints`](@ref)). The default function returns 0 for all pairs (bonds are
+not distinguished).
+
+This can be replaced by a custom function to change the bond matching criteria of the MCS
+calculation (e.g. [`tdmcis_constraints`](@ref) keyword `ematchvecgen`).
+"""
 function ematchvecgen(mol::SimpleMolGraph)
     return (u, v) -> 0
 end
@@ -446,6 +466,12 @@ has_edge_substruct_match(mol1, mol2; kwargs...
 # MCS
 
 
+"""
+    mcis_constraints(mol::SimpleMolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen) -> ConstraintArrayMCIS
+
+Generate MCIS constraints (connections) of the molecule, used in [`connected_mcis`](@ref)
+and [`disconnected_mcis`](@ref).
+"""
 function mcis_constraints(
         mol::SimpleMolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen)
     return mcis_constraints(
@@ -453,6 +479,12 @@ function mcis_constraints(
         vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol))
 end
 
+"""
+    mces_constraints(mol::SimpleMolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen) -> ConstraintArrayMCES
+
+Generate MCES constraints (connections) of the molecule, used in [`connected_mces`](@ref)
+and [`disconnected_mces`](@ref).
+"""
 function mces_constraints(
         mol::SimpleMolGraph, vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen)
     return mces_constraints(
@@ -460,6 +492,12 @@ function mces_constraints(
         vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol))
 end
 
+"""
+    tdmcis_constraints(mol::SimpleMolGraph; vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen, kwargs...) -> ConstraintArrayMCIS
+
+Generate MCIS constraints with topological constraint (shortest path distances) of the molecule,
+used in [`tdmcis`](@ref). `diameter` keyword sets the distance cutoff.
+"""
 function tdmcis_constraints(
         mol::SimpleMolGraph; vmatchvecgen=vmatchvecgen,
         ematchvecgen=ematchvecgen, kwargs...)
@@ -467,6 +505,12 @@ function tdmcis_constraints(
         Val{:shortest}(), mol.graph,
         vmatchvec=vmatchvecgen(mol), ematchvec=ematchvecgen(mol); kwargs...)
 end
+"""
+    tdmces_constraints(mol::SimpleMolGraph; vmatchvecgen=vmatchvecgen, ematchvecgen=ematchvecgen, kwargs...) -> ConstraintArrayMCES
+
+Generate MCES constraints with topological constraint (shortest path distances) of the molecule,
+used in [`tdmces`](@ref). `diameter` keyword sets the distance cutoff.
+"""
 function tdmces_constraints(
         mol::SimpleMolGraph; vmatchvecgen=vmatchvecgen,
         ematchvecgen=ematchvecgen, kwargs...)
