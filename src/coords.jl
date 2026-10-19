@@ -159,12 +159,18 @@ Generate 2D coordinates by using Schrodinger's coordgenlibs.
 
 This will returns a tuple of `coords` and `styles`. `coords` stores 2D coordinates (x, y)
 of each atom as `Point2d`. `styles` stores the wedge notation of each bond as a Symbol
-(`:none`, `:up`, `:down`, `:revup` or `:revdown`).
+(`:none`, `:up`, `:down`, `:revup` or `:revdown`). Wedges of stereocenters that are not
+displayed by coordgenlibs are complemented by [`assign_stereocenter_wedges!`](@ref).
 """
-coordgen(mol::SimpleMolGraph) = coordgen(
-    mol.graph, atom_number(mol), bond_order(mol),
-    mol[:stereocenter], mol[:stereobond]
-)
+function coordgen(mol::SimpleMolGraph)
+    bondorder = bond_order(mol)
+    coords, styles = coordgen(
+        mol.graph, atom_number(mol), bondorder, mol[:stereocenter], mol[:stereobond])
+    # coordgen may not display some stereocenters
+    assign_stereocenter_wedges!(
+        styles, mol.graph, atom_symbol(mol), bondorder, coords, mol[:stereocenter])
+    return coords, styles
+end
 
 function coordgen(
         g::SimpleGraph{T}, atomnum::Vector{Int}, bondorder_::Vector{Int},
@@ -249,10 +255,7 @@ function coordgen!(mol::SimpleMolGraph)
     empty!(mol[:descriptors].coords2d)
     empty!(mol[:descriptors].draw2d_bond_style)
     # TODO: unspecified stereochem in SMILES
-    coords, styles = coordgen(
-        mol.graph, atom_number(mol), bond_order(mol),
-        mol[:stereocenter], mol[:stereobond]
-    )
+    coords, styles = coordgen(mol)
     push!(mol[:descriptors].coords2d, coords)
     push!(mol[:descriptors].draw2d_bond_style, styles)
 end

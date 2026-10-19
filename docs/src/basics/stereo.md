@@ -91,10 +91,20 @@ the hydrogens.
 mol1[:stereocenter] == mol2[:stereocenter]
 ```
 
-However, the 2D coordinates and wedges taken from the SDFile are kept as they are, and
-the wedges on the removed hydrogens are lost. That is why the drawing above shows fewer
-wedges. As the InChI is also generated from the stored 2D coordinates and wedges, regenerate
-them by [`coordgen!`](@ref) to obtain the correct drawing and InChIKey.
+`mol[:stereocenter]` is the reference of the stereochemistry, and the wedges in the 2D
+drawing are its notation. The wedges on the removed hydrogens are lost with the bonds, but
+the wedges are automatically updated to represent `mol[:stereocenter]` (e.g. a wedge on
+another bond of the stereocenter; see [`MolecularGraph.assign_stereocenter_wedges!`](@ref)),
+while the 2D coordinates taken from the SDFile are kept. Therefore, the drawing above and the
+InChI (which is generated from the 2D coordinates and wedges) are consistent with the
+stereochemistry.
+
+```@example stereo
+inchikey(mol2) == inchikey(mol1)
+```
+
+[`coordgen!`](@ref) can be used to regenerate the 2D coordinates and wedges (wedges of
+stereocenters not displayed by coordgenlibs are also complemented in the same way).
 
 ```@example stereo
 coordgen!(mol2)
@@ -124,7 +134,8 @@ end
 ```
 
 The SDFile writer ([`printv2mol`](@ref), [`sdfilewriter`](@ref)) does this automatically
-(`givebackhydrogen=true` by default).
+(`givebackhydrogen=true` by default). If the molecule has 2D coordinates, they are kept and
+the hydrogens are placed with wedges, so `coordgen!` is not called.
 
 ```@example stereo
 let dump = printv2mol(mol2)

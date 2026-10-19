@@ -147,6 +147,23 @@ end
     @test nv(mol) == 16
 end
 
+@testset "edge_styles" begin
+    # 2D bond styles follow edge addition and removal
+    mol = sdftomol(joinpath(dirname(@__FILE__), "..", "..", "assets", "test", "biotin_2d.sdf"))
+    styles(m) = Dict(e => MolecularGraph.draw2d_bond_style(m)[i] for (i, e) in enumerate(edges(m)))
+    before = styles(mol)
+    e = first(e for e in edges(mol) if before[e] === :none)
+    rem_edge!(mol, e)
+    @test length(MolecularGraph.draw2d_bond_style(mol)) == ne(mol)
+    @test styles(mol) == filter(x -> x[1] != e, before)
+    add_edge!(mol, e, SDFBond())
+    @test styles(mol) == before
+    # rings are recalculated after the removal of a ring bond
+    nring = length(sssr(mol))
+    rem_edge!(mol, Edge(1, 9))
+    @test length(sssr(mol)) == nring - 1
+end
+
 
 @testset "induced_subgraph" begin
     # subgraphs have their own state (descriptors are recalculated for each subgraph)

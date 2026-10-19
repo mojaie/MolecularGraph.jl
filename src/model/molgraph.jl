@@ -108,12 +108,15 @@ Dispatch property auto-update mechanisms.
 
 This is called by functions that returns calculated properties (descriptors).
 If the vertices or edges has been added or removed, on_update callback is triggered
-to recalculate descriptors. If there are no changes, do nothing.
+to recalculate descriptors, and then 2D wedges are updated to represent the stereocenters
+([`assign_stereocenter_wedges!`](@ref)). If there are no changes, do nothing.
 """
 function dispatch_update!(mol::ReactiveMolGraph)
     mol.state.has_updates || return
     mol.state.disable_update = true # to avoid infinite roop
     mol.state.on_update(mol)
+    # keep 2D wedges consistent with the stereocenters (independent of the callback)
+    assign_stereocenter_wedges!(mol)
     mol.state.disable_update = false
     mol.state.has_updates = false  
     mol.state.has_new_edges = false
@@ -140,9 +143,10 @@ end
 
 Set `:has_new_edges` flag to inform property updaters that recalculation is required.
 
-This mechanism is similar to `notify_updates!`, but is specific to the `add_edge!` method.  
-Unlike other descriptors, the `sssr` descriptor does not require recalculation when vertices or edge
-are removed, or when new vertices are added — remapping is sufficient in those cases.
+This mechanism is similar to `notify_updates!`, but is specific to the `add_edge!` and
+`rem_edge!` methods.
+Unlike other descriptors, the `sssr` descriptor does not require recalculation when vertices
+are removed or added — remapping is sufficient in those cases.
 Therefore, the `:has_new_edges` flag is used to avoid unnecessary and costly minimum cycle recalculation.
 """
 function notify_new_edges!(mol::ReactiveMolGraph)
@@ -263,6 +267,26 @@ end
 @deprecate set_prop!(mol::ReactiveMolGraph, e::Edge, value::AbstractElement) setindex!(mol, value, e)
 
 
+# 2D bond styles are indexed by the edge rank, so they are updated when an edge is added or
+# removed (the new edge has no wedge)
+function edge_styles_inserted!(mol::ReactiveMolGraph, e::Edge)
+    has_descriptor(mol, Val(:draw2d_bond_style)) || return
+    i = findfirst(==(e), collect(edges(mol.graph)))
+    for styles in mol.gprops.descriptors.draw2d_bond_style
+        length(styles) == ne(mol.graph) - 1 && insert!(styles.styles, i, :none)
+    end
+    return
+end
+
+function edge_styles_deleted!(mol::ReactiveMolGraph, i::Int)
+    has_descriptor(mol, Val(:draw2d_bond_style)) || return
+    for styles in mol.gprops.descriptors.draw2d_bond_style
+        length(styles) == ne(mol.graph) + 1 && deleteat!(styles.styles, i)
+    end
+    return
+end
+
+
 """
     add_u_edge!(mol::ReactiveMolGraph, e::Edge, prop::AbstractElement) -> Bool
 
@@ -275,6 +299,7 @@ This is called internally by the API function `add_edge!(mol, e, prop)`.
 function add_u_edge!(mol::ReactiveMolGraph, e::Edge, prop::AbstractElement)
     # Can be directly called if src < dst is guaranteed.
     add_edge!(mol.graph, e) || return false
+    edge_styles_inserted!(mol, e)
     mol.eprops[e] = prop
     notify_updates!(mol)
     notify_new_edges!(mol)
@@ -301,9 +326,12 @@ This is called internally by the API function `rem_edge!(mol, e)`.
 """
 function rem_u_edge!(mol::ReactiveMolGraph, e::Edge)
     # Can be directly called if src < dst is guaranteed.
+    i = findfirst(==(e), collect(edges(mol.graph)))
     rem_edge!(mol.graph, e) || return false
+    edge_styles_deleted!(mol, i)
     delete!(mol.eprops, e)
     notify_updates!(mol)
+    notify_new_edges!(mol)  # rings may be broken
     return true
 end
 

@@ -93,6 +93,30 @@ end
     remove_all_hydrogens!(mol)
     @test nv(mol) == 62
     @test length(mol[:stereocenter]) == 20
+
+    # wedges on the removed hydrogens are restored from the stereocenters
+    assetdir = joinpath(dirname(@__FILE__), "..", "assets", "test")
+    for file in ("biotin_2d.sdf", "nata.mol")
+        mol = sdftomol(joinpath(assetdir, file))
+        ikey = inchikey(mol)
+        heavy = [i for i in vertices(mol) if atom_symbol(mol[i]) !== :H]
+        subg, _ = induced_subgraph(mol, heavy)
+        @test inchikey(subg) == ikey
+        remove_all_hydrogens!(mol)
+        @test inchikey(mol) == ikey
+        d = MolecularGraph.stereocenter_from_draw2d(
+            mol.graph, atom_symbol(mol), bond_order(mol),
+            MolecularGraph.draw2d_bond_style(mol), coords2d(mol))
+        @test all(haskey(d, c) && MolecularGraph.isclockwise(
+            d[c], s.lookingFrom, s.first, s.second) === s.isclockwise
+            for (c, s) in mol[:stereocenter])
+    end
+    # existing wedges are not modified
+    biotin = sdftomol(joinpath(assetdir, "biotin_2d.sdf"))
+    remove_all_hydrogens!(biotin)
+    styles = copy(MolecularGraph.draw2d_bond_style(biotin))
+    rem_vertices!(biotin, Int[])
+    @test MolecularGraph.draw2d_bond_style(biotin) == styles
 end
 
 @testset "add_hydrogens" begin

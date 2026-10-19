@@ -37,6 +37,13 @@ end
     # println(coords)
     # println(styles)
 
+    # wedges of stereocenters not displayed by coordgenlibs are complemented
+    assetdir = joinpath(dirname(@__FILE__), "..", "assets", "test")
+    db1 = first(sdfilereader(joinpath(assetdir, "drugbank1-100.sdf")))
+    ikey = inchikey(db1)
+    coordgen!(db1)
+    @test inchikey(db1) == ikey
+
     # maybe bug in coordgenlib, wedge isReversed may not work
     # jsm = smilestomol(raw"CC/C=C\C[C@@H]1[C@H](CCC1=O)CC(=O)O")
 

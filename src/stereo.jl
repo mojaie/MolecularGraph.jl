@@ -121,6 +121,36 @@ function anglesort(
 end
 
 
+# Chirality of a three-coordinate center (with an implicit hydrogen) from the 2D coordinates
+# and wedges (directions) of the neighbors. Each wedge gives the neighbor a z coordinate
+# (:up => 1, :down => -1), and the implicit hydrogen is placed opposite to the neighbors.
+# Returns whether `nbrs[2]` and `nbrs[3]` are clockwise looking from `nbrs[1]`, or `nothing`
+# if the geometry is degenerate. This is consistent with the interpretation of InChI also in
+# the case that the neighbors are in a half-plane.
+function threecoord_isclockwise(
+        coords::Coords2d, center::T, nbrs::AbstractVector{T}, drs::Vector{Symbol}) where T
+    c = coords[center]
+    vs = NTuple{3,Float64}[]
+    for (n, dr) in zip(nbrs, drs)
+        x, y = coords[n][1] - c[1], coords[n][2] - c[2]
+        z = dr === :up ? 1.0 : (dr === :down ? -1.0 : 0.0)
+        r = sqrt(x^2 + y^2 + z^2)
+        r == 0 && return nothing
+        push!(vs, (x / r, y / r, z / r))
+    end
+    h = (-(vs[1][1] + vs[2][1] + vs[3][1]),
+        -(vs[1][2] + vs[2][2] + vs[3][2]), -(vs[1][3] + vs[2][3] + vs[3][3]))
+    hr = sqrt(h[1]^2 + h[2]^2 + h[3]^2)
+    hr < 1e-9 && return nothing
+    h = h ./ hr
+    a, b, d = vs[1] .- h, vs[2] .- h, vs[3] .- h
+    triple = (a[1] * (b[2] * d[3] - b[3] * d[2]) - a[2] * (b[1] * d[3] - b[3] * d[1])
+        + a[3] * (b[1] * d[2] - b[2] * d[1]))
+    abs(triple) < 1e-9 && return nothing
+    return triple < 0
+end
+
+
 """
     stereocenter_from_sdf2d(
         g::SimpleGraph{T}, v_symbol::Vector{Symbol}, e_order::Vector{Int}, e_notation::Vector{Int},
@@ -164,10 +194,16 @@ function stereocenter_from_sdf2d(
             if upcnt == 1 && dwcnt == 1 || upcnt + dwcnt == 3
                 @debug "ignored stereocenter #$(i) (too many wedges)"
                 push!(comments, "ignored stereocenter #$(i) (too many wedges)")
-            elseif upcnt == 2 || dwcnt == 2
-                centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], upcnt == 0)
+                continue
+            end
+            # The implicit hydrogen may be in the plane (e.g. the neighbors are in a
+            # half-plane), so the angular order of the neighbors is not sufficient.
+            cw = threecoord_isclockwise(v_coords2d, i, nbrs, drs)
+            if isnothing(cw)
+                @debug "ignored stereocenter #$(i) (degenerate geometry)"
+                push!(comments, "ignored stereocenter #$(i) (degenerate geometry)")
             else
-                centers[i] = Stereocenter{T}(ons[1], ons[2], ons[3], dwcnt == 0)
+                centers[i] = Stereocenter{T}(nbrs[1], nbrs[2], nbrs[3], cw)
             end
             continue
         end
@@ -217,6 +253,108 @@ stereocenter_from_sdf2d(mol::SimpleMolGraph) = stereocenter_from_sdf2d(
     Bool[mol[e].isordered for e in edges(mol)],
     get_descriptor(mol, Val(:coords2d))[1]
 )
+
+"""
+    stereocenter_from_draw2d(
+        g::SimpleGraph{T}, v_symbol::Vector{Symbol}, e_order::Vector{Int},
+        styles::Draw2dBondStyle, v_coords2d::Coords2d) where T -> StereocenterMap{T}
+
+Return stereocenter information represented by the 2D bond styles (wedges) and coordinates.
+"""
+function stereocenter_from_draw2d(
+        g::SimpleGraph{T}, v_symbol::Vector{Symbol}, e_order::Vector{Int},
+        styles::Draw2dBondStyle, v_coords2d::Coords2d) where T
+    # :up/:down start at the source vertex, :revup/:revdown start at the destination vertex
+    notation = Int[s in (:up, :revup) ? 1 : s in (:down, :revdown) ? 6 : 0 for s in styles]
+    isordered = Bool[s in (:up, :down) for s in styles]
+    centers, _ = stereocenter_from_sdf2d(g, v_symbol, e_order, notation, isordered, v_coords2d)
+    return centers
+end
+
+
+"""
+    assign_stereocenter_wedges!(
+        styles::Draw2dBondStyle, g::SimpleGraph{T}, v_symbol::Vector{Symbol},
+        e_order::Vector{Int}, coords::Coords2d, centers::StereocenterMap{T}) where T -> Nothing
+    assign_stereocenter_wedges!(mol::SimpleMolGraph) -> Nothing
+
+Update 2D bond styles (wedges) so that they represent the stereocenters.
+
+The stereocenters (`mol[:stereocenter]`) are the reference of the stereochemistry, and the
+wedges are its 2D notation. For each stereocenter, if the wedges and the 2D coordinates do not
+represent the chirality (e.g. the wedges were on removed hydrogens, or the 2D coordinates were
+generated without wedges), the wedges starting at the center are replaced with a new wedge.
+Wedges that represent the chirality are kept as they are.
+
+The new wedge is put on a single bond, preferably on an acyclic bond to a non-stereocenter
+terminal atom (e.g. hydrogen).
+
+For `ReactiveMolGraph`, this is called automatically after the molecule is modified
+(see [`dispatch_update!`](@ref)) and in [`coordgen!`](@ref).
+"""
+function assign_stereocenter_wedges!(
+        styles::Draw2dBondStyle, g::SimpleGraph{T}, v_symbol::Vector{Symbol},
+        e_order::Vector{Int}, coords::Coords2d, centers::StereocenterMap{T}) where T
+    isempty(centers) && return
+    ernk = edge_rank(g)
+    outgoing(c, n, dr) = c < n ? dr : (dr === :up ? :revup : :revdown)
+    is_represented(derived, c, stereo) = haskey(derived, c) && isclockwise(
+        derived[c], stereo.lookingFrom, stereo.first, stereo.second) === stereo.isclockwise
+    derived = stereocenter_from_draw2d(g, v_symbol, e_order, styles, coords)
+    acyclic = Set{Edge{T}}()
+    acyclic_ready = false  # calculated only if needed
+    for (c, stereo) in centers
+        # skip stereocenters inconsistent with the graph (e.g. a neighbor was disconnected)
+        nbrs = neighbors(g, c)
+        (degree(g, c) in (3, 4) && all(n -> n in nbrs, stereoneighbors(stereo))) || continue
+        is_represented(derived, c, stereo) && continue
+        if !acyclic_ready
+            union!(acyclic, bridges(g))
+            acyclic_ready = true
+        end
+        # discard wedges starting at the center
+        for n in nbrs
+            i = edge_rank(ernk, c, n)
+            styles[i] in (outgoing(c, n, :up), outgoing(c, n, :down)) && (styles[i] = :none)
+        end
+        cands = sort(collect(nbrs), by=n -> (
+            u_edge(T, c, n) ∉ acyclic, haskey(centers, n), degree(g, n)))
+        done = false
+        for n in cands
+            i = edge_rank(ernk, c, n)
+            (e_order[i] == 1 && styles[i] === :none) || continue
+            for dr in (:up, :down)
+                styles[i] = outgoing(c, n, dr)
+                done = is_represented(
+                    stereocenter_from_draw2d(g, v_symbol, e_order, styles, coords), c, stereo)
+                done && break
+            end
+            done && break
+            styles[i] = :none
+        end
+        done || @debug "$(c): failed to assign stereocenter wedges"
+    end
+    return
+end
+
+function assign_stereocenter_wedges!(mol::SimpleMolGraph)
+    # gprops are accessed directly so as not to dispatch updates
+    has_descriptor(mol, Val(:draw2d_bond_style)) || return
+    hasfield(typeof(mol.gprops), :stereocenter) || return
+    centers = mol.gprops.stereocenter
+    isempty(centers) && return
+    desc = mol.gprops.descriptors
+    symbols = Symbol[atom_symbol(mol[i]) for i in vertices(mol)]
+    # standardized (kekulized) bond orders if available
+    orders = (has_descriptor(mol, Val(:bond_order)) && length(desc.bond_order) == ne(mol)
+        ) ? desc.bond_order : Int[bond_order(mol[e]) for e in edges(mol)]
+    for (coords, styles) in zip(desc.coords2d, desc.draw2d_bond_style)
+        (length(coords) == nv(mol) && length(styles) == ne(mol)) || continue
+        assign_stereocenter_wedges!(styles, mol.graph, symbols, orders, coords, centers)
+    end
+    return
+end
+
 
 """
     stereocenter_from_sdf2d!(mol::MolGraph) -> Nothing

@@ -8,6 +8,19 @@
     mol2 = sdftomol(IOBuffer(dump))
     @test nv(mol2) == 37
 
+    # stereospecific hydrogens are given back without regenerating 2D coordinates
+    biotin = sdftomol(joinpath(dirname(@__FILE__), "..", "assets", "test", "biotin_2d.sdf"))
+    ikey = inchikey(biotin)
+    remove_all_hydrogens!(biotin)
+    crds = collect(coords2d(biotin))
+    gb = sdftomol(IOBuffer(printv2mol(biotin)))
+    @test nv(gb) == nv(biotin) + 2  # ring fusion
+    @test all(isapprox(collect(coords2d(gb))[i], crds[i]; atol=1e-3) for i in 1:nv(biotin))
+    @test inchikey(gb) == ikey
+    # 3D coordinates are kept
+    aspirin = sdftomol(joinpath(dirname(@__FILE__), "..", "assets", "test", "aspirin_3d.sdf"))
+    @test occursin("3D", split(printv2mol(aspirin), "\n")[2])
+
     stereohyd = joinpath(dirname(@__FILE__), "..", "assets", "test", "DB00115.mol")
     mol = sdftomol(stereohyd)
     dump = printv2mol(mol; givebackhydrogen=false)  # TODO: VirtualAtom would be better

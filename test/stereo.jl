@@ -313,7 +313,32 @@ end
         SDFBond(;notation=0)
     ]
     implh3 = MolGraph(edges, atoms, bonds, on_init=sdf_on_init!, on_update=sdf_on_update!)
-    @test implh3[:stereocenter][1] == (2, 3, 4, true)
+    # two down wedges: the implicit hydrogen points up (not equivalent to an up wedge on 4)
+    @test implh3[:stereocenter][1] == (2, 3, 4, false)
+
+    # neighbors in a half-plane (the implicit hydrogen is in the plane, consistent with InChI)
+    hpatoms = [
+        SDFAtom(;coords=[0.0, 0.0, 0.0]),
+        SDFAtom(;symbol=:F, coords=[cosd(-30), sind(-30), 0.0]),
+        SDFAtom(;symbol=:Cl, coords=[cosd(30), sind(30), 0.0]),
+        SDFAtom(;symbol=:Br, coords=[cosd(90), sind(90), 0.0])
+    ]
+    bonds = [
+        SDFBond(;notation=0),
+        SDFBond(;notation=1),  # wedge on the middle bond
+        SDFBond(;notation=0)
+    ]
+    halfplane1 = MolGraph(edges, hpatoms, bonds, on_init=sdf_on_init!, on_update=sdf_on_update!)
+    @test halfplane1[:stereocenter][1] == (2, 3, 4, true)
+    @test inchikey(halfplane1) == inchikey(smilestomol("F[C@@H](Cl)Br"))
+    bonds = [
+        SDFBond(;notation=1),  # wedge on the end bond
+        SDFBond(;notation=0),
+        SDFBond(;notation=0)
+    ]
+    halfplane2 = MolGraph(edges, hpatoms, bonds, on_init=sdf_on_init!, on_update=sdf_on_update!)
+    @test halfplane2[:stereocenter][1] == (2, 3, 4, false)
+    @test inchikey(halfplane2) == inchikey(smilestomol("F[C@H](Cl)Br"))
 
     bonds = [
         SDFBond(;notation=0),
