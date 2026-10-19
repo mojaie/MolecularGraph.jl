@@ -1,8 +1,12 @@
 using Documenter, MolecularGraph
 
+DocMeta.setdocmeta!(
+    MolecularGraph, :DocTestSetup, :(using MolecularGraph); recursive=true)
 
 makedocs(
     sitename="MolecularGraph.jl",
+    modules=[MolecularGraph],
+    checkdocs=:exports,
     pages = [
         "Home" => "index.md",
         "Getting started" => "gettingstarted.md",
@@ -50,5 +54,6 @@ makedocs(
 
 deploydocs(
     repo="github.com/mojaie/MolecularGraph.jl.git",
+    devbranch="master",
     push_preview=true
 )
