@@ -16,7 +16,13 @@ using MolecularGraph
 # Load weak dependencies to activate package extensions (CairoExt, MakieExt, RDKitExt)
 import Cairo
 import Makie
-import RDKitMinimalLib
+
+# RDKit (RDKitMinimalLib) tests are skipped on Windows, where the RDKit_jll library fails
+# with "symbol not found" on GitHub Actions.
+const RDKIT_AVAILABLE = !Sys.iswindows()
+@static if RDKIT_AVAILABLE
+    import RDKitMinimalLib
+end
 
 using MolecularGraph:
     combinations, sortstablemax, sortstablemin,
@@ -110,7 +116,7 @@ include("./draw/base.jl")
 include("./draw/svg.jl")
 include("./draw/3d.jl")
 
-include("./ext/rdkit.jl")
+RDKIT_AVAILABLE && include("./ext/rdkit.jl")
 include("./ext/cairo.jl")
 
 end
