@@ -39,6 +39,9 @@ end
     @test length(isotopic_composition(:C, 100; threshold=0.01)) == 5
     @test length(isotopic_composition(:H, 1000; threshold=0.01)) == 2
     @test length(isotopic_composition(smilestomol("CCl"))) == 4
+    # sorted by mass in ascending order
+    @test issorted(isotopic_composition(:C, 100; threshold=0.01), by=x->x[1])
+    @test issorted(isotopic_composition(smilestomol("CCl")), by=x->x[1])
     # display(simulatemassspec(smilestomol("CCl")))
     # keyword arguments are passed to the corresponding functions
     spec = simulate_massspec(smilestomol("CCl"))

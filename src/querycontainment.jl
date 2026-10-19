@@ -500,6 +500,8 @@ end
 
 Find query relationship diagram by the given molecule.
 The filtered diagram represents query relationship that the molecule have.
+Vertex records of the matched queries have `"matched"` (atom indices of the matches).
+The given `query_diagram` is not modified.
 """
 function find_queries(mol::SimpleMolGraph, query_diagram; sources=[], filtering=true)
     qr, vs, es = query_diagram
@@ -518,7 +520,10 @@ function find_queries(mol::SimpleMolGraph, query_diagram; sources=[], filtering=
         matches = collect(substruct_matches(mol, rcd["parsed"]))
         if !isempty(matches)
             push!(matched, n)
+            # copy the record not to mutate the given query diagram
+            rcd = copy(rcd)
             rcd["matched"] = [collect(s) for s in Set(keys(m) for m in matches)]
+            vs_[n] = rcd
         end
         # end
     end

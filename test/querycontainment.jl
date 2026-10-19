@@ -224,4 +224,19 @@ end
     # global_logger(default_logger)
 end
 
+
+@testset "find_queries" begin
+    diagram = query_containment_diagram(sources=["default"])
+    _, vs, _ = diagram
+    cnt = length(vs)
+    _, fvs, _ = find_queries(smilestomol("CC(=O)Oc1ccccc1C(=O)O"), diagram)
+    @test !isempty(fvs)
+    @test all(haskey(v, "matched") for v in values(fvs))
+    # the given diagram is not modified
+    @test length(vs) == cnt
+    @test !any(haskey(v, "matched") for v in values(vs))
+    _, fvs2, _ = find_queries(smilestomol("CCCC"), diagram)
+    @test length(fvs2) < length(fvs)
+end
+
 end

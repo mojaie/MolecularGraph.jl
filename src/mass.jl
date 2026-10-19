@@ -193,7 +193,8 @@ standard_weight(mol::SimpleMolGraph, digits::Int) = round(standard_weight(mol), 
     isotopic_composition(mol::SimpleMolGraph; threshold=0.001
         ) -> Vector{Tuple{Float64,Float64}}
 
-Return isotopic composition of the atoms/molecule as a vector of tuples of mass and composition.
+Return isotopic composition of the atoms/molecule as a vector of tuples of mass and composition,
+sorted by mass in ascending order.
 
 Records that have lower abundance than the given threshold will be filtered out (default 0.001 = 0.1%)
 """
@@ -224,7 +225,7 @@ function isotopic_composition(atomsymbol::Symbol, number::Int; threshold=0.001)
         end
         comp > threshold && push!(data, (mass, comp))
     end
-    return data
+    return sort!(data, by=x->x[1])
 end
 
 
@@ -241,7 +242,7 @@ function isotopic_composition(mol::SimpleMolGraph; threshold=0.001)
         end
         comp > threshold && push!(data, (mass, comp))
     end
-    return sort(data, by=x->x[1])
+    return sort!(data, by=x->x[1])
 end
 
 

@@ -2,6 +2,11 @@
 @testset "draw3d" begin
     mol = sdftomol(joinpath(@__DIR__, "..", "..", "assets", "test", "aspirin_3d.sdf"))
     @test length(atom_radius(mol)) == nv(mol)
+    @test atom_radius(mol; mapping=0.5) == fill(0.5, nv(mol))
+    # carbon radius by hybridization, smallest value for metals with multiple values
+    m = smilestomol("CC=CC#C[Fe]")
+    @test atom_radius(m; mapping=ATOM_COVALENT_RADII) ≈ [0.76, 0.73, 0.73, 0.69, 0.69, 1.32] atol=1e-6
+    @test atom_radius(smilestomol("CO")) ≈ [ATOM_VANDERWAALS_RADII[6], ATOM_VANDERWAALS_RADII[8]]
 
     # MakieExt (requires Makie, no backend is needed to build plots)
     for f in (spacefilling, ballstick, stick, wire)
