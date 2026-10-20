@@ -83,8 +83,7 @@ with the following differences.
 
     The library is created at `/opt/julia/libmolgraphjl/lib/libmolgraphjl.{dylib,so}` with the
     Julia runtime and the binary dependencies (`lib/julia`). Unresolved calls are reported by
-    the trim verifier and the build fails; see `.agents/decisions.md` for the patterns that
-    need to be avoided.
+    the trim verifier and the build fails.
 
 1. Test
 
