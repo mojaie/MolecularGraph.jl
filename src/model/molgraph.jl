@@ -323,12 +323,16 @@ Remove undirected edge to the `ReactiveMolGraph` and notifies the update to upda
 This is called internally by the API function `rem_edge!(mol, e)`.
 `rem_edge!(mol, e)` always remove the sorted edge from the `undirected` molecular graph.
 `rem_u_edge!` can be directly called if src < dst is guaranteed.
+
+If the edge is connected to a stereocenter or a stereobond (double bond), the stereochemistry
+information is removed with a warning (see [`stereo_on_edge_removal!`](@ref)).
 """
 function rem_u_edge!(mol::ReactiveMolGraph, e::Edge)
     # Can be directly called if src < dst is guaranteed.
     i = findfirst(==(e), collect(edges(mol.graph)))
     rem_edge!(mol.graph, e) || return false
     edge_styles_deleted!(mol, i)
+    stereo_on_edge_removal!(mol, e)
     delete!(mol.eprops, e)
     notify_updates!(mol)
     notify_new_edges!(mol)  # rings may be broken
@@ -338,6 +342,8 @@ end
 
 function Graphs.rem_vertex!(mol::ReactiveMolGraph, v::Integer)
     nv_ = nv(mol)
+    has_vertex(mol.graph, v) || return false
+    stereo_on_vertex_removal!(mol, [v])
     old_edges = collect(edges(mol))
     rem_vertex!(mol.graph, v) || return false
     # last index node is re-indexed to the removed node
@@ -350,11 +356,10 @@ function Graphs.rem_vertex!(mol::ReactiveMolGraph, v::Integer)
         src(e) == nv_ && begin mol.eprops[u_edge(mol, v, dst(e))] = mol.eprops[e]; delete!(mol.eprops, e) end
         dst(e) == nv_ && begin mol.eprops[u_edge(mol, src(e), v)] = mol.eprops[e]; delete!(mol.eprops, e) end
     end
-    if nv_ != v
-        vmap = collect(vertices(mol))
-        vmap[v] = nv_
-        remap_gprops!(mol, vmap, old_edges)
-    end
+    # remap is required even if the last vertex was removed (properties referring to it)
+    vmap = collect(vertices(mol))
+    nv_ == v || (vmap[v] = nv_)
+    remap_gprops!(mol, vmap, old_edges)
     notify_updates!(mol)
     return true
 end
@@ -362,6 +367,7 @@ end
 
 function Graphs.rem_vertices!(mol::ReactiveMolGraph{T,V,E}, vs::Vector{T}) where {T,V,E}
     # TODO: if many vertices should be removed, induced_subgraph may be more efficient.
+    stereo_on_vertex_removal!(mol, vs)
     old_edges = collect(edges(mol))
     vmap = rem_vertices!(mol.graph, vs)
     # remap vertex properties

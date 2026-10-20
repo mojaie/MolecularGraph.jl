@@ -58,6 +58,7 @@ Base.haskey(x::StereocenterMap, k) = haskey(x.mapping, k)
 Base.getindex(x::StereocenterMap{T}, k...) where T = getindex(x.mapping, VertexKey{T}.(k)...)
 Base.setindex!(x::StereocenterMap{T}, v, k...) where T = setindex!(x.mapping, v, VertexKey{T}.(k)...)
 Base.empty!(x::StereocenterMap) = empty!(x.mapping)
+Base.delete!(x::StereocenterMap{T}, k) where T = (delete!(x.mapping, VertexKey{T}(k)); x)
 Base.merge!(x::T, y::T) where T <: StereocenterMap = merge!(x.mapping, y.mapping)
 
 function remap(
@@ -122,7 +123,7 @@ function Base.iterate(x::StereobondMap, state...)
 end
 
 Base.:(==)(x::StereobondMap, y::StereobondMap) = x.mapping == y.mapping
-Base.eltype(::StereobondMap{T}) where T = Pair{T,Stereobond{T}}
+Base.eltype(::StereobondMap{T}) where T = Pair{Edge{T},Stereobond{T}}
 Base.length(x::StereobondMap) = length(x.mapping)
 Base.copy(x::T) where T <: StereobondMap = T(copy(x.mapping))
 Base.keys(x::StereobondMap) = getproperty.(keys(x.mapping), :key)
@@ -130,6 +131,7 @@ Base.haskey(x::StereobondMap, k) = haskey(x.mapping, k)
 Base.getindex(x::StereobondMap{T}, k...) where T = getindex(x.mapping, EdgeKey{T}.(k)...)
 Base.setindex!(x::StereobondMap{T}, v, k...) where T = setindex!(x.mapping, v, EdgeKey{T}.(k)...)
 Base.empty!(x::StereobondMap) = empty!(x.mapping)
+Base.delete!(x::StereobondMap{T}, k) where T = (delete!(x.mapping, EdgeKey{T}(k)); x)
 Base.merge!(x::T, y::T) where T <: StereobondMap = merge!(x.mapping, y.mapping)
 
 function remap(

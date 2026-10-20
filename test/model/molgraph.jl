@@ -152,8 +152,9 @@ end
     mol = sdftomol(joinpath(dirname(@__FILE__), "..", "..", "assets", "test", "biotin_2d.sdf"))
     styles(m) = Dict(e => MolecularGraph.draw2d_bond_style(m)[i] for (i, e) in enumerate(edges(m)))
     before = styles(mol)
-    e = first(e for e in edges(mol) if before[e] === :none)
-    rem_edge!(mol, e)
+    e = Edge(1, 9)  # ring bond at the stereocenter 9 without wedge
+    @test before[e] === :none
+    @test_logs (:warn, r"stereocenter 9") rem_edge!(mol, e)
     @test length(MolecularGraph.draw2d_bond_style(mol)) == ne(mol)
     @test styles(mol) == filter(x -> x[1] != e, before)
     add_edge!(mol, e, SDFBond())
@@ -162,6 +163,55 @@ end
     nring = length(sssr(mol))
     rem_edge!(mol, Edge(1, 9))
     @test length(sssr(mol)) == nring - 1
+end
+
+@testset "stereo_on_removal" begin
+    # rem_edge!: stereochemistry at the removed bond is removed with a warning
+    mol = smilestomol("N[C@@H](C)C(=O)O")
+    @test haskey(mol[:stereocenter], 2)
+    @test_logs (:warn, r"stereocenter 2") rem_edge!(mol, 2, 3)  # C-H
+    @test !haskey(mol[:stereocenter], 2)
+    mol = smilestomol("N[C@@H](C)C(=O)O")
+    @test_logs rem_edge!(mol, 5, 6)  # C=O, not at the stereocenter
+    @test haskey(mol[:stereocenter], 2)
+    mol = smilestomol("F/C=C/CC")
+    @test_logs (:warn, r"stereobond 2-3") rem_edge!(mol, 3, 4)
+    @test isempty(mol[:stereobond])
+    mol = smilestomol("F/C=C/CC")
+    @test_logs rem_edge!(mol, 4, 5)  # not connected to the double bond
+    @test length(mol[:stereobond]) == 1
+    mol = smilestomol("F/C=C/CC")
+    @test_logs (:warn, r"stereobond 2-3") rem_edge!(mol, 2, 3)  # the double bond
+    @test isempty(mol[:stereobond])
+
+    # rem_vertex!/rem_vertices!: removal of heavy atoms adjacent to stereochemistry
+    mol = smilestomol("N[C@@H](C)C(=O)O")
+    @test_logs (:warn, r"stereocenter 2") rem_vertex!(mol, 1)
+    @test isempty(mol[:stereocenter])
+    mol = smilestomol("C[C@@H](F)Br")
+    @test_logs (:warn, r"stereocenter 2") rem_vertex!(mol, nv(mol))  # the last vertex
+    @test isempty(mol[:stereocenter])
+    mol = smilestomol("N[C@@H](C)C(=O)O")
+    @test_logs rem_vertex!(mol, 2)  # the stereocenter itself
+    @test isempty(mol[:stereocenter])
+    mol = smilestomol("F/C=C/C")
+    @test_logs (:warn, r"stereobond 2-3") rem_vertices!(mol, [1])
+    @test isempty(mol[:stereobond])
+
+    # hydrogens referred by stereochemistry are replaced with the remaining neighbors
+    mol = smilestomol("[H]/C(C)=C/C")
+    ikey = inchikey(mol)
+    @test (1, 5) == (mol[:stereobond][Edge(2, 4)].first, mol[:stereobond][Edge(2, 4)].second)
+    @test_logs remove_all_hydrogens!(mol)
+    @test length(mol[:stereobond]) == 1
+    @test inchikey(mol) == ikey
+    mol = smilestomol("N[C@@H](C)C(=O)O")
+    ikey = inchikey(mol)
+    stereo = mol[:stereocenter][2]
+    set_stereocenter!(mol, 2, 3, 1, 4, MolecularGraph.isclockwise(stereo, 3, 1, 4))  # refers to H
+    @test_logs remove_all_hydrogens!(mol)
+    @test length(mol[:stereocenter]) == 1
+    @test inchikey(mol) == ikey
 end
 
 

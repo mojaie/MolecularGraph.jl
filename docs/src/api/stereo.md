@@ -8,6 +8,15 @@ Private = false
 Order   = [:constant, :function, :type]
 ```
 
+## Stereochemistry and graph modification
+
+Non-exported functions called inside `rem_edge!`, `rem_vertex!` and `rem_vertices!`.
+
+```@docs
+MolecularGraph.stereo_on_edge_removal!
+MolecularGraph.stereo_on_vertex_removal!
+```
+
 ## 2D notation of stereocenters
 
 Non-exported functions to keep 2D wedges consistent with the stereocenters.

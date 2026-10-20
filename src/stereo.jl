@@ -79,14 +79,120 @@ function stereo_hydrogen(mol::ReactiveMolGraph{T,V,E}, v::Integer
 end
 
 
+is_hydrogen_vertex(mol::SimpleMolGraph, v::Integer) = atom_symbol(mol[v]) === :H
+is_hydrogen_vertex(mol::ReactiveMolGraph{T,V,E}, v::Integer
+    ) where {T,V<:QueryTree,E<:QueryTree} = mol[v].vprops[1] == qeq(:symbol, "H")
+
+
+"""
+    stereo_on_edge_removal!(mol::SimpleMolGraph, e::Edge) -> Nothing
+
+Remove the stereochemistry information invalidated by the removal of the edge `e`, with
+a warning: stereocenters at the ends of `e`, and stereobonds whose double bond is `e` or
+is connected to `e`.
+
+This is called inside `rem_edge!`.
+"""
+function stereo_on_edge_removal!(mol::SimpleMolGraph, e::Edge)
+    if hasfield(typeof(mol.gprops), :stereocenter)
+        centers = mol.gprops.stereocenter
+        for c in (src(e), dst(e))
+            haskey(centers, c) || continue
+            delete!(centers, c)
+            @warn "stereocenter $(c) was removed because the bond $(src(e))-$(dst(e)) was removed"
+        end
+    end
+    if hasfield(typeof(mol.gprops), :stereobond)
+        bonds = mol.gprops.stereobond
+        for (b, _) in collect(bonds)
+            (b == e || src(b) in (src(e), dst(e)) || dst(b) in (src(e), dst(e))) || continue
+            delete!(bonds, b)
+            @warn "stereobond $(src(b))-$(dst(b)) was removed because the bond $(src(e))-$(dst(e)) was removed"
+        end
+    end
+    return
+end
+
+
+"""
+    stereo_on_vertex_removal!(mol::SimpleMolGraph{T}, vs::Vector{T}) -> Nothing
+
+Update the stereochemistry information before the removal of the vertices `vs`.
+
+If hydrogens are removed, stereocenters and stereobonds referring to them are rewritten with
+the remaining neighbors (the chirality and the cis-trans configuration are preserved). If
+heavy atoms are removed, the stereocenters and stereobonds adjacent to them are removed with
+a warning. Stereochemistry at the removed vertices is removed without warning.
+
+This is called inside `rem_vertex!` and `rem_vertices!`.
+"""
+function stereo_on_vertex_removal!(mol::SimpleMolGraph{T}, vs::Vector{T}) where T
+    removed = Set{T}(vs)
+    if hasfield(typeof(mol.gprops), :stereocenter)
+        centers = mol.gprops.stereocenter
+        for c in collect(keys(centers))
+            c in removed && continue
+            nbrs = neighbors(mol.graph, c)
+            rn = T[n for n in nbrs if n in removed]
+            isempty(rn) && continue
+            stereo = centers[c]
+            if all(n -> is_hydrogen_vertex(mol, n), rn)
+                any(n -> n in rn, stereoneighbors(stereo)) || continue  # safely removable
+                rest = T[n for n in nbrs if !(n in removed)]
+                if length(rest) == 3
+                    f, s, t = rest
+                    centers[c] = Stereocenter{T}(f, s, t, isclockwise(stereo, f, s, t))
+                    continue
+                end
+            end
+            delete!(centers, c)
+            @warn "stereocenter $(c) was removed because the neighbor atom $(first(rn)) was removed"
+        end
+    end
+    if hasfield(typeof(mol.gprops), :stereobond)
+        bonds = mol.gprops.stereobond
+        for (e, b) in collect(bonds)
+            (src(e) in removed || dst(e) in removed) && continue
+            refs = [b.first, b.second]
+            is_cis = b.is_cis
+            valid = true
+            cause = zero(T)
+            for (k, (u, w)) in enumerate(((src(e), dst(e)), (dst(e), src(e))))
+                rn = T[n for n in neighbors(mol.graph, u) if n in removed]
+                isempty(rn) && continue
+                if all(n -> is_hydrogen_vertex(mol, n), rn)
+                    refs[k] in rn || continue  # safely removable
+                    rest = T[n for n in neighbors(mol.graph, u) if n != w && !(n in removed)]
+                    if length(rest) == 1
+                        refs[k] = rest[1]  # the other substituent of the double bond end
+                        is_cis = !is_cis
+                        continue
+                    end
+                end
+                valid = false
+                cause = first(rn)
+            end
+            if valid
+                bonds[e] = Stereobond{T}(refs[1], refs[2], is_cis)
+            else
+                delete!(bonds, e)
+                @warn "stereobond $(src(e))-$(dst(e)) was removed because the neighbor atom $(cause) was removed"
+            end
+        end
+    end
+    return
+end
+
+
 """
     safe_stereo_hydrogen!(mol::SimpleMolGraph{T}, center::T) -> Union{T,Nothing}
 
 Rearrange stereocenter properties to safely remove stereo hydrogen nodes
 and return the hydrogen node index (or `nothing` if there is no stereo hydrogen).
 
-This function is called inside `rem_vertex!` and `rem_vertices!` functions
-to safely remove hydrogen nodes while preserving stereocenter information.
+This function is called when stereocenters are obtained from SMILES or SDFile, so that
+hydrogen nodes can be safely removed while preserving stereocenter information
+(see also [`stereo_on_vertex_removal!`](@ref)).
 """
 function safe_stereo_hydrogen!(mol::SimpleMolGraph{T}, center::T) where T
     h = stereo_hydrogen(mol, center)
