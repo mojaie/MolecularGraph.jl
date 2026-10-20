@@ -178,7 +178,11 @@ function printv2mol(
         mol = giveback_stereo_hydrogens(mol, V, E)
     end
     # write
-    program = "MGjlv$(string(VERSION.major)[end])$(string(VERSION.minor)[end-1:end])"
+    # 8 characters: the last digit of the major version and the last 2 digits of the minor version
+    # (zero-padded without lpad, which is not compilable with juliac --trim)
+    minor = string(VERSION.minor)
+    minor2 = length(minor) == 1 ? "0" * minor : minor[end-1:end]
+    program = "MGjlv$(string(VERSION.major)[end])$(minor2)"
     datetime = Dates.format(Dates.now(), SDF_DATEFORMAT)
     dimension = has_coords3d(mol) ? "3D" : "2D"
 

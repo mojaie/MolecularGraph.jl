@@ -20,6 +20,10 @@
     # 3D coordinates are kept
     aspirin = sdftomol(joinpath(dirname(@__FILE__), "..", "assets", "test", "aspirin_3d.sdf"))
     @test occursin("3D", split(printv2mol(aspirin), "\n")[2])
+    # header line 2: program name (8 characters) with the package version
+    ver = MolecularGraph.VERSION
+    program = "MGjlv" * string(ver.major)[end] * lpad(string(ver.minor), 2, '0')
+    @test split(printv2mol(aspirin), "\n")[2][3:10] == program
 
     stereohyd = joinpath(dirname(@__FILE__), "..", "assets", "test", "DB00115.mol")
     mol = sdftomol(stereohyd)
