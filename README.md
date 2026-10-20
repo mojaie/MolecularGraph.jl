@@ -17,102 +17,99 @@ MolecularGraph.jl
 https://github.com/user-attachments/assets/9844a6f7-d172-4278-82b8-d4f307dff13f
 
 
-Documentation and API Reference
+Installation
 ------------------------------------
 
-[Documentation and API Reference](https://mojaie.github.io/MolecularGraph.jl/dev)
+MolecularGraph.jl requires Julia 1.10 or later.
+
+```
+pkg> add MolecularGraph
+```
+
+Some features are provided as package extensions and are enabled by loading the corresponding
+packages.
+
+- [Cairo.jl](https://github.com/JuliaGraphics/Cairo.jl): PNG export of 2D structure images (`drawpng`)
+- [Makie.jl](https://github.com/MakieOrg/Makie.jl): 3D molecule rendering (`spacefilling`, `ballstick`, `stick`, `wire`)
+- [RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl): SMILES writer and fingerprints (not available on Windows currently)
 
 
-How to use
+Quick start
 ------------------------------------
 
-[Pluto.jl notebook tutorials](https://github.com/mojaie/MolecularGraph.jl_notebook)
+```julia
+using MolecularGraph
 
-To run codes in your environment, see `Edit or run this notebook` instruction shown in the top-right of the tutorial pages below.
+mol = smilestomol("CC(=O)Oc1ccccc1C(=O)O")  # aspirin
+molecular_formula(mol)  # "C9H8O4"
+standard_weight(mol, 2)  # 180.16
+wclogp(mol, 2)  # 1.31
+has_substruct_match(mol, smartstomol("c[CX3](=O)[OX2H1]"))  # true
+inchikey(mol)  # "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
+svg = drawsvg(mol)  # 2D structure image as an SVG string
 
-- [Getting started](https://mojaie.github.io/MolecularGraph.jl_notebook/getting_started.html)
-- [Molecular graph basics](https://mojaie.github.io/MolecularGraph.jl_notebook/molecular_graph_basics.html)
-  - Scope of MolecularGraph.jl
-  - Considerations in molecular graph implementation
-  - Basic operations provided by Graphs.jl interface
-  - MolGraph type and atom/bond properties
-- [Properties and descriptors](https://mojaie.github.io/MolecularGraph.jl_notebook/properties_and_descriptors.html)
-  - Built-in molecule properties and descriptors
-    - Lipinski's Rule of five (RO5)
-    - Molecular formula
-    - Atom and bond properties
-    - Graph topology (ring and fused ring)
-  - Auto-update mechanism of properties
-- [Preprocessing](https://mojaie.github.io/MolecularGraph.jl_notebook/preprocessing.html)
-  - Remove hydrogen vertices
-  - Extract molecules of interest
-  - Standardize charges
-  - Dealing with resonance structure
-  - Customize property updater
-- [Mass and isotopes](https://mojaie.github.io/MolecularGraph.jl_notebook/mass_and_isotopes.html)
-  - Molecular weight and exact mass
-  - Uncertainty
-  - Isotopic composition
-  - Simulate mass spectrum
-- [Substructure and query](https://mojaie.github.io/MolecularGraph.jl_notebook/substructure_and_query.html)
-  - Substructure match
-  - InChI and InChIKey
-  - SMARTS query
-  - Structural alerts (e.g. PAINS)
-  - Functional group analysis
-  - Query containment
-- [Maximum common substructure (MCS)](https://mojaie.github.io/MolecularGraph.jl_notebook/maximum_common_substructure.html)
-  - Maximum common induced substructure (MCIS)
-  - Maximum common edge-induced substructure (MCES)
-  - Connected or disconnected MCS
-  - Working with larger molecules
-  - Topological constraint (tdMCS)
-- [Drawing molecule](https://mojaie.github.io/MolecularGraph.jl_notebook/drawing_molecule.html)
-  - 2D structure images
-    - Display and export in SVG format
-    - Display and export in PNG format
-    - Layout for Pluto notebook
-    - Regenerate coordinates
-  - 3D molecule rendering using Makie.jl
-- [Stereochemistry](https://mojaie.github.io/MolecularGraph.jl_notebook/stereochemistry.html)
-  - Stereochemistry as a molecular graph property
-  - Stereospecific implicit hydrogens
+mol2 = sdftomol("path/to/file.mol")  # read a molfile
+for m in sdfilereader("path/to/file.sdf")  # iterate over molecules in an SDFile
+    println(molecular_formula(m))
+end
+```
+
+
+Documentation
+------------------------------------
+
+[Documentation and API reference](https://mojaie.github.io/MolecularGraph.jl/dev)
+
+- Getting started and basics: molecular graph models, properties and descriptors, drawing,
+  preprocessing, stereochemistry, mass and isotopes, substructure and query, MCS
+- Advanced topics: interfaces of molecular graph models, customizing atom and bond properties
+- API reference: docstrings of all exported functions and types
 
 
 Features
 ------------------
 
 - Chemical structure file I/O
-  - 2D structure image drawing and export to SVG
-  - 3D structure drawing ([Makie.jl](https://github.com/MakieOrg/Makie.jl))
   - SDFile reader/writer (.sdf, .mol)
   - SMILES/SMARTS reader
   - ChemDraw CDXML reader
+  - JSON serialization (lossless format and CommonChem JSON)
   - SMILES writer ([RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl))
-  - Coordinates generation ([coordgenlibs](https://github.com/schrodinger/coordgenlibs))
+  - InChI and InChIKey ([InChI](https://www.inchi-trust.org/))
+
+- Drawing
+  - 2D structure images in SVG and PNG ([Cairo.jl](https://github.com/JuliaGraphics/Cairo.jl))
+  - 2D coordinates generation ([coordgenlibs](https://github.com/schrodinger/coordgenlibs))
+  - 3D molecule rendering ([Makie.jl](https://github.com/MakieOrg/Makie.jl))
 
 - Properties and descriptors
-  - H-bond donor/acceptor
-  - rotatable bonds
-  - Aromaticity
+  - Valence, hydrogens, hybridization, aromaticity
+  - H-bond donor/acceptor, rotatable bonds (descriptors of Lipinski's rule of five)
   - Wildman-Crippen logP
   - Fingerprints ([RDKitMinimalLib.jl](https://github.com/eloyfelix/RDKitMinimalLib.jl))
+  - Automatic recalculation of properties when the molecule is modified
+
+- Stereochemistry
+  - Stereocenters and cis-trans stereobonds from SMILES and SDFile (2D wedges)
+  - Stereochemistry preserved through hydrogen removal and other graph modifications
+  - 2D wedges kept consistent with the stereochemistry for drawing, SDFile output and InChI
+
+- Preprocessing
+  - Hydrogen removal/addition, largest component extraction
+  - Charge standardization (protonation/deprotonation), kekulization
+
+- Atomic mass
+  - Standard atomic/molecular weight, monoisotopic and exact mass with uncertainty
+  - Isotopic composition and simulated mass spectrum
 
 - Substructure and query
-  - InChI ([InChI](https://www.inchi-trust.org/))
-  - Serialization (molecule object <-> loss-less format or CommonChem JSON)
   - Subgraph isomorphism detection with VF2 algorithm
-    - SMARTS query match
+    - SMARTS query match (including recursive SMARTS)
     - Monomorphism, node-induced and edge-induced match
     - Constraints (mandatory/forbidden vertex mapping)
   - Functional group query set
   - Structural alerts detection with ChEMBL dataset
   - SMARTS query containment
-
-- Atomic mass
-  - standard atomic/molecular weight
-  - relative atomic/molecular mass
-  - isotopic composition
 
 - Molecular graph topology
   - Ring, scaffold, connected components
@@ -129,6 +126,11 @@ Features
   - Connected and disconnected
   - Topological constraint (known as tdMCS)
   - Diameter restriction (MCS-DR) and graph-based local similarity (GLS)
+
+- Shared library for other languages (experimental)
+  - C shared library with JSON input/output built by
+    [JuliaC.jl](https://github.com/JuliaLang/JuliaC.jl) (`juliac --trim=safe`).
+    See [build/README.md](./build/README.md).
 
 
 License

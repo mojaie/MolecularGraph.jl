@@ -22,16 +22,20 @@ pkg> add MolecularGraph
   - [Properties and descriptors](@ref): built-in properties and the auto-update mechanism
   - [Drawing molecules](@ref): 2D structure images (SVG/PNG), 2D coordinates and 3D rendering
   - [Preprocessing](basics/preprocessing.md): hydrogens, components, charges, resonance structures and custom updaters
-  - [Stereochemistry](basics/stereo.md)
+  - [Stereochemistry](basics/stereo.md): stereocenters, stereobonds and 2D wedges
   - [Mass and isotopes](@ref): molecular weight, exact mass, isotopic composition and mass spectra
   - [Substructure and query](@ref): substructure match, InChI, SMARTS queries and structural alerts
   - [Maximum common substructure](@ref): MCIS, MCES and topological constraints (tdMCS)
 - Advanced topics
   - [MolecularGraph interfaces](@ref)
   - [Customize atom and bond properties](@ref)
-
-Interactive [Pluto.jl notebook tutorials](https://github.com/mojaie/MolecularGraph.jl_notebook)
-are also available (some of them are based on older versions).
+- API references (docstrings of all exported functions and types)
+  - [Molecular graph models](api/model.md), [I/O](api/io.md),
+    [Structure drawing](api/draw.md), [Coordinates](api/coordinates.md)
+  - [Properties and descriptors](api/properties.md), [Molecular mass/weight](api/mass.md),
+    [Stereochemistry](api/stereo.md), [Preprocessing](api/preprocess.md)
+  - [Structure match](api/structurematch.md), [Molecular queries](api/query.md),
+    [InChI](api/inchi.md), [RDKit interface](api/rdkit.md), [Graph algorithms](api/graph.md)
 
 
 ## License
@@ -42,4 +46,4 @@ See [Assets/README.md](https://github.com/mojaie/MolecularGraph.jl/tree/master/a
 
 ## Copyright
 
-(C) 2018-2025 Seiji Matsuoka and contributors
+(C) 2018-2026 Seiji Matsuoka and contributors
