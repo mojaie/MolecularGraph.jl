@@ -19,6 +19,3 @@ Logging = "1"
 Makie = "0.24.15"
 RDKitMinimalLib = "1.2"
 Test = "1"
-
-[sources]
-RDKitMinimalLib = {url = "https://github.com/mojaie/RDKitMinimalLib.jl", rev = "concrete_ref"}
