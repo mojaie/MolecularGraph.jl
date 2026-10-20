@@ -1,5 +1,51 @@
 # NEWS
 
+## v1.0.0
+
+The API is considered stable from this version. The documentation now covers all exported
+functions and types (API reference) and the former Pluto notebook tutorials are merged into
+the documentation (the notebook repository will be archived).
+
+- Breaking changes
+  - Callbacks are now part of the molecule type for type stability: `MolState{T,F1,F2}` has
+    constant `on_init`/`on_update` fields, and `MolGraph` and `QueryMolGraph` have an additional
+    type parameter (`MolGraph{T,V,E,S}`). Callbacks of an existing molecule cannot be replaced
+    in place (e.g. `mol.state.on_update = f`); use `MolecularGraph.with_callbacks(mol; on_update=f)`
+    instead. `MolGraph{T,V,E}` is no longer a concrete type (constructors work as before).
+  - Stereochemistry is updated when the molecular graph is modified.
+    - `rem_edge!` of a bond at a stereocenter or a stereobond (double bond) removes the
+      stereochemistry with a warning. `rem_vertex!`/`rem_vertices!` of a heavy atom adjacent to
+      a stereocenter or a stereobond also removes it with a warning.
+    - Hydrogens referred by stereocenters/stereobonds can be removed safely; the references are
+      replaced with the remaining neighbors.
+    - 2D wedges are kept consistent with `mol[:stereocenter]` (the reference of stereochemistry)
+      after graph modification and coordinate generation. This affects SDFile output, InChI and
+      drawing (e.g. wedges on removed hydrogens are regenerated on other bonds).
+  - Three-coordinate stereocenters (with an implicit hydrogen) in 2D molfiles are interpreted
+    geometrically, consistently with InChI. The result differs from previous versions when the
+    neighbors are in a half-plane with the wedge on the middle bond, or there are two wedges in
+    the same direction.
+  - `printv2mol`/`sdfilewriter` with `givebackhydrogen=true` keep the existing 2D coordinates
+    (the hydrogens are placed with wedges instead of calling coordgen), and do not add
+    hydrogens to molecules with 3D coordinates.
+  - `bondhighlight` of `drawsvg`/`drawpng` accepts only existing bonds (`ArgumentError`).
+  - `isotopic_composition(atomsymbol, number)` returns records sorted by mass in ascending order,
+    like `isotopic_composition(mol)`.
+  - `set_stereocenter!` and `set_stereobond!` return `nothing`.
+- Compatible with `juliac --trim=safe` (JuliaC.jl). An experimental C shared library built by
+  JuliaC is available in `build/juliac` (the PackageCompiler version is kept until the trim
+  option becomes stable).
+- Replaced PicoSAT.jl with a built-in SAT solver for query containment (PicoSAT_jll has no
+  Windows binary). `Statistics` is no longer a dependency.
+- Molecule JSON is written and read by own code (the format is unchanged, about 2x faster).
+  `mol_from_json(f, json)` can be used to construct molecules with a type-stable callback.
+- Fixed SMILES/SMARTS starting with a chiral atom (e.g. `[C@@H](F)(Cl)Br`).
+- Fixed `coordgen!` not displaying wedges of some stereocenters.
+- Fixed shifted 2D wedges after `add_edge!`/`rem_edge!`, and SSSR not recalculated after the
+  removal of a ring bond.
+- RDKitMinimalLib.jl extension is not available on Windows (RDKit_jll for Windows does not
+  export the RDKit C API).
+
 ## v0.23.0
 
 - Breaking changes
