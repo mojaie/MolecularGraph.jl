@@ -35,8 +35,8 @@ the documentation (the notebook repository will be archived).
 - Compatible with `juliac --trim=safe` (JuliaC.jl). An experimental C shared library built by
   JuliaC is available in `build/juliac` (the PackageCompiler version is kept until the trim
   option becomes stable).
-- Replaced PicoSAT.jl with a built-in SAT solver for query containment (PicoSAT_jll has no
-  Windows binary). `Statistics` is no longer a dependency.
+- Complicated query containment tasks are now more efficient with a built-in SAT solver.
+- `Statistics` is no longer a dependency.
 - Molecule JSON is written and read by own code (the format is unchanged, about 2x faster).
   `mol_from_json(f, json)` can be used to construct molecules with a type-stable callback.
 - Fixed SMILES/SMARTS starting with a chiral atom (e.g. `[C@@H](F)(Cl)Br`).

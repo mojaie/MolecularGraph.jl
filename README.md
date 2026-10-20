@@ -20,7 +20,7 @@ https://github.com/user-attachments/assets/9844a6f7-d172-4278-82b8-d4f307dff13f
 Installation
 ------------------------------------
 
-MolecularGraph.jl requires Julia 1.10 or later.
+MolecularGraph.jl requires Julia 1.10.12 or later.
 
 ```
 pkg> add MolecularGraph
