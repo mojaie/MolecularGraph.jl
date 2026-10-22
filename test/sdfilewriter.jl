@@ -45,6 +45,17 @@
     @test nv(smol2) == 11
     @test isempty(smol2[:metadata])
 
+    # hydrogen count flag survives a round trip
+    hmol = sdftomol(IOBuffer("\n  test\n\n  3  2  0  0  0  0  0  0  0  0999 V2000\n" *
+        "    0.0000    0.0000    0.0000 N   0  0  0  3  0  0  0  0  0  0  0  0\n" *
+        "    1.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" *
+        "    2.0000    0.0000    0.0000 O   0  0  0  1  0  0  0  0  0  0  0  0\n" *
+        "  1  2  1  0\n  2  3  1  0\nM  END\n"))
+    hdump = printv2mol(hmol)
+    @test [l[43:45] for l in split(hdump, "\n")[5:7]] == ["  3", "  0", "  1"]
+    hmol2 = sdftomol(IOBuffer(hdump))
+    @test [hmol2[i].num_hs for i in vertices(hmol2)] == [2, -1, 0]
+
     sdf = joinpath(dirname(@__FILE__), "..", "assets", "test", "drugbank1-100.sdf")
     io = IOBuffer()
     sdfilewriter(io, sdfilereader(sdf), givebackhydrogen=false)
