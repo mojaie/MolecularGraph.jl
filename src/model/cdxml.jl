@@ -28,7 +28,7 @@ struct CDXMLAtom <: StandardAtom
         isotope::Int,
         isaromatic::Bool,
         coords::Union{Vector, Nothing},
-        num_hs::Int
+        num_hs::Int = -1
     )
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol '$symbol'")
         new(Symbol(symbol), charge, multiplicity, isotope, isaromatic,
