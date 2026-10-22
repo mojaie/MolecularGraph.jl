@@ -17,6 +17,28 @@
     radical = ctab_atom_v2(SDFAtom, "    1.6514    2.7627    0.0000 C   0  4")
     @test radical[:charge] == 0
     @test radical[:multiplicity] == 2
+    @test full[:num_hs] == -1
+    @test atomBr[:num_hs] == -1
+    hflag = ctab_atom_v2(SDFAtom,
+        "    1.1763    0.6815    0.0000 N   0  0  0  3  0  0  0  0  0  0  0  0"
+    )
+    @test hflag[:num_hs] == 2
+end
+
+@testset "ctab_atom_v3" begin
+    @test ctab_atom_v3(SDFAtom, "M  V30 1 N 0 0 0 0")[:num_hs] == -1
+    @test ctab_atom_v3(SDFAtom, "M  V30 1 N 0 0 0 0 HCOUNT=-1")[:num_hs] == 0
+    @test ctab_atom_v3(SDFAtom, "M  V30 1 N 0 0 0 0 CHG=1 HCOUNT=2")[:num_hs] == 2
+end
+
+@testset "hydrogen count flag" begin
+    molfile = "\n  test\n\n  2  1  0  0  0  0  0  0  0  0999 V2000\n" *
+        "    0.0000    0.0000    0.0000 N   0  0  0  2  0  0  0  0  0  0  0  0\n" *
+        "    1.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" *
+        "  1  2  1  0\nM  END\n"
+    mol = sdftomol(IOBuffer(molfile))
+    @test [mol[i].num_hs for i in vertices(mol)] == [1, -1]
+    @test MolecularGraph.valence(mol) == [2, 4]  # N is overridden, C is automatic
 end
 
 @testset "ctab_bond_v2" begin
@@ -97,3 +119,12 @@ end
 end
 
 end # sdfilereader
+
+@testset "hydrogen count flag with property block" begin
+    # hydroxide: hydrogen count flag 2 (= one hydrogen) and charge from M  CHG
+    molblock = "\n  test\n\n  1  0  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 O   0  0  0  2  0  0  0  0  0  0  0  0\nM  CHG  1   1  -1\nM  END\n"
+    mol = sdftomol(IOBuffer(molblock))
+    @test mol[1].num_hs == 1
+    @test atom_charge(mol) == [-1]
+    @test implicit_hydrogens(mol) == [1]
+end

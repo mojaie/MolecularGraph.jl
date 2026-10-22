@@ -50,6 +50,36 @@ function ctab_atom_v3(::Type{T}, line::AbstractString) where T <: AbstractElemen
     return T(sym, chg, mul, iso, crds)
 end
 
+# hydrogen count flag: 0 = automatic, n > 0 = explicit n - 1 hydrogens
+function ctab_atom_v2(::Type{SDFAtom}, line::AbstractString)
+    xpos = parse(Float64, line[1:10])
+    ypos = parse(Float64, line[11:20])
+    zpos = parse(Float64, line[21:30])
+    crds = Float64[xpos, ypos, zpos]
+    sym = rstrip(line[32:34])
+    iso = 0  # will be ignored, use ISO property instead
+    old_sdf_charge = parse(Int, line[37:39])
+    chg = SDF_CHARGE_TABLE[old_sdf_charge]
+    mul = old_sdf_charge == 4 ? 2 : 1
+    hcount = length(line) >= 45 ? parse(Int, line[43:45]) : 0
+    # -1 means automatic, any value >= 0 is the explicit number of hydrogens
+    return SDFAtom(sym, chg, mul, iso, crds, hcount - 1)
+end
+
+# HCOUNT property: 0 = automatic, -1 = no hydrogens, n > 0 = explicit n hydrogens
+function ctab_atom_v3(::Type{SDFAtom}, line::AbstractString)
+    ss = split(line)
+    crds = parse.(Float64, ss[5:7])
+    sym = ss[4]
+    props = Dict{Symbol,Union{String,Int}}(sympair.(ss[9:end]))
+    chg = intprop(props, :CHG, 0)
+    iso = intprop(props, :MASS, 0)
+    mul = intprop(props, :RAD, 1)
+    hcount = intprop(props, :HCOUNT, 0)
+    num_hs = hcount == 0 ? -1 : max(hcount, 0)  # -1 (H0) -> 0
+    return SDFAtom(sym, chg, mul, iso, crds, num_hs)
+end
+
 function ctab_bond_v2(
         ::Type{T}, ::Type{E}, line::AbstractString) where {T<:Integer,E<:AbstractElement}
     u = parse(T, line[1:3])
@@ -120,6 +150,17 @@ end
 
 Default `on_update` callback of SDFile readers (standardization of charges and bond orders,
 and recalculation of cached descriptors such as `sssr` and `valence`).
+
+The hydrogen count flag of the atom line (`hhh` in V2000, `HCOUNT` in V3000) is stored as
+`SDFAtom.num_hs` and, if set, pins the valence of the atom to the apparent valence plus
+`num_hs`.
+
+!!! note "Deviation from the CTfile specification"
+    The specification defines a hydrogen count of `n > 0` as a query-style lower bound
+    ("`n` or more hydrogens"). Here it is interpreted as the exact number of hydrogens,
+    in line with the `NumHydrogens` attribute of CDXML. For example, a lone carbon with
+    `HCOUNT=1` is read as `CH` and not as methane. Atoms without the flag (or with
+    `hhh = 0` / `HCOUNT=0`) keep their automatic valence.
 """
 function sdf_on_update!(mol::SimpleMolGraph)
     # Preprocess
@@ -131,6 +172,16 @@ function sdf_on_update!(mol::SimpleMolGraph)
     valence!(mol)
     lone_pair!(mol)
     is_ring_aromatic!(mol)
+
+    # Explicit hydrogen count of the atom line overrides the calculated valence
+    desc = mol[:descriptors]
+    for i in vertices(mol)
+        atom = mol.vprops[i]
+        atom isa SDFAtom || continue
+        if atom.num_hs >= 0
+            desc.valence[i] = desc.apparent_valence[i] + atom.num_hs
+        end
+    end
 end
 
 
@@ -209,7 +260,9 @@ function parse_ctab(::Type{T}, io::IO, config::NamedTuple) where T <: SimpleMolG
             chg = get(ps, :CHG, 0)
             mul = get(ps, :RAD, 1)
             iso = get(ps, :ISO, 0)
-            vprops[i] = V(sym, chg, mul, iso, crds)
+            # keep the hydrogen count flag of the atom line
+            nhs = hasfield(V, :num_hs) ? (vprops[i].num_hs,) : ()
+            vprops[i] = V(sym, chg, mul, iso, crds, nhs...)
         end
     elseif ver === :v3
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")

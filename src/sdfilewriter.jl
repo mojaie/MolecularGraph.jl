@@ -180,9 +180,9 @@ function printv2mol(
         mol = giveback_stereo_hydrogens(mol, V, E)
     end
 
-    # We need implict hydrogens to ensure correct printing of NumHydrogens of CDXMLAtom
-    imph = if mol isa CDXMLMolGraph
-        implicit_hydrogens(mol)
+    # Hydrogen count flag of the atom line (-1: automatic), e.g. NumHydrogens of CDXMLAtom
+    imph = if hasfield(V, :num_hs)
+        Int[mol.vprops[i].num_hs for i in vertices(mol)]
     else
         Int[]
     end

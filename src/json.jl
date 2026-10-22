@@ -432,7 +432,8 @@ jfloatvec(node::JSONNode) = Float64[jfloat(v) for v in jarray(node)]
 
 fromjson(::Type{SDFAtom}, x::JSONNode) = SDFAtom(
     jstring(x, "symbol", "C"), jint(x, "charge", 0), jint(x, "multiplicity", 1),
-    jint(x, "isotope", 0), isnothing(jget(x, "coords")) ? nothing : jfloatvec(something(jget(x, "coords"))))
+    jint(x, "isotope", 0), isnothing(jget(x, "coords")) ? nothing : jfloatvec(something(jget(x, "coords"))),
+    jint(x, "num_hs", -1))
 fromjson(::Type{SMILESAtom}, x::JSONNode) = SMILESAtom(
     jstring(x, "symbol", "C"), jint(x, "charge", 0), jint(x, "multiplicity", 1),
     jint(x, "isotope", 0), jbool(x, "isaromatic", false), jstring(x, "stereo", "unspecified"))
