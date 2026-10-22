@@ -87,4 +87,47 @@ end
     @test mol[2].coords == [110, 95, 0]
 end
 
+@testset "NumHydrogens in charcoal" begin
+    cdxml_string = """
+    <?xml version="1.0" encoding="UTF-8" ?>
+    <!DOCTYPE CDXML SYSTEM "https://static.chemistry.revvitycloud.com/cdxml/CDXML.dtd" >
+    <CDXML><page><fragment
+    id="3"
+    BoundingBox="-3.60 -4.72 3.60 3.55"
+    Z="1"
+    ><n
+    id="4"
+    p="0 0"
+    Z="2"
+    Warning="An atom in this label has an invalid valence."
+    NumHydrogens="0"
+    NeedsClean="yes"
+    AS="N"
+    AtomNumber="0"
+    AtomID="1"
+    ><t
+    p="-3.60 3.45"
+    BoundingBox="-3.60 -4.72 3.60 3.55"
+    LabelJustification="Left"
+    ><s font="3" size="10" color="0" face="96">C</s></t></n></fragment></page></CDXML>
+    """
+    mol = cdxmltomol(IOBuffer(cdxml_string))
+
+    @test mol isa CDXMLMolGraph
+    @test round(Int, standard_weight(mol)) == 12
+    
+    sdf = printv2mol(mol)
+    @test contains(sdf, "C   0  0  0  1")
+    
+    mol2 = sdftomol(MolecularGraph.CDXMLMolGraph, IOBuffer(sdf),
+        config = Dict{Symbol,Any}(
+            :on_init => MolecularGraph.cdxml_on_init!,
+            :on_update => MolecularGraph.cdxml_on_update!
+        )
+    )
+
+    @test mol isa CDXMLMolGraph
+    @test round(Int, standard_weight(mol2)) == 12
+end
+
 end # cdxmlreader

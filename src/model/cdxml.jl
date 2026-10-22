@@ -19,6 +19,7 @@ struct CDXMLAtom <: StandardAtom
     isotope::Int
     isaromatic::Bool
     coords::Union{Vector{Float64}, Nothing}  # concrete element type (for `juliac --trim`)
+    num_hs::Int
 
     function CDXMLAtom(
         symbol::Union{AbstractString, Symbol},
@@ -26,11 +27,12 @@ struct CDXMLAtom <: StandardAtom
         multiplicity::Int,
         isotope::Int,
         isaromatic::Bool,
-        coords::Union{Vector, Nothing}
+        coords::Union{Vector, Nothing},
+        num_hs::Int = -1
     )
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol '$symbol'")
         new(Symbol(symbol), charge, multiplicity, isotope, isaromatic,
-            isnothing(coords) ? nothing : Vector{Float64}(coords))
+            isnothing(coords) ? nothing : Vector{Float64}(coords), num_hs)
     end
 end
 
@@ -39,11 +41,12 @@ function CDXMLAtom(
     charge::Int=0, 
     multiplicity::Int=1, 
     isotope::Int=0,
-    isaromatic::Bool = false,
-    coords::Union{Vector, Nothing}=nothing
+    isaromatic::Bool=false,
+    coords::Union{Vector, Nothing}=nothing,
+    num_hs::Int=-1
 )
     haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
-    CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords)
+    CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, num_hs)
 end
 
 """CDXMLBond represents a bond from CDXML with order and stereochemistry"""
@@ -59,11 +62,35 @@ struct CDXMLBond <: StandardBond
             isaromatic::Bool=false,
             isordered::Bool=false,
             stereo::Union{AbstractString,Symbol} = :unspecified,
-            notation::Int = 0
+            notation::Int = 0,
+        kwargs...
     )
+        isempty(kwargs) || @warn "keyword(s) `$(join(keys(kwargs), "``, `"))` not supported!"
         order > 3 && error("sdfile parse error - unsupported bond order $(order)")
         new(order, isaromatic, isordered, Symbol(stereo), notation)
     end
+end
+
+# keyword-only constructor for compatibility with other readers
+function CDXMLAtom(;
+    symbol::Union{AbstractString, Symbol},
+    charge::Int=0, 
+    multiplicity::Int=1, 
+    isotope::Int=0,
+    isaromatic::Bool=false,
+    coords::Union{Vector, Nothing}=nothing,
+    num_hs::Int=-1,
+    kwargs...
+)
+    isempty(kwargs) || @warn "keyword(s) `$(join(keys(kwargs), "``, `"))` not supported!"
+    CDXMLAtom(symbol;
+        charge,
+        multiplicity,
+        isotope,
+        isaromatic,
+        coords,
+        num_hs
+    )
 end
 
 """
@@ -87,7 +114,7 @@ isaromatic(bond::CDXMLBond) = bond.isaromatic
 has_isaromatic(::Type{CDXMLAtom}) = true
 
 aromatic_atom(a::CDXMLAtom) = CDXMLAtom(
-    a.symbol, a.charge, a.multiplicity, a.isotope, true, a.coords)
+    a.symbol, a.charge, a.multiplicity, a.isotope, true, a.coords, a.num_hs)
 
 # Post-processing function
 function mark_aromatic_atoms!(mol::MolGraph{T,V,E}) where {T, V, E}
@@ -167,6 +194,9 @@ end
 
 """Get XML attribute value or `nothing` if missing"""
 attribute(node::EzXML.Node, key::AbstractString) = haskey(node, key) ? node[key] : nothing
+function attribute(node::EzXML.Node, key::AbstractString, default::T)::Union{String, T} where T
+    haskey(node, key) ? node[key] : default
+end
 
 # =============================================================================
 # Core parsing functions
@@ -205,9 +235,12 @@ function parse_cdxml_atom(node::EzXML.Node)::Tuple{String,CDXMLAtom}
         radical = parse(Int, radical_str)
         radical + 1  # Convert to multiplicity
     end
+
+    num_hs_str = attribute(node, "NumHydrogens")
+    num_hs = num_hs_str === nothing ? -1 : parse(Int, num_hs_str)
     
     isaromatic = false # will be set later in mark_aromatic_atoms!()
-    atom = CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords)
+    atom = CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, num_hs)
     return (id, atom)
 end
 
@@ -410,4 +443,58 @@ function cdxml_on_update!(mol::SimpleMolGraph)
     valence!(mol)
     lone_pair!(mol)
     is_ring_aromatic!(mol)
+
+    desc = mol[:descriptors]
+    
+    for i in vertices(mol)
+        atom = mol.vprops[i]
+        
+        if atom.num_hs >= 0
+            desc.valence[i] = desc.apparent_valence[i] + atom.num_hs
+        end
+    end
+end
+
+function ctab_atom_v2(::Type{CDXMLAtom}, line::AbstractString)
+    xpos = parse(Float64, line[1:10])
+    ypos = parse(Float64, line[11:20])
+    zpos = parse(Float64, line[21:30])
+    crds = Float64[xpos, ypos, zpos]
+    sym = Symbol(rstrip(line[32:34]))
+    # atom.mass_diff = parse(Int, line[35:36])
+    iso = 0  # will be ignored, use ISO property instead
+    old_sdf_charge = parse(Int, line[37:39])
+    chg = SDF_CHARGE_TABLE[old_sdf_charge]
+    mul = old_sdf_charge == 4 ? 2 : 1
+    # atom.stereo_flag = parse(Int, line[40:42])
+    # valence = parse(Int, line[46:48])
+    isaromatic = false
+    # -1 means automatic, any value >= 0 is the explicit number of hydrogens
+    num_hs = parse(Int, line[43:45]) - 1
+    return CDXMLAtom(sym, chg, mul, iso, isaromatic, crds, num_hs)
+end
+
+function ctab_atom_v3(::Type{CDXMLAtom}, line::AbstractString)
+    ss = split(line)
+    crds = parse.(Float64, ss[5:7])
+    sym = ss[4]
+    props = Dict(sympair.(ss[9:end])...)
+    chg = get(props, :CHG, 0)
+    iso = get(props, :MASS, 0)
+    mul = get(props, :RAD, 1)
+    isaromatic = false
+    # -1 means automatic, any value >= 0 is the explicit number of hydrogens
+    num_hs = parse(Int, line[43:45]) - 1
+    return CDXMLAtom(sym, chg, mul, iso, isaromatic, crds, num_hs)
+end
+
+function ctab_bond_v2(
+        ::Type{T}, ::Type{CDXMLBond}, line::AbstractString) where {T<:Integer}
+    u = parse(T, line[1:3])
+    v = parse(T, line[4:6])
+    ord = parse(Int, line[7:9])
+    notation = parse(Int, line[10:12])
+    isordered = u < v
+    u, v = isordered ? (u, v) : (v, u)
+    return (u_edge(T, u, v), CDXMLBond(ord; notation, isordered))
 end
