@@ -54,7 +54,7 @@ using MolecularGraph:
     lookahead, forward!, backtrack!,
     lgnot!, lgoperator!, lghighand!, lgor!, lglowand!,
     chain!, fragment!, componentquery!,
-    ctab_atom_v2, ctab_bond_v2
+    ctab_atom_v2, ctab_atom_v3, ctab_bond_v2
 
 using MolecularGraph:
     exact_topology_prefilter, topology_prefilter, querymatch,

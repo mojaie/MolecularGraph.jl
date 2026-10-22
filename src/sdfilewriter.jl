@@ -124,6 +124,8 @@ function giveback_stereo_hydrogens(mol::SimpleMolGraph, V::Type, E::Type)
         end
         add_vertex!(mol_, V(symbol=:H))
         add_edge!(mol_, center, nv(mol_), E())
+        # the hydrogen is explicit now, a fixed count must not count it twice
+        has_fixed_num_hs(mol_.vprops[center]) && (mol_.vprops[center] = with_num_hs(mol_.vprops[center], mol_.vprops[center].num_hs - 1))
         # wedges are re-assigned in the update (preferably on the hydrogen)
         has2d && discard_center_wedges!(mol_, center)
     end
@@ -180,9 +182,9 @@ function printv2mol(
         mol = giveback_stereo_hydrogens(mol, V, E)
     end
 
-    # We need implict hydrogens to ensure correct printing of NumHydrogens of CDXMLAtom
-    imph = if mol isa CDXMLMolGraph
-        implicit_hydrogens(mol)
+    # Hydrogen count flag of the atom line (-1: automatic), e.g. NumHydrogens of CDXMLAtom
+    imph = if hasfield(V, :num_hs)
+        Int[mol.vprops[i].num_hs for i in vertices(mol)]
     else
         Int[]
     end

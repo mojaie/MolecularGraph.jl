@@ -94,8 +94,19 @@ function smiles_on_update!(mol::SimpleMolGraph)
     sssr!(mol)
     apparent_valence!(mol)
     valence!(mol)
+    explicit_num_hs!(mol)
     lone_pair!(mol)
     is_ring_aromatic!(mol)
+end
+
+# Bracket atoms carry an explicit hydrogen count (`num_hs >= 0`) instead of the default valence.
+function explicit_num_hs!(mol::SimpleMolGraph)
+    desc = mol[:descriptors]
+    for i in vertices(mol)
+        a = mol.vprops[i]
+        a isa SMILESAtom && a.num_hs >= 0 && (desc.valence[i] = desc.apparent_valence[i] + a.num_hs)
+    end
+    return
 end
 
 """

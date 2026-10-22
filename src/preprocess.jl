@@ -152,7 +152,7 @@ Remove trivial hydrogen vertices using `Graphs.rem_vertices!` and return the vma
 
 'Trivial' hydrogens are those returned by [`removable_hydrogens`](@ref).
 """
-remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(mol))
+remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, absorb_hydrogens!(mol, removable_hydrogens(mol)))
 
 
 """
@@ -160,7 +160,24 @@ remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(
 
 Remove all hydrogen vertices using `Graphs.rem_vertices!` and return the vmap array.
 """
-remove_all_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, all_hydrogens(mol))
+remove_all_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, absorb_hydrogens!(mol, all_hydrogens(mol)))
+
+has_fixed_num_hs(a) = hasfield(typeof(a), :num_hs) && a.num_hs >= 0
+with_num_hs(a, n::Int) = typeof(a)((f === :num_hs ? n : getfield(a, f) for f in fieldnames(typeof(a)))...)
+
+# Atoms with a fixed hydrogen count (`num_hs >= 0`, e.g. bracket atoms of SMILES) keep the removed
+# hydrogens as implicit ones.
+function absorb_hydrogens!(mol::SimpleMolGraph, hs)
+    vprops = mol.vprops
+    for h in hs
+        for nbr in neighbors(mol, h)
+            a = vprops[nbr]
+            has_fixed_num_hs(a) || continue
+            vprops[nbr] = with_num_hs(a, a.num_hs + 1)
+        end
+    end
+    return hs
+end
 
 
 """
@@ -178,6 +195,8 @@ function add_hydrogens!(
             add_vertex!(mol, V(;symbol=:H))
             add_edge!(mol, i, nv(mol), E())
         end
+        # the hydrogens are explicit now, a fixed count must not count them twice
+        has_fixed_num_hs(mol.vprops[i]) && implicit_hs[i] > 0 && (mol.vprops[i] = with_num_hs(mol.vprops[i], 0))
     end
     return
 end
