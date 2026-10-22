@@ -162,14 +162,15 @@ Remove all hydrogen vertices using `Graphs.rem_vertices!` and return the vmap ar
 """
 remove_all_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, absorb_hydrogens!(mol, all_hydrogens(mol)))
 
-# Atoms with a fixed hydrogen count (e.g. bracket atoms of SMILES) keep the removed hydrogens as implicit ones.
+# Atoms with a fixed hydrogen count (`num_hs >= 0`, e.g. bracket atoms of SMILES) keep the removed
+# hydrogens as implicit ones.
 function absorb_hydrogens!(mol::SimpleMolGraph, hs)
     vprops = mol.vprops
     for h in hs
         for nbr in neighbors(mol, h)
             a = vprops[nbr]
-            a isa SMILESAtom && a.num_hs >= 0 || continue
-            vprops[nbr] = SMILESAtom(a.symbol, a.charge, a.multiplicity, a.isotope, a.isaromatic, a.stereo, a.num_hs + 1)
+            hasfield(typeof(a), :num_hs) && a.num_hs >= 0 || continue
+            vprops[nbr] = typeof(a)((f === :num_hs ? a.num_hs + 1 : getfield(a, f) for f in fieldnames(typeof(a)))...)
         end
     end
     return hs
