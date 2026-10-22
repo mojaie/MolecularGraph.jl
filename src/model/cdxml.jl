@@ -483,8 +483,10 @@ function ctab_atom_v3(::Type{CDXMLAtom}, line::AbstractString)
     iso = get(props, :MASS, 0)
     mul = get(props, :RAD, 1)
     isaromatic = false
+    # HCOUNT: 0 = automatic, -1 = no hydrogens, n > 0 = explicit n hydrogens
     # -1 means automatic, any value >= 0 is the explicit number of hydrogens
-    num_hs = parse(Int, line[43:45]) - 1
+    hcount = get(props, :HCOUNT, 0)
+    num_hs = hcount == 0 ? -1 : max(hcount, 0)
     return CDXMLAtom(sym, chg, mul, iso, isaromatic, crds, num_hs)
 end
 

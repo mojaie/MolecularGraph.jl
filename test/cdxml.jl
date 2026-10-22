@@ -130,4 +130,11 @@ end
     @test round(Int, standard_weight(mol2)) == 12
 end
 
+@testset "HCOUNT in V3000 atom line" begin
+    ctab_atom_v3 = MolecularGraph.ctab_atom_v3
+    @test ctab_atom_v3(CDXMLAtom, "M  V30 1 N 0 0 0 0").num_hs == -1
+    @test ctab_atom_v3(CDXMLAtom, "M  V30 1 N 0 0 0 0 HCOUNT=-1").num_hs == 0
+    @test ctab_atom_v3(CDXMLAtom, "M  V30 1 N 0 0 0 0 CHG=1 HCOUNT=2").num_hs == 2
+end
+
 end # cdxmlreader
