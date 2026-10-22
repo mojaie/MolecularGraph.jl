@@ -35,6 +35,21 @@
     @test exact_mass(etohd6, 6) == 52.079525
 end
 
+@testset "deuterium" begin
+    @test nominal_mass(SMILESAtom(:D)) == 2
+    @test nominal_mass(SMILESAtom(:T)) == 3
+    @test isapprox(monoiso_mass(SMILESAtom(:D)), 2.01410177812, atol=1e-10)
+    @test isapprox(standard_weight(SMILESAtom(:D)), 2.01410177812, atol=1e-10)
+    @test isapprox(standard_weight(SMILESAtom(:T)), 3.0160492779, atol=1e-10)
+    @test isapprox(standard_weight(SMILESAtom(:D, 0, 0, 2)), 2.01410177812, atol=1e-10)
+    @test isapprox(standard_weight(smilestomol("[2H]O[2H]")), standard_weight(smilestomol("O")) + 2 * (2.01410177812 - 1.008), atol=1e-10)
+    @test MolecularGraph.atom_markup(:D, 2, 0) == [[(:default, "D")]]
+    @test MolecularGraph.atom_markup(:D, 0, 0) == [[(:default, "D")]]
+    @test MolecularGraph.atom_markup(:T, 3, 0) == [[(:default, "T")]]
+    @test MolecularGraph.atom_markup(:T, 0, 0) == [[(:default, "T")]]
+    @test MolecularGraph.atom_markup(:H, 2, 0) == [[(:sup, "2"), (:default, "H")]]
+end
+
 @testset "isotopic_composition" begin
     @test length(isotopic_composition(:C, 100; threshold=0.01)) == 5
     @test length(isotopic_composition(:H, 1000; threshold=0.01)) == 2

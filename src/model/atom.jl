@@ -180,6 +180,14 @@ atom_symbol(n::Int) = Symbol(ATOMTABLE[n].Symbol)
 
 
 """
+    hydrogen_isotope(atomsymbol::Symbol) -> Int
+
+Return the mass number implied by the atom symbol: `2` for deuterium (`:D`), `3` for
+tritium (`:T`) and `0` for any other symbol.
+"""
+hydrogen_isotope(atomsymbol::Symbol) = atomsymbol === :D ? 2 : atomsymbol === :T ? 3 : 0
+
+"""
     find_isotope(z::Int, num::Int) -> Union{Isotope, Nothing}
     find_isotope(atomsymbol::Symbol, num::Int) -> Union{Isotope, Nothing}
 
