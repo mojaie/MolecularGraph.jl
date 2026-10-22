@@ -128,3 +128,20 @@ end # sdfilereader
     @test atom_charge(mol) == [-1]
     @test implicit_hydrogens(mol) == [1]
 end
+
+@testset "sdf num_hs and remove_hydrogens" begin
+    # hydroxide: charge -1 (CHG 5), hydrogen count flag 2 (= one hydrogen)
+    molblock = "\n  test\n\n  1  0  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 O   0  5  0  2  0  0  0  0  0  0  0  0\nM  END\n"
+    mol = sdftomol(IOBuffer(molblock))
+    @test implicit_hydrogens(mol) == [1]
+    add_hydrogens!(mol)
+    @test nv(mol) == 2
+    remove_hydrogens!(mol)
+    @test nv(mol) == 1
+    @test implicit_hydrogens(mol) == [1]
+    # an SDF atom written as bracket atom in SMILES and read back agree
+    @test implicit_hydrogens(smilestomol("[OH-]")) == [0, 0]
+    smi = smilestomol("[OH-]")
+    remove_hydrogens!(smi)
+    @test implicit_hydrogens(smi) == implicit_hydrogens(mol)
+end
