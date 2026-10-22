@@ -56,6 +56,22 @@
     hmol2 = sdftomol(IOBuffer(hdump))
     @test [hmol2[i].num_hs for i in vertices(hmol2)] == [2, -1, 0]
 
+    # SMILES bracket atoms have a fixed hydrogen count that is written as well
+    for smiles in ("[O-]", "[C]", "C[NH3+]", "[CH2]C")
+        bmol = smilestomol(smiles)
+        remove_hydrogens!(bmol)
+        bmol2 = sdftomol(IOBuffer(printv2mol(bmol)))
+        @test total_hydrogens(bmol2) == total_hydrogens(bmol)
+    end
+    @test split(printv2mol(smilestomol("[O-]")), "\n")[5][43:45] == "  1"
+
+    # stereo hydrogens given back to fixed-count atoms are not counted twice
+    fused = smilestomol("[CH]1(F)CC[C@H]2CCCC[C@@H]12")
+    remove_hydrogens!(fused)
+    fdump = printv2mol(fused)
+    fused2 = sdftomol(IOBuffer(fdump))
+    @test sum(total_hydrogens(fused2)) == sum(total_hydrogens(fused))
+
     sdf = joinpath(dirname(@__FILE__), "..", "assets", "test", "drugbank1-100.sdf")
     io = IOBuffer()
     sdfilewriter(io, sdfilereader(sdf), givebackhydrogen=false)

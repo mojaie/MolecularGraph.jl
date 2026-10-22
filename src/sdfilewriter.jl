@@ -124,6 +124,8 @@ function giveback_stereo_hydrogens(mol::SimpleMolGraph, V::Type, E::Type)
         end
         add_vertex!(mol_, V(symbol=:H))
         add_edge!(mol_, center, nv(mol_), E())
+        # the hydrogen is explicit now, a fixed count must not count it twice
+        has_fixed_num_hs(mol_.vprops[center]) && (mol_.vprops[center] = with_num_hs(mol_.vprops[center], mol_.vprops[center].num_hs - 1))
         # wedges are re-assigned in the update (preferably on the hydrogen)
         has2d && discard_center_wedges!(mol_, center)
     end
