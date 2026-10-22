@@ -92,6 +92,14 @@ end
     mol = smilestomol("[OH-]")
     remove_all_hydrogens!(mol)
     @test implicit_hydrogens(mol) == [1]
+    # the hydrogen count survives a round trip of removing and adding hydrogens
+    mol = smilestomol("[OH-]")
+    remove_hydrogens!(mol)
+    add_hydrogens!(mol)
+    @test nv(mol) == 2
+    @test implicit_hydrogens(mol) == [0, 0]
+    remove_hydrogens!(mol)
+    @test implicit_hydrogens(mol) == [1]
     mol = smilestomol("[NH4+]")
     add_hydrogens!(mol)
     @test nv(mol) == 5
