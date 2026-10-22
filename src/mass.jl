@@ -67,6 +67,9 @@ Return a tuple of monoisotopic mass of the atom/molecule and its uncertainty.
 Monoisotopic mass is the relative atomic mass of the most abundant isotope. Even if there is specific `Atom.mass` value, it will be ignored.
 """
 function monoiso_mass_unc(atomsymbol::Symbol, number::Int=0)
+    # :D and :T denote specific isotopes of hydrogen
+    hiso = hydrogen_isotope(atomsymbol)
+    hiso == 0 || return exact_mass_unc(atomsymbol, hiso)
     num = atom_number(atomsymbol)
     mass = ATOMTABLE[num].Monoisotopic
     unc = ATOMTABLE[num].MonoisotopicUncertainty
@@ -115,6 +118,7 @@ Return a tuple of calculated exact mass and its uncertainty.
 If `number` is not given (`0`) or `Atom.mass` is not specified, monoisotopic mass will be used instead.
 """
 function exact_mass_unc(atomsymbol::Symbol, number::Int=0)
+    number == 0 && (number = hydrogen_isotope(atomsymbol))
     number == 0 && return monoiso_mass_unc(atomsymbol)
     iso = find_isotope(atomsymbol, number)
     isnothing(iso) && error("No isotope data for $(number)$(atomsymbol)")
@@ -153,6 +157,7 @@ Return a tuple of standard atomic weight (or molecular weight) and its uncertain
 If `Atom.mass` is specified, calculated exact mass of the atom will be used instead. 
 """
 function standard_weight_unc(atomsymbol::Symbol, number::Int=0)
+    number == 0 && (number = hydrogen_isotope(atomsymbol))
     number == 0 || return exact_mass_unc(atomsymbol, number)
     num = atom_number(atomsymbol)
     wt = ATOMTABLE[num].Weight

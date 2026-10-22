@@ -596,7 +596,8 @@ atom_markup(
 
 function atom_markup(sym::Symbol, isotope::Int, implicith::Int)
     contents = [[(:default, string(sym))]]
-    if isotope > 0
+    # D and T already imply their mass number
+    if isotope > 0 && isotope != hydrogen_isotope(sym)
         pushfirst!(contents[1], (:sup, string(isotope)))
     end
     if implicith == 1
