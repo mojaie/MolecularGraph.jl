@@ -260,7 +260,9 @@ function parse_ctab(::Type{T}, io::IO, config::NamedTuple) where T <: SimpleMolG
             chg = get(ps, :CHG, 0)
             mul = get(ps, :RAD, 1)
             iso = get(ps, :ISO, 0)
-            vprops[i] = V(sym, chg, mul, iso, crds)
+            # keep the hydrogen count flag of the atom line
+            nhs = hasfield(V, :num_hs) ? (vprops[i].num_hs,) : ()
+            vprops[i] = V(sym, chg, mul, iso, crds, nhs...)
         end
     elseif ver === :v3
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")

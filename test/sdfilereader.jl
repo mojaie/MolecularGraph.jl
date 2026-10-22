@@ -119,3 +119,12 @@ end
 end
 
 end # sdfilereader
+
+@testset "hydrogen count flag with property block" begin
+    # hydroxide: hydrogen count flag 2 (= one hydrogen) and charge from M  CHG
+    molblock = "\n  test\n\n  1  0  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 O   0  0  0  2  0  0  0  0  0  0  0  0\nM  CHG  1   1  -1\nM  END\n"
+    mol = sdftomol(IOBuffer(molblock))
+    @test mol[1].num_hs == 1
+    @test atom_charge(mol) == [-1]
+    @test implicit_hydrogens(mol) == [1]
+end

@@ -181,7 +181,7 @@ function printv2mol(
     end
 
     # Hydrogen count flag of the atom line (-1: automatic), e.g. NumHydrogens of CDXMLAtom
-    imph = if V === SDFAtom || V === CDXMLAtom
+    imph = if hasfield(V, :num_hs)
         Int[mol.vprops[i].num_hs for i in vertices(mol)]
     else
         Int[]
