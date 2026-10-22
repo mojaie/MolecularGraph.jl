@@ -330,6 +330,12 @@ function atompropsymcond!(state::SMARTSParser, qtree::QueryTree)
 end
 
 
+bracket_atom(::Type{V}, symbol, charge, isotope, isaromatic, stereo) where V = V(;
+    symbol=symbol, charge=charge, isotope=isotope, isaromatic=isaromatic, stereo=stereo)
+bracket_atom(::Type{SMILESAtom}, symbol, charge, isotope, isaromatic, stereo) = SMILESAtom(;
+    symbol=symbol, charge=charge, isotope=isotope, isaromatic=isaromatic, stereo=stereo, num_hs=0)
+
+
 """
     atomprop!(state::SMILESParser{T,V,E}) -> Vector{V}
 
@@ -378,7 +384,8 @@ function atomprop!(state::SMILESParser{T,V,E}) where {T,V,E}
     if !hassymbol  # special case: [H2]
         hcnt -= 1
     end
-    atom = V(; symbol=symbol, charge=charge, isotope=isotope, isaromatic=isaromatic, stereo=stereo)
+    # A bracket atom has no implicit hydrogens: all of them are written in the bracket (OpenSMILES)
+    atom = bracket_atom(V, symbol, charge, isotope, isaromatic, stereo)
     atoms = V[atom]
     for _ in 1:hcnt
         push!(atoms, V(;symbol=:H))
