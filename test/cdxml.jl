@@ -155,6 +155,11 @@ end
         @test implicit_hydrogens(sdftomol(IOBuffer(printv2mol(cdxml)))) == implicit_hydrogens(sdf)
         @test implicit_hydrogens(cdxmlmol(printv2mol(sdf))) == implicit_hydrogens(sdf)
     end
+    for smiles in ("[C]", "[OH-]", "[CH2]C", "[O-]C")
+        smol = smilestomol(smiles)
+        remove_hydrogens!(smol)
+        @test implicit_hydrogens(cdxmlmol(printv2mol(smol))) == implicit_hydrogens(smol)
+    end
     @test implicit_hydrogens(sdftomol(IOBuffer(hydroxide))) == [1]
     @test implicit_hydrogens(sdftomol(IOBuffer(ethyl))) == [2, 3]
 end

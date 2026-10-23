@@ -285,6 +285,7 @@ struct SMILESAtom <: StandardAtom
     isotope::Int
     isaromatic::Bool
     stereo::Symbol
+    implicit_hs::Int  # -1: implicit hydrogens from default valence (organic subset), n >= 0: exactly n (bracket atoms)
 
     function SMILESAtom(
             symbol::Union{AbstractString,Symbol},
@@ -292,12 +293,13 @@ struct SMILESAtom <: StandardAtom
             multiplicity::Int=1,
             isotope::Int=0,
             isaromatic::Bool=false,
-            stereo::Union{String,Symbol}=:unspecified)
+            stereo::Union{String,Symbol}=:unspecified,
+            implicit_hs::Int=-1)
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("smiles parse error - unsupported atom symbol $(symbol)")
         if isotope != 0
             isnothing(find_isotope(Symbol(symbol), isotope)) && error("smiles parse error - unsupported isotope $(isotope)$(symbol)")
         end
-        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo))
+        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo), implicit_hs)
     end
 end
 
@@ -307,9 +309,10 @@ function SMILESAtom(;
         multiplicity::Int=1,
         isotope::Int=0,
         isaromatic::Bool=false,
-        stereo::Union{String,Symbol}=:unspecified)
+        stereo::Union{String,Symbol}=:unspecified,
+        implicit_hs::Int=-1)
     return SMILESAtom(
-        Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo))
+        Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo), implicit_hs)
 end
 
 SMILESAtom(d::Dict{Symbol,Any}) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
@@ -333,6 +336,7 @@ function StructUtils.lower(x::SMILESAtom)
     x.isotope == 0 || setindex!(rcd, x.isotope, "isotope")
     x.isaromatic === false || setindex!(rcd, x.isaromatic, "isaromatic")
     x.stereo === :unspecified || setindex!(rcd, string(x.stereo), "stereo")
+    x.implicit_hs == -1 || setindex!(rcd, x.implicit_hs, "implicit_hs")
     return rcd
 end
 

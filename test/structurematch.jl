@@ -44,7 +44,7 @@ end
     @test has_substruct_match(cyclohexane, hexane)
 
     tms = smilestomol("C[Si](C)(C)C")
-    tsm = smilestomol("[Si]C([Si])([Si])[Si]")
+    tsm = smilestomol("[SiH3]C([SiH3])([SiH3])[SiH3]")
     @test !has_exact_match(tms, tsm)
 
     sulfide = smilestomol("CSSC")

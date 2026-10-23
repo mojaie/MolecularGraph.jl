@@ -94,6 +94,7 @@ function smiles_on_update!(mol::SimpleMolGraph)
     sssr!(mol)
     apparent_valence!(mol)
     valence!(mol)
+    apply_implicit_hs!(mol)
     lone_pair!(mol)
     is_ring_aromatic!(mol)
 end

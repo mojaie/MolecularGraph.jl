@@ -65,6 +65,22 @@
     # automatic hydrogens are not marked
     @test all(l[49:51] == "  0" for l in split(printv2mol(smilestomol("CCO")), "\n")[5:7])
 
+    # SMILES bracket atoms have a fixed number of hydrogens, which survives a round trip
+    for smiles in ("[O-]", "[C]", "C[NH3+]", "[CH2]C")
+        bmol = smilestomol(smiles)
+        remove_hydrogens!(bmol)
+        bmol2 = sdftomol(IOBuffer(printv2mol(bmol)))
+        @test total_hydrogens(bmol2) == total_hydrogens(bmol)
+    end
+    @test split(printv2mol(smilestomol("[O-]")), "\n")[5][49:51] == " 15"  # as RDKit writes it
+    @test split(printv2mol(smilestomol("[OH-]")), "\n")[5][49:51] == "  1"
+    @test split(printv2mol(smilestomol("[C]")), "\n")[5][49:51] == " 15"
+    # stereo hydrogens given back to atoms with a fixed number of hydrogens are not counted twice
+    fused = smilestomol("[CH]1(F)CC[C@H]2CCCC[C@@H]12")
+    remove_hydrogens!(fused)
+    fused2 = sdftomol(IOBuffer(printv2mol(fused)))
+    @test sum(total_hydrogens(fused2)) == sum(total_hydrogens(fused))
+
     sdf = joinpath(dirname(@__FILE__), "..", "assets", "test", "drugbank1-100.sdf")
     io = IOBuffer()
     sdfilewriter(io, sdfilereader(sdf), givebackhydrogen=false)
