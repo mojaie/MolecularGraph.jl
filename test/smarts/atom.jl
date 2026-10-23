@@ -217,47 +217,48 @@ end
     # inside of []
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[Na]")
     valid_na = atom!(state)
-    @test only(valid_na) == SMILESAtom(;symbol=:Na)
+    @test only(valid_na) == SMILESAtom(;symbol=:Na, implicit_hs=0)
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[2H]")
     deu = atom!(state)
-    @test only(deu) == SMILESAtom(;symbol=:H, isotope=2)
+    @test only(deu) == SMILESAtom(;symbol=:H, isotope=2, implicit_hs=0)
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[H2]")
     hmol = atom!(state)
-    @test hmol[1] == hmol[2]
+    @test hmol[1] == SMILESAtom(;symbol=:H, implicit_hs=0)
+    @test hmol[2] == SMILESAtom(;symbol=:H)
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[H+]")
     proton = atom!(state)
-    @test only(proton) == SMILESAtom(;symbol=:H, charge=1)
+    @test only(proton) == SMILESAtom(;symbol=:H, charge=1, implicit_hs=0)
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[14c@@H]")
     iso = atom!(state)
-    @test iso[1] == SMILESAtom(;isotope=14, isaromatic=true, stereo=:clockwise)
+    @test iso[1] == SMILESAtom(;isotope=14, isaromatic=true, stereo=:clockwise, implicit_hs=0)
     @test iso[2] == SMILESAtom(;symbol=:H)
     @test state.pos == 9
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[NH4+]")
     ammonium = atom!(state)
-    @test ammonium[1] == SMILESAtom(;symbol=:N, charge=1)
+    @test ammonium[1] == SMILESAtom(;symbol=:N, charge=1, implicit_hs=0)
     @test ammonium[5] == SMILESAtom(;symbol=:H)
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[bH+]")
     aromb = atom!(state)
-    @test aromb[1] == SMILESAtom(;symbol=:B, isaromatic=true, charge=1)
+    @test aromb[1] == SMILESAtom(;symbol=:B, isaromatic=true, charge=1, implicit_hs=0)
     @test aromb[2] == SMILESAtom(;symbol=:H)
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[as]")
     aromas = atom!(state)
-    @test only(aromas) == SMILESAtom(;symbol=:As, isaromatic=true)
+    @test only(aromas) == SMILESAtom(;symbol=:As, isaromatic=true, implicit_hs=0)
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[Zn++]")
     zn = atom!(state)
-    @test only(zn) == SMILESAtom(;symbol=:Zn, charge=2)
+    @test only(zn) == SMILESAtom(;symbol=:Zn, charge=2, implicit_hs=0)
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[O-2]")
     ox = atom!(state)
-    @test only(ox) == SMILESAtom(;symbol=:O, charge=-2)
+    @test only(ox) == SMILESAtom(;symbol=:O, charge=-2, implicit_hs=0)
 
     state = SMILESParser{Int,SMILESAtom,SMILESBond}("[16]")
     @test_throws ErrorException atom!(state)

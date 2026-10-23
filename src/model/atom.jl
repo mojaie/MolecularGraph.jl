@@ -209,6 +209,9 @@ end
     SDFAtom
 
 SDFile (CTAB) atom property type.
+
+`implicit_hs` is the explicit number of hydrogens given by the hydrogen count flag of the atom
+line (`-1` means automatic).
 """
 struct SDFAtom <: StandardAtom
     symbol::Symbol
@@ -216,18 +219,20 @@ struct SDFAtom <: StandardAtom
     multiplicity::Int
     isotope::Int
     coords::Union{Vector{Float64},Nothing}
+    implicit_hs::Int
 
     function SDFAtom(
             symbol::Union{AbstractString,Symbol},
             charge::Int=0,
             multiplicity::Int=1,
             isotope::Int=0,
-            coords::Union{Vector,Nothing}=nothing)
+            coords::Union{Vector,Nothing}=nothing,
+            implicit_hs::Int=-1)
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
         if isotope != 0
             isnothing(find_isotope(Symbol(symbol), isotope)) && error("sdfile parse error - unsupported isotope $(isotope)$(symbol)")
         end
-        new(Symbol(symbol), charge, multiplicity, isotope, coords)
+        new(Symbol(symbol), charge, multiplicity, isotope, coords, implicit_hs)
     end
 end
 
@@ -236,9 +241,10 @@ function SDFAtom(;
         charge::Int=0,
         multiplicity::Int=1,
         isotope::Int=0,
-        coords::Union{Vector,Nothing}=nothing)
+        coords::Union{Vector,Nothing}=nothing,
+        implicit_hs::Int=-1)
     haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
-    return SDFAtom(Symbol(symbol), charge, multiplicity, isotope, coords)
+    return SDFAtom(Symbol(symbol), charge, multiplicity, isotope, coords, implicit_hs)
 end
 
 SDFAtom(d::Dict{Symbol,Any}) = SDFAtom(; NamedTuple((k, v) for (k, v) in d)...)
@@ -259,6 +265,7 @@ function StructUtils.lower(x::SDFAtom)
     x.multiplicity == 1 || setindex!(rcd, x.multiplicity, "multiplicity")
     x.isotope == 0 || setindex!(rcd, x.isotope, "isotope")
     isnothing(x.coords) || setindex!(rcd, x.coords, "coords")
+    x.implicit_hs == -1 || setindex!(rcd, x.implicit_hs, "implicit_hs")
     return rcd
 end
 
@@ -278,6 +285,7 @@ struct SMILESAtom <: StandardAtom
     isotope::Int
     isaromatic::Bool
     stereo::Symbol
+    implicit_hs::Int  # -1: implicit hydrogens from default valence (organic subset), n >= 0: exactly n (bracket atoms)
 
     function SMILESAtom(
             symbol::Union{AbstractString,Symbol},
@@ -285,12 +293,13 @@ struct SMILESAtom <: StandardAtom
             multiplicity::Int=1,
             isotope::Int=0,
             isaromatic::Bool=false,
-            stereo::Union{String,Symbol}=:unspecified)
+            stereo::Union{String,Symbol}=:unspecified,
+            implicit_hs::Int=-1)
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("smiles parse error - unsupported atom symbol $(symbol)")
         if isotope != 0
             isnothing(find_isotope(Symbol(symbol), isotope)) && error("smiles parse error - unsupported isotope $(isotope)$(symbol)")
         end
-        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo))
+        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo), implicit_hs)
     end
 end
 
@@ -300,9 +309,10 @@ function SMILESAtom(;
         multiplicity::Int=1,
         isotope::Int=0,
         isaromatic::Bool=false,
-        stereo::Union{String,Symbol}=:unspecified)
+        stereo::Union{String,Symbol}=:unspecified,
+        implicit_hs::Int=-1)
     return SMILESAtom(
-        Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo))
+        Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo), implicit_hs)
 end
 
 SMILESAtom(d::Dict{Symbol,Any}) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
@@ -326,6 +336,7 @@ function StructUtils.lower(x::SMILESAtom)
     x.isotope == 0 || setindex!(rcd, x.isotope, "isotope")
     x.isaromatic === false || setindex!(rcd, x.isaromatic, "isaromatic")
     x.stereo === :unspecified || setindex!(rcd, string(x.stereo), "stereo")
+    x.implicit_hs == -1 || setindex!(rcd, x.implicit_hs, "implicit_hs")
     return rcd
 end
 

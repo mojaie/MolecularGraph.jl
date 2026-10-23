@@ -183,6 +183,23 @@ valence!(mol::SimpleMolGraph) = set_descriptor!(
     mol, Val(:valence), valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol)))
 
 
+"""
+    apply_implicit_hs!(mol::SimpleMolGraph)
+
+Set the valence of atoms with a fixed number of implicit hydrogens (`implicit_hs >= 0`) to the apparent
+valence plus `implicit_hs`. Atoms without a `implicit_hs` field or with `implicit_hs = -1` keep their default valence.
+Should be called after `valence!` in the `on_update` callbacks.
+"""
+function apply_implicit_hs!(mol::SimpleMolGraph)
+    desc = mol[:descriptors]
+    for i in vertices(mol)
+        a = mol.vprops[i]
+        has_fixed_implicit_hs(a) && (desc.valence[i] = desc.apparent_valence[i] + a.implicit_hs)
+    end
+    return
+end
+
+
 function check_valence!(mol::SimpleMolGraph)
     av = apparent_valence(mol)
     fv = formal_valence(atom_symbol(mol), atom_charge(mol))

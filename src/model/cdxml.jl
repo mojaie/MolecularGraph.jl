@@ -19,7 +19,7 @@ struct CDXMLAtom <: StandardAtom
     isotope::Int
     isaromatic::Bool
     coords::Union{Vector{Float64}, Nothing}  # concrete element type (for `juliac --trim`)
-    num_hs::Int
+    implicit_hs::Int
 
     function CDXMLAtom(
         symbol::Union{AbstractString, Symbol},
@@ -28,11 +28,11 @@ struct CDXMLAtom <: StandardAtom
         isotope::Int,
         isaromatic::Bool,
         coords::Union{Vector, Nothing},
-        num_hs::Int = -1
+        implicit_hs::Int = -1
     )
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol '$symbol'")
         new(Symbol(symbol), charge, multiplicity, isotope, isaromatic,
-            isnothing(coords) ? nothing : Vector{Float64}(coords), num_hs)
+            isnothing(coords) ? nothing : Vector{Float64}(coords), implicit_hs)
     end
 end
 
@@ -43,10 +43,10 @@ function CDXMLAtom(
     isotope::Int=0,
     isaromatic::Bool=false,
     coords::Union{Vector, Nothing}=nothing,
-    num_hs::Int=-1
+    implicit_hs::Int=-1
 )
     haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
-    CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, num_hs)
+    CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, implicit_hs)
 end
 
 """CDXMLBond represents a bond from CDXML with order and stereochemistry"""
@@ -79,7 +79,7 @@ function CDXMLAtom(;
     isotope::Int=0,
     isaromatic::Bool=false,
     coords::Union{Vector, Nothing}=nothing,
-    num_hs::Int=-1,
+    implicit_hs::Int=-1,
     kwargs...
 )
     isempty(kwargs) || @warn "keyword(s) `$(join(keys(kwargs), "``, `"))` not supported!"
@@ -89,7 +89,7 @@ function CDXMLAtom(;
         isotope,
         isaromatic,
         coords,
-        num_hs
+        implicit_hs
     )
 end
 
@@ -114,7 +114,7 @@ isaromatic(bond::CDXMLBond) = bond.isaromatic
 has_isaromatic(::Type{CDXMLAtom}) = true
 
 aromatic_atom(a::CDXMLAtom) = CDXMLAtom(
-    a.symbol, a.charge, a.multiplicity, a.isotope, true, a.coords, a.num_hs)
+    a.symbol, a.charge, a.multiplicity, a.isotope, true, a.coords, a.implicit_hs)
 
 # Post-processing function
 function mark_aromatic_atoms!(mol::MolGraph{T,V,E}) where {T, V, E}
@@ -236,11 +236,11 @@ function parse_cdxml_atom(node::EzXML.Node)::Tuple{String,CDXMLAtom}
         radical + 1  # Convert to multiplicity
     end
 
-    num_hs_str = attribute(node, "NumHydrogens")
-    num_hs = num_hs_str === nothing ? -1 : parse(Int, num_hs_str)
+    implicit_hs_str = attribute(node, "NumHydrogens")
+    implicit_hs = implicit_hs_str === nothing ? -1 : parse(Int, implicit_hs_str)
     
     isaromatic = false # will be set later in mark_aromatic_atoms!()
-    atom = CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, num_hs)
+    atom = CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, implicit_hs)
     return (id, atom)
 end
 
@@ -441,18 +441,9 @@ function cdxml_on_update!(mol::SimpleMolGraph)
     sssr!(mol)
     apparent_valence!(mol)
     valence!(mol)
+    apply_implicit_hs!(mol)
     lone_pair!(mol)
     is_ring_aromatic!(mol)
-
-    desc = mol[:descriptors]
-    
-    for i in vertices(mol)
-        atom = mol.vprops[i]
-        
-        if atom.num_hs >= 0
-            desc.valence[i] = desc.apparent_valence[i] + atom.num_hs
-        end
-    end
 end
 
 function ctab_atom_v2(::Type{CDXMLAtom}, line::AbstractString)
@@ -467,11 +458,10 @@ function ctab_atom_v2(::Type{CDXMLAtom}, line::AbstractString)
     chg = SDF_CHARGE_TABLE[old_sdf_charge]
     mul = old_sdf_charge == 4 ? 2 : 1
     # atom.stereo_flag = parse(Int, line[40:42])
-    # valence = parse(Int, line[46:48])
+    # valence = parse(Int, line[49:51])  # see ctab_hydrogen_flags_v2
     isaromatic = false
-    # -1 means automatic, any value >= 0 is the explicit number of hydrogens
-    num_hs = parse(Int, line[43:45]) - 1
-    return CDXMLAtom(sym, chg, mul, iso, isaromatic, crds, num_hs)
+    # implicit_hs is set from the hydrogen related flags after the bonds have been read
+    return CDXMLAtom(sym, chg, mul, iso, isaromatic, crds, -1)
 end
 
 function ctab_atom_v3(::Type{CDXMLAtom}, line::AbstractString)
@@ -483,11 +473,8 @@ function ctab_atom_v3(::Type{CDXMLAtom}, line::AbstractString)
     iso = get(props, :MASS, 0)
     mul = get(props, :RAD, 1)
     isaromatic = false
-    # HCOUNT: 0 = automatic, -1 = no hydrogens, n > 0 = explicit n hydrogens
-    # -1 means automatic, any value >= 0 is the explicit number of hydrogens
-    hcount = get(props, :HCOUNT, 0)
-    num_hs = hcount == 0 ? -1 : max(hcount, 0)
-    return CDXMLAtom(sym, chg, mul, iso, isaromatic, crds, num_hs)
+    # implicit_hs is set from the hydrogen related flags after the bonds have been read
+    return CDXMLAtom(sym, chg, mul, iso, isaromatic, crds, -1)
 end
 
 function ctab_bond_v2(
