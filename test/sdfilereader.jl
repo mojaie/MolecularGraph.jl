@@ -17,6 +17,8 @@
     radical = ctab_atom_v2(SDFAtom, "    1.6514    2.7627    0.0000 C   0  4")
     @test radical[:charge] == 0
     @test radical[:multiplicity] == 2
+    @test full[:implicit_hs] == -1
+    @test atomBr[:implicit_hs] == -1
 end
 
 @testset "ctab_bond_v2" begin
@@ -97,3 +99,55 @@ end
 end
 
 end # sdfilereader
+
+@testset "hydrogen flags of atom lines" begin
+    flags_v2 = MolecularGraph.ctab_hydrogen_flags_v2
+    flags_v3 = MolecularGraph.ctab_hydrogen_flags_v3
+    atom(hhh, vvv) = "    0.0000    0.0000    0.0000 C   0  0  0" * lpad(hhh, 3) * "  0" * lpad(vvv, 3) * "  0  0  0  0  0  0"
+    @test flags_v2(atom(0, 0)) == (false, 0)
+    @test flags_v2(atom(1, 0)) == (true, 0)
+    @test flags_v2(atom(0, 2)) == (false, 2)
+    @test flags_v2(atom(0, 15)) == (false, -1)  # zero valence
+    @test flags_v2("    1.6514    2.7627    0.0000 C   0  4") == (false, 0)  # short line
+    @test flags_v3("M  V30 1 N 0 0 0 0") == (false, 0)
+    @test flags_v3("M  V30 1 N 0 0 0 0 HCOUNT=-1") == (true, 0)
+    @test flags_v3("M  V30 1 N 0 0 0 0 CHG=1 VAL=4") == (false, 4)
+    @test flags_v3("M  V30 1 N 0 0 0 0 VAL=-1") == (false, -1)
+
+    implicit_hs = MolecularGraph.implicit_hs_from_flags
+    @test implicit_hs(false, 0, 2) == -1  # automatic
+    @test implicit_hs(false, 3, 1) == 2  # total valence 3 with one bond order
+    @test implicit_hs(false, -1, 0) == 0  # zero valence
+    @test implicit_hs(false, -1, 1) == -1  # inconsistent, ignored
+    @test implicit_hs(false, 1, 2) == -1  # valence below the apparent valence, ignored
+    @test implicit_hs(true, 0, 1) == 0  # hydrogen count is read as "no automatic hydrogens"
+    @test implicit_hs(true, 3, 1) == 2  # the valence wins
+end
+
+@testset "fixed number of hydrogens from SDFile" begin
+    molblock(sym, hhh, vvv; chg="") = "\n  test\n\n  1  0  0  0  0  0  0  0  0  0999 V2000\n" *
+        "    0.0000    0.0000    0.0000 $(rpad(sym, 3)) 0  0  0$(lpad(hhh, 3))  0$(lpad(vvv, 3))  0  0  0  0  0  0\n$(chg)M  END\n"
+    rd(args...; kwargs...) = sdftomol(IOBuffer(molblock(args...; kwargs...)))
+    @test implicit_hydrogens(rd("C", 0, 0)) == [4]  # unchanged
+    @test implicit_hydrogens(rd("C", 0, 15)) == [0]  # charcoal
+    @test implicit_hydrogens(rd("C", 1, 0)) == [0]  # hydrogen count flag
+    @test implicit_hydrogens(rd("C", 0, 2)) == [2]
+    @test rd("C", 0, 15)[1].implicit_hs == 0
+    # hydroxide: charge from the property block must not reset the hydrogens
+    @test implicit_hydrogens(rd("O", 0, 1; chg="M  CHG  1   1  -1\n")) == [1]
+    @test implicit_hydrogens(rd("O", 0, 15; chg="M  CHG  1   1  -1\n")) == [0]
+    # two atoms, bonded: total valence 3 of N with one single bond gives two hydrogens
+    mol = sdftomol(IOBuffer("\n  test\n\n  2  1  0  0  0  0  0  0  0  0999 V2000\n" *
+        "    0.0000    0.0000    0.0000 N   0  0  0  0  0  3  0  0  0  0  0  0\n" *
+        "    1.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" *
+        "  1  2  1  0\nM  END\n"))
+    @test [mol[i].implicit_hs for i in vertices(mol)] == [2, -1]
+    @test implicit_hydrogens(mol) == [2, 3]
+    # removing and adding hydrogens keeps the number of hydrogens
+    remove_hydrogens!(mol)
+    @test implicit_hydrogens(mol) == [2, 3]
+    add_hydrogens!(mol)
+    @test nv(mol) == 7
+    remove_hydrogens!(mol)
+    @test implicit_hydrogens(mol) == [2, 3]
+end
