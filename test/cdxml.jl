@@ -117,7 +117,7 @@ end
     @test round(Int, standard_weight(mol)) == 12
     
     sdf = printv2mol(mol)
-    @test contains(sdf, "C   0  0  0  1")
+    @test contains(sdf, "C   0  0  0  0  0 15")  # zero valence
     
     mol2 = sdftomol(MolecularGraph.CDXMLMolGraph, IOBuffer(sdf),
         config = Dict{Symbol,Any}(
@@ -130,11 +130,38 @@ end
     @test round(Int, standard_weight(mol2)) == 12
 end
 
-@testset "HCOUNT in V3000 atom line" begin
+@testset "fixed number of hydrogens in molfiles" begin
+    cdxmlmol(molfile) = sdftomol(CDXMLMolGraph, IOBuffer(molfile);
+        config=(on_init=MolecularGraph.cdxml_on_init!, on_update=MolecularGraph.cdxml_on_update!))
+    molfile = "\n  test\n\n  1  0  0  0  0  0  0  0  0  0999 V2000\n" *
+        "    0.0000    0.0000    0.0000 C   0  0  0  0  0 15  0  0  0  0  0  0\nM  END\n"
+    mol = cdxmlmol(molfile)
+    @test mol[1].intrinsic_valence == 0
+    @test implicit_hydrogens(mol) == [0]
+    # V3000 with HCOUNT (no automatic hydrogens) and VAL
     ctab_atom_v3 = MolecularGraph.ctab_atom_v3
-    @test ctab_atom_v3(CDXMLAtom, "M  V30 1 N 0 0 0 0").num_hs == -1
-    @test ctab_atom_v3(CDXMLAtom, "M  V30 1 N 0 0 0 0 HCOUNT=-1").num_hs == 0
-    @test ctab_atom_v3(CDXMLAtom, "M  V30 1 N 0 0 0 0 CHG=1 HCOUNT=2").num_hs == 2
+    @test ctab_atom_v3(CDXMLAtom, "M  V30 1 N 0 0 0 0 CHG=1 HCOUNT=2").intrinsic_valence == -1  # set after the bonds are read
+    # round trip between the molecule types keeps the number of hydrogens
+    atoms = "    0.0000    0.0000    0.0000 O   0  0  0  0  0  1  0  0  0  0  0  0\n"
+    hydroxide = "\n  test\n\n  1  0  0  0  0  0  0  0  0  0999 V2000\n" * atoms * "M  CHG  1   1  -1\nM  END\n"
+    ethyl = "\n  test\n\n  2  1  0  0  0  0  0  0  0  0999 V2000\n" *
+        "    0.0000    0.0000    0.0000 C   0  0  0  0  0  3  0  0  0  0  0  0\n" *
+        "    1.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\nM  END\n"
+    for molfile in (molfile, hydroxide, ethyl)
+        sdf = sdftomol(IOBuffer(molfile))
+        cdxml = cdxmlmol(molfile)
+        @test implicit_hydrogens(cdxml) == implicit_hydrogens(sdf)
+        @test implicit_hydrogens(cdxmlmol(printv2mol(cdxml))) == implicit_hydrogens(sdf)
+        @test implicit_hydrogens(sdftomol(IOBuffer(printv2mol(cdxml)))) == implicit_hydrogens(sdf)
+        @test implicit_hydrogens(cdxmlmol(printv2mol(sdf))) == implicit_hydrogens(sdf)
+    end
+    for smiles in ("[C]", "[OH-]", "[CH2]C", "[O-]C")
+        smol = smilestomol(smiles)
+        remove_hydrogens!(smol)
+        @test implicit_hydrogens(cdxmlmol(printv2mol(smol))) == implicit_hydrogens(smol)
+    end
+    @test implicit_hydrogens(sdftomol(IOBuffer(hydroxide))) == [1]
+    @test implicit_hydrogens(sdftomol(IOBuffer(ethyl))) == [2, 3]
 end
 
 end # cdxmlreader

@@ -152,7 +152,7 @@ Remove trivial hydrogen vertices using `Graphs.rem_vertices!` and return the vma
 
 'Trivial' hydrogens are those returned by [`removable_hydrogens`](@ref).
 """
-remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(mol))
+remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, absorb_hydrogens!(mol, removable_hydrogens(mol)))
 
 
 """
@@ -160,7 +160,25 @@ remove_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, removable_hydrogens(
 
 Remove all hydrogen vertices using `Graphs.rem_vertices!` and return the vmap array.
 """
-remove_all_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, all_hydrogens(mol))
+remove_all_hydrogens!(mol::SimpleMolGraph) = rem_vertices!(mol, absorb_hydrogens!(mol, all_hydrogens(mol)))
+
+has_intrinsic_valence(a) = hasfield(typeof(a), :intrinsic_valence) && a.intrinsic_valence >= 0
+with_intrinsic_valence(a, n::Int) = typeof(a)((f === :intrinsic_valence ? n : getfield(a, f) for f in fieldnames(typeof(a)))...)
+
+# An intrinsic valence below the apparent valence means "as many as are explicit". Fix it before
+# the hydrogens are removed so that the removed hydrogens become implicit.
+function absorb_hydrogens!(mol::SimpleMolGraph, hs)
+    vprops = mol.vprops
+    apparent = apparent_valence(mol)
+    for h in hs
+        for nbr in neighbors(mol, h)
+            a = vprops[nbr]
+            has_intrinsic_valence(a) || continue
+            vprops[nbr] = with_intrinsic_valence(a, max(a.intrinsic_valence, apparent[nbr]))
+        end
+    end
+    return hs
+end
 
 
 """

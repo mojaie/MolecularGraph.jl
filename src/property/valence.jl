@@ -165,7 +165,19 @@ function valence(mol::SimpleMolGraph)
     if has_descriptor(mol, Val(:valence))
         return get_descriptor(mol, Val(:valence))
     end
-    return valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
+    return calculate_valence(mol)
+end
+
+# Default valence, overridden for atoms with an intrinsic valence (`intrinsic_valence >= 0`).
+# As always, the valence is not lower than the apparent valence.
+function calculate_valence(mol::SimpleMolGraph)
+    apparent = apparent_valence(mol)
+    arr = valence(atom_symbol(mol), atom_charge(mol), apparent)
+    for i in vertices(mol)
+        a = mol.vprops[i]
+        has_intrinsic_valence(a) && (arr[i] = max(a.intrinsic_valence, apparent[i]))
+    end
+    return arr
 end
 
 function valence(
@@ -179,8 +191,7 @@ end
 
 Calculate [`valence`](@ref) and store the result in the descriptors of `mol`.
 """
-valence!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, Val(:valence), valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol)))
+valence!(mol::SimpleMolGraph) = set_descriptor!(mol, Val(:valence), calculate_valence(mol))
 
 
 function check_valence!(mol::SimpleMolGraph)

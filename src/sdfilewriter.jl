@@ -18,24 +18,24 @@ const BOND_STYLE_TO_SDF = Dict(
 
 
 function printv2atoms(
-        io::IO, g::SimpleGraph, atomsymbol::Vector{Symbol}, coords::Coords2d, imph::Vector{Int}=Int[])
+        io::IO, g::SimpleGraph, atomsymbol::Vector{Symbol}, coords::Coords2d, valences::Vector{Int}=Int[])
     for i in vertices(g)
         x, y = coords[i][1:2]
         z = 0.0  # TODO: keep 3D
         xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atomsymbol[i])
-        h_flag = !isempty(imph) && imph[i] >= 0 ? (imph[i] + 1) : 0
-        @printf(io, "%s%2d%3d%3d%3d%3d%3d%3d%3d%3d%3d%3d%3d\n", xyzsym, 0, 0, 0, h_flag, 0, 0, 0, 0, 0, 0, 0, 0)
+        val = isempty(valences) ? 0 : valences[i]
+        @printf(io, "%s%2d%3d%3d%3d%3d%3d%3d%3d%3d%3d%3d%3d\n", xyzsym, 0, 0, 0, 0, 0, val, 0, 0, 0, 0, 0, 0)
     end
 end
 
 
 function printv2atoms(
-        io::IO, g::SimpleGraph, atomsymbol::Vector{Symbol}, coords::Coords3d, imph::Vector{Int}=Int[])
+        io::IO, g::SimpleGraph, atomsymbol::Vector{Symbol}, coords::Coords3d, valences::Vector{Int}=Int[])
     for i in vertices(g)
         x, y, z = coords[i][1:3]
         xyzsym = @sprintf "%10.4f%10.4f%10.4f %-3s" x y z string(atomsymbol[i])
-        h_flag = !isempty(imph) && imph[i] >= 0 ? (imph[i] + 1) : 0
-        @printf(io, "%s%2d%3d%3d%3d%3d%3d%3d%3d%3d%3d%3d%3d\n", xyzsym, 0, 0, 0, h_flag, 0, 0, 0, 0, 0, 0, 0, 0)
+        val = isempty(valences) ? 0 : valences[i]
+        @printf(io, "%s%2d%3d%3d%3d%3d%3d%3d%3d%3d%3d%3d%3d\n", xyzsym, 0, 0, 0, 0, 0, val, 0, 0, 0, 0, 0, 0)
     end
 end
 
@@ -171,6 +171,11 @@ Available for molecules with `StandardAtom` and `StandardBond`.
 printv2mol(io::IO, mol::SimpleMolGraph; kwargs...
     ) = printv2mol(io::IO, mol::SimpleMolGraph, vproptype(mol), eproptype(mol); kwargs...)
 
+function valence_flag(intrinsic_valence::Int, valence::Int)
+    intrinsic_valence < 0 && return 0
+    return valence == 0 ? 15 : valence > 14 ? 0 : valence
+end
+
 function printv2mol(
         io::IO, mol::SimpleMolGraph, V::Type{<:StandardAtom}, E::Type{<:StandardBond}
         ; givebackhydrogen=true)
@@ -180,9 +185,10 @@ function printv2mol(
         mol = giveback_stereo_hydrogens(mol, V, E)
     end
 
-    # We need implict hydrogens to ensure correct printing of NumHydrogens of CDXMLAtom
-    imph = if mol isa CDXMLMolGraph
-        implicit_hydrogens(mol)
+    # Valence column of the atom line for atoms with a fixed number of hydrogens (0: not set, 15: zero valence)
+    valences = if hasfield(V, :intrinsic_valence)
+        vals = valence(mol)
+        Int[valence_flag(mol.vprops[i].intrinsic_valence, vals[i]) for i in vertices(mol)]
     else
         Int[]
     end
@@ -205,14 +211,14 @@ function printv2mol(
     println(io, header)
     bondorder = bond_order(mol)  # dispatch update
     if has_coords3d(mol)
-        printv2atoms(io, mol.graph, atom_symbol(mol), coords3d(mol), imph)
+        printv2atoms(io, mol.graph, atom_symbol(mol), coords3d(mol), valences)
         printv2bonds(io, mol.graph, bondorder)
     elseif has_coords2d(mol)
-        printv2atoms(io, mol.graph, atom_symbol(mol), coords2d(mol), imph)
+        printv2atoms(io, mol.graph, atom_symbol(mol), coords2d(mol), valences)
         printv2bonds(io, mol.graph, bondorder, draw2d_bond_style(mol))
     else  # Generate coords
         coords, styles = coordgen(mol)
-        printv2atoms(io, mol.graph, atom_symbol(mol), coords, imph)
+        printv2atoms(io, mol.graph, atom_symbol(mol), coords, valences)
         printv2bonds(io, mol.graph, bondorder, styles)
     end
     printv2properties(io, mol)
