@@ -35,7 +35,7 @@ function ctab_atom_v2(::Type{T}, line::AbstractString) where T <: AbstractElemen
     chg = SDF_CHARGE_TABLE[old_sdf_charge]
     mul = old_sdf_charge == 4 ? 2 : 1
     # atom.stereo_flag = parse(Int, line[40:42])
-    # valence = parse(Int, line[46:48])
+    # valence: see ctab_hydrogen_flags_v2
     return T(sym, chg, mul, iso, crds)
 end
 
@@ -48,6 +48,33 @@ function ctab_atom_v3(::Type{T}, line::AbstractString) where T <: AbstractElemen
     iso = intprop(props, :MASS, 0)
     mul = intprop(props, :RAD, 1)
     return T(sym, chg, mul, iso, crds)
+end
+
+# Copy of an atom with replaced fields, all other fields (e.g. `isaromatic`, `intrinsic_valence`) are kept
+with_fields(a; kwargs...) = typeof(a)((get(kwargs, f, nothing) === nothing ? getfield(a, f) : kwargs[f] for f in fieldnames(typeof(a)))...)
+
+# Hydrogen related flags of an atom line as (`hflag`, `valence`).
+# - `hflag`: the hydrogen count (`hhh` in V2000, `HCOUNT` in V3000) is set. This is a query
+#   attribute ("n or more hydrogens"), which is read as "no automatic hydrogens" like RDKit does.
+# - `valence`: total valence (`vvv` in V2000, `VAL` in V3000), 0: not set, -1: zero valence
+function ctab_hydrogen_flags_v2(line::AbstractString)
+    hflag = length(line) >= 45 && something(tryparse(Int, strip(line[43:45])), 0) > 0
+    valence = length(line) >= 51 ? something(tryparse(Int, strip(line[49:51])), 0) : 0
+    return hflag, valence == 15 ? -1 : valence
+end
+
+function ctab_hydrogen_flags_v3(line::AbstractString)
+    props = Dict{Symbol,Union{String,Int}}(sympair.(split(line)[9:end]))
+    return intprop(props, :HCOUNT, 0) != 0, intprop(props, :VAL, 0)
+end
+
+# Intrinsic valence from the hydrogen flags, -1 means automatic.
+# A set valence is the intrinsic valence (-1: zero valence). The hydrogen count is a query and
+# read as "no automatic hydrogens" like RDKit does, i.e. an intrinsic valence of 0.
+function intrinsic_valence_from_flags(hflag::Bool, valence::Int)
+    valence == -1 && return 0
+    valence > 0 && return valence
+    return hflag ? 0 : -1
 end
 
 function ctab_bond_v2(
@@ -120,6 +147,9 @@ end
 
 Default `on_update` callback of SDFile readers (standardization of charges and bond orders,
 and recalculation of cached descriptors such as `sssr` and `valence`).
+
+The valence of atoms with an intrinsic valence (`intrinsic_valence >= 0`) is that valence,
+or the apparent valence if it is larger.
 """
 function sdf_on_update!(mol::SimpleMolGraph)
     # Preprocess
@@ -186,8 +216,11 @@ function parse_ctab(::Type{T}, io::IO, config::NamedTuple) where T <: SimpleMolG
     # Parse atoms
     ver === :v3 && (readuntil(io, "M  V30 BEGIN ATOM"); readline(io))
     vprops = V[]
+    hflags = Tuple{Bool,Int}[]
     for _ in 1:atomcount
-        push!(vprops, ctab_atom(V, readline(io)))
+        line = readline(io)
+        push!(vprops, ctab_atom(V, line))
+        push!(hflags, ver === :v2 ? ctab_hydrogen_flags_v2(line) : ctab_hydrogen_flags_v3(line))
     end
 
     # Parse bonds
@@ -203,17 +236,20 @@ function parse_ctab(::Type{T}, io::IO, config::NamedTuple) where T <: SimpleMolG
     # Properties
     if ver === :v2
         for (i, ps) in ctab_props_v2(io)
-            sym = vprops[i][:symbol]
-            crds = vprops[i][:coords]
             # If prop block exists, any annotations in atom blocks will be overwritten
-            chg = get(ps, :CHG, 0)
-            mul = get(ps, :RAD, 1)
-            iso = get(ps, :ISO, 0)
-            vprops[i] = V(sym, chg, mul, iso, crds)
+            vprops[i] = with_fields(vprops[i];
+                charge=get(ps, :CHG, 0), multiplicity=get(ps, :RAD, 1), isotope=get(ps, :ISO, 0))
         end
     elseif ver === :v3
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")
         readline(io)
+    end
+    # Intrinsic valence of the atom lines
+    if hasfield(V, :intrinsic_valence)
+        for i in 1:atomcount
+            n = intrinsic_valence_from_flags(hflags[i]...)
+            n == -1 || (vprops[i] = with_intrinsic_valence(vprops[i], n))
+        end
     end
     mol = T(edges, vprops, eprops; config...)
     # TODO: catch compatibility warnings
