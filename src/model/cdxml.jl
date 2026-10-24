@@ -11,7 +11,15 @@ import EzXML
 # Atom and Bond types for CDXML
 # =============================================================================
 
-"""CDXMLAtom represents an atom from CDXML with coordinates and properties"""
+"""
+    CDXMLAtom
+
+CDXML atom property type with coordinates.
+
+`valence` is the valence specified to the atom, or `-1` if not specified (default). The number
+of hydrogens of the atom (`NumHydrogens` in CDXML, hydrogen count in molfiles) is converted to
+the valence by the readers. See [`atom_valence`](@ref) and [`valence`](@ref).
+"""
 struct CDXMLAtom <: StandardAtom
     symbol::Symbol
     charge::Int
@@ -19,7 +27,7 @@ struct CDXMLAtom <: StandardAtom
     isotope::Int
     isaromatic::Bool
     coords::Union{Vector{Float64}, Nothing}  # concrete element type (for `juliac --trim`)
-    num_hs::Int
+    valence::Int
 
     function CDXMLAtom(
         symbol::Union{AbstractString, Symbol},
@@ -28,13 +36,20 @@ struct CDXMLAtom <: StandardAtom
         isotope::Int,
         isaromatic::Bool,
         coords::Union{Vector, Nothing},
-        num_hs::Int = -1
+        valence::Int = -1
     )
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol '$symbol'")
+        valence >= -1 || error("cdxml parse error - invalid valence $(valence)")
         new(Symbol(symbol), charge, multiplicity, isotope, isaromatic,
-            isnothing(coords) ? nothing : Vector{Float64}(coords), num_hs)
+            isnothing(coords) ? nothing : Vector{Float64}(coords), valence)
     end
 end
+
+# positional constructor called by the SDFile reader
+CDXMLAtom(
+    symbol::Union{AbstractString, Symbol}, charge::Int, multiplicity::Int, isotope::Int,
+    coords::Union{Vector, Nothing}, valence::Int = -1
+) = CDXMLAtom(symbol, charge, multiplicity, isotope, false, coords, valence)
 
 function CDXMLAtom(
     symbol::Union{AbstractString, Symbol};
@@ -43,10 +58,10 @@ function CDXMLAtom(
     isotope::Int=0,
     isaromatic::Bool=false,
     coords::Union{Vector, Nothing}=nothing,
-    num_hs::Int=-1
+    valence::Int=-1
 )
     haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
-    CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, num_hs)
+    CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, valence)
 end
 
 """CDXMLBond represents a bond from CDXML with order and stereochemistry"""
@@ -71,6 +86,9 @@ struct CDXMLBond <: StandardBond
     end
 end
 
+# keyword-only constructor for compatibility with other readers (e.g. SDFile V3000 bonds)
+CDXMLBond(; order::Int=1, kwargs...) = CDXMLBond(order; kwargs...)
+
 # keyword-only constructor for compatibility with other readers
 function CDXMLAtom(;
     symbol::Union{AbstractString, Symbol},
@@ -79,7 +97,7 @@ function CDXMLAtom(;
     isotope::Int=0,
     isaromatic::Bool=false,
     coords::Union{Vector, Nothing}=nothing,
-    num_hs::Int=-1,
+    valence::Int=-1,
     kwargs...
 )
     isempty(kwargs) || @warn "keyword(s) `$(join(keys(kwargs), "``, `"))` not supported!"
@@ -89,7 +107,7 @@ function CDXMLAtom(;
         isotope,
         isaromatic,
         coords,
-        num_hs
+        valence
     )
 end
 
@@ -107,6 +125,7 @@ atom_charge(atom::CDXMLAtom) = atom.charge
 multiplicity(atom::CDXMLAtom) = atom.multiplicity
 atom_number(atom::CDXMLAtom) = atom_number(atom.symbol)
 isotope(atom::CDXMLAtom) = atom.isotope
+atom_valence(atom::CDXMLAtom) = atom.valence
 isaromatic(atom::CDXMLAtom) = atom.isaromatic
 bond_order(bond::CDXMLBond) = bond.order
 isaromatic(bond::CDXMLBond) = bond.isaromatic
@@ -114,7 +133,32 @@ isaromatic(bond::CDXMLBond) = bond.isaromatic
 has_isaromatic(::Type{CDXMLAtom}) = true
 
 aromatic_atom(a::CDXMLAtom) = CDXMLAtom(
-    a.symbol, a.charge, a.multiplicity, a.isotope, true, a.coords, a.num_hs)
+    a.symbol, a.charge, a.multiplicity, a.isotope, true, a.coords, a.valence)
+
+# Set the valence from the number of hydrogens (`hcounts`, -1: not specified) after all
+# bonds are parsed. Atoms with a specified valence and aromatic atoms (the valence depends on
+# kekulization) are not changed.
+function hydrogen_count_valence!(
+        atoms::Vector{CDXMLAtom}, edges::Vector{<:Edge}, bonds::Vector{<:AbstractBond},
+        hcounts::Vector{Int})
+    all(==(-1), hcounts) && return
+    bondsum = zeros(Int, length(atoms))
+    aromatic = falses(length(atoms))
+    for (e, b) in zip(edges, bonds)
+        bondsum[src(e)] += bond_order(b)
+        bondsum[dst(e)] += bond_order(b)
+        if b isa CDXMLBond && b.isaromatic
+            aromatic[src(e)] = aromatic[dst(e)] = true
+        end
+    end
+    for (i, a) in enumerate(atoms)
+        (hcounts[i] == -1 || a.valence != -1 || aromatic[i] || a.isaromatic) && continue
+        val = hydrogen_count_valence(a.symbol, a.charge, bondsum[i], hcounts[i])
+        val == -1 && continue
+        atoms[i] = CDXMLAtom(a.symbol, a.charge, a.multiplicity, a.isotope, a.isaromatic, a.coords, val)
+    end
+    return
+end
 
 # Post-processing function
 function mark_aromatic_atoms!(mol::MolGraph{T,V,E}) where {T, V, E}
@@ -202,8 +246,8 @@ end
 # Core parsing functions
 # =============================================================================
 
-"""Parse a single atom (node) from CDXML"""
-function parse_cdxml_atom(node::EzXML.Node)::Tuple{String,CDXMLAtom}
+"""Parse a single atom (node) from CDXML (and the number of hydrogens, -1 if not specified)"""
+function parse_cdxml_atom(node::EzXML.Node)::Tuple{String,CDXMLAtom,Int}
     # Get atom ID
     id = attribute(node, "id")
     if id === nothing
@@ -236,12 +280,13 @@ function parse_cdxml_atom(node::EzXML.Node)::Tuple{String,CDXMLAtom}
         radical + 1  # Convert to multiplicity
     end
 
+    # converted to the valence after all bonds are parsed (see `hydrogen_count_valence!`)
     num_hs_str = attribute(node, "NumHydrogens")
     num_hs = num_hs_str === nothing ? -1 : parse(Int, num_hs_str)
     
     isaromatic = false # will be set later in mark_aromatic_atoms!()
-    atom = CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords, num_hs)
-    return (id, atom)
+    atom = CDXMLAtom(symbol, charge, multiplicity, isotope, isaromatic, coords)
+    return (id, atom, num_hs)
 end
 
 """Parse a single bond from CDXML"""
@@ -286,20 +331,22 @@ end
 function parse_cdxml_fragment(frag_node::EzXML.Node)
     atom_map = Dict{String,Int}()  # CDXML id -> graph index
     atoms = CDXMLAtom[]
+    hcounts = Int[]  # NumHydrogens (-1: not specified)
     bonds = Tuple{Int,Int,CDXMLBond}[]
-    
+
     # Parse all child nodes
     for child in EzXML.eachelement(frag_node)
         tag = EzXML.nodename(child)
-        
+
         if tag == "n"  # Node (Atom)
-            id, atom = parse_cdxml_atom(child)
+            id, atom, num_hs = parse_cdxml_atom(child)
             push!(atoms, atom)
+            push!(hcounts, num_hs)
             atom_map[id] = length(atoms)
-            
+
         elseif tag == "b"  # Bond
             bond_id, begin_id, end_id, bond = parse_cdxml_bond(child)
-            
+
             # Look up atom indices
             if haskey(atom_map, begin_id) && haskey(atom_map, end_id)
                 begin_idx = atom_map[begin_id]
@@ -322,15 +369,16 @@ function parse_cdxml_fragment(frag_node::EzXML.Node)
             on_update = cdxml_on_update!
         )::cdxml_moltype()
     end
-    
+
     # Create edge list for SimpleGraph
     edge_list = Edge{Int}[]
     eprop_list = CDXMLBond[]
-    
+
     for (i, j, bond) in bonds
         push!(edge_list, i < j ? Edge(i, j) : Edge(j, i))
         push!(eprop_list, bond)
     end
+    hydrogen_count_valence!(atoms, edge_list, eprop_list, hcounts)
 
     # Construct MolGraph from edge_list, vprop_list (atoms), and eprop_list
     MolGraph{Int,CDXMLAtom,CDXMLBond}(edge_list, atoms, eprop_list;
@@ -366,12 +414,12 @@ Each fragment in the CDXML document becomes a separate molecule.
 """
 function cdxmltomols(cdxml_str::IO)
     mols = cdxml_moltype()[]
-    
+
     try
         doc = EzXML.parsexml(read(cdxml_str, String))
         root = EzXML.root(doc)
         fragments = find_cdxml_fragments!(EzXML.Node[], root)
-        
+
         # Parse each fragment into a molecule
         for frag in fragments
             try
@@ -383,11 +431,11 @@ function cdxmltomols(cdxml_str::IO)
                 @warn "Failed to parse fragment: $(exception_message(e))"
             end
         end
-        
+
     catch e
         error("Failed to parse CDXML: $(exception_message(e))")
     end
-    
+
     return mols
 end
 
@@ -410,11 +458,11 @@ Raises error if no molecules found.
 """
 function cdxmltomol(input::Union{AbstractString, IO})
     mols = cdxmltomols(input)
-    
+
     if isempty(mols)
         error("No molecules found in CDXML")
     end
-    
+
     length(mols) > 1 && @warn """
     More than one molecule found, returning only the first one.
     For obtaining all molecules use `cdxmltomols()`.
@@ -443,51 +491,6 @@ function cdxml_on_update!(mol::SimpleMolGraph)
     valence!(mol)
     lone_pair!(mol)
     is_ring_aromatic!(mol)
-
-    desc = mol[:descriptors]
-    
-    for i in vertices(mol)
-        atom = mol.vprops[i]
-        
-        if atom.num_hs >= 0
-            desc.valence[i] = desc.apparent_valence[i] + atom.num_hs
-        end
-    end
-end
-
-function ctab_atom_v2(::Type{CDXMLAtom}, line::AbstractString)
-    xpos = parse(Float64, line[1:10])
-    ypos = parse(Float64, line[11:20])
-    zpos = parse(Float64, line[21:30])
-    crds = Float64[xpos, ypos, zpos]
-    sym = Symbol(rstrip(line[32:34]))
-    # atom.mass_diff = parse(Int, line[35:36])
-    iso = 0  # will be ignored, use ISO property instead
-    old_sdf_charge = parse(Int, line[37:39])
-    chg = SDF_CHARGE_TABLE[old_sdf_charge]
-    mul = old_sdf_charge == 4 ? 2 : 1
-    # atom.stereo_flag = parse(Int, line[40:42])
-    # valence = parse(Int, line[46:48])
-    isaromatic = false
-    # -1 means automatic, any value >= 0 is the explicit number of hydrogens
-    num_hs = parse(Int, line[43:45]) - 1
-    return CDXMLAtom(sym, chg, mul, iso, isaromatic, crds, num_hs)
-end
-
-function ctab_atom_v3(::Type{CDXMLAtom}, line::AbstractString)
-    ss = split(line)
-    crds = parse.(Float64, ss[5:7])
-    sym = ss[4]
-    props = Dict(sympair.(ss[9:end])...)
-    chg = get(props, :CHG, 0)
-    iso = get(props, :MASS, 0)
-    mul = get(props, :RAD, 1)
-    isaromatic = false
-    # HCOUNT: 0 = automatic, -1 = no hydrogens, n > 0 = explicit n hydrogens
-    # -1 means automatic, any value >= 0 is the explicit number of hydrogens
-    hcount = get(props, :HCOUNT, 0)
-    num_hs = hcount == 0 ? -1 : max(hcount, 0)
-    return CDXMLAtom(sym, chg, mul, iso, isaromatic, crds, num_hs)
 end
 
 function ctab_bond_v2(
@@ -499,4 +502,29 @@ function ctab_bond_v2(
     isordered = u < v
     u, v = isordered ? (u, v) : (v, u)
     return (u_edge(T, u, v), CDXMLBond(ord; notation, isordered))
+end
+
+
+# Hydrogen counts in molfiles (V2000 `hhh`: n + 1 hydrogens, V3000 `HCOUNT`: -1 = no hydrogen,
+# n > 0 = n hydrogens; 0 = not specified) are query properties in the CTFile specification,
+# but ChemDraw writes the number of hydrogens of the atoms. They are converted to the valence
+# only for `CDXMLAtom`.
+ctab_hydrogen_count(::Val{:v2}, line::AbstractString
+    ) = length(line) >= 45 ? something(tryparse(Int, strip(line[43:45])), 0) - 1 : -1
+
+function ctab_hydrogen_count(::Val{:v3}, line::AbstractString)
+    for prop in split(line)[9:end]
+        startswith(prop, "HCOUNT=") || continue
+        hcount = parse(Int, prop[8:end])
+        return hcount == 0 ? -1 : max(hcount, 0)
+    end
+    return -1
+end
+
+function ctab_hydrogen_count!(
+        ::Type{CDXMLAtom}, ver::Val, vprops::Vector{CDXMLAtom}, atomlines::Vector{String},
+        edges::Vector{<:Edge}, eprops::Vector{<:AbstractBond})
+    hcounts = [ctab_hydrogen_count(ver, line) for line in atomlines]
+    hydrogen_count_valence!(vprops, edges, eprops, hcounts)
+    return
 end

@@ -35,8 +35,10 @@ function ctab_atom_v2(::Type{T}, line::AbstractString) where T <: AbstractElemen
     chg = SDF_CHARGE_TABLE[old_sdf_charge]
     mul = old_sdf_charge == 4 ? 2 : 1
     # atom.stereo_flag = parse(Int, line[40:42])
-    # valence = parse(Int, line[46:48])
-    return T(sym, chg, mul, iso, crds)
+    # valence (vvv): 0 = default, 1-14 = valence, 15 = zero valence
+    vvv = length(line) >= 51 ? something(tryparse(Int, strip(line[49:51])), 0) : 0
+    vvv == 0 && return T(sym, chg, mul, iso, crds)
+    return T(sym, chg, mul, iso, crds, vvv == 15 ? 0 : vvv)
 end
 
 function ctab_atom_v3(::Type{T}, line::AbstractString) where T <: AbstractElement
@@ -47,7 +49,10 @@ function ctab_atom_v3(::Type{T}, line::AbstractString) where T <: AbstractElemen
     chg = intprop(props, :CHG, 0)
     iso = intprop(props, :MASS, 0)
     mul = intprop(props, :RAD, 1)
-    return T(sym, chg, mul, iso, crds)
+    # VAL: -1 = zero valence
+    val = intprop(props, :VAL, 0)
+    val == 0 && return T(sym, chg, mul, iso, crds)
+    return T(sym, chg, mul, iso, crds, val == -1 ? 0 : val)
 end
 
 function ctab_bond_v2(
@@ -72,6 +77,10 @@ function ctab_bond_v3(
     u, v = isordered ? (u, v) : (v, u)
     return (u_edge(T, u, v), E(;order=ord, isordered=isordered))
 end
+
+# Hydrogen counts of atoms (V2000 `hhh`, V3000 `HCOUNT`) are query properties and ignored
+# by default (see the `CDXMLAtom` method in model/cdxml.jl)
+ctab_hydrogen_count!(::Type, ::Val, vprops, atomlines, edges, eprops) = nothing
 
 function ctab_props_v2(io::IO)
     props = Dict{Int,Dict{Symbol,Real}}() # atomindex, {type => value}
@@ -185,10 +194,8 @@ function parse_ctab(::Type{T}, io::IO, config::NamedTuple) where T <: SimpleMolG
     E = eproptype(T) === AbstractBond ? SDFBond : eproptype(T)
     # Parse atoms
     ver === :v3 && (readuntil(io, "M  V30 BEGIN ATOM"); readline(io))
-    vprops = V[]
-    for _ in 1:atomcount
-        push!(vprops, ctab_atom(V, readline(io)))
-    end
+    atomlines = String[readline(io) for _ in 1:atomcount]
+    vprops = V[ctab_atom(V, line) for line in atomlines]
 
     # Parse bonds
     ver === :v3 && (readuntil(io, "M  V30 BEGIN BOND"); readline(io))
@@ -209,11 +216,14 @@ function parse_ctab(::Type{T}, io::IO, config::NamedTuple) where T <: SimpleMolG
             chg = get(ps, :CHG, 0)
             mul = get(ps, :RAD, 1)
             iso = get(ps, :ISO, 0)
-            vprops[i] = V(sym, chg, mul, iso, crds)
+            val = atom_valence(vprops[i])  # keep the valence in the atom block
+            vprops[i] = val == -1 ? V(sym, chg, mul, iso, crds) : V(sym, chg, mul, iso, crds, val)
         end
+        ctab_hydrogen_count!(V, Val(:v2), vprops, atomlines, edges, eprops)
     elseif ver === :v3
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")
         readline(io)
+        ctab_hydrogen_count!(V, Val(:v3), vprops, atomlines, edges, eprops)
     end
     mol = T(edges, vprops, eprops; config...)
     # TODO: catch compatibility warnings

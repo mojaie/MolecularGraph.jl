@@ -146,7 +146,7 @@ end
 end
 
 @testset "deprotonate_oniums" begin
-    pyrrolidinium = smilestomol("C1[N+]CCC1")
+    pyrrolidinium = smilestomol("C1[NH2+]CCC1")  # bracket atoms have no implicit hydrogens
     @test deprotonate_oniums(pyrrolidinium)[2] == 0
 
     oxonium = smilestomol("[H][O+]([H])[H]")

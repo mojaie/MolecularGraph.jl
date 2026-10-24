@@ -64,13 +64,58 @@ end
 
     order = smilestomol("[Na].[Ba].B.Br.B.[Ar].Br")
     @test molecular_formula(order) == "ArB2BaBr2H8Na"
+    @test molecular_formula(smilestomol("[Na+].[Cl-]")) == "ClNa"
+    @test molecular_formula(smilestomol("ClC(Cl)(Cl)Cl")) == "CCl4"
 end
 
 @testset "valence" begin
-    atoms = smilestomol("B.C.N.O.F.[Si].P.S.Cl.[As].[Se].Br.I")
-    @test valence(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
-    @test lone_pair(atoms) == [0, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 3]
-    @test implicit_hydrogens(atoms) == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
+    atoms = smilestomol("B.C.N.O.F.[SiH4].P.S.Cl.[AsH3].[SeH2].Br.I")
+    heavy = findall(!=(:H), atom_symbol(atoms))
+    @test valence(atoms)[heavy] == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
+    @test lone_pair(atoms)[heavy] == [0, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 3]
+    @test total_hydrogens(atoms)[heavy] == [3, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 1]
+
+    # bracket atoms have no implicit hydrogens
+    bare = smilestomol("[Si].[As].[Se].[C].[Cl]")
+    @test valence(bare) == [0, 0, 0, 0, 0]
+    @test implicit_hydrogens(bare) == [0, 0, 0, 0, 0]
+    @test atom_valence(bare) == [0, 0, 0, 0, 0]
+    radical = smilestomol("[CH3]")
+    @test atom_valence(radical)[1] == 3
+    @test molecular_formula(radical) == "CH3"
+    noval = smilestomol("[C@@H](F)(Cl)Br.[NH4+].[O-]C.c1cc[nH]c1")
+    @test all(==(-1), atom_valence(noval))  # not set if the bond order is enough
+
+    # carbene
+    carbene = smilestomol("[CH2]")
+    @test valence(carbene) == [2, 1, 1]
+    @test implicit_hydrogens(carbene) == [0, 0, 0]
+    @test lone_pair(carbene)[1] == 1
+    @test hybridization(carbene)[1] === :sp2
+    @test molecular_formula(carbene) == "CH2"
+    triplet = smilestomol("C")
+    triplet[1] = SMILESAtom(symbol=:C, multiplicity=3, valence=2)
+    @test molecular_formula(triplet) == "CH2"
+    @test lone_pair(triplet) == [0]
+    dichlorocarbene = smilestomol("Cl[C]Cl")
+    @test valence(dichlorocarbene) == [1, 2, 1]
+    @test lone_pair(dichlorocarbene) == [3, 1, 3]
+
+    # pentavalent nitrogen and nitro group
+    nitro = smilestomol("CN(=O)=O")
+    @test valence(nitro) == [4, 5, 2, 2]
+    @test lone_pair(nitro) == [0, 0, 2, 2]
+    @test hybridization(nitro)[2] === :sp2
+    pentan = smilestomol("CN")
+    pentan[2] = SMILESAtom(symbol=:N, valence=5)
+    @test valence(pentan) == [4, 5]
+    @test implicit_hydrogens(pentan) == [3, 4]
+    @test lone_pair(pentan) == [0, 0]
+    @test molecular_formula(pentan) == "CH7N"
+    # specified valence lower than the bond order
+    low = smilestomol("CC(C)C")
+    low[2] = SMILESAtom(symbol=:C, valence=2)
+    @test valence(low)[2] == 3
 
     pyridineoxide = smilestomol("[N+]1([O-])=CC=CC=C1")
     @test valence(pyridineoxide) == [4, 1, 4, 4, 4, 4, 4]
@@ -108,9 +153,9 @@ end
     @test pi_electron(ester) == [0, 1, 1, 2, 0]
     @test hybridization(ester) == [:sp3, :sp2, :sp2, :sp2, :sp3]
 
-    anilinium = smilestomol("C1=CC=CC=C1[N+]")
-    @test pi_electron(anilinium) == [1, 1, 1, 1, 1, 1, 0]
-    @test hybridization(anilinium) == [:sp2, :sp2, :sp2, :sp2, :sp2, :sp2, :sp3]
+    anilinium = smilestomol("C1=CC=CC=C1[NH3+]")  # bracket atoms have no implicit hydrogens
+    @test pi_electron(anilinium)[1:7] == [1, 1, 1, 1, 1, 1, 0]
+    @test hybridization(anilinium)[1:7] == [:sp2, :sp2, :sp2, :sp2, :sp2, :sp2, :sp3]
 
     quat = smilestomol("C[N+](C)(C)C(=O)N")
     @test pi_electron(quat) == [0, 0, 0, 0, 1, 1, 2]
@@ -124,9 +169,10 @@ end
     @test pi_electron(borane) == [0]
     @test hybridization(borane) == [:sp2]
 
-    carbocation = smilestomol("[Si][C+]([Si])[Si]")
-    @test pi_electron(carbocation) == [0, 0, 0, 0]
-    @test hybridization(carbocation) == [:sp3, :sp2, :sp3, :sp3]
+    carbocation = smilestomol("[SiH3][C+]([SiH3])[SiH3]")
+    heavy = findall(!=(:H), atom_symbol(carbocation))
+    @test pi_electron(carbocation)[heavy] == [0, 0, 0, 0]
+    @test hybridization(carbocation)[heavy] == [:sp3, :sp2, :sp3, :sp3]
 
     pyrrole = smilestomol("C1=CC=CN1")
     @test pi_electron(pyrrole) == [1, 1, 1, 1, 2]
@@ -187,7 +233,7 @@ end
     fulvene = smilestomol("C1=CC=CC1=C")
     @test count(is_aromatic(fulvene)) == 0
 
-    cyclopropenyl = smilestomol("C1=C[C+]1")
+    cyclopropenyl = smilestomol("C1=C[CH+]1")
     @test count(is_aromatic(cyclopropenyl)) == 3
 
     hexatriene = smilestomol("C=CC=CC=C")

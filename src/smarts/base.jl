@@ -37,10 +37,11 @@ mutable struct SMILESParser{T<:Integer,V<:AbstractAtom,E<:AbstractBond} <: Abstr
     edges::Vector{Edge{T}}
     vprops::Vector{V}
     eprops::Vector{E}
+    bracket::Vector{T}  # nodes of bracket atoms (e.g. [CH2])
 end
 
 SMILESParser{T,V,E}(smiles) where {T,V,E} = SMILESParser{T,V,E}(
-    smiles, 1, false, 0, 1, 1, Dict{Int,Int}(), Vector{T}[], Edge{T}[], V[], E[])
+    smiles, 1, false, 0, 1, 1, Dict{Int,Int}(), Vector{T}[], Edge{T}[], V[], E[], T[])
 
 
 
@@ -139,6 +140,7 @@ function smilestomol(
     E = eproptype(T) === AbstractBond ? SMILESBond : eproptype(T)
     state = SMILESParser{eltype(T),V,E}(smiles)
     fragment!(state)
+    bracket_valence!(state)
     # original edge index
     gprops = MolProperty{eltype(T)}(
         smarts_lexical_succ=state.succ,
@@ -150,6 +152,30 @@ end
 
 smilestomol(smiles::AbstractString; kwargs...
     ) = smilestomol(MolGraph{Int,SMILESAtom,SMILESBond}, smiles; kwargs...)
+
+
+# Bracket atoms have no implicit hydrogens (e.g. [CH2] is a carbene, [CH3] is a methyl radical).
+# If the total bond order (including hydrogens) is lower than the typical valence, it is set
+# to the atom as the specified valence. Aromatic bracket atoms are not changed because
+# their valence is determined by kekulization.
+function bracket_valence!(state::SMILESParser{T,V,E}) where {T,V,E}
+    isempty(state.bracket) && return
+    bondsum = zeros(Int, length(state.vprops))
+    for (e, b) in zip(state.edges, state.eprops)
+        bondsum[src(e)] += bond_order(b)
+        bondsum[dst(e)] += bond_order(b)
+    end
+    for i in state.bracket
+        atom = state.vprops[i]
+        has_isaromatic(V) && isaromatic(atom) && continue
+        # hydrogens are graph nodes (included in bondsum)
+        val = hydrogen_count_valence(atom_symbol(atom), atom_charge(atom), bondsum[i], 0)
+        val == -1 && continue
+        state.vprops[i] = V(; symbol=atom_symbol(atom), charge=atom_charge(atom),
+            isotope=isotope(atom), stereo=atom.stereo, valence=val)
+    end
+    return
+end
 
 
 """

@@ -27,7 +27,7 @@
     @test length(tdmces(hexane, cyclohexane, tolerance=1)[1]) == 4
 
     tms = smilestomol("C[Si](C)(C)C")
-    tsm = smilestomol("[Si]C([Si])([Si])[Si]")
+    tsm = smilestomol("[SiH3]C([SiH3])([SiH3])[SiH3]")  # bracket atoms have no implicit hydrogens
     @test length(disconnected_mcis(tms, tsm)[1]) == 2
     @test length(disconnected_mces(tms, tsm)[1]) == 1
     @test length(tdmcis(tms, tsm)[1]) == 2

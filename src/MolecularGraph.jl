@@ -70,7 +70,7 @@ include("./graph/isomorphism_clique.jl")
 export
     ATOMTABLE, ATOMSYMBOLMAP, ATOM_COVALENT_RADII, ATOM_VANDERWAALS_RADII,
     SDFAtom, SMILESAtom, CommonChemAtom, CDXMLAtom,
-    atom_number, atom_symbol, atom_charge, multiplicity, isotope,
+    atom_number, atom_symbol, atom_charge, atom_valence, multiplicity, isotope,
     SDFBond, SMILESBond, CommonChemBond, CDXMLBond,
     bond_order,
     MolGraph, SDFMolGraph, SMILESMolGraph, CommonChemMolGraph, CDXMLMolGraph,

@@ -180,6 +180,18 @@ atom_symbol(n::Int) = Symbol(ATOMTABLE[n].Symbol)
 
 
 """
+    atom_valence(atom::AbstractAtom) -> Int
+
+Return the valence specified to the atom, or `-1` if not specified (default). If not specified,
+the valence is inferred from the typical valence of the element (see [`valence`](@ref)).
+
+Atom types that can have a specified valence (e.g. carbenes and pentavalent nitrogens) should
+implement this function. The fallback returns `-1`.
+"""
+atom_valence(atom::AbstractAtom) = -1
+
+
+"""
     hydrogen_isotope(atomsymbol::Symbol) -> Int
 
 Return the mass number implied by the atom symbol: `2` for deuterium (`:D`), `3` for
@@ -209,6 +221,9 @@ end
     SDFAtom
 
 SDFile (CTAB) atom property type.
+
+`valence` is the valence specified to the atom (e.g. `2` for carbenes), or `-1` if not
+specified (default). See [`atom_valence`](@ref) and [`valence`](@ref).
 """
 struct SDFAtom <: StandardAtom
     symbol::Symbol
@@ -216,18 +231,21 @@ struct SDFAtom <: StandardAtom
     multiplicity::Int
     isotope::Int
     coords::Union{Vector{Float64},Nothing}
+    valence::Int
 
     function SDFAtom(
             symbol::Union{AbstractString,Symbol},
             charge::Int=0,
             multiplicity::Int=1,
             isotope::Int=0,
-            coords::Union{Vector,Nothing}=nothing)
+            coords::Union{Vector,Nothing}=nothing,
+            valence::Int=-1)
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
         if isotope != 0
             isnothing(find_isotope(Symbol(symbol), isotope)) && error("sdfile parse error - unsupported isotope $(isotope)$(symbol)")
         end
-        new(Symbol(symbol), charge, multiplicity, isotope, coords)
+        valence >= -1 || error("sdfile parse error - invalid valence $(valence)")
+        new(Symbol(symbol), charge, multiplicity, isotope, coords, valence)
     end
 end
 
@@ -236,9 +254,10 @@ function SDFAtom(;
         charge::Int=0,
         multiplicity::Int=1,
         isotope::Int=0,
-        coords::Union{Vector,Nothing}=nothing)
+        coords::Union{Vector,Nothing}=nothing,
+        valence::Int=-1)
     haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("sdfile parse error - unsupported atom symbol $(symbol)")
-    return SDFAtom(Symbol(symbol), charge, multiplicity, isotope, coords)
+    return SDFAtom(Symbol(symbol), charge, multiplicity, isotope, coords, valence)
 end
 
 SDFAtom(d::Dict{Symbol,Any}) = SDFAtom(; NamedTuple((k, v) for (k, v) in d)...)
@@ -248,6 +267,7 @@ atom_number(a::SDFAtom) = atom_number(a.symbol)
 atom_charge(a::SDFAtom) = a.charge
 multiplicity(a::SDFAtom) = a.multiplicity
 isotope(a::SDFAtom) = a.isotope
+atom_valence(a::SDFAtom) = a.valence
 
 StructUtils.structlike(::Type{SDFAtom}) = false
 
@@ -259,6 +279,7 @@ function StructUtils.lower(x::SDFAtom)
     x.multiplicity == 1 || setindex!(rcd, x.multiplicity, "multiplicity")
     x.isotope == 0 || setindex!(rcd, x.isotope, "isotope")
     isnothing(x.coords) || setindex!(rcd, x.coords, "coords")
+    x.valence == -1 || setindex!(rcd, x.valence, "valence")
     return rcd
 end
 
@@ -270,6 +291,9 @@ StructUtils.lift(::Type{SDFAtom}, x) = SDFAtom(; NamedTuple((Symbol(k), v) for (
     SMILESAtom
 
 SMILES atom property type.
+
+`valence` is the valence specified to the atom (e.g. `2` for carbenes), or `-1` if not
+specified (default). See [`atom_valence`](@ref) and [`valence`](@ref).
 """
 struct SMILESAtom <: StandardAtom
     symbol::Symbol
@@ -278,6 +302,7 @@ struct SMILESAtom <: StandardAtom
     isotope::Int
     isaromatic::Bool
     stereo::Symbol
+    valence::Int
 
     function SMILESAtom(
             symbol::Union{AbstractString,Symbol},
@@ -285,12 +310,14 @@ struct SMILESAtom <: StandardAtom
             multiplicity::Int=1,
             isotope::Int=0,
             isaromatic::Bool=false,
-            stereo::Union{String,Symbol}=:unspecified)
+            stereo::Union{String,Symbol}=:unspecified,
+            valence::Int=-1)
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("smiles parse error - unsupported atom symbol $(symbol)")
         if isotope != 0
             isnothing(find_isotope(Symbol(symbol), isotope)) && error("smiles parse error - unsupported isotope $(isotope)$(symbol)")
         end
-        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo))
+        valence >= -1 || error("smiles parse error - invalid valence $(valence)")
+        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo), valence)
     end
 end
 
@@ -300,9 +327,10 @@ function SMILESAtom(;
         multiplicity::Int=1,
         isotope::Int=0,
         isaromatic::Bool=false,
-        stereo::Union{String,Symbol}=:unspecified)
+        stereo::Union{String,Symbol}=:unspecified,
+        valence::Int=-1)
     return SMILESAtom(
-        Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo))
+        Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo), valence)
 end
 
 SMILESAtom(d::Dict{Symbol,Any}) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
@@ -315,6 +343,7 @@ atom_charge(a::SMILESAtom) = a.charge
 multiplicity(a::SMILESAtom) = a.multiplicity
 isotope(a::SMILESAtom) = a.isotope
 isaromatic(a::SMILESAtom) = a.isaromatic
+atom_valence(a::SMILESAtom) = a.valence
 
 StructUtils.structlike(::Type{SMILESAtom}) = false
 
@@ -326,6 +355,7 @@ function StructUtils.lower(x::SMILESAtom)
     x.isotope == 0 || setindex!(rcd, x.isotope, "isotope")
     x.isaromatic === false || setindex!(rcd, x.isaromatic, "isaromatic")
     x.stereo === :unspecified || setindex!(rcd, string(x.stereo), "stereo")
+    x.valence == -1 || setindex!(rcd, x.valence, "valence")
     return rcd
 end
 

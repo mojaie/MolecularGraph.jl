@@ -3,6 +3,8 @@
 # Licensed under the MIT License http://opensource.org/licenses/MIT
 #
 
+# Number of lone pairs of the neutral atom with the typical valence (octet).
+# The number of valence electrons is `4 + LONEPAIR_COUNT[sym]`.
 const LONEPAIR_COUNT = Dict(
     :B => -1, :C => 0, :N => 1, :O => 2, :F => 3,
     :Si => 0, :P => 1, :S => 2, :Cl => 3,
@@ -56,6 +58,15 @@ Called before preprocessing that modifies charges (e.g. in [`smiles_on_update!`]
 """
 default_atom_charge!(mol::SimpleMolGraph) = set_descriptor!(
     mol, Val(:atom_charge), Int[atom_charge(mol[i]) for i in vertices(mol)])
+
+
+"""
+    atom_valence(mol::SimpleMolGraph) -> Vector{Int}
+
+Return a vector of size ``n`` representing the valences specified to 1 to ``n``th atoms of
+the given molecule (`-1` if not specified). See [`valence`](@ref) for the actual valences.
+"""
+atom_valence(mol::SimpleMolGraph) = Int[atom_valence(mol[i]) for i in vertices(mol)]
 
 
 """
@@ -140,15 +151,24 @@ apparent_valence!(mol::SimpleMolGraph) = set_descriptor!(
     mol, Val(:apparent_valence), apparent_valence(mol.graph, bond_order(mol)))
 
 
-function formal_valence(symbol_arr::Vector{Symbol}, charge_arr::Vector{Int})
-    arr = fill(zero(Int), length(symbol_arr))
-    for i in 1:length(symbol_arr)
-        if haskey(LONEPAIR_COUNT, symbol_arr[i])
-            arr[i] = 4 - abs(LONEPAIR_COUNT[symbol_arr[i]] - charge_arr[i])
-        end
-    end
-    return arr
+# Typical valence of the element (octet rule), 0 if the element is not supported
+formal_valence(sym::Symbol, charge::Int
+    ) = haskey(LONEPAIR_COUNT, sym) ? 4 - abs(LONEPAIR_COUNT[sym] - charge) : 0
+
+formal_valence(symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}
+    ) = formal_valence.(symbol_arr, charge_arr)
+
+# Valence of the atom with `hcount` hydrogens that are not graph nodes (e.g. CDXML
+# NumHydrogens) and the total bond order `bondsum`. Returns -1 (not specified) if it is the
+# same as the valence inferred from the element.
+function hydrogen_count_valence(sym::Symbol, charge::Int, bondsum::Int, hcount::Int)
+    v = bondsum + hcount
+    return v == max(formal_valence(sym, charge), bondsum) ? -1 : v
 end
+
+# Specified valence if available, otherwise the typical valence
+expected_valence(symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, atomval_arr::Vector{Int}
+    ) = [v >= 0 ? v : formal_valence(sym, chg) for (sym, chg, v) in zip(symbol_arr, charge_arr, atomval_arr)]
 
 
 """
@@ -158,21 +178,26 @@ Return a vector of size ``n`` representing the intrinsic valence of
 1 to ``n``th atoms of the given molecule.
 
 The number of implicit hydrogens would be calculated based on the valence.
-The valence of a hypervalent atom or a non-organic atom is the same as
+If the valence is specified to the atom (see [`atom_valence`](@ref), e.g. carbenes and
+pentavalent nitrogens), the specified valence is used. Otherwise, the typical valence of
+organic atoms is used. The valence of a hypervalent atom or a non-organic atom is the same as
 its `apparent_valence`. This property corresponds to SMARTS `v` query.
 """
 function valence(mol::SimpleMolGraph)
     if has_descriptor(mol, Val(:valence))
         return get_descriptor(mol, Val(:valence))
     end
-    return valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
+    return valence(atom_symbol(mol), atom_charge(mol), atom_valence(mol), apparent_valence(mol))
 end
 
-function valence(
-        symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
-        apparent_valence_arr::Vector{Int})
-    return max.(formal_valence(symbol_arr, charge_arr), apparent_valence_arr)
-end
+valence(
+    symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, apparent_valence_arr::Vector{Int}
+) = max.(formal_valence(symbol_arr, charge_arr), apparent_valence_arr)
+
+valence(
+    symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
+    atomval_arr::Vector{Int}, apparent_valence_arr::Vector{Int}
+) = max.(expected_valence(symbol_arr, charge_arr, atomval_arr), apparent_valence_arr)
 
 """
     valence!(mol::SimpleMolGraph)
@@ -180,12 +205,13 @@ end
 Calculate [`valence`](@ref) and store the result in the descriptors of `mol`.
 """
 valence!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, Val(:valence), valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol)))
+    mol, Val(:valence),
+    valence(atom_symbol(mol), atom_charge(mol), atom_valence(mol), apparent_valence(mol)))
 
 
 function check_valence!(mol::SimpleMolGraph)
     av = apparent_valence(mol)
-    fv = formal_valence(atom_symbol(mol), atom_charge(mol))
+    fv = expected_valence(atom_symbol(mol), atom_charge(mol), atom_valence(mol))
     comments = String[]
     for i in vertices(mol)[av .> fv]
          push!(comments, "unusual valence at #$(i) (actual $(av[i]), expected $(fv[i]))")
@@ -261,28 +287,29 @@ end
 
 Return a vector of size ``n`` representing the number of lone pairs of
 1 to ``n``th atoms of the given molecule.
+
+The number of lone pairs is calculated from the number of valence electrons, the charge,
+the [`valence`](@ref) and the unpaired electrons ([`multiplicity`](@ref) - 1), e.g. 1 for
+singlet carbenes, 0 for triplet carbenes and pentavalent nitrogens. Elements other than
+typical organic atoms have no lone pairs.
 """
 function lone_pair(mol::SimpleMolGraph)
     if has_descriptor(mol, Val(:lone_pair))
         return get_descriptor(mol, Val(:lone_pair))
     end
-    return lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol))
+    return lone_pair(atom_symbol(mol), atom_charge(mol), multiplicity(mol), valence(mol))
 end
 
-function lone_pair(
-        symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, connectivity_arr::Vector{Int})
-    arr = fill(zero(Int), length(symbol_arr))
-    for i in 1:length(symbol_arr)
-        if haskey(LONEPAIR_COUNT, symbol_arr[i])
-            excess = 4 - connectivity_arr[i]
-            intrinsic = LONEPAIR_COUNT[symbol_arr[i]] - charge_arr[i]
-            arr[i] = max(min(excess, intrinsic), 0)
-        else
-            arr[i] = 0
-        end
-    end
-    return arr
+function lone_pair(sym::Symbol, charge::Int, multiplicity::Int, valence::Int)
+    haskey(LONEPAIR_COUNT, sym) || return 0
+    nonbonding = 4 + LONEPAIR_COUNT[sym] - charge - valence - (multiplicity - 1)
+    return max(fld(nonbonding, 2), 0)
 end
+
+lone_pair(
+    symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
+    multiplicity_arr::Vector{Int}, valence_arr::Vector{Int}
+) = lone_pair.(symbol_arr, charge_arr, multiplicity_arr, valence_arr)
 
 """
     lone_pair!(mol::SimpleMolGraph)
@@ -290,7 +317,8 @@ end
 Calculate [`lone_pair`](@ref) and store the result in the descriptors of `mol`.
 """
 lone_pair!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, Val(:lone_pair), lone_pair(atom_symbol(mol), atom_charge(mol), connectivity(mol)))
+    mol, Val(:lone_pair),
+    lone_pair(atom_symbol(mol), atom_charge(mol), multiplicity(mol), valence(mol)))
 
 
 
@@ -495,7 +523,8 @@ function atom_counter(symbol_arr::Vector{Symbol}, implh_arr::Vector{Int})
         haskey(ATOMSYMBOLMAP, sym) || continue
         _inc!(counter, sym)
     end
-    _inc!(counter, :H, sum(implh_arr))
+    implh = sum(implh_arr; init=0)
+    implh > 0 && _inc!(counter, :H, implh)  # no H entry (count 0) for e.g. [Na+].[Cl-]
     return counter
 end
 
@@ -520,7 +549,7 @@ function atom_counter(atom, ::Val{true}, ::Val, ::Val, ::Val)
     implh = implicit_hydrogens(atom.mol)
     for (_, v) in atom.term  # remove terminal atoms
         cnt[sym[v]] -= 1
-        cnt[:H] -= implh[v]
+        implh[v] == 0 || (cnt[:H] -= implh[v])
     end
     return cnt
 end

@@ -91,6 +91,18 @@ end
     @test hydrate !== hydrate2
 end
 
+@testset "json.valence" begin
+    carbene = smilestomol("Cl[C]Cl")
+    carbene2 = mol_from_json(JSON.json(carbene))
+    @test carbene == carbene2
+    @test atom_valence(carbene2) == [-1, 2, -1]
+    sdfmol = sdftomol(IOBuffer(printv2mol(carbene)))
+    sdfmol2 = mol_from_json(JSON.json(sdfmol))
+    @test atom_valence(sdfmol2) == [-1, 2, -1]
+    # the key is written only if the valence is specified
+    @test !occursin("valence\":-1", JSON.json(carbene))
+end
+
 @testset "json.rdkit" begin
     assetdir = joinpath(dirname(@__FILE__), "..", "assets", "test")
     mol = sdftomol(joinpath(assetdir, "demo.mol"))

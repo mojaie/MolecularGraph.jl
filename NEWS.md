@@ -1,5 +1,28 @@
 # NEWS
 
+## Unreleased
+
+- Atoms can have a specified valence (`valence` field of `SDFAtom` and `SMILESAtom`,
+  `atom_valence`), e.g. carbenes and pentavalent nitrogens. The specified valence is used by
+  `valence`, `implicit_hydrogens` and `lone_pair` (`-1`: inferred from the element as before).
+  It is read from and written to molfiles (V2000 `vvv` column, V3000 `VAL`) and molecule JSON.
+- SMILES bracket atoms have no implicit hydrogens, following the SMILES specification
+  (e.g. `[CH2]` is a carbene and `[CH3]` is a methyl radical; before, `[CH2]` and `[CH3]` were
+  CH4). `[Si]`, `[Se]` etc. without hydrogen count are now atoms with valence 0.
+- `lone_pair` is calculated from the valence electrons, charge, valence and multiplicity
+  (`lone_pair(symbol_arr, charge_arr, multiplicity_arr, valence_arr)`); the former
+  `lone_pair(symbol_arr, charge_arr, connectivity_arr)` method is removed. Lone pairs of
+  hypervalent atoms with double bonds are corrected (e.g. 0 for the nitrogen of `CN(=O)=O`,
+  1 before), which also changes their `hybridization` (`:sp2` instead of `:sp3`).
+- CDXML: the number of hydrogens (`NumHydrogens`, and `hhh`/`HCOUNT` of molfiles read as
+  `CDXMLMolGraph`) is converted to the specified valence of `CDXMLAtom` (`valence` field) after
+  the bonds are parsed. The `num_hs` field/keyword of `CDXMLAtom` (added after v1.0.0) is
+  replaced by `valence`, and `printv2mol` writes the valence (`vvv`) instead of the hydrogen
+  count (`hhh`) for CDXML molecules. Aromatic atoms (bond order 1.5) ignore the number of
+  hydrogens.
+- Fixed: V3000 molfiles could not be read as `CDXMLMolGraph` (no keyword constructor of
+  `CDXMLBond`), and V2000 property blocks (`M  CHG` etc.) failed for `CDXMLAtom`.
+
 ## v1.0.0
 
 The API is considered stable from this version. The documentation now covers all exported

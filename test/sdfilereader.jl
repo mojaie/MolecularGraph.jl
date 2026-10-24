@@ -17,6 +17,18 @@
     radical = ctab_atom_v2(SDFAtom, "    1.6514    2.7627    0.0000 C   0  4")
     @test radical[:charge] == 0
     @test radical[:multiplicity] == 2
+    # valence (vvv): 0 = default, 15 = zero valence
+    @test full[:valence] == -1
+    carbene = ctab_atom_v2(SDFAtom,
+        "    1.1763    0.6815    0.0000 C   0  0  0  0  0  2  0  0  0  0  0  0")
+    @test carbene[:valence] == 2
+    zeroval = ctab_atom_v2(SDFAtom,
+        "    1.1763    0.6815    0.0000 C   0  0  0  0  0 15  0  0  0  0  0  0")
+    @test zeroval[:valence] == 0
+    v3 = ctab_atom_v3(SDFAtom, "M  V30 1 N 0.0 0.0 0.0 0 VAL=5")
+    @test v3[:valence] == 5
+    v3zero = ctab_atom_v3(SDFAtom, "M  V30 1 C 0.0 0.0 0.0 0 VAL=-1")
+    @test v3zero[:valence] == 0
 end
 
 @testset "ctab_bond_v2" begin

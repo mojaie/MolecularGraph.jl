@@ -54,7 +54,7 @@
     """
     benzene_cdxml_classic = cdxmltomol(IOBuffer(cdxml_string))
     @test has_exact_match(benzene_cdxml_aromatic, benzene_cdxml_classic)
-    
+
     benzene_smiles = smilestomol("c1ccccc1")
     @test has_exact_match(benzene_cdxml_aromatic, benzene_smiles)
 end
@@ -115,10 +115,11 @@ end
 
     @test mol isa CDXMLMolGraph
     @test round(Int, standard_weight(mol)) == 12
-    
+    @test atom_valence(mol) == [0]  # NumHydrogens is converted to the valence
+
     sdf = printv2mol(mol)
-    @test contains(sdf, "C   0  0  0  1")
-    
+    @test contains(sdf, "C   0  0  0  0  0 15")  # vvv 15: zero valence
+
     mol2 = sdftomol(MolecularGraph.CDXMLMolGraph, IOBuffer(sdf),
         config = Dict{Symbol,Any}(
             :on_init => MolecularGraph.cdxml_on_init!,
@@ -126,15 +127,79 @@ end
         )
     )
 
-    @test mol isa CDXMLMolGraph
+    @test mol2 isa CDXMLMolGraph
+    @test atom_valence(mol2) == [0]
     @test round(Int, standard_weight(mol2)) == 12
 end
 
-@testset "HCOUNT in V3000 atom line" begin
-    ctab_atom_v3 = MolecularGraph.ctab_atom_v3
-    @test ctab_atom_v3(CDXMLAtom, "M  V30 1 N 0 0 0 0").num_hs == -1
-    @test ctab_atom_v3(CDXMLAtom, "M  V30 1 N 0 0 0 0 HCOUNT=-1").num_hs == 0
-    @test ctab_atom_v3(CDXMLAtom, "M  V30 1 N 0 0 0 0 CHG=1 HCOUNT=2").num_hs == 2
+@testset "NumHydrogens to valence" begin
+    # methylene (carbene) label "CH2" bonded to two methyls, and a methyl with NumHydrogens="3"
+    cdxml_string = """
+    <?xml version="1.0" encoding="UTF-8" ?>
+    <CDXML><page><fragment id="1">
+    <n id="2" p="0 0"/>
+    <n id="3" p="10 0" NumHydrogens="0"/>
+    <n id="4" p="20 0" NumHydrogens="3"/>
+    <b id="5" B="2" E="3"/>
+    <b id="6" B="3" E="4"/>
+    </fragment></page></CDXML>
+    """
+    mol = cdxmltomol(IOBuffer(cdxml_string))
+    @test atom_valence(mol) == [-1, 2, -1]  # not set if the same as the typical valence
+    @test valence(mol) == [4, 2, 4]
+    @test lone_pair(mol) == [0, 1, 0]
+    @test molecular_formula(mol) == "C3H6"
+end
+
+@testset "hydrogen counts in molfiles" begin
+    config = Dict{Symbol,Any}(
+        :on_init => MolecularGraph.cdxml_on_init!, :on_update => MolecularGraph.cdxml_on_update!)
+    readv3(atomline) = sdftomol(CDXMLMolGraph, IOBuffer("""
+
+      test
+
+      0  0  0     0  0            999 V3000
+    M  V30 BEGIN CTAB
+    M  V30 COUNTS 2 1 0 0 0
+    M  V30 BEGIN ATOM
+    M  V30 1 C 0.0 0.0 0.0 0
+    $(atomline)
+    M  V30 END ATOM
+    M  V30 BEGIN BOND
+    M  V30 1 1 1 2
+    M  V30 END BOND
+    M  V30 END CTAB
+    M  END
+    """); config)
+    # HCOUNT: 0 = automatic, -1 = no hydrogens, n > 0 = n hydrogens
+    @test atom_valence(readv3("M  V30 2 N 1.0 0.0 0.0 0")) == [-1, -1]
+    @test atom_valence(readv3("M  V30 2 N 1.0 0.0 0.0 0 HCOUNT=-1")) == [-1, 1]
+    @test atom_valence(readv3("M  V30 2 N 1.0 0.0 0.0 0 HCOUNT=2")) == [-1, -1]
+    nh3 = readv3("M  V30 2 N 1.0 0.0 0.0 0 CHG=1 HCOUNT=3")
+    @test atom_valence(nh3) == [-1, -1]
+    @test implicit_hydrogens(nh3) == [3, 3]
+
+    # V2000 hhh: n + 1 hydrogens, ignored by the default SDFAtom
+    v2 = """
+
+      test
+
+      2  1  0  0  0  0  0  0  0  0999 V2000
+        0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+        1.0000    0.0000    0.0000 N   0  0  0  2  0  0  0  0  0  0  0  0
+      1  2  1  0  0  0  0
+    M  END
+    """
+    nh = sdftomol(CDXMLMolGraph, IOBuffer(v2); config)
+    @test atom_valence(nh) == [-1, 2]
+    @test implicit_hydrogens(nh) == [3, 1]
+    @test atom_valence(sdftomol(IOBuffer(v2))) == [-1, -1]
+    # the property block (M  CHG) keeps the valence from the atom block
+    v2chg = replace(v2, "M  END" => "M  CHG  1   2   1\nM  END")
+    nhchg = sdftomol(CDXMLMolGraph, IOBuffer(v2chg); config)
+    @test atom_charge(nhchg) == [0, 1]
+    @test atom_valence(nhchg) == [-1, 2]
+    @test implicit_hydrogens(nhchg) == [3, 1]
 end
 
 end # cdxmlreader

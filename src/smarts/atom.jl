@@ -429,6 +429,7 @@ function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
     sym1 = read(state)
     if sym1 == '['
         forward!(state)
+        push!(state.bracket, state.node + 1)  # the first atom is the bracket atom
         props = atomprop!(state)
         read(state) == ']' || error("smiles parser error - #$(state.pos) unexpected token '$(read(state))'")
         forward!(state)

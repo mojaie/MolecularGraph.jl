@@ -38,6 +38,23 @@
     @test length(coords3d(mol2)) == 21
     @test split(dump, "\n")[2][21:22] == "3D"
 
+    # specified valence (vvv) is written and read back
+    carbene = smilestomol("Cl[C]Cl")
+    dump = printv2mol(carbene)
+    @test split(dump, "\n")[6][49:51] == "  2"
+    carbene2 = sdftomol(IOBuffer(dump))
+    @test atom_valence(carbene2) == [-1, 2, -1]
+    @test molecular_formula(carbene2) == "CCl2"
+    atomc = sdftomol(IOBuffer(printv2mol(smilestomol("[C]"))))
+    @test atom_valence(atomc) == [0]
+    # the valence is kept if the atom is overwritten by the property block
+    chg = smilestomol("C")
+    chg[1] = SMILESAtom(symbol=:C, charge=-1, multiplicity=2, valence=2)
+    chg2 = sdftomol(IOBuffer(printv2mol(chg)))
+    @test atom_valence(chg2) == [2]
+    @test atom_charge(chg2) == [-1]
+    @test multiplicity(chg2) == [2]
+
     smol = smilestomol("CCC1CC(C=O)CCC1N")
     sdump = printv2mol(smol)
     @test split(sdump, "\n")[2][21:22] == "2D"
