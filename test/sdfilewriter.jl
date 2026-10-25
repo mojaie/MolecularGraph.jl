@@ -47,6 +47,24 @@
     @test molecular_formula(carbene2) == "CCl2"
     atomc = sdftomol(IOBuffer(printv2mol(smilestomol("[C]"))))
     @test atom_valence(atomc) == [0]
+    # non-organic atoms: vvv is kept (0: not specified, 15: zero valence)
+    snblock(v) = """
+
+      test
+
+      1  0  0  0  0  0  0  0  0  0999 V2000
+        0.0000    0.0000    0.0000 Sn  0  0  0  0  0$(v)  0  0  0  0  0  0
+    M  END
+    """
+    for v in ("  0", " 15", "  2")
+        @test split(printv2mol(sdftomol(IOBuffer(snblock(v)))), "\n")[5][49:51] == v
+    end
+    @test split(printv2mol(smilestomol("[Sn]")), "\n")[5][49:51] == " 15"
+    # the valence descriptor that is not inferred from the element is written
+    ethyl = smilestomol("CC")
+    MolecularGraph.set_descriptor!(ethyl, Val(:valence), [4, 3])
+    @test split(printv2mol(ethyl), "\n")[5][49:51] == "  0"
+    @test split(printv2mol(ethyl), "\n")[6][49:51] == "  3"
     # the valence is kept if the atom is overwritten by the property block
     chg = smilestomol("C")
     chg[1] = SMILESAtom(symbol=:C, charge=-1, multiplicity=2, valence=2)

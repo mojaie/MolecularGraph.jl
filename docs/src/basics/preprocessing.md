@@ -215,10 +215,9 @@ function smiles_on_update!(mol)
     # preprocessing
     default_atom_charge!(mol)
     default_bond_order!(mol)
-    kekulize!(mol)
+    kekulize!(mol)  # also sets apparent_valence
     # recalculate bottleneck descriptors
     sssr!(mol)
-    apparent_valence!(mol)
     valence!(mol)
     lone_pair!(mol)
     is_ring_aromatic!(mol)

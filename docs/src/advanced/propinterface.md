@@ -69,7 +69,7 @@ the readers should have the following constructors and fields.
 | Reader | Constructors | Fields read by the default callbacks |
 |:--|:--|:--|
 | SDFile | `V(symbol, charge, multiplicity, isotope, coords)`, `V(symbol, charge, multiplicity, isotope, coords, valence)` (only atoms with a specified valence; hydrogen counts `hhh`/`HCOUNT` are ignored except for [`CDXMLAtom`](@ref)), `E(order, notation, isordered)`, `E(; order, isordered)` (V3000) | atom: `coords`, bond: `order`, `notation`, `isordered` |
-| SMILES | `V(; symbol, charge, isotope, isaromatic, stereo)`, `V(; symbol, charge, isotope, stereo, valence)` (only bracket atoms with fewer bonds than the typical valence, e.g. `[CH2]`), `V(; symbol=:H)`, `E(; order, isaromatic, direction)`, `E()` | atom: `stereo` (and `isaromatic` by the trait), bond: `order`, `direction` |
+| SMILES | `V(; symbol, charge, isotope, isaromatic, stereo)`, `V(; symbol, charge, isotope, stereo, valence)` and `V(; symbol, charge, isotope, isaromatic, stereo, valence)` (only bracket atoms with fewer bonds than the typical valence, e.g. `[CH2]` and `[c]`, or non-organic elements), `V(; symbol=:H)`, `E(; order, isaromatic, direction)`, `E()` | atom: `stereo` (and `isaromatic` by the trait), bond: `order`, `direction` |
 
 For example, an atom type that has an additional label can be used with `smilestomol` as follows.
 

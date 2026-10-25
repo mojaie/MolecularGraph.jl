@@ -142,20 +142,18 @@ function hydrogen_count_valence!(
         atoms::Vector{CDXMLAtom}, edges::Vector{<:Edge}, bonds::Vector{<:AbstractBond},
         hcounts::Vector{Int})
     all(==(-1), hcounts) && return
-    bondsum = zeros(Int, length(atoms))
-    aromatic = falses(length(atoms))
+    # aromatic atoms are marked later (`mark_aromatic_atoms!`)
+    arom = BitVector(a.isaromatic for a in atoms)
     for (e, b) in zip(edges, bonds)
-        bondsum[src(e)] += bond_order(b)
-        bondsum[dst(e)] += bond_order(b)
-        if b isa CDXMLBond && b.isaromatic
-            aromatic[src(e)] = aromatic[dst(e)] = true
-        end
+        b isa CDXMLBond && b.isaromatic && (arom[src(e)] = arom[dst(e)] = true)
     end
+    hcs = [(arom[i] || a.valence != -1) ? -1 : hcounts[i] for (i, a) in enumerate(atoms)]
+    vals = hydrogen_count_valence(
+        edges, Int[bond_order(b) for b in bonds], falses(length(atoms)),
+        Symbol[a.symbol for a in atoms], Int[a.charge for a in atoms], hcs)
     for (i, a) in enumerate(atoms)
-        (hcounts[i] == -1 || a.valence != -1 || aromatic[i] || a.isaromatic) && continue
-        val = hydrogen_count_valence(a.symbol, a.charge, bondsum[i], hcounts[i])
-        val == -1 && continue
-        atoms[i] = CDXMLAtom(a.symbol, a.charge, a.multiplicity, a.isotope, a.isaromatic, a.coords, val)
+        vals[i] == -1 && continue
+        atoms[i] = CDXMLAtom(a.symbol, a.charge, a.multiplicity, a.isotope, a.isaromatic, a.coords, vals[i])
     end
     return
 end
@@ -483,11 +481,10 @@ function cdxml_on_update!(mol::SimpleMolGraph)
     default_atom_charge!(mol)
     default_bond_order!(mol)
     # seems not to work yet for cdxml aromaticity yet
-    kekulize!(mol)
+    kekulize!(mol)  # also sets apparent_valence
 
     # Cache relatively expensive descriptors
     sssr!(mol)
-    apparent_valence!(mol)
     valence!(mol)
     lone_pair!(mol)
     is_ring_aromatic!(mol)

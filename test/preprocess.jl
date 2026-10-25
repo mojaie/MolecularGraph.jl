@@ -33,6 +33,19 @@
     # Wrong imidazol. The position of hydrogen cannot be inferred.
     @test_throws ErrorException smilestomol("n1cncc1")
 
+    # atoms without pi bonds by the valence
+    selenophene2 = smilestomol("[se]1cccc1")
+    @test sum(bond_order(selenophene2)) == 7
+    cp = smilestomol("[cH-]1cccc1")
+    @test sum(bond_order(cp) .== 2) == 2
+    tropylium = smilestomol("[cH+]1cccccc1")
+    @test sum(bond_order(tropylium) .== 2) == 3
+    pyrylium = smilestomol("[o+]1ccccc1")
+    @test sum(bond_order(pyrylium) .== 2) == 3
+    # apparent valence is overwritten by kekulization
+    @test apparent_valence(pyrrole2)[1] == 2
+    @test implicit_hydrogens(pyrrole2)[1] == 1
+
     pyridineoxide = smilestomol("[n+]1([O-])ccccc1")
     @test sum(bond_order(pyridineoxide) .== 2) == 3
 

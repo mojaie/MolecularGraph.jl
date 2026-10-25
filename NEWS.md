@@ -12,6 +12,22 @@
   Bracket atoms of elements other than typical organic atoms (e.g. `[Sn]`, `[Na+]`) always
   have the specified valence (written as `vvv` to molfiles, e.g. 15 for `[Sn]`), and so do
   CDXML atoms of these elements with the number of hydrogens.
+  The valence of aromatic bracket atoms is also determined from the SMILES (the same as
+  `apparent_valence` before kekulization, see below), e.g. `c1cc[c]cc1` is a phenyl radical
+  (C6H5; before, C6H6).
+- `apparent_valence` of aromatic atoms before kekulization counts aromatic bonds as single
+  bonds plus one pi bond if the atom would get a double bond by kekulization (e.g. 3 for
+  benzene `c` and pyrrole `[nH]`; before, 2 and 3), so that molecules that are not kekulized
+  have the correct valence and implicit hydrogens. `kekulize!` overwrites `apparent_valence`
+  with the kekulized bond orders (e.g. 2 for the `n` of `n1cccc1`), and `smiles_on_update!`
+  and `cdxml_on_update!` no longer call `apparent_valence!` after `kekulize!`
+  (`apparent_valence!` after `kekulize!` in custom callbacks still works).
+- `kekulize` assigns double bonds to the aromatic atoms whose total bond order is lower than
+  the typical valence (the same rule as `apparent_valence`), so `[se]1cccc1`, `[cH-]1cccc1`,
+  `[cH+]1cccccc1` and `[o+]1ccccc1` can be kekulized (failed before).
+- Molfile writer: `vvv` is written for atoms with the specified valence (`atom_valence`) and
+  atoms whose `valence` descriptor is not inferred from the element and bonds (e.g. set by
+  `set_descriptor!`). Molfiles of non-organic atoms are written back as read (`vvv` 0 or 15).
 - `lone_pair` is calculated from the valence electrons, charge, valence and multiplicity
   (`lone_pair(symbol_arr, charge_arr, multiplicity_arr, valence_arr)`); the former
   `lone_pair(symbol_arr, charge_arr, connectivity_arr)` method is removed. Lone pairs of

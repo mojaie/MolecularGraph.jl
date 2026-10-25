@@ -22,52 +22,47 @@ atoms (e.g. `[nH]`).
 Double bonds and single bonds will be assigned to aromatic rings which consist of SMILES
 lowercase atoms (called Kekulization). Kekulization is necessary for the valence and
 implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
+Double bonds are assigned to the aromatic atoms that have a ``\\pi`` bond
+(see `MolecularGraph.aromatic_pi_bond`), except a pyridine-like `n` that is a pyrrole-like atom
+with an implicit hydrogen in an odd-membered aromatic system (e.g. `n1cccc1`).
 """
 function kekulize(mol::SimpleMolGraph{T}) where T
     # "raw" bond orders
     bondorder = [bond_order(mol[e]) for e in edges(mol)]
     ernk = edge_rank(mol)
+    arom = BitVector(has_isaromatic(typeof(mol[i])) && isaromatic(mol[i]) for i in vertices(mol))
+    sym_arr = atom_symbol(mol)
+    chg_arr = Int[atom_charge(mol[i]) for i in vertices(mol)]
+    hs_arr = Int[has_hydrogens(typeof(mol[i])) ? mol[i].hydrogens : 0 for i in vertices(mol)]
+    bondsum = apparent_valence(mol.graph, bondorder) + hs_arr
+    pi_arr = aromatic_pi_bond(edges(mol), bondorder, arom, sym_arr, chg_arr, hs_arr)
     # lone pair in p-orbital, pyrrole-like aromatic atom
     pyrrole_like = T[]
     for ring in fused_rings(mol.graph)
         arom_vs = T[]
         canbepyl = T[]  # can be pyrrole-like aromatic atom
         for i in ring
-            atmp = mol[i]
-            has_isaromatic(typeof(atmp)) && isaromatic(atmp) || continue  # not nothing or false
+            arom[i] || continue
             if i in mol.gprops.pyrrole_like
                 push!(pyrrole_like, i) # explicit pyrrole-like
                 continue
             end
-            sym = atom_symbol(atmp)
+            sym = sym_arr[i]
             deg = degree(mol.graph, i)
-            if deg == 2
-                sym in (:O, :S) && continue  # o, s, se
-                if sym in (:N, :P, :As)
-                    # expected pyridyl, but wrongly can be implicit pyrrole-like
-                    push!(canbepyl, i)
+            deg in (2, 3) || error("Kekulization failed: invalid aromatic $(sym) with valence $(deg)")
+            if pi_arr[i] == 0
+                # explicit pyrrole-like [nH] (three single bonds including the hydrogen)
+                if (sym in (:N, :P, :As) && chg_arr[i] == 0 && deg + hs_arr[i] == 3 && bondsum[i] == 3
+                        && (hs_arr[i] == 1 || any(sym_arr[nbr] === :H for nbr in neighbors(mol, i))))
+                    push!(pyrrole_like, i)
                 end
-                push!(arom_vs, i)  # including [cH0], b
-            elseif deg == 3
-                hasdouble = any(bondorder[edge_rank(ernk, i, nbr)] == 2 for nbr in neighbors(mol, i))
-                if sym === :C
-                    hasdouble && continue  # c=O
-                    push!(arom_vs, i)
-                else  # sym in (:N, :P, :As)
-                    if atom_charge(atmp) == 0 && !hasdouble
-                        # explicit pyrrole-like [nH]
-                        if has_hydrogens(typeof(atmp)) && atmp.hydrogens == 1
-                            push!(pyrrole_like, i)
-                        elseif any(atom_symbol(mol[nbr]) === :H for nbr in neighbors(mol, i))
-                            push!(pyrrole_like, i)
-                        end
-                        continue  # including [nH0X3]
-                    end
-                    push!(arom_vs, i)  # n=O, [n+][O-]
-                end
-            else
-                error("Kekulization failed: invalid aromatic $(sym) with valence $(deg)")
+                continue  # o, s, [se], [cH-], c=O, [nH0X3], [n+](=c)
             end
+            if deg == 2 && sym in (:N, :P, :As)
+                # expected pyridyl, but wrongly can be implicit pyrrole-like
+                push!(canbepyl, i)
+            end
+            push!(arom_vs, i)  # c, [cH0], b, n, n=O, [n+][O-], [o+]
         end
         if length(arom_vs) % 2 == 1
             isempty(canbepyl) && error("Kekulization failed: invalid aromatic ring")
@@ -90,11 +85,13 @@ end
     kekulize!(mol::SimpleMolGraph)
 
 In-place version of [`kekulize`](@ref) that stores the bond orders in the descriptors of `mol`
-and the pyrrole-like atoms in `mol.gprops.pyrrole_like`.
+and the pyrrole-like atoms in `mol.gprops.pyrrole_like`. [`apparent_valence`](@ref) is also
+overwritten with the total order of the kekulized bonds.
 """
 function kekulize!(mol::SimpleMolGraph)
     bondorder, pyrrole_like = kekulize(mol)
     set_descriptor!(mol, Val(:bond_order), bondorder)
+    set_descriptor!(mol, Val(:apparent_valence), apparent_valence(mol.graph, bondorder))
     empty!(mol.gprops.pyrrole_like)
     append!(mol.gprops.pyrrole_like, pyrrole_like)
     return

@@ -89,6 +89,26 @@ end
     metal = smilestomol("[Sn].C[Sn](C)C.[Na+].[SnH4]")
     @test atom_valence(metal)[findall(!=(:H), atom_symbol(metal))] == [0, -1, 3, -1, -1, 0, 4]
     @test atom_valence(smilestomol("[2H]C.[H][H]")) == [-1, -1, -1, -1]
+    # aromatic bracket atoms
+    phenyl = smilestomol("c1cc[c]cc1")
+    @test atom_valence(phenyl) == [-1, -1, -1, 3, -1, -1]
+    @test phenyl[4].isaromatic
+    @test implicit_hydrogens(phenyl)[4] == 0
+    @test molecular_formula(phenyl) == "C6H5"
+    # apparent valence of aromatic atoms before kekulization
+    nokek(m) = (MolecularGraph.default_atom_charge!(m); MolecularGraph.default_bond_order!(m);
+        apparent_valence!(m); valence!(m))
+    indole = smilestomol("c1ccc2[nH]ccc2c1"; on_update=nokek)
+    @test apparent_valence(indole) == [3, 3, 3, 4, 3, 1, 3, 3, 4, 3]
+    @test implicit_hydrogens(indole) == [1, 1, 1, 0, 0, 0, 1, 1, 0, 1]
+    @test apparent_valence(smilestomol("n1cccc1"; on_update=nokek)) == [3, 3, 3, 3, 3]
+    @test apparent_valence(smilestomol("O=c1cccc[nH]1"; on_update=nokek)) == [2, 4, 3, 3, 3, 3, 3, 1]
+    @test apparent_valence(smilestomol("c1ccn(=O)cc1"; on_update=nokek))[4] == 5
+    # not changed after kekulization
+    @test apparent_valence(smilestomol("c1ccc2[nH]ccc2c1")) == apparent_valence(indole)
+    aromnoval = smilestomol("c1cc[cH]cc1.c1cc[nH]c1.c1cc[n]cc1.c1cc[nH+]cc1.c1cc[o]c1.C[n]1cccc1.O=[c]1cccc[nH]1")
+    @test all(==(-1), atom_valence(aromnoval))
+    @test molecular_formula(aromnoval) == "C34H38N5O2"
     @test occursin(r"Sn  0  0  0  0  0 15", printv2mol(smilestomol("[Sn]")))
 
     # carbene

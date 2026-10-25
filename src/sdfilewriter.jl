@@ -182,9 +182,13 @@ function printv2mol(
         mol = giveback_stereo_hydrogens(mol, V, E)
     end
 
-    # valence (vvv) of atoms with the specified valence (e.g. carbenes, CDXML NumHydrogens)
-    atomval = Int[atom_valence(mol[i]) for i in vertices(mol)]
-    vval = any(>=(0), atomval) ? [v >= 0 ? w : -1 for (v, w) in zip(atomval, valence(mol))] : Int[]
+    # valence (vvv) of atoms with the specified valence (e.g. carbenes, CDXML NumHydrogens,
+    # [Sn]) or the valence that is not inferred from the element and bonds (e.g. set by
+    # `set_descriptor!`)
+    valarr = valence(mol)
+    inferred = max.(formal_valence(atom_symbol(mol), atom_charge(mol)), apparent_valence(mol))
+    vval = [(v >= 0 || w != f) ? w : -1 for (v, w, f) in zip(atom_valence(mol), valarr, inferred)]
+    all(==(-1), vval) && empty!(vval)
 
     # write
     # 8 characters: the last digit of the major version and the last 2 digits of the minor version
