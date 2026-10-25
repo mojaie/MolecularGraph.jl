@@ -160,9 +160,12 @@ formal_valence(symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}
 
 # Valence of the atom with `hcount` hydrogens that are not graph nodes (e.g. CDXML
 # NumHydrogens) and the total bond order `bondsum`. Returns -1 (not specified) if it is the
-# same as the valence inferred from the element.
+# same as the valence inferred from the element. Elements other than typical organic atoms
+# (except hydrogen) always have the specified valence (e.g. 0 for `[Sn]`), because their
+# valence is not inferred from the element (other software may add hydrogens).
 function hydrogen_count_valence(sym::Symbol, charge::Int, bondsum::Int, hcount::Int)
     v = bondsum + hcount
+    (haskey(LONEPAIR_COUNT, sym) || sym === :H) || return v
     return v == max(formal_valence(sym, charge), bondsum) ? -1 : v
 end
 

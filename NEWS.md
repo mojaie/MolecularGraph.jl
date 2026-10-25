@@ -9,6 +9,9 @@
 - SMILES bracket atoms have no implicit hydrogens, following the SMILES specification
   (e.g. `[CH2]` is a carbene and `[CH3]` is a methyl radical; before, `[CH2]` and `[CH3]` were
   CH4). `[Si]`, `[Se]` etc. without hydrogen count are now atoms with valence 0.
+  Bracket atoms of elements other than typical organic atoms (e.g. `[Sn]`, `[Na+]`) always
+  have the specified valence (written as `vvv` to molfiles, e.g. 15 for `[Sn]`), and so do
+  CDXML atoms of these elements with the number of hydrogens.
 - `lone_pair` is calculated from the valence electrons, charge, valence and multiplicity
   (`lone_pair(symbol_arr, charge_arr, multiplicity_arr, valence_arr)`); the former
   `lone_pair(symbol_arr, charge_arr, connectivity_arr)` method is removed. Lone pairs of

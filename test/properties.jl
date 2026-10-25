@@ -85,6 +85,11 @@ end
     @test molecular_formula(radical) == "CH3"
     noval = smilestomol("[C@@H](F)(Cl)Br.[NH4+].[O-]C.c1cc[nH]c1")
     @test all(==(-1), atom_valence(noval))  # not set if the bond order is enough
+    # non-organic elements always have the specified valence
+    metal = smilestomol("[Sn].C[Sn](C)C.[Na+].[SnH4]")
+    @test atom_valence(metal)[findall(!=(:H), atom_symbol(metal))] == [0, -1, 3, -1, -1, 0, 4]
+    @test atom_valence(smilestomol("[2H]C.[H][H]")) == [-1, -1, -1, -1]
+    @test occursin(r"Sn  0  0  0  0  0 15", printv2mol(smilestomol("[Sn]")))
 
     # carbene
     carbene = smilestomol("[CH2]")

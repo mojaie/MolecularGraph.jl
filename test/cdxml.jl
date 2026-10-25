@@ -149,6 +149,20 @@ end
     @test valence(mol) == [4, 2, 4]
     @test lone_pair(mol) == [0, 1, 0]
     @test molecular_formula(mol) == "C3H6"
+
+    # non-organic elements always have the specified valence
+    sn_string = """
+    <?xml version="1.0" encoding="UTF-8" ?>
+    <CDXML><page><fragment id="1">
+    <n id="2" p="0 0" Element="50" NumHydrogens="0"/>
+    <n id="3" p="10 0" Element="50" NumHydrogens="2"/>
+    <n id="4" p="20 0"/>
+    <b id="5" B="3" E="4"/>
+    </fragment></page></CDXML>
+    """
+    snmol = cdxmltomol(IOBuffer(sn_string))
+    @test atom_valence(snmol) == [0, 3, -1]
+    @test valence(snmol) == [0, 3, 4]
 end
 
 @testset "hydrogen counts in molfiles" begin
