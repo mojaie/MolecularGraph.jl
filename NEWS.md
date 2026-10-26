@@ -1,6 +1,6 @@
 # NEWS
 
-## Unreleased
+## v1.1.0
 
 Improvements and fixes of the valence and implicit hydrogens.
 
