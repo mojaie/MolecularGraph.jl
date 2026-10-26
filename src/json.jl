@@ -437,7 +437,7 @@ fromjson(::Type{SDFAtom}, x::JSONNode) = SDFAtom(
 fromjson(::Type{SMILESAtom}, x::JSONNode) = SMILESAtom(
     jstring(x, "symbol", "C"), jint(x, "charge", 0), jint(x, "multiplicity", 1),
     jint(x, "isotope", 0), jbool(x, "isaromatic", false), jstring(x, "stereo", "unspecified"),
-    jint(x, "valence", -1))
+    jint(x, "num_hs", -1))
 fromjson(::Type{CommonChemAtom}, x::JSONNode) = CommonChemAtom(
     jint(x, "z", 6), jint(x, "chg", 0), jint(x, "impHs", 0), jint(x, "isotope", 0),
     jint(x, "nRad", 0), jstring(x, "stereo", "unspecified"))

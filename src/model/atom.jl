@@ -192,6 +192,20 @@ atom_valence(atom::AbstractAtom) = -1
 
 
 """
+    atom_num_hs(atom::AbstractAtom) -> Int
+
+Return the number of hydrogens specified to the atom (e.g. SMILES bracket atoms and CDXML
+`NumHydrogens`), or `-1` if not specified (default). The hydrogens include the hydrogen nodes
+attached to the atom, and the atom has no implicit hydrogens other than the specified ones
+(see [`implicit_hydrogens`](@ref)).
+
+Atom types that can have a specified number of hydrogens should implement this function.
+The fallback returns `-1`.
+"""
+atom_num_hs(atom::AbstractAtom) = -1
+
+
+"""
     hydrogen_isotope(atomsymbol::Symbol) -> Int
 
 Return the mass number implied by the atom symbol: `2` for deuterium (`:D`), `3` for
@@ -292,8 +306,9 @@ StructUtils.lift(::Type{SDFAtom}, x) = SDFAtom(; NamedTuple((Symbol(k), v) for (
 
 SMILES atom property type.
 
-`valence` is the valence specified to the atom (e.g. `2` for carbenes), or `-1` if not
-specified (default). See [`atom_valence`](@ref) and [`valence`](@ref).
+`num_hs` is the number of hydrogens of a bracket atom (e.g. `0` for `[C]` and `3` for
+`[CH3]`, including the hydrogen nodes), or `-1` for the atoms in the organic subset
+(implicit hydrogens by the typical valence, default). See [`atom_num_hs`](@ref).
 """
 struct SMILESAtom <: StandardAtom
     symbol::Symbol
@@ -302,7 +317,7 @@ struct SMILESAtom <: StandardAtom
     isotope::Int
     isaromatic::Bool
     stereo::Symbol
-    valence::Int
+    num_hs::Int
 
     function SMILESAtom(
             symbol::Union{AbstractString,Symbol},
@@ -311,13 +326,13 @@ struct SMILESAtom <: StandardAtom
             isotope::Int=0,
             isaromatic::Bool=false,
             stereo::Union{String,Symbol}=:unspecified,
-            valence::Int=-1)
+            num_hs::Int=-1)
         haskey(ATOMSYMBOLMAP, Symbol(symbol)) || error("smiles parse error - unsupported atom symbol $(symbol)")
         if isotope != 0
             isnothing(find_isotope(Symbol(symbol), isotope)) && error("smiles parse error - unsupported isotope $(isotope)$(symbol)")
         end
-        valence >= -1 || error("smiles parse error - invalid valence $(valence)")
-        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo), valence)
+        num_hs >= -1 || error("smiles parse error - invalid number of hydrogens $(num_hs)")
+        new(Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo), num_hs)
     end
 end
 
@@ -328,9 +343,9 @@ function SMILESAtom(;
         isotope::Int=0,
         isaromatic::Bool=false,
         stereo::Union{String,Symbol}=:unspecified,
-        valence::Int=-1)
+        num_hs::Int=-1)
     return SMILESAtom(
-        Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo), valence)
+        Symbol(symbol), charge, multiplicity, isotope, isaromatic, Symbol(stereo), num_hs)
 end
 
 SMILESAtom(d::Dict{Symbol,Any}) = SMILESAtom(; NamedTuple((k, v) for (k, v) in d)...)
@@ -343,7 +358,7 @@ atom_charge(a::SMILESAtom) = a.charge
 multiplicity(a::SMILESAtom) = a.multiplicity
 isotope(a::SMILESAtom) = a.isotope
 isaromatic(a::SMILESAtom) = a.isaromatic
-atom_valence(a::SMILESAtom) = a.valence
+atom_num_hs(a::SMILESAtom) = a.num_hs
 
 StructUtils.structlike(::Type{SMILESAtom}) = false
 
@@ -355,7 +370,7 @@ function StructUtils.lower(x::SMILESAtom)
     x.isotope == 0 || setindex!(rcd, x.isotope, "isotope")
     x.isaromatic === false || setindex!(rcd, x.isaromatic, "isaromatic")
     x.stereo === :unspecified || setindex!(rcd, string(x.stereo), "stereo")
-    x.valence == -1 || setindex!(rcd, x.valence, "valence")
+    x.num_hs == -1 || setindex!(rcd, x.num_hs, "num_hs")
     return rcd
 end
 

@@ -37,11 +37,10 @@ mutable struct SMILESParser{T<:Integer,V<:AbstractAtom,E<:AbstractBond} <: Abstr
     edges::Vector{Edge{T}}
     vprops::Vector{V}
     eprops::Vector{E}
-    bracket::Vector{T}  # nodes of bracket atoms (e.g. [CH2])
 end
 
 SMILESParser{T,V,E}(smiles) where {T,V,E} = SMILESParser{T,V,E}(
-    smiles, 1, false, 0, 1, 1, Dict{Int,Int}(), Vector{T}[], Edge{T}[], V[], E[], T[])
+    smiles, 1, false, 0, 1, 1, Dict{Int,Int}(), Vector{T}[], Edge{T}[], V[], E[])
 
 
 
@@ -139,7 +138,6 @@ function smilestomol(
     E = eproptype(T) === AbstractBond ? SMILESBond : eproptype(T)
     state = SMILESParser{eltype(T),V,E}(smiles)
     fragment!(state)
-    bracket_valence!(state)
     # original edge index
     gprops = MolProperty{eltype(T)}(
         smarts_lexical_succ=state.succ,
@@ -151,33 +149,6 @@ end
 
 smilestomol(smiles::AbstractString; kwargs...
     ) = smilestomol(MolGraph{Int,SMILESAtom,SMILESBond}, smiles; kwargs...)
-
-
-# Bracket atoms have no implicit hydrogens (e.g. [CH2] is a carbene, [CH3] is a methyl radical).
-# If the total bond order (including hydrogens) is lower than the typical valence, it is set
-# to the atom as the specified valence. Aromatic atoms count one more bond (pi bond, the same
-# as `apparent_valence` before kekulization), e.g. [c] is an aryl radical with valence 3.
-function bracket_valence!(state::SMILESParser{T,V,E}) where {T,V,E}
-    isempty(state.bracket) && return
-    # hydrogens are graph nodes (hydrogen count 0 for bracket atoms)
-    hcounts = fill(-1, length(state.vprops))
-    hcounts[state.bracket] .= 0
-    arom = BitVector(has_isaromatic(V) && isaromatic(a) for a in state.vprops)
-    appval = apparent_valence(
-        length(state.vprops), state.edges, Int[bond_order(b) for b in state.eprops], arom)
-    vals = hydrogen_count_valence(
-        Symbol[atom_symbol(a) for a in state.vprops], Int[atom_charge(a) for a in state.vprops],
-        appval, hcounts)
-    for i in state.bracket
-        vals[i] == -1 && continue
-        a = state.vprops[i]
-        state.vprops[i] = arom[i] ? V(; symbol=atom_symbol(a), charge=atom_charge(a),
-                isotope=isotope(a), isaromatic=true, stereo=a.stereo, valence=vals[i]) :
-            V(; symbol=atom_symbol(a), charge=atom_charge(a), isotope=isotope(a),
-                stereo=a.stereo, valence=vals[i])
-    end
-    return
-end
 
 
 """

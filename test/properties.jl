@@ -79,19 +79,25 @@ end
     bare = smilestomol("[Si].[As].[Se].[C].[Cl]")
     @test valence(bare) == [0, 0, 0, 0, 0]
     @test implicit_hydrogens(bare) == [0, 0, 0, 0, 0]
-    @test atom_valence(bare) == [0, 0, 0, 0, 0]
+    @test atom_num_hs(bare) == [0, 0, 0, 0, 0]
     radical = smilestomol("[CH3]")
-    @test atom_valence(radical)[1] == 3
+    @test atom_num_hs(radical) == [3, -1, -1, -1]
+    @test valence(radical)[1] == 3
     @test molecular_formula(radical) == "CH3"
-    noval = smilestomol("[C@@H](F)(Cl)Br.[NH4+].[O-]C.c1cc[nH]c1")
-    @test all(==(-1), atom_valence(noval))  # not set if the bond order is enough
-    # non-organic elements always have the specified valence
+    # the specified hydrogens are kept after the hydrogen nodes are removed
+    remove_all_hydrogens!(radical)
+    @test implicit_hydrogens(radical) == [3]
+    @test molecular_formula(radical) == "CH3"
     metal = smilestomol("[Sn].C[Sn](C)C.[Na+].[SnH4]")
-    @test atom_valence(metal)[findall(!=(:H), atom_symbol(metal))] == [0, -1, 3, -1, -1, 0, 4]
-    @test atom_valence(smilestomol("[2H]C.[H][H]")) == [-1, -1, -1, -1]
+    heavy = findall(!=(:H), atom_symbol(metal))
+    @test atom_num_hs(metal)[heavy] == [0, -1, 0, -1, -1, 0, 4]
+    @test valence(metal)[heavy] == [0, 4, 3, 4, 4, 0, 4]
+    @test smilestomol("C[Sn](C)C")[:logs]["warning_valence"] == ""  # given by the input
+    @test atom_num_hs(smilestomol("[2H]C.[H][H]")) == [0, -1, 0, 0]
     # aromatic bracket atoms
     phenyl = smilestomol("c1cc[c]cc1")
-    @test atom_valence(phenyl) == [-1, -1, -1, 3, -1, -1]
+    @test atom_num_hs(phenyl) == [-1, -1, -1, 0, -1, -1]
+    @test valence(phenyl)[4] == 3
     @test phenyl[4].isaromatic
     @test implicit_hydrogens(phenyl)[4] == 0
     @test molecular_formula(phenyl) == "C6H5"
@@ -107,7 +113,6 @@ end
     # overwritten by kekulization
     @test apparent_valence(smilestomol("c1ccc2[nH]ccc2c1")) == [3, 3, 3, 4, 3, 1, 3, 3, 4, 3]
     aromnoval = smilestomol("c1cc[cH]cc1.c1cc[nH]c1.c1cc[n]cc1.c1cc[nH+]cc1.c1cc[o]c1.C[n]1cccc1.O=[c]1cccc[nH]1")
-    @test all(==(-1), atom_valence(aromnoval))
     @test molecular_formula(aromnoval) == "C34H38N5O2"
     @test occursin(r"Sn  0  0  0  0  0 15", printv2mol(smilestomol("[Sn]")))
 
@@ -119,7 +124,7 @@ end
     @test hybridization(carbene)[1] === :sp2
     @test molecular_formula(carbene) == "CH2"
     triplet = smilestomol("C")
-    triplet[1] = SMILESAtom(symbol=:C, multiplicity=3, valence=2)
+    triplet[1] = SMILESAtom(symbol=:C, multiplicity=3, num_hs=2)
     @test molecular_formula(triplet) == "CH2"
     @test lone_pair(triplet) == [0]
     dichlorocarbene = smilestomol("Cl[C]Cl")
@@ -132,14 +137,14 @@ end
     @test lone_pair(nitro) == [0, 0, 2, 2]
     @test hybridization(nitro)[2] === :sp2
     pentan = smilestomol("CN")
-    pentan[2] = SMILESAtom(symbol=:N, valence=5)
+    pentan[2] = SMILESAtom(symbol=:N, num_hs=4)
     @test valence(pentan) == [4, 5]
     @test implicit_hydrogens(pentan) == [3, 4]
     @test lone_pair(pentan) == [0, 0]
     @test molecular_formula(pentan) == "CH7N"
-    # specified valence lower than the bond order
+    # specified hydrogens and the bond order (no implicit hydrogens)
     low = smilestomol("CC(C)C")
-    low[2] = SMILESAtom(symbol=:C, valence=2)
+    low[2] = SMILESAtom(symbol=:C, num_hs=0)
     @test valence(low)[2] == 3
 
     pyridineoxide = smilestomol("[N+]1([O-])=CC=CC=C1")

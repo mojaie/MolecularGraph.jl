@@ -95,12 +95,13 @@ end
     carbene = smilestomol("Cl[C]Cl")
     carbene2 = mol_from_json(JSON.json(carbene))
     @test carbene == carbene2
-    @test atom_valence(carbene2) == [-1, 2, -1]
+    @test atom_num_hs(carbene2) == [-1, 0, -1]
     sdfmol = sdftomol(IOBuffer(printv2mol(carbene)))
     sdfmol2 = mol_from_json(JSON.json(sdfmol))
     @test atom_valence(sdfmol2) == [-1, 2, -1]
-    # the key is written only if the valence is specified
-    @test !occursin("valence\":-1", JSON.json(carbene))
+    # the keys are written only if specified
+    @test !occursin("num_hs\":-1", JSON.json(carbene))
+    @test !occursin("valence\":-1", JSON.json(sdfmol))
 end
 
 @testset "json.rdkit" begin

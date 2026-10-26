@@ -2,19 +2,18 @@
 
 ## Unreleased
 
-- Atoms can have a specified valence (`valence` field of `SDFAtom` and `SMILESAtom`,
-  `atom_valence`), e.g. carbenes and pentavalent nitrogens. The specified valence is used by
-  `valence`, `implicit_hydrogens` and `lone_pair` (`-1`: inferred from the element as before).
-  It is read from and written to molfiles (V2000 `vvv` column, V3000 `VAL`) and molecule JSON.
+- `SDFAtom` can have a specified valence (`valence` field, `atom_valence`), e.g. carbenes and
+  pentavalent nitrogens, read from and written to molfiles (V2000 `vvv` column, V3000 `VAL`)
+  and molecule JSON. `SMILESAtom` and `CDXMLAtom` have the specified number of hydrogens
+  (`num_hs` field, `atom_num_hs`) as in the input (SMILES bracket atoms, CDXML
+  `NumHydrogens`, molfile `hhh`/`HCOUNT` read as `CDXMLMolGraph`). They are converted to the
+  `valence` descriptor (`-1`: inferred from the element as before), which is used by
+  `implicit_hydrogens`, `lone_pair` etc. The specified hydrogens include the hydrogen nodes,
+  so they are kept after the hydrogen nodes are removed.
 - SMILES bracket atoms have no implicit hydrogens, following the SMILES specification
   (e.g. `[CH2]` is a carbene and `[CH3]` is a methyl radical; before, `[CH2]` and `[CH3]` were
-  CH4). `[Si]`, `[Se]` etc. without hydrogen count are now atoms with valence 0.
-  Bracket atoms of elements other than typical organic atoms (e.g. `[Sn]`, `[Na+]`) always
-  have the specified valence (written as `vvv` to molfiles, e.g. 15 for `[Sn]`), and so do
-  CDXML atoms of these elements with the number of hydrogens.
-  The valence of aromatic bracket atoms is also determined from the SMILES (the same as
-  `apparent_valence` before kekulization, see below), e.g. `c1cc[c]cc1` is a phenyl radical
-  (C6H5; before, C6H6).
+  CH4). `[Si]`, `[Se]` etc. without hydrogen count are now atoms with valence 0, and
+  `c1cc[c]cc1` is a phenyl radical (C6H5; before, C6H6).
 - `apparent_valence` of aromatic atoms (`isaromatic` of the atom type) before kekulization
   counts aromatic bonds as single bonds plus one pi bond (e.g. 3 for benzene `c`; before, 2),
   so that molecules that are not kekulized have the correct implicit hydrogens (the valence
@@ -23,26 +22,24 @@
   `smiles_on_update!` and `cdxml_on_update!` no longer call `apparent_valence!` after
   `kekulize!` (custom callbacks should not call it after `kekulize!`).
 - `kekulize` assigns double bonds to the aromatic atoms without double bonds whose total bond
-  order is lower than the typical valence (or the specified valence, `atom_valence`), so
+  order (including the specified hydrogens) is lower than the typical valence (or the
+  specified valence, `atom_valence`), so
   `[se]1cccc1`, `[cH-]1cccc1`, `[cH+]1cccccc1` and `[o+]1ccccc1` can be kekulized (failed
   before).
 - `is_ring_aromatic`: a ring atom with an exocyclic double bond to oxygen keeps the pi
   electrons other than the double bond, so pyridine N-oxide in the hypervalent form
   (`O=n1ccccc1`) is aromatic.
-- Molfile writer: `vvv` is written for atoms with the specified valence (`atom_valence`) and
-  atoms whose `valence` descriptor is not inferred from the element and bonds (e.g. set by
-  `set_descriptor!`). Molfiles of non-organic atoms are written back as read (`vvv` 0 or 15).
+- Molfile writer: `vvv` is written for atoms with the specified valence (`atom_valence`),
+  atoms whose `valence` descriptor is not inferred from the element and bonds (e.g. carbenes,
+  set by `set_descriptor!`) and non-organic atoms with the specified number of hydrogens (e.g.
+  15 for SMILES `[Sn]`). Molfiles of non-organic atoms are written back as read (`vvv` 0 or
+  15). `printv2mol` writes the valence (`vvv`) instead of the hydrogen count (`hhh`) for CDXML
+  molecules (`vvv` is ignored when molfiles are read as `CDXMLMolGraph`).
 - `lone_pair` is calculated from the valence electrons, charge, valence and multiplicity
   (`lone_pair(symbol_arr, charge_arr, multiplicity_arr, valence_arr)`); the former
   `lone_pair(symbol_arr, charge_arr, connectivity_arr)` method is removed. Lone pairs of
   hypervalent atoms with double bonds are corrected (e.g. 0 for the nitrogen of `CN(=O)=O`,
   1 before), which also changes their `hybridization` (`:sp2` instead of `:sp3`).
-- CDXML: the number of hydrogens (`NumHydrogens`, and `hhh`/`HCOUNT` of molfiles read as
-  `CDXMLMolGraph`) is converted to the specified valence of `CDXMLAtom` (`valence` field) after
-  the bonds are parsed. The `num_hs` field/keyword of `CDXMLAtom` (added after v1.0.0) is
-  replaced by `valence`, and `printv2mol` writes the valence (`vvv`) instead of the hydrogen
-  count (`hhh`) for CDXML molecules. Aromatic atoms (bond order 1.5) ignore the number of
-  hydrogens.
 - Fixed: V3000 molfiles could not be read as `CDXMLMolGraph` (no keyword constructor of
   `CDXMLBond`), and V2000 property blocks (`M  CHG` etc.) failed for `CDXMLAtom`.
 

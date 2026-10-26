@@ -173,23 +173,26 @@ atom_isaromatic(mol::SimpleMolGraph) = BitVector(
 formal_valence(sym::Symbol, charge::Int
     ) = haskey(LONEPAIR_COUNT, sym) ? 4 - abs(LONEPAIR_COUNT[sym] - charge) : 0
 
-# Specified valence of the atom with `hcount` hydrogens that are not graph nodes (e.g. CDXML
-# NumHydrogens, 0 for SMILES bracket atoms) and the apparent valence `appval`. Returns -1
-# (not specified) if it is the same as the valence inferred from the element. Elements other
-# than typical organic atoms (except hydrogen) always have the specified valence (e.g. 0 for
-# `[Sn]`), because their valence is not inferred from the element (other software may add
-# hydrogens).
-function hydrogen_count_valence(sym::Symbol, charge::Int, appval::Int, hcount::Int)
-    v = appval + hcount
-    (haskey(LONEPAIR_COUNT, sym) || sym === :H) || return v
-    return v == valence(sym, charge, -1, appval) ? -1 : v
-end
+# Elements other than typical organic atoms and hydrogen (the valence is not inferred)
+is_nonorganic(sym::Symbol) = !haskey(LONEPAIR_COUNT, sym) && sym !== :H
 
-hydrogen_count_valence(
-    symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
-    appval_arr::Vector{Int}, hcount_arr::Vector{Int}
-) = Int[h == -1 ? -1 : hydrogen_count_valence(sym, chg, a, h)
-    for (sym, chg, a, h) in zip(symbol_arr, charge_arr, appval_arr, hcount_arr)]
+"""
+    atom_num_hs(mol::SimpleMolGraph) -> Vector{Int}
+
+Return a vector of size ``n`` representing the number of hydrogens specified to 1 to ``n``th
+atoms of the given molecule (`-1` if not specified). See [`atom_num_hs`](@ref) for atoms.
+"""
+atom_num_hs(mol::SimpleMolGraph) = Int[atom_num_hs(mol[i]) for i in vertices(mol)]
+
+# Specified hydrogens that are not graph nodes (`atom_num_hs` - explicit hydrogen nodes,
+# -1 if not specified, e.g. 3 for `[CH3]` after the hydrogen nodes are removed)
+specified_hydrogens(mol::SimpleMolGraph) = Int[
+    h == -1 ? -1 : max(h - e, 0) for (h, e) in zip(atom_num_hs(mol), explicit_hydrogens(mol))]
+
+# Specified valence of the atoms (-1: not specified): `atom_valence`, or the apparent valence
+# plus the specified hydrogens (`atom_num_hs`) that are not graph nodes
+specified_valence(mol::SimpleMolGraph, appval_arr::Vector{Int}) = Int[
+    h == -1 ? v : a + h for (v, h, a) in zip(atom_valence(mol), specified_hydrogens(mol), appval_arr)]
 
 
 """
@@ -200,7 +203,9 @@ Return a vector of size ``n`` representing the intrinsic valence of
 
 The number of implicit hydrogens would be calculated based on the valence.
 If the valence is specified to the atom (see [`atom_valence`](@ref), e.g. carbenes and
-pentavalent nitrogens), the specified valence is used. Otherwise, the typical valence of
+pentavalent nitrogens), the specified valence is used. If the number of hydrogens is specified
+(see [`atom_num_hs`](@ref), e.g. SMILES bracket atoms), the valence is the `apparent_valence`
+plus the specified hydrogens that are not graph nodes. Otherwise, the typical valence of
 organic atoms is used. The valence of a hypervalent atom or a non-organic atom is the same as
 its `apparent_valence`. This property corresponds to SMARTS `v` query.
 """
@@ -208,7 +213,8 @@ function valence(mol::SimpleMolGraph)
     if has_descriptor(mol, Val(:valence))
         return get_descriptor(mol, Val(:valence))
     end
-    return valence(atom_symbol(mol), atom_charge(mol), atom_valence(mol), apparent_valence(mol))
+    appval = apparent_valence(mol)
+    return valence(atom_symbol(mol), atom_charge(mol), specified_valence(mol, appval), appval)
 end
 
 # The specified valence (`atomval`, -1: not specified) or the typical valence of the element,
@@ -230,17 +236,23 @@ valence(
 
 Calculate [`valence`](@ref) and store the result in the descriptors of `mol`.
 """
-valence!(mol::SimpleMolGraph) = set_descriptor!(
-    mol, Val(:valence),
-    valence(atom_symbol(mol), atom_charge(mol), atom_valence(mol), apparent_valence(mol)))
+function valence!(mol::SimpleMolGraph)
+    appval = apparent_valence(mol)
+    set_descriptor!(mol, Val(:valence),
+        valence(atom_symbol(mol), atom_charge(mol), specified_valence(mol, appval), appval))
+end
 
 
 function check_valence!(mol::SimpleMolGraph)
-    av = apparent_valence(mol)
+    # apparent valence including the specified hydrogens
+    hs = specified_hydrogens(mol)
+    av = apparent_valence(mol) + max.(hs, 0)
     fv = valence.(atom_symbol(mol), atom_charge(mol), atom_valence(mol), 0)  # specified or typical
     comments = String[]
-    for i in vertices(mol)[av .> fv]
-         push!(comments, "unusual valence at #$(i) (actual $(av[i]), expected $(fv[i]))")
+    for i in vertices(mol)
+        av[i] > fv[i] || continue
+        hs[i] >= 0 && is_nonorganic(atom_symbol(mol[i])) && continue  # given by the input
+        push!(comments, "unusual valence at #$(i) (actual $(av[i]), expected $(fv[i]))")
     end
     mol[:logs]["warning_valence"] = join(comments, "; ")
 end

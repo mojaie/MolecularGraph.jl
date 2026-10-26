@@ -67,7 +67,7 @@
     @test split(printv2mol(ethyl), "\n")[6][49:51] == "  3"
     # the valence is kept if the atom is overwritten by the property block
     chg = smilestomol("C")
-    chg[1] = SMILESAtom(symbol=:C, charge=-1, multiplicity=2, valence=2)
+    chg[1] = SMILESAtom(symbol=:C, charge=-1, multiplicity=2, num_hs=2)
     chg2 = sdftomol(IOBuffer(printv2mol(chg)))
     @test atom_valence(chg2) == [2]
     @test atom_charge(chg2) == [-1]

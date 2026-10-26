@@ -182,12 +182,14 @@ function printv2mol(
         mol = giveback_stereo_hydrogens(mol, V, E)
     end
 
-    # valence (vvv) of atoms with the specified valence (e.g. carbenes, CDXML NumHydrogens,
-    # [Sn]) or the valence that is not inferred from the element and bonds (e.g. set by
-    # `set_descriptor!`)
+    # valence (vvv) of atoms with the specified valence, the valence that is not inferred from
+    # the element and bonds (e.g. carbenes, set by `set_descriptor!`) and non-organic atoms
+    # with the specified number of hydrogens (e.g. [Sn])
+    syms = atom_symbol(mol)
     valarr = valence(mol)
-    inferred = valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
-    vval = [(v >= 0 || w != f) ? w : -1 for (v, w, f) in zip(atom_valence(mol), valarr, inferred)]
+    inferred = valence(syms, atom_charge(mol), apparent_valence(mol))
+    vval = [(v >= 0 || w != f || (h >= 0 && is_nonorganic(sym))) ? w : -1 for (v, h, w, f, sym)
+        in zip(atom_valence(mol), atom_num_hs(mol), valarr, inferred, syms)]
     all(==(-1), vval) && empty!(vval)
 
     # write

@@ -37,7 +37,9 @@ function kekulize(mol::SimpleMolGraph{T}) where T
     sym_arr = atom_symbol(mol)
     chg_arr = Int[atom_charge(mol[i]) for i in vertices(mol)]
     atomval_arr = atom_valence(mol)
-    hs_arr = Int[has_hydrogens(typeof(mol[i])) ? mol[i].hydrogens : 0 for i in vertices(mol)]
+    # hydrogens that are not graph nodes
+    hs_arr = Int[has_hydrogens(typeof(mol[i])) ? mol[i].hydrogens : max(h, 0)
+        for (i, h) in zip(vertices(mol), specified_hydrogens(mol))]
     bondsum = apparent_valence(mol.graph, bondorder)
     hasdouble = falses(nv(mol))
     for (e, o) in zip(edges(mol), bondorder)

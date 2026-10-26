@@ -378,7 +378,9 @@ function atomprop!(state::SMILESParser{T,V,E}) where {T,V,E}
     if !hassymbol  # special case: [H2]
         hcnt -= 1
     end
-    atom = V(; symbol=symbol, charge=charge, isotope=isotope, isaromatic=isaromatic, stereo=stereo)
+    # bracket atoms have no implicit hydrogens (num_hs: hydrogen nodes, e.g. 0 for [CH0])
+    atom = V(; symbol=symbol, charge=charge, isotope=isotope, isaromatic=isaromatic,
+        stereo=stereo, num_hs=hcnt)
     atoms = V[atom]
     for _ in 1:hcnt
         push!(atoms, V(;symbol=:H))
@@ -429,7 +431,6 @@ function atom!(state::SMILESParser{T,V,E}) where {T,V,E}
     sym1 = read(state)
     if sym1 == '['
         forward!(state)
-        push!(state.bracket, state.node + 1)  # the first atom is the bracket atom
         props = atomprop!(state)
         read(state) == ']' || error("smiles parser error - #$(state.pos) unexpected token '$(read(state))'")
         forward!(state)

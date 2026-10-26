@@ -78,9 +78,12 @@ function ctab_bond_v3(
     return (u_edge(T, u, v), E(;order=ord, isordered=isordered))
 end
 
-# Hydrogen counts of atoms (V2000 `hhh`, V3000 `HCOUNT`) are query properties and ignored
-# by default (see the `CDXMLAtom` method in model/cdxml.jl)
-ctab_hydrogen_count!(::Type, ::Val, vprops, atomlines, edges, eprops) = nothing
+# Atom overwritten by the V2000 property block (the valence in the atom block is kept)
+function ctab_atom_props(a::T, charge::Int, multiplicity::Int, isotope::Int) where T
+    val = atom_valence(a)
+    return val == -1 ? T(a[:symbol], charge, multiplicity, isotope, a[:coords]
+        ) : T(a[:symbol], charge, multiplicity, isotope, a[:coords], val)
+end
 
 function ctab_props_v2(io::IO)
     props = Dict{Int,Dict{Symbol,Real}}() # atomindex, {type => value}
@@ -194,8 +197,10 @@ function parse_ctab(::Type{T}, io::IO, config::NamedTuple) where T <: SimpleMolG
     E = eproptype(T) === AbstractBond ? SDFBond : eproptype(T)
     # Parse atoms
     ver === :v3 && (readuntil(io, "M  V30 BEGIN ATOM"); readline(io))
-    atomlines = String[readline(io) for _ in 1:atomcount]
-    vprops = V[ctab_atom(V, line) for line in atomlines]
+    vprops = V[]
+    for _ in 1:atomcount
+        push!(vprops, ctab_atom(V, readline(io)))
+    end
 
     # Parse bonds
     ver === :v3 && (readuntil(io, "M  V30 BEGIN BOND"); readline(io))
@@ -210,20 +215,13 @@ function parse_ctab(::Type{T}, io::IO, config::NamedTuple) where T <: SimpleMolG
     # Properties
     if ver === :v2
         for (i, ps) in ctab_props_v2(io)
-            sym = vprops[i][:symbol]
-            crds = vprops[i][:coords]
             # If prop block exists, any annotations in atom blocks will be overwritten
-            chg = get(ps, :CHG, 0)
-            mul = get(ps, :RAD, 1)
-            iso = get(ps, :ISO, 0)
-            val = atom_valence(vprops[i])  # keep the valence in the atom block
-            vprops[i] = val == -1 ? V(sym, chg, mul, iso, crds) : V(sym, chg, mul, iso, crds, val)
+            vprops[i] = ctab_atom_props(
+                vprops[i], get(ps, :CHG, 0), get(ps, :RAD, 1), get(ps, :ISO, 0))
         end
-        ctab_hydrogen_count!(V, Val(:v2), vprops, atomlines, edges, eprops)
     elseif ver === :v3
         readuntil(io, ctab_only ? "M  V30 END CTAB" : "M  END")
         readline(io)
-        ctab_hydrogen_count!(V, Val(:v3), vprops, atomlines, edges, eprops)
     end
     mol = T(edges, vprops, eprops; config...)
     # TODO: catch compatibility warnings
