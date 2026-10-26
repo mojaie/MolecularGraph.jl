@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Stereochemistry · MolecularGraph.jl</title><meta name="title" content="Stereochemistry · MolecularGraph.jl"/><meta property="og:title" content="Stereochemistry · MolecularGraph.jl"/><meta property="twitter:title" content="Stereochemistry · MolecularGraph.jl"/><meta name="description" content="Documentation for MolecularGraph.jl."/><meta property="og:description" content="Documentation for MolecularGraph.jl."/><meta property="twitter:description" content="Documentation for MolecularGraph.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MolecularGraph.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../gettingstarted/">Getting started</a></li><li><span class="tocitem">Basics</span><ul><li><a class="tocitem" href="../concepts/">Concepts</a></li><li><a class="tocitem" href="../core/">Core functions</a></li><li><a class="tocitem" href="../properties/">Properties and descriptors</a></li><li><a class="tocitem" href="../drawing/">Drawing molecules</a></li><li><a class="tocitem" href="../preprocessing/">Preprocessing</a></li><li class="is-active"><a class="tocitem" href>Stereochemistry</a><ul class="internal"><li><a class="tocitem" href="#Stereochemistry-as-a-molecular-graph-property"><span>Stereochemistry as a molecular graph property</span></a></li><li><a class="tocitem" href="#Stereospecific-implicit-hydrogens"><span>Stereospecific implicit hydrogens</span></a></li><li><a class="tocitem" href="#Limitations"><span>Limitations</span></a></li></ul></li><li><a class="tocitem" href="../mass/">Mass and isotopes</a></li><li><a class="tocitem" href="../substructure/">Substructure and query</a></li><li><a class="tocitem" href="../mcs/">Maximum common substructure</a></li></ul></li><li><span class="tocitem">Advanced topics</span><ul><li><a class="tocitem" href="../../advanced/interface/">Interfaces</a></li><li><a class="tocitem" href="../../advanced/propinterface/">Customize atom properties</a></li></ul></li><li><span class="tocitem">API References</span><ul><li><a class="tocitem" href="../../api/model/">Molecular graph models</a></li><li><a class="tocitem" href="../../api/io/">I/O</a></li><li><a class="tocitem" href="../../api/draw/">Structure drawing</a></li><li><a class="tocitem" href="../../api/coordinates/">Coordinates</a></li><li><a class="tocitem" href="../../api/properties/">Properties and descriptors</a></li><li><a class="tocitem" href="../../api/structurematch/">Structure match</a></li><li><a class="tocitem" href="../../api/query/">Molecular queries</a></li><li><a class="tocitem" href="../../api/inchi/">InChI</a></li><li><a class="tocitem" href="../../api/rdkit/">RDKit interface</a></li><li><a class="tocitem" href="../../api/graph/">Graph algorithims</a></li><li><a class="tocitem" href="../../api/preprocess/">Preprocessing</a></li><li><a class="tocitem" href="../../api/mass/">Molecular mass/weight</a></li><li><a class="tocitem" href="../../api/stereo/">Stereochemistry</a></li></ul></li><li><a class="tocitem" href="../../misc/">Miscellaneous</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Basics</a></li><li class="is-active"><a href>Stereochemistry</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Stereochemistry</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/mojaie/MolecularGraph.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/mojaie/MolecularGraph.jl/blob/master/docs/src/basics/stereo.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Stereochemistry"><a class="docs-heading-anchor" href="#Stereochemistry">Stereochemistry</a><a id="Stereochemistry-1"></a><a class="docs-heading-anchor-permalink" href="#Stereochemistry" title="Permalink"></a></h1><p>This page describes the following functionalities related to stereochemistry.</p><ul><li>Stereochemistry as a molecular graph property</li><li>Stereospecific implicit hydrogens</li><li>Limitations</li></ul><pre><code class="language-julia hljs">using MolecularGraph, Graphs</code></pre><h2 id="Stereochemistry-as-a-molecular-graph-property"><a class="docs-heading-anchor" href="#Stereochemistry-as-a-molecular-graph-property">Stereochemistry as a molecular graph property</a><a id="Stereochemistry-as-a-molecular-graph-property-1"></a><a class="docs-heading-anchor-permalink" href="#Stereochemistry-as-a-molecular-graph-property" title="Permalink"></a></h2><p>Stereochemistry properties are often held as primary properties of vertices and edges in chemical data formats such as SDFile (wedges of bonds) and SMILES (<code>@</code>, <code>@@</code>, <code>/</code> and <code>\</code>).</p><p>Stereochemistry is an interesting property in the context of graph theory. Despite being a property about topology, it cannot be represented as a general simple graph. In order to handle such stereochemistry features, <code>MolGraph</code> holds stereochemistry information objects as graph-level properties, which are obtained from the input when the molecule is constructed (by the <code>on_init</code> callback, see <a href="../../advanced/interface/#MolecularGraph-interfaces">MolecularGraph interfaces</a>).</p><pre><code class="language-julia hljs">tsa = smilestomol(raw&quot;O=C(NO)\C=C\C(=C\[C@H](C(=O)c1ccc(N(C)C)cc1)C)C&quot;)
+html_fixed_size(tsa, 250, 250, atomindex=true)</code></pre><div style="width:250px;height:250px"><svg xmlns="http://www.w3.org/2000/svg"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ version="1.1" baseProfile="tiny"
+ text-rendering="geometricPrecision"
+ preserveAspectRatio="xMidYMid meet"
+ font-weight="normal"
+ font-family="Helvetica"
+ width="100%" height="100%" viewBox="0 0 411.80 179.92">
+<rect x="0" y="0" width="411.80" height="179.92"
+ fill="rgb(255, 255, 255)" opacity="1.0"/>
+<line x1="93.70" y1="39.13" x2="93.71" y2="49.63" stroke="rgb(255, 0, 0)" />
+<line x1="93.71" y1="49.63" x2="93.71" y2="60.13" stroke="rgb(0, 0, 0)" />
+<line x1="98.20" y1="39.12" x2="98.21" y2="49.63" stroke="rgb(255, 0, 0)" />
+<line x1="98.21" y1="49.63" x2="98.21" y2="60.13" stroke="rgb(0, 0, 0)" />
+<line x1="95.96" y1="60.13" x2="86.87" y2="65.38" stroke="rgb(0, 0, 0)" />
+<line x1="86.87" y1="65.38" x2="77.78" y2="70.64" stroke="rgb(0, 0, 255)" />
+<line x1="95.96" y1="60.13" x2="121.96" y2="75.11" stroke="rgb(0, 0, 0)" /><line x1="62.20" y1="70.65" x2="57.00" y2="67.66" stroke="rgb(0, 0, 255)" />
+<line x1="57.00" y1="67.66" x2="51.80" y2="64.66" stroke="rgb(255, 0, 0)" />
+<line x1="121.96" y1="75.11" x2="147.93" y2="60.09" stroke="rgb(0, 0, 0)" /><line x1="126.81" y1="77.50" x2="147.58" y2="65.48" stroke="rgb(0, 0, 0)" /><line x1="147.93" y1="60.09" x2="173.92" y2="75.06" stroke="rgb(0, 0, 0)" /><line x1="173.92" y1="75.06" x2="199.89" y2="60.04" stroke="rgb(0, 0, 0)" /><line x1="178.77" y1="77.46" x2="199.55" y2="65.44" stroke="rgb(0, 0, 0)" /><line x1="173.92" y1="75.06" x2="173.94" y2="105.07" stroke="rgb(0, 0, 0)" /><line x1="199.89" y1="60.04" x2="225.88" y2="75.02" stroke="rgb(0, 0, 0)" /><polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(10.52 18.19 -3.90 2.25 225.88 75.02)"/>
+<line x1="225.88" y1="75.02" x2="251.85" y2="60.00" stroke="rgb(0, 0, 0)" /><g stroke="rgb(0, 0, 0)" stroke-width="0.3" transform="matrix(-2.14 3.71 -0.49 -0.28 225.88 75.02)">
+ <line x1="0" y1="1" x2="0" y2="-1" />
+ <line x1="1" y1="2" x2="1" y2="-2" />
+ <line x1="2" y1="3" x2="2" y2="-3" />
+ <line x1="3" y1="4" x2="3" y2="-4" />
+ <line x1="4" y1="5" x2="4" y2="-5" />
+ <line x1="5" y1="6" x2="5" y2="-6" />
+ <line x1="6" y1="7" x2="6" y2="-7" />
+ <line x1="7" y1="8" x2="7" y2="-8" />
+</g>
+<line x1="254.10" y1="60.00" x2="254.10" y2="49.50" stroke="rgb(0, 0, 0)" />
+<line x1="254.10" y1="49.50" x2="254.09" y2="39.00" stroke="rgb(255, 0, 0)" />
+<line x1="249.60" y1="60.00" x2="249.60" y2="49.50" stroke="rgb(0, 0, 0)" />
+<line x1="249.60" y1="49.50" x2="249.59" y2="39.00" stroke="rgb(255, 0, 0)" />
+<line x1="251.85" y1="60.00" x2="277.85" y2="74.98" stroke="rgb(0, 0, 0)" /><line x1="277.85" y1="74.98" x2="277.87" y2="104.99" stroke="rgb(0, 0, 0)" /><line x1="277.85" y1="74.98" x2="303.82" y2="59.97" stroke="rgb(0, 0, 0)" /><line x1="282.70" y1="77.37" x2="303.47" y2="65.36" stroke="rgb(0, 0, 0)" /><line x1="277.87" y1="104.99" x2="303.87" y2="119.96" stroke="rgb(0, 0, 0)" /><line x1="282.72" y1="102.59" x2="303.51" y2="114.57" stroke="rgb(0, 0, 0)" /><line x1="303.87" y1="119.96" x2="329.84" y2="104.95" stroke="rgb(0, 0, 0)" /><line x1="329.84" y1="104.95" x2="338.94" y2="110.19" stroke="rgb(0, 0, 0)" />
+<line x1="338.94" y1="110.19" x2="348.03" y2="115.43" stroke="rgb(0, 0, 255)" />
+<line x1="329.84" y1="104.95" x2="329.82" y2="74.94" stroke="rgb(0, 0, 0)" /><line x1="325.34" y1="101.95" x2="325.32" y2="77.95" stroke="rgb(0, 0, 0)" /><line x1="355.84" y1="128.92" x2="355.84" y2="139.42" stroke="rgb(0, 0, 255)" />
+<line x1="355.84" y1="139.42" x2="355.85" y2="149.92" stroke="rgb(0, 0, 0)" />
+<line x1="363.62" y1="115.42" x2="372.71" y2="110.16" stroke="rgb(0, 0, 255)" />
+<line x1="372.71" y1="110.16" x2="381.80" y2="104.90" stroke="rgb(0, 0, 0)" />
+<line x1="329.82" y1="74.94" x2="303.82" y2="59.97" stroke="rgb(0, 0, 0)" /><text x="101.54" y="35.03" font-size="14.0" fill="rgb(255, 0, 0)" text-anchor="end" >O</text><text x="69.99" y="80.05" font-size="14.0" fill="rgb(0, 0, 255)" text-anchor="middle" >NH</text><text x="49.60" y="65.07" font-size="14.0" fill="rgb(255, 0, 0)" text-anchor="end" >HO</text><text x="235.31" y="105.90" font-size="14.0" fill="rgb(0, 0, 0)">H</text><text x="257.43" y="34.90" font-size="14.0" fill="rgb(255, 0, 0)" text-anchor="end" >O</text><text x="355.83" y="124.82" font-size="14.0" fill="rgb(0, 0, 255)" text-anchor="middle" >N</text><g>
+ <rect x="95.94" y="37.13" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="95.94" y="47.13" font-size="10" fill="rgb(0, 0, 0)">1</text>
+</g>
+<g>
+ <rect x="95.96" y="60.13" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="95.96" y="70.13" font-size="10" fill="rgb(0, 0, 0)">2</text>
+</g>
+<g>
+ <rect x="69.99" y="82.15" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="69.99" y="92.15" font-size="10" fill="rgb(0, 0, 0)">3</text>
+</g>
+<g>
+ <rect x="44.00" y="67.17" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="44.00" y="77.17" font-size="10" fill="rgb(0, 0, 0)">4</text>
+</g>
+<g>
+ <rect x="121.96" y="75.11" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="121.96" y="85.11" font-size="10" fill="rgb(0, 0, 0)">5</text>
+</g>
+<g>
+ <rect x="147.93" y="60.09" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="147.93" y="70.09" font-size="10" fill="rgb(0, 0, 0)">6</text>
+</g>
+<g>
+ <rect x="173.92" y="75.06" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="173.92" y="85.06" font-size="10" fill="rgb(0, 0, 0)">7</text>
+</g>
+<g>
+ <rect x="199.89" y="60.04" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="199.89" y="70.04" font-size="10" fill="rgb(0, 0, 0)">8</text>
+</g>
+<g>
+ <rect x="225.88" y="75.02" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="225.88" y="85.02" font-size="10" fill="rgb(0, 0, 0)">9</text>
+</g>
+<g>
+ <rect x="240.91" y="108.00" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="240.91" y="118.00" font-size="10" fill="rgb(0, 0, 0)">10</text>
+</g>
+<g>
+ <rect x="251.85" y="60.00" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="251.85" y="70.00" font-size="10" fill="rgb(0, 0, 0)">11</text>
+</g>
+<g>
+ <rect x="251.83" y="37.00" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="251.83" y="47.00" font-size="10" fill="rgb(0, 0, 0)">12</text>
+</g>
+<g>
+ <rect x="277.85" y="74.98" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="277.85" y="84.98" font-size="10" fill="rgb(0, 0, 0)">13</text>
+</g>
+<g>
+ <rect x="277.87" y="104.99" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="277.87" y="114.99" font-size="10" fill="rgb(0, 0, 0)">14</text>
+</g>
+<g>
+ <rect x="303.87" y="119.96" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="303.87" y="129.96" font-size="10" fill="rgb(0, 0, 0)">15</text>
+</g>
+<g>
+ <rect x="329.84" y="104.95" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="329.84" y="114.95" font-size="10" fill="rgb(0, 0, 0)">16</text>
+</g>
+<g>
+ <rect x="355.83" y="126.92" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="355.83" y="136.92" font-size="10" fill="rgb(0, 0, 0)">17</text>
+</g>
+<g>
+ <rect x="355.85" y="149.92" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="355.85" y="159.92" font-size="10" fill="rgb(0, 0, 0)">18</text>
+</g>
+<g>
+ <rect x="381.80" y="104.90" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="381.80" y="114.90" font-size="10" fill="rgb(0, 0, 0)">19</text>
+</g>
+<g>
+ <rect x="329.82" y="74.94" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="329.82" y="84.94" font-size="10" fill="rgb(0, 0, 0)">20</text>
+</g>
+<g>
+ <rect x="303.82" y="59.97" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="303.82" y="69.97" font-size="10" fill="rgb(0, 0, 0)">21</text>
+</g>
+<g>
+ <rect x="210.91" y="101.01" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="210.91" y="111.01" font-size="10" fill="rgb(0, 0, 0)">22</text>
+</g>
+<g>
+ <rect x="173.94" y="105.07" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="173.94" y="115.07" font-size="10" fill="rgb(0, 0, 0)">23</text>
+</g>
+</svg>
+</div><p><code>mol[:stereocenter]</code> returns a <code>StereocenterMap</code>, a mapping of the stereocenter vertex to the <code>Stereocenter</code> object that has the fields <code>lookingFrom</code>, <code>first</code>, <code>second</code> and <code>isclockwise</code>. Looking from the <code>lookingFrom</code> vertex toward the center, <code>first</code>, <code>second</code> and the remaining neighbor (or the implicit hydrogen) are arranged clockwise if <code>isclockwise</code> is true, otherwise counterclockwise (the same convention as SMILES <code>@@</code> and <code>@</code>).</p><pre><code class="language-julia hljs">for (center, stereo) in tsa[:stereocenter]
+    println(center, &quot; =&gt; &quot;, Tuple(stereo))  # (lookingFrom, first, second, isclockwise)
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">9 =&gt; (8, 11, 22, false)</code></pre><p><code>mol[:stereobond]</code> returns a <code>StereobondMap</code>, a mapping of the double bond (edge) to the <code>Stereobond</code> object that has the fields <code>first</code>, <code>second</code> and <code>is_cis</code>. <code>first</code> and <code>second</code> are the neighbors of the source and the destination vertex of the edge, respectively, and <code>is_cis</code> indicates whether they are on the same side of the double bond.</p><pre><code class="language-julia hljs">for (bond, stereo) in tsa[:stereobond]
+    println(bond, &quot; =&gt; &quot;, Tuple(stereo))  # (first, second, is_cis)
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Edge 5 =&gt; 6 =&gt; (2, 7, false)
+Edge 7 =&gt; 8 =&gt; (6, 9, false)</code></pre><p><a href="../../api/stereo/#MolecularGraph.set_stereocenter!-Union{Tuple{T}, Tuple{MolecularGraph.SimpleMolGraph{T}, T, T, T, T, Bool}} where T"><code>set_stereocenter!</code></a> and <a href="../../api/stereo/#MolecularGraph.set_stereobond!-Union{Tuple{T}, Tuple{MolecularGraph.SimpleMolGraph{T}, Graphs.SimpleGraphs.SimpleEdge{T}, T, T, Bool}} where T"><code>set_stereobond!</code></a> can be used to set the stereochemistry information manually.</p><h2 id="Stereospecific-implicit-hydrogens"><a class="docs-heading-anchor" href="#Stereospecific-implicit-hydrogens">Stereospecific implicit hydrogens</a><a id="Stereospecific-implicit-hydrogens-1"></a><a class="docs-heading-anchor-permalink" href="#Stereospecific-implicit-hydrogens" title="Permalink"></a></h2><p>When a molecule is constructed, stereocenters are rearranged so that the hydrogen vertex at the stereocenter (if any; see <code>stereo_hydrogen</code> and <a href="../../api/stereo/#MolecularGraph.safe_stereo_hydrogen!-Union{Tuple{T}, Tuple{MolecularGraph.SimpleMolGraph{T}, T}} where T"><code>safe_stereo_hydrogen!</code></a>) does not appear in the <code>Stereocenter</code> object. Therefore, hydrogen vertices attached to stereocenters can be safely removed by <a href="../../api/preprocess/#MolecularGraph.remove_all_hydrogens!-Tuple{MolecularGraph.SimpleMolGraph}"><code>remove_all_hydrogens!</code></a> (or <code>rem_vertex!</code>). <a href="../../api/preprocess/#MolecularGraph.remove_hydrogens!-Tuple{MolecularGraph.SimpleMolGraph}"><code>remove_hydrogens!</code></a> keeps such stereospecific hydrogens as vertices.</p><p>Here we use an SDFile of estradiol, which can be obtained from PubChem (e.g. <code>https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/5757/SDF</code>).</p><pre><code class="language-julia hljs">datadir = joinpath(pkgdir(MolecularGraph), &quot;docs&quot;, &quot;src&quot;, &quot;assets&quot;, &quot;data&quot;)
+molfile = joinpath(datadir, &quot;Estradiol.mol&quot;)
+mol1 = sdftomol(molfile)
+remove_hydrogens!(mol1)
+html_fixed_size(mol1, 250, 250, atomindex=true)</code></pre><div style="width:250px;height:250px"><svg xmlns="http://www.w3.org/2000/svg"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ version="1.1" baseProfile="tiny"
+ text-rendering="geometricPrecision"
+ preserveAspectRatio="xMidYMid meet"
+ font-weight="normal"
+ font-family="Helvetica"
+ width="100%" height="100%" viewBox="0 0 296.55 190.60">
+<rect x="0" y="0" width="296.55" height="190.60"
+ fill="rgb(255, 255, 255)" opacity="1.0"/>
+<g stroke-width="0.3" transform="matrix(6.52 -19.96 4.28 1.40 234.18 58.52)">
+ <polygon points="0,0 0.5,-0.5 0.5,0.5" fill="rgb(0, 0, 0)"/>
+ <polygon points="0.5,-0.5 0.5,0.5 1,1 1,-1" fill="rgb(255, 0, 0)"/>
+ </g>
+<line x1="51.81" y1="154.76" x2="60.93" y2="149.54" stroke="rgb(255, 0, 0)" />
+<line x1="60.93" y1="149.54" x2="70.04" y2="144.33" stroke="rgb(0, 0, 0)" />
+<line x1="205.79" y1="67.66" x2="205.79" y2="97.66" stroke="rgb(0, 0, 0)" /><line x1="205.79" y1="67.66" x2="234.18" y2="58.52" stroke="rgb(0, 0, 0)" /><line x1="205.79" y1="67.66" x2="179.81" y2="52.66" stroke="rgb(0, 0, 0)" /><polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(0.00 -30.00 4.50 0.00 205.79 67.66)"/>
+<line x1="205.79" y1="97.66" x2="179.81" y2="112.66" stroke="rgb(0, 0, 0)" /><line x1="205.79" y1="97.66" x2="234.18" y2="106.80" stroke="rgb(0, 0, 0)" /><g stroke="rgb(0, 0, 0)" stroke-width="0.3" transform="matrix(0.25 2.34 -0.56 0.06 205.79 97.66)">
+ <line x1="0" y1="1" x2="0" y2="-1" />
+ <line x1="1" y1="2" x2="1" y2="-2" />
+ <line x1="2" y1="3" x2="2" y2="-3" />
+ <line x1="3" y1="4" x2="3" y2="-4" />
+ <line x1="4" y1="5" x2="4" y2="-5" />
+ <line x1="5" y1="6" x2="5" y2="-6" />
+ <line x1="6" y1="7" x2="6" y2="-7" />
+ <line x1="7" y1="8" x2="7" y2="-8" />
+</g>
+<line x1="179.81" y1="112.66" x2="153.83" y2="97.66" stroke="rgb(0, 0, 0)" /><line x1="179.81" y1="112.66" x2="180.30" y2="143.90" stroke="rgb(0, 0, 0)" /><polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(14.35 8.14 -2.22 3.91 179.81 112.66)"/>
+<line x1="153.83" y1="97.66" x2="153.83" y2="67.66" stroke="rgb(0, 0, 0)" /><line x1="153.83" y1="97.66" x2="126.53" y2="112.86" stroke="rgb(0, 0, 0)" /><g stroke="rgb(0, 0, 0)" stroke-width="0.3" transform="matrix(2.04 -1.18 0.28 0.49 153.83 97.66)">
+ <line x1="0" y1="1" x2="0" y2="-1" />
+ <line x1="1" y1="2" x2="1" y2="-2" />
+ <line x1="2" y1="3" x2="2" y2="-3" />
+ <line x1="3" y1="4" x2="3" y2="-4" />
+ <line x1="4" y1="5" x2="4" y2="-5" />
+ <line x1="5" y1="6" x2="5" y2="-6" />
+ <line x1="6" y1="7" x2="6" y2="-7" />
+ <line x1="7" y1="8" x2="7" y2="-8" />
+</g>
+<line x1="234.18" y1="58.52" x2="251.69" y2="82.66" stroke="rgb(0, 0, 0)" /><line x1="234.18" y1="58.52" x2="243.66" y2="57.03" stroke="rgb(0, 0, 0)" /><line x1="179.81" y1="52.66" x2="153.83" y2="67.66" stroke="rgb(0, 0, 0)" /><line x1="234.18" y1="106.80" x2="251.69" y2="82.66" stroke="rgb(0, 0, 0)" /><line x1="180.30" y1="143.90" x2="153.35" y2="159.74" stroke="rgb(0, 0, 0)" /><line x1="126.53" y1="112.86" x2="126.29" y2="144.11" stroke="rgb(0, 0, 0)" /><line x1="122.01" y1="115.83" x2="121.81" y2="141.08" stroke="rgb(0, 0, 0)" /><line x1="126.53" y1="112.86" x2="98.73" y2="95.94" stroke="rgb(0, 0, 0)" /><line x1="153.35" y1="159.74" x2="126.29" y2="144.11" stroke="rgb(0, 0, 0)" /><line x1="126.29" y1="144.11" x2="98.23" y2="160.60" stroke="rgb(0, 0, 0)" /><line x1="98.73" y1="95.94" x2="70.29" y2="111.78" stroke="rgb(0, 0, 0)" /><line x1="98.30" y1="101.33" x2="75.10" y2="114.25" stroke="rgb(0, 0, 0)" /><line x1="98.23" y1="160.60" x2="70.04" y2="144.33" stroke="rgb(0, 0, 0)" /><line x1="97.88" y1="155.20" x2="74.89" y2="141.93" stroke="rgb(0, 0, 0)" /><line x1="70.29" y1="111.78" x2="70.04" y2="144.33" stroke="rgb(0, 0, 0)" /><text x="237.90" y="34.90" font-size="14.0" fill="rgb(255, 0, 0)">OH</text><text x="49.60" y="164.13" font-size="14.0" fill="rgb(255, 0, 0)" text-anchor="end" >HO</text><text x="202.89" y="127.92" font-size="14.0" fill="rgb(0, 0, 0)">H</text><text x="196.40" y="130.14" font-size="14.0" fill="rgb(0, 0, 0)">H</text><text x="170.32" y="89.81" font-size="14.0" fill="rgb(0, 0, 0)">H</text><text x="246.95" y="60.53" font-size="14.0" fill="rgb(0, 0, 0)">H</text><g>
+ <rect x="243.50" y="37.00" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="243.50" y="47.00" font-size="10" fill="rgb(0, 0, 0)">1</text>
+</g>
+<g>
+ <rect x="44.00" y="166.23" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="44.00" y="176.23" font-size="10" fill="rgb(0, 0, 0)">2</text>
+</g>
+<g>
+ <rect x="205.79" y="67.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="205.79" y="77.66" font-size="10" fill="rgb(0, 0, 0)">3</text>
+</g>
+<g>
+ <rect x="205.79" y="97.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="205.79" y="107.66" font-size="10" fill="rgb(0, 0, 0)">4</text>
+</g>
+<g>
+ <rect x="179.81" y="112.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="179.81" y="122.66" font-size="10" fill="rgb(0, 0, 0)">5</text>
+</g>
+<g>
+ <rect x="153.83" y="97.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="153.83" y="107.66" font-size="10" fill="rgb(0, 0, 0)">6</text>
+</g>
+<g>
+ <rect x="234.18" y="58.52" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="234.18" y="68.52" font-size="10" fill="rgb(0, 0, 0)">7</text>
+</g>
+<g>
+ <rect x="179.81" y="52.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="179.81" y="62.66" font-size="10" fill="rgb(0, 0, 0)">8</text>
+</g>
+<g>
+ <rect x="234.18" y="106.80" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="234.18" y="116.80" font-size="10" fill="rgb(0, 0, 0)">9</text>
+</g>
+<g>
+ <rect x="153.83" y="67.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="153.83" y="77.66" font-size="10" fill="rgb(0, 0, 0)">10</text>
+</g>
+<g>
+ <rect x="251.69" y="82.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="251.69" y="92.66" font-size="10" fill="rgb(0, 0, 0)">11</text>
+</g>
+<g>
+ <rect x="180.30" y="143.90" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="180.30" y="153.90" font-size="10" fill="rgb(0, 0, 0)">12</text>
+</g>
+<g>
+ <rect x="205.79" y="37.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="205.79" y="47.66" font-size="10" fill="rgb(0, 0, 0)">13</text>
+</g>
+<g>
+ <rect x="126.53" y="112.86" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="126.53" y="122.86" font-size="10" fill="rgb(0, 0, 0)">14</text>
+</g>
+<g>
+ <rect x="153.35" y="159.74" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="153.35" y="169.74" font-size="10" fill="rgb(0, 0, 0)">15</text>
+</g>
+<g>
+ <rect x="126.29" y="144.11" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="126.29" y="154.11" font-size="10" fill="rgb(0, 0, 0)">16</text>
+</g>
+<g>
+ <rect x="98.73" y="95.94" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="98.73" y="105.94" font-size="10" fill="rgb(0, 0, 0)">17</text>
+</g>
+<g>
+ <rect x="98.23" y="160.60" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="98.23" y="170.60" font-size="10" fill="rgb(0, 0, 0)">18</text>
+</g>
+<g>
+ <rect x="70.29" y="111.78" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="70.29" y="121.78" font-size="10" fill="rgb(0, 0, 0)">19</text>
+</g>
+<g>
+ <rect x="70.04" y="144.33" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="70.04" y="154.33" font-size="10" fill="rgb(0, 0, 0)">20</text>
+</g>
+<g>
+ <rect x="208.49" y="130.02" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="208.49" y="140.02" font-size="10" fill="rgb(0, 0, 0)">21</text>
+</g>
+<g>
+ <rect x="202.00" y="132.24" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="202.00" y="142.24" font-size="10" fill="rgb(0, 0, 0)">22</text>
+</g>
+<g>
+ <rect x="175.92" y="91.91" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="175.92" y="101.91" font-size="10" fill="rgb(0, 0, 0)">23</text>
+</g>
+<g>
+ <rect x="252.55" y="62.63" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="252.55" y="72.63" font-size="10" fill="rgb(0, 0, 0)">24</text>
+</g>
+</svg>
+</div><pre><code class="language-julia hljs">inchikey(mol1)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;VOXZDWNPVJITMN-ZBRFXRBCSA-N&quot;</code></pre><pre><code class="language-julia hljs">mol2 = sdftomol(molfile)
+remove_all_hydrogens!(mol2)
+html_fixed_size(mol2, 250, 250, atomindex=true)</code></pre><div style="width:250px;height:250px"><svg xmlns="http://www.w3.org/2000/svg"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ version="1.1" baseProfile="tiny"
+ text-rendering="geometricPrecision"
+ preserveAspectRatio="xMidYMid meet"
+ font-weight="normal"
+ font-family="Helvetica"
+ width="100%" height="100%" viewBox="0 0 295.69 190.60">
+<rect x="0" y="0" width="295.69" height="190.60"
+ fill="rgb(255, 255, 255)" opacity="1.0"/>
+<g stroke-width="0.3" transform="matrix(6.52 -19.96 4.28 1.40 234.18 58.52)">
+ <polygon points="0,0 0.5,-0.5 0.5,0.5" fill="rgb(0, 0, 0)"/>
+ <polygon points="0.5,-0.5 0.5,0.5 1,1 1,-1" fill="rgb(255, 0, 0)"/>
+ </g>
+<line x1="51.81" y1="154.76" x2="60.93" y2="149.54" stroke="rgb(255, 0, 0)" />
+<line x1="60.93" y1="149.54" x2="70.04" y2="144.33" stroke="rgb(0, 0, 0)" />
+<line x1="205.79" y1="67.66" x2="205.79" y2="97.66" stroke="rgb(0, 0, 0)" /><line x1="205.79" y1="67.66" x2="234.18" y2="58.52" stroke="rgb(0, 0, 0)" /><line x1="205.79" y1="67.66" x2="179.81" y2="52.66" stroke="rgb(0, 0, 0)" /><polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(0.00 -30.00 4.50 0.00 205.79 67.66)"/>
+<line x1="205.79" y1="97.66" x2="179.81" y2="112.66" stroke="rgb(0, 0, 0)" /><polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(28.39 9.14 -1.38 4.28 205.79 97.66)"/>
+<line x1="179.81" y1="112.66" x2="153.83" y2="97.66" stroke="rgb(0, 0, 0)" /><g stroke="rgb(0, 0, 0)" stroke-width="0.3" transform="matrix(0.07 4.46 -0.56 0.01 179.81 112.66)">
+ <line x1="0" y1="1" x2="0" y2="-1" />
+ <line x1="1" y1="2" x2="1" y2="-2" />
+ <line x1="2" y1="3" x2="2" y2="-3" />
+ <line x1="3" y1="4" x2="3" y2="-4" />
+ <line x1="4" y1="5" x2="4" y2="-5" />
+ <line x1="5" y1="6" x2="5" y2="-6" />
+ <line x1="6" y1="7" x2="6" y2="-7" />
+ <line x1="7" y1="8" x2="7" y2="-8" />
+</g>
+<polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(0.00 -30.00 4.50 0.00 153.83 97.66)"/>
+<line x1="153.83" y1="97.66" x2="126.53" y2="112.86" stroke="rgb(0, 0, 0)" /><line x1="234.18" y1="58.52" x2="251.69" y2="82.66" stroke="rgb(0, 0, 0)" /><line x1="179.81" y1="52.66" x2="153.83" y2="67.66" stroke="rgb(0, 0, 0)" /><line x1="234.18" y1="106.80" x2="251.69" y2="82.66" stroke="rgb(0, 0, 0)" /><line x1="180.30" y1="143.90" x2="153.35" y2="159.74" stroke="rgb(0, 0, 0)" /><line x1="126.53" y1="112.86" x2="126.29" y2="144.11" stroke="rgb(0, 0, 0)" /><line x1="122.01" y1="115.83" x2="121.81" y2="141.08" stroke="rgb(0, 0, 0)" /><line x1="126.53" y1="112.86" x2="98.73" y2="95.94" stroke="rgb(0, 0, 0)" /><line x1="153.35" y1="159.74" x2="126.29" y2="144.11" stroke="rgb(0, 0, 0)" /><line x1="126.29" y1="144.11" x2="98.23" y2="160.60" stroke="rgb(0, 0, 0)" /><line x1="98.73" y1="95.94" x2="70.29" y2="111.78" stroke="rgb(0, 0, 0)" /><line x1="98.30" y1="101.33" x2="75.10" y2="114.25" stroke="rgb(0, 0, 0)" /><line x1="98.23" y1="160.60" x2="70.04" y2="144.33" stroke="rgb(0, 0, 0)" /><line x1="97.88" y1="155.20" x2="74.89" y2="141.93" stroke="rgb(0, 0, 0)" /><line x1="70.29" y1="111.78" x2="70.04" y2="144.33" stroke="rgb(0, 0, 0)" /><text x="237.90" y="34.90" font-size="14.0" fill="rgb(255, 0, 0)">OH</text><text x="49.60" y="164.13" font-size="14.0" fill="rgb(255, 0, 0)" text-anchor="end" >HO</text><g>
+ <rect x="243.50" y="37.00" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="243.50" y="47.00" font-size="10" fill="rgb(0, 0, 0)">1</text>
+</g>
+<g>
+ <rect x="44.00" y="166.23" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="44.00" y="176.23" font-size="10" fill="rgb(0, 0, 0)">2</text>
+</g>
+<g>
+ <rect x="205.79" y="67.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="205.79" y="77.66" font-size="10" fill="rgb(0, 0, 0)">3</text>
+</g>
+<g>
+ <rect x="205.79" y="97.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="205.79" y="107.66" font-size="10" fill="rgb(0, 0, 0)">4</text>
+</g>
+<g>
+ <rect x="179.81" y="112.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="179.81" y="122.66" font-size="10" fill="rgb(0, 0, 0)">5</text>
+</g>
+<g>
+ <rect x="153.83" y="97.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="153.83" y="107.66" font-size="10" fill="rgb(0, 0, 0)">6</text>
+</g>
+<g>
+ <rect x="234.18" y="58.52" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="234.18" y="68.52" font-size="10" fill="rgb(0, 0, 0)">7</text>
+</g>
+<g>
+ <rect x="179.81" y="52.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="179.81" y="62.66" font-size="10" fill="rgb(0, 0, 0)">8</text>
+</g>
+<g>
+ <rect x="234.18" y="106.80" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="234.18" y="116.80" font-size="10" fill="rgb(0, 0, 0)">9</text>
+</g>
+<g>
+ <rect x="153.83" y="67.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="153.83" y="77.66" font-size="10" fill="rgb(0, 0, 0)">10</text>
+</g>
+<g>
+ <rect x="251.69" y="82.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="251.69" y="92.66" font-size="10" fill="rgb(0, 0, 0)">11</text>
+</g>
+<g>
+ <rect x="180.30" y="143.90" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="180.30" y="153.90" font-size="10" fill="rgb(0, 0, 0)">12</text>
+</g>
+<g>
+ <rect x="205.79" y="37.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="205.79" y="47.66" font-size="10" fill="rgb(0, 0, 0)">13</text>
+</g>
+<g>
+ <rect x="126.53" y="112.86" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="126.53" y="122.86" font-size="10" fill="rgb(0, 0, 0)">14</text>
+</g>
+<g>
+ <rect x="153.35" y="159.74" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="153.35" y="169.74" font-size="10" fill="rgb(0, 0, 0)">15</text>
+</g>
+<g>
+ <rect x="126.29" y="144.11" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="126.29" y="154.11" font-size="10" fill="rgb(0, 0, 0)">16</text>
+</g>
+<g>
+ <rect x="98.73" y="95.94" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="98.73" y="105.94" font-size="10" fill="rgb(0, 0, 0)">17</text>
+</g>
+<g>
+ <rect x="98.23" y="160.60" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="98.23" y="170.60" font-size="10" fill="rgb(0, 0, 0)">18</text>
+</g>
+<g>
+ <rect x="70.29" y="111.78" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="70.29" y="121.78" font-size="10" fill="rgb(0, 0, 0)">19</text>
+</g>
+<g>
+ <rect x="70.04" y="144.33" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="70.04" y="154.33" font-size="10" fill="rgb(0, 0, 0)">20</text>
+</g>
+</svg>
+</div><p>The stereochemistry information in <code>mol[:stereocenter]</code> is preserved after the removal of the hydrogens.</p><pre><code class="language-julia hljs">mol1[:stereocenter] == mol2[:stereocenter]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><p><code>mol[:stereocenter]</code> is the reference of the stereochemistry, and the wedges in the 2D drawing are its notation. The wedges on the removed hydrogens are lost with the bonds, but the wedges are automatically updated to represent <code>mol[:stereocenter]</code> (e.g. a wedge on another bond of the stereocenter; see <a href="../../api/stereo/#MolecularGraph.assign_stereocenter_wedges!"><code>MolecularGraph.assign_stereocenter_wedges!</code></a>), while the 2D coordinates taken from the SDFile are kept. Therefore, the drawing above and the InChI (which is generated from the 2D coordinates and wedges) are consistent with the stereochemistry.</p><pre><code class="language-julia hljs">inchikey(mol2) == inchikey(mol1)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><p><a href="../../api/coordinates/#MolecularGraph.coordgen!-Tuple{MolecularGraph.SimpleMolGraph}"><code>coordgen!</code></a> can be used to regenerate the 2D coordinates and wedges (wedges of stereocenters not displayed by coordgenlibs are also complemented in the same way).</p><pre><code class="language-julia hljs">coordgen!(mol2)
+html_fixed_size(mol2, 250, 250, atomindex=true)</code></pre><div style="width:250px;height:250px"><svg xmlns="http://www.w3.org/2000/svg"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ version="1.1" baseProfile="tiny"
+ text-rendering="geometricPrecision"
+ preserveAspectRatio="xMidYMid meet"
+ font-weight="normal"
+ font-family="Helvetica"
+ width="100%" height="100%" viewBox="0 0 289.86 188.26">
+<rect x="0" y="0" width="289.86" height="188.26"
+ fill="rgb(255, 255, 255)" opacity="1.0"/>
+<g stroke-width="0.3" transform="matrix(6.44 -19.99 4.28 1.38 228.17 58.55)">
+ <polygon points="0,0 0.5,-0.5 0.5,0.5" fill="rgb(0, 0, 0)"/>
+ <polygon points="0.5,-0.5 0.5,0.5 1,1 1,-1" fill="rgb(255, 0, 0)"/>
+ </g>
+<line x1="51.78" y1="153.74" x2="60.86" y2="148.47" stroke="rgb(255, 0, 0)" />
+<line x1="60.86" y1="148.47" x2="69.94" y2="143.20" stroke="rgb(0, 0, 0)" />
+<line x1="199.66" y1="67.89" x2="199.74" y2="97.89" stroke="rgb(0, 0, 0)" /><line x1="199.66" y1="67.89" x2="228.17" y2="58.55" stroke="rgb(0, 0, 0)" /><line x1="199.66" y1="67.89" x2="173.65" y2="52.96" stroke="rgb(0, 0, 0)" /><polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(3.07 -29.84 4.48 0.46 199.66 67.89)"/>
+<line x1="199.74" y1="97.89" x2="173.79" y2="112.95" stroke="rgb(0, 0, 0)" /><polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(28.55 9.20 -1.38 4.28 199.74 97.89)"/>
+<line x1="173.79" y1="112.95" x2="147.78" y2="98.02" stroke="rgb(0, 0, 0)" /><g stroke="rgb(0, 0, 0)" stroke-width="0.3" transform="matrix(0.01 4.29 -0.56 0.00 173.79 112.95)">
+ <line x1="0" y1="1" x2="0" y2="-1" />
+ <line x1="1" y1="2" x2="1" y2="-2" />
+ <line x1="2" y1="3" x2="2" y2="-3" />
+ <line x1="3" y1="4" x2="3" y2="-4" />
+ <line x1="4" y1="5" x2="4" y2="-5" />
+ <line x1="5" y1="6" x2="5" y2="-6" />
+ <line x1="6" y1="7" x2="6" y2="-7" />
+ <line x1="7" y1="8" x2="7" y2="-8" />
+</g>
+<polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(-0.07 -30.00 4.50 -0.01 147.78 98.02)"/>
+<line x1="147.78" y1="98.02" x2="121.83" y2="113.08" stroke="rgb(0, 0, 0)" /><line x1="228.17" y1="58.55" x2="245.86" y2="82.78" stroke="rgb(0, 0, 0)" /><line x1="173.65" y1="52.96" x2="147.70" y2="68.02" stroke="rgb(0, 0, 0)" /><line x1="228.29" y1="107.09" x2="245.86" y2="82.78" stroke="rgb(0, 0, 0)" /><line x1="173.86" y1="142.95" x2="147.92" y2="158.02" stroke="rgb(0, 0, 0)" /><line x1="121.83" y1="113.08" x2="121.90" y2="143.08" stroke="rgb(0, 0, 0)" /><line x1="117.34" y1="116.09" x2="117.40" y2="140.09" stroke="rgb(0, 0, 0)" /><line x1="121.83" y1="113.08" x2="95.82" y2="98.14" stroke="rgb(0, 0, 0)" /><line x1="147.92" y1="158.02" x2="121.90" y2="143.08" stroke="rgb(0, 0, 0)" /><line x1="121.90" y1="143.08" x2="95.96" y2="158.14" stroke="rgb(0, 0, 0)" /><line x1="95.82" y1="98.14" x2="69.87" y2="113.20" stroke="rgb(0, 0, 0)" /><line x1="95.48" y1="103.54" x2="74.73" y2="115.59" stroke="rgb(0, 0, 0)" /><line x1="95.96" y1="158.14" x2="69.94" y2="143.20" stroke="rgb(0, 0, 0)" /><line x1="95.60" y1="152.75" x2="74.79" y2="140.79" stroke="rgb(0, 0, 0)" /><line x1="69.87" y1="113.20" x2="69.94" y2="143.20" stroke="rgb(0, 0, 0)" /><text x="231.77" y="34.90" font-size="14.0" fill="rgb(255, 0, 0)">OH</text><text x="49.60" y="163.16" font-size="14.0" fill="rgb(255, 0, 0)" text-anchor="end" >HO</text><g>
+ <rect x="237.37" y="37.00" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="237.37" y="47.00" font-size="10" fill="rgb(0, 0, 0)">1</text>
+</g>
+<g>
+ <rect x="44.00" y="165.26" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="44.00" y="175.26" font-size="10" fill="rgb(0, 0, 0)">2</text>
+</g>
+<g>
+ <rect x="199.66" y="67.89" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="199.66" y="77.89" font-size="10" fill="rgb(0, 0, 0)">3</text>
+</g>
+<g>
+ <rect x="199.74" y="97.89" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="199.74" y="107.89" font-size="10" fill="rgb(0, 0, 0)">4</text>
+</g>
+<g>
+ <rect x="173.79" y="112.95" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="173.79" y="122.95" font-size="10" fill="rgb(0, 0, 0)">5</text>
+</g>
+<g>
+ <rect x="147.78" y="98.02" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="147.78" y="108.02" font-size="10" fill="rgb(0, 0, 0)">6</text>
+</g>
+<g>
+ <rect x="228.17" y="58.55" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="228.17" y="68.55" font-size="10" fill="rgb(0, 0, 0)">7</text>
+</g>
+<g>
+ <rect x="173.65" y="52.96" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="173.65" y="62.96" font-size="10" fill="rgb(0, 0, 0)">8</text>
+</g>
+<g>
+ <rect x="228.29" y="107.09" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="228.29" y="117.09" font-size="10" fill="rgb(0, 0, 0)">9</text>
+</g>
+<g>
+ <rect x="147.70" y="68.02" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="147.70" y="78.02" font-size="10" fill="rgb(0, 0, 0)">10</text>
+</g>
+<g>
+ <rect x="245.86" y="82.78" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="245.86" y="92.78" font-size="10" fill="rgb(0, 0, 0)">11</text>
+</g>
+<g>
+ <rect x="173.86" y="142.95" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="173.86" y="152.95" font-size="10" fill="rgb(0, 0, 0)">12</text>
+</g>
+<g>
+ <rect x="202.73" y="38.05" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="202.73" y="48.05" font-size="10" fill="rgb(0, 0, 0)">13</text>
+</g>
+<g>
+ <rect x="121.83" y="113.08" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="121.83" y="123.08" font-size="10" fill="rgb(0, 0, 0)">14</text>
+</g>
+<g>
+ <rect x="147.92" y="158.02" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="147.92" y="168.02" font-size="10" fill="rgb(0, 0, 0)">15</text>
+</g>
+<g>
+ <rect x="121.90" y="143.08" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="121.90" y="153.08" font-size="10" fill="rgb(0, 0, 0)">16</text>
+</g>
+<g>
+ <rect x="95.82" y="98.14" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="95.82" y="108.14" font-size="10" fill="rgb(0, 0, 0)">17</text>
+</g>
+<g>
+ <rect x="95.96" y="158.14" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="95.96" y="168.14" font-size="10" fill="rgb(0, 0, 0)">18</text>
+</g>
+<g>
+ <rect x="69.87" y="113.20" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="69.87" y="123.20" font-size="10" fill="rgb(0, 0, 0)">19</text>
+</g>
+<g>
+ <rect x="69.94" y="143.20" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="69.94" y="153.20" font-size="10" fill="rgb(0, 0, 0)">20</text>
+</g>
+</svg>
+</div><pre><code class="language-julia hljs">inchikey(mol2) == inchikey(mol1)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><p>The 2D rendering of fused rings above is still a bit hard to read, because the stereospecific hydrogens at the ring fusions are implicit. To give the hydrogens back to the molecule, simply add hydrogen vertices as follows.</p><pre><code class="language-julia hljs">let mol = copy(mol2)
+    ringcount = ring_count(mol)
+    for center in keys(mol[:stereocenter])
+        if degree(mol, center) == 3 &amp;&amp; ringcount[center] &gt; 1
+            add_vertex!(mol, SDFAtom(symbol=:H))
+            add_edge!(mol, center, nv(mol), SDFBond())
+        end
+    end
+    coordgen!(mol)
+    html_fixed_size(mol, 250, 250, atomindex=true)
+end</code></pre><div style="width:250px;height:250px"><svg xmlns="http://www.w3.org/2000/svg"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ version="1.1" baseProfile="tiny"
+ text-rendering="geometricPrecision"
+ preserveAspectRatio="xMidYMid meet"
+ font-weight="normal"
+ font-family="Helvetica"
+ width="100%" height="100%" viewBox="0 0 296.06 198.06">
+<rect x="0" y="0" width="296.06" height="198.06"
+ fill="rgb(255, 255, 255)" opacity="1.0"/>
+<g stroke-width="0.3" transform="matrix(2.94 0.63 -0.12 0.55 222.71 57.47)">
+ <line x1="0" y1="1" x2="0" y2="-1" stroke="rgb(0, 0, 0)" />
+ <line x1="1" y1="2" x2="1" y2="-2" stroke="rgb(0, 0, 0)" />
+ <line x1="2" y1="3" x2="2" y2="-3" stroke="rgb(0, 0, 0)" />
+ <line x1="3" y1="4" x2="3" y2="-4" stroke="rgb(0, 0, 0)" />
+ <line x1="4" y1="5" x2="4" y2="-5" stroke="rgb(255, 0, 0)" />
+ <line x1="5" y1="6" x2="5" y2="-6" stroke="rgb(255, 0, 0)" />
+ <line x1="6" y1="7" x2="6" y2="-7" stroke="rgb(255, 0, 0)" />
+ <line x1="7" y1="8" x2="7" y2="-8" stroke="rgb(255, 0, 0)" />
+</g>
+<line x1="51.79" y1="163.56" x2="60.87" y2="158.31" stroke="rgb(255, 0, 0)" />
+<line x1="60.87" y1="158.31" x2="69.94" y2="153.06" stroke="rgb(0, 0, 0)" />
+<line x1="200.38" y1="77.53" x2="174.37" y2="62.58" stroke="rgb(0, 0, 0)" /><line x1="200.38" y1="77.53" x2="222.71" y2="57.47" stroke="rgb(0, 0, 0)" /><line x1="200.38" y1="77.53" x2="200.18" y2="107.66" stroke="rgb(0, 0, 0)" /><g stroke="rgb(0, 0, 0)" stroke-width="0.3" transform="matrix(3.91 1.76 -0.23 0.51 200.38 77.53)">
+ <line x1="0" y1="1" x2="0" y2="-1" />
+ <line x1="1" y1="2" x2="1" y2="-2" />
+ <line x1="2" y1="3" x2="2" y2="-3" />
+ <line x1="3" y1="4" x2="3" y2="-4" />
+ <line x1="4" y1="5" x2="4" y2="-5" />
+ <line x1="5" y1="6" x2="5" y2="-6" />
+ <line x1="6" y1="7" x2="6" y2="-7" />
+ <line x1="7" y1="8" x2="7" y2="-8" />
+</g>
+<line x1="174.37" y1="62.58" x2="147.87" y2="77.97" stroke="rgb(0, 0, 0)" /><line x1="174.37" y1="62.58" x2="180.75" y2="33.20" stroke="rgb(0, 0, 0)" /><polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(-14.35 -15.30 3.28 -3.08 174.37 62.58)"/>
+<line x1="147.87" y1="77.97" x2="147.97" y2="107.95" stroke="rgb(0, 0, 0)" /><line x1="147.87" y1="77.97" x2="121.83" y2="63.06" stroke="rgb(0, 0, 0)" /><g stroke="rgb(0, 0, 0)" stroke-width="0.3" transform="matrix(-0.30 -0.85 0.53 -0.19 147.87 77.97)">
+ <line x1="0" y1="1" x2="0" y2="-1" />
+ <line x1="1" y1="2" x2="1" y2="-2" />
+ <line x1="2" y1="3" x2="2" y2="-3" />
+ <line x1="3" y1="4" x2="3" y2="-4" />
+ <line x1="4" y1="5" x2="4" y2="-5" />
+ <line x1="5" y1="6" x2="5" y2="-6" />
+ <line x1="6" y1="7" x2="6" y2="-7" />
+ <line x1="7" y1="8" x2="7" y2="-8" />
+</g>
+<line x1="147.97" y1="107.95" x2="174.03" y2="122.89" stroke="rgb(0, 0, 0)" /><line x1="147.97" y1="107.95" x2="121.94" y2="123.01" stroke="rgb(0, 0, 0)" /><polygon points="0,0 1,1 1,-1" fill="rgb(0, 0, 0)" transform="matrix(0.05 21.00 -4.50 0.01 147.97 107.95)"/>
+<line x1="222.71" y1="57.47" x2="210.61" y2="30.00" stroke="rgb(0, 0, 0)" /><line x1="200.18" y1="107.66" x2="174.03" y2="122.89" stroke="rgb(0, 0, 0)" /><line x1="180.75" y1="33.20" x2="210.61" y2="30.00" stroke="rgb(0, 0, 0)" /><line x1="121.83" y1="63.06" x2="95.94" y2="78.12" stroke="rgb(0, 0, 0)" /><line x1="121.94" y1="123.01" x2="95.93" y2="108.07" stroke="rgb(0, 0, 0)" /><line x1="121.58" y1="117.62" x2="100.77" y2="105.66" stroke="rgb(0, 0, 0)" /><line x1="121.94" y1="123.01" x2="121.95" y2="153.03" stroke="rgb(0, 0, 0)" /><line x1="95.94" y1="78.12" x2="95.93" y2="108.07" stroke="rgb(0, 0, 0)" /><line x1="95.93" y1="108.07" x2="69.97" y2="123.07" stroke="rgb(0, 0, 0)" /><line x1="121.95" y1="153.03" x2="95.96" y2="167.98" stroke="rgb(0, 0, 0)" /><line x1="117.11" y1="150.63" x2="96.32" y2="162.59" stroke="rgb(0, 0, 0)" /><line x1="69.97" y1="123.07" x2="69.94" y2="153.06" stroke="rgb(0, 0, 0)" /><line x1="74.47" y1="126.07" x2="74.45" y2="150.07" stroke="rgb(0, 0, 0)" /><line x1="95.96" y1="167.98" x2="69.94" y2="153.06" stroke="rgb(0, 0, 0)" /><text x="246.46" y="68.65" font-size="14.0" fill="rgb(255, 0, 0)">OH</text><text x="49.60" y="172.96" font-size="14.0" fill="rgb(255, 0, 0)" text-anchor="end" >HO</text><text x="142.44" y="142.85" font-size="14.0" fill="rgb(0, 0, 0)">H</text><text x="159.47" y="45.61" font-size="14.0" fill="rgb(0, 0, 0)" text-anchor="end" >H</text><text x="148.32" y="68.48" font-size="14.0" fill="rgb(0, 0, 0)" text-anchor="end" >H</text><g>
+ <rect x="252.06" y="70.75" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="252.06" y="80.75" font-size="10" fill="rgb(0, 0, 0)">1</text>
+</g>
+<g>
+ <rect x="44.00" y="175.06" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="44.00" y="185.06" font-size="10" fill="rgb(0, 0, 0)">2</text>
+</g>
+<g>
+ <rect x="200.38" y="77.53" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="200.38" y="87.53" font-size="10" fill="rgb(0, 0, 0)">3</text>
+</g>
+<g>
+ <rect x="174.37" y="62.58" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="174.37" y="72.58" font-size="10" fill="rgb(0, 0, 0)">4</text>
+</g>
+<g>
+ <rect x="147.87" y="77.97" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="147.87" y="87.97" font-size="10" fill="rgb(0, 0, 0)">5</text>
+</g>
+<g>
+ <rect x="147.97" y="107.95" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="147.97" y="117.95" font-size="10" fill="rgb(0, 0, 0)">6</text>
+</g>
+<g>
+ <rect x="222.71" y="57.47" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="222.71" y="67.47" font-size="10" fill="rgb(0, 0, 0)">7</text>
+</g>
+<g>
+ <rect x="200.18" y="107.66" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="200.18" y="117.66" font-size="10" fill="rgb(0, 0, 0)">8</text>
+</g>
+<g>
+ <rect x="180.75" y="33.20" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="180.75" y="43.20" font-size="10" fill="rgb(0, 0, 0)">9</text>
+</g>
+<g>
+ <rect x="174.03" y="122.89" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="174.03" y="132.89" font-size="10" fill="rgb(0, 0, 0)">10</text>
+</g>
+<g>
+ <rect x="210.61" y="30.00" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="210.61" y="40.00" font-size="10" fill="rgb(0, 0, 0)">11</text>
+</g>
+<g>
+ <rect x="121.83" y="63.06" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="121.83" y="73.06" font-size="10" fill="rgb(0, 0, 0)">12</text>
+</g>
+<g>
+ <rect x="227.72" y="89.84" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="227.72" y="99.84" font-size="10" fill="rgb(0, 0, 0)">13</text>
+</g>
+<g>
+ <rect x="121.94" y="123.01" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="121.94" y="133.01" font-size="10" fill="rgb(0, 0, 0)">14</text>
+</g>
+<g>
+ <rect x="95.94" y="78.12" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="95.94" y="88.12" font-size="10" fill="rgb(0, 0, 0)">15</text>
+</g>
+<g>
+ <rect x="95.93" y="108.07" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="95.93" y="118.07" font-size="10" fill="rgb(0, 0, 0)">16</text>
+</g>
+<g>
+ <rect x="121.95" y="153.03" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="121.95" y="163.03" font-size="10" fill="rgb(0, 0, 0)">17</text>
+</g>
+<g>
+ <rect x="69.97" y="123.07" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="69.97" y="133.07" font-size="10" fill="rgb(0, 0, 0)">18</text>
+</g>
+<g>
+ <rect x="95.96" y="167.98" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="95.96" y="177.98" font-size="10" fill="rgb(0, 0, 0)">19</text>
+</g>
+<g>
+ <rect x="69.94" y="153.06" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="69.94" y="163.06" font-size="10" fill="rgb(0, 0, 0)">20</text>
+</g>
+<g>
+ <rect x="148.04" y="144.95" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="148.04" y="154.95" font-size="10" fill="rgb(0, 0, 0)">21</text>
+</g>
+<g>
+ <rect x="153.87" y="47.71" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="153.87" y="57.71" font-size="10" fill="rgb(0, 0, 0)">22</text>
+</g>
+<g>
+ <rect x="142.72" y="70.58" width="10" height="10" rx="5.0" ry="5.0" fill="rgb(240, 240, 255)" />
+ <text x="142.72" y="80.58" font-size="10" fill="rgb(0, 0, 0)">23</text>
+</g>
+</svg>
+</div><p>The SDFile writer (<a href="../../api/io/#MolecularGraph.printv2mol-Tuple{IO, MolecularGraph.SimpleMolGraph}"><code>printv2mol</code></a>, <a href="../../api/io/#MolecularGraph.sdfilewriter-Tuple{IO, Any}"><code>sdfilewriter</code></a>) does this automatically (<code>givebackhydrogen=true</code> by default). If the molecule has 2D coordinates, they are kept and the hydrogens are placed with wedges, so <code>coordgen!</code> is not called.</p><pre><code class="language-julia hljs">let dump = printv2mol(mol2)
+    mol = sdftomol(IOBuffer(dump))
+    inchikey(mol) == inchikey(mol1)
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><h2 id="Limitations"><a class="docs-heading-anchor" href="#Limitations">Limitations</a><a id="Limitations-1"></a><a class="docs-heading-anchor-permalink" href="#Limitations" title="Permalink"></a></h2><ul><li>As the stereochemistry can be affected by changes of adjacent vertices and edges, operations that alter the graph topology of molecules that have stereochemistry should be avoided (except for the removal of hydrogen vertices shown above).</li><li>Interconversion of stereochemical data and 2D coordinate generation still have many challenges.</li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../preprocessing/">« Preprocessing</a><a class="docs-footer-nextpage" href="../mass/">Mass and isotopes »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Monday 26 October 2026 10:01">Monday 26 October 2026</span>. Using Julia version 1.13.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
