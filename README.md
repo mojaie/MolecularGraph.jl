@@ -132,6 +132,10 @@ Features
     [JuliaC.jl](https://github.com/JuliaLang/JuliaC.jl) (`juliac --trim=safe`).
     See [build/README.md](./build/README.md).
 
+AI Assistance
+-----------------
+
+Generative AI tools are used to assist with code development, bug fixing, documentation writing, and pull request reviews. All AI-generated contributions are reviewed and validated by the human maintainer, who retains full responsibility for the package's design, implementation, and maintenance.
 
 License
 -----------------
