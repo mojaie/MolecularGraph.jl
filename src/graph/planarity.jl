@@ -217,6 +217,6 @@ a planarity test (see [`isplanar`](@ref)).
 """
 function isouterplanar(g::SimpleGraph)
     ne(g) < 6 && return true
-    ne(g) > nv(g) * 2 - 6 && return false
+    ne(g) > nv(g) * 2 - 3 && return false
     return outerplanaritytest(g)
 end

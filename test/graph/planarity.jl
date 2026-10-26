@@ -127,4 +127,27 @@ end
     @test !outerplanaritytest(disconn)
 end
 
+@testset "isplanar_shortcut" begin
+    @test isplanar(SimpleGraph())
+    @test isplanar(complete_graph(4))
+    @test !isplanar(complete_graph(5))
+    @test !isplanar(complete_bipartite_graph(3, 3))
+    @test !isplanar(smallgraph(:petersen))
+    @test isplanar(smallgraph(:dodecahedral))
+    @test isplanar(ladder_graph(20))
+    @test !isplanar(complete_graph(8))  # too many edges
+
+    @test isouterplanar(SimpleGraph())
+    @test isouterplanar(cycle_graph(10))
+    @test isouterplanar(ladder_graph(10))
+    @test !isouterplanar(complete_graph(4))
+    @test !isouterplanar(complete_bipartite_graph(2, 3))
+    @test !isouterplanar(complete_graph(6))
+    # maximal outerplanar graph (fan, 2n - 3 edges)
+    fan = SimpleGraph(Edge.([
+        (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (1, 3), (1, 4), (1, 5), (1, 6)]))
+    @test outerplanaritytest(fan)
+    @test isouterplanar(fan)
+end
+
 end # graph.planarity

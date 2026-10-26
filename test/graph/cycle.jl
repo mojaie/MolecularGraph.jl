@@ -5,6 +5,43 @@
 
 @testset "cycle" begin
 
+@testset "circuitrank" begin
+    @test circuitrank(SimpleGraph()) == 0
+    @test circuitrank(SimpleGraph(3)) == 0
+    @test circuitrank(path_graph(5)) == 0
+    @test circuitrank(cycle_graph(5)) == 1
+    @test circuitrank(complete_graph(5)) == 6
+    @test circuitrank(smallgraph(:petersen)) == 6
+    twotri = SimpleGraph(Edge.([(1, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4)]))
+    @test circuitrank(twotri) == 2
+end
+
+@testset "cotree_edges" begin
+    @test isempty(cotree_edges(path_graph(5)))
+    @test length(cotree_edges(cycle_graph(4))) == 1
+    for g in (complete_graph(4), complete_graph(5), smallgraph(:petersen), ladder_graph(5))
+        cotree = cotree_edges(g)
+        @test length(cotree) == circuitrank(g)
+        @test issubset(cotree, Set(edges(g)))
+        # the rest is a spanning tree
+        tree = SimpleGraph(collect(setdiff(Set(edges(g)), cotree)))
+        @test nv(tree) == nv(g)
+        @test is_tree(tree)
+    end
+end
+
+@testset "findmincycle" begin
+    c5 = cycle_graph(5)
+    cyc = findmincycle(c5, Set([Edge(1, 5)]))
+    @test length(cyc) == 5
+    @test issetequal(cyc, 1:5)
+    # the cycle should contain the edge in S
+    g = SimpleGraph(Edge.([(1, 2), (2, 3), (3, 4), (4, 1), (1, 5), (5, 3)]))
+    cyc = findmincycle(g, Set([Edge(3, 4)]))
+    @test length(cyc) == 4
+    @test 3 in cyc && 4 in cyc
+end
+
 @testset "mincyclebasis" begin
     p5 = path_graph(5)
     @test isempty(mincyclebasis(p5))
@@ -33,6 +70,22 @@
         (41, 43), (41, 56), (42, 56), (44, 45), (46, 47), (47, 48), (48, 49), (49, 50), (50, 51),
         (52, 53), (53, 54), (54, 55), (56, 57)]))
     @test sum(length.(mincyclebasis(case57))) == 124
+    @test length(mincyclebasis(case57)) == circuitrank(case57)
+end
+
+@testset "edgemincyclebasis" begin
+    @test isempty(edgemincyclebasis(path_graph(5)))
+    ecycs = edgemincyclebasis(cycle_graph(4))
+    @test length(ecycs) == 1
+    @test issetequal(only(ecycs), edges(cycle_graph(4)))
+    k4 = complete_graph(4)
+    ecycs = edgemincyclebasis(k4)
+    @test length(ecycs) == 3
+    @test all(length(c) == 3 for c in ecycs)
+    @test all(issubset(c, edges(k4)) for c in ecycs)
+    # from vertex cycles
+    @test edgemincyclebasis(k4, [[1, 2, 3]]) == [[Edge(1, 2), Edge(2, 3), Edge(1, 3)]]
+    @test edgemincyclebasis(k4, Vector{Int}[]) == Vector{Edge{Int}}[]
 end
 
 end # cycle

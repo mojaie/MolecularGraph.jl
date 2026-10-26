@@ -48,4 +48,41 @@
     # global_logger(default_logger)
 end
 
+@testset "matching_validity" begin
+    is_valid_matching(g, m) = (all(has_edge(g, e) for e in m)
+        && allunique(vcat([[src(e), dst(e)] for e in m]...)))
+    @test isempty(max_matching(SimpleGraph()))
+    @test isempty(max_matching(SimpleGraph(3)))
+    for (g, size) in (
+            (path_graph(7), 3), (cycle_graph(5), 2), (smallgraph(:petersen), 5),
+            (complete_bipartite_graph(4, 7), 4), (smallgraph(:dodecahedral), 10),
+            (wheel_graph(8), 4))
+        m = max_matching(g)
+        @test length(m) == size
+        @test is_valid_matching(g, m)
+    end
+    # blossom (odd cycle) contraction
+    g = SimpleGraph(Edge.([(1, 2), (2, 3), (3, 4), (4, 5), (5, 1), (5, 6), (3, 7), (7, 8)]))
+    m = max_matching(g)
+    @test length(m) == 4
+    @test is_valid_matching(g, m)
+    # the augmenting path passes through only the root of the contracted blossom
+    g = SimpleGraph(Edge.([(1, 3), (1, 5), (1, 6), (2, 3), (2, 4), (3, 4), (3, 7), (4, 7), (6, 7)]))
+    m = max_matching(g)
+    @test length(m) == 3
+    @test is_valid_matching(g, m)
+    karate = smallgraph(:karate)
+    m = max_matching(karate)
+    @test length(m) == 13  # Tutte-Berge bound with S = [1, 2, 3, 4, 33, 34]
+    @test is_valid_matching(karate, m)
+end
+
+@testset "is_perfect_matching" begin
+    p4 = path_graph(4)
+    @test is_perfect_matching(p4, Set([Edge(1, 2), Edge(3, 4)]))
+    @test !is_perfect_matching(p4, Set([Edge(2, 3)]))
+    @test is_perfect_matching(SimpleGraph())
+    @test !is_perfect_matching(SimpleGraph(2))
+end
+
 end # matching
