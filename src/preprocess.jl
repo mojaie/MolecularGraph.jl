@@ -36,6 +36,7 @@ function kekulize(mol::SimpleMolGraph{T}) where T
     arom = atom_isaromatic(mol)
     sym_arr = atom_symbol(mol)
     chg_arr = Int[atom_charge(mol[i]) for i in vertices(mol)]
+    atomval_arr = atom_valence(mol)
     hs_arr = Int[has_hydrogens(typeof(mol[i])) ? mol[i].hydrogens : 0 for i in vertices(mol)]
     bondsum = apparent_valence(mol.graph, bondorder)
     hasdouble = falses(nv(mol))
@@ -57,7 +58,7 @@ function kekulize(mol::SimpleMolGraph{T}) where T
             deg = degree(mol.graph, i)
             deg in (2, 3) || error("Kekulization failed: invalid aromatic $(sym) with valence $(deg)")
             # no pi bond: double bond (except hypervalent) or enough bonds without double bonds
-            fv = formal_valence(sym, chg_arr[i])
+            fv = valence(sym, chg_arr[i], atomval_arr[i], 0)  # specified or typical
             if hasdouble[i] ? bondsum[i] <= fv : bondsum[i] + hs_arr[i] >= fv
                 # explicit pyrrole-like [nH] (three single bonds including the hydrogen)
                 if (sym in (:N, :P, :As) && chg_arr[i] == 0 && deg + hs_arr[i] == 3 && !hasdouble[i]

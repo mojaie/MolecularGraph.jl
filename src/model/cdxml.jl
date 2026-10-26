@@ -149,8 +149,8 @@ function hydrogen_count_valence!(
     end
     hcs = [(arom[i] || a.valence != -1) ? -1 : hcounts[i] for (i, a) in enumerate(atoms)]
     vals = hydrogen_count_valence(
-        edges, Int[bond_order(b) for b in bonds], falses(length(atoms)),
-        Symbol[a.symbol for a in atoms], Int[a.charge for a in atoms], hcs)
+        Symbol[a.symbol for a in atoms], Int[a.charge for a in atoms],
+        apparent_valence(length(atoms), edges, Int[bond_order(b) for b in bonds]), hcs)
     for (i, a) in enumerate(atoms)
         vals[i] == -1 && continue
         atoms[i] = CDXMLAtom(a.symbol, a.charge, a.multiplicity, a.isotope, a.isaromatic, a.coords, vals[i])

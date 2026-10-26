@@ -186,7 +186,7 @@ function printv2mol(
     # [Sn]) or the valence that is not inferred from the element and bonds (e.g. set by
     # `set_descriptor!`)
     valarr = valence(mol)
-    inferred = max.(formal_valence(atom_symbol(mol), atom_charge(mol)), apparent_valence(mol))
+    inferred = valence(atom_symbol(mol), atom_charge(mol), apparent_valence(mol))
     vval = [(v >= 0 || w != f) ? w : -1 for (v, w, f) in zip(atom_valence(mol), valarr, inferred)]
     all(==(-1), vval) && empty!(vval)
 

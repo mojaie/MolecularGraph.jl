@@ -163,10 +163,11 @@ function bracket_valence!(state::SMILESParser{T,V,E}) where {T,V,E}
     hcounts = fill(-1, length(state.vprops))
     hcounts[state.bracket] .= 0
     arom = BitVector(has_isaromatic(V) && isaromatic(a) for a in state.vprops)
+    appval = apparent_valence(
+        length(state.vprops), state.edges, Int[bond_order(b) for b in state.eprops], arom)
     vals = hydrogen_count_valence(
-        state.edges, Int[bond_order(b) for b in state.eprops], arom,
         Symbol[atom_symbol(a) for a in state.vprops], Int[atom_charge(a) for a in state.vprops],
-        hcounts)
+        appval, hcounts)
     for i in state.bracket
         vals[i] == -1 && continue
         a = state.vprops[i]

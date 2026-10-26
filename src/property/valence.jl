@@ -138,10 +138,23 @@ function apparent_valence(mol::SimpleMolGraph)
 end
 
 apparent_valence(g::SimpleGraph, order_arr::Vector{Int}
-    ) = bond_order_sum(nv(g), edges(g), order_arr)
+    ) = apparent_valence(nv(g), edges(g), order_arr)
 
 apparent_valence(g::SimpleGraph, order_arr::Vector{Int}, arom::BitVector
-    ) = apparent_valence(g, order_arr) + arom
+    ) = apparent_valence(nv(g), edges(g), order_arr, arom)
+
+# Edge list versions (also used by the parsers before the graph is constructed)
+function apparent_valence(n::Int, edges, order_arr::Vector{Int})
+    arr = zeros(Int, n)
+    for (e, o) in zip(edges, order_arr)
+        arr[src(e)] += o
+        arr[dst(e)] += o
+    end
+    return arr
+end
+
+apparent_valence(n::Int, edges, order_arr::Vector{Int}, arom::BitVector
+    ) = apparent_valence(n, edges, order_arr) + arom
 
 """
     apparent_valence!(mol::SimpleMolGraph)
@@ -156,52 +169,27 @@ apparent_valence!(mol::SimpleMolGraph) = set_descriptor!(
 atom_isaromatic(mol::SimpleMolGraph) = BitVector(
     has_isaromatic(typeof(mol[i])) && isaromatic(mol[i]) for i in vertices(mol))
 
-# Edge list versions (also used by the parsers before the graph is constructed)
-
-# Total bond order of each atom
-function bond_order_sum(n::Int, edges, order_arr::Vector{Int})
-    arr = zeros(Int, n)
-    for (e, o) in zip(edges, order_arr)
-        arr[src(e)] += o
-        arr[dst(e)] += o
-    end
-    return arr
-end
-
-
 # Typical valence of the element (octet rule), 0 if the element is not supported
 formal_valence(sym::Symbol, charge::Int
     ) = haskey(LONEPAIR_COUNT, sym) ? 4 - abs(LONEPAIR_COUNT[sym] - charge) : 0
 
-formal_valence(symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}
-    ) = formal_valence.(symbol_arr, charge_arr)
-
-# Valence of the atom with `hcount` hydrogens that are not graph nodes (e.g. CDXML
-# NumHydrogens) and the total bond order `bondsum`. Returns -1 (not specified) if it is the
-# same as the valence inferred from the element. Elements other than typical organic atoms
-# (except hydrogen) always have the specified valence (e.g. 0 for `[Sn]`), because their
-# valence is not inferred from the element (other software may add hydrogens).
-function hydrogen_count_valence(sym::Symbol, charge::Int, bondsum::Int, hcount::Int)
-    v = bondsum + hcount
+# Specified valence of the atom with `hcount` hydrogens that are not graph nodes (e.g. CDXML
+# NumHydrogens, 0 for SMILES bracket atoms) and the apparent valence `appval`. Returns -1
+# (not specified) if it is the same as the valence inferred from the element. Elements other
+# than typical organic atoms (except hydrogen) always have the specified valence (e.g. 0 for
+# `[Sn]`), because their valence is not inferred from the element (other software may add
+# hydrogens).
+function hydrogen_count_valence(sym::Symbol, charge::Int, appval::Int, hcount::Int)
+    v = appval + hcount
     (haskey(LONEPAIR_COUNT, sym) || sym === :H) || return v
-    return v == max(formal_valence(sym, charge), bondsum) ? -1 : v
+    return v == valence(sym, charge, -1, appval) ? -1 : v
 end
 
-# Specified valences of atoms (-1: not specified) from the number of hydrogens that are not
-# graph nodes (`hcount_arr`, -1: not specified, e.g. 0 for SMILES bracket atoms) and the bonds
-# (the same as `apparent_valence` before kekulization).
-function hydrogen_count_valence(
-        edges, order_arr::Vector{Int}, arom::BitVector,
-        symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, hcount_arr::Vector{Int})
-    n = length(arom)
-    bondsum = bond_order_sum(n, edges, order_arr) + arom
-    return Int[hcount_arr[i] == -1 ? -1 : hydrogen_count_valence(
-        symbol_arr[i], charge_arr[i], bondsum[i], hcount_arr[i]) for i in 1:n]
-end
-
-# Specified valence if available, otherwise the typical valence
-expected_valence(symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, atomval_arr::Vector{Int}
-    ) = [v >= 0 ? v : formal_valence(sym, chg) for (sym, chg, v) in zip(symbol_arr, charge_arr, atomval_arr)]
+hydrogen_count_valence(
+    symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
+    appval_arr::Vector{Int}, hcount_arr::Vector{Int}
+) = Int[h == -1 ? -1 : hydrogen_count_valence(sym, chg, a, h)
+    for (sym, chg, a, h) in zip(symbol_arr, charge_arr, appval_arr, hcount_arr)]
 
 
 """
@@ -223,14 +211,19 @@ function valence(mol::SimpleMolGraph)
     return valence(atom_symbol(mol), atom_charge(mol), atom_valence(mol), apparent_valence(mol))
 end
 
+# The specified valence (`atomval`, -1: not specified) or the typical valence of the element,
+# and not lower than the apparent valence (hypervalent and non-organic atoms)
+valence(sym::Symbol, charge::Int, atomval::Int, appval::Int
+    ) = max(atomval >= 0 ? atomval : formal_valence(sym, charge), appval)
+
 valence(
     symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, apparent_valence_arr::Vector{Int}
-) = max.(formal_valence(symbol_arr, charge_arr), apparent_valence_arr)
+) = valence.(symbol_arr, charge_arr, -1, apparent_valence_arr)
 
 valence(
     symbol_arr::Vector{Symbol}, charge_arr::Vector{Int},
     atomval_arr::Vector{Int}, apparent_valence_arr::Vector{Int}
-) = max.(expected_valence(symbol_arr, charge_arr, atomval_arr), apparent_valence_arr)
+) = valence.(symbol_arr, charge_arr, atomval_arr, apparent_valence_arr)
 
 """
     valence!(mol::SimpleMolGraph)
@@ -244,7 +237,7 @@ valence!(mol::SimpleMolGraph) = set_descriptor!(
 
 function check_valence!(mol::SimpleMolGraph)
     av = apparent_valence(mol)
-    fv = expected_valence(atom_symbol(mol), atom_charge(mol), atom_valence(mol))
+    fv = valence.(atom_symbol(mol), atom_charge(mol), atom_valence(mol), 0)  # specified or typical
     comments = String[]
     for i in vertices(mol)[av .> fv]
          push!(comments, "unusual valence at #$(i) (actual $(av[i]), expected $(fv[i]))")

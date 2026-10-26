@@ -23,8 +23,9 @@
   `smiles_on_update!` and `cdxml_on_update!` no longer call `apparent_valence!` after
   `kekulize!` (custom callbacks should not call it after `kekulize!`).
 - `kekulize` assigns double bonds to the aromatic atoms without double bonds whose total bond
-  order is lower than the typical valence, so `[se]1cccc1`, `[cH-]1cccc1`, `[cH+]1cccccc1`
-  and `[o+]1ccccc1` can be kekulized (failed before).
+  order is lower than the typical valence (or the specified valence, `atom_valence`), so
+  `[se]1cccc1`, `[cH-]1cccc1`, `[cH+]1cccccc1` and `[o+]1ccccc1` can be kekulized (failed
+  before).
 - `is_ring_aromatic`: a ring atom with an exocyclic double bond to oxygen keeps the pi
   electrons other than the double bond, so pyridine N-oxide in the hypervalent form
   (`O=n1ccccc1`) is aromatic.
