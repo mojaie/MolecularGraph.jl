@@ -22,20 +22,26 @@ atoms (e.g. `[nH]`).
 Double bonds and single bonds will be assigned to aromatic rings which consist of SMILES
 lowercase atoms (called Kekulization). Kekulization is necessary for the valence and
 implicit hydrogens of a molecule parsed from SMILES to be correctly evaluated.
-Double bonds are assigned to the aromatic atoms that have a ``\\pi`` bond
-(see `MolecularGraph.aromatic_pi_bond`), except a pyridine-like `n` that is a pyrrole-like atom
-with an implicit hydrogen in an odd-membered aromatic system (e.g. `n1cccc1`).
+An aromatic atom without double bonds gets a double bond if the total bond order (aromatic
+bonds as single bonds) is lower than the typical valence (e.g. `c`, `n`, `[nH+]` and `[o+]`,
+but not `[nH]`, `o`, `[se]` and `[cH-]`). An aromatic atom with a double bond (e.g. `c=O`
+and `[n+](=c)`) gets no more double bonds, except hypervalent atoms (e.g. `n(=O)` of
+pyridine N-oxide). A pyridine-like `n` in an odd-membered aromatic system is a pyrrole-like
+atom with an implicit hydrogen (e.g. `n1cccc1`).
 """
 function kekulize(mol::SimpleMolGraph{T}) where T
     # "raw" bond orders
     bondorder = [bond_order(mol[e]) for e in edges(mol)]
     ernk = edge_rank(mol)
-    arom = BitVector(has_isaromatic(typeof(mol[i])) && isaromatic(mol[i]) for i in vertices(mol))
+    arom = atom_isaromatic(mol)
     sym_arr = atom_symbol(mol)
     chg_arr = Int[atom_charge(mol[i]) for i in vertices(mol)]
     hs_arr = Int[has_hydrogens(typeof(mol[i])) ? mol[i].hydrogens : 0 for i in vertices(mol)]
-    bondsum = apparent_valence(mol.graph, bondorder) + hs_arr
-    pi_arr = aromatic_pi_bond(edges(mol), bondorder, arom, sym_arr, chg_arr, hs_arr)
+    bondsum = apparent_valence(mol.graph, bondorder)
+    hasdouble = falses(nv(mol))
+    for (e, o) in zip(edges(mol), bondorder)
+        o == 2 && (hasdouble[src(e)] = hasdouble[dst(e)] = true)
+    end
     # lone pair in p-orbital, pyrrole-like aromatic atom
     pyrrole_like = T[]
     for ring in fused_rings(mol.graph)
@@ -50,9 +56,11 @@ function kekulize(mol::SimpleMolGraph{T}) where T
             sym = sym_arr[i]
             deg = degree(mol.graph, i)
             deg in (2, 3) || error("Kekulization failed: invalid aromatic $(sym) with valence $(deg)")
-            if pi_arr[i] == 0
+            # no pi bond: double bond (except hypervalent) or enough bonds without double bonds
+            fv = formal_valence(sym, chg_arr[i])
+            if hasdouble[i] ? bondsum[i] <= fv : bondsum[i] + hs_arr[i] >= fv
                 # explicit pyrrole-like [nH] (three single bonds including the hydrogen)
-                if (sym in (:N, :P, :As) && chg_arr[i] == 0 && deg + hs_arr[i] == 3 && bondsum[i] == 3
+                if (sym in (:N, :P, :As) && chg_arr[i] == 0 && deg + hs_arr[i] == 3 && !hasdouble[i]
                         && (hs_arr[i] == 1 || any(sym_arr[nbr] === :H for nbr in neighbors(mol, i))))
                     push!(pyrrole_like, i)
                 end

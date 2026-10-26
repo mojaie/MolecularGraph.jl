@@ -15,16 +15,19 @@
   The valence of aromatic bracket atoms is also determined from the SMILES (the same as
   `apparent_valence` before kekulization, see below), e.g. `c1cc[c]cc1` is a phenyl radical
   (C6H5; before, C6H6).
-- `apparent_valence` of aromatic atoms before kekulization counts aromatic bonds as single
-  bonds plus one pi bond if the atom would get a double bond by kekulization (e.g. 3 for
-  benzene `c` and pyrrole `[nH]`; before, 2 and 3), so that molecules that are not kekulized
-  have the correct valence and implicit hydrogens. `kekulize!` overwrites `apparent_valence`
-  with the kekulized bond orders (e.g. 2 for the `n` of `n1cccc1`), and `smiles_on_update!`
-  and `cdxml_on_update!` no longer call `apparent_valence!` after `kekulize!`
-  (`apparent_valence!` after `kekulize!` in custom callbacks still works).
-- `kekulize` assigns double bonds to the aromatic atoms whose total bond order is lower than
-  the typical valence (the same rule as `apparent_valence`), so `[se]1cccc1`, `[cH-]1cccc1`,
-  `[cH+]1cccccc1` and `[o+]1ccccc1` can be kekulized (failed before).
+- `apparent_valence` of aromatic atoms (`isaromatic` of the atom type) before kekulization
+  counts aromatic bonds as single bonds plus one pi bond (e.g. 3 for benzene `c`; before, 2),
+  so that molecules that are not kekulized have the correct implicit hydrogens (the valence
+  of atoms without pi bonds such as `[nH]` and `o` is overestimated until kekulization).
+  `kekulize!` overwrites `apparent_valence` with the kekulized bond orders, and
+  `smiles_on_update!` and `cdxml_on_update!` no longer call `apparent_valence!` after
+  `kekulize!` (custom callbacks should not call it after `kekulize!`).
+- `kekulize` assigns double bonds to the aromatic atoms without double bonds whose total bond
+  order is lower than the typical valence, so `[se]1cccc1`, `[cH-]1cccc1`, `[cH+]1cccccc1`
+  and `[o+]1ccccc1` can be kekulized (failed before).
+- `is_ring_aromatic`: a ring atom with an exocyclic double bond to oxygen keeps the pi
+  electrons other than the double bond, so pyridine N-oxide in the hypervalent form
+  (`O=n1ccccc1`) is aromatic.
 - Molfile writer: `vvv` is written for atoms with the specified valence (`atom_valence`) and
   atoms whose `valence` descriptor is not inferred from the element and bonds (e.g. set by
   `set_descriptor!`). Molfiles of non-organic atoms are written back as read (`vvv` 0 or 15).

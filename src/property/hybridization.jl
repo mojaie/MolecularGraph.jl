@@ -130,7 +130,7 @@ function is_ring_aromatic(
                 suspended = true  # depends on adjacent rings
                 push!(ring_sus, r)
             elseif symbol_arr[outnbr] === :O  # carbonyl
-                huckel_arr[r] = 0
+                huckel_arr[r] -= 1  # pi electron of the double bond (e.g. 0 for c=O, 1 for n=O)
             else
                 broken = true  # can not be aromatic
                 break

@@ -99,13 +99,13 @@ end
     nokek(m) = (MolecularGraph.default_atom_charge!(m); MolecularGraph.default_bond_order!(m);
         apparent_valence!(m); valence!(m))
     indole = smilestomol("c1ccc2[nH]ccc2c1"; on_update=nokek)
-    @test apparent_valence(indole) == [3, 3, 3, 4, 3, 1, 3, 3, 4, 3]
+    @test apparent_valence(indole) == [3, 3, 3, 4, 4, 1, 3, 3, 4, 3]  # [nH]: 4
     @test implicit_hydrogens(indole) == [1, 1, 1, 0, 0, 0, 1, 1, 0, 1]
     @test apparent_valence(smilestomol("n1cccc1"; on_update=nokek)) == [3, 3, 3, 3, 3]
-    @test apparent_valence(smilestomol("O=c1cccc[nH]1"; on_update=nokek)) == [2, 4, 3, 3, 3, 3, 3, 1]
+    @test apparent_valence(smilestomol("O=c1cccc[nH]1"; on_update=nokek)) == [2, 5, 3, 3, 3, 3, 4, 1]
     @test apparent_valence(smilestomol("c1ccn(=O)cc1"; on_update=nokek))[4] == 5
-    # not changed after kekulization
-    @test apparent_valence(smilestomol("c1ccc2[nH]ccc2c1")) == apparent_valence(indole)
+    # overwritten by kekulization
+    @test apparent_valence(smilestomol("c1ccc2[nH]ccc2c1")) == [3, 3, 3, 4, 3, 1, 3, 3, 4, 3]
     aromnoval = smilestomol("c1cc[cH]cc1.c1cc[nH]c1.c1cc[n]cc1.c1cc[nH+]cc1.c1cc[o]c1.C[n]1cccc1.O=[c]1cccc[nH]1")
     @test all(==(-1), atom_valence(aromnoval))
     @test molecular_formula(aromnoval) == "C34H38N5O2"

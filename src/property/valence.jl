@@ -125,24 +125,23 @@ default_bond_order!(mol::SimpleMolGraph) = set_descriptor!(
 Return a vector of size ``n`` representing the number of total bond order
 incident to 1 to ``n``th atoms of the given molecule.
 
-Before kekulization, an aromatic atom (e.g. SMILES lowercase atoms) counts its aromatic bonds
-as single bonds plus one ``\\pi`` bond if it would have a double bond in the aromatic ring
-(see `MolecularGraph.aromatic_pi_bond`), e.g. 3 for `c` and `n` of pyridine and `[nH]` of pyrrole.
-[`kekulize!`](@ref) overwrites it with the total order of the kekulized bonds (e.g. 2 for
-the `n` of `n1cccc1`, which is a pyrrole-like atom with an implicit hydrogen).
+Before kekulization, an aromatic atom (`isaromatic` of the atom type, e.g. SMILES lowercase
+atoms) counts its aromatic bonds as single bonds plus one ``\\pi`` bond, e.g. 3 for `c` and
+`n` of pyridine (this overestimates `[nH]` and `o`, which have no ``\\pi`` bond).
+[`kekulize!`](@ref) overwrites it with the total order of the kekulized bonds.
 """
 function apparent_valence(mol::SimpleMolGraph)
     if has_descriptor(mol, Val(:apparent_valence))
         return get_descriptor(mol, Val(:apparent_valence))
     end
-    return apparent_valence(mol.graph, bond_order(mol), aromatic_pi_bond(mol))
+    return apparent_valence(mol.graph, bond_order(mol), atom_isaromatic(mol))
 end
 
 apparent_valence(g::SimpleGraph, order_arr::Vector{Int}
     ) = bond_order_sum(nv(g), edges(g), order_arr)
 
-apparent_valence(g::SimpleGraph, order_arr::Vector{Int}, pi_arr::Vector{Int}
-    ) = apparent_valence(g, order_arr) + pi_arr
+apparent_valence(g::SimpleGraph, order_arr::Vector{Int}, arom::BitVector
+    ) = apparent_valence(g, order_arr) + arom
 
 """
     apparent_valence!(mol::SimpleMolGraph)
@@ -151,48 +150,11 @@ Calculate [`apparent_valence`](@ref) and store the result in the descriptors of 
 """
 apparent_valence!(mol::SimpleMolGraph) = set_descriptor!(
     mol, Val(:apparent_valence),
-    apparent_valence(mol.graph, bond_order(mol), aromatic_pi_bond(mol)))
+    apparent_valence(mol.graph, bond_order(mol), atom_isaromatic(mol)))
 
-
-"""
-    aromatic_pi_bond(mol::SimpleMolGraph) -> Vector{Int}
-    aromatic_pi_bond(
-        symbol::Symbol, charge::Int, bondsum::Int, exodouble::Bool, arodouble::Bool) -> Int
-
-Return the number of ``\\pi`` bonds (0 or 1) that aromatic atoms would get in the
-aromatic ring by kekulization (0 for non-aromatic atoms).
-
-`bondsum` is the total bond order (aromatic bonds as single bonds, including hydrogen
-nodes), `exodouble` is whether the atom has a double bond to a non-aromatic atom (e.g. `c=O`)
-and `arodouble` is whether the atom already has a double bond to an aromatic atom (e.g.
-`[n+](=c)`, no more ``\\pi`` bonds). An aromatic atom has a ``\\pi`` bond if `bondsum` is
-lower than the typical valence (e.g. `c`, `n`, `[nH+]` and `[o+]`, but not `[nH]`, `o`,
-`[se]` and `[cH-]`). Hypervalent atoms with a double bond other than carbon (e.g. `n(=O)` of
-pyridine N-oxide) also have a ``\\pi`` bond.
-
-The molecule method returns zeros if the bonds between aromatic atoms have been changed by
-preprocessing (e.g. [`kekulize!`](@ref)). Pyrrole-like atoms with an implicit hydrogen
-(e.g. the `n` of `n1cccc1`) cannot be determined locally, so they are determined by
-kekulization.
-"""
-function aromatic_pi_bond(
-        sym::Symbol, charge::Int, bondsum::Int, exodouble::Bool, arodouble::Bool)
-    arodouble && return 0
-    exodouble && return sym === :C ? 0 : 1  # c=O, n=O
-    return bondsum < formal_valence(sym, charge) ? 1 : 0
-end
-
-function aromatic_pi_bond(mol::SimpleMolGraph)
-    arom = BitVector(has_isaromatic(typeof(mol[i])) && isaromatic(mol[i]) for i in vertices(mol))
-    any(arom) || return zeros(Int, nv(mol))
-    order_arr = bond_order(mol)
-    for (k, e) in enumerate(edges(mol))  # already kekulized
-        arom[src(e)] && arom[dst(e)] && order_arr[k] != bond_order(mol[e]) && return zeros(Int, nv(mol))
-    end
-    hs_arr = Int[has_hydrogens(typeof(mol[i])) ? mol[i].hydrogens : 0 for i in vertices(mol)]
-    return aromatic_pi_bond(
-        edges(mol), order_arr, arom, atom_symbol(mol), atom_charge(mol), hs_arr)
-end
+# `isaromatic` of the atoms (false if the atom type does not have it)
+atom_isaromatic(mol::SimpleMolGraph) = BitVector(
+    has_isaromatic(typeof(mol[i])) && isaromatic(mol[i]) for i in vertices(mol))
 
 # Edge list versions (also used by the parsers before the graph is constructed)
 
@@ -204,24 +166,6 @@ function bond_order_sum(n::Int, edges, order_arr::Vector{Int})
         arr[dst(e)] += o
     end
     return arr
-end
-
-# `hs_arr`: hydrogens that are not graph nodes (e.g. `HydrogenatedAtom`)
-function aromatic_pi_bond(
-        edges, order_arr::Vector{Int}, arom::BitVector,
-        symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, hs_arr::Vector{Int})
-    n = length(arom)
-    bondsum = bond_order_sum(n, edges, order_arr) + hs_arr
-    exodouble = falses(n)
-    arodouble = falses(n)
-    for (e, o) in zip(edges, order_arr)
-        o == 2 || continue
-        u, v = src(e), dst(e)
-        dbl = arom[u] && arom[v] ? arodouble : exodouble
-        dbl[u] = dbl[v] = true
-    end
-    return Int[arom[i] ? aromatic_pi_bond(
-        symbol_arr[i], charge_arr[i], bondsum[i], exodouble[i], arodouble[i]) : 0 for i in 1:n]
 end
 
 
@@ -250,8 +194,7 @@ function hydrogen_count_valence(
         edges, order_arr::Vector{Int}, arom::BitVector,
         symbol_arr::Vector{Symbol}, charge_arr::Vector{Int}, hcount_arr::Vector{Int})
     n = length(arom)
-    bondsum = bond_order_sum(n, edges, order_arr) + aromatic_pi_bond(
-        edges, order_arr, arom, symbol_arr, charge_arr, zeros(Int, n))
+    bondsum = bond_order_sum(n, edges, order_arr) + arom
     return Int[hcount_arr[i] == -1 ? -1 : hydrogen_count_valence(
         symbol_arr[i], charge_arr[i], bondsum[i], hcount_arr[i]) for i in 1:n]
 end

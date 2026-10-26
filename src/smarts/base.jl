@@ -155,9 +155,8 @@ smilestomol(smiles::AbstractString; kwargs...
 
 # Bracket atoms have no implicit hydrogens (e.g. [CH2] is a carbene, [CH3] is a methyl radical).
 # If the total bond order (including hydrogens) is lower than the typical valence, it is set
-# to the atom as the specified valence. The total bond order of aromatic atoms is the same
-# as `apparent_valence` before kekulization (aromatic bonds as single bonds plus a pi bond,
-# see `aromatic_pi_bond`), e.g. [c] is an aryl radical with valence 3.
+# to the atom as the specified valence. Aromatic atoms count one more bond (pi bond, the same
+# as `apparent_valence` before kekulization), e.g. [c] is an aryl radical with valence 3.
 function bracket_valence!(state::SMILESParser{T,V,E}) where {T,V,E}
     isempty(state.bracket) && return
     # hydrogens are graph nodes (hydrogen count 0 for bracket atoms)

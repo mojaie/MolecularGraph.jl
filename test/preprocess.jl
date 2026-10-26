@@ -48,6 +48,9 @@
 
     pyridineoxide = smilestomol("[n+]1([O-])ccccc1")
     @test sum(bond_order(pyridineoxide) .== 2) == 3
+    pyridineoxide2 = smilestomol("n1(=O)ccccc1")  # hypervalent
+    @test sum(bond_order(pyridineoxide2) .== 2) == 4
+    @test is_ring_aromatic(pyridineoxide2) == [true]
 
     pyridone = smilestomol("n1c(=O)cccc1")  # hydrogen on n can be inferred
     @test sum(bond_order(pyridone) .== 2) == 3
