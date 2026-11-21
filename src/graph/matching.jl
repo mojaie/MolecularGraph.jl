@@ -67,15 +67,15 @@ function findaugpath(g::SimpleGraph{T}, matching::Set{Edge{T}}) where T<:Integer
             if pos == 1 || pos == length(plift)
                 nbrpos = pos == 1 ? 2 : length(plift) - 1
                 bdst = bpath[something(findfirst(x -> has_edge(g, plift[nbrpos], x), bpath))]
-                if bsrc == bdst
-                    plift[pos] = bsrc
-                    @debug "      P: $(plift) (blossom root is exposed)"
-                    return plift
-                end
             else
                 inlet = bpath[something(findfirst(x -> has_edge(g, plift[pos-1], x), bpath))]
                 outlet = bpath[something(findfirst(x -> has_edge(g, plift[pos+1], x), bpath))]
                 bdst = inlet == bsrc ? outlet : inlet
+            end
+            if bsrc == bdst  # the path passes through only the blossom root
+                plift[pos] = bsrc
+                @debug "      P: $(plift) (blossom root only)"
+                return plift
             end
             bpex1 = [bsrc]
             for i in vcat(bp1, reverse(bp2))

@@ -93,13 +93,13 @@ function any_path_constraints(::Type{U}, g::SimpleGraph{T};
             i < j || continue
             dists = noweight_all_distances(g, i, j)
             if 1 in dists  # has edge
-                dists = one(U)
-            else
-                dists = sum(2^(d-1) for d in filter(x -> x <= diameter, dists))
+                bits = one(U)
+            else  # zero if no path (disconnected)
+                bits = sum((U(2)^(d-1) for d in dists if d <= diameter); init=zero(U))
             end
-            dists == 0 && continue
+            bits == 0 && continue
             push!(pairs, (i, j))
-            push!(arr, dists)
+            push!(arr, bits)
         end
     end
     return pairs, arr

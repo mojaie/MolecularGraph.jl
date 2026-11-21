@@ -66,6 +66,15 @@ using MolecularGraph:
 
 using MolecularGraph: smiles
 
+using MolecularGraph:
+    bfs_path, unweighted_shortestpath, noweight_all_distances,
+    disjoint_union!,
+    circuitrank, cotree_edges, findmincycle,
+    connfuncgen,
+    connection_constraints, shortest_path_constraints, any_path_constraints,
+    lgvmatch, lgematch, lgvmatchvecgen, lgematchvecgen,
+    delta_edges, y_edges, delta_y_test, delta_y_correction!
+
 using OrderedCollections: OrderedDict
 using Test
 
@@ -76,11 +85,13 @@ include("./util/math.jl")
 include("./util/sat.jl")
 
 include("./graph/operators.jl")
+include("./graph/traversals.jl")
 include("./graph/cycle.jl")
 include("./graph/bipartite.jl")
 include("./graph/matching.jl")
 include("./graph/planarity.jl")
 include("./graph/clique.jl")
+include("./graph/isomorphism_edge.jl")
 include("./graph/isomorphism_vf2.jl")
 include("./graph/isomorphism_clique.jl")
 

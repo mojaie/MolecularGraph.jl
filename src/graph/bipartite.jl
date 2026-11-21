@@ -25,7 +25,7 @@ function MaxCardMatchState(u, v, efunc::Function)
         adj[i] = Set{Int}()
         for j in v
             if efunc(i, j)
-                push!(adj[u], j)
+                push!(adj[i], j)
             end
         end
     end
