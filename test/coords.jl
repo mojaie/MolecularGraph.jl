@@ -60,11 +60,10 @@ end
     mol = smilestomol(raw"C[C@H](N)C(=O)N[C@@H](Cc1ccc(O)cc1)C(=O)O")
     stereocenter_from_smiles!(mol)
     ref = coordgen(mol)
-    rss() = parse(Int, strip(read(`ps -o rss= -p $(getpid())`, String))) / 1024  # MB
     for _ in 1:500 coordgen(mol) end  # warm up
     GC.gc(true)
-    r0 = rss()
+    r0 = Sys.maxrss() / 2^20  # peak RSS in MB, portable
     @test all(coordgen(mol) == ref for _ in 1:3000)
     GC.gc(true)
-    @test rss() - r0 < 40  # leaking would add about 90 MB here
+    @test Sys.maxrss() / 2^20 - r0 < 40  # leaking would add about 90 MB here
 end
