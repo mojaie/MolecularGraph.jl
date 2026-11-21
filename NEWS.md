@@ -1,12 +1,13 @@
 # NEWS
 
-## Unreleased
+## v1.1.1
 
-- Fixes
-  - `coordgen` released none of its native memory: every call left the coordgenlibs sketcher
-    with its atoms, bonds, fragments and interaction lists allocated (about 30 kB for a
-    steroid-sized molecule, never reclaimed by the Julia GC). It now frees the sketcher once the
-    results are read. This requires `coordgenlibs_jll` 3.0.3.
+- `coordgen` released none of its native memory: every call left the coordgenlibs sketcher
+  with its atoms, bonds, fragments and interaction lists allocated (about 30 kB for a
+  steroid-sized molecule, never reclaimed by the Julia GC). It now frees the sketcher once the
+  results are read. This requires `coordgenlibs_jll` 3.0.3.
+- Added tests
+- Updated Dockerfile example
 
 ## v1.1.0
 
