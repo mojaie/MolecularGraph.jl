@@ -214,7 +214,9 @@ function coordgen(
     end
 
     # Optimize
-    @ccall libcoordgen.runGenerateCoordinates(minmol::Ptr{Cvoid})::Cvoid
+    # From here on the minimizer owns the atoms, bonds and the molecule itself. It is freed
+    # below, once the results are read, otherwise the native sketcher leaks.
+    minimizer = @ccall libcoordgen.runGenerateCoordinates(minmol::Ptr{Cvoid})::Ptr{Cvoid}
 
     # Output
     coords = Vector{Point2d}(undef, nv(g))
@@ -240,6 +242,7 @@ function coordgen(
             styles[i] = isrev ? :revdown : :down
         end
     end
+    @ccall libcoordgen.freeSketcherMinimizer(minimizer::Ptr{Cvoid})::Cvoid
     # TODO: keep wave bond in SDFile
     return Coords2d(coords), Draw2dBondStyle(styles)
 end

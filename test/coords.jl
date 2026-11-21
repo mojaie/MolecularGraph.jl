@@ -52,3 +52,19 @@ end
     # thiostrepton = smilestomol(raw"C[C@@H](O)[C@@](C)(O)[C@@H](C2=NC6=CS2)NC(C1CSC(/C(NC([C@@H](NC(C3=CS[C@]([C@]4(NC([C@@H](NC(C(NC([C@H](C)NC%10=O)=O)=C)=O)C)=O)C(C5=CSC([C@H]([C@@H](C)OC(C8=CC([C@H](C)O)=C(C=CC(N[C@]([H])%10[C@H](CC)C)[C@@H]9O)C9=N8)=O)NC6=O)=N5)N=C(C7=NC(C(NC(C(NC(C(N)=O)=C)=O)=C)=O)=CS7)CC4)=N3)=O)[C@@H](C)O)=O)=C/C)=N1)=O")
     # @test get_prop(thiostrepton, :stereobond)[Edge(21 => 123)] == (20, 124, false)
 end
+
+
+@testset "coords.free" begin
+    # `coordgen` must release the native sketcher it creates. Results stay the same over many
+    # calls, and the process does not grow by the roughly 30 kB per call it used to leak.
+    mol = smilestomol(raw"C[C@H](N)C(=O)N[C@@H](Cc1ccc(O)cc1)C(=O)O")
+    stereocenter_from_smiles!(mol)
+    ref = coordgen(mol)
+    rss() = parse(Int, strip(read(`ps -o rss= -p $(getpid())`, String))) / 1024  # MB
+    for _ in 1:500 coordgen(mol) end  # warm up
+    GC.gc(true)
+    r0 = rss()
+    @test all(coordgen(mol) == ref for _ in 1:3000)
+    GC.gc(true)
+    @test rss() - r0 < 40  # leaking would add about 90 MB here
+end
